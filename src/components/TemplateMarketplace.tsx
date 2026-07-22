@@ -1,0 +1,229 @@
+import React, { useMemo, useState } from "react";
+import { ArrowRight, Eye, LayoutTemplate, Search, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import {
+  CONVERSION_GOALS,
+  NICHE_TEMPLATES,
+  getTemplateCommercialMetadata,
+} from "../constants/nicheTemplates";
+import {
+  TEMPLATE_CATEGORIES,
+  TEMPLATE_INDUSTRIES,
+  TEMPLATE_PLAN_ACCESS,
+} from "../constants/templateTaxonomy";
+import { Card, CardContent } from "./ui/card";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+
+const allOption = "all";
+
+const createFallbackPreview = (title: string, industry?: string) => {
+  const safeTitle = title || "Website Template";
+  const safeIndustry = industry || "Bennie Studio";
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="900" height="620" viewBox="0 0 900 620">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#020617"/>
+          <stop offset="0.52" stop-color="#111827"/>
+          <stop offset="1" stop-color="#4338ca"/>
+        </linearGradient>
+        <radialGradient id="glow" cx="26%" cy="20%" r="70%">
+          <stop offset="0" stop-color="#7c3aed" stop-opacity="0.55"/>
+          <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="900" height="620" rx="36" fill="url(#bg)"/>
+      <rect width="900" height="620" rx="36" fill="url(#glow)"/>
+      <rect x="56" y="56" width="180" height="34" rx="17" fill="#ffffff" opacity="0.14"/>
+      <rect x="56" y="122" width="440" height="28" rx="14" fill="#ffffff" opacity="0.24"/>
+      <rect x="56" y="170" width="610" height="64" rx="16" fill="#ffffff" opacity="0.1"/>
+      <rect x="56" y="274" width="220" height="132" rx="28" fill="#ffffff" opacity="0.13"/>
+      <rect x="306" y="274" width="220" height="132" rx="28" fill="#ffffff" opacity="0.13"/>
+      <rect x="556" y="274" width="220" height="132" rx="28" fill="#ffffff" opacity="0.13"/>
+      <text x="56" y="505" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="800">${safeTitle.slice(0, 28)}</text>
+      <text x="56" y="550" fill="#c7d2fe" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="5">${safeIndustry.toUpperCase().slice(0, 34)}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
+
+export function TemplateMarketplace() {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState(allOption);
+  const [industry, setIndustry] = useState(allOption);
+  const [plan, setPlan] = useState(allOption);
+  const [goal, setGoal] = useState(allOption);
+
+  const templates = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return Object.values(NICHE_TEMPLATES).filter((template) => {
+      const templateRecord = template as any;
+      const meta = getTemplateCommercialMetadata(template);
+      const searchable = [
+        meta.customerName,
+        meta.adminName,
+        meta.industry,
+        meta.businessCategory,
+        meta.conversionGoal,
+        meta.recommendedPlan,
+        template.category,
+        templateRecord.page_type,
+        templateRecord.pageType,
+        templateRecord.plan_access?.join(" "),
+        templateRecord.filter_tags?.join(" "),
+        templateRecord.recommended_use_case,
+        templateRecord.included_sections?.join(" "),
+        meta.ctaStrategy?.join(" "),
+        meta.leadCaptureType,
+        template.name,
+        template.description,
+        template.bestFor,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
+      const templateCategory = template.category || templateRecord.config?.commercial?.category;
+      const templateIndustry = meta.industry || templateRecord.industry;
+      const planAccess = templateRecord.plan_access || templateRecord.config?.commercial?.planAccess || [meta.recommendedPlan || "Business"];
+      const matchesCategory = category === allOption || templateCategory === category;
+      const matchesIndustry = industry === allOption || templateIndustry === industry;
+      const matchesPlan = plan === allOption || meta.recommendedPlan === plan || planAccess.includes(plan);
+      const matchesGoal = goal === allOption || meta.conversionGoal === goal;
+      return (
+        matchesQuery &&
+        matchesCategory &&
+        matchesIndustry &&
+        matchesPlan &&
+        matchesGoal
+      );
+    });
+  }, [category, goal, industry, plan, query]);
+
+  const openPreview = (templateId: string) => {
+    window.open(`/preview/template/${templateId}`, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-3xl font-black uppercase tracking-tight text-slate-900 md:text-4xl">
+            Template Library
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm font-semibold leading-relaxed text-slate-500">
+            Choose one approved website blueprint by goal, category, and industry. Each design includes editable sections,
+            CTA logic, preview support, and SEO-ready structure.
+          </p>
+        </div>
+        <Button onClick={() => navigate("/dashboard/website/regenerate")} className="gap-2 rounded-xl bg-indigo-600 text-white">
+          <Sparkles className="h-4 w-4" />
+          Generate Website
+        </Button>
+      </div>
+
+      <Card className="rounded-3xl border-slate-100 bg-white/90">
+        <CardContent className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-4">
+          <label className="relative md:col-span-2 xl:col-span-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search niche, CTA, service, or template..."
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold outline-none focus:border-indigo-500"
+            />
+          </label>
+          <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold">
+            <option value={allOption}>Category</option>
+            {TEMPLATE_CATEGORIES.map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
+          <select value={industry} onChange={(event) => setIndustry(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold">
+            <option value={allOption}>Industry</option>
+            {TEMPLATE_INDUSTRIES.map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
+          <select value={plan} onChange={(event) => setPlan(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold">
+            <option value={allOption}>Plan</option>
+            {TEMPLATE_PLAN_ACCESS.map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
+          <select value={goal} onChange={(event) => setGoal(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold">
+            <option value={allOption}>Goal</option>
+            {CONVERSION_GOALS.map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        {templates.map((template) => {
+          const templateRecord = template as any;
+          const meta = getTemplateCommercialMetadata(template);
+          const previewImage =
+            templateRecord.thumbnail ||
+            templateRecord.preview_image ||
+            templateRecord.previewImage ||
+            templateRecord.image ||
+            templateRecord.config?.commercial?.previewImage;
+          const fallbackPreview = createFallbackPreview(meta.customerName || template.name, meta.industry || template.category);
+          return (
+            <Card key={template.id} className="overflow-hidden rounded-3xl border-slate-100 shadow-sm">
+              <div className="grid min-h-full md:grid-cols-[280px_1fr]">
+              <div className="relative flex min-h-56 items-center justify-center overflow-hidden bg-slate-950 text-white md:min-h-full">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.45),transparent_34%),linear-gradient(135deg,#020617,#111827)]" />
+                <img
+                  src={previewImage || fallbackPreview}
+                  alt={`${meta.customerName || template.name} preview`}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.src = fallbackPreview;
+                  }}
+                />
+                <LayoutTemplate className="relative h-10 w-10 text-indigo-200 opacity-0" aria-hidden="true" />
+                <div className="absolute left-4 top-4 flex gap-2">
+                  {(templateRecord.premium_status === "premium" || template.isPremium || meta.isPremium) && <Badge className="border-none bg-amber-400 text-amber-950">Premium</Badge>}
+                  {meta.localSeoReadiness && <Badge className="border-none bg-emerald-500 text-white">SEO Ready</Badge>}
+                </div>
+              </div>
+              <CardContent className="flex min-w-0 flex-col p-6">
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <Badge className="border-none bg-indigo-50 text-indigo-700">{meta.industry || template.category}</Badge>
+                  <Badge variant="outline" className="border-slate-200 text-slate-600">{meta.conversionGoal}</Badge>
+                </div>
+                <h3 className="text-xl font-black leading-tight text-slate-900">{meta.customerName || template.name}</h3>
+                <p className="mt-2 text-sm font-medium leading-relaxed text-slate-500">{template.description}</p>
+                <div className="mt-auto flex gap-2 pt-6">
+                  <Button variant="outline" className="flex-1 gap-2 rounded-xl" onClick={() => openPreview(template.id)}>
+                    <Eye className="h-4 w-4" />
+                    Preview
+                  </Button>
+                  <Button className="flex-1 gap-2 rounded-xl bg-slate-950 text-white" onClick={() => navigate("/dashboard/website/regenerate")}>
+                    Use
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {templates.length === 0 && (
+        <Card className="rounded-3xl border-dashed p-10 text-center">
+          <p className="text-sm font-bold text-slate-500">No templates match these filters.</p>
+        </Card>
+      )}
+    </div>
+  );
+}

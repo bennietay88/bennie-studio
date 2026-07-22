@@ -1,0 +1,417 @@
+import React, { useState, useEffect } from "react";
+import { BrainCircuit, Cpu, Zap, Activity, Shield, AlertTriangle, Loader2, CheckCircle2, ChevronRight, Search, Globe, Target, Download, FileText, X } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../ui/dialog";
+import { useNavigate } from "react-router-dom";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { supabase } from "../../lib/supabase";
+import { toast } from "sonner";
+import { format } from "date-fns";
+
+export function NeuralAuditor() {
+  const navigate = useNavigate();
+  const [url, setUrl] = useState("");
+  const [auditing, setAuditing] = useState(false);
+  const [auditStep, setAuditStep] = useState(0);
+  const [recentAudits, setRecentAudits] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedAudit, setSelectedAudit] = useState<any>(null);
+  const [showReport, setShowReport] = useState(false);
+
+  useEffect(() => {
+    fetchAudits();
+  }, []);
+
+  const fetchAudits = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("audit_reports")
+        .select(`
+          *,
+          prospect:prospects(*)
+        `)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      setRecentAudits(data || []);
+    } catch (error) {
+      console.error("Error fetching audits:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runAudit = async () => {
+    if (!url) {
+      toast.error("Please enter a domain URL");
+      return;
+    }
+
+    try {
+      setAuditing(true);
+      setAuditStep(1);
+      
+      setAuditStep(2);
+
+      const domain = url.replace(/^https?:\/\//, "").split("/")[0];
+      
+      // 1. Check if prospect exists or create a temporary one
+      let prospectId;
+      const { data: existingProspect } = await supabase
+        .from("prospects")
+        .select("id")
+        .eq("domain", domain)
+        .maybeSingle();
+
+      if (existingProspect) {
+        prospectId = existingProspect.id;
+      } else {
+        const { data: newProspect, error: pError } = await supabase
+          .from("prospects")
+          .insert([{ name: domain.split(".")[0], domain: domain, website_status: "unknown" }])
+          .select()
+          .single();
+        
+        if (pError) throw pError;
+        prospectId = newProspect.id;
+      }
+
+      setAuditStep(3);
+      const auditResponse = await fetch("/api/public/website-audit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url: /^https?:\/\//i.test(url) ? url : `https://${url}` }),
+      });
+      const auditPayload = await auditResponse.json().catch(() => ({}));
+      if (!auditResponse.ok || !auditPayload?.report) throw new Error(auditPayload?.error || "Website analysis failed");
+      const report = auditPayload.report;
+      const score = report.overallScore;
+      const reportData = {
+        ...report,
+        metrics: report.categoryScores,
+        vulnerabilities: report.topProblems.map((problem: any) => problem.label),
+      };
+      setAuditStep(4);
+
+      // 3. Save report
+      const { error: rError } = await supabase
+        .from("audit_reports")
+        .insert([{
+          prospect_id: prospectId,
+          score,
+          report_data: reportData
+        }]);
+
+      if (rError) throw rError;
+
+      // 4. Update prospect
+      await supabase
+        .from("prospects")
+        .update({
+          audit_score: score,
+          last_audit_at: new Date().toISOString(),
+          website_status: score < 40 ? "weak" : score < 70 ? "average" : "strong"
+        })
+        .eq("id", prospectId);
+
+      setAuditing(false);
+      setAuditStep(0);
+      setUrl("");
+      await fetchAudits();
+      toast.success(`Audit complete. Deterministic score: ${score}/100`);
+
+    } catch (error: any) {
+      console.error("Audit failed:", error);
+      toast.error(error.message || "Audit engine failure");
+      setAuditing(false);
+      setAuditStep(0);
+    }
+  };
+
+  const handleViewReport = (audit: any) => {
+    setSelectedAudit(audit);
+    setShowReport(true);
+  };
+
+  const downloadPDF = () => {
+    if (!selectedAudit?.report_data) return;
+    const blob = new Blob([JSON.stringify(selectedAudit.report_data, null, 2)], { type: "application/json" });
+    const href = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.download = `website-audit-${selectedAudit.prospect?.domain || "report"}.json`;
+    anchor.click();
+    URL.revokeObjectURL(href);
+    toast.success("Audit report downloaded.");
+  };
+
+  const steps = [
+    { title: "Initializing Scan", desc: "Setting up neural listeners..." },
+    { title: "Analyzing DOM", desc: "Identifying structural weaknesses..." },
+    { title: "Checking Performance", desc: "Measuring core web vitals..." },
+    { title: "Evaluating SEO", desc: "Calculating search visibility..." }
+  ];
+
+  return (
+    <div className="space-y-8 pt-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 dark:text-white">
+            Neural <span className="text-indigo-600">Auditor</span>
+          </h1>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Deep-tissue analysis of business infrastructure.</p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={fetchAudits}
+          className="rounded-xl border-slate-200"
+        >
+          Refresh Feed
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 rounded-[2.5rem] shadow-xl shadow-slate-100 border-none ring-1 ring-slate-100 overflow-hidden">
+          <CardHeader className="p-8 border-b border-slate-50 bg-slate-50/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-black italic uppercase italic tracking-tight dark:text-white">Active Audit Engine</CardTitle>
+                <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Scanning local business ecosystems for technical vulnerabilities</CardDescription>
+              </div>
+              {auditing && <Badge className="animate-pulse bg-indigo-600">ENGINE ACTIVE</Badge>}
+            </div>
+          </CardHeader>
+          <CardContent className="p-12 min-h-[400px] flex flex-col items-center justify-center text-center">
+            {auditing ? (
+              <div className="space-y-8 w-full max-w-sm">
+                <div className="relative mx-auto h-32 w-32">
+                   <div className="absolute inset-0 bg-indigo-500/20 blur-3xl animate-pulse rounded-full" />
+                   <div className="relative h-full w-full rounded-[2.5rem] bg-indigo-600 flex items-center justify-center text-white shadow-2xl">
+                      <Cpu className="h-12 w-12 animate-spin duration-[3000ms]" />
+                   </div>
+                </div>
+                <div className="space-y-2">
+                   <h3 className="text-2xl font-black italic uppercase tracking-tight text-slate-900 dark:text-white">{steps[auditStep-1]?.title}</h3>
+                   <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest animate-pulse">{steps[auditStep-1]?.desc}</p>
+                </div>
+                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                   <div 
+                    className="h-full bg-indigo-600 transition-all duration-1000"
+                    style={{ width: `${(auditStep / steps.length) * 100}%` }}
+                   />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-10 w-full">
+                <div className="h-24 w-24 bg-indigo-50 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner">
+                  <BrainCircuit className="h-12 w-12 text-indigo-600" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black italic uppercase tracking-tight text-slate-900 dark:text-white">System Ready</h3>
+                  <p className="text-slate-400 font-bold text-sm max-w-xs mx-auto">Enter a domain or select a prospect to launch a multi-layer neural audit.</p>
+                </div>
+                <div className="flex gap-4 w-full max-w-md mx-auto">
+                  <div className="relative flex-1">
+                    <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder="https://example.com"
+                      className="w-full h-14 pl-12 pr-6 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-bold text-slate-900"
+                    />
+                  </div>
+                  <Button 
+                    onClick={runAudit}
+                    className="h-14 px-10 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] hover:bg-slate-800 transition-all"
+                  >
+                    Audit Site
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="rounded-[2.5rem] border-slate-100 shadow-sm overflow-hidden border-none ring-1 ring-slate-100">
+            <CardHeader className="p-6 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-300">Recent Vulnerabilities</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+               {loading ? (
+                 <div className="p-12 text-center">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto text-slate-300" />
+                 </div>
+               ) : recentAudits.length === 0 ? (
+                 <div className="p-12 text-center text-slate-400 font-bold text-[10px] uppercase">No recent scans</div>
+               ) : (
+                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {recentAudits.map((audit) => (
+                      <div key={audit.id} className="p-5 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all group">
+                         <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-black italic uppercase italic tracking-tight text-slate-900 dark:text-white">
+                              {audit.prospect?.name || 'Unknown'}
+                            </span>
+                            <Badge 
+                              className={`${audit.score < 50 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'} border-none text-[9px] font-black font-mono`}
+                              variant="outline"
+                            >
+                              {audit.score}/100
+                            </Badge>
+                         </div>
+                         <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                              {format(new Date(audit.created_at), "MMM d, HH:mm")}
+                            </span>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 px-2 text-[8px] font-black uppercase tracking-widest hover:text-indigo-600 p-0"
+                              onClick={() => handleViewReport(audit)}
+                            >
+                              View Report
+                            </Button>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+               )}
+            </CardContent>
+            <CardFooter className="p-4 bg-slate-50/50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800">
+               <Button 
+                variant="ghost" 
+                className="w-full text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600"
+                onClick={() => navigate("/admin/prospect_explorer")}
+               >
+                 Explore Audit Database
+               </Button>
+            </CardFooter>
+          </Card>
+
+          <Card className="rounded-[2.5rem] border-slate-100 shadow-sm bg-indigo-600 border-none text-white overflow-hidden relative">
+             <Target className="absolute -right-4 -bottom-4 h-24 w-24 text-white/10" />
+             <CardContent className="p-8 flex flex-col items-center text-center space-y-4">
+                <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
+                  <Activity className="h-6 w-6 text-white" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-lg font-black italic uppercase italic tracking-tight">Outreach Ready</h4>
+                  <p className="text-[10px] font-bold text-indigo-100 leading-relaxed uppercase tracking-widest">
+                    Review prospects with completed deterministic website audits.
+                  </p>
+                </div>
+                <Button 
+                  className="w-full bg-white text-indigo-600 hover:bg-indigo-50 font-black uppercase tracking-widest text-[10px] h-10 rounded-xl"
+                  onClick={() => navigate("/admin/outreach_lab")}
+                >
+                  Review Opportunities
+                </Button>
+             </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Dialog open={showReport} onOpenChange={setShowReport}>
+         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3rem] p-0 border-none bg-white">
+            {selectedAudit && (
+               <div className="flex flex-col h-full">
+                  <div className="bg-slate-900 p-10 text-white relative overflow-hidden">
+                     <BrainCircuit className="absolute -right-10 -bottom-10 h-64 w-64 text-white/5" />
+                     <div className="relative z-10 space-y-6">
+                        <div className="flex justify-between items-start">
+                           <Badge className="bg-indigo-600 font-black px-4 py-1.5 rounded-full text-[10px] tracking-[0.2em] uppercase">NEURAL AUDIT REPORT</Badge>
+                           <Button 
+                             variant="ghost" 
+                             className="text-white/40 hover:text-white"
+                             onClick={() => setShowReport(false)}
+                           >
+                              <X className="h-6 w-6" />
+                           </Button>
+                        </div>
+                        <div className="space-y-2">
+                           <h2 className="text-5xl font-black italic uppercase italic tracking-tighter leading-tight">
+                              {selectedAudit.prospect?.name || selectedAudit.prospect?.domain || "Unknown Prospect"}
+                           </h2>
+                           <div className="flex items-center gap-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                              <span className="flex items-center gap-1.5"><Globe className="h-3 w-3" /> {selectedAudit.prospect?.domain}</span>
+                              <span className="flex items-center gap-1.5"><Activity className="h-3 w-3" /> {format(new Date(selectedAudit.created_at), "MMMM d, yyyy")}</span>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="p-12 space-y-12">
+                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <div className="md:col-span-1 flex flex-col items-center justify-center p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 text-center">
+                           <div className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Composite Score</div>
+                           <div className={`text-6xl font-black italic ${selectedAudit.score < 40 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                              {selectedAudit.score}<span className="text-sm italic font-black text-slate-300">/100</span>
+                           </div>
+                        </div>
+                        <div className="md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+                           {Object.entries(selectedAudit.report_data?.metrics || {}).map(([key, value]: any) => (
+                              <div key={key} className="p-6 bg-slate-50/50 rounded-3xl border border-slate-100/50">
+                                 <div className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-1">{key.replace('_', ' ')}</div>
+                                 <div className="text-xl font-bold text-slate-900">{value}%</div>
+                                 <div className="mt-2 h-1 w-full bg-slate-200 rounded-full overflow-hidden">
+                                    <div 
+                                      className={`h-full ${value < 50 ? 'bg-rose-500' : 'bg-emerald-500'}`} 
+                                      style={{ width: `${value}%` }} 
+                                    />
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+
+                     <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                           <Shield className="h-5 w-5 text-rose-500" />
+                           <h3 className="text-xl font-black italic uppercase italic tracking-tight">Identified Vulnerabilities</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           {(selectedAudit.report_data?.vulnerabilities || []).map((vuln: string, i: number) => (
+                              <div key={i} className="flex items-start gap-4 p-5 bg-rose-50/50 rounded-2xl border border-rose-100/50 group hover:bg-rose-50 transition-all">
+                                 <div className="h-6 w-6 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">
+                                    <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
+                                 </div>
+                                 <span className="text-xs font-bold text-rose-900 uppercase tracking-tight">{vuln}</span>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+
+                     <div className="p-8 bg-indigo-600 rounded-[2.5rem] text-white flex items-center justify-between shadow-2xl shadow-indigo-200">
+                        <div className="flex items-center gap-6">
+                           <div className="h-16 w-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
+                              <Zap className="h-8 w-8 text-white" />
+                           </div>
+                           <div>
+                              <h4 className="text-xl font-black italic uppercase italic tracking-tight">Growth OS recommendation</h4>
+                              <p className="text-indigo-100 font-bold text-xs uppercase tracking-widest">Infrastructure upgrade advised to recapture lost traffic.</p>
+                           </div>
+                        </div>
+                        <Button 
+                          onClick={downloadPDF}
+                          className="bg-white text-indigo-600 hover:bg-indigo-50 px-8 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                        >
+                           <Download className="h-4 w-4 mr-2" />
+                           Download audit data
+                        </Button>
+                     </div>
+                  </div>
+               </div>
+            )}
+         </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(" ");
+}

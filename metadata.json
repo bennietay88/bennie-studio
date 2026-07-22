@@ -1,0 +1,6 @@
+{
+  "name": "Bennie Tay Studio",
+  "description": "BennieTay OS / Studio Pro: A Website-as-a-Service and Website Growth Platform. Launch professional lead-gen websites, capture enquiries, and manage business growth with AI automation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

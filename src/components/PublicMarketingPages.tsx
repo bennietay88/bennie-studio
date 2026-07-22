@@ -1,0 +1,1759 @@
+import React from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+import {
+  ArrowRight,
+  Check,
+  ClipboardCheck,
+  FileSearch,
+  Globe,
+  LayoutTemplate,
+  Mail,
+  MessageCircle,
+  Rocket,
+  Search,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { WAAS_TEMPLATE_PACKS } from "../constants/nicheTemplates";
+import {
+  buildReviewWebsiteStrategy,
+  scoreManualReviewInput,
+} from "../constants/reviewPoweredWaas";
+import { formatUsdRangeForCountry } from "../hooks/useGeoPricing";
+import { trackPinterestLead } from "../lib/pinterestTracking";
+import { trackPublicEvent } from "../lib/publicTracking";
+import { FREE_PREVIEW_LIMITS, PUBLIC_PROMISE, SUBSCRIPTION_DELIVERY_FLOW } from "../constants/salesFlow";
+
+type PublicPageKind =
+  | "templates"
+  | "pricing"
+  | "how-it-works"
+  | "examples"
+  | "website-audit"
+  | "generate-preview"
+  | "clinic-website-design-malaysia"
+  | "renovation-contractor-website-design"
+  | "beauty-salon-website-design"
+  | "tuition-centre-website-design"
+  | "consultant-website-design";
+type PricingMarket = "MY" | "SG" | "GB" | "US";
+
+const pageMeta: Record<PublicPageKind, { title: string; description: string }> = {
+  templates: {
+    title: "Website Templates by Industry | Bennie Studio",
+    description:
+      "Browse focused website templates for clinics, wellness providers, renovation companies, home service businesses, beauty salons, and aesthetic services.",
+  },
+  pricing: {
+    title: "Lead Website Pricing by Location | Bennie Studio",
+    description:
+      "Clear managed lead-generation website pricing shown by visitor location, with custom website pricing for businesses that need full control.",
+  },
+  "how-it-works": {
+    title: "How It Works | Bennie Studio",
+    description:
+      "See how Bennie Studio takes you from signup and business brief to website build, review, launch, and ongoing support.",
+  },
+  examples: {
+    title: "Website Examples and Mockups | Bennie Studio",
+    description:
+      "View sample website directions and mockups for small business websites, landing pages, service websites, and premium custom projects.",
+  },
+  "website-audit": {
+    title: "Free Website Growth Audit | Bennie Studio",
+    description:
+      "Request a free website audit to identify design, mobile, SEO, enquiry, speed, content, and trust issues on your current website.",
+  },
+  "generate-preview": {
+    title: "Generate a Limited Website Preview | Bennie Studio",
+    description:
+      "Paste real reviews and business details to get a limited homepage concept before creating an account or choosing a managed website plan.",
+  },
+  "clinic-website-design-malaysia": {
+    title: "Clinic Website Design Malaysia | Appointment Enquiry Websites",
+    description:
+      "Lead-generation clinic websites for Malaysia clinics that need treatment pages, patient trust, local SEO structure, WhatsApp enquiries, and appointment CTAs.",
+  },
+  "renovation-contractor-website-design": {
+    title: "Renovation Contractor Website Design | Quote Request Websites",
+    description:
+      "Conversion-focused renovation contractor websites with project galleries, quote forms, service areas, before-and-after proof, and WhatsApp enquiries.",
+  },
+  "beauty-salon-website-design": {
+    title: "Beauty Salon Website Design | Booking and Treatment Websites",
+    description:
+      "Beauty salon and spa websites built around treatment enquiries, booking CTAs, service menus, proof, FAQs, and WhatsApp follow-up.",
+  },
+  "tuition-centre-website-design": {
+    title: "Tuition Centre Website Design | Trial Class Enquiry Websites",
+    description:
+      "Tuition centre websites for parent enquiries, trial class bookings, programme pages, teacher trust, results, FAQs, and local search visibility.",
+  },
+  "consultant-website-design": {
+    title: "Consultant Website Design | Authority and Book-Call Websites",
+    description:
+      "Consultant websites that explain your offer, build trust, present services, and convert visitors into consultation calls and qualified enquiries.",
+  },
+};
+
+const navItems = [
+  { label: "Examples", href: "/examples" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "How It Works", href: "/how-it-works" },
+  { label: "Free Audit", href: "/website-audit" },
+  { label: "Generate Preview", href: "/generate-preview" },
+];
+
+const industries = [
+  ["Dental Clinic", "Appointment booking, treatment pages, local SEO, WhatsApp enquiries."],
+  ["Aesthetic Clinic", "Premium service presentation, treatment categories, consultation CTA."],
+  ["Cleaning Service", "Fast quote flow, service areas, reviews, recurring cleaning packages."],
+  ["Renovation Contractor", "Project gallery, quote request, before/after proof, service areas."],
+  ["Consultant", "Authority positioning, services, case studies, book-a-call flow."],
+  ["Law Firm", "Trust-first layout, practice areas, consultation enquiry, FAQ."],
+  ["Real Estate Agent", "Property lead capture, buyer/seller CTAs, local positioning."],
+  ["Restaurant", "Menu preview, reservations, location, promotions, gallery."],
+  ["Fitness Coach", "Program offer, transformation proof, booking and WhatsApp CTA."],
+  ["Salon / Spa", "Treatments, pricing preview, booking CTA, photo-led trust sections."],
+  ["Accounting Firm", "Packages, who-we-help, consultation CTA, compliance-friendly copy."],
+  ["IT Support Company", "Service plans, response promise, support request CTA, B2B trust."],
+];
+
+const pricingMarkets: Record<PricingMarket, { label: string; country: string; note: string }> = {
+  MY: {
+    label: "Malaysia",
+    country: "Malaysia",
+    note: "Prices shown in Malaysian Ringgit for Malaysia-based businesses.",
+  },
+  SG: {
+    label: "Singapore",
+    country: "Singapore",
+    note: "Prices shown in Singapore Dollars for Singapore-based businesses.",
+  },
+  GB: {
+    label: "United Kingdom",
+    country: "UK",
+    note: "Prices shown in GBP for UK businesses.",
+  },
+  US: {
+    label: "United States / Global",
+    country: "Global",
+    note: "Prices shown in USD for international buyers.",
+  },
+};
+
+const countryToPricingMarket = (countryCode?: string): PricingMarket => {
+  const code = (countryCode || "").toUpperCase();
+  if (code === "MY") return "MY";
+  if (code === "SG") return "SG";
+  if (code === "GB" || code === "UK") return "GB";
+  return "US";
+};
+
+const pricingPlans = [
+  {
+    name: "Launch",
+    prices: {
+      MY: "RM199/mo",
+      SG: "SGD 69/mo",
+      GB: "£49/mo",
+      US: "$49/mo",
+    },
+    description: "Entry plan for businesses that only need a focused one-page website.",
+    features: ["1-page website", "Managed hosting", "Contact form", "WhatsApp CTA", "Basic SEO setup"],
+  },
+  {
+    name: "Growth",
+    prices: {
+      MY: "RM399/mo",
+      SG: "SGD 139/mo",
+      GB: "£99/mo",
+      US: "$99/mo",
+    },
+    description: "Recommended default for service businesses that need trust, services, contact flow, and monthly improvement support.",
+    features: ["Home, Services, Contact", "Review-powered trust", "Local SEO-ready layout", "3 monthly managed updates", "Enquiry tracking"],
+    featured: true,
+  },
+  {
+    name: "Scale",
+    prices: {
+      MY: "RM799/mo",
+      SG: "SGD 279/mo",
+      GB: "£199/mo",
+      US: "$199/mo",
+    },
+    description: "Upgrade plan for landing pages, local expansion, and priority conversion support.",
+    features: ["Up to 5 pages", "Landing page support", "Local service-area pages", "6 monthly managed updates", "Conversion recommendations"],
+  },
+];
+
+const processSteps = [
+  ["Preview", "Generate a limited homepage concept before creating an account."],
+  ["Plan", "Choose a managed subscription plan and create your account."],
+  ["Checkout", "Confirm payment or complete a card-required trial setup."],
+  ["Onboard", "Submit business details, services, reviews, contact details, images, and domain information."],
+  ["Review", "Track the draft, submit consolidated feedback, and approve the website."],
+  ["Launch", "Publish with domain, SSL, contact form, WhatsApp CTA, and plan-based support ready."],
+];
+
+const examples = [
+  {
+    title: "Dental Clinic Website",
+    industry: "Clinic",
+    goal: "Appointment enquiries",
+    type: "Appointment Website",
+    copy: "Treatment pages, patient trust sections, clinic location, FAQ, and booking CTA.",
+    sections: "Home, Treatments, Doctor Profile, Patient FAQ, Contact",
+    ctaFlow: "WhatsApp / booking form",
+    planFit: "Managed Website Plan",
+    href: "/portfolio/sample/dental",
+  },
+  {
+    title: "Local Service Lead Website",
+    industry: "Local Services",
+    goal: "Quote requests",
+    type: "Quote Website",
+    copy: "Services, reviews, service areas, emergency or quote CTA, and contact form.",
+    sections: "Home, Services, Reviews, Service Areas, Contact",
+    ctaFlow: "Quote request / WhatsApp",
+    planFit: "Managed Website Plan",
+    href: "/portfolio/sample/local-service",
+  },
+  {
+    title: "Consultant Authority Website",
+    industry: "Consultants",
+    goal: "Consultation bookings",
+    type: "Professional Services",
+    copy: "Positioning, offer sections, credibility, case-study direction, and book-call flow.",
+    sections: "Home, Services, About, Results, Contact",
+    ctaFlow: "Book call / form enquiry",
+    planFit: "Managed Plan or Custom Build",
+    href: "/portfolio/sample/consultant",
+  },
+  {
+    title: "Restaurant Website",
+    industry: "Restaurants",
+    goal: "Reservations",
+    type: "Reservation Website",
+    copy: "Menu preview, gallery, promotions, location, and reservation or WhatsApp CTA.",
+    sections: "Home, Menu, Gallery, Promotions, Contact",
+    ctaFlow: "Reservation / WhatsApp",
+    planFit: "Managed Website Plan",
+    href: "/portfolio/sample/restaurant",
+  },
+  {
+    title: "Real Estate Website",
+    industry: "Real Estate",
+    goal: "Property lead capture",
+    type: "Lead Capture",
+    copy: "Listings, buyer/seller guides, enquiry forms, and area-focused positioning.",
+    sections: "Home, Listings, Buyer Guide, Seller Guide, Contact",
+    ctaFlow: "Property enquiry / consultation",
+    planFit: "Growth or Custom Build",
+    href: "/portfolio/sample/real-estate",
+  },
+  {
+    title: "Premium Custom Website Build",
+    industry: "Custom",
+    goal: "Premium strategy",
+    type: "Custom Project",
+    copy: "Full CMS control, blog publishing, advanced SEO pages, and custom requirements.",
+    sections: "Custom sitemap, bespoke sections, advanced pages",
+    ctaFlow: "Strategy call / proposal",
+    planFit: "Custom Website Build",
+    href: "/apply-custom",
+  },
+];
+
+const exampleFilters = [
+  "Clinics",
+  "Consultants",
+  "Renovation",
+  "Beauty",
+  "Tuition",
+  "Restaurants",
+  "Landing Pages",
+  "Local Services",
+  "Professional Services",
+];
+
+const industrySalesStarts = [
+  {
+    industry: "Dental and clinics",
+    path: "/templates",
+    promise: "Appointment-ready pages with treatment sections, location trust, FAQ, and WhatsApp or booking CTAs.",
+  },
+  {
+    industry: "Local services",
+    path: "/templates",
+    promise: "Quote-request websites for cleaning, pest control, contractors, home repair, and emergency services.",
+  },
+  {
+    industry: "Consultants and coaches",
+    path: "/templates",
+    promise: "Authority-led pages with services, proof, book-a-call flow, and professional positioning.",
+  },
+  {
+    industry: "Real estate",
+    path: "/templates",
+    promise: "Property lead capture, buyer/seller enquiry paths, listing sections, and local area positioning.",
+  },
+  {
+    industry: "Restaurants and lifestyle",
+    path: "/templates",
+    promise: "Menu, reservations, gallery, location, promotions, and contact-ready mobile layouts.",
+  },
+  {
+    industry: "Professional services",
+    path: "/templates",
+    promise: "Trust-first structures for law, accounting, insurance, IT support, recruitment, and B2B services.",
+  },
+];
+
+const nichePages: Record<
+  Extract<
+    PublicPageKind,
+    | "clinic-website-design-malaysia"
+    | "renovation-contractor-website-design"
+    | "beauty-salon-website-design"
+    | "tuition-centre-website-design"
+    | "consultant-website-design"
+  >,
+  {
+    label: string;
+    title: string;
+    subtitle: string;
+    positioning: string;
+    pain: string;
+    promise: string;
+    cta: string;
+    leadCapture: string;
+    sections: string[];
+  }
+> = {
+  "clinic-website-design-malaysia": {
+    label: "Clinic lead websites",
+    title: "Clinic Websites Built to Increase Patient Enquiries",
+    subtitle:
+      "For dental, aesthetic, wellness, and healthcare clinics that need treatment pages, doctor trust, local visibility, and appointment CTAs.",
+    positioning: "Appointment-focused websites for clinics in Malaysia.",
+    pain: "Patients compare treatments, trust, reviews, location, and booking convenience before contacting a clinic.",
+    promise: "We structure your website so treatments are clear, trust is visible, FAQs reduce hesitation, and WhatsApp or appointment CTAs are easy to act on.",
+    cta: "Get a Free Clinic Website Audit",
+    leadCapture: "WhatsApp enquiry, appointment form, phone call, and treatment-specific CTA.",
+    sections: ["Hero with appointment CTA", "Treatment categories", "Practitioner trust", "Patient FAQs", "Reviews/proof", "Location/map", "Appointment form"],
+  },
+  "renovation-contractor-website-design": {
+    label: "Contractor quote websites",
+    title: "Renovation Websites That Turn Project Visitors Into Quote Requests",
+    subtitle:
+      "For contractors, renovation firms, interior specialists, and home service companies that need project proof and clear quote flow.",
+    positioning: "Quote-request websites for renovation and home improvement businesses.",
+    pain: "Homeowners need proof, process clarity, service areas, budget confidence, and an easy way to request a quote.",
+    promise: "We build the website around services, project galleries, before/after proof, FAQs, service areas, and quote request CTAs.",
+    cta: "Get a Free Contractor Website Review",
+    leadCapture: "Quote request form, WhatsApp quote CTA, project-type enquiry, and call button.",
+    sections: ["Hero with quote CTA", "Service categories", "Project gallery", "Before/after proof", "Process", "Service areas", "Quote form"],
+  },
+  "beauty-salon-website-design": {
+    label: "Salon booking websites",
+    title: "Salon Websites Built for Bookings, Trust, and Treatment Enquiries",
+    subtitle:
+      "For beauty salons, spas, aesthetic providers, nail studios, and wellness brands that need better treatment presentation and booking flow.",
+    positioning: "Booking-focused websites for beauty and lifestyle businesses.",
+    pain: "Customers want to compare treatments, pricing guidance, results, location, and booking options before messaging.",
+    promise: "We organize services, packages, visuals, reviews, FAQs, and booking CTAs so visitors can enquire without confusion.",
+    cta: "Get a Free Salon Website Audit",
+    leadCapture: "WhatsApp booking, booking link, treatment enquiry form, and offer CTA.",
+    sections: ["Premium hero", "Treatment menu", "Packages/pricing preview", "Gallery", "Reviews", "FAQ", "Booking CTA"],
+  },
+  "tuition-centre-website-design": {
+    label: "Tuition enquiry websites",
+    title: "Tuition Centre Websites That Help Parents Enquire Faster",
+    subtitle:
+      "For tuition centres, education centres, enrichment programmes, and tutors that need parent trust and trial class enquiries.",
+    positioning: "Parent-enquiry websites for education businesses.",
+    pain: "Parents need programme clarity, level fit, teacher trust, results, schedules, fees guidance, and a trial class path.",
+    promise: "We structure programmes, levels, outcomes, teacher trust, FAQs, and trial-class CTAs so parents know what to ask next.",
+    cta: "Get a Free Tuition Website Review",
+    leadCapture: "Trial class form, WhatsApp enquiry, call button, and programme-specific CTA.",
+    sections: ["Hero with trial class CTA", "Programme cards", "Age/level selector", "Teacher trust", "Results/outcomes", "FAQs", "Trial class form"],
+  },
+  "consultant-website-design": {
+    label: "Consultant authority websites",
+    title: "Consultant Websites That Explain Your Value and Convert Visitors Into Calls",
+    subtitle:
+      "For consultants, coaches, advisors, and professional service providers who need clearer positioning and qualified call requests.",
+    positioning: "Authority websites for consultants and expert-led businesses.",
+    pain: "Prospects leave when the offer is vague, proof is weak, or the next step is unclear.",
+    promise: "We clarify your positioning, package your services, add proof, answer objections, and guide visitors to book a consultation.",
+    cta: "Get a Free Consultant Website Audit",
+    leadCapture: "Book-call CTA, consultation form, LinkedIn/WhatsApp enquiry, and lead qualification questions.",
+    sections: ["Authority hero", "Problem/solution", "Services/programmes", "Proof/case studies", "Process", "FAQ", "Book-call CTA"],
+  },
+};
+
+const getTrackingContext = () => {
+  if (typeof window === "undefined") {
+    return {
+      sourcePage: "/",
+      pageTitle: "",
+      utmSource: "",
+      utmMedium: "",
+      utmCampaign: "",
+      country: "",
+    };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const currentTouch = {
+    sourcePage: `${window.location.pathname}${window.location.search}`,
+    pageTitle: document.title,
+    utmSource: params.get("utm_source") || "",
+    utmMedium: params.get("utm_medium") || "",
+    utmCampaign: params.get("utm_campaign") || "",
+    country: navigator.language?.split("-")?.[1] || "",
+    referralCode: params.get("ref") || params.get("referral") || localStorage.getItem("ref_platform") || "",
+  };
+  let firstTouch = currentTouch;
+  try {
+    const saved = localStorage.getItem("bt_first_touch");
+    if (saved) firstTouch = { ...currentTouch, ...JSON.parse(saved) };
+    else localStorage.setItem("bt_first_touch", JSON.stringify(currentTouch));
+    localStorage.setItem("bt_last_touch", JSON.stringify(currentTouch));
+  } catch {
+    // Attribution storage is best effort; form submission must continue.
+  }
+  return { ...currentTouch, firstTouch, lastTouch: currentTouch };
+};
+
+async function submitPlatformLead(input: {
+  name: string;
+  email: string;
+  phone?: string;
+  businessName?: string;
+  industry?: string;
+  websiteUrl?: string;
+  message?: string;
+  formName: string;
+  leadType: string;
+}) {
+  const response = await fetch("/api/platform-leads", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...input,
+      ...getTrackingContext(),
+    }),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.success) {
+    throw new Error(data?.message || "Unable to submit request right now.");
+  }
+
+  trackPinterestLead(input.leadType, {
+    form_name: input.formName,
+    source_page: window.location.pathname,
+  });
+
+  return data;
+}
+
+function MarketingHeader() {
+  return (
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4">
+        <Link to="/" className="flex items-center gap-2 text-slate-950">
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-600 text-white">
+            <Globe className="h-5 w-5" />
+          </span>
+          <span className="text-lg font-black tracking-tight">Bennie Studio</span>
+        </Link>
+        <nav className="hidden items-center gap-6 lg:flex">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              to={item.href}
+              className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 transition hover:text-indigo-600"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <Link
+          to="/generate-preview"
+          onClick={() => trackPublicEvent({ eventType: "click_generate_preview", label: "Header Generate Preview", target: "/generate-preview" })}
+          className="inline-flex h-9 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-indigo-600"
+        >
+          Generate Preview
+        </Link>
+      </div>
+    </header>
+  );
+}
+
+function MarketingFooter() {
+  return (
+    <footer className="border-t border-slate-200 bg-white">
+      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 md:grid-cols-5">
+        <div>
+          <div className="mb-3 flex items-center gap-2 font-black text-slate-950">
+            <Globe className="h-5 w-5 text-indigo-600" />
+            Bennie Studio
+          </div>
+          <p className="text-sm font-semibold leading-6 text-slate-600">
+            Managed lead-generation websites and custom website builds for small businesses that need more enquiries, trust, and local visibility.
+          </p>
+        </div>
+        {[
+          ["Pages", navItems],
+          ["Services", [
+            { label: "Managed Lead Website Plans", href: "/pricing" },
+            { label: "Custom Website", href: "/apply-custom" },
+            { label: "Website Examples", href: "/examples" },
+          ]],
+          ["Local SEO", [
+            { label: "UK Website Subscription", href: "/website-subscription-service/uk" },
+            { label: "Malaysia Website Subscription", href: "/website-subscription-service/malaysia" },
+            { label: "Singapore Website Subscription", href: "/website-subscription-service/singapore" },
+            { label: "Website Design London", href: "/website-design/london" },
+            { label: "Website Design Petaling Jaya", href: "/website-design/petaling-jaya" },
+            { label: "Website Design Orchard", href: "/website-design/singapore/orchard" },
+          ]],
+          ["Legal", [
+            { label: "Privacy Policy", href: "/privacy-policy" },
+            { label: "Cookie Policy", href: "/cookie-policy" },
+            { label: "Terms of Service", href: "/terms-of-service" },
+            { label: "Subprocessor List", href: "/subprocessors" },
+            { label: "Acceptable Use", href: "/acceptable-use-policy" },
+          ]],
+        ].map(([title, links]) => (
+          <div key={title as string}>
+            <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">{title as string}</p>
+            <div className="space-y-2">
+              {(links as { label: string; href: string }[]).map((link) => (
+                <Link key={link.href} to={link.href} className="block text-sm font-bold text-slate-600 hover:text-indigo-600">
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-slate-100 px-5 py-5 text-center text-xs font-bold text-slate-500">
+        © {new Date().getFullYear()} Bennie Studio. All rights reserved.
+      </div>
+    </footer>
+  );
+}
+
+function Hero({ title, copy, icon: Icon }: { title: string; copy: string; icon: React.ElementType }) {
+  return (
+    <section className="bg-slate-50">
+      <div className="mx-auto grid max-w-7xl items-center gap-8 px-5 py-16 md:grid-cols-[1.1fr_0.9fr] lg:py-20">
+        <div>
+          <Badge className="mb-5 rounded-full bg-indigo-50 px-4 py-1 text-indigo-600 hover:bg-indigo-50">
+            Lead-generation website system
+          </Badge>
+          <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
+            {title}
+          </h1>
+          <p className="mt-6 max-w-2xl text-base font-semibold leading-8 text-slate-600 sm:text-lg">
+            {copy}
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link
+              to="/generate-preview"
+              onClick={() => trackPublicEvent({ eventType: "click_generate_preview", label: "Hero Generate Free Website Preview", target: "/generate-preview" })}
+              className="inline-flex h-11 items-center justify-center rounded-2xl bg-indigo-600 px-7 text-sm font-black uppercase tracking-widest text-white transition hover:bg-indigo-500"
+            >
+              Generate My Free Website Preview <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+            <Link
+              to="/website-audit"
+              onClick={() => trackPublicEvent({ eventType: "click_request_audit", label: "Hero Website Growth Audit", target: "/website-audit" })}
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-7 text-sm font-black uppercase tracking-widest text-slate-950 transition hover:bg-slate-50"
+            >
+              Request Website Growth Audit
+            </Link>
+          </div>
+        </div>
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl">
+          <div className="rounded-[1.5rem] bg-slate-950 p-7 text-white">
+            <Icon className="mb-12 h-10 w-10 rounded-2xl bg-indigo-600 p-2" />
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">Built to sell faster</p>
+            <p className="mt-4 text-2xl font-black leading-tight text-white">
+              Templates, pricing, examples, website audit, and launch flow in one clear sales path.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TemplatesPage() {
+  return (
+    <>
+      <Hero
+        title="Website templates organised by industry"
+        copy="Choose a niche-ready website structure instead of starting from a blank page. Each template is built around the business type, conversion goal, contact method, page count, and local SEO structure."
+        icon={LayoutTemplate}
+      />
+      <section className="mx-auto max-w-7xl px-5 py-14">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          {WAAS_TEMPLATE_PACKS.map((pack) => (
+            <div key={pack.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">{pack.name}</p>
+              <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{pack.description}</p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {pack.niches.map((niche) => (
+                  <span key={niche} className="rounded-full border border-slate-200 px-3 py-1 text-xs font-bold text-slate-700">
+                    {niche}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {industries.map(([name, description]) => (
+            <div key={name} className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+              <p className="text-lg font-black text-slate-950">{name}</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{description}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-12 rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
+          <div className="max-w-3xl">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Industry sales paths</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">
+              Start from the business type, then choose the right template.
+            </h2>
+            <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
+              These quick starts keep the customer conversation simple: niche, goal, pages, CTA, and local SEO direction.
+            </p>
+          </div>
+          <div className="mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {industrySalesStarts.map((item) => (
+              <Link
+                key={item.industry}
+                to={item.path}
+                className="rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:border-indigo-200 hover:bg-indigo-50"
+              >
+                <p className="text-lg font-black text-slate-950">{item.industry}</p>
+                <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{item.promise}</p>
+                <span className="mt-4 inline-flex items-center text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
+                  View matching templates <ArrowRight className="ml-2 h-4 w-4" />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function PricingPage() {
+  const [selectedMarket, setSelectedMarket] = React.useState<PricingMarket>("US");
+  const [detectedLabel, setDetectedLabel] = React.useState("Detecting your location...");
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const detectMarket = async () => {
+      try {
+        const response = await fetch("https://ipapi.co/json/");
+        if (!response.ok) throw new Error("Location detection failed");
+        const data = await response.json();
+        const market = countryToPricingMarket(data?.country_code);
+        if (cancelled) return;
+        setSelectedMarket(market);
+        setDetectedLabel(`Detected ${data?.country_name || pricingMarkets[market].label}`);
+      } catch {
+        if (cancelled) return;
+        setSelectedMarket("US");
+        setDetectedLabel("Showing global USD pricing");
+      }
+    };
+
+    detectMarket();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const market = pricingMarkets[selectedMarket];
+  const customWebsiteQuote = formatUsdRangeForCountry(1500, 3500, selectedMarket, {
+    from: true,
+    plus: true,
+  });
+
+  return (
+    <>
+      <Hero
+        title={`Clear website pricing for ${market.country}`}
+        copy="Start with a managed monthly website plan shown in your local market currency, then move to a custom website project when you need full CMS control, advanced SEO pages, integrations, or content publishing."
+        icon={ClipboardCheck}
+      />
+      <section className="mx-auto max-w-7xl px-5 py-14">
+        <div className="mb-6 flex flex-col justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Location-based pricing</p>
+            <p className="mt-2 text-sm font-bold text-slate-600">{detectedLabel}. {market.note}</p>
+          </div>
+          <label className="flex flex-col gap-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500 sm:min-w-64">
+            Pricing market
+            <select
+              value={selectedMarket}
+              onChange={(event) => setSelectedMarket(event.target.value as PricingMarket)}
+              className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black normal-case tracking-normal text-slate-950 outline-none focus:border-indigo-400"
+            >
+              {Object.entries(pricingMarkets).map(([code, item]) => (
+                <option key={code} value={code}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="grid gap-5 lg:grid-cols-3">
+          {pricingPlans.map((plan) => (
+            <div
+              key={plan.name}
+              className={`rounded-[2rem] border p-7 shadow-sm ${plan.featured ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-white"}`}
+            >
+              {plan.featured && <Badge className="mb-4 bg-indigo-600 text-white">Most Popular</Badge>}
+              <h2 className="text-3xl font-black text-slate-950">{plan.name}</h2>
+              <p className="mt-3 min-h-12 text-sm font-semibold leading-6 text-slate-600">{plan.description}</p>
+              <div className="mt-6 rounded-2xl bg-white p-5">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">{market.label}</p>
+                <p className="mt-1 text-4xl font-black tracking-tight text-slate-950">{plan.prices[selectedMarket]}</p>
+                <p className="mt-2 text-xs font-bold text-slate-500">Managed monthly lead website plan</p>
+              </div>
+              <ul className="mt-6 space-y-3">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex gap-2 text-sm font-bold text-slate-700">
+                    <Check className="mt-0.5 h-4 w-4 text-emerald-500" /> {feature}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/signup"
+                onClick={() => trackPublicEvent({ eventType: `click_pricing_plan_${plan.name.toLowerCase()}`, label: `Start ${plan.name}`, target: "/signup", metadata: { plan: plan.name, market: selectedMarket } })}
+                className="mt-7 inline-flex h-10 w-full items-center justify-center rounded-2xl bg-slate-950 text-sm font-black uppercase tracking-widest text-white transition hover:bg-indigo-600"
+              >
+                Start {plan.name}
+              </Link>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 rounded-[2rem] border border-slate-200 bg-slate-950 p-7 text-white">
+          <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <p className="text-2xl font-black text-white">Custom Website</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-200">
+                {customWebsiteQuote} for full CMS control, blog publishing, advanced SEO pages, custom integrations, and bespoke design.
+              </p>
+            </div>
+            <Link
+              to="/apply-custom"
+              onClick={() => trackPublicEvent({ eventType: "click_pricing_plan_custom", label: "Request Website Quote", target: "/apply-custom", metadata: { market: selectedMarket } })}
+              className="inline-flex h-10 items-center justify-center rounded-2xl bg-white px-5 text-sm font-black uppercase tracking-widest text-slate-950 transition hover:bg-indigo-100"
+            >
+              Request Website Quote
+            </Link>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function HowItWorksPage() {
+  return (
+    <>
+      <Hero
+        title="From signup to launch without a slow agency project"
+        copy="The process is structured so customers see value quickly: submit a simple brief, get a prepared website preview, review changes, launch, then request updates based on the plan."
+        icon={Rocket}
+      />
+      <section className="mx-auto max-w-7xl px-5 py-14">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {processSteps.map(([title, copy], index) => (
+            <div key={title} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-sm font-black text-indigo-600">
+                {index + 1}
+              </span>
+              <h2 className="mt-6 text-2xl font-black text-slate-950">{title}</h2>
+              <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{copy}</p>
+            </div>
+          ))}
+        </div>
+        <PreviewRequestPanel />
+      </section>
+    </>
+  );
+}
+
+function ExamplesPage() {
+  return (
+    <>
+      <Hero
+        title="Website examples built to turn visitors into enquiries"
+        copy="Explore website examples for clinics, wellness providers, renovation companies, home service businesses, beauty salons, and aesthetic services. Each example shows how your website can structure services, trust proof, CTAs, and enquiry paths."
+        icon={Sparkles}
+      />
+      <section className="mx-auto max-w-7xl px-5 py-14">
+        <div className="mb-8 flex flex-wrap gap-2">
+          {exampleFilters.map((item) => (
+            <span key={item} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-600">
+              {item}
+            </span>
+          ))}
+        </div>
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {examples.map((item) => (
+            <div key={item.title} className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+              <div className="flex h-44 items-center justify-center bg-slate-950 text-indigo-200">
+                <LayoutTemplate className="h-12 w-12" />
+              </div>
+              <div className="p-6">
+                <Badge variant="outline" className="mb-3 text-indigo-600">{item.type}</Badge>
+                <h2 className="text-xl font-black text-slate-950">{item.title}</h2>
+                <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{item.copy}</p>
+                <div className="mt-5 grid gap-2 text-sm font-bold text-slate-700">
+                  <p><span className="text-slate-400">Goal:</span> {item.goal}</p>
+                  <p><span className="text-slate-400">Key sections:</span> {item.sections}</p>
+                  <p><span className="text-slate-400">CTA flow:</span> {item.ctaFlow}</p>
+                  <p><span className="text-slate-400">Best-fit:</span> {item.planFit}</p>
+                </div>
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  <Link
+                    to={item.href}
+                    onClick={() => trackPublicEvent({ eventType: "click_view_example", label: item.title, target: item.href, metadata: { industry: item.industry, goal: item.goal } })}
+                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-black text-slate-950 transition hover:bg-slate-50"
+                  >
+                    View Example
+                  </Link>
+                  <Link
+                    to="/generate-preview"
+                    onClick={() => trackPublicEvent({ eventType: "click_generate_similar_preview", label: item.title, target: "/generate-preview", metadata: { industry: item.industry, goal: item.goal } })}
+                    className="inline-flex h-10 items-center justify-center rounded-2xl bg-indigo-600 text-sm font-black text-white transition hover:bg-indigo-500"
+                  >
+                    Generate Similar
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-10 rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
+          <h2 className="text-3xl font-black text-slate-950">More than templates. Each example has a sales path.</h2>
+          <p className="mt-3 max-w-3xl text-base font-semibold leading-7 text-slate-600">
+            Every website example is designed around a specific business goal, such as appointment booking, quote requests,
+            consultation enquiries, local discovery, or service promotion.
+          </p>
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            {["Recommended page structure", "Main enquiry CTA", "Trust-building sections", "Local SEO-ready content areas", "Suggested plan fit", "Launch path"].map((item) => (
+              <div key={item} className="flex gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+const previewIndustries = [
+  {
+    id: "clinic",
+    label: "Clinic / Healthcare",
+    template: "Clinic Appointment Website",
+    recommendedPlan: "Growth",
+    pages: ["Home", "Treatments", "Practitioner Trust", "Patient FAQ", "Contact"],
+    sections: ["Appointment hero", "Treatment cards", "Patient trust proof", "FAQ", "Location and WhatsApp CTA"],
+    cta: "Book Appointment",
+    proof: "Practitioner profile, treatment guidance, patient reviews, opening hours.",
+  },
+  {
+    id: "beauty",
+    label: "Beauty Salon / Aesthetic",
+    template: "Treatment Booking Website",
+    recommendedPlan: "Growth",
+    pages: ["Home", "Treatments", "Results / Gallery", "Pricing", "Contact"],
+    sections: ["Premium treatment hero", "Service menu", "Before/after proof", "Booking CTA", "WhatsApp follow-up"],
+    cta: "Book Consultation",
+    proof: "Treatment photos, packages, customer reviews, safety or expertise proof.",
+  },
+  {
+    id: "contractor",
+    label: "Renovation / Contractor",
+    template: "Quote Request Website",
+    recommendedPlan: "Growth",
+    pages: ["Home", "Services", "Projects", "Service Areas", "Contact"],
+    sections: ["Quote-first hero", "Service categories", "Project gallery", "Process", "Quote form"],
+    cta: "Request a Quote",
+    proof: "Project photos, before/after examples, service areas, warranty or process notes.",
+  },
+  {
+    id: "consultant",
+    label: "Consultant / Coach",
+    template: "Authority Booking Website",
+    recommendedPlan: "Business",
+    pages: ["Home", "Services", "Results", "About", "Contact"],
+    sections: ["Problem/solution hero", "Offer blocks", "Results proof", "FAQ", "Book-call CTA"],
+    cta: "Book a Call",
+    proof: "Case studies, credentials, client outcomes, clear offer positioning.",
+  },
+  {
+    id: "local-service",
+    label: "Local Service Business",
+    template: "Local Lead Website",
+    recommendedPlan: "Business",
+    pages: ["Home", "Services", "Areas Served", "Reviews", "Contact"],
+    sections: ["Fast enquiry hero", "Service cards", "Reviews", "Service area module", "Call / WhatsApp CTA"],
+    cta: "Get Free Quote",
+    proof: "Reviews, response time, service areas, guarantees, work photos.",
+  },
+  {
+    id: "education",
+    label: "Tuition / Education Centre",
+    template: "Trial Class Website",
+    recommendedPlan: "Business",
+    pages: ["Home", "Programmes", "Results", "FAQ", "Contact"],
+    sections: ["Trial-class hero", "Programme levels", "Parent trust proof", "Results", "Enquiry form"],
+    cta: "Book Trial Class",
+    proof: "Teacher experience, student results, parent testimonials, class levels.",
+  },
+];
+
+const previewGoals = [
+  "Get WhatsApp enquiries",
+  "Get phone calls",
+  "Get contact form submissions",
+  "Get bookings",
+  "Generate local service leads",
+  "Build more trust before sales calls",
+];
+
+function GeneratePreviewPage() {
+  const navigate = useNavigate();
+  const [industryId, setIndustryId] = React.useState(previewIndustries[0].id);
+  const [goal, setGoal] = React.useState(previewGoals[0]);
+  const [generated, setGenerated] = React.useState(false);
+  const [generating, setGenerating] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [form, setForm] = React.useState({
+    businessName: "",
+    location: "",
+    mainService: "",
+    websiteUrl: "",
+    phone: "",
+    email: "",
+    brandStyle: "Modern professional",
+    socialUrl: "",
+    reviews: "",
+  });
+
+  const industry = previewIndustries.find((item) => item.id === industryId) || previewIndustries[0];
+  const businessLabel = form.businessName.trim() || "your business";
+  const locationLabel = form.location.trim() || "your service area";
+  const serviceLabel = form.mainService.trim() || "your main service";
+  const previewTitle = `${industry.template} for ${businessLabel}`;
+  const reviewQuality = scoreManualReviewInput(form.reviews);
+  const reviewStrategy = buildReviewWebsiteStrategy({
+    businessName: form.businessName,
+    industry: industry.label,
+    city: form.location,
+    mainServices: form.mainService,
+    preferredCta: goal.toLowerCase().includes("whatsapp")
+      ? "WhatsApp"
+      : goal.toLowerCase().includes("booking")
+        ? "booking"
+        : goal.toLowerCase().includes("phone")
+          ? "call"
+          : "form",
+    googleBusinessUrl: form.socialUrl,
+    reviews: form.reviews,
+  });
+
+  React.useEffect(() => {
+    trackPublicEvent({ eventType: "start_preview_flow", label: "Generate Preview Page Loaded", target: "/generate-preview" });
+  }, []);
+
+  const selectIndustry = (id: string) => {
+    setIndustryId(id);
+    setGenerated(false);
+    const selected = previewIndustries.find((item) => item.id === id);
+    trackPublicEvent({
+      eventType: "select_industry",
+      label: selected?.label || id,
+      target: "/generate-preview",
+      metadata: { industryId: id },
+    });
+  };
+
+  const selectGoal = (value: string) => {
+    setGoal(value);
+    setGenerated(false);
+    trackPublicEvent({ eventType: "select_website_goal", label: value, target: "/generate-preview" });
+  };
+
+  const generatePreview = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setGenerating(true);
+    trackPublicEvent({
+      eventType: "submit_business_details",
+      label: businessLabel,
+      target: "/generate-preview",
+      metadata: { industry: industry.label, goal, location: form.location, hasWebsite: Boolean(form.websiteUrl) },
+    });
+    try {
+      const lead = await submitPlatformLead({
+        name: form.businessName,
+        email: form.email,
+        phone: form.phone,
+        businessName: form.businessName,
+        industry: industry.label,
+        websiteUrl: form.websiteUrl,
+        message: `Location: ${form.location}\nServices: ${form.mainService}\nPreferred action: ${goal}\nBrand style: ${form.brandStyle}\nSocial / Google Business: ${form.socialUrl || "Not provided"}\nReview quality score: ${reviewQuality.score}\nReview signals:\n${form.reviews || "Not provided"}`,
+        formName: "Review-powered website preview generator",
+        leadType: "free_website_preview",
+      });
+      localStorage.setItem("bt_preview_intent", JSON.stringify({
+        ...form,
+        industryId,
+        industry: industry.label,
+        goal,
+        recommendedPlan: industry.recommendedPlan,
+        leadId: lead.leadId,
+        reviewQuality,
+        reviewStrategy,
+        createdAt: new Date().toISOString(),
+      }));
+      setGenerated(true);
+      trackPublicEvent({
+        eventType: "preview_generated",
+        label: previewTitle,
+        target: "/generate-preview",
+        metadata: { industry: industry.label, recommendedPlan: industry.recommendedPlan, goal },
+      });
+    } catch (submissionError: any) {
+      setError(submissionError?.message || "The preview could not be prepared. Please retry.");
+      trackPublicEvent({ eventType: "preview_failed", label: form.businessName, target: "/generate-preview" });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const action = (eventType: string, label: string, target: string) => {
+    trackPublicEvent({
+      eventType,
+      label,
+      target,
+      metadata: { industry: industry.label, goal, businessName: form.businessName, generated },
+    });
+    navigate(target);
+  };
+
+  return (
+    <>
+      <Hero
+        title="Generate a limited managed website preview"
+        copy={`${PUBLIC_PROMISE} The free preview is limited to a homepage concept, core sections, and mobile direction before checkout.`}
+        icon={Sparkles}
+      />
+      <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-600">Step 1</p>
+          <h2 className="mt-3 text-3xl font-black text-slate-950">Choose the business type</h2>
+          <div className="mt-6 grid gap-3">
+            {previewIndustries.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => selectIndustry(item.id)}
+                className={`rounded-2xl border p-4 text-left transition ${
+                  industryId === item.id
+                    ? "border-indigo-500 bg-indigo-50 text-indigo-950"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:bg-slate-50"
+                }`}
+              >
+                <span className="block text-sm font-black">{item.label}</span>
+                <span className="mt-1 block text-xs font-semibold text-slate-500">{item.template}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <form onSubmit={generatePreview} className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-600">Step 2</p>
+          <h2 className="mt-3 text-3xl font-black text-slate-950">Add the basic brief</h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <Input
+              required
+              placeholder="Business name"
+              value={form.businessName}
+              onChange={(e) => setForm({ ...form, businessName: e.target.value })}
+              className="h-12 rounded-2xl"
+            />
+            <Input
+              required
+              placeholder="City / area served"
+              value={form.location}
+              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              className="h-12 rounded-2xl"
+            />
+            <Input
+              required
+              placeholder="Main services"
+              value={form.mainService}
+              onChange={(e) => setForm({ ...form, mainService: e.target.value })}
+              className="h-12 rounded-2xl"
+            />
+            <Input
+              placeholder="Current website URL optional"
+              value={form.websiteUrl}
+              onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })}
+              className="h-12 rounded-2xl"
+            />
+            <Input
+              required type="email" placeholder="Email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="h-12 rounded-2xl"
+            />
+            <Input required placeholder="WhatsApp or phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl" />
+            <select value={form.brandStyle} onChange={(e) => setForm({ ...form, brandStyle: e.target.value })} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 sm:col-span-2">
+              {["Modern professional", "Premium corporate", "Friendly local business", "Bold sales landing page", "Clean minimal", "Luxury premium"].map((style) => <option key={style}>{style}</option>)}
+            </select>
+            <Input placeholder="Google Business / social profile URL optional" value={form.socialUrl} onChange={(e) => setForm({ ...form, socialUrl: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
+            <Textarea
+              placeholder={`Paste real reviews here, one per line if possible.\n\nExample:\nFast response and easy to contact by WhatsApp.\nThe team was professional and explained every step clearly.\nConvenient location and reasonable price.`}
+              value={form.reviews}
+              onChange={(e) => {
+                setGenerated(false);
+                setForm({ ...form, reviews: e.target.value });
+              }}
+              className="min-h-32 rounded-2xl sm:col-span-2"
+            />
+          </div>
+          <div className="mt-5 rounded-3xl border border-indigo-100 bg-indigo-50 p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Review intelligence</p>
+                <p className="mt-2 text-sm font-bold text-slate-700">
+                  Real reviews make the preview more specific. Weak input still works, but the website copy will be less proof-led.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white px-5 py-4 text-center shadow-sm">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quality</p>
+                <p className="mt-1 text-3xl font-black text-slate-950">{reviewQuality.score}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">{reviewQuality.grade}</p>
+              </div>
+            </div>
+            {reviewQuality.suggestions.length > 0 && (
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {reviewQuality.suggestions.slice(0, 4).map((suggestion) => (
+                  <div key={suggestion} className="rounded-2xl bg-white px-4 py-3 text-xs font-bold leading-5 text-slate-600">
+                    {suggestion}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="mt-6">
+            <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">Website goal</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {previewGoals.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => selectGoal(item)}
+                  className={`rounded-2xl border px-4 py-3 text-left text-sm font-bold transition ${
+                    goal === item ? "border-indigo-500 bg-indigo-50 text-indigo-950" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+          {error && <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</div>}
+          <Button type="submit" disabled={generating} className="mt-7 h-12 w-full rounded-2xl bg-indigo-600 font-black uppercase tracking-widest hover:bg-indigo-500">
+            {generating ? "Preparing Preview..." : "Generate My Free Website Preview"} <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </form>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 pb-16">
+        <div className={`rounded-[2rem] border p-6 shadow-sm ${generated ? "border-indigo-200 bg-white" : "border-dashed border-slate-300 bg-slate-50"}`}>
+          {generated ? (
+            <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+              <div>
+                <div className="mb-4 flex flex-wrap gap-2">
+                  <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Preview generated</Badge>
+                  <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50">Limited concept preview</Badge>
+                </div>
+                <h2 className="text-3xl font-black text-slate-950">{previewTitle}</h2>
+                <p className="mt-4 text-base font-semibold leading-7 text-slate-600">
+                  Recommended for {serviceLabel} in {locationLabel}. The site should lead with a clear {goal.toLowerCase()} path,
+                  then support the buyer with proof, service clarity, FAQs, and local relevance.
+                </p>
+	                <div className="relative mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+	                  <div className="pointer-events-none absolute right-4 top-14 z-10 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
+	                    Preview only
+	                  </div>
+	                  <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-100 px-4 py-3"><span className="h-2.5 w-2.5 rounded-full bg-rose-400"/><span className="h-2.5 w-2.5 rounded-full bg-amber-400"/><span className="h-2.5 w-2.5 rounded-full bg-emerald-400"/><span className="ml-3 truncate text-xs font-bold text-slate-500">Preview · {businessLabel}</span></div>
+                  <div className="bg-slate-950 p-6 text-white sm:p-8">
+                    <div className="flex items-center justify-between gap-4"><p className="text-lg font-black">{businessLabel}</p><span className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black">{industry.cta}</span></div>
+                    <p className="mt-12 text-xs font-black uppercase tracking-[0.2em] text-indigo-200">{serviceLabel} · {locationLabel}</p>
+                    <h3 className="mt-3 max-w-xl text-3xl font-black leading-tight sm:text-5xl">{reviewStrategy.heroHeadline}</h3>
+                    <p className="mt-4 max-w-xl text-sm font-semibold leading-6 text-slate-300">{reviewStrategy.subheadline}</p>
+                    <div className="mt-6 flex flex-wrap gap-3"><span className="rounded-xl bg-white px-4 py-3 text-xs font-black text-slate-950">{reviewStrategy.primaryCta}</span><span className="rounded-xl border border-white/30 px-4 py-3 text-xs font-black">{reviewStrategy.secondaryCta}</span></div>
+                  </div>
+                  <div className="grid gap-3 p-5 sm:grid-cols-3">{industry.sections.slice(0, 3).map((section) => <div key={section} className="rounded-2xl bg-slate-50 p-4 text-sm font-black text-slate-800">{section}</div>)}</div>
+                </div>
+	                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  {[
+                    ["Recommended plan", industry.recommendedPlan],
+                    ["Primary CTA", reviewStrategy.primaryCta],
+                    ["Template direction", industry.template],
+                    ["Local SEO focus", `${serviceLabel} in ${locationLabel}`],
+	                  ].map(([label, value]) => (
+	                    <div key={label} className="rounded-2xl bg-slate-50 p-4">
+	                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">{label}</p>
+	                      <p className="mt-2 text-sm font-black text-slate-950">{value}</p>
+		                </div>
+	                  ))}
+	                </div>
+	                <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5">
+	                  <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">Free preview limit</p>
+	                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+	                    {FREE_PREVIEW_LIMITS.map((limit) => (
+	                      <div key={limit} className="flex gap-2 text-sm font-bold text-slate-700">
+	                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+	                        {limit}
+	                      </div>
+	                    ))}
+	                  </div>
+	                  <p className="mt-4 text-xs font-bold leading-5 text-amber-800">
+	                    Full onboarding, manual production work, publishing, and custom domain setup begin only after payment or a valid card-required trial is confirmed.
+	                  </p>
+	                </div>
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  {[
+                    ["Review Quality", reviewQuality.score],
+                    ["Trust Confidence", reviewStrategy.intelligence.scores.confidence],
+                    ["Local SEO Fit", reviewStrategy.intelligence.scores.seo],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">{label}</p>
+                      <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-3xl bg-indigo-50 p-5">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Trust signals to use</p>
+                    <div className="mt-4 space-y-2">
+                      {reviewStrategy.trustSignals.map((signal) => (
+                        <div key={signal} className="flex gap-2 text-sm font-bold text-slate-700">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                          {signal}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-3xl bg-slate-50 p-5">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Local keywords</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {reviewStrategy.intelligence.localKeywords.map((keyword) => (
+                        <span key={keyword} className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm">
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-5">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">FAQs this website should answer</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {reviewStrategy.intelligence.faqs.map((faq) => (
+                      <div key={faq} className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
+                        {faq}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <Button onClick={() => action("create_account_after_preview", "Save My Preview", "/signup?redirectTo=%2Fdashboard%2Fonboarding")} className="rounded-2xl bg-indigo-600 font-black uppercase tracking-widest">
+                    Create Account & Save
+                  </Button>
+                  <Button onClick={() => action("click_start_plan", "Start Managed Website Plan", "/pricing")} variant="outline" className="rounded-2xl font-black uppercase tracking-widest">
+                    Start Managed Plan
+                  </Button>
+                  <Button onClick={() => action("click_custom_strategy", "Request Custom Website Strategy", "/apply-custom")} variant="outline" className="rounded-2xl font-black uppercase tracking-widest">
+                    Custom Strategy
+                  </Button>
+                </div>
+              </div>
+              <div className="rounded-[1.5rem] bg-slate-950 p-6 text-white">
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-200">Recommended structure</p>
+                <div className="mt-5 grid gap-3">
+                  {industry.pages.map((page, index) => (
+                    <div key={page} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-black">{index + 1}</span>
+                      <span className="text-sm font-bold text-slate-100">{page}</span>
+                    </div>
+                  ))}
+                </div>
+	                <p className="mt-6 text-xs font-black uppercase tracking-[0.22em] text-indigo-200">Trust and enquiry sections</p>
+                <div className="mt-4 grid gap-2">
+                  {industry.sections.map((section) => (
+                    <div key={section} className="flex gap-2 text-sm font-semibold text-slate-200">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                      {section}
+                    </div>
+                  ))}
+                </div>
+	                <div className="mt-6 rounded-2xl bg-white p-4 text-slate-950">
+	                  <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Proof to collect</p>
+	                  <p className="mt-2 text-sm font-bold leading-6">{industry.proof}</p>
+	                </div>
+	                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+	                  <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-200">After plan selection</p>
+	                  <div className="mt-3 space-y-2">
+	                    {SUBSCRIPTION_DELIVERY_FLOW.slice(2, 8).map((step) => (
+	                      <p key={step} className="text-xs font-semibold leading-5 text-slate-300">{step}</p>
+	                    ))}
+	                  </div>
+	                </div>
+	              </div>
+            </div>
+          ) : (
+            <div className="py-14 text-center">
+              <ClipboardCheck className="mx-auto mb-4 h-12 w-12 rounded-2xl bg-white p-3 text-indigo-600 shadow-sm" />
+              <h2 className="text-2xl font-black text-slate-950">Your preview recommendation will appear here.</h2>
+              <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
+                The first preview does not require an account. After you see the plan and structure, you can save it, book a call, or start a managed website plan.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function WebsiteAuditPage() {
+  const [submitted, setSubmitted] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [auditReport, setAuditReport] = React.useState<any>(null);
+  const [form, setForm] = React.useState({
+    name: "",
+    email: "",
+    businessName: "",
+    industry: "",
+    website: "",
+    phone: "",
+    notes: "",
+  });
+
+  const submitAudit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setSubmitting(true);
+    trackPublicEvent({
+      eventType: "submit_audit_form",
+      label: form.businessName || "Website audit request",
+      target: "/website-audit",
+      metadata: { industry: form.industry, hasWebsite: Boolean(form.website) },
+    });
+
+    let leadSaved = false;
+    try {
+      const savedLead = await submitPlatformLead({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        businessName: form.businessName,
+        industry: form.industry,
+        websiteUrl: form.website,
+        message: form.notes || "Free website audit requested.",
+        formName: "Free website growth audit request",
+        leadType: "website_audit",
+      });
+      leadSaved = true;
+      const auditResponse = await fetch("/api/public/website-audit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          url: /^https?:\/\//i.test(form.website) ? form.website : `https://${form.website}`,
+          leadId: savedLead.leadId,
+          leadEmail: form.email,
+        }),
+      });
+      const auditPayload = await auditResponse.json().catch(() => ({}));
+      if (!auditResponse.ok || !auditPayload?.report) {
+        throw new Error(auditPayload?.error || "The website could not be analysed. Your request was saved, but no score was produced.");
+      }
+      setAuditReport(auditPayload.report);
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err?.message || "Unable to submit audit request right now.");
+      if (leadSaved) setSubmitted(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <Hero
+        title="Get a free website growth audit before rebuilding your website"
+        copy="Use this audit to find the issues that stop visitors from becoming enquiries: unclear offer, weak CTAs, poor mobile layout, missing trust proof, local SEO gaps, and forms or WhatsApp links that do not guide action."
+        icon={FileSearch}
+      />
+      <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
+          <h2 className="text-3xl font-black text-slate-950">What the audit checks</h2>
+          <div className="mt-6 grid gap-3">
+            {[
+              ["Design clarity", "Does the page quickly explain what you offer?"],
+              ["Mobile layout", "Can mobile visitors read and contact you easily?"],
+              ["Enquiry path", "Are WhatsApp, phone, form, and quote CTAs obvious?"],
+              ["SEO basics", "Are titles, headings, service terms, and local intent clear?"],
+              ["Trust proof", "Are reviews, credentials, case studies, or photos visible?"],
+              ["Speed and friction", "Is the page easy to load, scan, and act on?"],
+            ].map(([title, copy]) => (
+              <div key={title} className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+                <div>
+                  <p className="font-black text-slate-950">{title}</p>
+                  <p className="text-sm font-semibold text-slate-600">{copy}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 rounded-[1.5rem] bg-indigo-50 p-6">
+            <h3 className="text-2xl font-black text-slate-950">What you’ll receive</h3>
+            <div className="mt-5 grid gap-3">
+              {[
+                "Homepage clarity review",
+                "CTA and WhatsApp flow review",
+                "Mobile experience notes",
+                "Trust signal gaps",
+                "Local SEO structure notes",
+                "Recommended website path: Starter, Managed, Growth, or Custom",
+              ].map((item) => (
+                <div key={item} className="flex gap-2 text-sm font-bold text-slate-700">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <form onSubmit={submitAudit} className="rounded-[2rem] border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">Free audit request</p>
+          <h2 className="mt-4 text-3xl font-black">Send your website for review</h2>
+          <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
+            No payment required. Share your current website and the main business goal you want the website to support.
+          </p>
+          {submitted ? (
+            <div className="mt-8 rounded-3xl bg-emerald-500/10 p-6 text-emerald-100">
+              <Check className="mb-4 h-8 w-8" />
+              <p className="text-xl font-black">{auditReport ? "Website audit complete." : "Audit request saved."}</p>
+              <p className="mt-2 text-sm font-semibold leading-6">
+                {auditReport
+                  ? "The score below is based on deterministic checks of the submitted page. It is not generated randomly."
+                  : "The website could not be analysed automatically, so no score was produced. Your request is saved for manual follow-up."}
+              </p>
+              {!auditReport && error && <p className="mt-4 rounded-xl bg-amber-400/10 p-3 text-sm font-bold text-amber-100">{error}</p>}
+              {auditReport && (
+                <div className="mt-6 rounded-2xl bg-white p-5 text-slate-950">
+                  <div className="flex items-end justify-between gap-4">
+                    <div><p className="text-xs font-black uppercase tracking-widest text-slate-500">Overall score</p><p className="text-4xl font-black">{auditReport.overallScore}/100</p></div>
+                    <Badge className="bg-indigo-100 text-indigo-700 hover:bg-indigo-100">{auditReport.recommendedPlan} plan</Badge>
+                  </div>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {auditReport.topProblems?.slice(0, 4).map((problem: any) => (
+                      <div key={problem.id} className="rounded-xl bg-slate-50 p-3">
+                        <p className="text-sm font-black">{problem.label}</p>
+                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{problem.evidence}</p>
+                        <p className="mt-2 text-xs font-bold text-indigo-700">{problem.recommendedAction}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-5 text-sm font-black">Suggested CTA: {auditReport.suggestedCTA}</p>
+                </div>
+              )}
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Link
+                  to="/book-demo"
+                  onClick={() => {
+                    trackPublicEvent({ eventType: "click_audit_thank_you_book_call", label: "Audit Thank You Book Call", target: "/book-demo" });
+                  }}
+                  className="inline-flex h-10 items-center justify-center rounded-2xl bg-white text-sm font-black text-slate-950 hover:bg-indigo-100"
+                >
+                  Book a Call
+                </Link>
+                <Link
+                  to="/generate-preview"
+                  onClick={() => {
+                    trackPublicEvent({ eventType: "click_audit_thank_you_generate_preview", label: "Audit Thank You Generate Preview", target: "/generate-preview" });
+                  }}
+                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-white/30 bg-white/5 text-sm font-black text-white hover:bg-white hover:text-slate-950"
+                >
+                  Generate Preview
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-8 grid gap-4">
+              {error && (
+                <div className="rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm font-bold text-rose-700">
+                  {error}
+                </div>
+              )}
+              <Input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Input required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Input required placeholder="Business name" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Input required placeholder="Industry / business type" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Input required placeholder="Website URL" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Input placeholder="WhatsApp / phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Textarea placeholder="What do you want the website to improve?" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-28 rounded-2xl bg-white text-slate-950" />
+              <Button type="submit" disabled={submitting} className="h-13 rounded-2xl bg-indigo-600 font-black uppercase tracking-widest hover:bg-indigo-500">
+                {submitting ? "Sending Audit Request..." : "Request Free Growth Audit"} <Search className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </form>
+      </section>
+    </>
+  );
+}
+
+function NicheLandingPage({ page }: { page: (typeof nichePages)[keyof typeof nichePages] }) {
+  return (
+    <>
+      <Hero title={page.title} copy={page.subtitle} icon={FileSearch} />
+      <section className="mx-auto max-w-7xl px-5 py-14">
+        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
+            <Badge className="mb-5 bg-indigo-50 px-4 py-1 text-indigo-700 hover:bg-indigo-50">
+              {page.label}
+            </Badge>
+            <h2 className="text-3xl font-black tracking-tight text-slate-950">
+              {page.positioning}
+            </h2>
+            <div className="mt-6 space-y-4">
+              <div className="rounded-3xl bg-rose-50 p-5">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-rose-600">
+                  Main pain point
+                </p>
+                <p className="mt-2 text-sm font-bold leading-6 text-rose-950">{page.pain}</p>
+              </div>
+              <div className="rounded-3xl bg-emerald-50 p-5">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-700">
+                  Offer promise
+                </p>
+                <p className="mt-2 text-sm font-bold leading-6 text-emerald-950">{page.promise}</p>
+              </div>
+              <div className="rounded-3xl bg-slate-50 p-5">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                  Lead capture method
+                </p>
+                <p className="mt-2 text-sm font-bold leading-6 text-slate-700">{page.leadCapture}</p>
+              </div>
+            </div>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link
+                to="/website-audit"
+                onClick={() => trackPublicEvent({ eventType: "click_request_audit", label: `${page.title} Audit CTA`, target: "/website-audit", metadata: { niche: page.label } })}
+                className="inline-flex h-11 items-center justify-center rounded-2xl bg-indigo-600 px-6 text-sm font-black uppercase tracking-widest text-white transition hover:bg-indigo-500"
+              >
+                {page.cta} <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+              <Link
+                to="/portfolio"
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 text-sm font-black uppercase tracking-widest text-slate-950 transition hover:bg-slate-50"
+              >
+                View Examples
+              </Link>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">
+              Website sections needed
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {page.sections.map((section) => (
+                <div key={section} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                  <p className="text-sm font-bold leading-6 text-slate-100">{section}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-7 rounded-3xl bg-white p-5 text-slate-950">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">
+                Recommended front-end CTA
+              </p>
+              <p className="mt-2 text-xl font-black">{page.cta}</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                Use the audit CTA first, then follow up through WhatsApp or a booked call with a specific website improvement plan.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function PreviewRequestPanel() {
+  const [submitted, setSubmitted] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [form, setForm] = React.useState({
+    name: "",
+    email: "",
+    phone: "",
+    businessName: "",
+    industry: "",
+    message: "",
+  });
+
+  const submitPreviewRequest = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setSubmitting(true);
+
+    try {
+      await submitPlatformLead({
+        ...form,
+        formName: "Done-for-you website preview request",
+        leadType: "done_for_you_preview",
+      });
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err?.message || "Unable to submit preview request right now.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-12 grid gap-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+      <div className="rounded-[1.5rem] bg-slate-950 p-7 text-white">
+        <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">Done-for-you preview request</p>
+        <h2 className="mt-4 text-3xl font-black leading-tight">Turn a business brief into the first website direction.</h2>
+        <p className="mt-4 text-sm font-semibold leading-6 text-slate-300">
+          Use this when a prospect wants you to prepare the preview for them before selecting a plan.
+        </p>
+      </div>
+      {submitted ? (
+        <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
+          <Check className="mb-4 h-8 w-8" />
+          <p className="text-xl font-black">Preview request sent to CRM.</p>
+          <p className="mt-2 text-sm font-semibold leading-6">
+            Follow up with the prospect, confirm their plan fit, and prepare the preview direction.
+          </p>
+        </div>
+      ) : (
+        <form onSubmit={submitPreviewRequest} className="grid gap-4">
+          {error && <div className="rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</div>}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-12 rounded-2xl" />
+            <Input required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl" />
+            <Input placeholder="WhatsApp / phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl" />
+            <Input placeholder="Business name" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-2xl" />
+            <Input placeholder="Industry" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
+          </div>
+          <Textarea placeholder="Main service, city, and what the website should help them get." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="min-h-28 rounded-2xl" />
+          <Button type="submit" disabled={submitting} className="h-12 rounded-2xl bg-indigo-600 font-black uppercase tracking-widest hover:bg-indigo-500">
+            {submitting ? "Sending Request..." : "Send Preview Request"} <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+export default function PublicMarketingPages() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const pageKind = location.pathname.replace("/", "") as PublicPageKind;
+  const meta = pageMeta[pageKind] || pageMeta.templates;
+  const nichePage = nichePages[pageKind as keyof typeof nichePages];
+
+  const Page =
+    nichePage
+      ? () => <NicheLandingPage page={nichePage} />
+      : pageKind === "pricing"
+      ? PricingPage
+      : pageKind === "how-it-works"
+        ? HowItWorksPage
+        : pageKind === "examples"
+          ? ExamplesPage
+          : pageKind === "website-audit"
+            ? WebsiteAuditPage
+            : pageKind === "generate-preview"
+              ? GeneratePreviewPage
+              : TemplatesPage;
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-950">
+      <Helmet>
+        <title>{meta.title}</title>
+        <meta name="description" content={meta.description} />
+      </Helmet>
+      <MarketingHeader />
+      <Page />
+      <section className="bg-white">
+        <div className="mx-auto grid max-w-7xl gap-5 px-5 py-12 md:grid-cols-[1fr_auto] md:items-center">
+          <div>
+            <h2 className="text-3xl font-black text-slate-950">Ready to see your website direction?</h2>
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+              Generate a free preview first, then choose the managed plan or custom website path that fits.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button
+              onClick={() => {
+                trackPublicEvent({ eventType: "click_generate_preview", label: "Final Generate Preview", target: "/generate-preview" });
+                navigate("/generate-preview");
+              }}
+              className="rounded-2xl bg-indigo-600 font-black uppercase tracking-widest"
+            >
+              Generate Preview <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() => {
+                trackPublicEvent({ eventType: "click_book_call", label: "Final Ask a Question", target: "/book-demo" });
+                navigate("/book-demo");
+              }}
+              variant="outline"
+              className="rounded-2xl font-black uppercase tracking-widest"
+            >
+              <MessageCircle className="mr-2 h-4 w-4" /> Ask a Question
+            </Button>
+          </div>
+        </div>
+      </section>
+      <MarketingFooter />
+    </div>
+  );
+}

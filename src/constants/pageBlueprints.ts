@@ -1,0 +1,682 @@
+import { SECTION_TEMPLATES } from "./sectionTemplates";
+import { NICHE_TEMPLATES } from "./nicheTemplates";
+import { PLANS } from "./plans";
+import { generateId } from "../lib/utils";
+import { WebsitePage, WebsiteSection } from "../types";
+
+export type BlueprintPlanId = "starter" | "business" | "growth";
+export type WebsitePlanId = string;
+
+export type SectionBlockType =
+  | "hero"
+  | "problem"
+  | "solution"
+  | "trust"
+  | "services"
+  | "service_detail"
+  | "about"
+  | "process"
+  | "benefits"
+  | "testimonials"
+  | "portfolio"
+  | "faq"
+  | "pricing"
+  | "contact_form"
+  | "whatsapp_cta"
+  | "booking_cta"
+  | "location"
+  | "team"
+  | "final_cta";
+
+export interface BlueprintPage {
+  name: string;
+  slug: string;
+  purpose: string;
+  sections: SectionBlockType[];
+  ctaType: string;
+  seoTitle: string;
+  metaDescription: string;
+  navLabel: string;
+}
+
+type BlueprintPageSeed = Omit<BlueprintPage, "seoTitle" | "metaDescription">;
+
+export interface PageBlueprint {
+  niche: string;
+  plan: WebsitePlanId;
+  positioning: string;
+  upgradeMessage?: string;
+  pages: BlueprintPage[];
+}
+
+export interface BlueprintBusinessInput {
+  businessName: string;
+  nicheId?: string;
+  nicheName?: string;
+  plan: WebsitePlanId;
+  maxPages?: number;
+  mainService?: string;
+  targetCustomer?: string;
+  location?: string;
+  country?: string;
+  state?: string;
+  nearbyAreas?: string[];
+  localProof?: string;
+  ctaPreference?: string;
+  tone?: string;
+  services?: string[];
+  description?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  whatsappNumber?: string;
+  faqs?: string[];
+  testimonials?: string[];
+}
+
+export const PLAN_POSITIONING: Record<BlueprintPlanId, string> = {
+  starter: "Launch a simple one-page business website fast.",
+  business: "Build a complete small business website with the essential pages customers expect.",
+  growth: "Create a stronger website with authority pages, portfolio/case studies, and better SEO structure.",
+};
+
+export const UPGRADE_MESSAGES: Record<BlueprintPlanId, string> = {
+  starter: "Add dedicated service and contact pages, improve trust, and unlock up to 5 location pages with Business.",
+  business: "Unlock up to 10 website pages, up to 25 location pages, stronger SEO structure, and priority growth support.",
+  growth: "You are already on the strongest website structure for this generator.",
+};
+
+const startCase = (value: string) =>
+  value
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+export const getPlanPageLimit = (plan?: string, configuredMaxPages?: number) => {
+  if (Number.isFinite(configuredMaxPages) && configuredMaxPages && configuredMaxPages > 0) {
+    return Math.floor(configuredMaxPages);
+  }
+
+  return PLANS.find((planConfig) => planConfig.id === plan)?.maxPages || 1;
+};
+
+export const resolveBlueprintPlan = (plan?: string, configuredMaxPages?: number): BlueprintPlanId => {
+  const pageLimit = getPlanPageLimit(plan, configuredMaxPages);
+
+  if (pageLimit <= 1) return "starter";
+  if (pageLimit <= 5) return "business";
+  return "growth";
+};
+
+export const inferBlueprintNiche = (value?: string) => {
+  const raw = (value || "").toLowerCase();
+  if (/restaurant|cafe|bistro|dining|food|menu/.test(raw)) return "restaurant";
+  if (/clinic|dental|dentist|doctor|medical|health|wellness|spa|physio|therapy/.test(raw)) return "clinic";
+  if (/contractor|renovation|repair|cleaning|pest|builder|construction|home service/.test(raw)) return "contractor";
+  if (/coach|consult|consultant|advisor|professional|speaker|trainer|agency|corporate|saas|software/.test(raw)) return "consultant";
+  if (/real estate|property|realtor|agent|listing/.test(raw)) return "real_estate";
+  if (/law|legal|attorney|solicitor/.test(raw)) return "law";
+  if (/boutique|retail|shop|fashion|jewelry|commerce/.test(raw)) return "boutique";
+  if (/portfolio|designer|creative|photography|architect/.test(raw)) return "portfolio";
+  return "consultant";
+};
+
+const page = (
+  name: string,
+  slug: string,
+  purpose: string,
+  sections: SectionBlockType[],
+  ctaType: string,
+  navLabel = name,
+): BlueprintPageSeed => ({
+  name,
+  slug,
+  purpose,
+  sections,
+  ctaType,
+  navLabel,
+});
+
+const BLUEPRINTS: Record<string, Record<BlueprintPlanId, { pages: BlueprintPageSeed[] }>> = {
+  restaurant: {
+    starter: {
+      pages: [
+        page("Home", "", "Convert visitors into reservations from one complete page.", ["hero", "services", "portfolio", "testimonials", "location", "contact_form", "final_cta"], "Reserve Table"),
+      ],
+    },
+    business: {
+      pages: [
+        page("Home", "", "Introduce the dining experience and drive reservations.", ["hero", "trust", "benefits", "testimonials", "final_cta"], "Reserve Table"),
+        page("Menu", "menu", "Show signature dishes, offers, and dining options.", ["hero", "services", "portfolio", "pricing", "final_cta"], "View Menu"),
+        page("Reservation", "reservation", "Make it easy to reserve a table or enquire about events.", ["hero", "contact_form", "location", "faq", "booking_cta"], "Reserve Table", "Reserve"),
+      ],
+    },
+    growth: {
+      pages: [
+        page("Home", "", "Create a premium first impression and route visitors to menu or booking.", ["hero", "trust", "benefits", "testimonials", "final_cta"], "Reserve Table"),
+        page("Menu", "menu", "Show core menu categories and dining packages.", ["hero", "services", "pricing", "final_cta"], "View Menu"),
+        page("About", "about", "Tell the chef, origin, and hospitality story.", ["hero", "about", "process", "trust", "final_cta"], "Reserve Table"),
+        page("Gallery", "gallery", "Show ambience, dishes, promotions, and private dining.", ["hero", "portfolio", "testimonials", "final_cta"], "Reserve Table", "Gallery"),
+        page("Reservation", "reservation", "Capture bookings, private events, and location intent.", ["hero", "contact_form", "location", "faq", "booking_cta"], "Reserve Table", "Reserve"),
+      ],
+    },
+  },
+  clinic: {
+    starter: {
+      pages: [
+        page("Home", "", "Build trust and drive appointments from one focused page.", ["hero", "services", "trust", "testimonials", "faq", "booking_cta", "final_cta"], "Book Appointment"),
+      ],
+    },
+    business: {
+      pages: [
+        page("Home", "", "Introduce the clinic and create immediate appointment intent.", ["hero", "trust", "benefits", "testimonials", "final_cta"], "Book Appointment"),
+        page("Treatments", "treatments", "Explain treatments and patient outcomes.", ["hero", "services", "service_detail", "faq", "final_cta"], "Book Appointment"),
+        page("Appointment", "appointment", "Capture patient enquiries and appointment requests.", ["hero", "contact_form", "location", "booking_cta"], "Book Appointment", "Book"),
+      ],
+    },
+    growth: {
+      pages: [
+        page("Home", "", "Position the clinic as trustworthy and easy to book.", ["hero", "trust", "benefits", "testimonials", "final_cta"], "Book Appointment"),
+        page("Practitioners", "practitioners", "Introduce the team and clinical credibility.", ["hero", "about", "trust", "testimonials", "final_cta"], "Book Appointment", "About"),
+        page("Treatments", "treatments", "Present treatments with clear benefits and patient fit.", ["hero", "services", "service_detail", "pricing", "final_cta"], "Book Appointment"),
+        page("Patient Info", "patient-info", "Answer common patient questions and reduce booking friction.", ["hero", "faq", "process", "benefits", "final_cta"], "Book Appointment", "FAQ"),
+        page("Appointment", "appointment", "Make booking and clinic location clear.", ["hero", "contact_form", "location", "booking_cta"], "Book Appointment", "Book"),
+      ],
+    },
+  },
+  contractor: {
+    starter: {
+      pages: [
+        page("Home", "", "Capture quote requests with services, proof, and project highlights.", ["hero", "services", "portfolio", "benefits", "testimonials", "contact_form", "final_cta"], "Get Quote"),
+      ],
+    },
+    business: {
+      pages: [
+        page("Home", "", "Build local trust and direct visitors to services or quote request.", ["hero", "trust", "benefits", "testimonials", "final_cta"], "Get Quote"),
+        page("Services", "services", "Explain core services and work process.", ["hero", "services", "process", "faq", "final_cta"], "Get Quote"),
+        page("Quote Request", "quote", "Collect project details and contact information.", ["hero", "contact_form", "location", "final_cta"], "Get Quote", "Quote"),
+      ],
+    },
+    growth: {
+      pages: [
+        page("Home", "", "Show credibility and route visitors to quote request.", ["hero", "trust", "portfolio", "testimonials", "final_cta"], "Get Quote"),
+        page("About", "about", "Explain the team, standards, and guarantee.", ["hero", "about", "benefits", "trust", "final_cta"], "Get Quote"),
+        page("Services", "services", "Break down services and ideal project types.", ["hero", "services", "service_detail", "process", "final_cta"], "Get Quote"),
+        page("Projects", "projects", "Show proof through completed jobs and before/after work.", ["hero", "portfolio", "testimonials", "final_cta"], "Get Quote"),
+        page("Quote Request", "quote", "Capture qualified quote enquiries.", ["hero", "contact_form", "location", "faq", "final_cta"], "Get Quote", "Quote"),
+      ],
+    },
+  },
+  consultant: {
+    starter: {
+      pages: [
+        page("Home", "", "Explain the problem, solution, services, proof, and booking CTA.", ["hero", "problem", "solution", "services", "trust", "faq", "booking_cta", "final_cta"], "Book Call"),
+      ],
+    },
+    business: {
+      pages: [
+        page("Home", "", "Build authority and direct visitors to programs or call booking.", ["hero", "problem", "solution", "trust", "final_cta"], "Book Call"),
+        page("Programs", "programs", "Explain services, programs, and outcomes.", ["hero", "services", "service_detail", "pricing", "faq", "final_cta"], "Book Call", "Services"),
+        page("Book a Call", "book-call", "Capture consultation requests.", ["hero", "contact_form", "booking_cta", "faq"], "Book Call", "Contact"),
+      ],
+    },
+    growth: {
+      pages: [
+        page("Home", "", "Position authority and route visitors to programs or proof.", ["hero", "problem", "solution", "trust", "final_cta"], "Book Call"),
+        page("About", "about", "Tell the founder story and credibility.", ["hero", "about", "trust", "testimonials", "final_cta"], "Book Call"),
+        page("Programs", "programs", "Explain services and program fit.", ["hero", "services", "service_detail", "pricing", "final_cta"], "Book Call", "Services"),
+        page("Results", "results", "Show case studies, testimonials, and measurable outcomes.", ["hero", "portfolio", "testimonials", "trust", "final_cta"], "Book Call"),
+        page("Book a Call", "book-call", "Convert qualified prospects into booked conversations.", ["hero", "contact_form", "booking_cta", "faq"], "Book Call", "Contact"),
+      ],
+    },
+  },
+  real_estate: {
+    starter: {
+      pages: [
+        page("Home", "", "Show featured properties and capture buyer/seller enquiries.", ["hero", "portfolio", "services", "testimonials", "contact_form", "final_cta"], "View Properties"),
+      ],
+    },
+    business: {
+      pages: [
+        page("Home", "", "Position the agent and route visitors to listings or contact.", ["hero", "trust", "portfolio", "testimonials", "final_cta"], "View Properties"),
+        page("Listings", "listings", "Show listings and buyer/seller services.", ["hero", "portfolio", "services", "faq", "final_cta"], "View Properties"),
+        page("Contact", "contact", "Capture buyer, seller, and valuation enquiries.", ["hero", "contact_form", "location", "final_cta"], "Contact Agent"),
+      ],
+    },
+    growth: {
+      pages: [
+        page("Home", "", "Create confidence and route visitors to listings or guides.", ["hero", "trust", "portfolio", "testimonials", "final_cta"], "View Properties"),
+        page("About", "about", "Build agent credibility and local market trust.", ["hero", "about", "trust", "testimonials", "final_cta"], "Contact Agent"),
+        page("Listings", "listings", "Show property listings and service options.", ["hero", "portfolio", "services", "final_cta"], "View Properties"),
+        page("Buyer / Seller Guide", "buyer-seller-guide", "Educate buyers and sellers before enquiry.", ["hero", "process", "faq", "benefits", "final_cta"], "Get Guide", "Guide"),
+        page("Contact", "contact", "Capture enquiries and valuation requests.", ["hero", "contact_form", "location", "final_cta"], "Contact Agent"),
+      ],
+    },
+  },
+  law: {
+    starter: {
+      pages: [
+        page("Home", "", "Build legal trust and capture consultation requests.", ["hero", "trust", "services", "testimonials", "faq", "contact_form", "final_cta"], "Request Consultation"),
+      ],
+    },
+    business: {
+      pages: [
+        page("Home", "", "Establish legal authority and route visitors to practice areas.", ["hero", "trust", "benefits", "testimonials", "final_cta"], "Request Consultation"),
+        page("Practice Areas", "practice-areas", "Explain legal services and client fit.", ["hero", "services", "service_detail", "faq", "final_cta"], "Request Consultation", "Services"),
+        page("Consultation", "consultation", "Capture confidential consultation requests.", ["hero", "contact_form", "booking_cta", "faq"], "Request Consultation", "Contact"),
+      ],
+    },
+    growth: {
+      pages: [
+        page("Home", "", "Build authority and route visitors to practice areas or consultation.", ["hero", "trust", "benefits", "testimonials", "final_cta"], "Request Consultation"),
+        page("About", "about", "Show credentials, approach, and firm principles.", ["hero", "about", "trust", "team", "final_cta"], "Request Consultation"),
+        page("Practice Areas", "practice-areas", "Explain services and legal outcomes.", ["hero", "services", "service_detail", "faq", "final_cta"], "Request Consultation", "Services"),
+        page("Case Results", "case-results", "Show proof, results, and testimonials without overpromising.", ["hero", "portfolio", "testimonials", "trust", "final_cta"], "Request Consultation", "Results"),
+        page("Consultation", "consultation", "Capture qualified legal enquiries.", ["hero", "contact_form", "booking_cta", "faq"], "Request Consultation", "Contact"),
+      ],
+    },
+  },
+  boutique: {
+    starter: {
+      pages: [
+        page("Home", "", "Show the collection, trust proof, and route shoppers to enquiry.", ["hero", "portfolio", "services", "testimonials", "whatsapp_cta", "final_cta"], "WhatsApp"),
+      ],
+    },
+    business: {
+      pages: [
+        page("Home", "", "Create a premium retail first impression.", ["hero", "trust", "portfolio", "testimonials", "final_cta"], "WhatsApp"),
+        page("Collection", "collection", "Show products, categories, and styling services.", ["hero", "portfolio", "services", "pricing", "final_cta"], "WhatsApp"),
+        page("Contact", "contact", "Capture enquiries and store visit intent.", ["hero", "contact_form", "location", "whatsapp_cta"], "WhatsApp"),
+      ],
+    },
+    growth: {
+      pages: [
+        page("Home", "", "Build a premium brand impression and route visitors to collection.", ["hero", "trust", "portfolio", "testimonials", "final_cta"], "WhatsApp"),
+        page("About", "about", "Tell the brand, curation, and quality story.", ["hero", "about", "benefits", "trust", "final_cta"], "WhatsApp"),
+        page("Collection", "collection", "Show products, categories, and offers.", ["hero", "portfolio", "services", "pricing", "final_cta"], "WhatsApp"),
+        page("Lookbook", "lookbook", "Show visual proof and seasonal campaigns.", ["hero", "portfolio", "testimonials", "final_cta"], "WhatsApp"),
+        page("Contact", "contact", "Capture store visits and WhatsApp enquiries.", ["hero", "contact_form", "location", "whatsapp_cta"], "WhatsApp"),
+      ],
+    },
+  },
+  portfolio: {
+    starter: {
+      pages: [
+        page("Home", "", "Show best work, credibility, and project enquiry CTA.", ["hero", "portfolio", "benefits", "testimonials", "contact_form", "final_cta"], "Book Call"),
+      ],
+    },
+    business: {
+      pages: [
+        page("Home", "", "Position the creative offer and route visitors to work or contact.", ["hero", "trust", "portfolio", "testimonials", "final_cta"], "Book Call"),
+        page("Work", "work", "Show selected projects and creative capabilities.", ["hero", "portfolio", "services", "process", "final_cta"], "View Work"),
+        page("Contact", "contact", "Capture project enquiries.", ["hero", "contact_form", "faq", "final_cta"], "Book Call"),
+      ],
+    },
+    growth: {
+      pages: [
+        page("Home", "", "Create a premium first impression and route visitors to work.", ["hero", "trust", "portfolio", "testimonials", "final_cta"], "Book Call"),
+        page("About", "about", "Tell the studio story and creative standards.", ["hero", "about", "process", "trust", "final_cta"], "Book Call"),
+        page("Services", "services", "Explain creative services and project fit.", ["hero", "services", "service_detail", "pricing", "final_cta"], "Book Call"),
+        page("Work", "work", "Show portfolio and case studies.", ["hero", "portfolio", "testimonials", "final_cta"], "View Work"),
+        page("Contact", "contact", "Capture qualified project enquiries.", ["hero", "contact_form", "faq", "final_cta"], "Book Call"),
+      ],
+    },
+  },
+};
+
+const sectionTypeMap: Record<SectionBlockType, string> = {
+  hero: "hero",
+  problem: "benefits",
+  solution: "features",
+  trust: "proof",
+  services: "services",
+  service_detail: "features",
+  about: "about",
+  process: "features",
+  benefits: "benefits",
+  testimonials: "testimonials",
+  portfolio: "features",
+  faq: "faq",
+  pricing: "pricing",
+  contact_form: "contact",
+  whatsapp_cta: "cta",
+  booking_cta: "appointment",
+  location: "contact",
+  team: "team",
+  final_cta: "cta",
+};
+
+const cloneSection = (type: string) =>
+  JSON.parse(
+    JSON.stringify({
+      ...SECTION_TEMPLATES[type],
+      id: generateId(),
+      isVisible: true,
+    }),
+  ) as WebsiteSection;
+
+export const getNicheTemplateById = (nicheId?: string) =>
+  Object.values(NICHE_TEMPLATES).find((template) => template.id === nicheId);
+
+export const getBlueprint = (nicheValue: string | undefined, plan: WebsitePlanId, maxPages?: number): PageBlueprint => {
+  const niche = inferBlueprintNiche(nicheValue);
+  const blueprintPlan = resolveBlueprintPlan(plan, maxPages);
+  const blueprint = BLUEPRINTS[niche] || BLUEPRINTS.consultant;
+  return {
+    niche,
+    plan: blueprintPlan,
+    positioning: PLAN_POSITIONING[blueprintPlan],
+    upgradeMessage: UPGRADE_MESSAGES[blueprintPlan],
+    ...blueprint[blueprintPlan],
+    pages: blueprint[blueprintPlan].pages.map((blueprintPage) => ({
+      ...blueprintPage,
+      seoTitle: `${blueprintPage.name} | {businessName}`,
+      metaDescription: `${blueprintPage.purpose} Serving {targetCustomer} in {location}.`,
+    })),
+  };
+};
+
+const getServiceItems = (input: BlueprintBusinessInput) => {
+  const fallbackService = input.mainService || "Professional Service";
+  const raw = (input.services || []).filter(Boolean);
+  const services = raw.length > 0 ? raw : [fallbackService, "Consultation", "Ongoing Support"];
+  return services.slice(0, 6).map((service) => ({
+    title: service,
+    description: `${service} designed for ${input.targetCustomer || "your customers"} in ${input.location || "your area"}.`,
+    price: input.plan === "starter" ? "Enquire" : "Custom Quote",
+  }));
+};
+
+const getFaqItems = (input: BlueprintBusinessInput) => {
+  const customFaqs = (input.faqs || []).filter(Boolean);
+  if (customFaqs.length > 0) {
+    return customFaqs.slice(0, 6).map((question) => ({
+      question: question.includes("?") ? question : `${question}?`,
+      answer: `Contact ${input.businessName} for a clear answer based on your needs.`,
+    }));
+  }
+
+  return [
+    {
+      question: `Do you serve ${input.location || "my area"}?`,
+      answer: `Yes. ${input.businessName} works with ${input.targetCustomer || "customers"} in ${input.location || "the local area"}.`,
+    },
+    {
+      question: "How do I get started?",
+      answer: `Use the ${input.ctaPreference || "contact"} button and the team will guide you through the next step.`,
+    },
+    {
+      question: "Can I ask questions before booking?",
+      answer: "Yes. Send an enquiry and the team will help you understand the best option before you commit.",
+    },
+  ];
+};
+
+const getTestimonials = (input: BlueprintBusinessInput) => {
+  const custom = (input.testimonials || []).filter(Boolean);
+  if (custom.length > 0) {
+    return custom.slice(0, 3).map((text, index) => ({
+      name: ["Verified Client", "Happy Customer", "Repeat Customer"][index] || "Verified Client",
+      role: input.targetCustomer || "Customer",
+      text,
+    }));
+  }
+
+  return [
+    {
+      name: "Verified Client",
+      role: input.targetCustomer || "Customer",
+      text: `${input.businessName} made the process clear, professional, and easy to trust from the first conversation.`,
+    },
+    {
+      name: "Local Customer",
+      role: input.location || "Local Area",
+      text: `The team explained every step and helped us choose the right solution without pressure.`,
+    },
+  ];
+};
+
+const buildSectionContent = (
+  section: WebsiteSection,
+  block: SectionBlockType,
+  pageBlueprint: BlueprintPage,
+  input: BlueprintBusinessInput,
+) => {
+  const businessName = input.businessName || "Your Business";
+  const service = input.mainService || "professional service";
+  const target = input.targetCustomer || "local customers";
+  const location = input.location || "your area";
+  const cta = input.ctaPreference || pageBlueprint.ctaType || "Get Started";
+  const tone = input.tone || "Professional";
+
+  if (section.type === "hero") {
+    section.content = {
+      ...section.content,
+      headline:
+        pageBlueprint.slug === ""
+          ? `${businessName} for ${target}`
+          : `${pageBlueprint.name} Built Around ${service}`,
+      subheadline:
+        input.description ||
+        `${tone} ${service} in ${location}, designed to help ${target} take the next step with confidence.`,
+      ctaText: cta,
+    };
+  }
+
+  if (section.type === "services") {
+    section.content = {
+      ...section.content,
+      title:
+        block === "pricing"
+          ? "Packages & Options"
+          : pageBlueprint.name.includes("Menu")
+            ? "Menu Highlights"
+            : pageBlueprint.name.includes("Practice")
+              ? "Practice Areas"
+              : pageBlueprint.name.includes("Treatment")
+                ? "Treatments & Services"
+                : "Services Built Around Your Needs",
+      description: `Clear options for ${target} looking for ${service} in ${location}.`,
+      items: getServiceItems(input),
+    };
+  }
+
+  if (section.type === "proof") {
+    section.content = {
+      ...section.content,
+      title: "Why Customers Trust Us",
+      stats: [
+        { label: "Local Focus", value: location.split(",")[0] || "Local" },
+        { label: "Core Service", value: service.split(" ")[0] || "Expert" },
+        { label: "Enquiry Path", value: cta.split(" ")[0] || "Fast" },
+      ],
+    };
+  }
+
+  if (section.type === "about") {
+    section.content = {
+      ...section.content,
+      title: `About ${businessName}`,
+      text: `${businessName} helps ${target} in ${location} with ${service}. The approach is clear, practical, and focused on helping every customer understand their options before taking action.\n\nThe website structure is designed to build trust quickly, answer common questions, and make it easy to enquire.`,
+    };
+  }
+
+  if (section.type === "features") {
+    section.content = {
+      ...section.content,
+      title:
+        block === "portfolio"
+          ? pageBlueprint.name
+          : block === "process"
+            ? "How It Works"
+            : "What Makes This Different",
+      description: `A simple path from first visit to ${cta.toLowerCase()}.`,
+      items:
+        block === "process"
+          ? ["Understand your needs", "Recommend the right option", "Confirm the next step", "Follow up clearly"]
+          : block === "portfolio"
+            ? ["Featured work", "Customer proof", "Before and after", "Recent highlights"]
+            : ["Clear service information", "Trust-focused page flow", "Fast enquiry path", "Mobile-first experience"],
+    };
+  }
+
+  if (section.type === "benefits") {
+    section.content = {
+      ...section.content,
+      title: `Why ${target} Choose ${businessName}`,
+      items: [
+        { title: "Clear next step", description: `Visitors always know how to ${cta.toLowerCase()}.` },
+        { title: "Trust first", description: "Proof, FAQs, and service details reduce hesitation." },
+        { title: "Local relevance", description: `Content is shaped around ${location} and the customers you want.` },
+      ],
+    };
+  }
+
+  if (section.type === "testimonials") {
+    section.content = {
+      ...section.content,
+      items: getTestimonials(input),
+    };
+  }
+
+  if (section.type === "faq") {
+    section.content = {
+      ...section.content,
+      title: "Common Questions",
+      items: getFaqItems(input),
+    };
+  }
+
+  if (section.type === "pricing") {
+    section.content = {
+      ...section.content,
+      title: "Simple Packages",
+      description: `Choose the right option for ${service}.`,
+      plans: [
+        { name: "Starter", price: "Enquire", isPopular: false, features: ["Initial consultation", "Core service guidance", "Clear next step"] },
+        { name: "Recommended", price: "Custom", isPopular: true, features: ["Personalized recommendation", "Priority response", "Follow-up support"] },
+        { name: "Premium", price: "Custom", isPopular: false, features: ["Full service support", "Dedicated guidance", "Ongoing care"] },
+      ],
+    };
+  }
+
+  if (section.type === "contact") {
+    section.content = {
+      ...section.content,
+      title: pageBlueprint.ctaType.includes("Reserve")
+        ? "Reserve Your Table"
+        : pageBlueprint.ctaType.includes("Quote")
+          ? "Request a Quote"
+          : pageBlueprint.ctaType.includes("Appointment")
+            ? "Book an Appointment"
+            : "Contact Us",
+      description: `Send your details and ${businessName} will follow up about ${service}.`,
+      email: input.contactEmail,
+      phone: input.contactPhone,
+      whatsapp: input.whatsappNumber,
+    };
+  }
+
+  if (section.type === "appointment") {
+    section.content = {
+      ...section.content,
+      title: pageBlueprint.ctaType,
+      description: `Choose a time to speak with ${businessName} about ${service}.`,
+      buttonText: pageBlueprint.ctaType,
+      calendarTitle: "Available Times",
+      workingHours: "Local business hours",
+      location,
+    };
+  }
+
+  if (section.type === "cta") {
+    section.content = {
+      ...section.content,
+      title:
+        block === "whatsapp_cta"
+          ? "Prefer WhatsApp?"
+          : `Ready to start with ${businessName}?`,
+      description: `Take the next step for ${service} in ${location}.`,
+      buttonText: cta,
+    };
+  }
+
+  return section;
+};
+
+export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsitePage[] => {
+  const template = getNicheTemplateById(input.nicheId);
+  const nicheName = input.nicheName || template?.category || template?.name || input.nicheId;
+  const blueprint = getBlueprint(nicheName, input.plan, input.maxPages);
+  const limit = getPlanPageLimit(input.plan, input.maxPages);
+
+  return blueprint.pages.slice(0, limit).map((blueprintPage) => {
+    const sections = blueprintPage.sections.map((block) => {
+      const sectionType = sectionTypeMap[block];
+      const section = cloneSection(sectionType);
+      return buildSectionContent(section, block, blueprintPage, input);
+    });
+
+    return {
+      id: generateId(),
+      title: blueprintPage.name,
+      slug: blueprintPage.slug,
+      sections,
+      seo: {
+        title: blueprintPage.seoTitle.replace("{businessName}", input.businessName),
+        description: blueprintPage.metaDescription
+          .replace("{targetCustomer}", input.targetCustomer || "local customers")
+          .replace("{location}", input.location || "your area"),
+        keywords: [input.businessName, input.mainService, input.location, nicheName].filter(Boolean) as string[],
+      },
+    };
+  });
+};
+
+export const buildNavigationPreview = (input: Pick<BlueprintBusinessInput, "nicheId" | "nicheName" | "plan" | "maxPages">) => {
+  const template = getNicheTemplateById(input.nicheId);
+  const nicheName = input.nicheName || template?.category || template?.name || input.nicheId;
+  return getBlueprint(nicheName, input.plan, input.maxPages).pages.slice(0, getPlanPageLimit(input.plan, input.maxPages));
+};
+
+export const getBlueprintTheme = (nicheId?: string) => {
+  const template = getNicheTemplateById(nicheId);
+  return template?.theme || {
+    primaryColor: "#4f46e5",
+    secondaryColor: "#ffffff",
+    fontFamily: "'Inter', sans-serif",
+    style: "modern",
+  };
+};
+
+export const getBlueprintSeo = (input: BlueprintBusinessInput) => {
+  const template = getNicheTemplateById(input.nicheId);
+  const nicheName = input.nicheName || template?.category || template?.name || "Business";
+  const service = input.mainService || nicheName;
+  const location = input.location || "Local Area";
+
+  return {
+    title: `${input.businessName} | ${service} in ${location}`,
+    description:
+      input.description ||
+      `${input.businessName} helps ${input.targetCustomer || "customers"} with ${service} in ${location}.`,
+    keywords: [input.businessName, service, location, nicheName].filter(Boolean),
+    businessType: inferBlueprintNiche(nicheName) === "restaurant" ? "Restaurant" : "LocalBusiness",
+    region: location,
+    placename: location,
+    brandVoice: input.tone || "Professional",
+  };
+};
+
+export const createPlanLimitUpgradeMessage = (plan: WebsitePlanId) =>
+  "You've reached your page limit. Upgrade to unlock more pages and grow your website.";
+
+export const getPlanUpgradeValue = (plan: WebsitePlanId, maxPages?: number) => {
+  const blueprintPlan = resolveBlueprintPlan(plan, maxPages);
+  return UPGRADE_MESSAGES[blueprintPlan];
+};
+
+export const getReadablePlanName = (plan: WebsitePlanId) =>
+  plan === "starter" ? "Starter" : plan === "business" ? "Business" : "Growth";
+
+export const getSectionBlockLabel = (block: SectionBlockType) => startCase(block);

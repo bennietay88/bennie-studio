@@ -1,0 +1,800 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { lazy, Suspense } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
+import { Globe } from "lucide-react";
+import { supabase } from "./lib/supabase";
+import { Button } from "./components/ui/button";
+import { Toaster } from "./components/ui/sonner";
+import { HelmetProvider, Helmet } from "react-helmet-async";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { LoadingFallback } from "./components/LoadingFallback";
+import LandingPage from "./components/LandingPage";
+import LoginPage from "./components/LoginPage";
+
+// --- Lazy Loaded Components ---
+const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
+const PortfolioPage = lazy(() => import("./components/PortfolioPage"));
+const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPages"));
+const PublicBlogPostPage = lazy(() => import("./components/PublicBlogPostPage"));
+const WaasSamplePage = lazy(() => import("./components/WaasSamplePage"));
+const BookDemo = lazy(() => import("./components/BookDemo"));
+const ForgotPasswordPage = lazy(
+  () => import("./components/ForgotPasswordPage"),
+);
+const ResetPasswordPage = lazy(() => import("./components/ResetPasswordPage"));
+const DashboardOverview = lazy(() => import("./components/DashboardOverview"));
+const ComingSoonPage = lazy(() => import("./components/ComingSoonPage"));
+const SuperAdminDashboard = lazy(
+  () => import("./components/SuperAdminDashboard"),
+);
+
+const LeadCRM = lazy(() =>
+  import("./components/LeadCRM").then((m) => ({ default: m.LeadCRM })),
+);
+const Appointments = lazy(() =>
+  import("./components/Appointments").then((m) => ({
+    default: m.Appointments,
+  })),
+);
+const WebsiteEditor = lazy(() =>
+  import("./components/WebsiteEditor").then((m) => ({
+    default: m.WebsiteEditor,
+  })),
+);
+const BlogCMS = lazy(() =>
+  import("./components/BlogCMS").then((m) => ({ default: m.BlogCMS })),
+);
+const PoliciesCMS = lazy(() =>
+  import("./components/PoliciesCMS").then((m) => ({ default: m.PoliciesCMS })),
+);
+const Billing = lazy(() =>
+  import("./components/Billing").then((m) => ({ default: m.Billing })),
+);
+const BusinessSettings = lazy(() =>
+  import("./components/BusinessSettings").then((m) => ({
+    default: m.BusinessSettings,
+  })),
+);
+const Profile = lazy(() =>
+  import("./components/Profile").then((m) => ({ default: m.Profile })),
+);
+const Support = lazy(() =>
+  import("./components/Support").then((m) => ({ default: m.Support })),
+);
+const ChatbotSettings = lazy(() =>
+  import("./components/ChatbotSettings").then((m) => ({
+    default: m.ChatbotSettings,
+  })),
+);
+const ProductManagement = lazy(() =>
+  import("./components/ProductManagement").then((m) => ({
+    default: m.ProductManagement,
+  })),
+);
+const IndustryContentManager = lazy(() =>
+  import("./components/IndustryContentManager").then((m) => ({
+    default: m.IndustryContentManager,
+  })),
+);
+const ReviewManagement = lazy(() =>
+  import("./components/ReviewManagement").then((m) => ({
+    default: m.ReviewManagement,
+  })),
+);
+const MarketingHub = lazy(() =>
+  import("./components/MarketingHub").then((m) => ({
+    default: m.MarketingHub,
+  })),
+);
+const AIContentHub = lazy(() => import("./components/AIContentHub"));
+const LocalSeoDashboard = lazy(() => import("./components/LocalSeoDashboard"));
+const MonthlyUpdateRequests = lazy(() => import("./components/MonthlyUpdateRequests"));
+const AICreditDashboard = lazy(() => import("./components/AICreditDashboard").then(m => ({ default: m.AICreditDashboard })));
+const TeamManagement = lazy(() => import("./components/TeamManagement"));
+const PlanEditor = lazy(() => import("./components/PlanEditor"));
+const LandingPageEditor = lazy(() => import("./components/LandingPageEditor"));
+const AffiliateDashboard = lazy(() =>
+  import("./components/AffiliateDashboard").then((m) => ({
+    default: m.AffiliateDashboard,
+  })),
+);
+const AffiliateJoinPage = lazy(() => import("./components/AffiliateJoinPage"));
+const AffiliateAuthPage = lazy(() => import("./components/AffiliateAuthPage"));
+const WordPressIntegration = lazy(() => import("./components/WordPressIntegration"));
+const PolicyPage = lazy(() =>
+  import("./components/Policies").then((m) => ({ default: m.PolicyPage })),
+);
+const WebsiteRenderer = lazy(() =>
+  import("./components/WebsiteRenderer").then((m) => ({
+    default: m.WebsiteRenderer,
+  })),
+);
+
+import { useTrafficTracker } from "./hooks/useTrafficTracker";
+
+const ApplyCustomService = lazy(() => import("./components/ApplyCustomService"));
+const DashboardLayout = lazy(() =>
+  import("./components/DashboardLayout").then((m) => ({ default: m.DashboardLayout })),
+);
+const FeatureGate = lazy(() =>
+  import("./components/FeatureGate").then((m) => ({ default: m.FeatureGate })),
+);
+const ProtectedRoute = lazy(() =>
+  import("./components/ProtectedRoute").then((m) => ({ default: m.ProtectedRoute })),
+);
+const BusinessDashboard = lazy(() =>
+  import("./components/BusinessDashboard").then((m) => ({ default: m.BusinessDashboard })),
+);
+const FeatureTour = lazy(() =>
+  import("./components/FeatureTour").then((m) => ({ default: m.FeatureTour })),
+);
+const DemoModePage = lazy(() =>
+  import("./components/DemoModePage").then((m) => ({ default: m.DemoModePage })),
+);
+const CustomerOnboardingPage = lazy(() =>
+  import("./components/CustomerOnboardingPage").then((m) => ({ default: m.CustomerOnboardingPage })),
+);
+const CheckoutStatusPage = lazy(() =>
+  import("./components/CheckoutStatusPage").then((m) => ({ default: m.CheckoutStatusPage })),
+);
+const SEOSetupGuide = lazy(() =>
+  import("./components/SEOSetupGuide").then((m) => ({ default: m.SEOSetupGuide })),
+);
+const TemplateMarketplace = lazy(() =>
+  import("./components/TemplateMarketplace").then((m) => ({ default: m.TemplateMarketplace })),
+);
+const SystemStatusPage = lazy(() =>
+  import("./components/SystemStatusPage").then((m) => ({ default: m.SystemStatusPage })),
+);
+const CustomerApprovals = lazy(() =>
+  import("./components/CustomerApprovals").then((m) => ({ default: m.CustomerApprovals })),
+);
+const MyWebsitePage = lazy(() =>
+  import("./components/MyWebsitePage").then((m) => ({ default: m.MyWebsitePage })),
+);
+
+function TrafficTracker() {
+  useTrafficTracker();
+  return null;
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname]);
+
+  return null;
+}
+
+const PLATFORM_HOSTS = new Set([
+  "app.bennietay.com",
+  "localhost",
+  "127.0.0.1",
+  "::1",
+]);
+
+function isCustomerDomainHost() {
+  const host = window.location.hostname.toLowerCase();
+  return (
+    Boolean(host) &&
+    !PLATFORM_HOSTS.has(host) &&
+    !host.endsWith(".vercel.app") &&
+    !host.endsWith(".local")
+  );
+}
+
+function CustomDomainWebsiteRoute() {
+  const [businessId, setBusinessId] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const resolveDomain = async () => {
+      try {
+        const response = await fetch(
+          `/api/custom-domain/resolve?host=${encodeURIComponent(window.location.hostname)}`,
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "Domain is not connected.");
+        if (!cancelled) setBusinessId(payload.businessId);
+      } catch (err: any) {
+        if (!cancelled) setError(err.message || "Domain is not connected.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    resolveDomain();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) return <LoadingFallback message="Loading website..." />;
+
+  if (error || !businessId) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
+        <div className="max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 text-center shadow-2xl">
+          <Globe className="h-10 w-10 mx-auto mb-4 text-indigo-300" />
+          <h1 className="text-2xl font-black mb-3">Domain Not Connected</h1>
+          <p className="text-sm text-slate-300 leading-relaxed">
+            This domain is pointing to Bennie Studio, but it is not connected to
+            a published customer website yet.
+          </p>
+          <p className="mt-4 text-xs text-slate-500">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <WebsiteRenderer businessIdOverride={businessId} />;
+}
+
+export default function App() {
+  const { logout, profile } = useAuth();
+  const [platformSettings, setPlatformSettings] = React.useState<any>(() => {
+    try {
+      const cached = sessionStorage.getItem("bts_platform_settings");
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loadingSettings, setLoadingSettings] = React.useState(() => {
+    try {
+      return !sessionStorage.getItem("bts_platform_settings");
+    } catch {
+      return true;
+    }
+  });
+  const defaultSiteTitle =
+    typeof platformSettings?.salesPageTitle === "string" &&
+    platformSettings.salesPageTitle.trim()
+      ? platformSettings.salesPageTitle.trim()
+      : "Bennie Studio";
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const fetchSettings = async () => {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 5000);
+
+      try {
+        const { data } = await supabase
+          .from("settings")
+          .select("content")
+          .eq("id", "platform")
+          .abortSignal(controller.signal)
+          .maybeSingle();
+
+        if (data?.content) {
+          if (!cancelled) setPlatformSettings(data.content);
+          try {
+            sessionStorage.setItem("bts_platform_settings", JSON.stringify(data.content));
+          } catch {
+            // Settings cache is an optimization only.
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching platform settings:", err);
+      } finally {
+        window.clearTimeout(timeoutId);
+        if (!cancelled) setLoadingSettings(false);
+      }
+    };
+
+    fetchSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const publicPathsWithoutSplash = [
+    "/",
+    "/pay-monthly-websites",
+    "/website-subscription-service",
+    "/portfolio",
+    "/templates",
+    "/pricing",
+    "/how-it-works",
+    "/examples",
+    "/website-audit",
+    "/generate-preview",
+    "/blog",
+    "/book-demo",
+    "/apply-custom",
+  ];
+  const currentPath = window.location.pathname;
+  const isPublicPageWithoutSplash =
+    publicPathsWithoutSplash.some(
+      (path) => currentPath === path || currentPath.startsWith(`${path}/`),
+    ) ||
+    currentPath.startsWith("/website-design/");
+
+  if (loadingSettings && !isPublicPageWithoutSplash) return <LoadingFallback />;
+
+  if (isCustomerDomainHost()) {
+    return (
+      <HelmetProvider>
+        <ErrorBoundary>
+          <Router>
+            <ScrollToTop />
+            <Suspense fallback={<LoadingFallback message="Loading website..." />}>
+              <Routes>
+                <Route path="*" element={<CustomDomainWebsiteRoute />} />
+              </Routes>
+            </Suspense>
+          </Router>
+        </ErrorBoundary>
+      </HelmetProvider>
+    );
+  }
+
+  // If maintenance mode is on and user is NOT a super admin, show coming soon page
+  if (platformSettings?.maintenanceMode && profile?.role !== "super_admin") {
+    return (
+      <HelmetProvider>
+        <Router>
+          <ScrollToTop />
+          <TrafficTracker />
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="*"
+                element={<ComingSoonPage settings={platformSettings} />}
+              />
+            </Routes>
+          </Suspense>
+        </Router>
+      </HelmetProvider>
+    );
+  }
+
+  return (
+    <HelmetProvider>
+      <ErrorBoundary>
+        <Router>
+          <ScrollToTop />
+          <TrafficTracker />
+          <Helmet>
+            <title>{defaultSiteTitle}</title>
+            <meta
+              name="description"
+              content="Bennie Studio builds managed lead-generation websites for small businesses that need more WhatsApp enquiries, quote requests, bookings, and local search visibility."
+            />
+            <meta
+              name="keywords"
+              content="lead generation website, managed website plans, small business website design, WhatsApp enquiry website, local SEO website, clinic website design, renovation contractor website, beauty salon website, consultant website, Bennie Studio"
+            />
+            {/* Platform SEO */}
+            <meta
+              property="og:title"
+              content={defaultSiteTitle}
+            />
+            <meta
+              property="og:description"
+              content="Managed lead-generation websites for small businesses that need clearer offers, better CTAs, enquiry forms, WhatsApp flow, and local SEO-ready structure."
+            />
+            <meta property="og:type" content="website" />
+            <meta name="twitter:card" content="summary_large_image" />
+            <script type="application/ld+json">
+              {`
+              {
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                "name": "Bennie Studio",
+                "url": "https://app.bennietay.com/",
+                "description": "Managed lead-generation websites and custom website projects for small businesses.",
+                "sameAs": []
+              }
+            `}
+            </script>
+          </Helmet>
+          <Toaster position="top-right" />
+          <Suspense
+            fallback={<LoadingFallback message="Loading core modules..." />}
+          >
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/pay-monthly-websites" element={<OwnSalesSeoPage />} />
+              <Route path="/pay-monthly-websites/:market" element={<OwnSalesSeoPage />} />
+              <Route path="/website-design/*" element={<OwnSalesSeoPage />} />
+              <Route path="/website-subscription-service" element={<OwnSalesSeoPage />} />
+              <Route path="/website-subscription-service/:market" element={<OwnSalesSeoPage />} />
+              <Route path="/portfolio" element={<PortfolioPage />} />
+              <Route path="/templates" element={<PublicMarketingPages />} />
+              <Route path="/pricing" element={<PublicMarketingPages />} />
+              <Route path="/how-it-works" element={<PublicMarketingPages />} />
+              <Route path="/examples" element={<PublicMarketingPages />} />
+              <Route path="/website-audit" element={<PublicMarketingPages />} />
+              <Route path="/generate-preview" element={<PublicMarketingPages />} />
+              <Route path="/blog/:slug" element={<PublicBlogPostPage />} />
+              <Route path="/clinic-website-design-malaysia" element={<PublicMarketingPages />} />
+              <Route path="/renovation-contractor-website-design" element={<PublicMarketingPages />} />
+              <Route path="/beauty-salon-website-design" element={<PublicMarketingPages />} />
+              <Route path="/tuition-centre-website-design" element={<PublicMarketingPages />} />
+              <Route path="/consultant-website-design" element={<PublicMarketingPages />} />
+              <Route path="/portfolio/sample/:sampleType" element={<WaasSamplePage />} />
+              <Route path="/demo" element={<DemoModePage />} />
+              <Route path="/book-demo" element={<BookDemo />} />
+              <Route path="/apply-custom" element={<ApplyCustomService />} />
+              <Route path="/privacy" element={<PolicyPage type="privacy" />} />
+              <Route path="/privacy-policy" element={<PolicyPage type="privacy" />} />
+              <Route path="/terms" element={<PolicyPage type="terms" />} />
+              <Route path="/terms-of-service" element={<PolicyPage type="terms" />} />
+              <Route path="/cookie-policy" element={<PolicyPage type="cookie" />} />
+              <Route path="/data-processing-agreement" element={<PolicyPage type="dpa" />} />
+              <Route path="/subprocessors" element={<PolicyPage type="subprocessors" />} />
+              <Route path="/acceptable-use-policy" element={<PolicyPage type="acceptable-use" />} />
+              <Route path="/w/:businessId" element={<WebsiteRenderer />} />
+              <Route path="/preview/template/:templateId" element={<WebsiteRenderer isTemplatePreview={true} />} />
+              <Route
+                path="/affiliate/join/:businessId"
+                element={<AffiliateJoinPage />}
+              />
+              <Route path="/affiliate/join" element={<AffiliateJoinPage />} />
+
+              {/* Business Admin Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/signup"
+                element={<LoginPage initialSignUp={true} />}
+              />
+              <Route path="/affiliate/login" element={<AffiliateAuthPage />} />
+              <Route path="/affiliate/signup" element={<AffiliateAuthPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/checkout/success" element={<CheckoutStatusPage status="success" />} />
+              <Route path="/checkout/cancel" element={<CheckoutStatusPage status="cancel" />} />
+
+              {/* Top-level Profile Redirect */}
+              <Route
+                path="/profile"
+                element={<Navigate to="/dashboard/profile" replace />}
+              />
+
+              <Route
+                path="/dashboard/*"
+                element={
+                  <ProtectedRoute
+                    allowedRoles={[
+                      "business_admin",
+                      "client",
+                      "affiliate",
+                      "staff",
+                    ]}
+                  >
+                    <BusinessDashboard>
+                      <DashboardLayout
+                        role={profile?.role as any}
+                        onLogout={logout}
+                      >
+                        <FeatureTour />
+                        <Suspense fallback={<LoadingFallback />}>
+                          <Routes>
+                            <Route
+                              path=""
+                              element={
+                                profile?.role === "affiliate" ? (
+                                  <AffiliateDashboard />
+                                ) : (
+                                  <DashboardOverview />
+                                )
+                              }
+                            />
+                            <Route
+                              path="my-website"
+                              element={<MyWebsitePage />}
+                            />
+                            <Route
+                              path="leads"
+                              element={
+                                <FeatureGate featureId="lead_crm">
+                                  <LeadCRM />
+                                </FeatureGate>
+                              }
+                            />
+                            <Route
+                              path="appointments"
+                              element={
+                                <FeatureGate featureId="booking">
+                                  <Appointments />
+                                </FeatureGate>
+                              }
+                            />
+                            <Route
+                              path="products"
+                              element={
+                                <FeatureGate featureId="ecommerce">
+                                  <ProductManagement />
+                                </FeatureGate>
+                              }
+                            />
+                            <Route
+                              path="industry-content"
+                              element={
+                                <FeatureGate featureId="industry_content">
+                                  <IndustryContentManager />
+                                </FeatureGate>
+                              }
+                            />
+                            <Route
+                              path="chatbot"
+                              element={
+                                <FeatureGate featureId="ai_chatbot">
+                                  <ChatbotSettings />
+                                </FeatureGate>
+                              }
+                            />
+                            <Route
+                              path="ai-hub"
+                              element={
+                                <FeatureGate featureId="ai_synthesis">
+                                  <AIContentHub />
+                                </FeatureGate>
+                              }
+                            />
+                            <Route
+                              path="ai-usage"
+                              element={
+                                <AICreditDashboard />
+                              }
+                            />
+                            <Route
+                              path="onboarding"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <CustomerOnboardingPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="seo-domain"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <SEOSetupGuide />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="local-seo"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <FeatureGate featureId="local_seo_geo">
+                                    <LocalSeoDashboard />
+                                  </FeatureGate>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="update-requests"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <MonthlyUpdateRequests />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="marketplace"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <TemplateMarketplace />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="status"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin", "staff"]}
+                                >
+                                  <SystemStatusPage />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="approvals"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin", "staff"]}
+                                >
+                                  <CustomerApprovals />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="reviews"
+                              element={
+                                <FeatureGate featureId="review_management">
+                                  <ReviewManagement />
+                                </FeatureGate>
+                              }
+                            />
+                            <Route
+                              path="team"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <TeamManagement />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="affiliates"
+                              element={<AffiliateDashboard />}
+                            />
+                            <Route
+                              path="affiliate/dashboard"
+                              element={<AffiliateDashboard />}
+                            />
+                            <Route
+                              path="automations"
+                              element={
+                                <FeatureGate featureId="automation">
+                                  <MarketingHub />
+                                </FeatureGate>
+                              }
+                            />
+                            <Route
+                              path="marketing-hub"
+                              element={
+                                <FeatureGate featureId="automation">
+                                  <MarketingHub />
+                                </FeatureGate>
+                              }
+                            />
+                            <Route
+                              path="analytics"
+                              element={
+                                <FeatureGate featureId="analytics">
+                                  <DashboardOverview />
+                                </FeatureGate>
+                              }
+                            />
+
+                            {/* Business Admin Only Routes */}
+                            <Route
+                              path="website"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <FeatureGate featureId="ai_synthesis">
+                                    <WebsiteEditor />
+                                  </FeatureGate>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route path="website-editor" element={<Navigate to="/dashboard/website" replace />} />
+                            <Route
+                              path="website/regenerate"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <FeatureGate featureId="ai_synthesis">
+                                    <WebsiteEditor forceShowGenerator={true} />
+                                  </FeatureGate>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route path="wordpress" element={<Navigate to="/dashboard/integrations/wordpress" replace />} />
+                            <Route
+                              path="templates"
+                              element={<Navigate to="/dashboard/marketplace" replace />}
+                            />
+                            <Route
+                              path="blog"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <BlogCMS />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="policies"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <PoliciesCMS />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="billing"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <Billing />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="settings"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <BusinessSettings />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="integrations/wordpress"
+                              element={
+                                <ProtectedRoute
+                                  allowedRoles={["business_admin"]}
+                                >
+                                  <WordPressIntegration />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route path="profile" element={<Profile />} />
+                            <Route path="support" element={<Support />} />
+                            <Route
+                              path="*"
+                              element={<Navigate to="/dashboard" replace />}
+                            />
+                          </Routes>
+                        </Suspense>
+                      </DashboardLayout>
+                    </BusinessDashboard>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Super Admin Routes */}
+              <Route
+                path="/admin/*"
+                element={
+                  <ProtectedRoute allowedRoles={["super_admin", "platform_staff"]}>
+                    <DashboardLayout role={profile?.role as any} onLogout={logout}>
+                      <Routes>
+                        <Route path="/*" element={<SuperAdminDashboard />} />
+                      </Routes>
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </Router>
+      </ErrorBoundary>
+    </HelmetProvider>
+  );
+}

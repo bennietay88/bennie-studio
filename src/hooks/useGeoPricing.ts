@@ -1,0 +1,184 @@
+import React from "react";
+import { supabase } from "../lib/supabase";
+
+type CurrencyCode = "USD" | "MYR" | "SGD" | "GBP";
+
+type CurrencyConfig = {
+  code: CurrencyCode;
+  symbol: string;
+  rateFromUsd: number;
+  prefixWithSpace?: boolean;
+};
+
+const DEFAULT_CURRENCY: CurrencyConfig = {
+  code: "USD",
+  symbol: "$",
+  rateFromUsd: 1,
+};
+
+const CURRENCY_BY_COUNTRY: Record<string, CurrencyConfig> = {
+  US: DEFAULT_CURRENCY,
+  MY: { code: "MYR", symbol: "RM", rateFromUsd: 4.7 },
+  SG: { code: "SGD", symbol: "SGD", rateFromUsd: 1.35, prefixWithSpace: true },
+  GB: { code: "GBP", symbol: "£", rateFromUsd: 0.79 },
+  UK: { code: "GBP", symbol: "£", rateFromUsd: 0.79 },
+};
+
+const parseUsdAmount = (value: string | number) => {
+  if (typeof value === "number") return value;
+  const parsed = Number(String(value).replace(/[^0-9.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const formatCurrency = (amount: number, currency: CurrencyConfig) => {
+  const rounded = Math.round(amount);
+  const formatted = new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 0,
+  }).format(rounded);
+
+  return currency.prefixWithSpace
+    ? `${currency.symbol} ${formatted}`
+    : `${currency.symbol}${formatted}`;
+};
+
+const currencyForCountry = (countryCode?: string) =>
+  CURRENCY_BY_COUNTRY[String(countryCode || "US").toUpperCase()] || DEFAULT_CURRENCY;
+
+export const formatUsdForCountry = (
+  usdAmount: string | number,
+  countryCode?: string,
+) => {
+  const currency = currencyForCountry(countryCode);
+  return formatCurrency(parseUsdAmount(usdAmount) * currency.rateFromUsd, currency);
+};
+
+export const formatUsdRangeForCountry = (
+  minUsd: string | number,
+  maxUsd: string | number,
+  countryCode?: string,
+  options?: {
+    from?: boolean;
+    plus?: boolean;
+  },
+) => {
+  const min = formatUsdForCountry(minUsd, countryCode);
+  const max = formatUsdForCountry(maxUsd, countryCode);
+  return `${options?.from ? "From " : ""}${min}-${max}${options?.plus ? "+" : ""}`;
+};
+
+export const useGeoPricing = () => {
+  const [countryCode, setCountryCode] = React.useState("US");
+  const [countryName, setCountryName] = React.useState("Global");
+  const [discountPercentage, setDiscountPercentage] = React.useState(0);
+  const [couponId, setCouponId] = React.useState<string | undefined>();
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const detectGeoPricing = async () => {
+      try {
+        const geoRes = await fetch("https://ipapi.co/json/");
+        const geoData = await geoRes.json();
+        const detectedCode = String(geoData?.country_code || "US").toUpperCase();
+
+        if (!cancelled) {
+          setCountryCode(detectedCode);
+          setCountryName(geoData?.country_name || "Global");
+        }
+
+        const { data } = await supabase
+          .from("geo_pricing")
+          .select("discount_percentage, country_name, stripe_coupon_id")
+          .eq("country_code", detectedCode)
+          .eq("is_enabled", true)
+          .maybeSingle();
+
+        if (!cancelled && data) {
+          setDiscountPercentage(Number(data.discount_percentage || 0));
+          setCouponId(data.stripe_coupon_id || undefined);
+          setCountryName(data.country_name || geoData?.country_name || "Global");
+        }
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.debug("Geo-pricing detection unavailable; using USD defaults.", err);
+        }
+      }
+    };
+
+    detectGeoPricing();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const currency = currencyForCountry(countryCode);
+
+  const convertUsd = React.useCallback(
+    (
+      usdAmount: string | number,
+      options?: {
+        yearlyMonthlyAverage?: boolean;
+        applyGeoDiscount?: boolean;
+      },
+    ) => {
+      let amount = parseUsdAmount(usdAmount);
+
+      if (options?.yearlyMonthlyAverage) {
+        amount = Math.round((amount * 10) / 12);
+      }
+
+      if (options?.applyGeoDiscount !== false && discountPercentage > 0) {
+        amount *= 1 - discountPercentage / 100;
+      }
+
+      return amount * currency.rateFromUsd;
+    },
+    [currency.rateFromUsd, discountPercentage],
+  );
+
+  const formatUsd = React.useCallback(
+    (
+      usdAmount: string | number,
+      options?: {
+        yearlyMonthlyAverage?: boolean;
+        applyGeoDiscount?: boolean;
+      },
+    ) => formatCurrency(convertUsd(usdAmount, options), currency),
+    [convertUsd, currency],
+  );
+
+  const formatUsdRange = React.useCallback(
+    (
+      minUsd: string | number,
+      maxUsd: string | number,
+      options?: {
+        from?: boolean;
+        plus?: boolean;
+        applyGeoDiscount?: boolean;
+      },
+    ) => {
+      const min = formatCurrency(
+        convertUsd(minUsd, { applyGeoDiscount: options?.applyGeoDiscount }),
+        currency,
+      );
+      const max = formatCurrency(
+        convertUsd(maxUsd, { applyGeoDiscount: options?.applyGeoDiscount }),
+        currency,
+      );
+      return `${options?.from ? "From " : ""}${min}-${max}${options?.plus ? "+" : ""}`;
+    },
+    [convertUsd, currency],
+  );
+
+  return {
+    countryCode,
+    countryName,
+    currency,
+    discountPercentage,
+    couponId,
+    hasGeoDiscount: discountPercentage > 0,
+    formatUsd,
+    formatUsdRange,
+  };
+};
