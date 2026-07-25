@@ -8,6 +8,7 @@ import { AlertTriangle, RefreshCw, Shield, Home } from "lucide-react";
 import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "motion/react";
 import { logClientError } from "../lib/clientErrorLog";
+import { captureClientError } from "../lib/observability";
 
 interface Props {
   children: ReactNode;
@@ -30,6 +31,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
+    captureClientError(error, {
+      source: "ErrorBoundary",
+      componentStack: errorInfo.componentStack || null,
+    });
     logClientError({
       level: "error",
       source: "ErrorBoundary",

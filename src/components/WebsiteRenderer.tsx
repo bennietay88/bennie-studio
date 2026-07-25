@@ -449,6 +449,7 @@ export function WebsiteRenderer({
           .from("websites")
           .select("*")
           .eq("business_id", businessId)
+          .eq("status", "published")
           .order("updated_at", { ascending: false })
           .limit(1)
           .maybeSingle();

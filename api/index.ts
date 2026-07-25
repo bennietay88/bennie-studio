@@ -14,8 +14,41 @@ import { z } from "zod";
 import { Redis } from "@upstash/redis";
 import { callDeepSeek, callOpenAI, callGemini } from "../src/lib/ai-providers.js";
 import { analyzeWebsiteHtml } from "../src/lib/websiteAudit.js";
+import {
+  classifyTenantHost,
+  getAcceptedVercelCnames,
+  getDomainLookupCandidates,
+  getPlatformHosts,
+  getPrimaryVercelCname,
+  isValidCustomDomain,
+  normalizeDomainInput,
+  VERCEL_APEX_A,
+} from "../src/lib/tenantDomains.js";
+import {
+  ensureVercelProjectDomain,
+  getVercelDnsInstructions,
+  isVercelDomainsConfigured,
+  removeVercelProjectDomain,
+} from "./vercelDomains.js";
+import {
+  claimAsyncJob,
+  completeAsyncJob,
+  createAsyncJob,
+  failAsyncJob,
+  getAsyncJob,
+  getJobWorkerSecret,
+  publishJobToQstash,
+  type AsyncJobRecord,
+} from "./jobQueue.js";
+import {
+  captureServerError,
+  initServerObservability,
+  requestLogger,
+  structuredLog,
+} from "./observability.js";
 
 dotenv.config();
+initServerObservability();
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || "";
@@ -31,7 +64,7 @@ const missingEnv = Object.entries(requiredEnv)
   .map(([key]) => key);
 
 if (missingEnv.length > 0) {
-  console.warn(`[Config] Missing required server env: ${missingEnv.join(", ")}`);
+  structuredLog("warn", "missing_required_server_env", { missingEnv });
 }
 
 const redis =
@@ -43,7 +76,9 @@ const redis =
     : null;
 
 if (!redis) {
-  console.warn("[RateLimit] UPSTASH_REDIS_REST_URL/TOKEN not set; using in-memory rate limits.");
+  structuredLog("warn", "redis_rate_limit_unavailable", {
+    message: "UPSTASH_REDIS_REST_URL/TOKEN not set; using in-memory rate limits.",
+  });
 }
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -306,7 +341,7 @@ app.use((req, res, next) => {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.deepseek.com https://generativelanguage.googleapis.com https://api.openai.com https://api.resend.com https://ct.pinterest.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.deepseek.com https://generativelanguage.googleapis.com https://api.openai.com https://api.resend.com https://ct.pinterest.com https://*.sentry.io https://*.ingest.sentry.io",
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",
@@ -314,6 +349,7 @@ app.use((req, res, next) => {
   );
   next();
 });
+app.use(requestLogger);
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "0.0.0.0";
 const STATE_MAX_AGE_MS = 10 * 60 * 1000;
@@ -321,6 +357,7 @@ const UUID_SCHEMA = z.string().uuid();
 const EMAIL_SCHEMA = z.string().email().max(254);
 const TEXT_SCHEMA = z.string().trim().min(1).max(500);
 const OPTIONAL_TEXT_SCHEMA = z.string().trim().max(5000).optional().nullable();
+const BILLING_GRACE_DAYS = Math.max(0, Number(process.env.BILLING_GRACE_DAYS || 7));
 const PUBLIC_URL_SCHEMA = z
   .string()
   .url()
@@ -563,41 +600,6 @@ function generateIntegrationApiKey() {
 }
 
 const dnsPromises = dns.promises;
-const PLATFORM_HOSTS = new Set([
-  "app.bennietay.com",
-  "bennietay-studio.vercel.app",
-  "localhost",
-  "127.0.0.1",
-  "::1",
-]);
-const VERCEL_APEX_A = "76.76.21.21";
-const VERCEL_CNAME = "cname.vercel-dns.com";
-
-function normalizeDomainInput(input: string) {
-  const raw = String(input || "")
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/^\/+/, "")
-    .split("/")[0]
-    .split("?")[0]
-    .replace(/:\d+$/, "")
-    .replace(/\.$/, "");
-  return raw;
-}
-
-function isValidCustomDomain(domain: string) {
-  if (!domain || domain.length > 253) return false;
-  if (domain.includes("..") || domain.startsWith("-") || domain.endsWith("-")) return false;
-  if (PLATFORM_HOSTS.has(domain) || domain.endsWith(".localhost")) return false;
-  return /^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(domain);
-}
-
-function getDomainLookupCandidates(host: string) {
-  const normalized = normalizeDomainInput(host);
-  const withoutWww = normalized.replace(/^www\./, "");
-  return Array.from(new Set([normalized, withoutWww, `www.${withoutWww}`]));
-}
 
 async function checkDomainDns(domain: string) {
   const isWww = domain.startsWith("www.");
@@ -608,7 +610,9 @@ async function checkDomainDns(domain: string) {
     expected: string;
     detected: boolean;
   }> = [];
-  const expected = isWww ? VERCEL_CNAME : VERCEL_APEX_A;
+  const expected = isWww ? getPrimaryVercelCname() : VERCEL_APEX_A;
+  const acceptedCnames = getAcceptedVercelCnames();
+  const isAcceptedCname = (record: string) => acceptedCnames.includes(record.replace(/\.$/, "").toLowerCase());
   let dnsDetected = false;
   let error = "";
 
@@ -617,14 +621,14 @@ async function checkDomainDns(domain: string) {
       const cnameRecords = await dnsPromises.resolveCname(domain).catch(() => []);
       const aRecords = await dnsPromises.resolve4(domain).catch(() => []);
       dnsDetected =
-        cnameRecords.some((record) => record.replace(/\.$/, "") === VERCEL_CNAME) ||
+        cnameRecords.some(isAcceptedCname) ||
         aRecords.includes(VERCEL_APEX_A);
       records.push({
         type: "CNAME",
         name: "www",
         value: cnameRecords.join(", ") || "Not detected",
         expected,
-        detected: cnameRecords.some((record) => record.replace(/\.$/, "") === VERCEL_CNAME),
+        detected: cnameRecords.some(isAcceptedCname),
       });
       records.push({
         type: "A",
@@ -649,8 +653,8 @@ async function checkDomainDns(domain: string) {
         type: "CNAME",
         name: "www",
         value: cnameRecords.join(", ") || "Optional",
-        expected: VERCEL_CNAME,
-        detected: cnameRecords.some((record) => record.replace(/\.$/, "") === VERCEL_CNAME),
+        expected: getPrimaryVercelCname(),
+        detected: cnameRecords.some(isAcceptedCname),
       });
     }
   } catch (err: any) {
@@ -782,6 +786,62 @@ async function startServer() {
         .status(500)
         .json({ error: "Internal Server Error verifying admin status" });
     }
+  };
+
+  const stripeTimestampToIso = (value?: number | null) =>
+    value ? new Date(value * 1000).toISOString() : null;
+
+  const billingGraceUntil = (preferredUnix?: number | null) =>
+    stripeTimestampToIso(preferredUnix) ||
+    new Date(Date.now() + BILLING_GRACE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  const resolveBusinessForStripe = async (input: { subscriptionId?: string | null; customerId?: string | null }) => {
+    const filters = [
+      input.subscriptionId ? `stripe_subscription_id.eq.${input.subscriptionId}` : "",
+      input.customerId ? `stripe_customer_id.eq.${input.customerId}` : "",
+    ].filter(Boolean);
+    if (!filters.length) return null;
+    const { data, error } = await supabaseAdmin
+      .from("businesses")
+      .select("id, owner_id")
+      .or(filters.join(","))
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return data as { id: string; owner_id?: string | null } | null;
+  };
+
+  const syncUserSubscriptionByStripe = async (input: {
+    subscriptionId?: string | null;
+    customerId?: string | null;
+    status: string;
+    planId?: string | null;
+    currentPeriodStart?: string | null;
+    currentPeriodEnd?: string | null;
+  }) => {
+    const filters = [
+      input.subscriptionId ? `stripe_subscription_id.eq.${input.subscriptionId}` : "",
+      input.customerId ? `stripe_customer_id.eq.${input.customerId}` : "",
+    ].filter(Boolean);
+    if (!filters.length) return null;
+
+    const payload: Record<string, any> = { status: input.status };
+    if (input.planId !== undefined) payload.plan_id = input.planId;
+    if (input.currentPeriodStart) payload.current_period_start = input.currentPeriodStart;
+    if (input.currentPeriodEnd) payload.current_period_end = input.currentPeriodEnd;
+
+    const { data, error } = await supabaseAdmin
+      .from("user_subscriptions")
+      .update(payload)
+      .or(filters.join(","))
+      .select("user_id");
+    if (error) throw error;
+    return (data?.[0] || null) as { user_id: string } | null;
+  };
+
+  const insertBillingLifecycleEvent = async (payload: Record<string, any>) => {
+    const { error } = await supabaseAdmin.from("billing_lifecycle_events").insert(payload);
+    if (error) console.warn("Billing lifecycle event skipped:", error.message);
   };
 
   // Stripe Webhook - MUST be before express.json()
@@ -1120,13 +1180,20 @@ async function startServer() {
             const plans = plansData || [];
             
             const priceId = subscription.items?.data?.[0]?.price?.id;
-            const plan = plans.find((p: any) => p.stripe_price_id === priceId);
+            const plan = plans.find((p: any) => p.stripe_price_id === priceId || p.yearly_stripe_price_id === priceId);
             const planSlug = plan?.slug || "starter";
             const planId = plan?.id;
+            const currentPeriodStart = stripeTimestampToIso(subscription.current_period_start);
+            const currentPeriodEnd = stripeTimestampToIso(subscription.current_period_end);
+            const isActiveAccess = ["active", "trialing"].includes(subscription.status);
+            const isPastDue = subscription.status === "past_due";
+            const isTerminal = ["canceled", "cancelled", "unpaid", "incomplete_expired"].includes(subscription.status);
+            const graceUntil = isPastDue ? billingGraceUntil(subscription.current_period_end) : null;
 
             const updateData: any = {
               subscription_status: subscription.status,
-              status: subscription.status === "active" ? "active" : "inactive",
+              status: isActiveAccess || isPastDue ? "active" : "inactive",
+              subscription_grace_until: graceUntil,
             };
 
             if (plan) {
@@ -1140,34 +1207,27 @@ async function startServer() {
               .update(updateData)
               .eq("stripe_subscription_id", subscription.id);
 
-            // Update User Subscriptions & Credits
-            const { data: subInfo } = await supabaseAdmin
-              .from("user_subscriptions")
-              .select("user_id")
-              .eq("stripe_subscription_id", subscription.id)
-              .single();
+            const subInfo = await syncUserSubscriptionByStripe({
+              subscriptionId: subscription.id,
+              customerId: typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id,
+              status: subscription.status,
+              planId,
+              currentPeriodStart,
+              currentPeriodEnd,
+            });
 
             if (subInfo?.user_id) {
               const userId = subInfo.user_id;
 
-              await supabaseAdmin
-                .from("user_subscriptions")
-                .update({
-                  plan_id: planId,
-                  status: subscription.status,
-                  current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-                  current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-                })
-                .eq("user_id", userId);
-
               if (plan) {
-                // Adjust credit balance for the new plan limit
+                const creditPayload: Record<string, any> = {
+                  monthly_credit_limit: plan.monthly_credit_limit,
+                  reset_date: currentPeriodEnd,
+                };
+                if (isTerminal) creditPayload.credits_remaining = 0;
                 await supabaseAdmin
                   .from("ai_credit_balances")
-                  .update({
-                    monthly_credit_limit: plan.monthly_credit_limit,
-                    reset_date: new Date(subscription.current_period_end * 1000).toISOString()
-                  })
+                  .update(creditPayload)
                   .eq("user_id", userId);
               }
             }
@@ -1178,20 +1238,47 @@ async function startServer() {
           break;
         }
         case "customer.subscription.deleted": {
-          const subscription = event.data.object as Stripe.Subscription;
+          const subscription = event.data.object as any;
           console.log(`Subscription deleted: ${subscription.id}`);
 
           try {
+            const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id;
             const { data: cancelledBusiness } = await supabaseAdmin
               .from("businesses")
               .update({
                 subscription_status: "canceled",
                 status: "inactive",
+                subscription_grace_until: null,
               })
               .eq("stripe_subscription_id", subscription.id)
-              .select("id")
+              .select("id, owner_id")
               .maybeSingle();
-            if (cancelledBusiness) await supabaseAdmin.from("billing_lifecycle_events").insert({ business_id: cancelledBusiness.id, event_type: "subscription_cancelled", status: "open", source: "stripe", metadata: { stripeEventId: event.id, stripeSubscriptionId: subscription.id } });
+
+            const subInfo = await syncUserSubscriptionByStripe({
+              subscriptionId: subscription.id,
+              customerId,
+              status: "canceled",
+              currentPeriodStart: stripeTimestampToIso(subscription.current_period_start),
+              currentPeriodEnd: stripeTimestampToIso(subscription.current_period_end),
+            });
+
+            const userId = subInfo?.user_id || cancelledBusiness?.owner_id;
+            if (userId) {
+              await supabaseAdmin
+                .from("ai_credit_balances")
+                .update({ credits_remaining: 0, monthly_credit_limit: 0 })
+                .eq("user_id", userId);
+            }
+
+            if (cancelledBusiness) {
+              await insertBillingLifecycleEvent({
+                business_id: cancelledBusiness.id,
+                event_type: "subscription_cancelled",
+                status: "open",
+                source: "stripe",
+                metadata: { stripeEventId: event.id, stripeSubscriptionId: subscription.id },
+              });
+            }
           } catch (err) {
             console.error(`Error handling subscription deletion:`, err);
           }
@@ -1201,10 +1288,29 @@ async function startServer() {
           const invoice = event.data.object as any;
           const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
           const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
-          const { data: business } = await supabaseAdmin.from("businesses").select("id").or(`stripe_subscription_id.eq.${subscriptionId || "none"},stripe_customer_id.eq.${customerId || "none"}`).limit(1).maybeSingle();
+          const business = await resolveBusinessForStripe({ subscriptionId, customerId });
           if (business) {
-            await supabaseAdmin.from("businesses").update({ subscription_status: "past_due" }).eq("id", business.id);
-            await supabaseAdmin.from("billing_lifecycle_events").insert({ business_id: business.id, event_type: "payment_failed", status: "open", source: "stripe", amount: Number(invoice.amount_due || 0) / 100, currency: invoice.currency || "usd", due_at: invoice.next_payment_attempt ? new Date(invoice.next_payment_attempt * 1000).toISOString() : null, metadata: { stripeEventId: event.id, invoiceId: invoice.id } });
+            const dueAt = stripeTimestampToIso(invoice.next_payment_attempt);
+            const graceUntil = billingGraceUntil(invoice.next_payment_attempt);
+            await supabaseAdmin
+              .from("businesses")
+              .update({
+                subscription_status: "past_due",
+                status: "active",
+                subscription_grace_until: graceUntil,
+              })
+              .eq("id", business.id);
+            await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "past_due" });
+            await insertBillingLifecycleEvent({
+              business_id: business.id,
+              event_type: "payment_failed",
+              status: "open",
+              source: "stripe",
+              amount: Number(invoice.amount_due || 0) / 100,
+              currency: invoice.currency || "usd",
+              due_at: dueAt || graceUntil,
+              metadata: { stripeEventId: event.id, invoiceId: invoice.id, stripeSubscriptionId: subscriptionId, graceUntil },
+            });
           }
           break;
         }
@@ -1212,11 +1318,12 @@ async function startServer() {
           const invoice = event.data.object as any;
           const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
           const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
-          const { data: business } = await supabaseAdmin.from("businesses").select("id").or(`stripe_subscription_id.eq.${subscriptionId || "none"},stripe_customer_id.eq.${customerId || "none"}`).limit(1).maybeSingle();
+          const business = await resolveBusinessForStripe({ subscriptionId, customerId });
           if (business) {
-            await supabaseAdmin.from("businesses").update({ subscription_status: "active", status: "active" }).eq("id", business.id);
+            await supabaseAdmin.from("businesses").update({ subscription_status: "active", status: "active", subscription_grace_until: null }).eq("id", business.id);
+            await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "active" });
             await supabaseAdmin.from("billing_lifecycle_events").update({ status: "resolved", resolved_at: new Date().toISOString() }).eq("business_id", business.id).eq("event_type", "payment_failed").eq("status", "open");
-            await supabaseAdmin.from("billing_lifecycle_events").insert({ business_id: business.id, event_type: "payment_recovered", status: "resolved", source: "stripe", amount: Number(invoice.amount_paid || 0) / 100, currency: invoice.currency || "usd", resolved_at: new Date().toISOString(), metadata: { stripeEventId: event.id, invoiceId: invoice.id } });
+            await insertBillingLifecycleEvent({ business_id: business.id, event_type: "payment_recovered", status: "resolved", source: "stripe", amount: Number(invoice.amount_paid || 0) / 100, currency: invoice.currency || "usd", resolved_at: new Date().toISOString(), metadata: { stripeEventId: event.id, invoiceId: invoice.id, stripeSubscriptionId: subscriptionId } });
           }
           break;
         }
@@ -1279,6 +1386,203 @@ async function startServer() {
     throw new Error("TOO_MANY_REDIRECTS");
   };
 
+  const runWebsiteAudit = async (payload: {
+    url: string;
+    leadId?: string | null;
+    leadEmail?: string | null;
+    requestId: string;
+  }) => {
+    const startedAt = Date.now();
+    const { response, finalUrl } = await fetchAuditResource(payload.url);
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) {
+      const error = new Error("The submitted URL did not return a website page.");
+      (error as any).statusCode = 422;
+      throw error;
+    }
+    const declaredLength = Number(response.headers.get("content-length") || 0);
+    if (declaredLength > 2_000_000) {
+      const error = new Error("The website page is too large to analyse safely.");
+      (error as any).statusCode = 422;
+      throw error;
+    }
+    const html = await response.text();
+    if (!html.trim() || new TextEncoder().encode(html).length > 2_000_000) {
+      const error = new Error("The website returned no analysable HTML or exceeded the audit limit.");
+      (error as any).statusCode = 422;
+      throw error;
+    }
+    if (!response.ok) {
+      const error = new Error(`The website returned HTTP ${response.status} and could not be analysed.`);
+      (error as any).statusCode = 422;
+      throw error;
+    }
+
+    const origin = new URL(finalUrl).origin;
+    const safeStatus = async (resourceUrl: string) => {
+      try {
+        const result = await fetchAuditResource(resourceUrl, "HEAD");
+        return result.response.status >= 200 && result.response.status < 400;
+      } catch { return false; }
+    };
+    const anchorTargets = [...html.matchAll(/<a\b[^>]+href=["']([^"'#]+)["']/gi)]
+      .map((match) => { try { return new URL(match[1], finalUrl); } catch { return null; } })
+      .filter((target): target is URL => Boolean(target && target.origin === origin && ["http:", "https:"].includes(target.protocol)))
+      .filter((target, index, list) => list.findIndex((item) => item.href === target.href) === index)
+      .slice(0, 8);
+    const [robotsFound, sitemapFound, linkResults] = await Promise.all([
+      safeStatus(`${origin}/robots.txt`),
+      safeStatus(`${origin}/sitemap.xml`),
+      Promise.all(anchorTargets.map(async (target) => ({ target: target.href, ok: await safeStatus(target.href) }))),
+    ]);
+    const report = analyzeWebsiteHtml({
+      url: finalUrl,
+      html,
+      statusCode: response.status,
+      responseTimeMs: Date.now() - startedAt,
+      robotsFound,
+      sitemapFound,
+      checkedLinks: linkResults.length,
+      brokenLinks: linkResults.filter((item) => !item.ok).map((item) => item.target),
+    });
+    if (payload.leadId && payload.leadEmail) {
+      const { data: lead } = await supabaseAdmin.from("leads").select("id,raw_fields").eq("id", payload.leadId).eq("email", payload.leadEmail).maybeSingle();
+      if (lead) {
+        await supabaseAdmin.from("leads").update({
+          raw_fields: { ...(lead.raw_fields || {}), websiteAudit: report, auditCompletedAt: report.analyzedAt },
+        }).eq("id", lead.id).then(({ error }) => {
+          if (error) console.warn(`[WebsiteAudit:${payload.requestId}] Report persistence failed:`, error.message);
+        });
+      }
+    }
+    return report;
+  };
+
+  const runAsyncJob = async (job: AsyncJobRecord) => {
+    if (job.job_type === "website_audit") {
+      const report = await runWebsiteAudit({
+        url: String(job.payload?.url || ""),
+        leadId: job.payload?.leadId || null,
+        leadEmail: job.payload?.leadEmail || null,
+        requestId: job.id,
+      });
+      return { success: true, report, completedAt: new Date().toISOString() };
+    }
+
+    if (job.job_type === "ai_generation" || job.job_type === "local_seo_audit") {
+      throw new Error(`${job.job_type} worker is registered but not yet wired to a handler.`);
+    }
+
+    throw new Error(`Unsupported job type: ${job.job_type}`);
+  };
+
+  const processQueuedJob = async (jobId?: string) => {
+    const workerId = `api-worker-${process.pid}-${Date.now()}`;
+    const job = await claimAsyncJob(supabaseAdmin, jobId, workerId);
+    if (!job) return { processed: false, job: null };
+
+    try {
+      const result = await runAsyncJob(job);
+      await completeAsyncJob(supabaseAdmin, job.id, result);
+      return { processed: true, job: { ...job, status: "completed" as const }, result };
+    } catch (error: any) {
+      const message = safeErrorMessage(error);
+      captureServerError(error, {
+        requestId: job.id,
+        jobId: job.id,
+        jobType: job.job_type,
+        attempts: job.attempts,
+      });
+      await failAsyncJob(supabaseAdmin, job, message);
+      return { processed: true, job: { ...job, status: "failed" as const }, error: message };
+    }
+  };
+
+  app.post(
+    "/api/jobs/process",
+    rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "jobs-process" }),
+    async (req, res) => {
+      const workerSecret = getJobWorkerSecret();
+      const provided = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+      if (!workerSecret || provided !== workerSecret) {
+        return res.status(401).json({ error: "Unauthorized job worker request" });
+      }
+
+      const body = validateBody(z.object({ jobId: UUID_SCHEMA.optional() }), req, res);
+      if (!body) return;
+
+      try {
+        const outcome = await processQueuedJob(body.jobId);
+        return res.json(outcome);
+      } catch (error: any) {
+        console.error("[AsyncJobs] Worker failed:", error);
+        return res.status(500).json({ error: safeErrorMessage(error) });
+      }
+    },
+  );
+
+  app.get("/api/jobs/:jobId", authenticate, async (req: any, res: any) => {
+    if (!UUID_SCHEMA.safeParse(req.params.jobId).success) {
+      return res.status(400).json({ error: "Invalid job ID" });
+    }
+    try {
+      const job = await getAsyncJob(supabaseAdmin, req.params.jobId);
+      if (!job) return res.status(404).json({ error: "Job not found" });
+      const profile = await getProfileForUser(req.user.id);
+      const canRead =
+        profile.role === "super_admin" ||
+        profile.role === "platform_staff" ||
+        job.user_id === req.user.id ||
+        Boolean(job.business_id && profile.business_id === job.business_id);
+      if (!canRead) return res.status(403).json({ error: "Forbidden" });
+
+      return res.json({
+        id: job.id,
+        jobType: job.job_type,
+        status: job.status,
+        attempts: job.attempts,
+        maxAttempts: job.max_attempts,
+        result: job.status === "completed" ? job.result : null,
+        error: job.status === "failed" ? job.last_error : null,
+        createdAt: job.created_at,
+        updatedAt: job.updated_at,
+        completedAt: job.completed_at,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  app.get("/api/public/website-audit/jobs/:jobId", async (req: any, res: any) => {
+    if (!UUID_SCHEMA.safeParse(req.params.jobId).success) {
+      return res.status(400).json({ error: "Invalid job ID" });
+    }
+    const leadId = String(req.query.leadId || "");
+    const leadEmail = String(req.query.leadEmail || "");
+    if (!UUID_SCHEMA.safeParse(leadId).success || !EMAIL_SCHEMA.safeParse(leadEmail).success) {
+      return res.status(400).json({ error: "Lead verification is required." });
+    }
+
+    try {
+      const job = await getAsyncJob(supabaseAdmin, req.params.jobId);
+      if (!job || job.job_type !== "website_audit") return res.status(404).json({ error: "Audit job not found" });
+      if (job.payload?.leadId !== leadId || job.payload?.leadEmail !== leadEmail) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      return res.json({
+        id: job.id,
+        status: job.status,
+        report: job.status === "completed" ? job.result?.report || null : null,
+        error: job.status === "failed" ? job.last_error : null,
+        updatedAt: job.updated_at,
+        completedAt: job.completed_at,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
   app.post(
     "/api/public/website-audit",
     rateLimit({ windowMs: 60 * 60 * 1000, max: 8, keyPrefix: "website-audit" }),
@@ -1288,60 +1592,37 @@ async function startServer() {
         url: PUBLIC_URL_SCHEMA,
         leadId: UUID_SCHEMA.optional().nullable(),
         leadEmail: EMAIL_SCHEMA.optional().nullable(),
+        async: z.boolean().optional(),
       }), req, res);
       if (!body) return;
       try {
-        const startedAt = Date.now();
-        const { response, finalUrl } = await fetchAuditResource(body.url);
-        const contentType = response.headers.get("content-type") || "";
-        if (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) {
-          return res.status(422).json({ error: "The submitted URL did not return a website page.", requestId });
+        if (body.async) {
+          await assertPublicAuditUrl(body.url);
+          const { job, existing } = await createAsyncJob(supabaseAdmin, {
+            jobType: "website_audit",
+            payload: { url: body.url, leadId: body.leadId || null, leadEmail: body.leadEmail || null },
+            idempotencyKey: `website_audit:${crypto.createHash("sha256").update(`${body.url}:${body.leadId || ""}:${body.leadEmail || ""}`).digest("hex")}`,
+          });
+          const dispatch = await publishJobToQstash(job.id).catch((error) => {
+            console.warn(`[AsyncJobs:${job.id}] QStash dispatch skipped:`, error?.message || error);
+            return { published: false, reason: "QStash dispatch failed" };
+          });
+          return res.status(existing ? 200 : 202).json({
+            success: true,
+            queued: true,
+            jobId: job.id,
+            status: job.status,
+            dispatch,
+            requestId,
+          });
         }
-        const declaredLength = Number(response.headers.get("content-length") || 0);
-        if (declaredLength > 2_000_000) return res.status(422).json({ error: "The website page is too large to analyse safely.", requestId });
-        const html = await response.text();
-        if (!html.trim() || new TextEncoder().encode(html).length > 2_000_000) {
-          return res.status(422).json({ error: "The website returned no analysable HTML or exceeded the audit limit.", requestId });
-        }
-        if (!response.ok) return res.status(422).json({ error: `The website returned HTTP ${response.status} and could not be analysed.`, requestId });
 
-        const origin = new URL(finalUrl).origin;
-        const safeStatus = async (resourceUrl: string) => {
-          try {
-            const result = await fetchAuditResource(resourceUrl, "HEAD");
-            return result.response.status >= 200 && result.response.status < 400;
-          } catch { return false; }
-        };
-        const anchorTargets = [...html.matchAll(/<a\b[^>]+href=["']([^"'#]+)["']/gi)]
-          .map((match) => { try { return new URL(match[1], finalUrl); } catch { return null; } })
-          .filter((target): target is URL => Boolean(target && target.origin === origin && ["http:", "https:"].includes(target.protocol)))
-          .filter((target, index, list) => list.findIndex((item) => item.href === target.href) === index)
-          .slice(0, 8);
-        const [robotsFound, sitemapFound, linkResults] = await Promise.all([
-          safeStatus(`${origin}/robots.txt`),
-          safeStatus(`${origin}/sitemap.xml`),
-          Promise.all(anchorTargets.map(async (target) => ({ target: target.href, ok: await safeStatus(target.href) }))),
-        ]);
-        const report = analyzeWebsiteHtml({
-          url: finalUrl,
-          html,
-          statusCode: response.status,
-          responseTimeMs: Date.now() - startedAt,
-          robotsFound,
-          sitemapFound,
-          checkedLinks: linkResults.length,
-          brokenLinks: linkResults.filter((item) => !item.ok).map((item) => item.target),
+        const report = await runWebsiteAudit({
+          url: body.url,
+          leadId: body.leadId,
+          leadEmail: body.leadEmail,
+          requestId,
         });
-        if (body.leadId && body.leadEmail) {
-          const { data: lead } = await supabaseAdmin.from("leads").select("id,raw_fields").eq("id", body.leadId).eq("email", body.leadEmail).maybeSingle();
-          if (lead) {
-            await supabaseAdmin.from("leads").update({
-              raw_fields: { ...(lead.raw_fields || {}), websiteAudit: report, auditCompletedAt: report.analyzedAt },
-            }).eq("id", lead.id).then(({ error }) => {
-              if (error) console.warn(`[WebsiteAudit:${requestId}] Report persistence failed:`, error.message);
-            });
-          }
-        }
         return res.json({ success: true, report, requestId });
       } catch (error: any) {
         console.warn(`[WebsiteAudit:${requestId}]`, error?.message || error);
@@ -1805,7 +2086,7 @@ async function startServer() {
       // If we don't have the key, we'll fallback to Gemini which is allowed for everyone
       const isChatGPTRequired = feature.default_provider === "openai" && !!process.env.OPENAI_API_KEY;
       
-      let deductionResult = { success: true, credits_remaining: 100, credits_charged: 0, error: null };
+      let deductionResult: any = null;
       const { data: rpcResult, error: deductionError } = await supabaseAdmin.rpc("validate_and_deduct_credits", {
         p_user_id: userId,
         p_feature_key: feature_key,
@@ -1813,12 +2094,45 @@ async function startServer() {
       });
 
       if (deductionError) {
-        console.warn("[AI] Credit RPC failed, allowing bypass:", deductionError.message);
-      } else {
-        deductionResult = rpcResult;
+        captureServerError(deductionError, {
+          requestId: req.requestId,
+          userId,
+          featureKey: feature_key,
+          phase: "ai_credit_deduction",
+        });
+        return res.status(503).json({
+          error: "AI_CREDIT_CHECK_UNAVAILABLE",
+          message: "AI usage could not be verified right now. No credits were charged. Please retry shortly.",
+        });
       }
 
-      if (!deductionResult.success) {
+      deductionResult = rpcResult;
+      if (!deductionResult) {
+        captureServerError(new Error("AI credit deduction returned no result"), {
+          requestId: req.requestId,
+          userId,
+          featureKey: feature_key,
+        });
+        return res.status(503).json({
+          error: "AI_CREDIT_CHECK_INVALID",
+          message: "AI usage could not be verified right now. No credits were charged. Please retry shortly.",
+        });
+      }
+
+      if (deductionResult.success === true && Number(deductionResult.credits_charged || 0) <= 0) {
+        captureServerError(new Error("AI credit deduction returned no charge"), {
+          requestId: req.requestId,
+          userId,
+          featureKey: feature_key,
+          deductionResult,
+        });
+        return res.status(503).json({
+          error: "AI_CREDIT_CHECK_INVALID",
+          message: "AI usage could not be verified right now. No credits were charged. Please retry shortly.",
+        });
+      }
+
+      if (!deductionResult?.success) {
         // Fallback for specific features if limit reached or premium restricted
         if (shouldFallback) {
           console.warn(`[AI] Restriction reached for ${feature_key} (Error: ${deductionResult.error}), serving fallback for user ${userId}`);
@@ -5085,23 +5399,28 @@ async function startServer() {
   app.get("/api/custom-domain/resolve", async (req: any, res) => {
     try {
       const host = normalizeDomainInput(String(req.query.host || req.headers.host || ""));
-      if (!isValidCustomDomain(host) || PLATFORM_HOSTS.has(host) || host.endsWith(".vercel.app")) {
+      const tenant = classifyTenantHost(host);
+      if (tenant.kind === "platform" || host.endsWith(".vercel.app")) {
         return res.status(404).json({ error: "Domain not found.", code: "DOMAIN_NOT_FOUND" });
       }
 
-      const candidates = getDomainLookupCandidates(host);
-      const { data: businesses, error: businessError } = await supabaseAdmin
-        .from("businesses")
-        .select("id, name, custom_domain, custom_domain_status, custom_domain_verified_at, custom_domain_suspended, custom_domain_permission_confirmed, ssl_status, status, subscription_status, subscription_grace_until")
-        .in("custom_domain", candidates)
-        .limit(3);
+      if (tenant.kind === "custom_domain" && !isValidCustomDomain(host)) {
+        return res.status(404).json({ error: "Domain not found.", code: "DOMAIN_NOT_FOUND" });
+      }
+
+      const businessSelect = "id, name, subdomain, custom_domain, custom_domain_status, custom_domain_verified_at, custom_domain_suspended, custom_domain_permission_confirmed, ssl_status, status, subscription_status, subscription_grace_until";
+      const query = supabaseAdmin.from("businesses").select(businessSelect);
+      const { data: businesses, error: businessError } =
+        tenant.kind === "subdomain"
+          ? await query.eq("subdomain", tenant.subdomain).limit(1)
+          : await query.in("custom_domain", tenant.candidates).limit(3);
 
       if (businessError) throw businessError;
 
-      const business = (businesses || []).find((item: any) => {
-        const itemDomain = normalizeDomainInput(item.custom_domain || "");
-        return candidates.includes(itemDomain);
-      });
+      const business =
+        tenant.kind === "custom_domain"
+          ? (businesses || []).find((item: any) => tenant.candidates.includes(normalizeDomainInput(item.custom_domain || "")))
+          : businesses?.[0];
 
       if (!business) {
         return res.status(404).json({ error: "Domain not found.", code: "DOMAIN_NOT_FOUND" });
@@ -5111,6 +5430,7 @@ async function startServer() {
         console.warn("Custom domain resolve blocked:", {
           code,
           host,
+          tenantKind: tenant.kind,
           businessId: business.id,
           customDomainStatus: business.custom_domain_status,
           sslStatus: business.ssl_status,
@@ -5132,20 +5452,22 @@ async function startServer() {
         return publicDomainFailure(402, "SUBSCRIPTION_INACTIVE", "This website is not available.");
       }
 
-      if (business.custom_domain_suspended) {
-        return publicDomainFailure(403, "DOMAIN_SUSPENDED", "This domain is not available.");
-      }
+      if (tenant.kind === "custom_domain") {
+        if (business.custom_domain_suspended) {
+          return publicDomainFailure(403, "DOMAIN_SUSPENDED", "This domain is not available.");
+        }
 
-      if (!business.custom_domain_permission_confirmed) {
-        return publicDomainFailure(403, "DOMAIN_PERMISSION_REQUIRED", "This domain is not available.");
-      }
+        if (!business.custom_domain_permission_confirmed) {
+          return publicDomainFailure(403, "DOMAIN_PERMISSION_REQUIRED", "This domain is not available.");
+        }
 
-      if (business.custom_domain_status !== "connected" || !business.custom_domain_verified_at) {
-        return publicDomainFailure(409, "DOMAIN_NOT_VERIFIED", "This domain is not verified yet.");
-      }
+        if (business.custom_domain_status !== "connected" || !business.custom_domain_verified_at) {
+          return publicDomainFailure(409, "DOMAIN_NOT_VERIFIED", "This domain is not verified yet.");
+        }
 
-      if (business.ssl_status !== "issued") {
-        return publicDomainFailure(409, "SSL_PENDING", "SSL is still being prepared for this domain.");
+        if (business.ssl_status !== "issued") {
+          return publicDomainFailure(409, "SSL_PENDING", "SSL is still being prepared for this domain.");
+        }
       }
 
       const { data: website, error: websiteError } = await supabaseAdmin
@@ -5169,6 +5491,7 @@ async function startServer() {
         businessId: business.id,
         businessName: business.name,
         websiteId: website.id,
+        tenantKind: tenant.kind,
         status: business.custom_domain_status || "connected",
       });
     } catch (error: any) {
@@ -5215,6 +5538,12 @@ async function startServer() {
         });
       }
 
+      const vercelDomain = await ensureVercelProjectDomain(domain).catch((error: any) => ({
+        configured: isVercelDomainsConfigured(),
+        error: error?.message || "Vercel domain sync failed",
+        status: error?.status || 500,
+        instructions: getVercelDnsInstructions(domain),
+      }));
       const dnsResult = await checkDomainDns(domain);
       const sslIssued = dnsResult.dnsDetected ? await checkHttpsIssued(domain) : false;
       const customDomainStatus = !dnsResult.dnsDetected
@@ -5225,6 +5554,7 @@ async function startServer() {
       const sslStatus = !dnsResult.dnsDetected ? "not_connected" : sslIssued ? "issued" : "pending";
       const now = new Date().toISOString();
       const customDomainError =
+        (vercelDomain as any)?.error ||
         dnsResult.error ||
         (!dnsResult.dnsDetected
           ? "DNS record not detected yet. Update your DNS records and check again."
@@ -5262,6 +5592,7 @@ async function startServer() {
         sslStatus: updatedBusiness.ssl_status,
         sslCheckedAt: updatedBusiness.ssl_checked_at,
         domainDnsRecords: updatedBusiness.domain_dns_records || [],
+        vercelDomain,
       });
     } catch (error: any) {
       console.error("Custom domain verify error:", error);
@@ -5283,6 +5614,59 @@ async function startServer() {
     }
   });
 
+  app.delete("/api/custom-domain/vercel", authenticate, async (req: any, res) => {
+    const body = validateBody(
+      z.object({
+        businessId: z.string().uuid(),
+        domain: z.string().trim().min(4).max(253),
+      }),
+      req,
+      res,
+    );
+    if (!body) return;
+
+    const domain = normalizeDomainInput(body.domain);
+    if (!isValidCustomDomain(domain)) {
+      return res.status(400).json({ error: "Enter a valid custom domain." });
+    }
+
+    try {
+      await assertBusinessAccess(req.user.id, body.businessId);
+      if (isVercelDomainsConfigured()) {
+        await removeVercelProjectDomain(domain).catch((error: any) => {
+          if (Number(error?.status) !== 404) throw error;
+        });
+      }
+      const { error: updateError } = await supabaseAdmin
+        .from("businesses")
+        .update({
+          custom_domain: null,
+          custom_domain_status: "not_connected",
+          custom_domain_permission_confirmed: false,
+          custom_domain_verified_at: null,
+          custom_domain_last_checked_at: new Date().toISOString(),
+          custom_domain_error: null,
+          ssl_status: "not_connected",
+          ssl_checked_at: new Date().toISOString(),
+          domain_dns_records: [],
+        })
+        .eq("id", body.businessId);
+      if (updateError) throw updateError;
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Custom domain Vercel removal error:", error);
+      if (
+        error?.message === "BUSINESS_ID_REQUIRED" ||
+        error?.message === "BUSINESS_NOT_FOUND" ||
+        error?.message === "PROFILE_NOT_FOUND" ||
+        error?.message === "FORBIDDEN_BUSINESS_ACCESS"
+      ) {
+        return handleAccessError(res, error);
+      }
+      res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
   // API 404 Catch-all (to prevent HTML responses for API errors)
   app.all("/api/*", (req, res, next) => {
     // If we've reached here, no other /api route matched
@@ -5295,7 +5679,12 @@ async function startServer() {
 
   // Global Error Handler
   app.use((err: any, req: any, res: any, next: any) => {
-    console.error(`GLOBAL SERVER ERROR [${req.requestId || "unknown"}]:`, err);
+    captureServerError(err, {
+      requestId: req.requestId || "unknown",
+      method: req.method,
+      path: req.originalUrl?.split("?")[0] || req.path,
+      statusCode: err.status || err.statusCode || 500,
+    });
 
     // If headers already sent, delegate to default express error handler
     if (res.headersSent) {
@@ -5332,14 +5721,14 @@ async function startServer() {
   if (!process.env.VERCEL) {
     app.listen(PORT, HOST, () => {
       const displayHost = HOST === "0.0.0.0" ? "localhost" : HOST;
-      console.log(`Server running on http://${displayHost}:${PORT}`);
+      structuredLog("info", "server_started", { host: displayHost, port: PORT });
     });
   }
 }
 
 // Initial start logic
 startServer().catch(err => {
-  console.error("Failed to start server:", err);
+  captureServerError(err, { phase: "server_start" });
   process.exit(1);
 });
 

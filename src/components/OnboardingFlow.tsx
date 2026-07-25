@@ -748,7 +748,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md" data-testid="onboarding-flow">
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -802,6 +802,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         className="h-20 text-2xl px-8 bg-slate-50 border-4 border-slate-100 rounded-[2.5rem] focus:bg-white focus:border-indigo-600 transition-all font-black placeholder:font-normal shadow-xl shadow-slate-100/50"
                         placeholder="e.g. Bennie Studio"
                         value={businessData.name}
+                        data-testid="onboarding-business-name"
                         onChange={(e) =>
                           setBusinessData({
                             ...businessData,
@@ -863,6 +864,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                             className="h-18 text-xl px-6 bg-slate-50 border-slate-100 rounded-2xl focus:bg-white transition-all pr-40 font-bold text-slate-900"
                             placeholder="bennietay"
                             value={businessData.subdomain}
+                            data-testid="onboarding-subdomain"
                             onChange={(e) =>
                               setBusinessData({
                                 ...businessData,
@@ -888,6 +890,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                           <select
                             className="h-18 w-full px-6 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:bg-white focus:border-indigo-600 transition-all font-black uppercase text-sm outline-none appearance-none cursor-pointer"
                             value={selectedTemplate || ""}
+                            data-testid="onboarding-template"
                             onChange={(e) => {
                               const templateId = e.target.value;
                               setSelectedTemplate(templateId);
@@ -1696,10 +1699,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                               </button>
                             </label>
                           </div>
-                          <Button
-                            onClick={startTrial}
-                            disabled={!agreed || loading}
-                            className={`w-full h-20 text-xl font-black uppercase tracking-[0.3em] shadow-2xl rounded-[2rem] group transition-all ${
+                        <Button
+                          onClick={startTrial}
+                          data-testid="onboarding-launch"
+                          disabled={!agreed || loading}
+                          className={`w-full h-20 text-xl font-black uppercase tracking-[0.3em] shadow-2xl rounded-[2rem] group transition-all ${
                               agreed 
                                 ? "bg-slate-950 hover:bg-black text-white shadow-slate-200" 
                                 : "bg-slate-200 text-slate-400 cursor-not-allowed"

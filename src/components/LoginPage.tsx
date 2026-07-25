@@ -95,7 +95,7 @@ export default function LoginPage({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" data-testid={isSignUp ? "signup-form" : "signin-form"}>
           {user && (
             <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200 mb-6 flex flex-col gap-3">
               <div className="flex items-center gap-2 text-amber-800 text-xs font-bold uppercase tracking-widest">
@@ -132,6 +132,7 @@ export default function LoginPage({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              data-testid="auth-email"
               className="h-14 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white"
             />
           </div>
@@ -156,6 +157,7 @@ export default function LoginPage({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              data-testid="auth-password"
               className="h-14 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white"
             />
           </div>
@@ -167,6 +169,7 @@ export default function LoginPage({
                 id="terms"
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
+                data-testid="auth-terms"
                 className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer"
               />
               <label
@@ -196,6 +199,7 @@ export default function LoginPage({
 
           <Button
             type="submit"
+            data-testid="auth-submit"
             className="w-full h-14 text-lg font-bold bg-indigo-600 hover:bg-indigo-700 rounded-2xl shadow-lg shadow-indigo-100"
             isLoading={isSigningIn}
           >

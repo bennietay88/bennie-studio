@@ -20,6 +20,7 @@ import { Toaster } from "./components/ui/sonner";
 import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingFallback } from "./components/LoadingFallback";
+import { classifyTenantHost } from "./lib/tenantDomains";
 import LandingPage from "./components/LandingPage";
 import LoginPage from "./components/LoginPage";
 
@@ -180,21 +181,14 @@ function ScrollToTop() {
   return null;
 }
 
-const PLATFORM_HOSTS = new Set([
-  "app.bennietay.com",
-  "localhost",
-  "127.0.0.1",
-  "::1",
-]);
-
 function isCustomerDomainHost() {
   const host = window.location.hostname.toLowerCase();
-  return (
-    Boolean(host) &&
-    !PLATFORM_HOSTS.has(host) &&
-    !host.endsWith(".vercel.app") &&
-    !host.endsWith(".local")
-  );
+  const tenant = classifyTenantHost(host, {
+    PLATFORM_HOSTS: import.meta.env.VITE_PLATFORM_HOSTS,
+    WAAS_ROOT_DOMAIN: import.meta.env.VITE_WAAS_ROOT_DOMAIN,
+    WAAS_ROOT_DOMAINS: import.meta.env.VITE_WAAS_ROOT_DOMAINS,
+  });
+  return Boolean(host) && tenant.kind !== "platform" && !host.endsWith(".local");
 }
 
 function CustomDomainWebsiteRoute() {

@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/src/contexts/AuthContext";
 import { supabase } from "@/src/lib/supabase";
+import { DEFAULT_VERCEL_CNAME, VERCEL_APEX_A } from "@/src/lib/tenantDomains";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -97,8 +98,8 @@ const BUSINESS_TYPES = [
   "Other",
 ];
 
-const DNS_APEX_A = "76.76.21.21";
-const DNS_WWW_CNAME = "cname.vercel-dns.com";
+const DNS_APEX_A = VERCEL_APEX_A;
+const DNS_WWW_CNAME = import.meta.env.VITE_VERCEL_CNAME_TARGET || DEFAULT_VERCEL_CNAME;
 
 function normalizeDomainInput(value: string) {
   return value

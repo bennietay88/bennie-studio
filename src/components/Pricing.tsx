@@ -463,6 +463,7 @@ const PricingCard = ({
         <Button
           size="lg"
           onClick={onSelect}
+          data-testid={`plan-checkout-${String(plan.id || plan.name || "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
           className={cn(
             "w-full h-14 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-500 shadow-xl",
             isPopular

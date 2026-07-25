@@ -1360,6 +1360,7 @@ function WebsiteAuditPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState("");
   const [auditReport, setAuditReport] = React.useState<any>(null);
+  const [auditQueued, setAuditQueued] = React.useState(false);
   const [form, setForm] = React.useState({
     name: "",
     email: "",
@@ -1373,6 +1374,8 @@ function WebsiteAuditPage() {
   const submitAudit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
+    setAuditQueued(false);
+    setAuditReport(null);
     setSubmitting(true);
     trackPublicEvent({
       eventType: "submit_audit_form",
@@ -1402,15 +1405,33 @@ function WebsiteAuditPage() {
           url: /^https?:\/\//i.test(form.website) ? form.website : `https://${form.website}`,
           leadId: savedLead.leadId,
           leadEmail: form.email,
+          async: true,
         }),
       });
       const auditPayload = await auditResponse.json().catch(() => ({}));
-      if (!auditResponse.ok || !auditPayload?.report) {
-        throw new Error(auditPayload?.error || "The website could not be analysed. Your request was saved, but no score was produced.");
+      if (!auditResponse.ok || !auditPayload?.jobId) {
+        throw new Error(auditPayload?.error || "Your request was saved, but the audit could not be queued.");
       }
-      setAuditReport(auditPayload.report);
+      setAuditQueued(true);
+
+      for (let attempt = 0; attempt < 12; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 2500));
+        const statusUrl = `/api/public/website-audit/jobs/${auditPayload.jobId}?leadId=${encodeURIComponent(savedLead.leadId)}&leadEmail=${encodeURIComponent(form.email)}`;
+        const statusResponse = await fetch(statusUrl);
+        const statusPayload = await statusResponse.json().catch(() => ({}));
+        if (!statusResponse.ok) break;
+        if (statusPayload.status === "completed" && statusPayload.report) {
+          setAuditReport(statusPayload.report);
+          setAuditQueued(false);
+          break;
+        }
+        if (statusPayload.status === "failed") {
+          throw new Error(statusPayload.error || "The website could not be analysed automatically. Your request was saved for manual follow-up.");
+        }
+      }
       setSubmitted(true);
     } catch (err: any) {
+      setAuditQueued(false);
       setError(err?.message || "Unable to submit audit request right now.");
       if (leadSaved) setSubmitted(true);
     } finally {
@@ -1478,7 +1499,9 @@ function WebsiteAuditPage() {
               <p className="mt-2 text-sm font-semibold leading-6">
                 {auditReport
                   ? "The score below is based on deterministic checks of the submitted page. It is not generated randomly."
-                  : "The website could not be analysed automatically, so no score was produced. Your request is saved for manual follow-up."}
+                  : auditQueued
+                    ? "Your website audit is queued for background processing. We have saved the request and can follow up with the result."
+                    : "The website could not be analysed automatically, so no score was produced. Your request is saved for manual follow-up."}
               </p>
               {!auditReport && error && <p className="mt-4 rounded-xl bg-amber-400/10 p-3 text-sm font-bold text-amber-100">{error}</p>}
               {auditReport && (
