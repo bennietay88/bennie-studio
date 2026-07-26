@@ -107,6 +107,9 @@ export function WebsiteRenderer({
   }>();
   const businessId = initialData?.businessId || businessIdOverride || businessIdFromParams;
   const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const draftPreview = searchParams.get("draft") === "1" || searchParams.get("draft") === "true";
+  const requestedWebsiteId = searchParams.get("website");
   const { isFeatureEnabled } = useFeatures();
   const [website, setWebsite] = useState<Website | null>(initialData || null);
   const [loading, setLoading] = useState(!initialData);
@@ -445,11 +448,18 @@ export function WebsiteRenderer({
     const fetchWebsite = async () => {
       if (!businessId) return;
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from("websites")
           .select("*")
-          .eq("business_id", businessId)
-          .eq("status", "published")
+          .eq("business_id", businessId);
+
+        if (requestedWebsiteId) {
+          query = query.eq("id", requestedWebsiteId);
+        } else if (!draftPreview) {
+          query = query.eq("status", "published");
+        }
+
+        const { data, error } = await query
           .order("updated_at", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -496,7 +506,7 @@ export function WebsiteRenderer({
       }
     };
     fetchWebsite();
-  }, [businessId, templateId, isTemplatePreview, initialData]);
+  }, [businessId, templateId, isTemplatePreview, initialData, draftPreview, requestedWebsiteId]);
 
   useEffect(() => {
     // We're using Helmet now, so we don't need manual title updates
@@ -2435,6 +2445,54 @@ export function WebsiteRenderer({
                               </motion.div>
                             ),
                           )}
+                        </div>
+                      </div>
+                    </motion.section>
+                  );
+                case "benefits":
+                  return (
+                    <motion.section
+                      key={section.id || `benefits-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-100px" }}
+                      variants={staggerContainer}
+                      style={getSectionStyles(section)}
+                      className={cn("relative overflow-hidden bg-white px-4 sm:px-6", getPaddingClass(section))}
+                    >
+                      <div className="mx-auto max-w-7xl space-y-12">
+                        <motion.div variants={fadeInUp} className="mx-auto max-w-3xl text-center">
+                          <Badge
+                            variant="outline"
+                            className="mb-5 rounded-full border-primary/20 bg-primary/5 px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary"
+                          >
+                            Why Choose Us
+                          </Badge>
+                          <h2 className="text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-6xl">
+                            {section.content.title || "Built Around What Customers Need"}
+                          </h2>
+                        </motion.div>
+
+                        <div className="grid gap-6 md:grid-cols-3">
+                          {(section.content.items || []).map((item: any, itemIndex: number) => (
+                            <motion.div
+                              key={item.id || `benefit-${itemIndex}`}
+                              variants={fadeInUp}
+                              className="rounded-[2rem] border border-slate-100 bg-slate-50/80 p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-xl"
+                            >
+                              <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20">
+                                <CheckCircle2 className="h-6 w-6" />
+                              </div>
+                              <h3 className="text-xl font-black tracking-tight text-slate-950">
+                                {typeof item === "string" ? item : item.title || `Benefit ${itemIndex + 1}`}
+                              </h3>
+                              {typeof item === "object" && item.description && (
+                                <p className="mt-4 text-sm font-medium leading-7 text-slate-600">
+                                  {item.description}
+                                </p>
+                              )}
+                            </motion.div>
+                          ))}
                         </div>
                       </div>
                     </motion.section>

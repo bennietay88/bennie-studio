@@ -950,6 +950,8 @@ export function WebsiteEditor({
                 .from("websites")
                 .select("*")
                 .eq("business_id", id)
+                .order("updated_at", { ascending: false })
+                .limit(1)
                 .maybeSingle());
 
           // If recently generated but not found, retry (Supabase replication lag or cold starts)
@@ -1483,6 +1485,14 @@ export function WebsiteEditor({
 
         if (websiteRes.error) throw websiteRes.error;
         if (businessRes.error) throw businessRes.error;
+
+        const savedWebsite = sanitizeWebsite({
+          ...targetWebsite,
+          seo: updatedWebsiteConfig.seo,
+          status: updatedWebsiteConfig.status,
+          updatedAt: new Date(updatedWebsiteConfig.updated_at).getTime(),
+        });
+        setWebsite(savedWebsite);
 
         toast.success("Settings saved successfully!");
       }
