@@ -30,15 +30,26 @@ jobs:
         with:
           version: latest
 
-      - name: Validate required secrets
+      - name: Check Supabase secrets
+        id: supabase-secrets
         shell: bash
         run: |
-          test -n "$SUPABASE_ACCESS_TOKEN"
-          test -n "$SUPABASE_PROJECT_REF"
-          test -n "$SUPABASE_DB_PASSWORD"
+          missing=()
+          test -n "$SUPABASE_ACCESS_TOKEN" || missing+=("SUPABASE_ACCESS_TOKEN")
+          test -n "$SUPABASE_PROJECT_REF" || missing+=("SUPABASE_PROJECT_REF")
+          test -n "$SUPABASE_DB_PASSWORD" || missing+=("SUPABASE_DB_PASSWORD")
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::warning::Supabase migration deployment skipped. Missing GitHub secrets: ${missing[*]}"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Link Supabase project
+        if: steps.supabase-secrets.outputs.ready == 'true'
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
       - name: Push migrations
+        if: steps.supabase-secrets.outputs.ready == 'true'
         run: supabase db push --password "$SUPABASE_DB_PASSWORD"
