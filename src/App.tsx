@@ -99,7 +99,6 @@ const MarketingHub = lazy(() =>
     default: m.MarketingHub,
   })),
 );
-const AIContentHub = lazy(() => import("./components/AIContentHub"));
 const LocalSeoDashboard = lazy(() => import("./components/LocalSeoDashboard"));
 const MonthlyUpdateRequests = lazy(() => import("./components/MonthlyUpdateRequests"));
 const AICreditDashboard = lazy(() => import("./components/AICreditDashboard").then(m => ({ default: m.AICreditDashboard })));
@@ -535,14 +534,6 @@ export default function App() {
                               element={
                                 <FeatureGate featureId="ai_chatbot">
                                   <ChatbotSettings />
-                                </FeatureGate>
-                              }
-                            />
-                            <Route
-                              path="ai-hub"
-                              element={
-                                <FeatureGate featureId="ai_synthesis">
-                                  <AIContentHub />
                                 </FeatureGate>
                               }
                             />

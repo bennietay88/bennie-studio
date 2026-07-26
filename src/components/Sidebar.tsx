@@ -255,7 +255,6 @@ export function Sidebar({
         {
           label: "Enquiries",
           items: [
-            { to: "/dashboard/ai-hub", icon: Sparkles, label: "AI Content Creator", featureId: "ai_synthesis", devOnly: true },
             { to: "/dashboard/leads", icon: Users, label: "Leads & CRM", featureId: "lead_crm" },
             { to: "/dashboard/chatbot", icon: MessageSquare, label: "AI Sales Chat", featureId: "ai_chatbot", devOnly: true },
             { to: "/dashboard/automations", icon: Zap, label: "Email & SMS Growth", featureId: "automation", devOnly: true },

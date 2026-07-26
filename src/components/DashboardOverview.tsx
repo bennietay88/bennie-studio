@@ -2579,35 +2579,9 @@ export default function DashboardOverview() {
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* AI Marketing Hub Quick Access */}
             <motion.div
               variants={fadeInUp}
-              className="lg:col-span-1 bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-[2.5rem] text-white relative overflow-hidden group cursor-pointer"
-              onClick={() => navigate("/dashboard/ai-hub")}
-            >
-              <div className="absolute top-0 right-0 h-full w-full bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.15),transparent)] pointer-events-none" />
-              <div className="relative z-10 space-y-6">
-                <div className="h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform">
-                  <BrainCircuit className="h-7 w-7 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">AI Content Hub</h3>
-                  <p className="text-indigo-100 text-sm font-medium leading-relaxed">
-                    Generate high-converting ad copy, social posts, and blog articles for your business in seconds.
-                  </p>
-                </div>
-                <Button className="w-full h-14 rounded-xl bg-white text-indigo-600 hover:bg-slate-50 font-black text-xs uppercase tracking-widest shadow-xl">
-                  Synthesize Marketing <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-              <div className="absolute -bottom-10 -right-10 h-40 w-40 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Sparkles className="h-full w-full" />
-              </div>
-            </motion.div>
-
-            <motion.div
-              variants={fadeInUp}
-              className="lg:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-300 relative overflow-hidden"
+              className="lg:col-span-3 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-300 relative overflow-hidden"
             >
               {!isFeatureEnabled("analytics") && (
                 <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[4px] z-10 flex flex-col items-center justify-center p-8 text-center">
@@ -2890,8 +2864,7 @@ export default function DashboardOverview() {
                     </span>
                   </div>
                   <p className="text-[10px] leading-relaxed text-indigo-700 dark:text-indigo-400 font-medium">
-                    Websites with active blogs generate 67% more leads. Start
-                    your first post today!
+                    Keep your services, reviews, contact details, and core calls to action clear before adding new marketing channels.
                   </p>
                 </div>
               </div>
@@ -2916,14 +2889,6 @@ export default function DashboardOverview() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    {
-                      title: "AI Copywriter",
-                      desc: "Optimize your sales message.",
-                      icon: Sparkles,
-                      color: "text-indigo-600",
-                      bg: "bg-indigo-50",
-                      link: "/dashboard/ai-hub",
-                    },
                     {
                       title: "Blog Automation",
                       desc: "Schedule weekly SEO articles.",

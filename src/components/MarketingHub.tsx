@@ -44,8 +44,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "./ui/dialog";
-import { Textarea } from "./ui/textarea";
-import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
   Select as UiSelect,
@@ -85,12 +83,9 @@ export function MarketingHub() {
   // Feature Specific States
   const [isSeoModalOpen, setIsSeoModalOpen] = useState(false);
   const [isAdModalOpen, setIsAdModalOpen] = useState(false);
-  const [isCopywriterModalOpen, setIsCopywriterModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [seoResult, setSeoResult] = useState<any>(null);
   const [adResult, setAdResult] = useState<any>(null);
-  const [copywriterResult, setCopywriterResult] = useState<any>(null);
-  const [copywriterGoal, setCopywriterGoal] = useState("");
 
   const [isApplyingFix, setIsApplyingFix] = useState<string | null>(null);
   const [fixedIssues, setFixedIssues] = useState<number[]>([]);
@@ -207,7 +202,6 @@ export function MarketingHub() {
 
   const getToolStatus = (toolId: string) => {
     if (
-      toolId === "copywriter" ||
       toolId === "blog" ||
       toolId === "leads" ||
       toolId === "reviews" ||
@@ -283,8 +277,6 @@ export function MarketingHub() {
       setIsSeoModalOpen(true);
     } else if (tool.id === "ads") {
       setIsAdModalOpen(true);
-    } else if (tool.id === "copywriter") {
-      setIsCopywriterModalOpen(true);
     } else {
       tool.action();
     }
@@ -312,32 +304,6 @@ export function MarketingHub() {
       setAdResult(result);
     } catch (err: any) {
       toast.error("Failed to generate ads: " + err.message);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleGenerateCopy = async () => {
-    setIsGenerating(true);
-    try {
-      const { data: website } = await supabase
-        .from("websites")
-        .select("*")
-        .eq("business_id", business.id)
-        .single();
-
-      const result = await generateMarketingContent("ad_copy", {
-        id: business.id,
-        name: business.name,
-        industry: business.industry,
-        description: `${business.business_nature || website?.seo?.description || ""}. Goal: ${copywriterGoal}`,
-        location: business.location,
-      });
-
-      setCopywriterResult(result);
-      toast.success("Copy variations generated!");
-    } catch (err: any) {
-      toast.error("Failed to generate copy: " + err.message);
     } finally {
       setIsGenerating(false);
     }
@@ -426,16 +392,6 @@ export function MarketingHub() {
   };
 
   const tools = [
-    {
-      id: "copywriter",
-      title: "AI Copywriter",
-      desc: "Generate high-converting sales copy, ad headlines, and website content optimized for your niche.",
-      icon: Sparkles,
-      color: "text-indigo-600",
-      bg: "bg-indigo-50",
-      action: () => {},
-      status: "active",
-    },
     {
       id: "blog",
       title: "Blog Automation",
@@ -1052,195 +1008,6 @@ export function MarketingHub() {
         </DialogContent>
       </Dialog>
 
-      {/* AI Copywriter Modal */}
-      <Dialog
-        open={isCopywriterModalOpen}
-        onOpenChange={setIsCopywriterModalOpen}
-      >
-        <DialogContent className="rounded-[2.5rem] max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
-          <DialogHeader className="p-8 bg-indigo-600 text-white shrink-0">
-            <div className="flex justify-between items-start">
-              <div>
-                <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-                  <Sparkles className="h-7 w-7" /> Professional AI Copywriter
-                </DialogTitle>
-                <DialogDescription className="text-indigo-100/80 font-medium">
-                  Craft high-converting headlines, social posts, and ad copy in
-                  seconds.
-                </DialogDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsCopywriterModalOpen(false)}
-                className="text-white hover:bg-white/20 rounded-full h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white dark:bg-slate-950">
-            {!copywriterResult && !isGenerating && (
-              <div className="max-w-xl mx-auto space-y-6 py-8">
-                <div className="text-center space-y-2 mb-8">
-                  <h3 className="text-xl font-bold">
-                    What are we promoting today?
-                  </h3>
-                  <p className="text-slate-500">
-                    Provide a few details and I'll handle the professional
-                    copywriting.
-                  </p>
-                </div>
-
-                <div className="space-y-4 p-8 bg-slate-50 dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                      Marketing Goal
-                    </Label>
-                    <Textarea
-                      placeholder="e.g. Promoting a 20% summer sale on luxury watches, or announcing our new consulting services for startups..."
-                      className="min-h-[120px] rounded-2xl resize-none"
-                      value={copywriterGoal}
-                      onChange={(e) => setCopywriterGoal(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="pt-4">
-                    <Button
-                      onClick={handleGenerateCopy}
-                      disabled={!copywriterGoal.trim() || isGenerating}
-                      className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 font-bold text-lg shadow-lg shadow-indigo-100 dark:shadow-none"
-                    >
-                      {isGenerating ? (
-                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      ) : (
-                        <Zap className="h-5 w-5 mr-2" />
-                      )}
-                      Generate Copy Variations
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
-                    <Badge className="bg-indigo-50 text-indigo-600 h-8 w-8 rounded-lg flex items-center justify-center p-0">
-                      <Target className="h-4 w-4" />
-                    </Badge>
-                    <span className="text-xs font-bold text-slate-600">
-                      High-Conversion
-                    </span>
-                  </div>
-                  <div className="p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
-                    <Badge className="bg-indigo-50 text-indigo-600 h-8 w-8 rounded-lg flex items-center justify-center p-0">
-                      <MessageSquare className="h-4 w-4" />
-                    </Badge>
-                    <span className="text-xs font-bold text-slate-600">
-                      Brand Consistent
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {isGenerating && (
-              <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
-                <div className="relative mb-8">
-                  <div className="h-24 w-24 rounded-full border-4 border-indigo-100 dark:border-indigo-900 border-t-indigo-600 animate-spin" />
-                  <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 text-indigo-600 animate-pulse" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                  AI Copywriter is thinking...
-                </h3>
-                <p className="text-slate-500 mt-2">
-                  Drafting high-impact variations for your campaign.
-                </p>
-              </div>
-            )}
-
-            {copywriterResult && !isGenerating && (
-              <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                    <p className="text-sm font-medium">
-                      3 Professional variations generated based on your goal.
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setCopywriterResult(null)}
-                    className="text-xs font-bold text-indigo-600 hover:bg-white"
-                  >
-                    Start Over
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {copywriterResult.variations.map((ad: any, i: number) => (
-                    <Card
-                      key={i}
-                      className="rounded-3xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden flex flex-col group"
-                    >
-                      <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center">
-                        <Badge className="bg-white text-indigo-600 border-slate-100 shadow-sm rounded-lg uppercase text-[9px] font-black tracking-widest">
-                          {ad.platform}
-                        </Badge>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                          Option {i + 1}
-                        </span>
-                      </div>
-                      <CardContent className="p-6 space-y-6 flex-1">
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                            Headline
-                          </Label>
-                          <p className="text-base font-bold text-slate-900 dark:text-white leading-tight">
-                            {ad.headline}
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                            Primary Text
-                          </Label>
-                          <div className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                            {ad.primaryText}
-                          </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 mt-auto group-hover:bg-indigo-600 transition-colors duration-300">
-                        <Button
-                          variant="ghost"
-                          onClick={() => {
-                            navigator.clipboard.writeText(
-                              `Headline: ${ad.headline}\n\n${ad.primaryText}`,
-                            );
-                            toast.success("Copy saved to clipboard!");
-                          }}
-                          className="w-full rounded-xl text-xs font-black uppercase tracking-widest text-slate-600 group-hover:text-white hover:bg-white/10"
-                        >
-                          Copy to Clipboard
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-
-                <div className="flex justify-center pt-8">
-                  <Button
-                    onClick={handleGenerateCopy}
-                    variant="outline"
-                    className="rounded-2xl h-14 px-8 border-indigo-200 text-indigo-600 hover:bg-indigo-50 font-bold"
-                  >
-                    Regenerate New Variations
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </motion.div>
   );
 }
