@@ -859,6 +859,71 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="border-y border-slate-100 bg-slate-50 px-4 py-12 sm:px-8 lg:py-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="mb-3 text-xs font-black uppercase tracking-[0.24em] text-indigo-600">
+                Bennie Tay ecosystem
+              </p>
+              <h2 className="max-w-3xl text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+                Three connected places, one managed website service.
+              </h2>
+            </div>
+            <p className="max-w-2xl text-sm font-semibold leading-7 text-slate-600 sm:text-base">
+              Use the main website to understand the service, the portfolio to inspect examples, and this app to start, pay, onboard, approve, and manage your website.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {BENNIE_ECOSYSTEM_LINKS.map((link) => {
+              const isApp = link.id === "app";
+              const href = isApp ? "/generate-preview" : link.url;
+              return (
+                <a
+                  key={link.id}
+                  href={href}
+                  target={isApp ? undefined : "_blank"}
+                  rel={isApp ? undefined : "noreferrer"}
+                  onClick={(event) => {
+                    trackPublicEvent({
+                      eventType: "ecosystem_link_clicked",
+                      label: `Ecosystem ${link.shortLabel}`,
+                      target: href,
+                    });
+                    if (isApp) {
+                      event.preventDefault();
+                      navigate("/generate-preview");
+                    }
+                  }}
+                  className="group flex min-h-[180px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-100/50"
+                >
+                  <div>
+                    <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 transition group-hover:bg-indigo-600 group-hover:text-white">
+                      {link.id === "portfolio" ? (
+                        <Building className="h-5 w-5" />
+                      ) : (
+                        <Globe className="h-5 w-5" />
+                      )}
+                    </div>
+                    <h3 className="mb-2 text-lg font-black text-slate-950">
+                      {link.shortLabel}
+                    </h3>
+                    <p className="text-sm font-semibold leading-6 text-slate-600">
+                      {link.description}
+                    </p>
+                  </div>
+                  <span className="mt-5 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
+                    {isApp ? "Start in the app" : "Open"}
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* Trust & Social Proof Section */}
       {c.trust && (
         <section className="py-12 bg-white border-y border-slate-50">
