@@ -28,6 +28,7 @@ import {
   Menu,
   MessageCircle,
   Cookie,
+  ExternalLink,
 } from "lucide-react";
 import {
   Table,
@@ -53,6 +54,7 @@ import { DEFAULT_LANDING_CONTENT } from "../constants/landingPageContent";
 import { SafeImage } from "./SafeImage";
 import { useGeoPricing } from "../hooks/useGeoPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
+import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -256,6 +258,15 @@ export default function LandingPage() {
     scrollToId(target);
   };
 
+  const trackAndOpenExternal = (
+    url: string,
+    label: string,
+    eventType = "ecosystem_link_clicked",
+  ) => {
+    trackPublicEvent({ eventType, label, target: url });
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const y1 = useTransform(scrollY, [0, 1000], [0, 150]);
   const y2 = useTransform(scrollY, [0, 1000], [0, -100]);
   const y3 = useTransform(scrollY, [0, 1000], [0, 50]);
@@ -263,7 +274,9 @@ export default function LandingPage() {
   const navBg = useTransform(scrollY, [0, 100], ["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0.9)"]);
   const navBorder = useTransform(scrollY, [0, 100], ["rgba(241, 245, 249, 0)", "rgba(241, 245, 249, 0.8)"]);
   const headerNavItems = [
+    { label: "Main Site", href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com", external: true },
     { label: "Examples", href: "/examples" },
+    { label: "Portfolio", href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "portfolio")?.url || "https://portfolio.bennietay.com", external: true },
     { label: "How It Works", href: "#process" },
     { label: "Pricing", href: "#pricing" },
     { label: "Free Audit", href: "/website-audit" },
@@ -529,19 +542,25 @@ export default function LandingPage() {
               Bennie Studio
             </span>
           </motion.div>
-          <div className="hidden md:flex gap-5 items-center">
+          <div className="hidden xl:flex gap-5 items-center">
             {headerNavItems.map((item) => (
               <motion.button
                 key={item.label}
                 onClick={() =>
-                  item.href.startsWith("/")
+                  item.external
+                    ? trackAndOpenExternal(item.href, `Header ${item.label}`)
+                    : item.href.startsWith("/")
                     ? navigate(item.href)
                     : scrollToId(item.href)
                 }
                 whileHover={{ y: -2 }}
-                className="text-sm font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer"
+                className={cn(
+                  "text-sm font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer",
+                  item.external && "hidden xl:inline-flex xl:items-center",
+                )}
               >
                 {item.label}
+                {item.external && <ExternalLink className="ml-1 inline h-3 w-3" />}
               </motion.button>
             ))}
             {user ? (
@@ -553,7 +572,7 @@ export default function LandingPage() {
               </div>
             )}
           </div>
-          <div className="md:hidden flex items-center gap-2">
+          <div className="xl:hidden flex items-center gap-2">
             {user ? (
               <Button size="sm" onClick={() => navigate("/dashboard")} className="rounded-xl">
                 Dashboard
@@ -613,7 +632,9 @@ export default function LandingPage() {
                   <button
                     key={item.label}
                     onClick={() =>
-                      item.href.startsWith("/")
+                      item.external
+                        ? (setIsMobileMenuOpen(false), trackAndOpenExternal(item.href, `Mobile ${item.label}`))
+                        : item.href.startsWith("/")
                         ? (setIsMobileMenuOpen(false), navigate(item.href))
                         : scrollToId(item.href)
                     }
@@ -1773,7 +1794,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-white text-slate-600 py-16 lg:py-24 px-8 border-t border-slate-100">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 gap-12 md:grid-cols-4 mb-16">
+          <div className="grid grid-cols-1 gap-12 md:grid-cols-5 mb-16">
             <div>
               <div className="flex items-center gap-2 font-bold text-slate-900 text-2xl mb-6">
                 <Globe className="h-8 w-8 text-indigo-600" />
@@ -1805,6 +1826,25 @@ export default function LandingPage() {
                 <li><button onClick={() => scrollToId("#process")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">How It Works</button></li>
                 <li><button onClick={() => scrollToId("#pricing")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Pricing</button></li>
                 <li><button onClick={() => scrollToId("#faq")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">FAQ</button></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-slate-900 font-black uppercase tracking-widest text-xs mb-8">Bennie Tay Ecosystem</h4>
+              <ul className="space-y-4 text-sm text-slate-500 font-bold uppercase tracking-wider">
+                {BENNIE_ECOSYSTEM_LINKS.map((link) => (
+                  <li key={link.id}>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Footer ${link.shortLabel}`, target: link.url })}
+                      className="inline-flex items-center gap-2 hover:text-indigo-600 transition-colors"
+                    >
+                      {link.shortLabel}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
             <div>

@@ -18,6 +18,9 @@ import {
   LogOut,
   HelpCircle,
   Sparkles,
+  ExternalLink,
+  Globe,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -28,6 +31,7 @@ import { TrialReminder } from "./TrialReminder";
 import { Business } from "../types";
 import { NotificationCenter } from "./NotificationCenter";
 import { Helmet } from "react-helmet-async";
+import { getEcosystemLink } from "../constants/businessEcosystem";
 
 interface DashboardLayoutProps {
   role: UserRole;
@@ -172,6 +176,9 @@ export function DashboardLayout({
     }
   };
 
+  const mainWebsiteLink = getEcosystemLink("main");
+  const portfolioLink = getEcosystemLink("portfolio");
+
   if (!role) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-slate-950">
@@ -299,6 +306,33 @@ export function DashboardLayout({
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              <div className="hidden lg:flex items-center gap-2">
+                {mainWebsiteLink && (
+                  <a
+                    href={mainWebsiteLink.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[10px] font-bold uppercase tracking-wide text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300"
+                  >
+                    <Globe className="h-4 w-4" />
+                    Main Site
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+                {portfolioLink && (
+                  <a
+                    href={portfolioLink.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[10px] font-bold uppercase tracking-wide text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300"
+                  >
+                    <BriefcaseBusiness className="h-4 w-4" />
+                    Portfolio
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+
               <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 sm:p-1 rounded-xl">
                 <button
                   onClick={() => setTheme("light")}

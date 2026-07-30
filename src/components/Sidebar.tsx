@@ -42,11 +42,14 @@ import {
   ShieldCheck,
   Activity,
   MapPin,
+  ExternalLink,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { getEcosystemLink } from "../constants/businessEcosystem";
 
 interface SidebarProps {
   role: UserRole;
@@ -342,6 +345,8 @@ export function Sidebar({
         .filter((group) => group.items.length > 0),
     [customerDashboardMode, isCustomerRole, navGroups, profile?.staffPermissions, role],
   );
+  const mainWebsiteLink = getEcosystemLink("main");
+  const portfolioLink = getEcosystemLink("portfolio");
 
   return (
     <div
@@ -513,6 +518,34 @@ export function Sidebar({
             </motion.div>
           )}
         </div>
+        {!isCollapsed && (mainWebsiteLink || portfolioLink) && (
+          <div className="mb-3 grid grid-cols-2 gap-2">
+            {mainWebsiteLink && (
+              <a
+                href={mainWebsiteLink.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-indigo-900/20"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                Main
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+            {portfolioLink && (
+              <a
+                href={portfolioLink.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-indigo-900/20"
+              >
+                <BriefcaseBusiness className="h-3.5 w-3.5" />
+                Work
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+          </div>
+        )}
         <button
           onClick={onLogout}
           className={cn(

@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Check,
   ClipboardCheck,
+  ExternalLink,
   FileSearch,
   Globe,
   LayoutTemplate,
@@ -28,6 +29,7 @@ import { formatUsdRangeForCountry } from "../hooks/useGeoPricing";
 import { trackPinterestLead } from "../lib/pinterestTracking";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { FREE_PREVIEW_LIMITS, PUBLIC_PROMISE, SUBSCRIPTION_DELIVERY_FLOW } from "../constants/salesFlow";
+import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
 
 type PublicPageKind =
   | "templates"
@@ -102,7 +104,17 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
 };
 
 const navItems = [
+  {
+    label: "Main Site",
+    href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com",
+    external: true,
+  },
   { label: "Examples", href: "/examples" },
+  {
+    label: "Portfolio",
+    href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "portfolio")?.url || "https://portfolio.bennietay.com",
+    external: true,
+  },
   { label: "Pricing", href: "/pricing" },
   { label: "How It Works", href: "/how-it-works" },
   { label: "Free Audit", href: "/website-audit" },
@@ -477,13 +489,27 @@ function MarketingHeader() {
         </Link>
         <nav className="hidden items-center gap-6 lg:flex">
           {navItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 transition hover:text-indigo-600"
-            >
-              {item.label}
-            </Link>
+            item.external ? (
+              <a
+                key={item.href}
+                href={item.href}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Marketing Header ${item.label}`, target: item.href })}
+                className="hidden items-center gap-1 text-xs font-black uppercase tracking-[0.18em] text-slate-500 transition hover:text-indigo-600 xl:inline-flex"
+              >
+                {item.label}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            ) : (
+              <Link
+                key={item.href}
+                to={item.href}
+                className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 transition hover:text-indigo-600"
+              >
+                {item.label}
+              </Link>
+            )
           ))}
         </nav>
         <Link
@@ -501,7 +527,7 @@ function MarketingHeader() {
 function MarketingFooter() {
   return (
     <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 md:grid-cols-5">
+      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 md:grid-cols-2 lg:grid-cols-6">
         <div>
           <div className="mb-3 flex items-center gap-2 font-black text-slate-950">
             <Globe className="h-5 w-5 text-indigo-600" />
@@ -518,6 +544,11 @@ function MarketingFooter() {
             { label: "Custom Website", href: "/apply-custom" },
             { label: "Website Examples", href: "/examples" },
           ]],
+          ["Ecosystem", BENNIE_ECOSYSTEM_LINKS.map((link) => ({
+            label: link.shortLabel,
+            href: link.url,
+            external: true,
+          }))],
           ["Local SEO", [
             { label: "UK Website Subscription", href: "/website-subscription-service/uk" },
             { label: "Malaysia Website Subscription", href: "/website-subscription-service/malaysia" },
@@ -537,10 +568,24 @@ function MarketingFooter() {
           <div key={title as string}>
             <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">{title as string}</p>
             <div className="space-y-2">
-              {(links as { label: string; href: string }[]).map((link) => (
-                <Link key={link.href} to={link.href} className="block text-sm font-bold text-slate-600 hover:text-indigo-600">
-                  {link.label}
-                </Link>
+              {(links as { label: string; href: string; external?: boolean }[]).map((link) => (
+                link.external ? (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Marketing Footer ${link.label}`, target: link.href })}
+                    className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600"
+                  >
+                    {link.label}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : (
+                  <Link key={link.href} to={link.href} className="block text-sm font-bold text-slate-600 hover:text-indigo-600">
+                    {link.label}
+                  </Link>
+                )
               ))}
             </div>
           </div>
