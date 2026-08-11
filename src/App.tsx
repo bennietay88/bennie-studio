@@ -307,7 +307,7 @@ export default function App() {
     "/templates",
     "/pricing",
     "/how-it-works",
-    "/examples",
+    "/case-studies",
     "/website-audit",
     "/generate-preview",
     "/blog",
@@ -416,7 +416,9 @@ export default function App() {
               <Route path="/templates" element={<PublicMarketingPages />} />
               <Route path="/pricing" element={<PublicMarketingPages />} />
               <Route path="/how-it-works" element={<PublicMarketingPages />} />
-              <Route path="/examples" element={<PublicMarketingPages />} />
+              <Route path="/case-studies" element={<PublicMarketingPages />} />
+              <Route path="/examples" element={<Navigate to="/case-studies" replace />} />
+              <Route path="/examples." element={<Navigate to="/case-studies" replace />} />
               <Route path="/website-audit" element={<PublicMarketingPages />} />
               <Route path="/generate-preview" element={<PublicMarketingPages />} />
               <Route path="/blog/:slug" element={<PublicBlogPostPage />} />

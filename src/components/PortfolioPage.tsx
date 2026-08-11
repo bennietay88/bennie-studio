@@ -155,10 +155,10 @@ export default function PortfolioPage() {
   return (
     <div className="min-h-screen bg-white text-slate-950">
       <Helmet>
-        <title>Website Portfolio & Demo Builds | Bennie Studio</title>
+        <title>Website Portfolio & Case Studies | Bennie Studio</title>
         <meta
           name="description"
-          content="Explore Bennie Studio website portfolio examples and demo builds for clinics, wellness providers, renovation companies, home service businesses, beauty salons, and aesthetic services."
+          content="Explore Bennie Studio website portfolio and concept case studies for clinics, renovation companies, consultants, restaurants, beauty salons, and education providers."
         />
       </Helmet>
 
@@ -199,10 +199,10 @@ export default function PortfolioPage() {
             className="flex flex-col justify-center"
           >
             <Badge className="mb-5 w-fit rounded-full bg-indigo-50 px-4 py-2 text-indigo-700 hover:bg-indigo-50">
-              Portfolio & Demo Builds
+              Portfolio & Case Studies
             </Badge>
             <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-7xl">
-              Website examples your prospects can understand quickly.
+              Website case studies your prospects can understand quickly.
             </h1>
             <p className="mt-7 max-w-2xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
               Show potential customers the type of websites Bennie Studio can prepare:
@@ -289,11 +289,11 @@ export default function PortfolioPage() {
                 Selected Website Builds
               </Badge>
               <h2 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
-                Industry-specific website examples
+                Industry-specific website case studies
               </h2>
             </div>
             <p className="max-w-xl text-base font-medium leading-7 text-slate-600">
-              Each example shows the business type, recommended page structure, enquiry flow, and SEO angle.
+              Each concept study shows the business challenge, recommended page structure, enquiry flow, and SEO angle.
             </p>
           </div>
 
@@ -361,7 +361,7 @@ export default function PortfolioPage() {
                       onClick={() => navigate(item.sampleHref)}
                       className="h-12 rounded-xl bg-indigo-600 px-5 text-xs font-black uppercase tracking-widest hover:bg-indigo-700"
                     >
-                      View Example
+                      Read Case Study
                       <ExternalLink className="ml-2 h-4 w-4" />
                     </Button>
                     <Button
@@ -445,7 +445,7 @@ export default function PortfolioPage() {
                 Build Process
               </Badge>
               <h2 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
-                From example to launch plan
+                From case study to launch plan
               </h2>
             </div>
             <div className="grid gap-4">

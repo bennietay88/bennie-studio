@@ -20,6 +20,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
+import { SafeImage } from "./SafeImage";
 import { WAAS_TEMPLATE_PACKS } from "../constants/nicheTemplates";
 import {
   buildReviewWebsiteStrategy,
@@ -35,7 +36,7 @@ type PublicPageKind =
   | "templates"
   | "pricing"
   | "how-it-works"
-  | "examples"
+  | "case-studies"
   | "website-audit"
   | "generate-preview"
   | "clinic-website-design-malaysia"
@@ -61,10 +62,10 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
     description:
       "See how Bennie Studio takes you from signup and business brief to website build, review, launch, and ongoing support.",
   },
-  examples: {
-    title: "Website Examples and Mockups | Bennie Studio",
+  "case-studies": {
+    title: "Website Case Studies by Industry | Bennie Studio",
     description:
-      "View sample website directions and mockups for small business websites, landing pages, service websites, and premium custom projects.",
+      "Explore complete concept case studies showing the challenge, website strategy, conversion path, and page structure for six service industries.",
   },
   "website-audit": {
     title: "Free Website Growth Audit | Bennie Studio",
@@ -109,7 +110,7 @@ const navItems = [
     href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com",
     external: true,
   },
-  { label: "Examples", href: "/examples" },
+  { label: "Case Studies", href: "/case-studies" },
   {
     label: "Portfolio",
     href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "portfolio")?.url || "https://portfolio.bennietay.com",
@@ -213,85 +214,73 @@ const processSteps = [
   ["Launch", "Publish with domain, SSL, contact form, WhatsApp CTA, and plan-based support ready."],
 ];
 
-const examples = [
+const caseStudies = [
   {
-    title: "Dental Clinic Website",
-    industry: "Clinic",
-    goal: "Appointment enquiries",
-    type: "Appointment Website",
-    copy: "Treatment pages, patient trust sections, clinic location, FAQ, and booking CTA.",
-    sections: "Home, Treatments, Doctor Profile, Patient FAQ, Contact",
-    ctaFlow: "WhatsApp / booking form",
-    planFit: "Managed Website Plan",
+    title: "SmileHaus Dental Clinic",
+    industry: "Dental clinic",
+    type: "Appointment conversion",
+    image: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=1400",
+    challenge: "Patients need treatment clarity and reassurance before they are ready to book.",
+    strategy: "Lead with understandable treatment pages, dentist trust, location proof, FAQs, and a persistent WhatsApp booking path.",
+    outcome: "A clinic-ready journey designed to turn treatment research into appointment enquiries.",
+    delivered: ["Treatment pages", "Dentist profile", "Patient FAQ", "WhatsApp booking"],
     href: "/portfolio/sample/dental",
   },
   {
-    title: "Local Service Lead Website",
-    industry: "Local Services",
-    goal: "Quote requests",
-    type: "Quote Website",
-    copy: "Services, reviews, service areas, emergency or quote CTA, and contact form.",
-    sections: "Home, Services, Reviews, Service Areas, Contact",
-    ctaFlow: "Quote request / WhatsApp",
-    planFit: "Managed Website Plan",
-    href: "/portfolio/sample/local-service",
+    title: "PrimeBuild Renovation",
+    industry: "Renovation contractor",
+    type: "Qualified quote flow",
+    image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1400",
+    challenge: "Generic contact forms produce weak enquiries without project type, budget, location, or timing.",
+    strategy: "Show project capability first, then guide prospects through service areas, process, trust points, and a structured quote request.",
+    outcome: "A proof-led website direction designed to generate better-qualified renovation enquiries.",
+    delivered: ["Project highlights", "Service pages", "Areas served", "Quote request"],
+    href: "/portfolio/sample/contractor",
   },
   {
-    title: "Consultant Authority Website",
-    industry: "Consultants",
-    goal: "Consultation bookings",
-    type: "Professional Services",
-    copy: "Positioning, offer sections, credibility, case-study direction, and book-call flow.",
-    sections: "Home, Services, About, Results, Contact",
-    ctaFlow: "Book call / form enquiry",
-    planFit: "Managed Plan or Custom Build",
+    title: "NorthStar Growth Advisory",
+    industry: "Consulting",
+    type: "Authority and call booking",
+    image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&q=80&w=1400",
+    challenge: "Prospects cannot assess expertise when services, outcomes, and the engagement model are vague.",
+    strategy: "Clarify the advisory offer, connect services to buyer problems, add proof prompts, and create one direct strategy-call path.",
+    outcome: "An authority-first sales journey designed to convert interest into qualified consultation calls.",
+    delivered: ["Offer positioning", "Service outcomes", "Proof sections", "Call booking"],
     href: "/portfolio/sample/consultant",
   },
   {
-    title: "Restaurant Website",
-    industry: "Restaurants",
-    goal: "Reservations",
-    type: "Reservation Website",
-    copy: "Menu preview, gallery, promotions, location, and reservation or WhatsApp CTA.",
-    sections: "Home, Menu, Gallery, Promotions, Contact",
-    ctaFlow: "Reservation / WhatsApp",
-    planFit: "Managed Website Plan",
+    title: "Lumi Beauty Studio",
+    industry: "Beauty salon",
+    type: "Treatment booking",
+    image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1400",
+    challenge: "Visitors need to compare treatments, packages, quality, and availability quickly on mobile.",
+    strategy: "Organise the service menu, visual proof, packages, promotions, and FAQs around a simple WhatsApp booking action.",
+    outcome: "A polished mobile-first direction designed to move treatment browsers toward booking.",
+    delivered: ["Service menu", "Package blocks", "Gallery sections", "Booking CTA"],
+    href: "/portfolio/sample/beauty",
+  },
+  {
+    title: "Kopi Yard Cafe",
+    industry: "Restaurant and cafe",
+    type: "Local discovery",
+    image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1400",
+    challenge: "Diners want menu, photos, location, opening hours, and reservation options without searching across several platforms.",
+    strategy: "Put the most-requested information near the top and connect menu discovery to reservations, WhatsApp, maps, and promotions.",
+    outcome: "A local-discovery website direction designed to support visits, reservations, and direct orders.",
+    delivered: ["Menu showcase", "Food gallery", "Maps and hours", "Reservation CTA"],
     href: "/portfolio/sample/restaurant",
   },
   {
-    title: "Real Estate Website",
-    industry: "Real Estate",
-    goal: "Property lead capture",
-    type: "Lead Capture",
-    copy: "Listings, buyer/seller guides, enquiry forms, and area-focused positioning.",
-    sections: "Home, Listings, Buyer Guide, Seller Guide, Contact",
-    ctaFlow: "Property enquiry / consultation",
-    planFit: "Growth or Custom Build",
-    href: "/portfolio/sample/real-estate",
+    title: "BrightPath Tuition Centre",
+    industry: "Education",
+    type: "Trial-class enquiries",
+    image: "https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?auto=format&fit=crop&q=80&w=1400",
+    challenge: "Parents need clear programmes, levels, teachers, schedules, and outcomes before making contact.",
+    strategy: "Structure programmes for comparison, build teacher trust, answer parent questions, and centre the journey on a trial-class enquiry.",
+    outcome: "A parent-friendly website direction designed to generate enrolment and trial-class leads.",
+    delivered: ["Programme pages", "Teacher profiles", "Parent FAQ", "Trial-class CTA"],
+    href: "/portfolio/sample/education",
   },
-  {
-    title: "Premium Custom Website Build",
-    industry: "Custom",
-    goal: "Premium strategy",
-    type: "Custom Project",
-    copy: "Full CMS control, blog publishing, advanced SEO pages, and custom requirements.",
-    sections: "Custom sitemap, bespoke sections, advanced pages",
-    ctaFlow: "Strategy call / proposal",
-    planFit: "Custom Website Build",
-    href: "/apply-custom",
-  },
-];
-
-const exampleFilters = [
-  "Clinics",
-  "Consultants",
-  "Renovation",
-  "Beauty",
-  "Tuition",
-  "Restaurants",
-  "Landing Pages",
-  "Local Services",
-  "Professional Services",
 ];
 
 const industrySalesStarts = [
@@ -542,7 +531,7 @@ function MarketingFooter() {
           ["Services", [
             { label: "Managed Lead Website Plans", href: "/pricing" },
             { label: "Custom Website", href: "/apply-custom" },
-            { label: "Website Examples", href: "/examples" },
+            { label: "Website Case Studies", href: "/case-studies" },
           ]],
           ["Ecosystem", BENNIE_ECOSYSTEM_LINKS.map((link) => ({
             label: link.shortLabel,
@@ -634,7 +623,7 @@ function Hero({ title, copy, icon: Icon }: { title: string; copy: string; icon: 
             <Icon className="mb-12 h-10 w-10 rounded-2xl bg-indigo-600 p-2" />
             <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">Built to sell faster</p>
             <p className="mt-4 text-2xl font-black leading-tight text-white">
-              Templates, pricing, examples, website audit, and launch flow in one clear sales path.
+              Templates, pricing, case studies, website audit, and launch flow in one clear sales path.
             </p>
           </div>
         </div>
@@ -845,66 +834,94 @@ function HowItWorksPage() {
   );
 }
 
-function ExamplesPage() {
+function CaseStudiesPage() {
   return (
     <>
       <Hero
-        title="Website examples built to turn visitors into enquiries"
-        copy="Explore website examples for clinics, wellness providers, renovation companies, home service businesses, beauty salons, and aesthetic services. Each example shows how your website can structure services, trust proof, CTAs, and enquiry paths."
+        title="Website case studies built around real buyer journeys"
+        copy="Explore six complete concept case studies showing the business challenge, website strategy, conversion path, and page structure for service-led businesses. Every study opens into a working demonstration build."
         icon={Sparkles}
       />
       <section className="mx-auto max-w-7xl px-5 py-14">
-        <div className="mb-8 flex flex-wrap gap-2">
-          {exampleFilters.map((item) => (
-            <span key={item} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-slate-600">
-              {item}
-            </span>
-          ))}
+        <div className="mb-10 grid gap-4 rounded-[2rem] border border-indigo-100 bg-indigo-50 p-6 md:grid-cols-[1fr_auto] md:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Illustrative concept studies</p>
+            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-700">
+              These are demonstration builds—not fabricated client claims. They show how Bennie Studio would solve a common conversion problem for each industry.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 md:justify-end">
+            {["6 complete studies", "6 working demos", "No placeholder links"].map((item) => (
+              <span key={item} className="rounded-full bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-indigo-700 shadow-sm">
+                {item}
+              </span>
+            ))}
+          </div>
         </div>
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {examples.map((item) => (
-            <div key={item.title} className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-              <div className="flex h-44 items-center justify-center bg-slate-950 text-indigo-200">
-                <LayoutTemplate className="h-12 w-12" />
-              </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {caseStudies.map((item) => (
+            <article key={item.title} className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+              <SafeImage
+                src={item.image}
+                alt={`${item.title} concept case study`}
+                loading="lazy"
+                className="h-full w-full object-cover transition duration-700 hover:scale-105"
+                containerClassName="aspect-[16/8] bg-slate-100"
+              />
               <div className="p-6">
-                <Badge variant="outline" className="mb-3 text-indigo-600">{item.type}</Badge>
-                <h2 className="text-xl font-black text-slate-950">{item.title}</h2>
-                <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{item.copy}</p>
-                <div className="mt-5 grid gap-2 text-sm font-bold text-slate-700">
-                  <p><span className="text-slate-400">Goal:</span> {item.goal}</p>
-                  <p><span className="text-slate-400">Key sections:</span> {item.sections}</p>
-                  <p><span className="text-slate-400">CTA flow:</span> {item.ctaFlow}</p>
-                  <p><span className="text-slate-400">Best-fit:</span> {item.planFit}</p>
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="text-indigo-600">{item.industry}</Badge>
+                  <span className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{item.type}</span>
+                </div>
+                <h2 className="text-2xl font-black text-slate-950">{item.title}</h2>
+                <div className="mt-5 grid gap-4 text-sm leading-6">
+                  <div>
+                    <p className="font-black uppercase tracking-[0.14em] text-rose-500">Challenge</p>
+                    <p className="mt-1 font-semibold text-slate-600">{item.challenge}</p>
+                  </div>
+                  <div>
+                    <p className="font-black uppercase tracking-[0.14em] text-indigo-600">Website strategy</p>
+                    <p className="mt-1 font-semibold text-slate-600">{item.strategy}</p>
+                  </div>
+                  <div className="rounded-2xl bg-emerald-50 p-4">
+                    <p className="font-black uppercase tracking-[0.14em] text-emerald-700">Intended outcome</p>
+                    <p className="mt-1 font-semibold text-emerald-950">{item.outcome}</p>
+                  </div>
+                </div>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {item.delivered.map((deliverable) => (
+                    <span key={deliverable} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700">
+                      {deliverable}
+                    </span>
+                  ))}
                 </div>
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
                   <Link
                     to={item.href}
-                    onClick={() => trackPublicEvent({ eventType: "click_view_example", label: item.title, target: item.href, metadata: { industry: item.industry, goal: item.goal } })}
+                    onClick={() => trackPublicEvent({ eventType: "click_view_case_study", label: item.title, target: item.href, metadata: { industry: item.industry, type: item.type } })}
                     className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-black text-slate-950 transition hover:bg-slate-50"
                   >
-                    View Example
+                    Read Case Study <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                   <Link
                     to="/generate-preview"
-                    onClick={() => trackPublicEvent({ eventType: "click_generate_similar_preview", label: item.title, target: "/generate-preview", metadata: { industry: item.industry, goal: item.goal } })}
+                    onClick={() => trackPublicEvent({ eventType: "click_generate_similar_preview", label: item.title, target: "/generate-preview", metadata: { industry: item.industry, type: item.type } })}
                     className="inline-flex h-10 items-center justify-center rounded-2xl bg-indigo-600 text-sm font-black text-white transition hover:bg-indigo-500"
                   >
                     Generate Similar
                   </Link>
                 </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
         <div className="mt-10 rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
-          <h2 className="text-3xl font-black text-slate-950">More than templates. Each example has a sales path.</h2>
+          <h2 className="text-3xl font-black text-slate-950">What every case study now explains</h2>
           <p className="mt-3 max-w-3xl text-base font-semibold leading-7 text-slate-600">
-            Every website example is designed around a specific business goal, such as appointment booking, quote requests,
-            consultation enquiries, local discovery, or service promotion.
+            A useful case study should connect the business problem to the website decision—not stop at a decorative screenshot.
           </p>
           <div className="mt-6 grid gap-3 md:grid-cols-3">
-            {["Recommended page structure", "Main enquiry CTA", "Trust-building sections", "Local SEO-ready content areas", "Suggested plan fit", "Launch path"].map((item) => (
+            {["Business challenge", "Buyer journey", "Website strategy", "Conversion CTA", "Delivered sections", "Working demonstration"].map((item) => (
               <div key={item} className="flex gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                 {item}
@@ -1655,10 +1672,10 @@ function NicheLandingPage({ page }: { page: (typeof nichePages)[keyof typeof nic
                 {page.cta} <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
               <Link
-                to="/portfolio"
+                to="/case-studies"
                 className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 text-sm font-black uppercase tracking-widest text-slate-950 transition hover:bg-slate-50"
               >
-                View Examples
+                View Case Studies
               </Link>
             </div>
           </div>
@@ -1767,20 +1784,20 @@ export default function PublicMarketingPages() {
   const meta = pageMeta[pageKind] || pageMeta.templates;
   const nichePage = nichePages[pageKind as keyof typeof nichePages];
 
-  const Page =
+  const pageContent =
     nichePage
-      ? () => <NicheLandingPage page={nichePage} />
+      ? <NicheLandingPage page={nichePage} />
       : pageKind === "pricing"
-      ? PricingPage
+      ? <PricingPage />
       : pageKind === "how-it-works"
-        ? HowItWorksPage
-        : pageKind === "examples"
-          ? ExamplesPage
+        ? <HowItWorksPage />
+        : pageKind === "case-studies"
+          ? <CaseStudiesPage />
           : pageKind === "website-audit"
-            ? WebsiteAuditPage
+            ? <WebsiteAuditPage />
             : pageKind === "generate-preview"
-              ? GeneratePreviewPage
-              : TemplatesPage;
+              ? <GeneratePreviewPage />
+              : <TemplatesPage />;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
@@ -1789,7 +1806,7 @@ export default function PublicMarketingPages() {
         <meta name="description" content={meta.description} />
       </Helmet>
       <MarketingHeader />
-      <Page />
+      {pageContent}
       <section className="bg-white">
         <div className="mx-auto grid max-w-7xl gap-5 px-5 py-12 md:grid-cols-[1fr_auto] md:items-center">
           <div>

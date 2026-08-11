@@ -275,7 +275,7 @@ export default function LandingPage() {
   const navBorder = useTransform(scrollY, [0, 100], ["rgba(241, 245, 249, 0)", "rgba(241, 245, 249, 0.8)"]);
   const headerNavItems = [
     { label: "Main Site", href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com", external: true },
-    { label: "Examples", href: "/examples" },
+    { label: "Case Studies", href: "/case-studies" },
     { label: "Portfolio", href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "portfolio")?.url || "https://portfolio.bennietay.com", external: true },
     { label: "How It Works", href: "#process" },
     { label: "Pricing", href: "#pricing" },
@@ -871,7 +871,7 @@ export default function LandingPage() {
               </h2>
             </div>
             <p className="max-w-2xl text-sm font-semibold leading-7 text-slate-600 sm:text-base">
-              Use the main website to understand the service, the portfolio to inspect examples, and this app to start, pay, onboard, approve, and manage your website.
+              Use the main website to understand the service, the case studies to inspect buyer journeys, and this app to start, pay, onboard, approve, and manage your website.
             </p>
           </div>
 
@@ -1884,7 +1884,7 @@ export default function LandingPage() {
             <div>
               <h4 className="text-slate-900 font-black uppercase tracking-widest text-xs mb-8">Resources</h4>
               <ul className="space-y-4 text-sm text-slate-500 font-bold uppercase tracking-wider">
-                <li><button onClick={() => navigate("/examples")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Examples</button></li>
+                <li><button onClick={() => navigate("/case-studies")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Case Studies</button></li>
                 <li><button onClick={() => navigate("/website-subscription-service/uk")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">UK Local SEO Pages</button></li>
                 <li><button onClick={() => navigate("/website-subscription-service/malaysia")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Malaysia Local SEO Pages</button></li>
                 <li><button onClick={() => navigate("/website-subscription-service/singapore")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Singapore Local SEO Pages</button></li>

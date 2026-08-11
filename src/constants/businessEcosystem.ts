@@ -31,7 +31,7 @@ export const BENNIE_ECOSYSTEM_LINKS: EcosystemLink[] = [
     id: "portfolio",
     label: "Bennie Studio Portfolio",
     shortLabel: "Portfolio",
-    description: "Website examples, style directions, templates, and proof of build quality.",
+    description: "Website case studies, style directions, buyer journeys, and proof of build quality.",
     url: cleanUrl(import.meta.env.VITE_PORTFOLIO_URL, "https://portfolio.bennietay.com"),
   },
 ];
