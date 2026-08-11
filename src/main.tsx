@@ -6,6 +6,9 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { initClientObservability } from "./lib/observability";
 
+const referralCode = new URLSearchParams(window.location.search).get("ref");
+if (referralCode) localStorage.setItem("ref_platform", referralCode);
+
 initClientObservability();
 
 createRoot(document.getElementById("root")!).render(

@@ -29,7 +29,7 @@ import {
   getVercelDnsInstructions,
   isVercelDomainsConfigured,
   removeVercelProjectDomain,
-} from "./vercelDomains.js";
+} from "../server/vercelDomains.js";
 import {
   claimAsyncJob,
   completeAsyncJob,
@@ -39,13 +39,13 @@ import {
   getJobWorkerSecret,
   publishJobToQstash,
   type AsyncJobRecord,
-} from "./jobQueue.js";
+} from "../server/jobQueue.js";
 import {
   captureServerError,
   initServerObservability,
   requestLogger,
   structuredLog,
-} from "./observability.js";
+} from "../server/observability.js";
 
 dotenv.config();
 initServerObservability();
@@ -91,44 +91,32 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 let platformSettings: any = null;
+let platformSettingsLoadedAt = 0;
+const PLATFORM_SETTINGS_TTL_MS = 60_000;
 
-async function syncSettings() {
+async function refreshPlatformSettings(force = false) {
+  if (!force && Date.now() - platformSettingsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return;
   try {
-    const { data } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from("settings")
       .select("content")
       .eq("id", "platform")
       .maybeSingle();
+    if (error) throw error;
     if (data?.content) {
+      const stripeKeyChanged = data.content.stripeSecretKey !== platformSettings?.stripeSecretKey;
+      const resendKeyChanged = data.content.resendApiKey !== platformSettings?.resendApiKey;
       platformSettings = data.content;
+      if (stripeKeyChanged) stripeInstance = null;
+      if (resendKeyChanged) resendInstance = null;
     }
+    platformSettingsLoadedAt = Date.now();
   } catch (err) {
-    console.error("Error syncing settings:", err);
+    captureServerError(err, { phase: "platform_settings_refresh" });
   }
-
-  supabaseAdmin
-    .channel("platform_settings_server")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "settings",
-        filter: "id=eq.platform",
-      },
-      (payload: any) => {
-        if (payload.new?.content) {
-          platformSettings = payload.new.content;
-          // Reset stripe instance if key changed
-          stripeInstance = null;
-        }
-      },
-    )
-    .subscribe();
 }
 
-// Sync settings
-syncSettings().catch(console.error);
+refreshPlatformSettings().catch((error) => captureServerError(error, { phase: "platform_settings_initial_load" }));
 
 // Dist folder resolution
 const distPath = path.resolve(process.cwd(), "dist");
@@ -337,7 +325,7 @@ app.use((req, res, next) => {
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://s.pinimg.com",
+      "script-src 'self' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://s.pinimg.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self' data:",
@@ -849,6 +837,7 @@ async function startServer() {
     "/api/webhook",
     express.raw({ type: "application/json" }),
     async (req, res) => {
+      await refreshPlatformSettings();
       const sig = req.headers["stripe-signature"];
       const businessIdParam = req.query.businessId as string;
 
@@ -1343,7 +1332,27 @@ async function startServer() {
     },
   );
 
-  app.use(cors());
+  app.use(async (_req, _res, next) => {
+    await refreshPlatformSettings();
+    next();
+  });
+  app.use(cors({
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      try {
+        const hostname = new URL(origin).hostname.toLowerCase();
+        const configuredHosts = getPlatformHosts();
+        const allowed = configuredHosts.has(hostname)
+          || hostname.endsWith(".bennietay.com")
+          || hostname.endsWith(".growthos.app")
+          || hostname.endsWith(".vercel.app");
+        return callback(null, allowed);
+      } catch {
+        return callback(null, false);
+      }
+    },
+    credentials: true,
+  }));
   app.use(express.json());
 
   const isPrivateAddress = (address: string) => {
@@ -2080,11 +2089,93 @@ async function startServer() {
         return res.status(400).json({ error: "Feature not found or inactive" });
       }
 
-      // 2. Validate and Deduct Credits (RPC)
-      // First, determine if it involves ChatGPT
-      // HEALER: Only consider it ChatGPT REQUIRED if we actually have the key and want to use it
-      // If we don't have the key, we'll fallback to Gemini which is allowed for everyone
-      const isChatGPTRequired = feature.default_provider === "openai" && !!process.env.OPENAI_API_KEY;
+      if (project_id) {
+        try {
+          await assertBusinessAccess(userId, project_id);
+        } catch (accessError) {
+          return handleAccessError(res, accessError);
+        }
+      }
+
+      const { data: subscription, error: subError } = await supabaseAdmin
+        .from("user_subscriptions")
+        .select("plans(slug)")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (subError) {
+        return res.status(503).json({ error: "Failed to verify subscription status" });
+      }
+
+      const planSlug = (subscription as any)?.plans?.slug || "starter";
+      const { data: route, error: routeError } = await supabaseAdmin
+        .from("ai_model_routes")
+        .select("*")
+        .eq("feature_key", feature_key)
+        .eq("plan_slug", planSlug)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (routeError) {
+        return res.status(503).json({ error: "Failed to resolve AI model route" });
+      }
+
+      const isUsableKey = (value: unknown) => {
+        if (typeof value !== "string") return false;
+        const key = value.trim();
+        const upper = key.toUpperCase();
+        return key.length >= 10
+          && !["UNDEFINED", "NULL", "YOUR_API_KEY", "PLACEHOLDER"].includes(upper)
+          && !/TODO|EXAMPLE|PLACEHOLDER|YOUR_|^MY_|^GEMINI_/.test(upper);
+      };
+      const firstUsableKey = (...values: unknown[]) =>
+        values.find(isUsableKey)?.toString().trim() || "";
+
+      const providerKeys: Record<string, string> = {
+        google: firstUsableKey(platformSettings?.geminiApiKey, process.env.GEMINI_API_KEY),
+        openai: firstUsableKey(platformSettings?.openaiApiKey, process.env.OPENAI_API_KEY),
+        deepseek: firstUsableKey(platformSettings?.deepseekApiKey, process.env.DEEPSEEK_API_KEY),
+      };
+      const fallbackModels: Record<string, string> = {
+        google: "gemini-1.5-flash",
+        openai: "gpt-4o-mini",
+        deepseek: "deepseek-chat",
+      };
+
+      let selectedProvider = String(route?.provider || feature.default_provider || "google").toLowerCase();
+      let selectedModel = route?.model || feature.default_model || fallbackModels[selectedProvider];
+      let apiKey = providerKeys[selectedProvider] || "";
+
+      if (!apiKey) {
+        const availableProvider = ["google", "openai", "deepseek"].find((name) => providerKeys[name]);
+        if (availableProvider) {
+          selectedProvider = availableProvider;
+          selectedModel = fallbackModels[availableProvider];
+          apiKey = providerKeys[availableProvider];
+        }
+      }
+
+      if (!apiKey) {
+        if (shouldFallback) {
+          return res.json({
+            output: isSynthesis
+              ? getFallbackSynthesis(input?.context)
+              : (feature_key === "copy"
+                ? (input?.prompt?.substring(0, 50) + "..." || "High-quality professional content.")
+                : "Alternative professional content generated."),
+            fallback: true,
+            warning: "AI_PROVIDER_UNAVAILABLE",
+          });
+        }
+        return res.status(503).json({ error: "AI provider is not configured. No credits were charged." });
+      }
+
+      const temperature = route?.temperature ?? 0.2;
+      const maxTokens = route?.max_output_tokens ?? 4096;
+      const isChatGPTRequired = selectedProvider === "openai";
+
+      // Validate and deduct atomically only after a usable provider has been resolved.
       
       let deductionResult: any = null;
       const { data: rpcResult, error: deductionError } = await supabaseAdmin.rpc("validate_and_deduct_credits", {
@@ -2155,120 +2246,28 @@ async function startServer() {
         });
       }
 
-      // Sync with businesses table for Super Admin reporting
-      if (deductionResult.success && project_id) {
-        try {
-          const creditsCharged = deductionResult.credits_charged || 1;
-          await supabaseAdmin.rpc("increment_ai_usage", {
-            biz_id: project_id,
-            amount: creditsCharged,
-            use_case_name: feature_key,
-            model_name: feature.default_model
+      const refundDeduction = async () => {
+        const { data: refundResult, error: refundError } = await supabaseAdmin.rpc("refund_ai_credits", {
+          p_user_id: userId,
+          p_feature_key: feature_key,
+          p_is_chatgpt: isChatGPTRequired,
+        });
+        if (refundError || !refundResult?.success) {
+          captureServerError(refundError || new Error("AI refund returned no result"), {
+            requestId: req.requestId,
+            userId,
+            featureKey: feature_key,
+            phase: "ai_credit_refund",
           });
-        } catch (syncErr) {
-          console.warn("[AI] Failed to sync with businesses table:", syncErr);
+          return false;
         }
-      }
-
-      // helper to find a valid key
-      const getGeminiKey = () => {
-        const envKey = process.env.GEMINI_API_KEY;
-        const settingsKey = platformSettings?.geminiApiKey;
-        
-        const isStandardKey = (k: any) => {
-          if (!k || typeof k !== "string") return false;
-          const ck = k.trim();
-          return ck.startsWith("AIza") && ck.length >= 35;
-        };
-
-        const isValid = (k: any) => {
-          if (!k || typeof k !== "string") return false;
-          const ck = k.trim();
-          const upper = ck.toUpperCase();
-          if (upper === "" || upper === "UNDEFINED" || upper === "NULL" || upper === "YOUR_API_KEY" || upper === "PLACEHOLDER") return false;
-          if (upper.includes("YOUR_") || upper.includes("PLACEHOLDER") || upper.startsWith("MY_") || upper.startsWith("GEMINI_")) return false;
-          if (upper.includes("TODO") || upper.includes("EXAMPLE")) return false;
-          if (upper === "MY_GEMINI_API_KEY") return false;
-          if (ck.length < 10) return false;
-          return true;
-        };
-
-        if (isStandardKey(settingsKey)) return settingsKey!.trim();
-        if (isStandardKey(envKey)) return envKey!.trim();
-        if (isValid(settingsKey)) return settingsKey!.trim();
-        if (isValid(envKey)) return envKey!.trim();
-        return "";
+        deductionResult.credits_remaining = refundResult.credits_remaining;
+        return true;
       };
 
-      const geminiKey = getGeminiKey();
-      const hasDeepSeek = !!(platformSettings?.deepseekApiKey || process.env.DEEPSEEK_API_KEY);
-      const hasOpenAI = !!process.env.OPENAI_API_KEY;
-
-      if (!geminiKey && !hasDeepSeek && !hasOpenAI && shouldFallback) {
-         return res.json({ 
-           output: feature_key === "copy" ? (input?.prompt?.substring(0, 50) + "..." || "High-quality professional content.") : getFallbackSynthesis(input?.context),
-           fallback: true
-         });
-      }
-
-      // 4. Resolve Model Route based on Plan
-      const { data: subscription, error: subError } = await supabaseAdmin
-        .from("user_subscriptions")
-        .select("plans(slug)")
-        .eq("user_id", userId)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (subError) {
-        console.error("Subscription lookup error:", subError);
-        return res.status(500).json({ error: "Failed to verify subscription status", details: subError.message });
-      }
-
-      const planSlug = (subscription as any)?.plans?.slug || "starter";
-
-      const { data: route, error: routeError } = await supabaseAdmin
-        .from("ai_model_routes")
-        .select("*")
-        .eq("feature_key", feature_key)
-        .eq("plan_slug", planSlug)
-        .eq("is_active", true)
-        .maybeSingle();
-
-      if (routeError) {
-        console.error("Model route lookup error:", routeError);
-        return res.status(500).json({ error: "Failed to resolve AI model route", details: routeError.message });
-      }
-
-      const provider = route?.provider || feature.default_provider;
-      const model = route?.model || feature.default_model;
-      const temperature = route?.temperature || 0.2;
-      const maxTokens = route?.max_output_tokens || 4096;
-
-      // 5. Execute AI Request
+      // Execute the resolved AI request.
       let aiResponse;
       try {
-        let selectedProvider = provider;
-        let selectedModel = model;
-        let apiKey = "";
-
-        if (selectedProvider === "google") {
-          apiKey = geminiKey;
-        } else {
-          apiKey = platformSettings?.deepseekApiKey || process.env.DEEPSEEK_API_KEY || "";
-        }
-
-        // Fallback to Gemini if needed
-        if ((!apiKey || selectedProvider !== "google") && geminiKey) {
-          selectedProvider = "google";
-          selectedModel = "gemini-1.5-flash"; 
-          apiKey = geminiKey;
-        }
-
-        if (!apiKey || apiKey.length < 10) {
-          const providerName = selectedProvider === "google" ? "Gemini" : selectedProvider.toUpperCase();
-          throw new Error(`${providerName} API key is missing or invalid. Please configure it in Platform Settings.`);
-        }
-
         const aiRequest = {
           prompt: typeof input === "string" ? input : (input?.prompt || JSON.stringify(input)),
           systemMessage: (typeof input === "object" ? input?.systemMessage : null) || feature.system_message || "You are a helpful AI assistant.",
@@ -2285,50 +2284,74 @@ async function startServer() {
           aiResponse = await callDeepSeek(apiKey, aiRequest, selectedModel);
         }
       } catch (aiError: any) {
+        const refunded = await refundDeduction();
+        await supabaseAdmin.from("ai_generation_logs").insert({
+          user_id: userId,
+          project_id,
+          feature_key,
+          provider: selectedProvider,
+          model: selectedModel,
+          credits_charged: refunded ? 0 : deductionResult.credits_charged,
+          status: "failed",
+          error_message: String(aiError?.message || "AI provider failure").slice(0, 1000),
+        });
         if (shouldFallback) {
           return res.json({ 
             output: feature_key === "copy" ? (input?.prompt?.substring(0, 50) + "..." || "High-quality professional content.") : getFallbackSynthesis(input?.context),
-            fallback: true
+            fallback: true,
+            credits_refunded: refunded,
           });
         }
-        console.error("AI execution error:", aiError);
-        
-        // Refund credits on failure
-        await supabaseAdmin.rpc("increment_ai_usage", {
-          biz_id: project_id, 
-          amount: -feature.credit_cost,
-          use_case_name: "refund",
-          model_name: "n/a"
+        captureServerError(aiError, {
+          requestId: req.requestId,
+          userId,
+          featureKey: feature_key,
+          provider: selectedProvider,
+          model: selectedModel,
         });
-        
-        await supabaseAdmin
-          .from("ai_credit_balances")
-          .update({ credits_remaining: deductionResult.credits_remaining + feature.credit_cost })
-          .eq("user_id", userId);
-
-        return res.status(500).json({ error: "AI generation failed. Credits refunded.", details: aiError.message });
+        return res.status(502).json({
+          error: refunded
+            ? "AI generation failed. Credits were refunded."
+            : "AI generation failed and the automatic refund needs attention.",
+        });
       }
 
-      // 5. Log Generation
+      if (project_id) {
+        const { error: usageSyncError } = await supabaseAdmin.rpc("increment_ai_usage", {
+          biz_id: project_id,
+          amount: deductionResult.credits_charged,
+          use_case_name: feature_key,
+          model_name: selectedModel,
+        });
+        if (usageSyncError) {
+          captureServerError(usageSyncError, {
+            requestId: req.requestId,
+            userId,
+            projectId: project_id,
+            phase: "business_ai_usage_sync",
+          });
+        }
+      }
+
       await supabaseAdmin.from("ai_generation_logs").insert({
         user_id: userId,
         project_id,
         feature_key,
-        provider,
-        model,
+        provider: selectedProvider,
+        model: selectedModel,
         prompt_tokens: aiResponse.usage.promptTokens,
         output_tokens: aiResponse.usage.completionTokens,
         estimated_cost_usd: (aiResponse.usage.totalTokens * 0.000002), // Rough estimate
-        credits_charged: feature.credit_cost,
+        credits_charged: deductionResult.credits_charged,
         status: "success"
       });
 
       res.json({
         success: true,
-        provider,
-        model,
+        provider: selectedProvider,
+        model: selectedModel,
         feature_key,
-        credits_charged: feature.credit_cost,
+        credits_charged: deductionResult.credits_charged,
         credits_remaining: deductionResult.credits_remaining,
         output: aiResponse.text
       });
@@ -2486,7 +2509,7 @@ async function startServer() {
         message ? `Message: ${message}` : null,
       ].filter(Boolean).join("\n");
 
-      const payloads = [
+      const payloads: Record<string, any>[] = [
         {
           name,
           email,
