@@ -123,6 +123,11 @@ const navItems = [
   { label: "Generate Preview", href: "/generate-preview" },
 ];
 
+const primaryCtaClass =
+  "inline-flex min-h-12 items-center justify-center rounded-2xl bg-indigo-600 px-6 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_12px_28px_-14px_rgba(79,70,229,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-500 hover:shadow-[0_18px_34px_-16px_rgba(79,70,229,0.9)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/25 active:translate-y-0";
+const secondaryCtaClass =
+  "inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_8px_22px_-14px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-[0_14px_28px_-16px_rgba(15,23,42,0.4)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20 active:translate-y-0";
+
 const industries = [
   ["Dental Clinic", "Appointment booking, treatment pages, local SEO, WhatsApp enquiries."],
   ["Aesthetic Clinic", "Premium service presentation, treatment categories, consultation CTA."],
@@ -526,7 +531,7 @@ function MarketingHeader() {
         <Link
           to="/generate-preview"
           onClick={() => trackPublicEvent({ eventType: "click_generate_preview", label: "Header Generate Preview", target: "/generate-preview" })}
-          className="inline-flex h-9 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-indigo-600"
+          className="inline-flex min-h-10 items-center justify-center rounded-full bg-slate-950 px-5 py-2.5 text-sm font-black text-white shadow-[0_8px_20px_-12px_rgba(15,23,42,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20"
         >
           Generate Preview
         </Link>
@@ -627,14 +632,14 @@ function Hero({ title, copy, icon: Icon }: { title: string; copy: string; icon: 
             <Link
               to="/generate-preview"
               onClick={() => trackPublicEvent({ eventType: "click_generate_preview", label: "Hero Generate Free Website Preview", target: "/generate-preview" })}
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-indigo-600 px-7 text-sm font-black uppercase tracking-widest text-white transition hover:bg-indigo-500"
+              className={primaryCtaClass}
             >
               Generate My Free Website Preview <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
             <Link
               to="/website-audit"
               onClick={() => trackPublicEvent({ eventType: "click_request_audit", label: "Hero Website Growth Audit", target: "/website-audit" })}
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-7 text-sm font-black uppercase tracking-widest text-slate-950 transition hover:bg-slate-50"
+              className={secondaryCtaClass}
             >
               Request Website Growth Audit
             </Link>
@@ -813,7 +818,7 @@ function PricingPage() {
               <Link
                 to="/signup"
                 onClick={() => trackPublicEvent({ eventType: `click_pricing_plan_${plan.name.toLowerCase()}`, label: `Start ${plan.name}`, target: "/signup", metadata: { plan: plan.name, market: selectedMarket } })}
-                className="mt-7 inline-flex h-10 w-full items-center justify-center rounded-2xl bg-slate-950 text-sm font-black uppercase tracking-widest text-white transition hover:bg-indigo-600"
+                className="mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_12px_26px_-14px_rgba(15,23,42,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20"
               >
                 Start {plan.name}
               </Link>
@@ -832,7 +837,7 @@ function PricingPage() {
             <Link
               to="/apply-custom"
               onClick={() => trackPublicEvent({ eventType: "click_pricing_plan_custom", label: "Request Website Quote", target: "/apply-custom", metadata: { market: selectedMarket } })}
-              className="inline-flex h-10 items-center justify-center rounded-2xl bg-white px-5 text-sm font-black uppercase tracking-widest text-slate-950 transition hover:bg-indigo-100"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-black uppercase tracking-[0.12em] text-slate-950 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-100 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
             >
               Request Website Quote
             </Link>
@@ -965,14 +970,14 @@ function CaseStudiesPage() {
                   <Link
                     to={item.href}
                     onClick={() => trackPublicEvent({ eventType: "click_view_case_study", label: item.title, target: item.href, metadata: { industry: item.industry, type: item.type } })}
-                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-black text-slate-950 transition hover:bg-slate-50"
+                    className={secondaryCtaClass}
                   >
                     Read Case Study <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                   <Link
                     to="/generate-preview"
                     onClick={() => trackPublicEvent({ eventType: "click_generate_similar_preview", label: item.title, target: "/generate-preview", metadata: { industry: item.industry, type: item.type } })}
-                    className="inline-flex h-10 items-center justify-center rounded-2xl bg-indigo-600 text-sm font-black text-white transition hover:bg-indigo-500"
+                    className={primaryCtaClass}
                   >
                     Generate Similar
                   </Link>
@@ -1635,8 +1640,8 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
             <p className="mt-1 text-sm font-bold text-slate-600">Malaysia: {plan.prices.MY}. See pricing for other markets.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Link to="/generate-preview" onClick={savePreviewContext} className="inline-flex h-11 items-center justify-center rounded-2xl bg-indigo-600 px-5 text-sm font-black text-white hover:bg-indigo-500">See My Website Preview</Link>
-            <Link to="/pricing" onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: plan.name, target: "/pricing", metadata: { recommendedPlan: report.recommendedPlan } })} className="inline-flex h-11 items-center justify-center rounded-2xl border border-indigo-200 bg-white px-5 text-sm font-black text-indigo-700">View Plan</Link>
+            <Link to="/generate-preview" onClick={savePreviewContext} className={primaryCtaClass}>See My Website Preview</Link>
+            <Link to="/pricing" onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: plan.name, target: "/pricing", metadata: { recommendedPlan: report.recommendedPlan } })} className={secondaryCtaClass}>View Plan</Link>
           </div>
         </div>
       </section>
@@ -1802,7 +1807,7 @@ function WebsiteAuditPage() {
                   onClick={() => {
                     trackPublicEvent({ eventType: "click_audit_thank_you_book_call", label: "Audit Thank You Book Call", target: "/book-demo" });
                   }}
-                  className="inline-flex h-10 items-center justify-center rounded-2xl bg-white text-sm font-black text-slate-950 hover:bg-indigo-100"
+                  className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-black text-slate-950 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-100 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
                 >
                   Book a Call
                 </Link>
@@ -1811,7 +1816,7 @@ function WebsiteAuditPage() {
                   onClick={() => {
                     trackPublicEvent({ eventType: "click_audit_thank_you_generate_preview", label: "Audit Thank You Generate Preview", target: "/generate-preview" });
                   }}
-                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-white/30 bg-white/5 text-sm font-black text-white hover:bg-white hover:text-slate-950"
+                  className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/25 bg-white/10 px-6 py-3 text-sm font-black text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
                 >
                   See My Website Preview
                 </Link>
@@ -1883,13 +1888,13 @@ function NicheLandingPage({ page }: { page: (typeof nichePages)[keyof typeof nic
               <Link
                 to="/website-audit"
                 onClick={() => trackPublicEvent({ eventType: "click_request_audit", label: `${page.title} Audit CTA`, target: "/website-audit", metadata: { niche: page.label } })}
-                className="inline-flex h-11 items-center justify-center rounded-2xl bg-indigo-600 px-6 text-sm font-black uppercase tracking-widest text-white transition hover:bg-indigo-500"
+                className={primaryCtaClass}
               >
                 {page.cta} <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
               <Link
                 to="/case-studies"
-                className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 text-sm font-black uppercase tracking-widest text-slate-950 transition hover:bg-slate-50"
+                className={secondaryCtaClass}
               >
                 View Case Studies
               </Link>
