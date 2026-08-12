@@ -26,7 +26,6 @@ import { supabase } from "../../lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Progress } from "../ui/progress";
 import { cn } from "../../lib/utils";
 
 type AuditStatus = "pass" | "warn" | "fail";
@@ -159,16 +158,6 @@ const createBusinessChecks = (business: any, websites: any[], policiesReady: boo
   ];
 };
 
-const readinessScore = (checks: AuditCheck[]) => {
-  if (!checks.length) return 0;
-  const points = checks.reduce((total, check) => {
-    if (check.status === "pass") return total + 1;
-    if (check.status === "warn") return total + 0.45;
-    return total;
-  }, 0);
-  return Math.round((points / checks.length) * 100);
-};
-
 const productionQaChecks = [
   "Create a fresh customer account and complete quick onboarding.",
   "Generate a website and confirm draft preview loads immediately.",
@@ -261,17 +250,16 @@ export function LaunchAudit() {
     return {
       business,
       checks,
-      score: readinessScore(checks),
+      completedChecks: checks.filter((check) => check.status === "pass").length,
       blockers: checks.filter((check) => check.status === "fail"),
       warnings: checks.filter((check) => check.status === "warn"),
     };
   });
 
-  const launchReady = auditedBusinesses.filter((item) => item.score >= 85 && item.blockers.length === 0).length;
+  const launchReady = auditedBusinesses.filter((item) => item.blockers.length === 0 && item.warnings.length === 0).length;
   const blocked = auditedBusinesses.filter((item) => item.blockers.length > 0).length;
-  const averageScore = auditedBusinesses.length
-    ? Math.round(auditedBusinesses.reduce((total, item) => total + item.score, 0) / auditedBusinesses.length)
-    : 0;
+  const completedChecks = auditedBusinesses.reduce((total, item) => total + item.completedChecks, 0);
+  const totalChecks = auditedBusinesses.reduce((total, item) => total + item.checks.length, 0);
 
   if (loading) {
     return (
@@ -302,7 +290,7 @@ export function LaunchAudit() {
 
       <div className="grid gap-5 md:grid-cols-4">
         {[
-          { label: "Average Readiness", value: `${averageScore}%`, icon: ShieldCheck, tone: "text-indigo-600 bg-indigo-50" },
+          { label: "Checks Complete", value: `${completedChecks}/${totalChecks}`, icon: ShieldCheck, tone: "text-indigo-600 bg-indigo-50" },
           { label: "Ready To Launch", value: launchReady, icon: Rocket, tone: "text-emerald-600 bg-emerald-50" },
           { label: "Blocked Sites", value: blocked, icon: AlertTriangle, tone: "text-rose-600 bg-rose-50" },
           { label: "Compliance Pages", value: policiesReady ? "Ready" : "Review", icon: FileText, tone: "text-amber-600 bg-amber-50" },
@@ -339,26 +327,22 @@ export function LaunchAudit() {
                 <p className="text-sm font-bold text-slate-500">No businesses found yet.</p>
               </div>
             ) : (
-              auditedBusinesses.map(({ business, checks, score, blockers, warnings }) => (
+              auditedBusinesses.map(({ business, checks, completedChecks: businessCompletedChecks, blockers, warnings }) => (
                 <div key={business.id} className="rounded-2xl border border-slate-200 bg-white p-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-lg font-black text-slate-950">{business.name || "Unnamed Business"}</h3>
-                        <Badge className={cn("border", score >= 85 && blockers.length === 0 ? statusStyles.pass : blockers.length ? statusStyles.fail : statusStyles.warn)}>
-                          {score >= 85 && blockers.length === 0 ? "Ready" : blockers.length ? "Blocked" : "Needs Review"}
+                        <Badge className={cn("border", blockers.length === 0 && warnings.length === 0 ? statusStyles.pass : blockers.length ? statusStyles.fail : statusStyles.warn)}>
+                          {blockers.length === 0 && warnings.length === 0 ? "Ready" : blockers.length ? "Blocked" : "Needs Review"}
                         </Badge>
                       </div>
                       <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-400">
                         {business.plan || business.business_plan || "No plan"} / {business.subscription_status || business.status || "unknown status"}
                       </p>
                     </div>
-                    <div className="min-w-[180px]">
-                      <div className="mb-2 flex justify-between text-xs font-black text-slate-500">
-                        <span>Readiness</span>
-                        <span>{score}%</span>
-                      </div>
-                      <Progress value={score} className="h-2" />
+                    <div className="min-w-[180px] rounded-2xl bg-slate-50 px-4 py-3 text-xs font-black text-slate-600">
+                      {businessCompletedChecks} of {checks.length} launch checks complete
                     </div>
                   </div>
                   <div className="mt-5 grid gap-3 md:grid-cols-3">

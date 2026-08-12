@@ -593,8 +593,6 @@ export function WebsiteEditor({
   const [activePageId, setActivePageId] = useState<string | null>(null);
 
   const [showAnalysis, setShowAnalysis] = useState(false);
-  const [qualityScore, setQualityScore] = useState(0);
-  const [qualityGrade, setQualityGrade] = useState("Basic");
   const [missingItems, setMissingItems] = useState<string[]>([]);
   const [improving, setImproving] = useState<string | null>(null);
 
@@ -779,63 +777,36 @@ export function WebsiteEditor({
     }
   };
 
-  const calculateQualityScore = useCallback(() => {
+  const identifyBlueprintGaps = useCallback(() => {
     if (!website) return;
-    let score = 0;
     const missing: string[] = [];
     const homePage = website.pages.find(p => p.slug === "" || p.slug === "home");
     
     if (homePage) {
       const hero = homePage.sections.find(s => s.type === "hero");
-      if (hero?.content?.headline && hero?.content?.subheadline && hero?.content?.imageUrl) {
-        score += 20;
-      } else {
-        missing.push("High-Impact Hero Strategy");
-      }
+      if (!(hero?.content?.headline && hero?.content?.subheadline && hero?.content?.imageUrl)) missing.push("High-Impact Hero Strategy");
 
       const proof = homePage.sections.find(s => s.type === "proof" || s.type === "testimonials");
-      if (proof) {
-        score += 20;
-      } else {
-        missing.push("Trust & Social Proof");
-      }
+      if (!proof) missing.push("Trust & Social Proof");
 
       const services = homePage.sections.find(s => s.type === "services");
-      if (services) {
-        score += 15;
-      } else {
-        missing.push("Core Service Grid");
-      }
+      if (!services) missing.push("Core Service Grid");
 
       const faq = homePage.sections.find(s => s.type === "faq");
-      if (faq) score += 10;
-      else missing.push("Objection-Blocking FAQ");
+      if (!faq) missing.push("Objection-Blocking FAQ");
 
       const cta = homePage.sections.find(s => s.type === "cta");
-      if (cta) score += 10;
-      else missing.push("Final Conversion Call");
+      if (!cta) missing.push("Final Conversion Call");
     }
 
-    if (website.seo?.title && website.seo?.description && website.seo?.keywords?.length > 0) {
-      score += 15;
-    } else {
-      missing.push("SEO Optimization");
-    }
+    if (!(website.seo?.title && website.seo?.description && website.seo?.keywords?.length > 0)) missing.push("SEO Optimization");
 
-    if (website.theme?.style !== "modern") score += 10;
-
-    setQualityScore(score);
     setMissingItems(missing);
-    
-    if (score >= 90) setQualityGrade("Agency Grade");
-    else if (score >= 70) setQualityGrade("Premium");
-    else if (score >= 40) setQualityGrade("Growth");
-    else setQualityGrade("Basic");
   }, [website]);
 
   useEffect(() => {
-    calculateQualityScore();
-  }, [calculateQualityScore]);
+    identifyBlueprintGaps();
+  }, [identifyBlueprintGaps]);
 
   const handleAiImprove = async (type: "copy" | "cta" | "trust" | "full") => {
     if (!website) return;
@@ -2489,7 +2460,7 @@ export function WebsiteEditor({
         />
 
         <aside className="fixed top-0 right-0 h-full w-full sm:w-[460px] bg-white border-l border-slate-200 shadow-[0_0_50px_-12px_rgba(0,0,0,0.3)] z-[100] flex flex-col animate-in slide-in-from-right duration-500 ease-in-out">
-          {/* Premium Quality Score & AI Actions Button */}
+          {/* Blueprint findings and AI actions */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3">
         <AnimatePresence>
           {showAnalysis && (
@@ -2502,36 +2473,12 @@ export function WebsiteEditor({
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-1">Blueprint Audit</h3>
-                  <p className="text-xl font-black italic uppercase tracking-tight text-slate-900 dark:text-white">Quality Score</p>
+                  <p className="text-xl font-black italic uppercase tracking-tight text-slate-900 dark:text-white">What Needs Attention</p>
                 </div>
-                <div className="h-14 w-14 rounded-full border-4 border-indigo-50 flex items-center justify-center relative">
-                  <span className="text-lg font-black text-indigo-600">{qualityScore}</span>
-                  <svg className="absolute -inset-1 w-full h-full -rotate-90">
-                    <circle
-                      cx="50%" cy="50%" r="24"
-                      fill="none" stroke="currentColor" strokeWidth="4"
-                      strokeDasharray={`${(qualityScore / 100) * 150} 150`}
-                      className="text-indigo-600"
-                    />
-                  </svg>
-                </div>
+                <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">{missingItems.length ? `${missingItems.length} items` : "No structural gaps found"}</Badge>
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Blueprint Grade</span>
-                    <Badge className="bg-indigo-600 text-white border-none py-0 h-4 text-[8px] font-black">{qualityGrade}</Badge>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <motion.div 
-                      initial={{ width: 0 }}
-                      animate={{ width: `${qualityScore}%` }}
-                      className="h-full bg-indigo-600"
-                    />
-                  </div>
-                </div>
-
                 {missingItems.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-[9px] font-black uppercase text-slate-400">Tactical Gaps Found:</p>
@@ -10508,28 +10455,10 @@ export function WebsiteEditor({
                       </div>
                     ) : (
                       <div className="space-y-6">
-                        <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
-                          <div className="flex items-center gap-4">
-                            <div
-                              className={cn(
-                                "h-16 w-16 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner",
-                                seoAudit.score >= 80
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : seoAudit.score >= 50
-                                    ? "bg-amber-100 text-amber-700"
-                                    : "bg-rose-100 text-rose-700",
-                              )}
-                            >
-                              {seoAudit.score}
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-slate-900">
-                                Overall SEO Score
-                              </h4>
-                              <p className="text-xs text-slate-500">
-                                Based on competitive industry benchmarks
-                              </p>
-                            </div>
+                        <div className="flex items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                          <div>
+                            <h4 className="font-bold text-slate-900">SEO Growth Review</h4>
+                            <p className="mt-1 text-xs text-slate-500">Observable findings and recommended improvements.</p>
                           </div>
                           <Button
                             variant="outline"
@@ -10572,7 +10501,7 @@ export function WebsiteEditor({
 
                         <div className="space-y-3">
                           <Label className="text-xs font-black uppercase tracking-widest text-slate-400">
-                            Critical Issues & Auto-Fixes
+                            What We Found
                           </Label>
                           <div className="space-y-2">
                             {seoAudit.criticalIssues.map(
@@ -10588,11 +10517,14 @@ export function WebsiteEditor({
                                     <p className="text-sm font-bold text-slate-900">
                                       {issue.issue}
                                     </p>
-                                    <p className="text-xs text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100 italic">
-                                      " {issue.solution} "
-                                    </p>
+                                    <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">What we found</p>
+                                    <p className="text-xs text-slate-500">{issue.whatWeFound || "This needs a manual review against the live page."}</p>
+                                    <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Why it matters</p>
+                                    <p className="text-xs text-slate-500">{issue.impact}</p>
+                                    <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-indigo-600">Recommended improvement</p>
+                                    <p className="text-xs font-bold text-indigo-700">{issue.solution}</p>
                                   </div>
-                                  {issue.isFixable && (
+                                  {["title", "description", "keywords"].includes(issue.fixType) && (
                                     <Button
                                       size="sm"
                                       variant="ghost"
@@ -10626,44 +10558,9 @@ export function WebsiteEditor({
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="p-5 bg-indigo-50/30 rounded-[2rem] border border-indigo-100 space-y-3">
-                            <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm mb-2">
-                              <Sparkles className="h-4 w-4" /> Opportunities
-                            </div>
-                            <ul className="space-y-2">
-                              {seoAudit.opportunities.map(
-                                (opt: string, idx: number) => (
-                                  <li
-                                    key={idx}
-                                    className="flex gap-2 items-start text-xs text-slate-600"
-                                  >
-                                    <div className="h-1.5 w-1.5 rounded-full bg-indigo-400 mt-1.5 shrink-0" />
-                                    {opt}
-                                  </li>
-                                ),
-                              )}
-                            </ul>
-                          </div>
-                          <div className="p-5 bg-emerald-50/30 rounded-[2rem] border border-emerald-100 space-y-3">
-                            <div className="flex items-center gap-2 text-emerald-900 font-bold text-sm mb-2">
-                              <TrendingUp className="h-4 w-4" /> Recommended
-                              Keywords
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {seoAudit.recommendedKeywords.map(
-                                (kw: string, idx: number) => (
-                                  <Badge
-                                    key={idx}
-                                    variant="secondary"
-                                    className="bg-white border-emerald-100 text-emerald-700 text-[10px]"
-                                  >
-                                    {kw}
-                                  </Badge>
-                                ),
-                              )}
-                            </div>
-                          </div>
+                        <div className="p-5 bg-indigo-50/30 rounded-[2rem] border border-indigo-100 space-y-3">
+                          <div className="flex items-center gap-2 text-indigo-900 font-bold text-sm"><Sparkles className="h-4 w-4" /> Recommended Next Improvement</div>
+                          <p className="text-sm font-bold leading-6 text-slate-700">{seoAudit.nextRecommendation || "Review the highest-priority finding and apply one focused improvement."}</p>
                         </div>
 
                         <div className="p-4 bg-slate-900 rounded-2xl text-white text-xs leading-relaxed">

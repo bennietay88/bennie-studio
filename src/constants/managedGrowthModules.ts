@@ -1,9 +1,8 @@
 export type GrowthPriority = "High" | "Medium" | "Low";
 
-export interface WebsiteGrowthScoreItem {
+export interface WebsiteGrowthOpportunity {
   id: string;
   label: string;
-  score: number;
   issues: string[];
   recommendedFixes: string[];
   priority: GrowthPriority;
@@ -55,11 +54,10 @@ export interface CampaignCalendarIdea {
   cta: string;
 }
 
-export const WEBSITE_GROWTH_SCORE_ITEMS: WebsiteGrowthScoreItem[] = [
+export const WEBSITE_GROWTH_OPPORTUNITIES: WebsiteGrowthOpportunity[] = [
   {
     id: "design",
-    label: "Design Score",
-    score: 82,
+    label: "Offer and page clarity",
     issues: ["Hero section could show the core offer faster", "Some proof elements can be moved higher"],
     recommendedFixes: ["Tighten the hero copy", "Add a trust strip near the first CTA"],
     priority: "Medium",
@@ -67,8 +65,7 @@ export const WEBSITE_GROWTH_SCORE_ITEMS: WebsiteGrowthScoreItem[] = [
   },
   {
     id: "seo",
-    label: "SEO Score",
-    score: 74,
+    label: "Search messaging",
     issues: ["Meta description can be more specific", "Service keywords are not repeated enough in headings"],
     recommendedFixes: ["Generate SEO title and meta description", "Add service + location wording to one H2"],
     priority: "High",
@@ -76,8 +73,7 @@ export const WEBSITE_GROWTH_SCORE_ITEMS: WebsiteGrowthScoreItem[] = [
   },
   {
     id: "enquiry",
-    label: "Enquiry Score",
-    score: 78,
+    label: "Enquiry journey",
     issues: ["Primary CTA can be more direct", "WhatsApp message is not service-specific yet"],
     recommendedFixes: ["Use service-specific CTA copy", "Add pre-filled WhatsApp enquiry messages"],
     priority: "High",
@@ -85,8 +81,7 @@ export const WEBSITE_GROWTH_SCORE_ITEMS: WebsiteGrowthScoreItem[] = [
   },
   {
     id: "trust",
-    label: "Trust Score",
-    score: 69,
+    label: "Trust and proof",
     issues: ["Missing concrete proof above the fold", "FAQ does not answer price or timing concerns"],
     recommendedFixes: ["Add proof badges or client examples", "Add buying-objection FAQs"],
     priority: "Medium",
@@ -94,8 +89,7 @@ export const WEBSITE_GROWTH_SCORE_ITEMS: WebsiteGrowthScoreItem[] = [
   },
   {
     id: "speed",
-    label: "Speed Score",
-    score: 88,
+    label: "Page performance",
     issues: ["Large images should keep optimized dimensions", "Third-party scripts should stay minimal"],
     recommendedFixes: ["Compress hero images", "Audit scripts before adding more tracking"],
     priority: "Low",
@@ -103,8 +97,7 @@ export const WEBSITE_GROWTH_SCORE_ITEMS: WebsiteGrowthScoreItem[] = [
   },
   {
     id: "content",
-    label: "Content Score",
-    score: 73,
+    label: "Service content",
     issues: ["Service descriptions could be more specific", "Content gaps for common buyer questions"],
     recommendedFixes: ["Improve service section copy", "Add missing FAQs and next-step guidance"],
     priority: "Medium",
@@ -430,7 +423,7 @@ export const REVIEW_TO_WEBSITE_IMPORT = {
   ],
 };
 
-export const LOCAL_RANKING_READINESS_SCORE = [
+export const LOCAL_SEARCH_CHECKLIST = [
   "Service + city keyword in page title",
   "Local FAQ present",
   "Contact method visible",
@@ -443,13 +436,11 @@ export const LOCAL_RANKING_READINESS_SCORE = [
 
 export const MONTHLY_WEBSITE_REPORT = {
   sections: [
-    "Website Growth Score",
-    "Enquiries tracked",
-    "Best CTA",
-    "Weakest page",
-    "Recommended changes",
-    "New campaign idea",
-    "Local SEO opportunity",
+    "Measured website results",
+    "What changed this month",
+    "What we noticed",
+    "Recommended next improvement",
+    "Customer action",
   ],
   title: "Monthly Website Growth Report",
 };

@@ -35,7 +35,6 @@ import {
   CardFooter,
 } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Progress } from "./ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -691,10 +690,10 @@ export function MarketingHub() {
             <div className="flex justify-between items-start">
               <div>
                 <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-                  <Search className="h-7 w-7" /> AI SEO Auditor
+                  <Search className="h-7 w-7" /> SEO Growth Review
                 </DialogTitle>
                 <DialogDescription className="text-purple-100/80 font-medium">
-                  Scan your digital presence and identify ranking gaps.
+                  Review the supplied page context for observable search and content opportunities.
                 </DialogDescription>
               </div>
               {!seoResult && !isGenerating && (
@@ -725,29 +724,16 @@ export function MarketingHub() {
                   <Search className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 text-purple-600 animate-pulse" />
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                  Analyzing Site Presence...
+                  Reviewing Page Context...
                 </h3>
                 <p className="text-slate-500 mt-2">
-                  Connecting to search engines and analyzing page structure.
+                  Checking the supplied metadata, content structure, and enquiry messaging.
                 </p>
               </div>
             ) : seoResult ? (
               <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Card className="rounded-3xl border-purple-100 bg-purple-50/30 overflow-hidden text-center p-8">
-                    <h4 className="text-sm font-bold text-purple-600 uppercase tracking-widest mb-2">
-                      Health Score
-                    </h4>
-                    <div className="text-6xl font-black text-purple-700">
-                      {seoResult.score}
-                    </div>
-                    <Progress
-                      value={seoResult.score}
-                      className="h-2 mt-4 bg-purple-100 [&>div]:bg-purple-600"
-                    />
-                  </Card>
-
-                  <Card className="md:col-span-2 rounded-3xl p-8 border-slate-100 dark:border-slate-800">
+                <div>
+                  <Card className="rounded-3xl p-8 border-slate-100 dark:border-slate-800">
                     <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">
                       Executive Summary
                     </h4>
@@ -757,11 +743,11 @@ export function MarketingHub() {
                   </Card>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
                   <div className="space-y-6">
                     <div className="flex items-center gap-2 mb-4">
                       <AlertTriangle className="h-5 w-5 text-red-500" />
-                      <h4 className="text-lg font-bold">Critical Issues</h4>
+                      <h4 className="text-lg font-bold">What We Found</h4>
                     </div>
                     {seoResult.criticalIssues.map((item: any, i: number) => (
                       <div
@@ -787,13 +773,16 @@ export function MarketingHub() {
                             <p className="text-sm font-bold text-red-700 dark:text-red-400">
                               {item.issue}
                             </p>
-                            <p className="text-xs text-red-600/70 dark:text-red-400/60 leading-relaxed">
-                              {item.solution}
-                            </p>
+                            <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">What we found</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{item.whatWeFound || "The supplied website context does not make this clear."}</p>
+                            <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Why it matters</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{item.impact}</p>
+                            <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-indigo-600">Recommended improvement</p>
+                            <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300 leading-relaxed">{item.solution}</p>
                           </div>
                         </div>
 
-                        {item.isFixable && !fixedIssues.includes(i) && (
+                        {["title", "description", "keywords"].includes(item.fixType) && !fixedIssues.includes(i) && (
                           <Button
                             size="sm"
                             onClick={() => handleApplyFix(i, item)}
@@ -812,47 +801,14 @@ export function MarketingHub() {
                     ))}
                   </div>
 
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Zap className="h-5 w-5 text-emerald-500" />
-                      <h4 className="text-lg font-bold">Opportunities</h4>
-                    </div>
-                    {seoResult.opportunities.map((opp: string, i: number) => (
-                      <div
-                        key={i}
-                        className="flex gap-4 items-start p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-900/20"
-                      >
-                        <Badge
-                          variant="default"
-                          className="h-6 w-6 rounded-full flex items-center justify-center p-0 bg-emerald-500"
-                        >
-                          {i + 1}
-                        </Badge>
-                        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                          {opp}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
                 </div>
 
                 <Card className="rounded-3xl p-8 bg-slate-900 text-white overflow-hidden relative">
                   <div className="relative z-10">
                     <h4 className="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-6">
-                      High-Yield Keywords
+                      Recommended Next Improvement
                     </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {seoResult.recommendedKeywords.map(
-                        (kw: string, i: number) => (
-                          <Badge
-                            key={i}
-                            className="bg-white/10 hover:bg-white/20 border-white/10 text-white px-4 py-1.5 rounded-xl text-sm transition-all cursor-default"
-                          >
-                            {kw}
-                          </Badge>
-                        ),
-                      )}
-                    </div>
+                    <p className="text-base font-bold leading-7 text-slate-200">{seoResult.nextRecommendation || "Review the highest-priority finding and request one focused improvement."}</p>
                   </div>
                   <Search className="absolute bottom-[-20px] right-[-20px] h-48 w-48 text-white opacity-5 rotate-12" />
                 </Card>

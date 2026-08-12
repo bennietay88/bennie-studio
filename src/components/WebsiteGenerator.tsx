@@ -33,7 +33,7 @@ import {
   WebsitePlanId,
 } from "../constants/pageBlueprints";
 import { getUpgradeRecommendation } from "../constants/localSeoEngine";
-import { buildReviewWebsiteStrategy, scoreManualReviewInput } from "../constants/reviewPoweredWaas";
+import { assessManualReviewInput, buildReviewWebsiteStrategy } from "../constants/reviewPoweredWaas";
 
 const generatorSchema = z.object({
   businessName: z.string().min(2, "Business name is required"),
@@ -164,7 +164,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
     googleBusinessUrl,
     reviews: pastedReviews,
   });
-  const manualReviewQuality = scoreManualReviewInput(pastedReviews);
+  const manualReviewQuality = assessManualReviewInput(pastedReviews);
 
   React.useEffect(() => {
     if (selectedPlan?.maxPages) {
@@ -269,7 +269,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
         googleBusinessUrl: data.googleBusinessUrl,
         reviews: data.pastedReviews,
       });
-      const manualReviewScore = scoreManualReviewInput(data.pastedReviews);
+      const manualReviewAssessment = assessManualReviewInput(data.pastedReviews);
 
       if (!businessId) {
         setProgress(30);
@@ -377,7 +377,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
             googleBusinessUrl: data.googleBusinessUrl,
             websiteUrl: data.websiteUrl,
             pastedReviews: data.pastedReviews,
-            manualReviewQuality: manualReviewScore,
+            reviewEvidence: manualReviewAssessment,
             strategy: reviewPoweredStrategy,
             launchModel: data.planId === "growth" ? "managed_scale" : data.planId === "business" ? "managed_growth" : "managed_launch",
             hostingType: "managed",
@@ -449,10 +449,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
             "hostingType": "managed",
             "siteStatus": "draft",
             "recommendedPlan": reviewPoweredStrategy.recommendedPlan,
-            "confidenceScore": reviewPoweredStrategy.intelligence.scores.confidence,
-            "conversionScore": reviewPoweredStrategy.intelligence.scores.conversion,
-            "seoScore": reviewPoweredStrategy.intelligence.scores.seo,
-            "manualReviewQuality": manualReviewScore
+            "reviewEvidence": manualReviewAssessment
           }
         }
       }).eq("id", businessId);
@@ -512,19 +509,8 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
               <div className="mt-4 rounded-3xl border border-white bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Review Quality Score</p>
-                    <div className="mt-2 flex items-end gap-3">
-                      <span className="text-4xl font-black text-slate-950">{manualReviewQuality.score}</span>
-                      <span className={cn(
-                        "mb-1 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest",
-                        manualReviewQuality.score >= 80 ? "bg-emerald-50 text-emerald-700" :
-                          manualReviewQuality.score >= 60 ? "bg-indigo-50 text-indigo-700" :
-                            manualReviewQuality.score >= 40 ? "bg-amber-50 text-amber-700" :
-                              "bg-red-50 text-red-700",
-                      )}>
-                        {manualReviewQuality.grade}
-                      </span>
-                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Review evidence provided</p>
+                    <p className="mt-2 max-w-xs text-sm font-bold leading-6 text-slate-700">We use the customer language and specific details you provide to shape trust, FAQs, and website copy.</p>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     {[
@@ -809,27 +795,21 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
                     <p className="text-sm font-bold text-white">{reviewStrategy.heroHeadline}</p>
                     <p className="mt-2 text-xs font-medium leading-5 text-indigo-100">{reviewStrategy.positioningAngle}</p>
                     <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      <div className={cn(
-                        "rounded-xl p-3 text-center",
-                        manualReviewQuality.score >= 60 ? "bg-emerald-400/15" : "bg-amber-400/15",
-                      )}>
-                        <p className="text-[8px] font-black uppercase tracking-widest text-indigo-200">Review Quality</p>
-                        <p className="mt-1 text-lg font-black text-white">{manualReviewQuality.score}</p>
-                      </div>
                       {[
-                        ["Confidence", reviewStrategy.intelligence.scores.confidence],
-                        ["Conversion", reviewStrategy.intelligence.scores.conversion],
-                        ["SEO", reviewStrategy.intelligence.scores.seo],
-                      ].map(([label, score]) => (
+                        ["Review excerpts", manualReviewQuality.likelyReviewCount],
+                        ["Trust themes", reviewStrategy.trustSignals.length],
+                        ["Buyer questions", reviewStrategy.intelligence.faqs.length],
+                        ["Suggested pages", reviewStrategy.recommendedPages.length],
+                      ].map(([label, value]) => (
                         <div key={label} className="rounded-xl bg-white/10 p-3 text-center">
                           <p className="text-[8px] font-black uppercase tracking-widest text-indigo-200">{label}</p>
-                          <p className="mt-1 text-lg font-black text-white">{score}</p>
+                          <p className="mt-1 text-lg font-black text-white">{value}</p>
                         </div>
                       ))}
                     </div>
-                    {manualReviewQuality.score < 60 && (
+                    {manualReviewQuality.suggestions.length > 0 && (
                       <div className="mt-4 rounded-2xl border border-amber-300/30 bg-amber-400/10 p-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-200">Review input is limited</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-200">More evidence would strengthen the copy</p>
                         <p className="mt-1 text-xs font-semibold leading-5 text-amber-100">
                           You can still generate a website, but the copy will be stronger if you paste more real reviews before launching.
                         </p>
@@ -930,7 +910,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
               {step === 1 && "Managed plans include secure hosting. Custom websites stay as a quote path."}
               {step === 2 && "Add the details used for niche-specific copy."}
               {step === 3 && "Set the primary action every page should drive."}
-              {step === 4 && "Review strategy, scores, page structure, and launch readiness."}
+              {step === 4 && "Review the strategy, page structure, evidence, and launch checklist."}
             </p>
           </div>
 

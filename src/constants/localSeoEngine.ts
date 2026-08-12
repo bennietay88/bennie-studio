@@ -65,11 +65,11 @@ export interface LocalKeywordSet {
   informational: string[];
 }
 
-export interface LocalContentQualityScore {
-  score: number;
+export interface LocalContentReview {
+  readyForReview: boolean;
   status: LocalPageStatus;
   duplicateRisk: "low" | "medium" | "high";
-  breakdown: Record<
+  checks: Record<
     | "uniqueLocalInputs"
     | "keywordRelevance"
     | "pageDepth"
@@ -79,7 +79,7 @@ export interface LocalContentQualityScore {
     | "metadata"
     | "ctaClarity"
     | "duplicateProtection",
-    number
+    boolean
   >;
   suggestions: string[];
 }
@@ -102,7 +102,7 @@ export interface LocalSeoPageDraft {
   faqs: Array<{ question: string; answer: string }>;
   internalLinks: Array<{ label: string; href: string }>;
   schema: Record<string, unknown>;
-  quality: LocalContentQualityScore;
+  quality: LocalContentReview;
 }
 
 export const DEFAULT_LOCAL_SEO_LIMITS: Record<string, LocalSeoLimits> = {
@@ -313,7 +313,7 @@ export const buildInternalLinks = (input: LocalSeoInput) => {
   ];
 };
 
-export const scoreLocalContent = (input: LocalSeoInput, existingPages: LocalSeoPageDraft[] = []): LocalContentQualityScore => {
+export const reviewLocalContent = (input: LocalSeoInput, existingPages: LocalSeoPageDraft[] = []): LocalContentReview => {
   const uniqueInputs = [
     input.localProof?.join(" "),
     input.testimonials?.join(" "),
@@ -356,20 +356,17 @@ export const scoreLocalContent = (input: LocalSeoInput, existingPages: LocalSeoP
   const repeatedFaqRisk = existingPages.some((page) =>
     page.faqs.some((faq) => normalizeText(faq.question).includes(normalizeText(input.city || "")) && page.slug.includes(slugify(input.mainService || ""))),
   );
-  const duplicatePenalty = highestSimilarity > 0.72 || repeatedFaqRisk ? 0 : highestSimilarity > 0.48 ? 4 : duplicateMatches > 0 ? 6 : 8;
-
-  const breakdown = {
-    uniqueLocalInputs: Math.min(18, uniqueInputs * 4),
-    keywordRelevance: input.mainService && input.city ? 12 : 6,
-    pageDepth: input.secondaryServices?.length || input.nearbyAreas?.length ? 10 : 6,
-    internalLinks: 10,
-    localProof: input.localProof?.length || input.testimonials?.length ? 12 : 4,
-    faqQuality: input.city && input.mainService ? 10 : 5,
-    metadata: input.businessName && input.mainService && input.city ? 10 : 5,
-    ctaClarity: input.ctaGoal || input.whatsappNumber || input.phone ? 10 : 5,
-    duplicateProtection: duplicateMatches > 2 ? 2 : duplicatePenalty,
+  const checks = {
+    uniqueLocalInputs: uniqueInputs >= 3,
+    keywordRelevance: Boolean(input.mainService && input.city),
+    pageDepth: Boolean(input.secondaryServices?.length || input.nearbyAreas?.length),
+    internalLinks: true,
+    localProof: Boolean(input.localProof?.length || input.testimonials?.length),
+    faqQuality: Boolean(input.city && input.mainService),
+    metadata: Boolean(input.businessName && input.mainService && input.city),
+    ctaClarity: Boolean(input.ctaGoal || input.whatsappNumber || input.phone),
+    duplicateProtection: duplicateMatches <= 2 && highestSimilarity <= 0.48 && !repeatedFaqRisk,
   };
-  const score = Object.values(breakdown).reduce((sum, value) => sum + value, 0);
   const suggestions = [
     uniqueInputs < 3 ? "Add at least 3 unique local inputs such as nearby areas, proof, photos, reviews, address, pricing note, or local service notes." : "",
     !input.localProof?.length && !input.testimonials?.length ? "Add real local proof before publishing important city pages." : "",
@@ -380,11 +377,14 @@ export const scoreLocalContent = (input: LocalSeoInput, existingPages: LocalSeoP
     !input.ctaGoal && !input.whatsappNumber && !input.phone ? "Add a clear CTA, phone, or WhatsApp contact method." : "",
   ].filter(Boolean);
 
+  const duplicateRisk = duplicateMatches > 2 || highestSimilarity > 0.72 || repeatedFaqRisk ? "high" : duplicateMatches > 0 || highestSimilarity > 0.48 ? "medium" : "low";
+  const readyForReview = suggestions.length === 0 && duplicateRisk !== "high";
+
   return {
-    score,
-    status: score >= 75 ? "ready_for_review" : score >= 70 ? "needs_improvement" : "draft",
-    duplicateRisk: duplicateMatches > 2 || highestSimilarity > 0.72 || repeatedFaqRisk ? "high" : duplicateMatches > 0 || highestSimilarity > 0.48 ? "medium" : "low",
-    breakdown,
+    readyForReview,
+    status: readyForReview ? "ready_for_review" : "needs_improvement",
+    duplicateRisk,
+    checks,
     suggestions,
   };
 };
@@ -513,14 +513,14 @@ export const buildLocalSeoPageDraft = (
       },
       {
         question: "Can this page be published immediately?",
-        answer: "It should pass the Local Content Quality Score first to avoid thin or duplicated location pages.",
+        answer: "It should pass the local content publishing checklist first to avoid thin or duplicated location pages.",
       },
     ],
     internalLinks: buildInternalLinks(input),
     schema: buildLocalBusinessSchema(input),
   };
 
-  const quality = scoreLocalContent(input, existingPages);
+  const quality = reviewLocalContent(input, existingPages);
   return {
     ...draftBase,
     quality,

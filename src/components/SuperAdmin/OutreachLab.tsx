@@ -52,12 +52,12 @@ export function OutreachLab() {
       
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const scoreLine = typeof prospect.audit_score === "number"
-        ? `The deterministic website audit scored ${prospect.audit_score}/100 and identified specific areas to improve.`
-        : "I noticed several areas where the website journey could be clearer, but I have not assigned an audit score yet.";
+      const reviewLine = prospect.last_audit_at
+        ? "The website growth review identified practical areas where the visitor journey could be clearer."
+        : "I noticed several areas where the website journey could be clearer.";
       const message = `Hi ${prospect.name} team,
 
-I reviewed your website (${prospect.domain}). ${scoreLine}
+I reviewed your website (${prospect.domain}). ${reviewLine}
 
 I've prepared a practical improvement summary covering the evidence found in the audit.
 

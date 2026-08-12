@@ -323,6 +323,42 @@ export async function generateMarketingContent(
   context: any,
 ) {
   const businessId = context?.id || context?.businessId;
+  if (type === "seo_audit") {
+    const prompt = `Review the supplied website SEO context as a practical website growth consultant.
+
+Return JSON with this exact structure:
+{
+  "summary": "Concise evidence-based summary",
+  "criticalIssues": [
+    {
+      "category": "Search messaging | Content structure | Local relevance | Technical setup",
+      "issue": "Observable finding title",
+      "whatWeFound": "What is present or missing in the supplied context",
+      "impact": "Why this may make search discovery or visitor clarity harder",
+      "solution": "Specific recommended improvement",
+      "priority": "high | medium | low",
+      "fixType": "title | description | keywords | manual_review"
+    }
+  ],
+  "nextRecommendation": "One clear next improvement"
+}
+
+Rules:
+- Do not score, rate, grade, rank, or return percentages.
+- Do not invent traffic, conversion rates, rankings, leads, revenue impact, competitors, or performance measurements.
+- Do not claim the business is losing a percentage of leads.
+- Treat missing context as unknown, not as failure.
+- Use cautious evidence-oriented language such as "may make it harder", "could reduce clarity", "visitors may", and "this creates additional friction".
+- Every finding must include what was found, why it matters, and a recommendation.
+
+Website context: ${JSON.stringify(context)}`;
+    return await askAI("seo", prompt, {
+      businessId,
+      featureKey: "rewrite_section",
+      isJson: true,
+      systemMessage: "You are a website growth consultant backed by software. Provide findings and actions, never arbitrary scores.",
+    });
+  }
   const prompt = `Task: ${type}. Context: ${JSON.stringify(context)}`;
   return await askAI("copy", prompt, { businessId });
 }

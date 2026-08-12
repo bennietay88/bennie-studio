@@ -169,7 +169,7 @@ export interface ReviewIntelligenceInput {
   reviews?: string;
 }
 
-export const scoreManualReviewInput = (reviews?: string) => {
+export const assessManualReviewInput = (reviews?: string) => {
   const text = (reviews || "").trim();
   const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
   const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
@@ -185,22 +185,6 @@ export const scoreManualReviewInput = (reviews?: string) => {
     keywordGroups.location,
   ].reduce((sum, group) => sum + group.filter((word) => text.toLowerCase().includes(word)).length, 0);
   const hasNegativeSignals = keywordGroups.risk.some((word) => text.toLowerCase().includes(word));
-  const score = Math.min(
-    100,
-    Math.round(
-      Math.min(35, words * 0.28) +
-      Math.min(30, likelyReviewCount * 5) +
-      Math.min(25, hasSpecifics * 3) +
-      (hasNegativeSignals ? 10 : 0),
-    ),
-  );
-
-  const grade =
-    score >= 80 ? "Strong" :
-    score >= 60 ? "Good" :
-    score >= 40 ? "Limited" :
-    "Needs more reviews";
-
   const suggestions = [
     words < 120 ? "Paste more review text. Aim for at least 5-10 real reviews or 120+ words." : "",
     likelyReviewCount < 5 ? "Separate reviews on new lines so the system can detect more patterns." : "",
@@ -209,8 +193,6 @@ export const scoreManualReviewInput = (reviews?: string) => {
   ].filter(Boolean);
 
   return {
-    score,
-    grade,
     words,
     likelyReviewCount,
     hasSpecificSignals: hasSpecifics,
@@ -221,12 +203,12 @@ export const scoreManualReviewInput = (reviews?: string) => {
 export const analyzeReviewSignals = (input: ReviewIntelligenceInput) => {
   const text = `${input.reviews || ""} ${input.mainServices || ""} ${input.industry || ""}`.toLowerCase();
   const countMatches = (words: string[]) => words.reduce((sum, word) => sum + (text.includes(word) ? 1 : 0), 0);
-  const praiseScore = countMatches(keywordGroups.praise);
-  const speedScore = countMatches(keywordGroups.speed);
-  const valueScore = countMatches(keywordGroups.value);
-  const teamScore = countMatches(keywordGroups.team);
-  const locationScore = countMatches(keywordGroups.location);
-  const riskScore = countMatches(keywordGroups.risk);
+  const praiseMatches = countMatches(keywordGroups.praise);
+  const speedMatches = countMatches(keywordGroups.speed);
+  const valueMatches = countMatches(keywordGroups.value);
+  const teamMatches = countMatches(keywordGroups.team);
+  const locationMatches = countMatches(keywordGroups.location);
+  const riskMatches = countMatches(keywordGroups.risk);
   const businessName = input.businessName || "Your Business";
   const service = input.mainServices || input.industry || "your service";
   const location = [input.city, input.country].filter(Boolean).join(", ") || "your local area";
@@ -234,28 +216,28 @@ export const analyzeReviewSignals = (input: ReviewIntelligenceInput) => {
   const hasReviews = Boolean(input.reviews?.trim());
 
   const differentiators = [
-    praiseScore ? "Customers mention trust, service quality, and confidence." : "Use real customer proof to strengthen trust.",
-    speedScore ? "Speed and responsiveness appear as a buying reason." : "Add response-time proof if available.",
-    valueScore ? "Price/value clarity can reduce hesitation." : "Add transparent package or quote guidance if appropriate.",
-    teamScore ? "Team or expert mentions should be used in trust sections." : "Add real team credentials or founder story.",
-    locationScore ? "Location and convenience can support local SEO copy." : `Add nearby areas and service coverage around ${location}.`,
+    praiseMatches ? "Customers mention trust, service quality, and confidence." : "Use real customer proof to strengthen trust.",
+    speedMatches ? "Speed and responsiveness appear as a buying reason." : "Add response-time proof if available.",
+    valueMatches ? "Price/value clarity can reduce hesitation." : "Add transparent package or quote guidance if appropriate.",
+    teamMatches ? "Team or expert mentions should be used in trust sections." : "Add real team credentials or founder story.",
+    locationMatches ? "Location and convenience can support local SEO copy." : `Add nearby areas and service coverage around ${location}.`,
   ];
 
   return {
     hasReviews,
     googleBusinessUrl: input.googleBusinessUrl || "",
     topPraises: [
-      praiseScore ? "Professional, helpful service" : "Clear service explanation needed",
-      teamScore ? "Team trust and expertise" : "Founder/team credibility opportunity",
-      speedScore ? "Fast response and reliable delivery" : "Response speed proof opportunity",
+      praiseMatches ? "Professional, helpful service" : "Clear service explanation needed",
+      teamMatches ? "Team trust and expertise" : "Founder/team credibility opportunity",
+      speedMatches ? "Fast response and reliable delivery" : "Response speed proof opportunity",
     ],
     buyingReasons: [
-      valueScore ? "Customers compare value and pricing before enquiring" : "Visitors need clear reasons to choose the business",
-      locationScore ? "Convenience and local access matter" : "Local relevance should be made explicit",
-      teamScore ? "People trust specific staff or experts" : "Authority should be shown with real credentials",
+      valueMatches ? "Customers compare value and pricing before enquiring" : "Visitors need clear reasons to choose the business",
+      locationMatches ? "Convenience and local access matter" : "Local relevance should be made explicit",
+      teamMatches ? "People trust specific staff or experts" : "Authority should be shown with real credentials",
     ],
     objections: [
-      riskScore ? "Negative review patterns should be addressed with clear process and expectations" : "Unclear pricing, timing, and process may block enquiries",
+      riskMatches ? "Negative review patterns should be addressed with clear process and expectations" : "Unclear pricing, timing, and process may block enquiries",
       "Visitors may hesitate if reviews are not connected to services",
       "Generic claims should be replaced with review-backed proof",
     ],
@@ -272,14 +254,9 @@ export const analyzeReviewSignals = (input: ReviewIntelligenceInput) => {
       `What makes ${businessName} different?`,
       `Can I contact ${businessName} by ${cta}?`,
     ],
-    risks: riskScore
+    risks: riskMatches
       ? ["Review risk detected: add expectation-setting copy, process clarity, and service guarantees only if true."]
       : ["No obvious negative pattern from provided review text."],
-    scores: {
-      confidence: hasReviews ? Math.min(95, 62 + praiseScore * 5 + teamScore * 4 + speedScore * 4) : 58,
-      conversion: Math.min(96, 64 + praiseScore * 4 + valueScore * 5 + speedScore * 4),
-      seo: Math.min(94, 60 + locationScore * 8 + (input.city ? 8 : 0) + (input.mainServices ? 8 : 0)),
-    },
   };
 };
 
@@ -291,9 +268,8 @@ export const buildReviewWebsiteStrategy = (input: ReviewIntelligenceInput) => {
   const target = input.targetCustomer || "local customers";
   const cta = input.preferredCta || "WhatsApp";
   const recommendedPlan: ReviewPoweredPlanId =
-    intelligence.scores.seo >= 80 && intelligence.scores.conversion >= 78 ? "growth" :
-    intelligence.hasReviews ? "business" :
-    "starter";
+    intelligence.hasReviews && input.city && input.mainServices && input.targetCustomer ? "growth" :
+    intelligence.hasReviews ? "business" : "starter";
 
   return {
     intelligence,

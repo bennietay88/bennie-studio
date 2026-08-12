@@ -8,6 +8,7 @@ import { Badge } from "../ui/badge";
 import { supabase } from "../../lib/supabase";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { normalizeWebsiteAuditResult } from "../../lib/websiteAudit";
 
 export function NeuralAuditor() {
   const navigate = useNavigate();
@@ -87,13 +88,7 @@ export function NeuralAuditor() {
       });
       const auditPayload = await auditResponse.json().catch(() => ({}));
       if (!auditResponse.ok || !auditPayload?.report) throw new Error(auditPayload?.error || "Website analysis failed");
-      const report = auditPayload.report;
-      const score = report.overallScore;
-      const reportData = {
-        ...report,
-        metrics: report.categoryScores,
-        vulnerabilities: report.topProblems.map((problem: any) => problem.label),
-      };
+      const report = normalizeWebsiteAuditResult(auditPayload.report);
       setAuditStep(4);
 
       // 3. Save report
@@ -101,8 +96,8 @@ export function NeuralAuditor() {
         .from("audit_reports")
         .insert([{
           prospect_id: prospectId,
-          score,
-          report_data: reportData
+          score: null,
+          report_data: report
         }]);
 
       if (rError) throw rError;
@@ -111,9 +106,10 @@ export function NeuralAuditor() {
       await supabase
         .from("prospects")
         .update({
-          audit_score: score,
+          audit_score: null,
           last_audit_at: new Date().toISOString(),
-          website_status: score < 40 ? "weak" : score < 70 ? "average" : "strong"
+          website_status: "unknown",
+          opportunity_level: report.findings.some((finding) => finding.priority === "high") ? "high" : "medium",
         })
         .eq("id", prospectId);
 
@@ -121,7 +117,7 @@ export function NeuralAuditor() {
       setAuditStep(0);
       setUrl("");
       await fetchAudits();
-      toast.success(`Audit complete. Deterministic score: ${score}/100`);
+      toast.success(`Website growth review complete. ${report.findings.length} opportunities recorded.`);
 
     } catch (error: any) {
       console.error("Audit failed:", error);
@@ -132,7 +128,10 @@ export function NeuralAuditor() {
   };
 
   const handleViewReport = (audit: any) => {
-    setSelectedAudit(audit);
+    setSelectedAudit({
+      ...audit,
+      report_data: normalizeWebsiteAuditResult(audit.report_data),
+    });
     setShowReport(true);
   };
 
@@ -152,7 +151,7 @@ export function NeuralAuditor() {
     { title: "Initializing Scan", desc: "Setting up neural listeners..." },
     { title: "Analyzing DOM", desc: "Identifying structural weaknesses..." },
     { title: "Checking Performance", desc: "Measuring core web vitals..." },
-    { title: "Evaluating SEO", desc: "Calculating search visibility..." }
+    { title: "Reviewing Discoverability", desc: "Identifying observable search and content gaps..." }
   ];
 
   return (
@@ -256,11 +255,8 @@ export function NeuralAuditor() {
                             <span className="text-[10px] font-black italic uppercase italic tracking-tight text-slate-900 dark:text-white">
                               {audit.prospect?.name || 'Unknown'}
                             </span>
-                            <Badge 
-                              className={`${audit.score < 50 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'} border-none text-[9px] font-black font-mono`}
-                              variant="outline"
-                            >
-                              {audit.score}/100
+                            <Badge className="border-none bg-indigo-50 text-[9px] font-black text-indigo-700" variant="outline">
+                              {normalizeWebsiteAuditResult(audit.report_data).findings.length} opportunities
                             </Badge>
                          </div>
                          <div className="flex items-center justify-between">
@@ -301,7 +297,7 @@ export function NeuralAuditor() {
                 <div className="space-y-1">
                   <h4 className="text-lg font-black italic uppercase italic tracking-tight">Outreach Ready</h4>
                   <p className="text-[10px] font-bold text-indigo-100 leading-relaxed uppercase tracking-widest">
-                    Review prospects with completed deterministic website audits.
+                    Review prospects with completed evidence-based website growth reviews.
                   </p>
                 </div>
                 <Button 
@@ -323,7 +319,7 @@ export function NeuralAuditor() {
                      <BrainCircuit className="absolute -right-10 -bottom-10 h-64 w-64 text-white/5" />
                      <div className="relative z-10 space-y-6">
                         <div className="flex justify-between items-start">
-                           <Badge className="bg-indigo-600 font-black px-4 py-1.5 rounded-full text-[10px] tracking-[0.2em] uppercase">NEURAL AUDIT REPORT</Badge>
+                           <Badge className="bg-indigo-600 font-black px-4 py-1.5 rounded-full text-[10px] tracking-[0.2em] uppercase">WEBSITE GROWTH REVIEW</Badge>
                            <Button 
                              variant="ghost" 
                              className="text-white/40 hover:text-white"
@@ -345,41 +341,32 @@ export function NeuralAuditor() {
                   </div>
 
                   <div className="p-12 space-y-12">
-                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <div className="md:col-span-1 flex flex-col items-center justify-center p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 text-center">
-                           <div className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Composite Score</div>
-                           <div className={`text-6xl font-black italic ${selectedAudit.score < 40 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                              {selectedAudit.score}<span className="text-sm italic font-black text-slate-300">/100</span>
-                           </div>
-                        </div>
-                        <div className="md:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
-                           {Object.entries(selectedAudit.report_data?.metrics || {}).map(([key, value]: any) => (
-                              <div key={key} className="p-6 bg-slate-50/50 rounded-3xl border border-slate-100/50">
-                                 <div className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-1">{key.replace('_', ' ')}</div>
-                                 <div className="text-xl font-bold text-slate-900">{value}%</div>
-                                 <div className="mt-2 h-1 w-full bg-slate-200 rounded-full overflow-hidden">
-                                    <div 
-                                      className={`h-full ${value < 50 ? 'bg-rose-500' : 'bg-emerald-500'}`} 
-                                      style={{ width: `${value}%` }} 
-                                    />
-                                 </div>
-                              </div>
-                           ))}
-                        </div>
+                     <div className="rounded-[2.5rem] border border-slate-100 bg-slate-50 p-8">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">What we found</p>
+                        <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-950">{selectedAudit.report_data.summary}</h3>
+                        <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">Consultant observations are kept separate from measured analytics and are never converted into an arbitrary rating.</p>
                      </div>
 
                      <div className="space-y-6">
                         <div className="flex items-center gap-3">
-                           <Shield className="h-5 w-5 text-rose-500" />
-                           <h3 className="text-xl font-black italic uppercase italic tracking-tight">Identified Vulnerabilities</h3>
+                           <Shield className="h-5 w-5 text-indigo-600" />
+                           <h3 className="text-xl font-black italic uppercase italic tracking-tight">Growth opportunities</h3>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           {(selectedAudit.report_data?.vulnerabilities || []).map((vuln: string, i: number) => (
-                              <div key={i} className="flex items-start gap-4 p-5 bg-rose-50/50 rounded-2xl border border-rose-100/50 group hover:bg-rose-50 transition-all">
-                                 <div className="h-6 w-6 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">
-                                    <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
+                        <div className="grid grid-cols-1 gap-4">
+                           {selectedAudit.report_data.findings.map((finding: any) => (
+                              <div key={`${finding.category}-${finding.title}`} className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+                                 <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                       <p className="text-[9px] font-black uppercase tracking-widest text-indigo-600">{finding.category}</p>
+                                       <h4 className="mt-1 text-base font-black text-slate-950">{finding.title}</h4>
+                                    </div>
+                                    <Badge variant="outline" className="uppercase">{finding.priority}</Badge>
                                  </div>
-                                 <span className="text-xs font-bold text-rose-900 uppercase tracking-tight">{vuln}</span>
+                                 <div className="mt-5 grid gap-4 md:grid-cols-3">
+                                    <div><p className="text-[9px] font-black uppercase tracking-widest text-slate-400">What we found</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{finding.whatWeFound}</p></div>
+                                    <div><p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Why it matters</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{finding.whyItMatters}</p></div>
+                                    <div><p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Recommended improvement</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{finding.recommendation}</p></div>
+                                 </div>
                               </div>
                            ))}
                         </div>
@@ -392,7 +379,7 @@ export function NeuralAuditor() {
                            </div>
                            <div>
                               <h4 className="text-xl font-black italic uppercase italic tracking-tight">Growth OS recommendation</h4>
-                              <p className="text-indigo-100 font-bold text-xs uppercase tracking-widest">Infrastructure upgrade advised to recapture lost traffic.</p>
+                              <p className="text-indigo-100 font-bold text-xs uppercase tracking-widest">Turn the observed findings into a clearer enquiry journey.</p>
                            </div>
                         </div>
                         <Button 

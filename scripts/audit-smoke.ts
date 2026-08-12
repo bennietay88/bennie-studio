@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { analyzeWebsiteHtml } from "../src/lib/websiteAudit.ts";
+import { analyzeWebsiteHtml, normalizeWebsiteAuditResult } from "../src/lib/websiteAudit.ts";
 
 const completePage = `<!doctype html><html><head>
 <title>Dental care in Kuala Lumpur | Example Clinic</title>
@@ -18,12 +18,26 @@ const first = analyzeWebsiteHtml({ url: "https://example.com", html: completePag
 const second = analyzeWebsiteHtml({ url: "https://example.com", html: completePage, statusCode: 200, responseTimeMs: 300, robotsFound: true, sitemapFound: true, checkedLinks: 0, brokenLinks: [] });
 const weak = analyzeWebsiteHtml({ url: "https://example.com", html: weakPage, statusCode: 200, responseTimeMs: 3000, robotsFound: false, sitemapFound: false, checkedLinks: 1, brokenLinks: ["https://example.com/missing"] });
 
-assert.equal(first.overallScore, second.overallScore, "audit score must be deterministic");
-assert.deepEqual(first.categoryScores, second.categoryScores, "category scores must be deterministic");
-assert.ok(first.overallScore > weak.overallScore, "complete page should score above weak page");
-assert.equal(weak.checks.find((item) => item.id === "title")?.status, "fail");
-assert.equal(weak.checks.find((item) => item.id === "cta")?.status, "fail");
-assert.equal(weak.checks.find((item) => item.id === "links")?.status, "fail");
-assert.ok(first.checks.every((item) => Number.isFinite(item.scoreContribution)));
+assert.deepEqual(first.findings, second.findings, "audit findings must be deterministic");
+assert.ok(first.findings.length < weak.findings.length, "complete page should have fewer findings than a weak page");
+assert.equal(weak.findings.find((item) => item.id === "cta")?.priority, "high");
+assert.equal(weak.findings.find((item) => item.id === "links")?.priority, "high");
+assert.ok(weak.findings.every((item) => item.whatWeFound && item.whyItMatters && item.recommendation));
+assert.equal("overallScore" in first, false, "new audit reports must not contain an overall score");
 
-console.log(`Audit smoke passed: complete=${first.overallScore}, weak=${weak.overallScore}`);
+const legacy = normalizeWebsiteAuditResult({
+  analyzedUrl: "https://legacy.example",
+  overallScore: 61,
+  topProblems: [{ id: "cta", label: "Visible contact action", evidence: "No action found", explanation: "Visitors need an obvious next step.", recommendedAction: "Add a quote CTA.", priority: "high" }],
+  suggestedCTA: "Request a Quote",
+  recommendedPlan: "business",
+});
+assert.equal(legacy.schemaVersion, 2);
+assert.equal(legacy.findings[0]?.id, "cta");
+assert.equal("overallScore" in legacy, false, "legacy normalization must remove score fields");
+
+const cachedV2WithDeprecatedScore = normalizeWebsiteAuditResult({ ...weak, overallScore: 74, seoScore: 70 });
+assert.equal("overallScore" in cachedV2WithDeprecatedScore, false, "cached v2 reports must be allow-listed");
+assert.equal("seoScore" in cachedV2WithDeprecatedScore, false, "deprecated category scores must not leak from cached reports");
+
+console.log(`Audit smoke passed: complete findings=${first.findings.length}, weak findings=${weak.findings.length}`);

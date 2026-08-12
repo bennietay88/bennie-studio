@@ -11,6 +11,27 @@ export type UserRole =
   | "affiliate"
   | "staff";
 
+export interface MonthlyWebsiteResult {
+  enquiries: number;
+  whatsAppClicks: number;
+  callClicks: number;
+  bookings: number;
+  pageViews: number;
+  topEnquiryPage: string | null;
+  mostUsedEnquiryPath: string | null;
+  opportunity: string | null;
+}
+
+export interface WebsiteImprovement {
+  id: string;
+  title?: string | null;
+  details?: string | null;
+  status?: string | null;
+  allowance_period?: string | null;
+  client_request_id?: string | null;
+  updated_at?: string | null;
+}
+
 export type FeatureId =
   | "ai_synthesis"
   | "lead_crm"

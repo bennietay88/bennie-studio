@@ -50,7 +50,7 @@ export const PACKAGES: Package[] = [
     name: "Growth",
     price: 199,
     description: "Create a stronger website with authority pages, portfolio/case studies, and better SEO structure.",
-    features: ["Everything in Business", "Up to 10 website pages", "Landing page support", "Blog setup", "Up to 25 location pages", "Internal linking suggestions", "Local Content Quality Score"],
+    features: ["Everything in Business", "Up to 10 website pages", "Landing page support", "Blog setup", "Up to 25 location pages", "Internal linking suggestions", "Local content publishing checklist"],
     maxPages: 10,
     maxSections: 80,
     templateAccess: "all",

@@ -39,6 +39,9 @@ import { PLANS, findPlan, normalizePlans } from "../constants/plans";
 
 const LOCAL_STORAGE_KEY = "bts_local_seo_drafts";
 
+const isDraftReady = (draft: LocalSeoPageDraft) =>
+  Boolean(draft.quality.readyForReview ?? (draft.quality.suggestions.length === 0 && draft.quality.duplicateRisk !== "high"));
+
 const readStoredDrafts = (businessId?: string | null): LocalSeoPageDraft[] => {
   if (typeof window === "undefined" || !businessId) return [];
   try {
@@ -73,19 +76,19 @@ const rowToDraft = (row: any): LocalSeoPageDraft | null => {
     internalLinks: row.internal_links || [],
     schema: row.schema_json || {},
     quality: {
-      score: row.quality_score || 0,
+      readyForReview: (row.suggestions || []).length === 0 && row.duplicate_risk !== "high",
       status: row.status || "draft",
       duplicateRisk: row.duplicate_risk || "low",
-      breakdown: row.local_inputs?.qualityBreakdown || {
-        uniqueLocalInputs: 0,
-        keywordRelevance: 0,
-        pageDepth: 0,
-        internalLinks: 0,
-        localProof: 0,
-        faqQuality: 0,
-        metadata: 0,
-        ctaClarity: 0,
-        duplicateProtection: 0,
+      checks: row.local_inputs?.qualityChecks || {
+        uniqueLocalInputs: false,
+        keywordRelevance: false,
+        pageDepth: false,
+        internalLinks: false,
+        localProof: false,
+        faqQuality: false,
+        metadata: false,
+        ctaClarity: false,
+        duplicateProtection: row.duplicate_risk !== "high",
       },
       suggestions: row.suggestions || [],
     },
@@ -113,14 +116,14 @@ const draftToRow = (draft: LocalSeoPageDraft, input: LocalSeoInput, businessId: 
     localProof: input.localProof || [],
     testimonials: input.testimonials || [],
     photos: input.photos || [],
-    qualityBreakdown: draft.quality.breakdown,
+    qualityChecks: draft.quality.checks,
     draft,
   },
   sections: draft.sections,
   faqs: draft.faqs,
   internal_links: draft.internalLinks,
   schema_json: draft.schema,
-  quality_score: draft.quality.score,
+  quality_score: null,
   duplicate_risk: draft.quality.duplicateRisk,
   suggestions: draft.quality.suggestions,
   created_by: userId,
@@ -328,8 +331,8 @@ export default function LocalSeoDashboard() {
   };
 
   const updateDraftStatus = async (draft: LocalSeoPageDraft, status: LocalSeoPageDraft["status"]) => {
-    if (status === "published" && (draft.quality.score < 75 || draft.quality.duplicateRisk === "high")) {
-      toast.error("Publishing blocked. Improve quality score to 75+ and reduce duplicate risk first.");
+    if (status === "published" && !isDraftReady(draft)) {
+      toast.error("Publishing blocked. Complete the content checklist and resolve high duplicate risk first.");
       return;
     }
     const nextDrafts = drafts.map((item) => item.id === draft.id ? { ...item, status } : item);
@@ -362,7 +365,7 @@ export default function LocalSeoDashboard() {
         {[
           { label: "Current Plan", value: limits.planName, icon: Sparkles },
           { label: "Location Pages", value: `${drafts.length}/${limits.locationPages}`, icon: MapPin },
-          { label: "Quality Score", value: `${previewDraft.quality.score}/100`, icon: Search },
+          { label: "Publishing Checklist", value: isDraftReady(previewDraft) ? "Ready for review" : "Needs attention", icon: Search },
           { label: "Duplicate Risk", value: previewDraft.quality.duplicateRisk, icon: AlertTriangle },
         ].map((stat) => (
           <Card key={stat.label} className="rounded-3xl border-slate-100">
@@ -542,7 +545,7 @@ export default function LocalSeoDashboard() {
                 <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Rules</p>
                 <ul className="mt-4 space-y-3 text-sm font-semibold text-slate-300">
                   <li>Draft only. Never publish automatically.</li>
-                  <li>Each page must pass the Local Content Quality Score.</li>
+                  <li>Each page must pass the local content publishing checklist.</li>
                   <li>Important cities should include real local proof.</li>
                   <li>Repeated hero copy, FAQs, or meta descriptions should be rewritten before launch.</li>
                   <li>Current plan allows {limits.locationPages} dedicated location pages.</li>
@@ -706,13 +709,8 @@ function LocalDraftPreview({
             <CardTitle>{draft.h1}</CardTitle>
             <CardDescription>{draft.slug}</CardDescription>
           </div>
-          <Badge
-            className={cn(
-              "w-fit",
-              draft.quality.score >= 75 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700",
-            )}
-          >
-            {draft.quality.score}/100 - {draft.status.replace(/_/g, " ")}
+          <Badge className={cn("w-fit", isDraftReady(draft) ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>
+            {isDraftReady(draft) ? "Checklist complete" : "Needs attention"} · {draft.status.replace(/_/g, " ")}
           </Badge>
         </div>
       </CardHeader>
@@ -759,20 +757,20 @@ function LocalDraftPreview({
               variant="outline"
               className="rounded-xl font-black"
               onClick={onMoveToReview}
-              disabled={draft.quality.score < 70}
+              disabled={!isDraftReady(draft)}
             >
               Move to Review
             </Button>
             <Button
               className="rounded-xl bg-slate-950 font-black"
               onClick={onPublish}
-              disabled={draft.quality.score < 75 || draft.quality.duplicateRisk === "high"}
+              disabled={!isDraftReady(draft)}
             >
               Mark Published
             </Button>
-            {(draft.quality.score < 75 || draft.quality.duplicateRisk === "high") && (
+            {!isDraftReady(draft) && (
               <p className="text-xs font-semibold text-amber-700">
-                Publishing requires 75+ score and no high duplicate risk.
+                Publishing requires the content checklist to be complete and no high duplicate risk.
               </p>
             )}
           </div>

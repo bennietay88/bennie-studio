@@ -56,7 +56,6 @@ export function AIDataAnalyst({
         ? "Add one clear booking CTA above the fold and follow up every new lead within 5 minutes."
         : "Open the website editor, publish the first page, then test the live lead form.",
       longTermStrategy: `Over the next 90 days, build a simple ${industry || "service"} funnel: weekly content, retargeting audiences, and appointment reminders tied to lead source performance.`,
-      confidenceScore: hasWebsite ? 74 : 68,
       fallbackReason: reason,
     };
   };
@@ -76,7 +75,8 @@ export function AIDataAnalyst({
       2. primaryInsight: A strong, data-driven observation.
       3. quickWin: One immediate action to improve numbers.
       4. longTermStrategy: A 3-month growth suggestion.
-      5. confidenceScore: 0-100.
+
+      Do not score, rate, grade, or assign a confidence percentage. Do not invent traffic, ranking, revenue, or conversion impact. Keep recommendations separate from the measured counts above.
       `;
 
       const response = await askAI("marketing", prompt, {
@@ -207,14 +207,6 @@ export function AIDataAnalyst({
                 >
                   Status: {insight.status.replace("_", " ")}
                 </Badge>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase text-slate-400">
-                    Confidence
-                  </span>
-                  <span className="text-xs font-bold text-indigo-600">
-                    {insight.confidenceScore}%
-                  </span>
-                </div>
               </div>
 
               <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 space-y-3">

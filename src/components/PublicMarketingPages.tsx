@@ -11,6 +11,7 @@ import {
   LayoutTemplate,
   Mail,
   MessageCircle,
+  MoveDown,
   Rocket,
   Search,
   ShieldCheck,
@@ -24,13 +25,18 @@ import { SafeImage } from "./SafeImage";
 import { WAAS_TEMPLATE_PACKS } from "../constants/nicheTemplates";
 import {
   buildReviewWebsiteStrategy,
-  scoreManualReviewInput,
+  assessManualReviewInput,
 } from "../constants/reviewPoweredWaas";
 import { formatUsdRangeForCountry } from "../hooks/useGeoPricing";
 import { trackPinterestLead } from "../lib/pinterestTracking";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { FREE_PREVIEW_LIMITS, PUBLIC_PROMISE, SUBSCRIPTION_DELIVERY_FLOW } from "../constants/salesFlow";
 import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
+import {
+  normalizeWebsiteAuditResult,
+  type AuditPriority,
+  type WebsiteAuditResult,
+} from "../lib/websiteAudit";
 
 type PublicPageKind =
   | "templates"
@@ -1013,16 +1019,24 @@ function GeneratePreviewPage() {
   const [generated, setGenerated] = React.useState(false);
   const [generating, setGenerating] = React.useState(false);
   const [error, setError] = React.useState("");
-  const [form, setForm] = React.useState({
-    businessName: "",
-    location: "",
-    mainService: "",
-    websiteUrl: "",
-    phone: "",
-    email: "",
-    brandStyle: "Modern professional",
-    socialUrl: "",
-    reviews: "",
+  const [form, setForm] = React.useState(() => {
+    let auditContext: Record<string, any> = {};
+    try {
+      auditContext = JSON.parse(sessionStorage.getItem("bt_audit_preview_context") || "{}");
+    } catch {
+      auditContext = {};
+    }
+    return {
+      businessName: String(auditContext.businessName || ""),
+      location: "",
+      mainService: "",
+      websiteUrl: String(auditContext.website || ""),
+      phone: "",
+      email: String(auditContext.email || ""),
+      brandStyle: "Modern professional",
+      socialUrl: "",
+      reviews: "",
+    };
   });
 
   const industry = previewIndustries.find((item) => item.id === industryId) || previewIndustries[0];
@@ -1030,7 +1044,7 @@ function GeneratePreviewPage() {
   const locationLabel = form.location.trim() || "your service area";
   const serviceLabel = form.mainService.trim() || "your main service";
   const previewTitle = `${industry.template} for ${businessLabel}`;
-  const reviewQuality = scoreManualReviewInput(form.reviews);
+  const reviewQuality = assessManualReviewInput(form.reviews);
   const reviewStrategy = buildReviewWebsiteStrategy({
     businessName: form.businessName,
     industry: industry.label,
@@ -1087,7 +1101,7 @@ function GeneratePreviewPage() {
         businessName: form.businessName,
         industry: industry.label,
         websiteUrl: form.websiteUrl,
-        message: `Location: ${form.location}\nServices: ${form.mainService}\nPreferred action: ${goal}\nBrand style: ${form.brandStyle}\nSocial / Google Business: ${form.socialUrl || "Not provided"}\nReview quality score: ${reviewQuality.score}\nReview signals:\n${form.reviews || "Not provided"}`,
+        message: `Location: ${form.location}\nServices: ${form.mainService}\nPreferred action: ${goal}\nBrand style: ${form.brandStyle}\nSocial / Google Business: ${form.socialUrl || "Not provided"}\nReview signals:\n${form.reviews || "Not provided"}`,
         formName: "Review-powered website preview generator",
         leadType: "free_website_preview",
       });
@@ -1098,8 +1112,18 @@ function GeneratePreviewPage() {
         goal,
         recommendedPlan: industry.recommendedPlan,
         leadId: lead.leadId,
-        reviewQuality,
-        reviewStrategy,
+        reviewSuggestions: reviewQuality.suggestions,
+        reviewStrategy: {
+          heroHeadline: reviewStrategy.heroHeadline,
+          subheadline: reviewStrategy.subheadline,
+          primaryCta: reviewStrategy.primaryCta,
+          secondaryCta: reviewStrategy.secondaryCta,
+          trustSignals: reviewStrategy.trustSignals,
+          intelligence: {
+            localKeywords: reviewStrategy.intelligence.localKeywords,
+            faqs: reviewStrategy.intelligence.faqs,
+          },
+        },
         createdAt: new Date().toISOString(),
       }));
       setGenerated(true);
@@ -1210,18 +1234,11 @@ function GeneratePreviewPage() {
             />
           </div>
           <div className="mt-5 rounded-3xl border border-indigo-100 bg-indigo-50 p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Review intelligence</p>
-                <p className="mt-2 text-sm font-bold text-slate-700">
-                  Real reviews make the preview more specific. Weak input still works, but the website copy will be less proof-led.
-                </p>
-              </div>
-              <div className="rounded-2xl bg-white px-5 py-4 text-center shadow-sm">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quality</p>
-                <p className="mt-1 text-3xl font-black text-slate-950">{reviewQuality.score}</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">{reviewQuality.grade}</p>
-              </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Review guidance</p>
+              <p className="mt-2 text-sm font-bold text-slate-700">
+                Real reviews make the preview more specific. Add customer language, concrete service details, and genuine outcomes where available.
+              </p>
             </div>
             {reviewQuality.suggestions.length > 0 && (
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -1312,18 +1329,6 @@ function GeneratePreviewPage() {
 	                    Full onboarding, manual production work, publishing, and custom domain setup begin only after payment or a valid card-required trial is confirmed.
 	                  </p>
 	                </div>
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  {[
-                    ["Review Quality", reviewQuality.score],
-                    ["Trust Confidence", reviewStrategy.intelligence.scores.confidence],
-                    ["Local SEO Fit", reviewStrategy.intelligence.scores.seo],
-                  ].map(([label, value]) => (
-                    <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">{label}</p>
-                      <p className="mt-2 text-3xl font-black text-slate-950">{value}</p>
-                    </div>
-                  ))}
-                </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-2">
                   <div className="rounded-3xl bg-indigo-50 p-5">
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Trust signals to use</p>
@@ -1417,14 +1422,175 @@ function GeneratePreviewPage() {
   );
 }
 
+const priorityStyles: Record<AuditPriority, string> = {
+  high: "bg-rose-50 text-rose-700",
+  medium: "bg-amber-50 text-amber-700",
+  low: "bg-slate-100 text-slate-600",
+};
+
+function EnquiryJourneyFlow({ title, steps, recommended = false }: { title: string; steps: string[]; recommended?: boolean }) {
+  return (
+    <div className={`rounded-3xl border p-5 ${recommended ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+      <p className={`text-xs font-black uppercase tracking-[0.2em] ${recommended ? "text-emerald-700" : "text-slate-500"}`}>{title}</p>
+      <div className="mt-5 space-y-2">
+        {steps.map((step, index) => (
+          <React.Fragment key={`${step}-${index}`}>
+            <div className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm">{step}</div>
+            {index < steps.length - 1 ? <MoveDown className={`mx-auto h-4 w-4 ${recommended ? "text-emerald-500" : "text-slate-400"}`} /> : null}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; form: { businessName: string; email: string; website: string } }) {
+  const recommendedPlanName = report.recommendedPlan === "growth" ? "Scale" : report.recommendedPlan === "business" ? "Growth" : "Launch";
+  const plan = pricingPlans.find((item) => item.name === recommendedPlanName) || pricingPlans[1];
+  const savePreviewContext = () => {
+    sessionStorage.setItem("bt_audit_preview_context", JSON.stringify({
+      businessName: form.businessName,
+      email: form.email,
+      website: form.website,
+      auditSummary: report.summary,
+      direction: report.recommendedWebsiteDirection,
+      recommendedPlan: report.recommendedPlan,
+    }));
+    trackPublicEvent({
+      eventType: "audit_preview_clicked",
+      label: "See My Website Preview",
+      target: "/generate-preview",
+      metadata: { recommendedPlan: report.recommendedPlan, findingCount: report.findings.length },
+    });
+  };
+
+  return (
+    <div className="space-y-6 text-slate-950">
+      <section className="rounded-[2rem] bg-white p-6 shadow-xl">
+        <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">Website Growth Review</Badge>
+        <h2 className="mt-4 text-3xl font-black leading-tight">{report.summary}</h2>
+        <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
+          This review describes observable website and enquiry-journey findings. It does not estimate traffic, rankings, revenue, or conversion performance.
+        </p>
+      </section>
+
+      <section className="rounded-[2rem] bg-white p-6 shadow-xl">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">What we found</p>
+        <div className="mt-5 grid gap-4">
+          {report.findings.length ? report.findings.map((finding) => (
+            <article key={finding.id} className="rounded-3xl border border-slate-200 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-400">{finding.category}</p>
+                  <h3 className="mt-2 text-xl font-black">{finding.title}</h3>
+                </div>
+                <Badge className={priorityStyles[finding.priority]}>{finding.priority} priority</Badge>
+              </div>
+              <div className="mt-5 grid gap-3 lg:grid-cols-3">
+                {[
+                  ["What we found", finding.whatWeFound],
+                  ["Why it matters", finding.whyItMatters],
+                  ["Recommended improvement", finding.recommendation],
+                ].map(([label, copy]) => (
+                  <div key={label} className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{copy}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 rounded-2xl bg-indigo-50 p-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Example direction</p>
+                <p className="mt-2 text-sm font-bold leading-6 text-slate-800">{finding.exampleImprovement}</p>
+              </div>
+            </article>
+          )) : (
+            <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-600">
+              No major structural opportunity was detected automatically. Bennie Studio would next review message quality, real proof, and the live enquiry experience manually.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] bg-white p-6 shadow-xl">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Your enquiry journey</p>
+        <h2 className="mt-3 text-2xl font-black">Current vs recommended path</h2>
+        <div className="mt-5 grid gap-5 lg:grid-cols-2">
+          <EnquiryJourneyFlow title="Current journey" steps={report.enquiryJourney.current} />
+          <EnquiryJourneyFlow title="Recommended journey" steps={report.enquiryJourney.recommended} recommended />
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] bg-white p-6 shadow-xl">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">What we would change</p>
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          {report.whatWeWouldChange.map((change) => (
+            <div key={change.area} className="overflow-hidden rounded-3xl border border-slate-200">
+              <p className="bg-slate-950 px-5 py-3 text-sm font-black text-white">{change.area}</p>
+              <div className="grid gap-3 p-5 sm:grid-cols-2">
+                <div><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Current</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{change.current}</p></div>
+                <div><p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Recommended</p><p className="mt-2 text-sm font-bold leading-6 text-slate-800">{change.recommended}</p></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-200">Recommended website direction</p>
+        <div className="mt-5 rounded-3xl bg-white p-5 text-slate-950">
+          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Hero</p>
+          <h2 className="mt-3 text-3xl font-black leading-tight">{report.recommendedWebsiteDirection.hero.headline}</h2>
+          <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{report.recommendedWebsiteDirection.hero.subheadline}</p>
+          <span className="mt-4 inline-flex rounded-xl bg-indigo-600 px-4 py-3 text-xs font-black uppercase tracking-widest text-white">{report.recommendedWebsiteDirection.hero.cta}</span>
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {[
+            ["Services", report.recommendedWebsiteDirection.services],
+            ["Trust", report.recommendedWebsiteDirection.trust],
+            ["Local relevance", report.recommendedWebsiteDirection.localRelevance],
+            ["Buyer FAQs", report.recommendedWebsiteDirection.faq],
+          ].map(([label, items]) => (
+            <div key={label as string} className="rounded-3xl border border-white/10 bg-white/5 p-5">
+              <p className="text-xs font-black uppercase tracking-widest text-indigo-200">{label as string}</p>
+              <div className="mt-4 space-y-2">
+                {(items as string[]).map((item) => <p key={item} className="flex gap-2 text-sm font-semibold leading-6 text-slate-200"><Check className="mt-1 h-4 w-4 shrink-0 text-emerald-300" />{item}</p>)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] bg-white p-6 shadow-xl">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">What Bennie Studio could build</p>
+        <h2 className="mt-3 text-2xl font-black">A managed website built around the recommended enquiry journey</h2>
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+          {["Clearer service positioning", "Service-focused pages", "Stronger review placement", "WhatsApp, call, booking, or quote paths", "Local SEO structure", "Enquiry tracking", "Ongoing monthly improvements"].map((item) => (
+            <p key={item} className="flex gap-2 rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-700"><Check className="h-4 w-4 shrink-0 text-emerald-500" />{item}</p>
+          ))}
+        </div>
+        <div className="mt-6 flex flex-col gap-5 rounded-3xl bg-indigo-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Recommended plan</p>
+            <p className="mt-2 text-2xl font-black">{plan.name} Website Plan</p>
+            <p className="mt-1 text-sm font-bold text-slate-600">Malaysia: {plan.prices.MY}. See pricing for other markets.</p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link to="/generate-preview" onClick={savePreviewContext} className="inline-flex h-11 items-center justify-center rounded-2xl bg-indigo-600 px-5 text-sm font-black text-white hover:bg-indigo-500">See My Website Preview</Link>
+            <Link to="/pricing" onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: plan.name, target: "/pricing", metadata: { recommendedPlan: report.recommendedPlan } })} className="inline-flex h-11 items-center justify-center rounded-2xl border border-indigo-200 bg-white px-5 text-sm font-black text-indigo-700">View Plan</Link>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function WebsiteAuditPage() {
   const [submitted, setSubmitted] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState("");
-  const [auditReport, setAuditReport] = React.useState<any>(null);
+  const [auditReport, setAuditReport] = React.useState<WebsiteAuditResult | null>(null);
   const [auditQueued, setAuditQueued] = React.useState(false);
   const [form, setForm] = React.useState({
-    name: "",
     email: "",
     businessName: "",
     industry: "",
@@ -1440,7 +1606,7 @@ function WebsiteAuditPage() {
     setAuditReport(null);
     setSubmitting(true);
     trackPublicEvent({
-      eventType: "submit_audit_form",
+      eventType: "website_audit_started",
       label: form.businessName || "Website audit request",
       target: "/website-audit",
       metadata: { industry: form.industry, hasWebsite: Boolean(form.website) },
@@ -1449,11 +1615,11 @@ function WebsiteAuditPage() {
     let leadSaved = false;
     try {
       const savedLead = await submitPlatformLead({
-        name: form.name,
+        name: form.businessName,
         email: form.email,
         phone: form.phone,
         businessName: form.businessName,
-        industry: form.industry,
+        industry: form.industry || undefined,
         websiteUrl: form.website,
         message: form.notes || "Free website audit requested.",
         formName: "Free website growth audit request",
@@ -1465,6 +1631,8 @@ function WebsiteAuditPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           url: /^https?:\/\//i.test(form.website) ? form.website : `https://${form.website}`,
+          businessName: form.businessName,
+          industry: form.industry || null,
           leadId: savedLead.leadId,
           leadEmail: form.email,
           async: true,
@@ -1483,8 +1651,10 @@ function WebsiteAuditPage() {
         const statusPayload = await statusResponse.json().catch(() => ({}));
         if (!statusResponse.ok) break;
         if (statusPayload.status === "completed" && statusPayload.report) {
-          setAuditReport(statusPayload.report);
+          const normalizedReport = normalizeWebsiteAuditResult(statusPayload.report);
+          setAuditReport(normalizedReport);
           setAuditQueued(false);
+          trackPublicEvent({ eventType: "website_audit_completed", label: form.businessName, target: "/website-audit", metadata: { findingCount: normalizedReport.findings.length, recommendedPlan: normalizedReport.recommendedPlan } });
           break;
         }
         if (statusPayload.status === "failed") {
@@ -1504,8 +1674,8 @@ function WebsiteAuditPage() {
   return (
     <>
       <Hero
-        title="Get a free website growth audit before rebuilding your website"
-        copy="Use this audit to find the issues that stop visitors from becoming enquiries: unclear offer, weak CTAs, poor mobile layout, missing trust proof, local SEO gaps, and forms or WhatsApp links that do not guide action."
+        title="Get a practical website growth review"
+        copy="See what we found, why it matters, what should improve, and what a clearer website and enquiry journey could look like—without arbitrary scores or invented performance claims."
         icon={FileSearch}
       />
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr]">
@@ -1538,7 +1708,7 @@ function WebsiteAuditPage() {
                 "Mobile experience notes",
                 "Trust signal gaps",
                 "Local SEO structure notes",
-                "Recommended website path: Starter, Managed, Growth, or Custom",
+                "Personalized website and enquiry direction",
               ].map((item) => (
                 <div key={item} className="flex gap-2 text-sm font-bold text-slate-700">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
@@ -1552,7 +1722,7 @@ function WebsiteAuditPage() {
           <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">Free audit request</p>
           <h2 className="mt-4 text-3xl font-black">Send your website for review</h2>
           <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
-            No payment required. Share your current website and the main business goal you want the website to support.
+            No payment required. Start with your website, business name, and email. Industry, phone, and notes are optional.
           </p>
           {submitted ? (
             <div className="mt-8 rounded-3xl bg-emerald-500/10 p-6 text-emerald-100">
@@ -1560,31 +1730,13 @@ function WebsiteAuditPage() {
               <p className="text-xl font-black">{auditReport ? "Website audit complete." : "Audit request saved."}</p>
               <p className="mt-2 text-sm font-semibold leading-6">
                 {auditReport
-                  ? "The score below is based on deterministic checks of the submitted page. It is not generated randomly."
+                  ? "Your review is based on observable page evidence and practical recommendations—not a numerical rating."
                   : auditQueued
                     ? "Your website audit is queued for background processing. We have saved the request and can follow up with the result."
-                    : "The website could not be analysed automatically, so no score was produced. Your request is saved for manual follow-up."}
+                    : "The website could not be analysed automatically. Your request is saved for manual follow-up."}
               </p>
               {!auditReport && error && <p className="mt-4 rounded-xl bg-amber-400/10 p-3 text-sm font-bold text-amber-100">{error}</p>}
-              {auditReport && (
-                <div className="mt-6 rounded-2xl bg-white p-5 text-slate-950">
-                  <div className="flex items-end justify-between gap-4">
-                    <div><p className="text-xs font-black uppercase tracking-widest text-slate-500">Overall score</p><p className="text-4xl font-black">{auditReport.overallScore}/100</p></div>
-                    <Badge className="bg-indigo-100 text-indigo-700 hover:bg-indigo-100">{auditReport.recommendedPlan} plan</Badge>
-                  </div>
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    {auditReport.topProblems?.slice(0, 4).map((problem: any) => (
-                      <div key={problem.id} className="rounded-xl bg-slate-50 p-3">
-                        <p className="text-sm font-black">{problem.label}</p>
-                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{problem.evidence}</p>
-                        <p className="mt-2 text-xs font-bold text-indigo-700">{problem.recommendedAction}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="mt-5 text-sm font-black">Suggested CTA: {auditReport.suggestedCTA}</p>
-                </div>
-              )}
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {!auditReport && <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <Link
                   to="/book-demo"
                   onClick={() => {
@@ -1601,9 +1753,9 @@ function WebsiteAuditPage() {
                   }}
                   className="inline-flex h-10 items-center justify-center rounded-2xl border border-white/30 bg-white/5 text-sm font-black text-white hover:bg-white hover:text-slate-950"
                 >
-                  Generate Preview
+                  See My Website Preview
                 </Link>
-              </div>
+              </div>}
             </div>
           ) : (
             <div className="mt-8 grid gap-4">
@@ -1612,20 +1764,24 @@ function WebsiteAuditPage() {
                   {error}
                 </div>
               )}
-              <Input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Input required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Input required placeholder="Business name" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Input required placeholder="Industry / business type" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
               <Input required placeholder="Website URL" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Input required placeholder="Business name" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Input required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Input placeholder="Industry / business type (optional)" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
               <Input placeholder="WhatsApp / phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
               <Textarea placeholder="What do you want the website to improve?" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-28 rounded-2xl bg-white text-slate-950" />
               <Button type="submit" disabled={submitting} className="h-13 rounded-2xl bg-indigo-600 font-black uppercase tracking-widest hover:bg-indigo-500">
-                {submitting ? "Sending Audit Request..." : "Request Free Growth Audit"} <Search className="ml-2 h-4 w-4" />
+                {submitting ? "Reviewing Website..." : "Start My Website Growth Review"} <Search className="ml-2 h-4 w-4" />
               </Button>
             </div>
           )}
         </form>
       </section>
+      {auditReport ? (
+        <section className="mx-auto max-w-7xl px-5 pb-20">
+          <WebsiteAuditResultView report={auditReport} form={form} />
+        </section>
+      ) : null}
     </>
   );
 }

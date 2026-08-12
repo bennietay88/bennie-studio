@@ -164,7 +164,7 @@ export const PLANS: Plan[] = [
       "Local SEO opportunity review",
       "Campaign content calendar",
       "Sales page copy review",
-      "Monthly website health report",
+      "Monthly website results report",
       "Before/after website rescue review",
     ],
     enabled_features: [

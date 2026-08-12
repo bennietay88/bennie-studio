@@ -133,7 +133,7 @@ export const SalesHome: React.FC = () => {
            <CardContent className="p-8 pt-0">
              <div className="text-4xl font-black italic tracking-tighter text-slate-900 dark:text-white mb-1">{stats.qualifiedLeads}</div>
              <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest flex items-center">
-               Opportunity Score {">"} 80
+               Prioritised for follow-up
              </p>
            </CardContent>
         </Card>
@@ -281,7 +281,7 @@ export const SalesHome: React.FC = () => {
          <CardContent className="p-0">
             <div className="divide-y divide-slate-100">
                {[
-                 { action: "High Score Audit", target: "Acme Dental", time: "2 mins ago", icon: Activity, color: "text-emerald-500" },
+                 { action: "Website Review Prepared", target: "Acme Dental", time: "2 mins ago", icon: Activity, color: "text-emerald-500" },
                  { action: "New Prospect Added", target: "Global Logistics", time: "14 mins ago", icon: UserPlus, color: "text-indigo-500" },
                  { action: "Campaign Launched", target: "Real Estate NY", time: "28 mins ago", icon: Zap, color: "text-amber-500" },
                  { action: "Qualified Lead Detected", target: "Elite Coaching", time: "1 hour ago", icon: CheckCircle2, color: "text-indigo-500" },

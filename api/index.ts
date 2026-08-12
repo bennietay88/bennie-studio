@@ -13,7 +13,7 @@ import { Resend } from "resend";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
 import { callDeepSeek, callOpenAI, callGemini } from "../src/lib/ai-providers.js";
-import { analyzeWebsiteHtml } from "../src/lib/websiteAudit.js";
+import { analyzeWebsiteHtml, normalizeWebsiteAuditResult } from "../src/lib/websiteAudit.js";
 import {
   classifyTenantHost,
   getAcceptedVercelCnames,
@@ -1397,6 +1397,8 @@ async function startServer() {
 
   const runWebsiteAudit = async (payload: {
     url: string;
+    businessName?: string | null;
+    industry?: string | null;
     leadId?: string | null;
     leadEmail?: string | null;
     requestId: string;
@@ -1449,6 +1451,8 @@ async function startServer() {
       html,
       statusCode: response.status,
       responseTimeMs: Date.now() - startedAt,
+      businessName: payload.businessName || undefined,
+      industry: payload.industry || undefined,
       robotsFound,
       sitemapFound,
       checkedLinks: linkResults.length,
@@ -1471,6 +1475,8 @@ async function startServer() {
     if (job.job_type === "website_audit") {
       const report = await runWebsiteAudit({
         url: String(job.payload?.url || ""),
+        businessName: job.payload?.businessName || null,
+        industry: job.payload?.industry || null,
         leadId: job.payload?.leadId || null,
         leadEmail: job.payload?.leadEmail || null,
         requestId: job.id,
@@ -1582,7 +1588,9 @@ async function startServer() {
       return res.json({
         id: job.id,
         status: job.status,
-        report: job.status === "completed" ? job.result?.report || null : null,
+        report: job.status === "completed" && job.result?.report
+          ? normalizeWebsiteAuditResult(job.result.report)
+          : null,
         error: job.status === "failed" ? job.last_error : null,
         updatedAt: job.updated_at,
         completedAt: job.completed_at,
@@ -1599,6 +1607,8 @@ async function startServer() {
       const requestId = crypto.randomUUID();
       const body = validateBody(z.object({
         url: PUBLIC_URL_SCHEMA,
+        businessName: z.string().trim().max(160).optional().nullable(),
+        industry: z.string().trim().max(160).optional().nullable(),
         leadId: UUID_SCHEMA.optional().nullable(),
         leadEmail: EMAIL_SCHEMA.optional().nullable(),
         async: z.boolean().optional(),
@@ -1609,7 +1619,13 @@ async function startServer() {
           await assertPublicAuditUrl(body.url);
           const { job, existing } = await createAsyncJob(supabaseAdmin, {
             jobType: "website_audit",
-            payload: { url: body.url, leadId: body.leadId || null, leadEmail: body.leadEmail || null },
+            payload: {
+              url: body.url,
+              businessName: body.businessName || null,
+              industry: body.industry || null,
+              leadId: body.leadId || null,
+              leadEmail: body.leadEmail || null,
+            },
             idempotencyKey: `website_audit:${crypto.createHash("sha256").update(`${body.url}:${body.leadId || ""}:${body.leadEmail || ""}`).digest("hex")}`,
           });
           const dispatch = await publishJobToQstash(job.id).catch((error) => {
@@ -1628,6 +1644,8 @@ async function startServer() {
 
         const report = await runWebsiteAudit({
           url: body.url,
+          businessName: body.businessName,
+          industry: body.industry,
           leadId: body.leadId,
           leadEmail: body.leadEmail,
           requestId,
@@ -4984,15 +5002,19 @@ async function startServer() {
 
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
 
       const [
         { count: leadsCount },
         { count: websitesCount },
         { count: appointmentsCount },
+        { count: leadsThisMonth },
+        { count: appointmentsThisMonth },
         { count: apiKeysCount },
         { data: leadsData },
+        { data: leadsTrendData },
         { data: appointmentsData },
         { data: businessData },
         { data: analyticsData },
@@ -5012,6 +5034,16 @@ async function startServer() {
           .select("*", { count: "exact", head: true })
           .eq("business_id", businessId),
         supabaseAdmin
+          .from("leads")
+          .select("id", { count: "exact", head: true })
+          .eq("business_id", businessId)
+          .gte("created_at", monthStart.toISOString()),
+        supabaseAdmin
+          .from("appointments")
+          .select("id", { count: "exact", head: true })
+          .eq("business_id", businessId)
+          .gte("created_at", monthStart.toISOString()),
+        supabaseAdmin
           .from("api_keys")
           .select("*", { count: "exact", head: true })
           .eq("business_id", businessId),
@@ -5022,6 +5054,11 @@ async function startServer() {
           .order("created_at", { ascending: false })
           .limit(6),
         supabaseAdmin
+          .from("leads")
+          .select("created_at")
+          .eq("business_id", businessId)
+          .gte("created_at", sevenDaysAgo.toISOString()),
+        supabaseAdmin
           .from("appointments")
           .select("*")
           .eq("business_id", businessId)
@@ -5030,14 +5067,14 @@ async function startServer() {
         supabaseAdmin.from("businesses").select("*").eq("id", businessId).maybeSingle(),
         supabaseAdmin
           .from("page_views")
-          .select("created_at")
+          .select("created_at,page_path")
           .eq("business_id", businessId)
-          .gte("created_at", sevenDaysAgo.toISOString()),
+          .gte("created_at", monthStart.toISOString()),
         supabaseAdmin
           .from("tracking_events")
           .select("event_type, source_page, metadata, created_at")
           .eq("business_id", businessId)
-          .gte("created_at", thirtyDaysAgo.toISOString())
+          .gte("created_at", monthStart.toISOString())
           .order("created_at", { ascending: false })
           .limit(500),
         supabaseAdmin
@@ -5062,8 +5099,7 @@ async function startServer() {
 
       const processedAnalytics = last7Days.map(date => {
         const count = (analyticsData || []).filter(pv => pv.created_at.startsWith(date)).length;
-        // Also get lead count for that day if possible, or just generate some fake-ish but based on real data leads trend
-        const dayLeads = (leadsData || []).filter((l: any) => l.created_at.startsWith(date)).length;
+        const dayLeads = (leadsTrendData || []).filter((lead: any) => lead.created_at.startsWith(date)).length;
         
         return {
           name: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
@@ -5080,23 +5116,33 @@ async function startServer() {
         { label: "WhatsApp clicks", value: countEvents(["whatsapp_click"]) },
         { label: "Call clicks", value: countEvents(["call_click"]) },
         { label: "Email clicks", value: countEvents(["email_click"]) },
-        { label: "Form submissions", value: countEvents(["lead_form_submit"]) || leadsCount || 0 },
-        { label: "Booking clicks", value: countEvents(["booking_click", "appointment_requested", "appointment_booked"]) || appointmentsCount || 0 },
+        { label: "Form submissions", value: countEvents(["lead_form_submit"]) || leadsThisMonth || 0 },
+        { label: "Booking clicks", value: countEvents(["booking_click", "appointment_requested", "appointment_booked"]) || appointmentsThisMonth || 0 },
         { label: "Quote button clicks", value: countEvents(["quote_button_click", "pricing_cta_click", "checkout_click"]) },
       ];
       const topAction = conversionActions.reduce(
         (best, action) => (action.value > best.value ? action : best),
         conversionActions[0],
       );
-      const pageConversionCounts = trackedEvents.reduce((acc: Record<string, number>, event: any) => {
+      const enquiryEventTypes = new Set(["whatsapp_click", "call_click", "email_click", "lead_form_submit", "booking_click", "appointment_requested", "appointment_booked", "quote_button_click"]);
+      const pageConversionCounts = trackedEvents.filter((event: any) => enquiryEventTypes.has(event.event_type)).reduce((acc: Record<string, number>, event: any) => {
         const page = event.source_page || "/";
         acc[page] = (acc[page] || 0) + 1;
         return acc;
       }, {});
-      const weakestPage =
+      const topEnquiryPage =
         Object.keys(pageConversionCounts).length > 0
-          ? Object.entries(pageConversionCounts).sort((a, b) => a[1] - b[1])[0][0]
-          : "No conversion data yet";
+          ? Object.entries(pageConversionCounts).sort((a, b) => b[1] - a[1])[0][0]
+          : null;
+      const pageViewCounts = (analyticsData || []).reduce((acc: Record<string, number>, view: any) => {
+        const page = view.page_path || "/";
+        acc[page] = (acc[page] || 0) + 1;
+        return acc;
+      }, {});
+      const observedOpportunity = Object.entries(pageViewCounts)
+        .filter(([, views]) => views >= 10)
+        .sort((a, b) => b[1] - a[1])
+        .find(([page]) => !pageConversionCounts[page]);
       const totalEnquiries = conversionActions.reduce((sum, action) => sum + Number(action.value || 0), 0);
 
       res.json({
@@ -5116,12 +5162,29 @@ async function startServer() {
           totalEnquiries,
           actions: conversionActions,
           topCta: topAction?.value > 0 ? topAction.label : "Pending tracking",
-          weakestPage,
+          weakestPage: null,
+          topEnquiryPage,
+          pageViews: (analyticsData || []).length,
+          opportunity: observedOpportunity
+            ? `The page ${observedOpportunity[0]} received ${observedOpportunity[1]} measured views this month without a tracked enquiry action.`
+            : null,
           recommendedImprovement:
             totalEnquiries > 0
               ? "Double down on the top CTA and add a clearer fallback form on weaker pages."
               : "Add a visible WhatsApp, call, or quote CTA above the fold to start collecting conversion data.",
-        }
+        },
+        measuredResults: {
+          enquiries: leadsThisMonth || 0,
+          whatsAppClicks: countEvents(["whatsapp_click"]),
+          callClicks: countEvents(["call_click"]),
+          bookings: appointmentsThisMonth || countEvents(["appointment_requested", "appointment_booked"]),
+          pageViews: (analyticsData || []).length,
+          topEnquiryPage,
+          mostUsedEnquiryPath: topAction?.value > 0 ? topAction.label : null,
+          opportunity: observedOpportunity
+            ? `The page ${observedOpportunity[0]} received ${observedOpportunity[1]} measured views this month without a tracked enquiry action.`
+            : null,
+        },
       });
     } catch (error: any) {
       console.error("Error fetching consolidated dashboard data:", error);

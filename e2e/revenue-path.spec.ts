@@ -357,3 +357,62 @@ test("covers signup, plan checkout, checkout confirmation, onboarding, and websi
   expect(calls.checkoutCreated).toBe(true);
   expect(calls.checkoutVerified).toBe(true);
 });
+
+test("connects the website growth review to a prefilled preview", async ({ page }) => {
+  const leadId = "00000000-0000-4000-8000-000000000301";
+  const jobId = "00000000-0000-4000-8000-000000000302";
+  const report = {
+    schemaVersion: 2,
+    analyzedUrl: "https://example.test",
+    analyzedAt: new Date().toISOString(),
+    summary: "We found 1 opportunity to make it easier for visitors to become enquiries.",
+    findings: [{
+      id: "cta",
+      category: "Enquiry journey",
+      title: "The next enquiry action is not obvious",
+      whatWeFound: "No clear service-specific contact action was found.",
+      whyItMatters: "Visitors may need to work harder to take the next step.",
+      recommendation: "Add one clear quotation CTA near the hero.",
+      exampleImprovement: "Request a Website Quote",
+      priority: "high",
+      observation: "confirmed",
+    }],
+    enquiryJourney: {
+      current: ["Search", "Homepage", "Generic contact page"],
+      recommended: ["Relevant search", "Service page", "Trust proof", "Quotation CTA"],
+    },
+    whatWeWouldChange: [{ area: "CTA", current: "Contact Us", recommended: "Request a Website Quote" }],
+    recommendedWebsiteDirection: {
+      hero: { headline: "Managed websites for Malaysian service businesses", subheadline: "A clearer website and enquiry journey.", cta: "Request a Website Quote" },
+      services: ["Managed website service"],
+      trust: ["Customer case studies"],
+      localRelevance: ["Malaysia service coverage"],
+      faq: ["What is included?"],
+      cta: { label: "Request a Website Quote", supportingCopy: "Tell us what you need." },
+    },
+    recommendedPlan: "business",
+    performance: { responseTimeMs: 200, htmlBytes: 12000, imageCount: 4, scriptCount: 2 },
+  };
+
+  await page.route("**/api/platform-events", (route) => json(route, { success: true }));
+  await page.route("**/api/platform-leads", (route) => json(route, { success: true, leadId }));
+  await page.route("**/api/public/website-audit/jobs/**", (route) => json(route, { id: jobId, status: "completed", report }));
+  await page.route("**/api/public/website-audit", (route) => json(route, { success: true, queued: true, jobId, status: "queued" }, 202));
+
+  await page.goto("/website-audit");
+  await page.getByPlaceholder("Website URL").fill("https://example.test");
+  await page.getByPlaceholder("Business name").fill("Example Studio");
+  await page.getByPlaceholder("Email").fill("owner@example.test");
+  await page.getByRole("button", { name: /Start My Website Growth Review/i }).click();
+
+  await expect(page.getByRole("heading", { name: report.summary })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("What we found", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("The next enquiry action is not obvious")).toBeVisible();
+  await expect(page.getByText(/\/100/)).toHaveCount(0);
+
+  await page.getByRole("link", { name: "See My Website Preview" }).click();
+  await expect(page).toHaveURL(/\/generate-preview/);
+  await expect(page.getByPlaceholder("Business name")).toHaveValue("Example Studio");
+  await expect(page.getByPlaceholder("Current website URL optional")).toHaveValue("https://example.test");
+  await expect(page.getByPlaceholder("Email")).toHaveValue("owner@example.test");
+});

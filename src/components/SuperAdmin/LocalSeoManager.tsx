@@ -17,6 +17,13 @@ import {
 } from "../../constants/localSeoEngine";
 import { PLANS as STATIC_PLANS, Plan, normalizePlans } from "../../constants/plans";
 
+const isPageChecklistComplete = (page: any) =>
+  page?.duplicate_risk !== "high" && (
+    Array.isArray(page?.suggestions)
+      ? page.suggestions.length === 0
+      : ["ready_for_review", "published"].includes(page?.status)
+  );
+
 const mapPlanRows = (rows: any[]): Plan[] =>
   normalizePlans(
     [...rows]
@@ -83,7 +90,7 @@ export function LocalSeoManager() {
       const [{ data: pageData }, { data: planRows, error: planRowsError }, { data: planData }] = await Promise.all([
         supabase
         .from("local_seo_pages")
-        .select("id,business_id,status,slug,city,main_service,quality_score,duplicate_risk,created_at,businesses(name)")
+        .select("id,business_id,status,slug,city,main_service,duplicate_risk,suggestions,created_at,businesses(name)")
         .order("created_at", { ascending: false })
           .limit(50),
         supabase
@@ -148,8 +155,8 @@ export function LocalSeoManager() {
   };
 
   const updateLocalPageStatus = async (page: any, status: string) => {
-    if (status === "published" && ((page.quality_score || 0) < 75 || page.duplicate_risk === "high")) {
-      toast.error("Publishing blocked. Quality score must be 75+ and duplicate risk cannot be high.");
+    if (status === "published" && !isPageChecklistComplete(page)) {
+      toast.error("Publishing blocked. Complete the content checklist and resolve high duplicate risk first.");
       return;
     }
 
@@ -299,20 +306,20 @@ export function LocalSeoManager() {
           <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
             <Card className="rounded-3xl">
               <CardHeader>
-                <CardTitle>Quality Gate Preview</CardTitle>
-                <CardDescription>Pages below 70 remain draft. Pages 70-74 need improvement. Pages 75+ can move to review.</CardDescription>
+                <CardTitle>Publishing Checklist Preview</CardTitle>
+                <CardDescription>Pages remain drafts until required evidence, local relevance, contact details, and duplicate-content checks are complete.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="rounded-3xl bg-slate-950 p-6 text-white">
                   <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Demo Local Page</p>
-                  <p className="mt-2 text-3xl font-black">{demoDraft.quality.score}/100</p>
+                  <p className="mt-2 text-3xl font-black">{demoDraft.quality.readyForReview ? "Ready for review" : "Needs attention"}</p>
                   <p className="mt-2 text-sm font-semibold text-slate-300">{demoDraft.h1}</p>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  {Object.entries(demoDraft.quality.breakdown).map(([key, value]) => (
+                  {Object.entries(demoDraft.quality.checks).map(([key, complete]) => (
                     <div key={key} className="rounded-2xl border border-slate-100 p-4">
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{key.replace(/([A-Z])/g, " $1")}</p>
-                      <p className="mt-1 text-xl font-black">{value}</p>
+                      <p className="mt-1 text-sm font-black">{complete ? "Complete" : "Needs attention"}</p>
                     </div>
                   ))}
                 </div>
@@ -329,7 +336,7 @@ export function LocalSeoManager() {
                 <ul className="space-y-3 text-sm font-semibold text-amber-900">
                   <li>Require at least 3 unique local inputs.</li>
                   <li>Flag repeated hero copy, FAQs, and meta descriptions.</li>
-                  <li>Keep low-score pages as draft.</li>
+                  <li>Keep pages with incomplete checklist items as drafts.</li>
                   <li>Require real local proof for high-value locations.</li>
                   <li>Never create fake testimonials, addresses, reviews, or local claims.</li>
                 </ul>
@@ -360,8 +367,8 @@ export function LocalSeoManager() {
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Badge className={page.quality_score >= 75 ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}>
-                        {page.quality_score}/100
+                      <Badge className={isPageChecklistComplete(page) ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}>
+                        {isPageChecklistComplete(page) ? "Checklist complete" : "Needs attention"}
                       </Badge>
                       <Badge variant="outline" className="capitalize">{page.status?.replace(/_/g, " ")}</Badge>
                       <Badge variant="outline" className="capitalize">Risk: {page.duplicate_risk}</Badge>
@@ -378,7 +385,7 @@ export function LocalSeoManager() {
                         variant="outline"
                         className="h-7 rounded-lg text-[10px] font-black uppercase"
                         onClick={() => updateLocalPageStatus(page, "ready_for_review")}
-                        disabled={(page.quality_score || 0) < 70}
+                        disabled={!isPageChecklistComplete(page)}
                       >
                         Review
                       </Button>
@@ -386,7 +393,7 @@ export function LocalSeoManager() {
                         size="sm"
                         className="h-7 rounded-lg bg-slate-950 text-[10px] font-black uppercase"
                         onClick={() => updateLocalPageStatus(page, "published")}
-                        disabled={(page.quality_score || 0) < 75 || page.duplicate_risk === "high"}
+                        disabled={!isPageChecklistComplete(page)}
                       >
                         Publish
                       </Button>

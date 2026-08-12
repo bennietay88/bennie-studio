@@ -60,7 +60,7 @@ const PlanEditor = () => {
     {
       name: "Managed Growth Platform",
       features: [
-        { id: "website_growth_score", label: "Website Growth Score" },
+        { id: "website_growth_score", label: "Website Growth Opportunities" },
         { id: "monthly_improvement_engine", label: "Monthly Improvement Engine" },
         { id: "whatsapp_enquiry_kit", label: "WhatsApp Enquiry Kit" },
         { id: "enquiry_path_tracker", label: "Enquiry Path Tracker" },
@@ -80,7 +80,7 @@ const PlanEditor = () => {
         { id: "sales_page_doctor", label: "AI Sales Page Doctor" },
         { id: "done_for_you_request_portal", label: "Done-For-You Request Portal" },
         { id: "review_to_website_import", label: "Review-to-Website Import" },
-        { id: "local_ranking_readiness_score", label: "Local Ranking Readiness Score" },
+        { id: "local_ranking_readiness_score", label: "Local Search Checklist" },
         { id: "monthly_website_report", label: "Monthly Website Report" },
         { id: "trust_proof_vault", label: "Trust Proof Vault" },
         { id: "ai_receptionist_triage", label: "Enquiry Qualification Prompts" },

@@ -28,6 +28,7 @@ import { Badge } from "../ui/badge";
 import { supabase } from "../../lib/supabase";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { normalizeWebsiteAuditResult } from "../../lib/websiteAudit";
 import {
   Dialog,
   DialogContent,
@@ -203,7 +204,7 @@ export function ProspectExplorer() {
 
   const runQuickAudit = async (prospect: any) => {
     if (!prospect.domain) {
-      toast.error("Add a public website domain before running an audit. No score was created.");
+      toast.error("Add a public website domain before preparing a review.");
       return;
     }
     const auditResponse = await fetch("/api/public/website-audit", {
@@ -213,21 +214,20 @@ export function ProspectExplorer() {
     });
     const payload = await auditResponse.json().catch(() => ({}));
     if (!auditResponse.ok || !payload?.report) {
-      toast.error(payload?.error || "The website could not be analysed. No score was created.");
+      toast.error(payload?.error || "The website could not be analysed. No review was created.");
       return;
     }
-    const score = payload.report.overallScore;
-    const websiteStatus = score < 40 ? "weak" : score < 70 ? "average" : "strong";
+    const report = normalizeWebsiteAuditResult(payload.report);
     const nextFollowUp = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
     const ok = await updateProspect(prospect.id, {
-      audit_score: score,
+      audit_score: null,
       last_audit_at: new Date().toISOString(),
-      website_status: websiteStatus,
-      opportunity_level: score < 60 ? "high" : "medium",
+      website_status: "unknown",
+      opportunity_level: report.findings.some((finding) => finding.priority === "high") ? "high" : "medium",
       outreach_status: prospect.outreach_status === "not_started" ? "queued" : prospect.outreach_status,
       next_follow_up_at: prospect.next_follow_up_at || nextFollowUp,
     });
-    if (ok) toast.success(`Deterministic website audit saved: ${score}/100`);
+    if (ok) toast.success(`Website growth review prepared with ${report.findings.length} opportunities.`);
   };
 
   const generatePreviewLink = async (prospect: any) => {
@@ -546,7 +546,7 @@ export function ProspectExplorer() {
                       </td>
                       <td className="px-6 py-6">
                         <Badge className="rounded-full border-none bg-slate-100 px-3 py-0.5 text-[8px] font-black uppercase text-slate-600">{toTitle(prospect.website_status || "unknown")}</Badge>
-                        <p className="mt-2 text-xs font-bold text-slate-500">Score: {prospect.audit_score ? `${prospect.audit_score}/100` : "Not audited"}</p>
+                        <p className="mt-2 text-xs font-bold text-slate-500">Website review: {prospect.last_audit_at ? "Prepared" : "Not prepared"}</p>
                         <p className="text-[10px] font-bold text-slate-400">{prospect.last_audit_at ? format(new Date(prospect.last_audit_at), "MMM dd, yyyy") : "No audit date"}</p>
                       </td>
                       <td className="px-6 py-6">
@@ -685,7 +685,7 @@ export function ProspectExplorer() {
           {selectedProspect && <div className="grid gap-4 py-3 sm:grid-cols-2">
             <Info label="Pipeline" value={toTitle(selectedProspect.outreach_status || "not_started")} />
             <Info label="Opportunity" value={toTitle(selectedProspect.opportunity_level || "medium")} />
-            <Info label="Website audit" value={selectedProspect.last_audit_at ? `${selectedProspect.audit_score}/100 · ${format(new Date(selectedProspect.last_audit_at), "MMM dd, yyyy")}` : "Not prepared"} />
+            <Info label="Website review" value={selectedProspect.last_audit_at ? `Prepared · ${format(new Date(selectedProspect.last_audit_at), "MMM dd, yyyy")}` : "Not prepared"} />
             <Info label="Next follow-up" value={selectedProspect.next_follow_up_at ? format(new Date(selectedProspect.next_follow_up_at), "MMM dd, yyyy") : "Not scheduled"} />
             <Info label="Contact" value={selectedProspect.contact_email || selectedProspect.contact_phone || selectedProspect.contact_whatsapp || "Missing"} />
             <Info label="Source" value={selectedProspect.source || "Unknown"} />

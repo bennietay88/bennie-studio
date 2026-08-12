@@ -58,6 +58,7 @@ import { AIPerformanceAnalytics } from "./AIPerformanceAnalytics";
 import { AIDataAnalyst } from "./AIDataAnalyst";
 import { OnboardingChecklist } from "./OnboardingChecklist";
 import { toast } from "sonner";
+import type { MonthlyWebsiteResult, WebsiteImprovement } from "../types";
 import {
   BUSINESS_OFFER_BUILDER,
   CAMPAIGN_LANDING_PAGE_TEMPLATES,
@@ -69,7 +70,7 @@ import {
   ENQUIRY_LOSS_DETECTOR,
   AI_RECEPTIONIST_TRIAGE,
   INDUSTRY_PAGE_PACKS,
-  LOCAL_RANKING_READINESS_SCORE,
+  LOCAL_SEARCH_CHECKLIST,
   LOCAL_SEO_OPPORTUNITY_MAP,
   LOCAL_GROWTH_PAGE_BLUEPRINT,
   MONTHLY_WEBSITE_REPORT,
@@ -79,12 +80,11 @@ import {
   SALES_PAGE_DOCTOR,
   TRUST_PROOF_BUILDER,
   TRUST_PROOF_VAULT,
-  WEBSITE_GROWTH_SCORE_ITEMS,
+  WEBSITE_GROWTH_OPPORTUNITIES,
   WEBSITE_GROWTH_AUTOPILOT,
   WHATSAPP_ENQUIRY_KIT,
   WHATSAPP_FOLLOW_UP_CRM,
 } from "../constants/managedGrowthModules";
-import { buildMonthlyLeadEngineReport } from "../constants/leadAutomation";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -117,9 +117,10 @@ export default function DashboardOverview() {
   const [website, setWebsite] = React.useState<any>(null);
   const [projects, setProjects] = React.useState<any[]>([]);
   const [approvals, setApprovals] = React.useState<any[]>([]);
-  const [updateRequests, setUpdateRequests] = React.useState<any[]>([]);
+  const [updateRequests, setUpdateRequests] = React.useState<WebsiteImprovement[]>([]);
   const [supportTickets, setSupportTickets] = React.useState<any[]>([]);
   const [conversionInsights, setConversionInsights] = React.useState<any>(null);
+  const [measuredResults, setMeasuredResults] = React.useState<MonthlyWebsiteResult | null>(null);
   const [isMobile, setIsMobile] = React.useState(false);
   const [activeMainTab, setActiveMainTab] = React.useState("overview");
   const [rescueAuditUrl, setRescueAuditUrl] = React.useState("");
@@ -302,6 +303,7 @@ export default function DashboardOverview() {
         setBusiness(data.business);
         setAnalyticsData(data.analytics || []);
         setConversionInsights(data.conversionInsights || null);
+        setMeasuredResults(data.measuredResults || null);
 	        const { data: websiteData } = await supabase
 	          .from("websites")
 	          .select("id,status,pages,seo,updated_at")
@@ -441,7 +443,6 @@ export default function DashboardOverview() {
       icon: Users,
       color: "text-blue-600",
       bg: "bg-blue-50",
-      trend: stats.leads > 0 ? "+12%" : "0%",
       data: [
         { v: 0 },
         { v: 0 },
@@ -459,7 +460,6 @@ export default function DashboardOverview() {
       icon: Globe,
       color: "text-indigo-600",
       bg: "bg-indigo-50",
-      trend: stats.websites > 0 ? "+1" : "0",
       data: [
         { v: 0 },
         { v: 0 },
@@ -472,12 +472,11 @@ export default function DashboardOverview() {
       featureId: "ai_synthesis",
     },
     {
-      label: "Analytics",
-      value: stats.leads > 0 ? "12.5%" : "0%",
+      label: "Page Views This Month",
+      value: String(measuredResults?.pageViews ?? 0),
       icon: BarChart3,
       color: "text-emerald-600",
       bg: "bg-emerald-50",
-      trend: "0%",
       data: [
         { v: 0 },
         { v: 0 },
@@ -495,7 +494,6 @@ export default function DashboardOverview() {
       icon: Calendar,
       color: "text-amber-600",
       bg: "bg-amber-50",
-      trend: "0%",
       data: [
         { v: 0 },
         { v: 0 },
@@ -513,7 +511,6 @@ export default function DashboardOverview() {
       icon: MessageSquare,
       color: "text-indigo-600",
       bg: "bg-indigo-50",
-      trend: "0%",
       data: [
         { v: 0 },
         { v: 0 },
@@ -531,7 +528,6 @@ export default function DashboardOverview() {
       icon: ShoppingBag,
       color: "text-emerald-600",
       bg: "bg-emerald-50",
-      trend: "0%",
       data: [
         { v: 0 },
         { v: 0 },
@@ -545,11 +541,10 @@ export default function DashboardOverview() {
     },
     {
       label: "Reviews",
-      value: "0",
+      value: String(reviewCount),
       icon: Star,
       color: "text-amber-600",
       bg: "bg-amber-50",
-      trend: "0",
       data: [
         { v: 0 },
         { v: 0 },
@@ -567,7 +562,6 @@ export default function DashboardOverview() {
       icon: Zap,
       color: "text-amber-600",
       bg: "bg-amber-50",
-      trend: "Propulsion",
       data: [
         { v: (stats as any).aiUsed || 0 },
         { v: (stats as any).aiUsed || 0 },
@@ -605,6 +599,10 @@ export default function DashboardOverview() {
   const openUpdateRequests = updateRequests.filter((request) => !["completed", "declined", "cancelled"].includes(String(request.status || "")));
   const currentPlan = findPlan(undefined, business?.plan || "starter");
   const limits = getLocalSeoLimits(business?.plan || "starter", currentPlan.maxPages, currentPlan);
+  const completedWebsiteImprovements = updateRequests.filter((request) => {
+    const samePeriod = request.allowance_period === new Date().toISOString().slice(0, 7);
+    return samePeriod && String(request.status || "") === "completed";
+  });
   const completedUpdateRequestsThisMonth = updateRequests.filter((request) => {
     const samePeriod = request.allowance_period === new Date().toISOString().slice(0, 7);
     return samePeriod && !["declined", "cancelled"].includes(String(request.status || ""));
@@ -642,11 +640,10 @@ export default function DashboardOverview() {
     if (!websitePublished) return { title: "Approve your website for publication", owner: "Customer", due: "Before launch", href: "/dashboard/approvals" };
     return { title: "Use your support and update allowance", owner: "Shared", due: `${remainingUpdateAllowance} request(s) remaining`, href: "/dashboard/update-requests" };
   })();
-  const dynamicGrowthScores = WEBSITE_GROWTH_SCORE_ITEMS.map((item) => {
+  const growthOpportunities = WEBSITE_GROWTH_OPPORTUNITIES.map((item) => {
     if (item.id === "seo") {
       return {
         ...item,
-        score: website?.seo?.title && website?.seo?.description ? 82 : item.score,
         issues: website?.seo?.title
           ? item.issues
           : ["SEO title is missing or incomplete", "Meta description needs a clearer service promise"],
@@ -655,23 +652,13 @@ export default function DashboardOverview() {
     if (item.id === "enquiry") {
       return {
         ...item,
-        score: business?.whatsapp_number || business?.phone || business?.email ? 84 : item.score,
         issues: business?.whatsapp_number
           ? item.issues
           : ["WhatsApp or phone CTA is not configured", "Primary enquiry path needs a fallback form"],
       };
     }
-    if (item.id === "content") {
-      return {
-        ...item,
-        score: website?.pages?.length ? Math.min(88, item.score + website.pages.length * 3) : item.score,
-      };
-    }
     return item;
   });
-  const overallGrowthScore = Math.round(
-    dynamicGrowthScores.reduce((sum, item) => sum + item.score, 0) / dynamicGrowthScores.length,
-  );
   const enquiryActions = conversionInsights?.actions?.length
     ? conversionInsights.actions
     : ENQUIRY_PATH_TRACKER.sampleActions.map((action) => ({
@@ -684,7 +671,6 @@ export default function DashboardOverview() {
               : action.value,
       }));
   const topCta = conversionInsights?.topCta || (business?.whatsapp_number ? "WhatsApp CTA" : stats.leads > 0 ? "Contact Form" : "Pending tracking");
-  const weakestPage = conversionInsights?.weakestPage || (website?.pages?.length ? "Contact / Quote page" : "No published page yet");
   const recommendedConversionImprovement =
     conversionInsights?.recommendedImprovement ||
     "Add a clearer quote CTA and WhatsApp fallback near the first enquiry section.";
@@ -837,17 +823,6 @@ export default function DashboardOverview() {
       whatsappScript: `Hi, I found your website and I’m interested in ${service}. Can I get more details?`,
     };
   }, [offerDraft]);
-  const offerStrengthScore = React.useMemo(() => {
-    const checks = [
-      offerDraft.mainService,
-      offerDraft.targetCustomer,
-      offerDraft.priceRange,
-      offerDraft.reassurance,
-      offerDraft.preferredCta,
-      offerDraft.consultationType,
-    ].filter(Boolean).length;
-    return Math.round((checks / OFFER_STRENGTH_CRITERIA.length) * 100);
-  }, [offerDraft]);
   const activeCompetitors = competitorUrls.filter((url) => url.trim().length > 0);
   const activeTrustProof = trustInputs.length;
   const reviewLines = reviewImportText
@@ -858,8 +833,7 @@ export default function DashboardOverview() {
     const words = line.split(/\s+/).slice(0, 9).join(" ");
     return words ? `"${words}${line.split(/\s+/).length > 9 ? "..." : ""}"` : "";
   }).filter(Boolean);
-  const localRankingReadinessScore = Math.round(
-    ([
+  const localSearchChecks = [
       business?.location,
       business?.email || business?.phone || business?.whatsapp_number,
       website?.seo?.title,
@@ -867,9 +841,8 @@ export default function DashboardOverview() {
       website?.pages?.length,
       activeTrustProof,
       reviewSignals.length,
-      conversionInsights?.totalEnquiries,
-    ].filter(Boolean).length / LOCAL_RANKING_READINESS_SCORE.length) * 100,
-  );
+      measuredResults?.enquiries || measuredResults?.whatsAppClicks || measuredResults?.callClicks || measuredResults?.bookings,
+    ].map(Boolean);
   const receptionistSummary = `${receptionistDraft.service || "Service"} enquiry in ${receptionistDraft.location || "target location"} (${receptionistDraft.urgency}). Budget: ${receptionistDraft.budget || "not provided"}. Follow up via ${receptionistDraft.contact || "preferred contact"}.`;
   const enquiryLossSignals = [
     conversionInsights?.totalEnquiries
@@ -935,7 +908,6 @@ export default function DashboardOverview() {
       payload: {
         inputs: offerDraft,
         output: generatedOffer,
-        offerStrengthScore,
       },
     });
     if (saved) toast.success("Business offer draft saved.");
@@ -1006,31 +978,34 @@ export default function DashboardOverview() {
   };
 
   const downloadMonthlyReport = async () => {
-    const leadEngineReport = buildMonthlyLeadEngineReport(recentLeads.map((lead) => ({
-      id: lead.id || lead.email || lead.created_at || "lead",
-      businessId: profile?.businessId || "",
-      name: lead.name || "Lead",
-      email: lead.email || "",
-      phone: lead.phone || "",
-      message: lead.message || "",
-      status: (String(lead.status || "new").toLowerCase() as any),
-      source: lead.source || lead.source_platform || "",
-      score: lead.score || 0,
-      createdAt: lead.created_at ? new Date(lead.created_at).getTime() : Date.now(),
-    })));
+    const resultLine = (label: string, value: unknown) => `${label}: ${value ?? "Not enough data yet"}`;
+    const completedChanges = completedWebsiteImprovements.length
+      ? completedWebsiteImprovements.map((request) => `- ${request.title || request.details || "Website improvement completed"}`)
+      : ["- No completed website updates recorded this month yet."];
     const report = [
       MONTHLY_WEBSITE_REPORT.title,
       `Business: ${business?.name || "Your Business"}`,
-      `Growth Score: ${overallGrowthScore}/100`,
-      `Enquiries tracked: ${conversionInsights?.totalEnquiries || 0}`,
-      `Hot leads: ${leadEngineReport.hot}`,
-      `Warm leads: ${leadEngineReport.warm}`,
-      `Lead conversion rate: ${leadEngineReport.conversionRate}%`,
-      `Best CTA: ${topCta}`,
-      `Weakest page: ${weakestPage}`,
-      `Recommended change: ${recommendedConversionImprovement}`,
-      `Campaign idea: ${CAMPAIGN_CALENDAR[0].campaign}`,
-      `Local SEO score: ${localRankingReadinessScore}/100`,
+      "",
+      "YOUR WEBSITE THIS MONTH",
+      resultLine("Enquiries received", measuredResults?.enquiries),
+      resultLine("WhatsApp clicks", measuredResults?.whatsAppClicks),
+      resultLine("Call clicks", measuredResults?.callClicks),
+      resultLine("Bookings", measuredResults?.bookings),
+      resultLine("Page views", measuredResults?.pageViews),
+      resultLine("Top enquiry page", measuredResults?.topEnquiryPage),
+      resultLine("Most-used enquiry path", measuredResults?.mostUsedEnquiryPath),
+      "",
+      "WHAT CHANGED",
+      ...completedChanges,
+      "",
+      "WHAT WE NOTICED",
+      measuredResults?.opportunity || "Not enough data yet for an evidence-based observation.",
+      "",
+      "RECOMMENDED NEXT IMPROVEMENT",
+      recommendedConversionImprovement,
+      "",
+      "CUSTOMER ACTION",
+      "Request this improvement from the Bennie Studio update portal.",
     ].join("\n");
     const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -1046,22 +1021,19 @@ export default function DashboardOverview() {
         profile_id: profile.uid,
         report_month: new Date().toISOString().slice(0, 7),
         status: "draft",
-        lead_count: stats.leads || leadEngineReport.totalLeads,
-        hot_lead_count: leadEngineReport.hot,
+        lead_count: measuredResults?.enquiries || 0,
+        hot_lead_count: 0,
         review_count: reviewCount,
         local_seo_page_count: 0,
-        summary: leadEngineReport.nextRecurringRevenueAction,
+        summary: measuredResults?.opportunity || "Not enough data yet for an evidence-based observation.",
         recommendations: [
           recommendedConversionImprovement,
-          CAMPAIGN_CALENDAR[0].campaign,
-          leadEngineReport.nextRecurringRevenueAction,
         ],
         payload: {
           report,
-          overallGrowthScore,
-          localRankingReadinessScore,
-          conversionInsights,
-          leadEngineReport,
+          measuredResults,
+          completedWebsiteImprovements,
+          recommendation: recommendedConversionImprovement,
         },
       }, { onConflict: "business_id,report_month" });
       if (reportError && !reportError.message.includes("monthly_growth_reports")) {
@@ -1074,10 +1046,9 @@ export default function DashboardOverview() {
       status: "completed",
       payload: {
         report,
-        overallGrowthScore,
-        localRankingReadinessScore,
-        conversionInsights,
-        leadEngineReport,
+        measuredResults,
+        completedWebsiteImprovements,
+        recommendation: recommendedConversionImprovement,
       },
     });
   };
@@ -1099,7 +1070,6 @@ export default function DashboardOverview() {
 
   if (!isDevelopmentMode) {
     const statusLabel = launchStatus;
-    const progressPercent = Math.round((completedLaunchChecks / launchChecks.length) * 100);
     const simpleActions = [
       {
         label: "Preview Website",
@@ -1165,12 +1135,6 @@ export default function DashboardOverview() {
                   {business?.plan || "Plan"}
                 </Badge>
               </div>
-              <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-indigo-400"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
               <p className="mt-3 text-xs font-semibold text-slate-300">
                 {completedLaunchChecks}/{launchChecks.length} launch checks ready
               </p>
@@ -1220,21 +1184,24 @@ export default function DashboardOverview() {
           <Card className="rounded-[2rem] border-slate-200 bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="text-xl font-black text-slate-950">
-                Today’s Snapshot
+                Your Website This Month
               </CardTitle>
               <CardDescription>
-                The numbers normal customers usually need day to day.
+                Measured events from your website. Missing tracking is shown honestly.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-3">
+            <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                { label: "Enquiries", value: stats.leads, icon: Users },
-                { label: "Appointments", value: stats.appointments, icon: Calendar },
-                { label: "Active Websites", value: stats.websites, icon: Globe },
+                { label: "Enquiries received", value: measuredResults?.enquiries ?? "Not enough data yet", icon: Users },
+                { label: "WhatsApp clicks", value: measuredResults?.whatsAppClicks ?? "Not enough data yet", icon: MessageSquare },
+                { label: "Call clicks", value: measuredResults?.callClicks ?? "Not enough data yet", icon: Phone },
+                { label: "Bookings", value: measuredResults?.bookings ?? "Not enough data yet", icon: Calendar },
+                { label: "Top enquiry page", value: measuredResults?.topEnquiryPage || "Not enough data yet", icon: Globe },
+                { label: "Most-used enquiry path", value: measuredResults?.mostUsedEnquiryPath || "Not enough data yet", icon: Target },
               ].map((item) => (
                 <div key={item.label} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                   <item.icon className="h-5 w-5 text-indigo-600" />
-                  <p className="mt-4 text-3xl font-black text-slate-950">{item.value}</p>
+                  <p className="mt-4 break-words text-xl font-black text-slate-950">{item.value}</p>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                     {item.label}
                   </p>
@@ -1246,29 +1213,45 @@ export default function DashboardOverview() {
           <Card className="rounded-[2rem] border-slate-200 bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="text-xl font-black text-slate-950">
-                Need to update the website?
+                Recommended Next Improvement
               </CardTitle>
               <CardDescription>
-                Keep daily use simple. Switch modes only when you need editing,
-                templates, SEO, or launch setup tools.
+                A consultant recommendation, clearly separated from the measured results.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              <div className="rounded-2xl bg-indigo-50 p-4 text-sm font-bold leading-6 text-slate-700">{recommendedConversionImprovement}</div>
               <Button
-                onClick={switchToDevelopmentMode}
+                onClick={() => navigate("/dashboard/update-requests")}
                 className="h-12 w-full rounded-xl bg-slate-950 font-black uppercase tracking-widest text-white hover:bg-slate-800"
               >
-                <Sparkles className="mr-2 h-4 w-4" />
-                Switch to Development Mode
+                <Wrench className="mr-2 h-4 w-4" />
+                Request This Improvement
               </Button>
               <Button
                 variant="outline"
                 onClick={() => navigate("/dashboard/support")}
                 className="h-12 w-full rounded-xl font-black uppercase tracking-widest"
               >
-                Request Help Instead
+                Contact Support
               </Button>
+              <Button variant="ghost" onClick={switchToDevelopmentMode} className="h-10 w-full text-xs font-black uppercase tracking-widest text-slate-500">Open Development Mode</Button>
             </CardContent>
+          </Card>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-2">
+          <Card className="rounded-[2rem] border-slate-200 bg-white shadow-sm">
+            <CardHeader><CardTitle className="text-xl font-black text-slate-950">What We Improved</CardTitle><CardDescription>Completed website update records from this month.</CardDescription></CardHeader>
+            <CardContent className="space-y-3">
+              {completedWebsiteImprovements.length ? completedWebsiteImprovements.map((request) => (
+                <div key={request.id || request.client_request_id} className="flex gap-3 rounded-2xl bg-emerald-50 p-4"><Check className="h-5 w-5 shrink-0 text-emerald-600" /><div><p className="font-black text-slate-900">{request.title || "Website improvement completed"}</p><p className="mt-1 text-xs font-semibold text-slate-500">{request.updated_at ? new Date(request.updated_at).toLocaleDateString() : "Completed this month"}</p></div></div>
+              )) : <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-600">No completed website updates recorded this month yet.</p>}
+            </CardContent>
+          </Card>
+          <Card className="rounded-[2rem] border-slate-200 bg-white shadow-sm">
+            <CardHeader><CardTitle className="text-xl font-black text-slate-950">Opportunity Found</CardTitle><CardDescription>Shown only when measured activity supports the observation.</CardDescription></CardHeader>
+            <CardContent><div className="rounded-2xl bg-amber-50 p-4 text-sm font-bold leading-6 text-slate-700">{measuredResults?.opportunity || "Not enough data yet"}</div></CardContent>
           </Card>
         </section>
 
@@ -1446,26 +1429,21 @@ export default function DashboardOverview() {
                   <div>
                     <CardTitle className="flex items-center gap-2 text-xl font-black text-slate-950">
                       <Target className="h-5 w-5 text-indigo-600" />
-                      Website Growth Score
+                      Website Growth Opportunities
                     </CardTitle>
                     <CardDescription>
-                      Your managed website is monitored across design, SEO, enquiry flow, trust, speed, and content.
+                      Consultant observations are shown as findings and actions, never as invented website scores.
                     </CardDescription>
                   </div>
-                  <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">
-                    {overallGrowthScore}/100
-                  </Badge>
+                  <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">Action focused</Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="grid gap-3 md:grid-cols-2">
-                  {dynamicGrowthScores.map((item) => (
+                  {growthOpportunities.map((item) => (
                     <div key={item.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
-                          <p className="mt-1 text-3xl font-black text-slate-950">{item.score}</p>
-                        </div>
+                        <p className="text-sm font-black text-slate-950">{item.label}</p>
                         <Badge className={cn(
                           "text-[9px] font-black uppercase",
                           item.priority === "High" ? "bg-red-50 text-red-700" : item.priority === "Medium" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700",
@@ -1579,8 +1557,8 @@ export default function DashboardOverview() {
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="rounded-2xl bg-amber-50 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">Weakest page</p>
-                    <p className="mt-2 text-sm font-black text-slate-900">{weakestPage}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">Evidence-based opportunity</p>
+                    <p className="mt-2 text-sm font-black text-slate-900">{measuredResults?.opportunity || "Not enough data yet"}</p>
                   </div>
                   <div className="rounded-2xl bg-indigo-50 p-4">
                     <p className="text-[10px] font-black uppercase tracking-widest text-indigo-700">Recommended improvement</p>
@@ -1853,14 +1831,10 @@ export default function DashboardOverview() {
                   Service Offer Clarity
                 </CardTitle>
                 <CardDescription>
-                  Scores the offer clarity behind the website, not only the design.
+                  Shows which offer details are clear and which still need input.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="rounded-3xl bg-slate-950 p-6 text-white">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Current offer score</p>
-                  <p className="mt-2 text-5xl font-black">{offerStrengthScore}/100</p>
-                </div>
                 <div className="grid gap-2">
                   {OFFER_STRENGTH_CRITERIA.map((criterion, index) => {
                     const filled = [
@@ -2097,20 +2071,16 @@ export default function DashboardOverview() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl font-black text-slate-950">
                   <MapPin className="h-5 w-5 text-indigo-600" />
-                  Local Ranking Readiness Score
+                  Local Search Checklist
                 </CardTitle>
                 <CardDescription>
-                  A practical local SEO readiness check, separate from generic SEO scoring.
+                  Clear setup items that are either present or still need attention.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="rounded-3xl bg-slate-950 p-6 text-white">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Readiness</p>
-                  <p className="mt-2 text-5xl font-black">{localRankingReadinessScore}/100</p>
-                </div>
                 <div className="grid gap-2">
-                  {LOCAL_RANKING_READINESS_SCORE.map((item, index) => {
-                    const complete = index < Math.round(localRankingReadinessScore / (100 / LOCAL_RANKING_READINESS_SCORE.length));
+                  {LOCAL_SEARCH_CHECKLIST.map((item, index) => {
+                    const complete = localSearchChecks[index];
                     return (
                       <div key={item} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3">
                         <Check className={cn("h-4 w-4", complete ? "text-emerald-600" : "text-slate-300")} />
@@ -2556,11 +2526,6 @@ export default function DashboardOverview() {
                       )}
                     >
                       <stat.icon className="h-7 w-7" />
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full uppercase tracking-widest">
-                        {stat.trend}
-                      </span>
                     </div>
                   </div>
                   <div>
