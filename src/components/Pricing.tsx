@@ -299,22 +299,37 @@ export const Pricing: React.FC<PricingProps> = ({
 };
 
 const getPlanHighlights = (plan: Plan) => {
-  const id = String(plan.id || plan.name).toLowerCase();
-  if (id.includes("starter")) {
+  const identity = `${plan.id || ""} ${plan.name || ""}`.toLowerCase();
+  if (identity.includes("starter") || identity.includes("launch")) {
     return {
       bestFor: "Entry path for a fast one-page lead website.",
-      included: ["1-page lead website", "Clear offer sections", "Contact form", "WhatsApp CTA"],
+      included: [
+        "1-page lead website",
+        "Hosting and SSL",
+        "Contact form + WhatsApp",
+        "Basic SEO setup",
+      ],
     };
   }
-  if (id.includes("business")) {
+  if (identity.includes("scale") || identity.includes("authority") || identity.includes("premium")) {
     return {
-      bestFor: "Recommended default for service businesses that need trust, services, and enquiry flow.",
-      included: ["Home, Services, Contact", "Review-powered trust", "WhatsApp/quote flow", "3 monthly updates"],
+      bestFor: "Upgrade path for landing pages, local expansion, and priority support.",
+      included: [
+        "Up to 5 managed pages",
+        "Landing + location pages",
+        "Enquiry tracking + monthly report",
+        "6 monthly updates + priority support",
+      ],
     };
   }
   return {
-    bestFor: "Upgrade path for landing pages, local expansion, and priority support.",
-    included: ["Up to 5 pages", "Campaign landing pages", "Local service-area pages", "6 monthly updates"],
+    bestFor: "Recommended default for service businesses that need trust, services, and enquiry flow.",
+    included: [
+      "Home, Services + Contact",
+      "WhatsApp + lead capture",
+      "Local SEO + trust sections",
+      "3 monthly managed updates",
+    ],
   };
 };
 
@@ -330,12 +345,9 @@ const PricingCard = ({
   geoPricing
 }: any) => {
   const planHighlights = getPlanHighlights(plan);
-  const includedFeatures =
-    Array.isArray(plan.features) && plan.features.length > 0
-      ? plan.features
-      : plan.source === "plans_table"
-        ? []
-        : planHighlights.included;
+  // Pricing cards show only the essentials. The complete feature list remains
+  // on the plan record for checkout, entitlements, and admin configuration.
+  const includedFeatures = planHighlights.included;
   const description = plan.description || planHighlights.bestFor;
 
   return (

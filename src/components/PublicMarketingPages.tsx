@@ -184,7 +184,7 @@ const pricingPlans = [
       US: "$49/mo",
     },
     description: "Entry plan for businesses that only need a focused one-page website.",
-    features: ["1-page website", "Managed hosting", "Contact form", "WhatsApp CTA", "Basic SEO setup"],
+    features: ["1-page lead website", "Hosting and SSL", "Contact form + WhatsApp", "Basic SEO setup"],
   },
   {
     name: "Growth",
@@ -195,7 +195,7 @@ const pricingPlans = [
       US: "$99/mo",
     },
     description: "Recommended default for service businesses that need trust, services, contact flow, and monthly improvement support.",
-    features: ["Home, Services, Contact", "Review-powered trust", "Local SEO-ready layout", "3 monthly managed updates", "Enquiry tracking"],
+    features: ["Home, Services + Contact", "WhatsApp + lead capture", "Local SEO + trust sections", "3 monthly managed updates"],
     featured: true,
   },
   {
@@ -207,7 +207,7 @@ const pricingPlans = [
       US: "$199/mo",
     },
     description: "Upgrade plan for landing pages, local expansion, and priority conversion support.",
-    features: ["Up to 5 pages", "Landing page support", "Local service-area pages", "6 monthly managed updates", "Conversion recommendations"],
+    features: ["Up to 5 managed pages", "Landing + location pages", "Enquiry tracking + monthly report", "6 monthly updates + priority support"],
   },
 ];
 
