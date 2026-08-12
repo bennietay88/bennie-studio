@@ -6,7 +6,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { motion, useScroll, useTransform, AnimatePresence } from "motion/react";
+import { motion, useScroll, useTransform } from "motion/react";
 import {
   Globe,
   ArrowRight,
@@ -25,7 +25,6 @@ import {
   Building,
   Search,
   Mail,
-  Menu,
   MessageCircle,
   Cookie,
   ExternalLink,
@@ -55,6 +54,7 @@ import { SafeImage } from "./SafeImage";
 import { useGeoPricing } from "../hooks/useGeoPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
+import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -131,7 +131,6 @@ export default function LandingPage() {
   const [platformPolicies, setPlatformPolicies] = React.useState<any[]>([]);
   const [blogPosts, setBlogPosts] = React.useState<any[]>([]);
   const [platformSettings, setPlatformSettings] = React.useState<any>(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [showCookiePreferences, setShowCookiePreferences] = React.useState(false);
   const [cookieDraft, setCookieDraft] = React.useState<SalesCookieConsent>({
     necessary: true,
@@ -219,7 +218,6 @@ export default function LandingPage() {
   }, []);
 
   const scrollToId = (id: string) => {
-    setIsMobileMenuOpen(false);
     const element = document.getElementById(id.replace("#", "")) || document.querySelector(id);
     if (element) {
       const offset = 100; // Increased offset for better visibility
@@ -258,28 +256,10 @@ export default function LandingPage() {
     scrollToId(target);
   };
 
-  const trackAndOpenExternal = (
-    url: string,
-    label: string,
-    eventType = "ecosystem_link_clicked",
-  ) => {
-    trackPublicEvent({ eventType, label, target: url });
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
   const y1 = useTransform(scrollY, [0, 1000], [0, 150]);
   const y2 = useTransform(scrollY, [0, 1000], [0, -100]);
   const y3 = useTransform(scrollY, [0, 1000], [0, 50]);
 
-  const navBg = useTransform(scrollY, [0, 100], ["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0.9)"]);
-  const navBorder = useTransform(scrollY, [0, 100], ["rgba(241, 245, 249, 0)", "rgba(241, 245, 249, 0.8)"]);
-  const headerNavItems = [
-    { label: "Main Site", href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com", external: true },
-    { label: "Case Studies", href: "/case-studies" },
-    { label: "How It Works", href: "#process" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "Free Audit", href: "/website-audit" },
-  ];
   const salesWhatsAppHref = buildWhatsAppHref(
     platformSettings?.salesWhatsappLink,
     platformSettings?.salesWhatsappMessage,
@@ -521,150 +501,7 @@ export default function LandingPage() {
           />
         )}
       </Helmet>
-      <motion.div
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.8, ease: [0.21, 0.47, 0.32, 0.98] }}
-        style={{ backgroundColor: navBg, borderColor: navBorder }}
-        className="sticky top-0 z-50 w-full backdrop-blur-md border-b transition-colors"
-      >
-        <nav
-          className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 max-w-7xl mx-auto"
-        >
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-2 font-bold text-indigo-600 text-xl sm:text-2xl cursor-pointer"
-            onClick={() => navigate("/")}
-          >
-            <Globe className="h-6 w-6 sm:h-8 w-8" />
-            <span className="truncate max-w-[150px] sm:max-w-none">
-              Bennie Studio
-            </span>
-          </motion.div>
-          <div className="hidden xl:flex gap-5 items-center">
-            {headerNavItems.map((item) => (
-              <motion.button
-                key={item.label}
-                onClick={() =>
-                  item.external
-                    ? trackAndOpenExternal(item.href, `Header ${item.label}`)
-                    : item.href.startsWith("/")
-                    ? navigate(item.href)
-                    : scrollToId(item.href)
-                }
-                whileHover={{ y: -2 }}
-                className={cn(
-                  "text-sm font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer",
-                  item.external && "hidden xl:inline-flex xl:items-center",
-                )}
-              >
-                {item.label}
-                {item.external && <ExternalLink className="ml-1 inline h-3 w-3" />}
-              </motion.button>
-            ))}
-            {user ? (
-              <Button onClick={() => navigate("/dashboard")} className="rounded-xl px-6">Dashboard</Button>
-            ) : (
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" onClick={() => navigate("/login")} className="rounded-xl text-slate-600">Sign In</Button>
-                <Button onClick={() => trackAndNavigate("/generate-preview", "Header Generate Preview", "click_generate_preview")} className="rounded-xl px-6 bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100">Generate Preview</Button>
-              </div>
-            )}
-          </div>
-          <div className="xl:hidden flex items-center gap-2">
-            {user ? (
-              <Button size="sm" onClick={() => navigate("/dashboard")} className="rounded-xl">
-                Dashboard
-              </Button>
-            ) : (
-              <Button size="sm" onClick={() => trackAndScroll("#pricing", "Mobile View Plans", "pricing_cta_clicked")} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl">
-                View Plans
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2"
-            >
-              <Menu className="h-6 w-6 text-slate-600" />
-            </Button>
-          </div>
-        </nav>
-      </motion.div>
-
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-md md:hidden"
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute right-0 top-0 h-full w-[280px] bg-white shadow-2xl p-8 flex flex-col"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-12">
-                <div className="flex items-center gap-2 font-bold text-indigo-600 text-xl">
-                  <Globe className="h-6 w-6" />
-                  <span>Studio</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="rounded-full h-8 w-8 p-0"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              <div className="flex flex-col gap-6">
-                {headerNavItems.map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={() =>
-                      item.external
-                        ? (setIsMobileMenuOpen(false), trackAndOpenExternal(item.href, `Mobile ${item.label}`))
-                        : item.href.startsWith("/")
-                        ? (setIsMobileMenuOpen(false), navigate(item.href))
-                        : scrollToId(item.href)
-                    }
-                    className="text-left text-lg font-bold text-slate-900 hover:text-indigo-600 transition-colors"
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-auto pt-8 border-t border-slate-100 flex flex-col gap-4">
-                {!user && (
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate("/login")}
-                    className="w-full rounded-xl h-12"
-                  >
-                    Sign In
-                  </Button>
-                )}
-                <Button
-                  onClick={() => user ? navigate("/dashboard") : trackAndNavigate("/generate-preview", "Mobile Generate Preview", "click_generate_preview")}
-                  className="w-full rounded-xl h-12 bg-indigo-600 hover:bg-indigo-700"
-                >
-                  {user ? "Dashboard" : "Generate Preview"}
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <PublicSiteHeader />
 
       {/* Hero */}
       <section className="relative px-4 sm:px-8 pt-8 sm:pt-14 lg:pt-32 pb-12 lg:pb-20 max-w-7xl mx-auto overflow-hidden">
@@ -1855,95 +1692,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-white text-slate-600 py-16 lg:py-24 px-8 border-t border-slate-100">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 gap-12 md:grid-cols-5 mb-16">
-            <div>
-              <div className="flex items-center gap-2 font-bold text-slate-900 text-2xl mb-6">
-                <Globe className="h-8 w-8 text-indigo-600" />
-                <span>Bennie Studio</span>
-              </div>
-              <p className="max-w-sm leading-relaxed text-slate-500 font-medium">{c.footer?.tagline}</p>
-              {c.footer?.email && (
-                <a href={`mailto:${c.footer.email}`} className="mt-5 inline-flex text-sm font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700">
-                  Contact Us
-                </a>
-              )}
-            </div>
-            <div>
-              <h4 className="text-slate-900 font-black uppercase tracking-widest text-xs mb-8">Services</h4>
-              <ul className="space-y-4 text-sm text-slate-500 font-bold uppercase tracking-wider">
-                <li><button onClick={() => scrollToId("#pricing")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Managed Lead Website Plans</button></li>
-                <li><button onClick={() => navigate("/apply-custom")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Custom Website</button></li>
-                <li><button onClick={() => scrollToId("#features")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Website Benefits</button></li>
-                <li><button onClick={() => scrollToId("#custom-website")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Custom Website Upgrade</button></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-slate-900 font-black uppercase tracking-widest text-xs mb-8">Resources</h4>
-              <ul className="space-y-4 text-sm text-slate-500 font-bold uppercase tracking-wider">
-                <li><button onClick={() => navigate("/case-studies")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Case Studies</button></li>
-                <li><button onClick={() => navigate("/website-subscription-service/uk")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">UK Local SEO Pages</button></li>
-                <li><button onClick={() => navigate("/website-subscription-service/malaysia")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Malaysia Local SEO Pages</button></li>
-                <li><button onClick={() => navigate("/website-subscription-service/singapore")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Singapore Local SEO Pages</button></li>
-                <li><button onClick={() => scrollToId("#process")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">How It Works</button></li>
-                <li><button onClick={() => scrollToId("#pricing")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Pricing</button></li>
-                <li><button onClick={() => scrollToId("#faq")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">FAQ</button></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-slate-900 font-black uppercase tracking-widest text-xs mb-8">Bennie Tay Ecosystem</h4>
-              <ul className="space-y-4 text-sm text-slate-500 font-bold uppercase tracking-wider">
-                {BENNIE_ECOSYSTEM_LINKS.map((link) => (
-                  <li key={link.id}>
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Footer ${link.shortLabel}`, target: link.url })}
-                      className="inline-flex items-center gap-2 hover:text-indigo-600 transition-colors"
-                    >
-                      {link.shortLabel}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-slate-900 font-black uppercase tracking-widest text-xs mb-8">Legal</h4>
-              <ul className="space-y-4 text-sm text-slate-500 font-bold uppercase tracking-wider">
-                <li><button onClick={() => navigate("/terms")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Terms of Service</button></li>
-                <li><button onClick={() => navigate("/privacy")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Privacy Policy</button></li>
-                <li><button onClick={() => navigate("/cookie-policy")} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Cookie Policy</button></li>
-                <li><button onClick={() => setShowCookiePreferences(true)} className="hover:text-indigo-600 transition-colors bg-transparent border-none cursor-pointer">Manage Cookies</button></li>
-                {socials.map((social: any, i: number) => (
-                  <li key={i}>
-                    <a
-                      href={social.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hover:text-indigo-600 transition-colors"
-                    >
-                      {social.platform}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] text-slate-400 font-black uppercase tracking-widest">
-            <p>© 2026 Bennie Studio. Managed lead-generation websites and custom website builds.</p>
-            <div className="flex flex-wrap justify-center md:justify-end gap-8">
-              <button onClick={() => navigate("/privacy")} className="hover:text-slate-900 transition-colors">Privacy Policy</button>
-              <button onClick={() => navigate("/terms")} className="hover:text-slate-900 transition-colors">Terms of Service</button>
-              <button onClick={() => navigate("/cookie-policy")} className="hover:text-slate-900 transition-colors">Cookie Policy</button>
-              <button onClick={() => setShowCookiePreferences(true)} className="hover:text-slate-900 transition-colors">Manage Cookies</button>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicSiteFooter tagline={c.footer?.tagline} email={c.footer?.email} onManageCookies={() => setShowCookiePreferences(true)} />
       {showCookieBanner && (
         <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-slate-200 bg-white/95 px-4 py-4 shadow-2xl shadow-slate-950/10 backdrop-blur-md">
           <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

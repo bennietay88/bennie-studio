@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Check,
   ClipboardCheck,
-  ExternalLink,
   FileSearch,
   Globe,
   LayoutTemplate,
@@ -31,7 +30,7 @@ import { formatUsdRangeForCountry } from "../hooks/useGeoPricing";
 import { trackPinterestLead } from "../lib/pinterestTracking";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { FREE_PREVIEW_LIMITS, PUBLIC_PROMISE, SUBSCRIPTION_DELIVERY_FLOW } from "../constants/salesFlow";
-import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
+import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import {
   normalizeWebsiteAuditResult,
   type AuditPriority,
@@ -109,19 +108,6 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
       "Consultant websites that explain your offer, build trust, present services, and convert visitors into consultation calls and qualified enquiries.",
   },
 };
-
-const navItems = [
-  {
-    label: "Main Site",
-    href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com",
-    external: true,
-  },
-  { label: "Case Studies", href: "/case-studies" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "How It Works", href: "/how-it-works" },
-  { label: "Free Audit", href: "/website-audit" },
-  { label: "Generate Preview", href: "/generate-preview" },
-];
 
 const primaryCtaClass =
   "inline-flex min-h-12 items-center justify-center rounded-2xl bg-indigo-600 px-6 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_12px_28px_-14px_rgba(79,70,229,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-500 hover:shadow-[0_18px_34px_-16px_rgba(79,70,229,0.9)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/25 active:translate-y-0";
@@ -492,126 +478,6 @@ async function submitPlatformLead(input: {
   });
 
   return data;
-}
-
-function MarketingHeader() {
-  return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4">
-        <Link to="/" className="flex items-center gap-2 text-slate-950">
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-600 text-white">
-            <Globe className="h-5 w-5" />
-          </span>
-          <span className="text-lg font-black tracking-tight">Bennie Studio</span>
-        </Link>
-        <nav className="hidden items-center gap-6 lg:flex">
-          {navItems.map((item) => (
-            item.external ? (
-              <a
-                key={item.href}
-                href={item.href}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Marketing Header ${item.label}`, target: item.href })}
-                className="hidden items-center gap-1 text-xs font-black uppercase tracking-[0.18em] text-slate-500 transition hover:text-indigo-600 xl:inline-flex"
-              >
-                {item.label}
-              </a>
-            ) : (
-              <Link
-                key={item.href}
-                to={item.href}
-                className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 transition hover:text-indigo-600"
-              >
-                {item.label}
-              </Link>
-            )
-          ))}
-        </nav>
-        <Link
-          to="/generate-preview"
-          onClick={() => trackPublicEvent({ eventType: "click_generate_preview", label: "Header Generate Preview", target: "/generate-preview" })}
-          className="inline-flex min-h-10 items-center justify-center rounded-full bg-slate-950 px-5 py-2.5 text-sm font-black text-white shadow-[0_8px_20px_-12px_rgba(15,23,42,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20"
-        >
-          Generate Preview
-        </Link>
-      </div>
-    </header>
-  );
-}
-
-function MarketingFooter() {
-  return (
-    <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 md:grid-cols-2 lg:grid-cols-6">
-        <div>
-          <div className="mb-3 flex items-center gap-2 font-black text-slate-950">
-            <Globe className="h-5 w-5 text-indigo-600" />
-            Bennie Studio
-          </div>
-          <p className="text-sm font-semibold leading-6 text-slate-600">
-            Managed lead-generation websites and custom website builds for small businesses that need more enquiries, trust, and local visibility.
-          </p>
-        </div>
-        {[
-          ["Pages", navItems],
-          ["Services", [
-            { label: "Managed Lead Website Plans", href: "/pricing" },
-            { label: "Custom Website", href: "/apply-custom" },
-            { label: "Website Case Studies", href: "/case-studies" },
-          ]],
-          ["Ecosystem", BENNIE_ECOSYSTEM_LINKS.map((link) => ({
-            label: link.shortLabel,
-            href: link.url,
-            external: true,
-          }))],
-          ["Local SEO", [
-            { label: "UK Website Subscription", href: "/website-subscription-service/uk" },
-            { label: "Malaysia Website Subscription", href: "/website-subscription-service/malaysia" },
-            { label: "Singapore Website Subscription", href: "/website-subscription-service/singapore" },
-            { label: "Website Design London", href: "/website-design/london" },
-            { label: "Website Design Petaling Jaya", href: "/website-design/petaling-jaya" },
-            { label: "Website Design Orchard", href: "/website-design/singapore/orchard" },
-          ]],
-          ["Legal", [
-            { label: "Privacy Policy", href: "/privacy-policy" },
-            { label: "Cookie Policy", href: "/cookie-policy" },
-            { label: "Terms of Service", href: "/terms-of-service" },
-            { label: "Subprocessor List", href: "/subprocessors" },
-            { label: "Acceptable Use", href: "/acceptable-use-policy" },
-          ]],
-        ].map(([title, links]) => (
-          <div key={title as string}>
-            <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">{title as string}</p>
-            <div className="space-y-2">
-              {(links as { label: string; href: string; external?: boolean }[]).map((link) => (
-                link.external ? (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Marketing Footer ${link.label}`, target: link.href })}
-                    className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600"
-                  >
-                    {link.label}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                ) : (
-                  <Link key={link.href} to={link.href} className="block text-sm font-bold text-slate-600 hover:text-indigo-600">
-                    {link.label}
-                  </Link>
-                )
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="border-t border-slate-100 px-5 py-5 text-center text-xs font-bold text-slate-500">
-        © {new Date().getFullYear()} Bennie Studio. All rights reserved.
-      </div>
-    </footer>
-  );
 }
 
 function Hero({ title, copy, icon: Icon }: { title: string; copy: string; icon: React.ElementType }) {
@@ -2026,7 +1892,7 @@ export default function PublicMarketingPages() {
         <title>{meta.title}</title>
         <meta name="description" content={meta.description} />
       </Helmet>
-      <MarketingHeader />
+      <PublicSiteHeader />
       {pageContent}
       <section className="bg-white">
         <div className="mx-auto grid max-w-7xl gap-5 px-5 py-12 md:grid-cols-[1fr_auto] md:items-center">
@@ -2059,7 +1925,7 @@ export default function PublicMarketingPages() {
           </div>
         </div>
       </section>
-      <MarketingFooter />
+      <PublicSiteFooter />
     </div>
   );
 }
