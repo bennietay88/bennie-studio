@@ -1651,7 +1651,7 @@ function WebsiteAuditPage() {
         </div>
         <form onSubmit={submitAudit} className="rounded-[2rem] border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
           <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">Free audit request</p>
-          <h2 className="mt-4 text-3xl font-black">Send your website for review</h2>
+          <h2 className="mt-4 text-3xl font-black text-white">Send your website for review</h2>
           <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
             No payment required. Start with your website, business name, and email. Industry, phone, and notes are optional.
           </p>
