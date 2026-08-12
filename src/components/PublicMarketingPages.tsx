@@ -117,11 +117,6 @@ const navItems = [
     external: true,
   },
   { label: "Case Studies", href: "/case-studies" },
-  {
-    label: "Portfolio",
-    href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "portfolio")?.url || "https://portfolio.bennietay.com",
-    external: true,
-  },
   { label: "Pricing", href: "/pricing" },
   { label: "How It Works", href: "/how-it-works" },
   { label: "Free Audit", href: "/website-audit" },
@@ -211,13 +206,35 @@ const pricingPlans = [
   },
 ];
 
-const processSteps = [
-  ["Preview", "Generate a limited homepage concept before creating an account."],
-  ["Plan", "Choose a managed subscription plan and create your account."],
-  ["Checkout", "Confirm payment or complete a card-required trial setup."],
-  ["Onboard", "Submit business details, services, reviews, contact details, images, and domain information."],
-  ["Review", "Track the draft, submit consolidated feedback, and approve the website."],
-  ["Launch", "Publish with domain, SSL, contact form, WhatsApp CTA, and plan-based support ready."],
+const deliveryStages = [
+  {
+    title: "See the direction",
+    timing: "Before you buy",
+    customer: "Share your website or a short business brief.",
+    studio: "We identify the clearest offer, proof, and enquiry direction, then prepare a limited preview.",
+    outcome: "You can judge the direction before committing.",
+  },
+  {
+    title: "Confirm the plan",
+    timing: "Signup",
+    customer: "Choose the plan that matches the pages and support you need.",
+    studio: "We preserve your preview details and guide you through checkout and onboarding.",
+    outcome: "No need to repeat the same business information.",
+  },
+  {
+    title: "Review the build",
+    timing: "Build and approval",
+    customer: "Provide content and one clear round of consolidated feedback.",
+    studio: "We build the agreed pages, enquiry paths, mobile layout, SEO basics, and tracking.",
+    outcome: "Nothing launches until you approve it.",
+  },
+  {
+    title: "Launch and improve",
+    timing: "Ongoing",
+    customer: "Approve recommendations or request plan-based updates.",
+    studio: "We host, maintain, track real enquiry actions, and make managed improvements.",
+    outcome: "You see what happened, what changed, and what we recommend next.",
+  },
 ];
 
 const caseStudies = [
@@ -494,7 +511,6 @@ function MarketingHeader() {
                 className="hidden items-center gap-1 text-xs font-black uppercase tracking-[0.18em] text-slate-500 transition hover:text-indigo-600 xl:inline-flex"
               >
                 {item.label}
-                <ExternalLink className="h-3 w-3" />
               </a>
             ) : (
               <Link
@@ -738,11 +754,23 @@ function PricingPage() {
   return (
     <>
       <Hero
-        title={`Clear website pricing for ${market.country}`}
-        copy="Start with a managed monthly website plan shown in your local market currency, then move to a custom website project when you need full CMS control, advanced SEO pages, integrations, or content publishing."
+        title={`Choose the website support you need now`}
+        copy={`Three managed options for ${market.country}: launch a focused website, build a stronger enquiry journey, or add landing pages and local growth support. You can upgrade when the business needs more.`}
         icon={ClipboardCheck}
       />
       <section className="mx-auto max-w-7xl px-5 py-14">
+        <div className="mb-8 grid gap-4 md:grid-cols-3">
+          {[
+            ["Launch", "I need a professional website and one clear enquiry action."],
+            ["Growth", "I need services, trust, enquiries, and monthly managed improvements."],
+            ["Scale", "I need campaigns, more locations, reporting, and priority support."],
+          ].map(([plan, need]) => (
+            <div key={plan} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Choose {plan} if</p>
+              <p className="mt-2 text-sm font-bold leading-6 text-slate-700">{need}</p>
+            </div>
+          ))}
+        </div>
         <div className="mb-6 flex flex-col justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Location-based pricing</p>
@@ -795,7 +823,8 @@ function PricingPage() {
         <div className="mt-6 rounded-[2rem] border border-slate-200 bg-slate-950 p-7 text-white">
           <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
             <div>
-              <p className="text-2xl font-black text-white">Custom Website</p>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-200">Not a subscription fit?</p>
+              <p className="mt-2 text-2xl font-black text-white">Choose a Custom Website</p>
               <p className="mt-2 text-sm font-semibold leading-6 text-slate-200">
                 {customWebsiteQuote} for full CMS control, blog publishing, advanced SEO pages, custom integrations, and bespoke design.
               </p>
@@ -818,23 +847,54 @@ function HowItWorksPage() {
   return (
     <>
       <Hero
-        title="From signup to launch without a slow agency project"
-        copy="The process is structured so customers see value quickly: submit a simple brief, get a prepared website preview, review changes, launch, then request updates based on the plan."
+        title="You run the business. We manage the website."
+        copy="See exactly what you provide, what Bennie Studio handles, when you approve the work, and what continues after launch."
         icon={Rocket}
       />
       <section className="mx-auto max-w-7xl px-5 py-14">
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {processSteps.map(([title, copy], index) => (
-            <div key={title} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-sm font-black text-indigo-600">
-                {index + 1}
-              </span>
-              <h2 className="mt-6 text-2xl font-black text-slate-950">{title}</h2>
-              <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{copy}</p>
+        <div className="mb-8 rounded-[2rem] border border-indigo-100 bg-indigo-50 p-6 md:flex md:items-center md:justify-between md:gap-8">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">The working agreement</p>
+            <h2 className="mt-2 text-2xl font-black text-slate-950">One clear owner on each side.</h2>
+          </div>
+          <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-slate-700 md:mt-0">
+            You provide accurate business information and timely approval. Bennie Studio handles website strategy, production, hosting, maintenance, tracking, and plan-based improvements.
+          </p>
+        </div>
+        <div className="space-y-5">
+          {deliveryStages.map((stage, index) => (
+            <article key={stage.title} className="grid gap-5 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm lg:grid-cols-[0.55fr_1fr_1fr] lg:items-start">
+              <div>
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-sm font-black text-indigo-600">{index + 1}</span>
+                <p className="mt-5 text-xs font-black uppercase tracking-[0.18em] text-indigo-600">{stage.timing}</p>
+                <h2 className="mt-2 text-2xl font-black text-slate-950">{stage.title}</h2>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-5">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">What you do</p>
+                <p className="mt-2 text-sm font-bold leading-6 text-slate-700">{stage.customer}</p>
+              </div>
+              <div>
+                <div className="rounded-2xl bg-indigo-50 p-5">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-indigo-600">What Bennie Studio does</p>
+                  <p className="mt-2 text-sm font-bold leading-6 text-slate-700">{stage.studio}</p>
+                </div>
+                <p className="mt-3 flex gap-2 text-sm font-black text-emerald-700"><Check className="mt-0.5 h-4 w-4 shrink-0" /> {stage.outcome}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {[
+            ["Before launch", "You review the prepared website and approve it before it goes live."],
+            ["After launch", "Hosting, SSL, maintenance, tracking, and included updates remain managed."],
+            ["When needs change", "Upgrade the plan or request a custom quote for CMS, ecommerce, or integrations."],
+          ].map(([title, copy]) => (
+            <div key={title} className="rounded-3xl border border-slate-200 bg-white p-5">
+              <p className="font-black text-slate-950">{title}</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{copy}</p>
             </div>
           ))}
         </div>
-        <PreviewRequestPanel />
       </section>
     </>
   );

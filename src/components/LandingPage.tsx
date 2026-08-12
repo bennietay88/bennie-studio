@@ -276,7 +276,6 @@ export default function LandingPage() {
   const headerNavItems = [
     { label: "Main Site", href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com", external: true },
     { label: "Case Studies", href: "/case-studies" },
-    { label: "Portfolio", href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "portfolio")?.url || "https://portfolio.bennietay.com", external: true },
     { label: "How It Works", href: "#process" },
     { label: "Pricing", href: "#pricing" },
     { label: "Free Audit", href: "/website-audit" },
