@@ -80,6 +80,11 @@ export function Sidebar({
     "simple" | "development"
   >("simple");
   const [expandedSections, setExpandedSections] = React.useState<Record<string, boolean>>({
+    "Sales & Leads": true,
+    "Customers & Delivery": true,
+    "Content & CMS": true,
+    "Plans & Revenue": true,
+    "Platform & System": true,
     "Website Builder": true,
     "Sales & Marketing": true,
     "Business Ops": true,
@@ -134,35 +139,62 @@ export function Sidebar({
     if (role === "super_admin") {
       return [
         {
-          label: "Sales",
+          label: "Sales & Leads",
           items: [
             { to: "/admin", icon: LayoutDashboard, label: "Overview", className: "tour-dashboard" },
             { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox" },
             { to: "/admin/prospect_explorer", icon: Users, label: "Prospects" },
             { to: "/admin/neural_auditor", icon: Globe, label: "Website Reviews" },
             { to: "/admin/outreach_lab", icon: MessageSquare, label: "Outreach" },
+            { to: "/admin/mass_campaigns", icon: Zap, label: "Campaigns" },
+            { to: "/admin/webinar_engine", icon: CalendarIcon, label: "Webinars" },
             { to: "/admin/proposals_deals", icon: FileText, label: "Sales Pipeline" },
           ]
         },
         {
-          label: "Delivery",
+          label: "Customers & Delivery",
           items: [
             { to: "/admin/businesses", icon: Globe, label: "Active Sites", className: "tour-businesses" },
+            { to: "/admin/users", icon: Users, label: "Users & Access" },
+            { to: "/admin/sales_home", icon: Rocket, label: "Operations Lab" },
+            { to: "/admin/custom_applications", icon: FileText, label: "Custom Applications" },
             { to: "/admin/projects", icon: Briefcase, label: "Service Projects" },
             { to: "/admin/launch_audit", icon: Shield, label: "Launch Checks" },
             { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover" },
+            { to: "/admin/operations", icon: Activity, label: "Operations Control" },
             { to: "/admin/update_requests", icon: FileText, label: "Update Queue" },
             { to: "/admin/support", icon: Headphones, label: "Support" },
           ]
         },
         {
-          label: "Platform",
+          label: "Content & CMS",
+          items: [
+            { to: "/admin/templates", icon: Layout, label: "Website Templates" },
+            { to: "/admin/blog", icon: FileText, label: "Blog CMS" },
+            { to: "/admin/policies", icon: FileText, label: "Policies CMS" },
+            { to: "/admin/local_seo", icon: MapPin, label: "Local SEO" },
+            { to: "/admin/compliance_market", icon: ShieldCheck, label: "Compliance & Market" },
+          ]
+        },
+        {
+          label: "Plans & Revenue",
           items: [
             { to: "/admin/plans", icon: CreditCard, label: "Plans & Pricing" },
             { to: "/admin/revenue", icon: CreditCard, label: "Revenue" },
-            { to: "/admin/traffic", icon: BarChart3, label: "Traffic" },
+            { to: "/admin/geo_pricing", icon: Globe, label: "Market Pricing" },
+            { to: "/admin/affiliates", icon: Gift, label: "Partners & Affiliates" },
+            { to: "/admin/ai_credits", icon: Zap, label: "AI Credits" },
+          ]
+        },
+        {
+          label: "Platform & System",
+          items: [
+            { to: "/admin/growth_os_config", icon: Settings, label: "Feature Controls" },
+            { to: "/admin/intelligence_lab", icon: Cpu, label: "AI Control", className: "tour-ai-lab" },
+            { to: "/admin/traffic", icon: BarChart3, label: "Traffic Analytics" },
             { to: "/admin/status", icon: Shield, label: "System Status" },
-            { to: "/admin/settings", icon: Settings, label: "Settings" },
+            { to: "/admin/settings", icon: Settings, label: "Platform Settings" },
+            { to: "/admin/ecosystem_architect", icon: Layout, label: "Ecosystem Architect", className: "tour-architect" },
           ]
         }
       ];
