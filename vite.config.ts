@@ -7,6 +7,17 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
   return {
     plugins: [react(), tailwindcss()],
+    // Vercel prebuilt deployments run outside the hosted build environment.
+    // Define public browser configuration explicitly so values loaded from
+    // .env.production.local are embedded in the Vite bundle.
+    define: {
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
+        env.VITE_SUPABASE_URL || "",
+      ),
+      "import.meta.env.VITE_SUPABASE_ANON_KEY": JSON.stringify(
+        env.VITE_SUPABASE_ANON_KEY || "",
+      ),
+    },
     resolve: {
       alias: {
         "@/src": path.resolve(__dirname, "./src"),
