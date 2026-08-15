@@ -157,6 +157,11 @@ import { AdminLeadInbox } from "./SuperAdmin/AdminLeadInbox";
 import ComplianceMarketSettings from "./SuperAdmin/ComplianceMarketSettings";
 import { SystemStatusPage } from "./SystemStatusPage";
 import { PLANS as STATIC_PLANS, normalizePlans } from "../constants/plans";
+import {
+  ADMIN_MODULES,
+  ADMIN_MODULE_PRIORITY_LABELS,
+  DEFAULT_ADMIN_MODULE_VISIBILITY,
+} from "../constants/adminModules";
 import { ADMIN_TAB_PERMISSIONS, DEFAULT_PLATFORM_STAFF_PERMISSIONS } from "../constants/staffPermissions";
 
 const CUSTOMER_DASHBOARD_FEATURES = [
@@ -362,6 +367,7 @@ export default function SuperAdminDashboard() {
       adGenerator: "coming_soon" as "enabled" | "disabled" | "coming_soon",
       wordpressIntegration: "disabled" as "enabled" | "disabled" | "coming_soon",
     },
+    adminModules: DEFAULT_ADMIN_MODULE_VISIBILITY,
   });
   const [savingSettings, setSavingSettings] = useState(false);
   const [testingStripe, setTestingStripe] = useState(false);
@@ -909,6 +915,10 @@ export default function SuperAdminDashboard() {
             marketingFeatures: {
               ...prev.marketingFeatures,
               ...(settingsRes.data.content?.marketingFeatures || {}),
+            },
+            adminModules: {
+              ...DEFAULT_ADMIN_MODULE_VISIBILITY,
+              ...(settingsRes.data.content?.adminModules || {}),
             },
           }));
         }
@@ -1866,6 +1876,56 @@ export default function SuperAdminDashboard() {
                 </div>
 
                 {activeTab === "growth_os_config" && (
+                <div className="space-y-8">
+                   <Card className="rounded-[2rem] p-8">
+                      <div className="flex flex-col gap-3 border-b border-slate-100 pb-6 md:flex-row md:items-start md:justify-between">
+                         <div>
+                            <h3 className="font-black italic uppercase tracking-tight text-slate-900">Superadmin Modules</h3>
+                            <p className="mt-1 max-w-2xl text-xs font-medium leading-5 text-slate-500">
+                              All modules are enabled by default. Turn off modules you do not want in the everyday sidebar; they remain available here and can be restored at any time.
+                            </p>
+                         </div>
+                         <Badge className="w-fit border-0 bg-indigo-50 text-indigo-700">
+                           {Object.values(platformSettings.adminModules || {}).filter(Boolean).length} enabled
+                         </Badge>
+                      </div>
+
+                      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                        {Array.from(new Set(ADMIN_MODULES.map((module) => module.group))).map((group) => (
+                          <div key={group} className="rounded-2xl border border-slate-200 p-5">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{group}</p>
+                            <div className="mt-3 divide-y divide-slate-100">
+                              {ADMIN_MODULES.filter((module) => module.group === group).map((module) => (
+                                <div key={module.id} className="flex items-start gap-4 py-4">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <p className="text-sm font-bold text-slate-900">{module.label}</p>
+                                      <Badge variant="outline" className="text-[9px] font-bold text-slate-500">
+                                        {ADMIN_MODULE_PRIORITY_LABELS[module.priority]}
+                                      </Badge>
+                                    </div>
+                                    <p className="mt-1 text-xs leading-5 text-slate-500">{module.description}</p>
+                                  </div>
+                                  <Switch
+                                    aria-label={`${platformSettings.adminModules?.[module.id] !== false ? "Disable" : "Enable"} ${module.label}`}
+                                    checked={platformSettings.adminModules?.[module.id] !== false}
+                                    onCheckedChange={(checked) => setPlatformSettings({
+                                      ...platformSettings,
+                                      adminModules: {
+                                        ...DEFAULT_ADMIN_MODULE_VISIBILITY,
+                                        ...(platformSettings.adminModules || {}),
+                                        [module.id]: checked,
+                                      },
+                                    })}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                   </Card>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                    <Card className="rounded-[2rem] p-8 space-y-6">
                       <div className="flex items-center justify-between">
@@ -1951,6 +2011,7 @@ export default function SuperAdminDashboard() {
                          ))}
                       </div>
                    </Card>
+                </div>
                 </div>
                 )}
 

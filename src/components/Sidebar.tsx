@@ -51,6 +51,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { getEcosystemLink } from "../constants/businessEcosystem";
+import { DEFAULT_ADMIN_MODULE_VISIBILITY } from "../constants/adminModules";
 
 interface SidebarProps {
   role: UserRole;
@@ -72,6 +73,9 @@ export function Sidebar({
   const location = useLocation();
   const navigate = useNavigate();
   const [isAffiliate, setIsAffiliate] = React.useState(false);
+  const [adminModuleVisibility, setAdminModuleVisibility] = React.useState<Record<string, boolean>>(
+    DEFAULT_ADMIN_MODULE_VISIBILITY,
+  );
   const dashboardModeKey = React.useMemo(
     () => `bts_customer_dashboard_mode_${profile?.uid || profile?.email || "default"}`,
     [profile?.uid, profile?.email],
@@ -113,6 +117,40 @@ export function Sidebar({
   }, [profile?.uid]);
 
   React.useEffect(() => {
+    if (role !== "super_admin") return;
+
+    const applyModuleSettings = (content?: Record<string, any> | null) => {
+      setAdminModuleVisibility({
+        ...DEFAULT_ADMIN_MODULE_VISIBILITY,
+        ...(content?.adminModules || {}),
+      });
+    };
+
+    const fetchModuleSettings = async () => {
+      const { data } = await supabase
+        .from("settings")
+        .select("content")
+        .eq("id", "platform")
+        .maybeSingle();
+      applyModuleSettings(data?.content);
+    };
+
+    void fetchModuleSettings();
+    const channel = supabase
+      .channel("superadmin-module-visibility")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "settings", filter: "id=eq.platform" },
+        (payload) => applyModuleSettings((payload.new as any)?.content),
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [role]);
+
+  React.useEffect(() => {
     try {
       const savedMode = localStorage.getItem(dashboardModeKey);
       setCustomerDashboardMode(savedMode === "development" ? "development" : "simple");
@@ -143,12 +181,12 @@ export function Sidebar({
           items: [
             { to: "/admin", icon: LayoutDashboard, label: "Overview", className: "tour-dashboard" },
             { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox" },
-            { to: "/admin/prospect_explorer", icon: Users, label: "Prospects" },
-            { to: "/admin/neural_auditor", icon: Globe, label: "Website Reviews" },
-            { to: "/admin/outreach_lab", icon: MessageSquare, label: "Outreach" },
-            { to: "/admin/mass_campaigns", icon: Zap, label: "Campaigns" },
-            { to: "/admin/webinar_engine", icon: CalendarIcon, label: "Webinars" },
-            { to: "/admin/proposals_deals", icon: FileText, label: "Sales Pipeline" },
+            { to: "/admin/prospect_explorer", icon: Users, label: "Prospects", moduleId: "prospects" },
+            { to: "/admin/neural_auditor", icon: Globe, label: "Website Reviews", moduleId: "website_reviews" },
+            { to: "/admin/outreach_lab", icon: MessageSquare, label: "Outreach", moduleId: "outreach" },
+            { to: "/admin/mass_campaigns", icon: Zap, label: "Campaigns", moduleId: "campaigns" },
+            { to: "/admin/webinar_engine", icon: CalendarIcon, label: "Webinars", moduleId: "webinars" },
+            { to: "/admin/proposals_deals", icon: FileText, label: "Sales Pipeline", moduleId: "sales_pipeline" },
           ]
         },
         {
@@ -156,45 +194,45 @@ export function Sidebar({
           items: [
             { to: "/admin/businesses", icon: Globe, label: "Active Sites", className: "tour-businesses" },
             { to: "/admin/users", icon: Users, label: "Users & Access" },
-            { to: "/admin/sales_home", icon: Rocket, label: "Operations Lab" },
-            { to: "/admin/custom_applications", icon: FileText, label: "Custom Applications" },
-            { to: "/admin/projects", icon: Briefcase, label: "Service Projects" },
-            { to: "/admin/launch_audit", icon: Shield, label: "Launch Checks" },
-            { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover" },
-            { to: "/admin/operations", icon: Activity, label: "Operations Control" },
-            { to: "/admin/update_requests", icon: FileText, label: "Update Queue" },
-            { to: "/admin/support", icon: Headphones, label: "Support" },
+            { to: "/admin/sales_home", icon: Rocket, label: "Operations Lab", moduleId: "operations_lab" },
+            { to: "/admin/custom_applications", icon: FileText, label: "Custom Applications", moduleId: "custom_applications" },
+            { to: "/admin/projects", icon: Briefcase, label: "Service Projects", moduleId: "service_projects" },
+            { to: "/admin/launch_audit", icon: Shield, label: "Launch Checks", moduleId: "launch_checks" },
+            { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover", moduleId: "client_handover" },
+            { to: "/admin/operations", icon: Activity, label: "Operations Control", moduleId: "operations_control" },
+            { to: "/admin/update_requests", icon: FileText, label: "Update Queue", moduleId: "update_queue" },
+            { to: "/admin/support", icon: Headphones, label: "Support", moduleId: "support" },
           ]
         },
         {
           label: "Content & CMS",
           items: [
-            { to: "/admin/templates", icon: Layout, label: "Website Templates" },
-            { to: "/admin/blog", icon: FileText, label: "Blog CMS" },
-            { to: "/admin/policies", icon: FileText, label: "Policies CMS" },
-            { to: "/admin/local_seo", icon: MapPin, label: "Local SEO" },
-            { to: "/admin/compliance_market", icon: ShieldCheck, label: "Compliance & Market" },
+            { to: "/admin/templates", icon: Layout, label: "Website Templates", moduleId: "website_templates" },
+            { to: "/admin/blog", icon: FileText, label: "Blog CMS", moduleId: "blog_cms" },
+            { to: "/admin/policies", icon: FileText, label: "Policies CMS", moduleId: "policies_cms" },
+            { to: "/admin/local_seo", icon: MapPin, label: "Local SEO", moduleId: "local_seo" },
+            { to: "/admin/compliance_market", icon: ShieldCheck, label: "Compliance & Market", moduleId: "compliance_market" },
           ]
         },
         {
           label: "Plans & Revenue",
           items: [
-            { to: "/admin/plans", icon: CreditCard, label: "Plans & Pricing" },
-            { to: "/admin/revenue", icon: CreditCard, label: "Revenue" },
-            { to: "/admin/geo_pricing", icon: Globe, label: "Market Pricing" },
-            { to: "/admin/affiliates", icon: Gift, label: "Partners & Affiliates" },
-            { to: "/admin/ai_credits", icon: Zap, label: "AI Credits" },
+            { to: "/admin/plans", icon: CreditCard, label: "Plans & Pricing", moduleId: "plans_pricing" },
+            { to: "/admin/revenue", icon: CreditCard, label: "Revenue", moduleId: "revenue" },
+            { to: "/admin/geo_pricing", icon: Globe, label: "Market Pricing", moduleId: "market_pricing" },
+            { to: "/admin/affiliates", icon: Gift, label: "Partners & Affiliates", moduleId: "partners_affiliates" },
+            { to: "/admin/ai_credits", icon: Zap, label: "AI Credits", moduleId: "ai_credits" },
           ]
         },
         {
           label: "Platform & System",
           items: [
             { to: "/admin/growth_os_config", icon: Settings, label: "Feature Controls" },
-            { to: "/admin/intelligence_lab", icon: Cpu, label: "AI Control", className: "tour-ai-lab" },
-            { to: "/admin/traffic", icon: BarChart3, label: "Traffic Analytics" },
+            { to: "/admin/intelligence_lab", icon: Cpu, label: "AI Control", className: "tour-ai-lab", moduleId: "ai_control" },
+            { to: "/admin/traffic", icon: BarChart3, label: "Traffic Analytics", moduleId: "traffic_analytics" },
             { to: "/admin/status", icon: Shield, label: "System Status" },
             { to: "/admin/settings", icon: Settings, label: "Platform Settings" },
-            { to: "/admin/ecosystem_architect", icon: Layout, label: "Ecosystem Architect", className: "tour-architect" },
+            { to: "/admin/ecosystem_architect", icon: Layout, label: "Ecosystem Architect", className: "tour-architect", moduleId: "ecosystem_architect" },
           ]
         }
       ];
@@ -320,6 +358,13 @@ export function Sidebar({
           items: group.items.filter((link: any) => {
             if (!link) return false;
             if (
+              role === "super_admin" &&
+              link.moduleId &&
+              adminModuleVisibility[link.moduleId] === false
+            ) {
+              return false;
+            }
+            if (
               role === "platform_staff" &&
               link.permission &&
               !(profile?.staffPermissions || []).includes(link.permission)
@@ -346,7 +391,7 @@ export function Sidebar({
           }),
         }))
         .filter((group) => group.items.length > 0),
-    [customerDashboardMode, isCustomerRole, navGroups, profile?.staffPermissions, role],
+    [adminModuleVisibility, customerDashboardMode, isCustomerRole, navGroups, profile?.staffPermissions, role],
   );
   const mainWebsiteLink = getEcosystemLink("main");
   const portfolioLink = getEcosystemLink("portfolio");
