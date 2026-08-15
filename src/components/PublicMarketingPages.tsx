@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Check,
   ClipboardCheck,
+  ExternalLink,
   FileSearch,
   Globe,
   LayoutTemplate,
@@ -30,7 +31,14 @@ import { formatUsdRangeForCountry } from "../hooks/useGeoPricing";
 import { trackPinterestLead } from "../lib/pinterestTracking";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { FREE_PREVIEW_LIMITS, PUBLIC_PROMISE, SUBSCRIPTION_DELIVERY_FLOW } from "../constants/salesFlow";
+import {
+  PRIMARY_REVENUE_OFFER,
+  countryToRevenueMarket,
+  getOfferForMarket,
+  type RevenueMarket,
+} from "../constants/revenueOffer";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
+import { supabase } from "../lib/supabase";
 import {
   normalizeWebsiteAuditResult,
   type AuditPriority,
@@ -49,7 +57,7 @@ type PublicPageKind =
   | "beauty-salon-website-design"
   | "tuition-centre-website-design"
   | "consultant-website-design";
-type PricingMarket = "MY" | "SG" | "GB" | "US";
+type PricingMarket = RevenueMarket;
 
 const pageMeta: Record<PublicPageKind, { title: string; description: string }> = {
   templates: {
@@ -151,51 +159,6 @@ const pricingMarkets: Record<PricingMarket, { label: string; country: string; no
     note: "Prices shown in USD for international buyers.",
   },
 };
-
-const countryToPricingMarket = (countryCode?: string): PricingMarket => {
-  const code = (countryCode || "").toUpperCase();
-  if (code === "MY") return "MY";
-  if (code === "SG") return "SG";
-  if (code === "GB" || code === "UK") return "GB";
-  return "US";
-};
-
-const pricingPlans = [
-  {
-    name: "Launch",
-    prices: {
-      MY: "RM199/mo",
-      SG: "SGD 69/mo",
-      GB: "£49/mo",
-      US: "$49/mo",
-    },
-    description: "Entry plan for businesses that only need a focused one-page website.",
-    features: ["1-page lead website", "Hosting and SSL", "Contact form + WhatsApp", "Basic SEO setup"],
-  },
-  {
-    name: "Growth",
-    prices: {
-      MY: "RM399/mo",
-      SG: "SGD 139/mo",
-      GB: "£99/mo",
-      US: "$99/mo",
-    },
-    description: "Recommended default for service businesses that need trust, services, contact flow, and monthly improvement support.",
-    features: ["Home, Services + Contact", "WhatsApp + lead capture", "Local SEO + trust sections", "3 monthly managed updates"],
-    featured: true,
-  },
-  {
-    name: "Scale",
-    prices: {
-      MY: "RM799/mo",
-      SG: "SGD 279/mo",
-      GB: "£199/mo",
-      US: "$199/mo",
-    },
-    description: "Upgrade plan for landing pages, local expansion, and priority conversion support.",
-    features: ["Up to 5 managed pages", "Landing + location pages", "Enquiry tracking + monthly report", "6 monthly updates + priority support"],
-  },
-];
 
 const deliveryStages = [
   {
@@ -599,7 +562,7 @@ function PricingPage() {
         const response = await fetch("https://ipapi.co/json/");
         if (!response.ok) throw new Error("Location detection failed");
         const data = await response.json();
-        const market = countryToPricingMarket(data?.country_code);
+        const market = countryToRevenueMarket(data?.country_code);
         if (cancelled) return;
         setSelectedMarket(market);
         setDetectedLabel(`Detected ${data?.country_name || pricingMarkets[market].label}`);
@@ -617,6 +580,7 @@ function PricingPage() {
   }, []);
 
   const market = pricingMarkets[selectedMarket];
+  const offer = getOfferForMarket(selectedMarket);
   const customWebsiteQuote = formatUsdRangeForCountry(1500, 3500, selectedMarket, {
     from: true,
     plus: true,
@@ -625,23 +589,11 @@ function PricingPage() {
   return (
     <>
       <Hero
-        title={`Choose the website support you need now`}
-        copy={`Three managed options for ${market.country}: launch a focused website, build a stronger enquiry journey, or add landing pages and local growth support. You can upgrade when the business needs more.`}
+        title="One accountable website growth partner"
+        copy={`A focused managed service for ${market.country} businesses that want a stronger website and enquiry journey without managing freelancers, hosting, copy, analytics, and monthly improvements separately.`}
         icon={ClipboardCheck}
       />
       <section className="mx-auto max-w-7xl px-5 py-14">
-        <div className="mb-8 grid gap-4 md:grid-cols-3">
-          {[
-            ["Launch", "I need a professional website and one clear enquiry action."],
-            ["Growth", "I need services, trust, enquiries, and monthly managed improvements."],
-            ["Scale", "I need campaigns, more locations, reporting, and priority support."],
-          ].map(([plan, need]) => (
-            <div key={plan} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Choose {plan} if</p>
-              <p className="mt-2 text-sm font-bold leading-6 text-slate-700">{need}</p>
-            </div>
-          ))}
-        </div>
         <div className="mb-6 flex flex-col justify-between gap-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Location-based pricing</p>
@@ -660,36 +612,52 @@ function PricingPage() {
             </select>
           </label>
         </div>
-        <div className="grid gap-5 lg:grid-cols-3">
-          {pricingPlans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`rounded-[2rem] border p-7 shadow-sm ${plan.featured ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-white"}`}
-            >
-              {plan.featured && <Badge className="mb-4 bg-indigo-600 text-white">Most Popular</Badge>}
-              <h2 className="text-3xl font-black text-slate-950">{plan.name}</h2>
-              <p className="mt-3 min-h-12 text-sm font-semibold leading-6 text-slate-600">{plan.description}</p>
-              <div className="mt-6 rounded-2xl bg-white p-5">
-                <p className="text-xs font-black uppercase tracking-widest text-slate-400">{market.label}</p>
-                <p className="mt-1 text-4xl font-black tracking-tight text-slate-950">{plan.prices[selectedMarket]}</p>
-                <p className="mt-2 text-xs font-bold text-slate-500">Managed monthly lead website plan</p>
+        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-[2.5rem] border border-indigo-200 bg-indigo-50 p-7 shadow-sm sm:p-9">
+            <Badge className="border-0 bg-indigo-600 text-white">Primary managed service</Badge>
+            <h2 className="mt-5 text-4xl font-black tracking-tight text-slate-950">{PRIMARY_REVENUE_OFFER.name}</h2>
+            <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-slate-600">{PRIMARY_REVENUE_OFFER.description}</p>
+            <div className="mt-7 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-3xl bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Ongoing partnership</p>
+                <p className="mt-2 text-4xl font-black tracking-tight text-slate-950">{offer.monthlyLabel}<span className="text-base text-slate-500">/month</span></p>
               </div>
-              <ul className="mt-6 space-y-3">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex gap-2 text-sm font-bold text-slate-700">
-                    <Check className="mt-0.5 h-4 w-4 text-emerald-500" /> {feature}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/signup"
-                onClick={() => trackPublicEvent({ eventType: `click_pricing_plan_${plan.name.toLowerCase()}`, label: `Start ${plan.name}`, target: "/signup", metadata: { plan: plan.name, market: selectedMarket } })}
-                className="mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_12px_26px_-14px_rgba(15,23,42,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20"
-              >
-                Start {plan.name}
-              </Link>
+              <div className="rounded-3xl bg-white p-5 shadow-sm">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Strategy, copy and build</p>
+                <p className="mt-2 text-4xl font-black tracking-tight text-slate-950">{offer.setupLabel}</p>
+                <p className="mt-1 text-xs font-bold text-slate-500">One-time setup fee</p>
+              </div>
             </div>
-          ))}
+            <ul className="mt-7 grid gap-3 sm:grid-cols-2">
+              {PRIMARY_REVENUE_OFFER.included.map((feature) => (
+                <li key={feature} className="flex gap-2 rounded-2xl bg-white/75 p-3 text-sm font-bold text-slate-700">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> {feature}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-7 rounded-2xl border border-indigo-200 bg-white/70 p-4 text-sm font-bold leading-6 text-slate-700">
+              Six-month initial commitment. Final scope and launch timing are confirmed after the website growth call.
+            </div>
+            <Link
+              to="/book-demo"
+              onClick={() => {
+                localStorage.setItem("bt_offer_intent", JSON.stringify({ offerId: offer.id, planId: offer.planId, market: selectedMarket, monthly: offer.monthlyPrice, setupFee: offer.setupFee, savedAt: new Date().toISOString() }));
+                trackPublicEvent({ eventType: "recommended_plan_viewed", label: offer.name, target: "/book-demo", metadata: { offerId: offer.id, market: selectedMarket } });
+              }}
+              className="mt-7 inline-flex min-h-13 w-full items-center justify-center rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black uppercase tracking-[0.12em] text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20"
+            >
+              Book a Website Growth Call <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </div>
+          <div className="rounded-[2.5rem] border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Before you commit</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">See what we would change first.</h2>
+            <p className="mt-4 text-sm font-semibold leading-7 text-slate-600">Start with an evidence-based website review. We will identify the main friction, recommend a clearer enquiry journey, and show the website direction before discussing a proposal.</p>
+            <div className="mt-6 space-y-3">
+              {["Observable website findings", "Recommended changes", "Personalised website direction", "Limited preview where useful"].map((item) => <p key={item} className="flex gap-2 text-sm font-bold text-slate-700"><Check className="mt-0.5 h-4 w-4 text-emerald-600" />{item}</p>)}
+            </div>
+            <Link to="/website-audit" className={`${secondaryCtaClass} mt-7 w-full`}>Get My Website Review</Link>
+          </div>
         </div>
         <div className="mt-6 rounded-[2rem] border border-slate-200 bg-slate-950 p-7 text-white">
           <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
@@ -772,6 +740,20 @@ function HowItWorksPage() {
 }
 
 function CaseStudiesPage() {
+  const [verifiedProof, setVerifiedProof] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("customer_testimonials")
+      .select("id,customer_name,company,testimonial,result_summary,evidence_reference,date_approved")
+      .eq("publish_status", "published")
+      .eq("consent_status", "approved")
+      .order("date_approved", { ascending: false })
+      .then(({ data }) => { if (!cancelled) setVerifiedProof(data || []); });
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <>
       <Hero
@@ -780,6 +762,10 @@ function CaseStudiesPage() {
         icon={Sparkles}
       />
       <section className="mx-auto max-w-7xl px-5 py-14">
+        <div className="mb-10 rounded-[2rem] bg-slate-950 p-6 text-white sm:p-8">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Verified customer outcomes</p>
+          {verifiedProof.length ? <div className="mt-5 grid gap-4 md:grid-cols-2">{verifiedProof.map((proof) => <article key={proof.id} className="rounded-3xl border border-white/10 bg-white/5 p-5"><p className="text-lg font-black">{proof.result_summary || "Customer experience"}</p><p className="mt-3 text-sm font-semibold leading-6 text-slate-300">“{proof.testimonial}”</p><p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-indigo-200">{proof.customer_name}{proof.company ? ` · ${proof.company}` : ""}</p>{proof.evidence_reference && <a href={proof.evidence_reference} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-black text-emerald-300 hover:text-emerald-200">View supporting reference <ExternalLink className="ml-1 h-3.5 w-3.5" /></a>}</article>)}</div> : <div className="mt-5 rounded-3xl border border-white/10 bg-white/5 p-5"><p className="font-black">No verified customer result has been published yet.</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">The concept studies below demonstrate strategy and design direction. Real outcomes will appear here only after customer approval and evidence review.</p></div>}
+        </div>
         <div className="mb-10 grid gap-4 rounded-[2rem] border border-indigo-100 bg-indigo-50 p-6 md:grid-cols-[1fr_auto] md:items-center">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Illustrative concept studies</p>
@@ -1376,8 +1362,7 @@ function EnquiryJourneyFlow({ title, steps, recommended = false }: { title: stri
 }
 
 function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; form: { businessName: string; email: string; website: string } }) {
-  const recommendedPlanName = report.recommendedPlan === "growth" ? "Scale" : report.recommendedPlan === "business" ? "Growth" : "Launch";
-  const plan = pricingPlans.find((item) => item.name === recommendedPlanName) || pricingPlans[1];
+  const plan = getOfferForMarket("MY");
   const savePreviewContext = () => {
     sessionStorage.setItem("bt_audit_preview_context", JSON.stringify({
       businessName: form.businessName,
@@ -1502,12 +1487,12 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
         <div className="mt-6 flex flex-col gap-5 rounded-3xl bg-indigo-50 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Recommended plan</p>
-            <p className="mt-2 text-2xl font-black">{plan.name} Website Plan</p>
-            <p className="mt-1 text-sm font-bold text-slate-600">Malaysia: {plan.prices.MY}. See pricing for other markets.</p>
+            <p className="mt-2 text-2xl font-black">{plan.name}</p>
+            <p className="mt-1 text-sm font-bold text-slate-600">Malaysia: {plan.monthlyLabel}/month plus {plan.setupLabel} setup. Localised pricing is available for Singapore and the UK.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link to="/generate-preview" onClick={savePreviewContext} className={primaryCtaClass}>See My Website Preview</Link>
-            <Link to="/pricing" onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: plan.name, target: "/pricing", metadata: { recommendedPlan: report.recommendedPlan } })} className={secondaryCtaClass}>View Plan</Link>
+            <Link to="/pricing" onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: plan.name, target: "/pricing", metadata: { offerId: plan.id, recommendedPlan: report.recommendedPlan } })} className={secondaryCtaClass}>View Plan</Link>
           </div>
         </div>
       </section>

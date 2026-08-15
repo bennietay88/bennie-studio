@@ -14,8 +14,7 @@ const publicNavItems = [
   },
   { label: "Case Studies", href: "/case-studies" },
   { label: "Pricing", href: "/pricing" },
-  { label: "How It Works", href: "/how-it-works" },
-  { label: "Free Audit", href: "/website-audit" },
+  { label: "Website Review", href: "/website-audit" },
 ];
 
 const footerGroups = [
@@ -73,8 +72,8 @@ export function PublicSiteHeader() {
           <Link to={user ? "/dashboard" : "/login"} className="px-2 text-sm font-bold text-slate-600 transition hover:text-indigo-600">
             {user ? "Dashboard" : "Sign In"}
           </Link>
-          <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => !user && trackPublicEvent({ eventType: "click_generate_preview", label: "Header Generate Preview", target: "/generate-preview" })} className="inline-flex min-h-10 items-center justify-center rounded-full bg-slate-950 px-5 py-2.5 text-sm font-black text-white shadow-[0_8px_20px_-12px_rgba(15,23,42,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20">
-            {user ? "Open Studio" : "Generate Preview"}
+          <Link to={user ? "/dashboard" : "/website-audit"} onClick={() => !user && trackPublicEvent({ eventType: "click_website_review", label: "Header Website Review", target: "/website-audit" })} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-[0_10px_24px_-14px_rgba(15,23,42,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20">
+            {user ? "Open Studio" : "Get Website Review"}
           </Link>
         </div>
 
@@ -99,7 +98,7 @@ export function PublicSiteHeader() {
             </div>
             <div className="mt-auto grid gap-3 border-t border-slate-100 pt-5">
               <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-50">{user ? "Dashboard" : "Sign In"}</Link>
-              <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-10 items-center justify-center rounded-xl bg-slate-950 px-5 text-sm font-bold text-white shadow-lg hover:bg-indigo-600">{user ? "Open Studio" : "Generate Preview"}</Link>
+              <Link to={user ? "/dashboard" : "/website-audit"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-indigo-600">{user ? "Open Studio" : "Get Website Review"}</Link>
             </div>
           </div>
         </div>

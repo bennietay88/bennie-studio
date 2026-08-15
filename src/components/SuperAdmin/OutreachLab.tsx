@@ -1,199 +1,142 @@
-import React, { useState, useEffect } from "react";
-import { MessageSquare, Mail, Zap, Target, Send, Users, ChevronRight, Loader2, Sparkles, Copy, Trash2, Shield } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../ui/card";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
-import { supabase } from "../../lib/supabase";
+import React from "react";
+import { CalendarClock, CheckCircle2, Copy, ExternalLink, Mail, MessageSquare, Search, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { supabase } from "../../lib/supabase";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Textarea } from "../ui/textarea";
+
+const OUTREACH_STATUSES = ["not_started", "queued", "contacted", "replied", "call_booked", "won", "lost"];
+
+const buildDraft = (prospect: any, channel: "email" | "whatsapp") => {
+  const name = prospect.name || "there";
+  const domain = prospect.domain ? ` (${prospect.domain})` : "";
+  const finding = prospect.notes?.trim()
+    ? prospect.notes.trim().split("\n")[0]
+    : "the next enquiry action could be clearer for visitors comparing providers";
+  if (channel === "whatsapp") {
+    return `Hi ${name} team — I reviewed your website${domain}. I noticed that ${finding.replace(/^[A-Z]/, (letter: string) => letter.toLowerCase())}. I can send you a short, practical website review showing what I would change and why. Would that be useful? — Bennie`;
+  }
+  return `Subject: A practical website improvement for ${name}\n\nHi ${name} team,\n\nI reviewed your website${domain} and noticed that ${finding.replace(/^[A-Z]/, (letter: string) => letter.toLowerCase())}.\n\nI prepared a short website growth review showing what I found, why it may create friction, and the change I would recommend. There are no automated scores or invented performance claims in it.\n\nWould you like me to send it over, or walk through it with you on a short call?\n\nBest,\nBennie`;
+};
 
 export function OutreachLab() {
-  const [prospects, setProspects] = useState<any[]>([]);
-  const [selectedProspectId, setSelectedProspectId] = useState<string>("");
-  const [generating, setGenerating] = useState(false);
-  const [outreachMessage, setOutreachMessage] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [prospects, setProspects] = React.useState<any[]>([]);
+  const [selectedId, setSelectedId] = React.useState("");
+  const [channel, setChannel] = React.useState<"email" | "whatsapp">("email");
+  const [draft, setDraft] = React.useState("");
+  const [search, setSearch] = React.useState("");
+  const [loading, setLoading] = React.useState(true);
 
-  useEffect(() => {
-    fetchProspects();
+  const fetchProspects = React.useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase.from("prospects").select("*").order("next_follow_up_at", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false });
+    if (error) toast.error(error.message || "Could not load prospects");
+    setProspects(data || []);
+    setLoading(false);
   }, []);
 
-  const fetchProspects = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("prospects")
-        .select("*")
-        .order("created_at", { ascending: false });
+  React.useEffect(() => { void fetchProspects(); }, [fetchProspects]);
 
-      if (error) throw error;
-      setProspects(data || []);
-    } catch (error) {
-      console.error("Error fetching prospects:", error);
-    } finally {
-      setLoading(false);
-    }
+  const selected = prospects.find((prospect) => prospect.id === selectedId);
+  const filtered = prospects.filter((prospect) => {
+    const query = search.trim().toLowerCase();
+    return !query || [prospect.name, prospect.domain, prospect.industry, prospect.location].some((value) => String(value || "").toLowerCase().includes(query));
+  });
+  const due = prospects.filter((prospect) => prospect.next_follow_up_at && new Date(prospect.next_follow_up_at) <= new Date() && !["won", "lost"].includes(prospect.outreach_status)).length;
+
+  React.useEffect(() => {
+    if (selected) setDraft(buildDraft(selected, channel));
+  }, [selectedId, channel]);
+
+  const updateProspect = async (prospectId: string, updates: Record<string, any>) => {
+    const { data, error } = await supabase.from("prospects").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", prospectId).select("*").single();
+    if (error) throw error;
+    setProspects((current) => current.map((item) => item.id === prospectId ? data : item));
+    return data;
   };
 
-  const generateOutreach = async () => {
-    if (!selectedProspectId) {
-      toast.error("Please select a prospect first.");
-      return;
-    }
-
-    const prospect = prospects.find(p => p.id === selectedProspectId);
-    if (!prospect) return;
-
-    try {
-      setGenerating(true);
-      // In a real app, this would call Gemini API with the audit report
-      setOutreachMessage("");
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const reviewLine = prospect.last_audit_at
-        ? "The website growth review identified practical areas where the visitor journey could be clearer."
-        : "I noticed several areas where the website journey could be clearer.";
-      const message = `Hi ${prospect.name} team,
-
-I reviewed your website (${prospect.domain}). ${reviewLine}
-
-I've prepared a practical improvement summary covering the evidence found in the audit.
-
-Would you be open to a 10-minute strategy call on Tuesday or Wednesday? I'd love to walk you through exactly how to patch these leaks.
-
-Best regards,
-SuperAdmin Outreach Team`;
-
-      setOutreachMessage(message);
-      toast.success("Outreach copy generated!");
-    } catch (error) {
-      toast.error("Failed to generate outreach");
-    } finally {
-      setGenerating(false);
-    }
+  const markContacted = async () => {
+    if (!selected) return;
+    const followUp = new Date();
+    followUp.setDate(followUp.getDate() + 3);
+    await updateProspect(selected.id, { outreach_status: "contacted", next_follow_up_at: followUp.toISOString() });
+    toast.success("Contact logged and follow-up scheduled for three days.");
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(outreachMessage);
-    toast.success("Copied to clipboard!");
+  const copyDraft = async () => {
+    await navigator.clipboard.writeText(draft);
+    toast.success("Draft copied. Review it before sending.");
+  };
+
+  const openContact = async () => {
+    if (!selected || !draft.trim()) return;
+    if (channel === "email") {
+      if (!selected.contact_email) return toast.error("This prospect has no email address.");
+      const [subjectLine, ...bodyLines] = draft.split("\n");
+      const subject = subjectLine.replace(/^Subject:\s*/i, "");
+      window.location.href = `mailto:${selected.contact_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n").trim())}`;
+    } else {
+      const phone = String(selected.contact_whatsapp || selected.contact_phone || "").replace(/[^0-9]/g, "");
+      if (!phone) return toast.error("This prospect has no WhatsApp number.");
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(draft)}`, "_blank", "noopener,noreferrer");
+    }
+    await markContacted();
   };
 
   return (
-    <div className="space-y-8 pt-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-7 pt-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 dark:text-white">
-            Outreach <span className="text-indigo-600">Lab</span>
-          </h1>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">High-velocity conversion sequences powered by audit data.</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">Human-approved outreach</p>
+          <h1 className="mt-2 text-4xl font-black tracking-tight text-slate-950 dark:text-white">Outreach workbench</h1>
+          <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">Prepare a specific message from an observable website finding, open it in your chosen channel, then record the follow-up. Nothing sends automatically.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="rounded-xl border-slate-200 h-11">Templates</Button>
-          <Button className="rounded-xl bg-indigo-600 hover:bg-indigo-700 h-11 px-8 font-black uppercase tracking-widest text-[10px]">
-            New Campaign
-          </Button>
+          <Badge variant="outline" className="rounded-xl px-4 py-2 text-sm"><CalendarClock className="mr-2 h-4 w-4 text-rose-500" /> {due} due</Badge>
+          <Badge variant="outline" className="rounded-xl px-4 py-2 text-sm"><CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" /> {prospects.filter((p) => ["replied", "call_booked", "won"].includes(p.outreach_status)).length} engaged</Badge>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="rounded-[2.5rem] border-slate-100 shadow-sm overflow-hidden bg-slate-900 text-white border-none min-h-[400px] flex flex-col">
-          <CardHeader className="p-8 pb-4">
-             <CardTitle className="text-xs font-black uppercase tracking-widest text-indigo-400">Personalization Engine</CardTitle>
-          </CardHeader>
-          <CardContent className="p-8 pt-0 flex flex-col flex-1">
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-black italic uppercase tracking-tight mb-2 leading-none">Script <span className="text-indigo-400">Generator</span></h2>
-                <p className="text-slate-300 font-bold text-xs leading-relaxed">
-                  Select a prospect to generate a data-backed outreach sequence.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Target Prospect</label>
-                  <Select value={selectedProspectId} onValueChange={setSelectedProspectId}>
-                    <SelectTrigger className="rounded-xl bg-white/5 border-white/10 text-white h-12">
-                      <SelectValue placeholder="Select prospect..." />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      {prospects.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.name} ({p.domain})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button 
-                  onClick={generateOutreach}
-                  disabled={generating || !selectedProspectId}
-                  className="w-full h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[10px]"
-                >
-                  {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                  Generate Personalization
-                </Button>
-              </div>
-            </div>
-            
-            <div className="mt-auto pt-8 flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-              <Zap className="h-6 w-6 text-indigo-400" />
-              <div className="flex-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Success Velocity</p>
-                <p className="text-lg font-black italic">+24% ROI</p>
-              </div>
+      <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+        <Card className="overflow-hidden rounded-3xl border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100 p-5"><CardTitle className="text-base">Choose a prospect</CardTitle></CardHeader>
+          <CardContent className="p-5">
+            <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search business, niche or market" className="rounded-xl pl-9" /></div>
+            <div className="mt-4 max-h-[560px] space-y-2 overflow-auto pr-1">
+              {loading ? <p className="py-12 text-center text-sm font-semibold text-slate-500">Loading prospects…</p> : filtered.length === 0 ? <p className="py-12 text-center text-sm font-semibold text-slate-500">No prospects match this view.</p> : filtered.map((prospect) => (
+                <button key={prospect.id} type="button" onClick={() => setSelectedId(prospect.id)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedId === prospect.id ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-white hover:border-indigo-200"}`}>
+                  <div className="flex items-start justify-between gap-3"><div><p className="font-black text-slate-950">{prospect.name}</p><p className="mt-1 text-xs font-semibold text-slate-500">{prospect.industry || "Niche not set"} · {prospect.location || "Market not set"}</p></div><Badge variant="outline" className="capitalize">{String(prospect.outreach_status || "not_started").replaceAll("_", " ")}</Badge></div>
+                  {prospect.next_follow_up_at && <p className={`mt-3 text-xs font-bold ${new Date(prospect.next_follow_up_at) <= new Date() ? "text-rose-600" : "text-slate-500"}`}>Follow up {new Date(prospect.next_follow_up_at).toLocaleString()}</p>}
+                </button>
+              ))}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2 rounded-[2.5rem] border-slate-100 shadow-sm overflow-hidden flex flex-col">
-          <CardHeader className="p-8 border-b border-slate-50 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-xl font-black italic uppercase italic tracking-tight">Sequence Output</CardTitle>
-                <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Review and refine the generated outreach before sending.</CardDescription>
+        <Card className="overflow-hidden rounded-3xl border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100 p-5"><CardTitle className="flex items-center justify-between gap-3 text-base"><span>Prepare and log outreach</span>{selected?.domain && <a href={selected.domain.startsWith("http") ? selected.domain : `https://${selected.domain}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-black text-indigo-600">Open website <ExternalLink className="h-3.5 w-3.5" /></a>}</CardTitle></CardHeader>
+          <CardContent className="p-5">
+            {!selected ? (
+              <div className="grid min-h-[420px] place-items-center rounded-3xl border-2 border-dashed border-slate-200 text-center"><div><ShieldCheck className="mx-auto h-10 w-10 text-slate-300" /><p className="mt-4 font-black text-slate-700">Select a prospect to prepare outreach.</p></div></div>
+            ) : (
+              <div className="space-y-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div><label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Channel</label><Select value={channel} onValueChange={(value) => setChannel(value as "email" | "whatsapp")}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="email">Email</SelectItem><SelectItem value="whatsapp">WhatsApp</SelectItem></SelectContent></Select></div>
+                  <div><label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Pipeline status</label><Select value={selected.outreach_status || "not_started"} onValueChange={(value) => void updateProspect(selected.id, { outreach_status: value }).catch((error) => toast.error(error.message))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{status.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select></div>
+                </div>
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-900"><strong>Evidence check:</strong> the first line uses the prospect note when one exists. Verify it against the live website before sending; never invent rankings, traffic, revenue, or conversion loss.</div>
+                <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} className="min-h-[300px] rounded-2xl bg-slate-50 p-5 font-medium leading-7" aria-label="Outreach draft" />
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                  <Button type="button" variant="outline" onClick={() => void copyDraft()} className="min-h-11 rounded-xl"><Copy className="mr-2 h-4 w-4" /> Copy</Button>
+                  <Button type="button" onClick={() => void openContact().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl bg-slate-950 px-6 text-white hover:bg-indigo-600">{channel === "email" ? <Mail className="mr-2 h-4 w-4" /> : <MessageSquare className="mr-2 h-4 w-4" />} Open {channel === "email" ? "email" : "WhatsApp"} and log <Send className="ml-2 h-4 w-4" /></Button>
+                </div>
               </div>
-              {outreachMessage && (
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => toast.info("Opening associated Neural Audit for context...")} 
-                    variant="outline" 
-                    size="sm" 
-                    className="rounded-xl h-8 px-4 font-black uppercase tracking-widest text-[10px] border-indigo-100 text-indigo-600"
-                  >
-                    <Shield className="h-4 w-4 mr-2" /> View Audit
-                  </Button>
-                  <Button onClick={copyToClipboard} variant="outline" size="sm" className="rounded-xl h-8 px-4 font-black uppercase tracking-widest text-[10px]">
-                    <Copy className="h-4 w-4 mr-2" /> Copy
-                  </Button>
-                </div>
-              )}
-          </CardHeader>
-          <CardContent className="p-8 flex-1">
-             {outreachMessage ? (
-                <div className="bg-slate-50 rounded-[1.5rem] p-6 border border-slate-100 min-h-[250px] whitespace-pre-wrap text-sm font-medium text-slate-700 leading-relaxed">
-                  {outreachMessage}
-                </div>
-             ) : (
-                <div className="h-full min-h-[250px] flex flex-col items-center justify-center text-center p-12 border-2 border-dashed border-slate-100 rounded-[2.5rem]">
-                  <Mail className="h-12 w-12 text-slate-200 mb-4" />
-                  <p className="text-slate-400 font-bold text-sm">No outreach generated yet.</p>
-                  <p className="text-[10px] text-slate-300 uppercase tracking-widest mt-2">Select a prospect and hit generate.</p>
-                </div>
-             )}
+            )}
           </CardContent>
-          <CardFooter className="p-8 bg-slate-50/50 border-t border-slate-100 flex justify-between">
-             <div className="flex gap-2">
-                <Badge variant="outline" className="rounded-full bg-white text-slate-400 border-slate-200">Email sequence</Badge>
-                <Badge variant="outline" className="rounded-full bg-white text-slate-400 border-slate-200">LinkedIn Step 1</Badge>
-             </div>
-             <Button 
-                disabled={!outreachMessage}
-                className="rounded-xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] h-10 px-8"
-              >
-               Send Now
-             </Button>
-          </CardFooter>
         </Card>
       </div>
     </div>

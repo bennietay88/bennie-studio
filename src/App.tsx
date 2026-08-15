@@ -31,6 +31,7 @@ const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPage
 const PublicBlogPostPage = lazy(() => import("./components/PublicBlogPostPage"));
 const WaasSamplePage = lazy(() => import("./components/WaasSamplePage"));
 const BookDemo = lazy(() => import("./components/BookDemo"));
+const PublicProposalPage = lazy(() => import("./components/PublicProposalPage"));
 const ForgotPasswordPage = lazy(
   () => import("./components/ForgotPasswordPage"),
 );
@@ -430,6 +431,7 @@ export default function App() {
               <Route path="/portfolio/sample/:sampleType" element={<WaasSamplePage />} />
               <Route path="/demo" element={<DemoModePage />} />
               <Route path="/book-demo" element={<BookDemo />} />
+              <Route path="/proposal/:token" element={<PublicProposalPage />} />
               <Route path="/apply-custom" element={<ApplyCustomService />} />
               <Route path="/privacy" element={<PolicyPage type="privacy" />} />
               <Route path="/privacy-policy" element={<PolicyPage type="privacy" />} />

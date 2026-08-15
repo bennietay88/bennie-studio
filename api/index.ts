@@ -2680,6 +2680,60 @@ async function startServer() {
     },
   );
 
+  app.get(
+    "/api/public/proposals/:token",
+    rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-proposal" }),
+    async (req, res) => {
+      if (!UUID_SCHEMA.safeParse(req.params.token).success) return res.status(400).json({ error: "Invalid proposal link" });
+      try {
+        const { data, error } = await supabaseAdmin
+          .from("proposals")
+          .select("id,title,package_name,value,setup_fee,status,expires_at,scope,outcome,config,checkout_url,proposal_token,businesses(name),leads(name,raw_fields)")
+          .eq("proposal_token", req.params.token)
+          .maybeSingle();
+        if (error) throw error;
+        if (!data) return res.status(404).json({ error: "Proposal not found" });
+        return res.json({ proposal: data });
+      } catch (error) {
+        console.error("Public proposal load failed:", error);
+        return res.status(500).json({ error: "Proposal could not be loaded" });
+      }
+    },
+  );
+
+  app.post(
+    "/api/public/proposals/:token/accept",
+    rateLimit({ windowMs: 60 * 1000, max: 12, keyPrefix: "public-proposal-accept" }),
+    async (req, res) => {
+      if (!UUID_SCHEMA.safeParse(req.params.token).success) return res.status(400).json({ error: "Invalid proposal link" });
+      const body = validateBody(z.object({ email: EMAIL_SCHEMA }), req, res);
+      if (!body) return;
+      try {
+        const { data: proposal, error } = await supabaseAdmin
+          .from("proposals")
+          .select("id,lead_id,status,expires_at,checkout_url,leads(email)")
+          .eq("proposal_token", req.params.token)
+          .maybeSingle();
+        if (error) throw error;
+        if (!proposal) return res.status(404).json({ error: "Proposal not found" });
+        if (proposal.expires_at && new Date(`${proposal.expires_at}T23:59:59Z`) < new Date()) return res.status(410).json({ error: "This proposal has expired. Please request an updated version." });
+        const leadEmail = String((proposal as any).leads?.email || "").toLowerCase();
+        if (leadEmail && leadEmail !== body.email.toLowerCase()) return res.status(403).json({ error: "Use the email address that received this proposal." });
+        const acceptedAt = new Date().toISOString();
+        const { error: updateError } = await supabaseAdmin.from("proposals").update({ status: "Accepted", accepted_at: acceptedAt, updated_at: acceptedAt }).eq("id", proposal.id);
+        if (updateError) throw updateError;
+        if (proposal.lead_id) await supabaseAdmin.from("leads").update({ status: "won", automation_next_action: "Send secure checkout and onboarding link", next_follow_up_at: acceptedAt }).eq("id", proposal.lead_id);
+        await supabaseAdmin.from("tracking_events").insert({ event_type: "proposal_accepted", source_platform: "bennie_studio_public", source_page: `/proposal/${req.params.token}`, metadata: { proposalId: proposal.id, leadId: proposal.lead_id || null } }).then(({ error: trackingError }) => {
+          if (trackingError) console.warn("Proposal acceptance tracking skipped:", trackingError.message);
+        });
+        return res.json({ success: true, checkoutUrl: proposal.checkout_url || null });
+      } catch (error) {
+        console.error("Proposal acceptance failed:", error);
+        return res.status(500).json({ error: "Proposal could not be accepted" });
+      }
+    },
+  );
+
   app.patch(
     "/api/admin/leads/:leadId/status",
     authenticate,
@@ -2690,7 +2744,13 @@ async function startServer() {
       }
 
       const body = validateBody(
-        z.object({ status: z.enum(["new", "contacted", "qualified", "meeting", "closed"]) }),
+        z.object({
+          status: z.enum(["new", "contacted", "qualified", "meeting", "proposal", "won", "lost", "closed"]).optional(),
+          nextAction: z.string().trim().max(500).optional().nullable(),
+          nextFollowUpAt: z.string().datetime().optional().nullable(),
+          channel: z.enum(["email", "whatsapp", "phone", "manual"]).optional(),
+          note: z.string().trim().max(1000).optional().nullable(),
+        }).refine((value) => Object.values(value).some((item) => item !== undefined), { message: "At least one lead update is required" }),
         req,
         res,
       );
@@ -2702,15 +2762,38 @@ async function startServer() {
           return res.status(403).json({ error: "Forbidden: sales access required" });
         }
 
+        const updatePayload: Record<string, any> = {};
+        if (body.status !== undefined) updatePayload.status = body.status;
+        if (body.nextAction !== undefined) updatePayload.automation_next_action = body.nextAction;
+        if (body.nextFollowUpAt !== undefined) updatePayload.next_follow_up_at = body.nextFollowUpAt;
+        if (body.channel) updatePayload.last_follow_up_at = new Date().toISOString();
+
         const { data, error } = await supabaseAdmin
           .from("leads")
-          .update({ status: body.status })
+          .update(updatePayload)
           .eq("id", req.params.leadId)
-          .select("id,status")
+          .select("*")
           .maybeSingle();
 
         if (error) throw error;
         if (!data) return res.status(404).json({ error: "Lead not found" });
+        if (body.channel || body.note) {
+          await supabaseAdmin.from("tracking_events").insert({
+            event_type: body.channel ? "sales_follow_up_logged" : "sales_note_added",
+            source_platform: "bennie_studio_admin",
+            source_page: "/admin/inbound_leads",
+            metadata: {
+              leadId: req.params.leadId,
+              channel: body.channel || "manual",
+              note: body.note || null,
+              nextAction: body.nextAction || null,
+              nextFollowUpAt: body.nextFollowUpAt || null,
+              actorId: req.user.id,
+            },
+          }).then(({ error: trackingError }) => {
+            if (trackingError) console.warn("Sales activity tracking skipped:", trackingError.message);
+          });
+        }
         return res.json({ lead: data });
       } catch (error: any) {
         if (error?.message === "PROFILE_NOT_FOUND") {
@@ -4446,34 +4529,7 @@ async function startServer() {
           activeCustomers++;
         });
 
-        // Generate some dummy historical data for the chart based on the current MRR
-        // In a real app, you'd fetch snapshots or calculate from history
-        const months = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ];
-        const currentMonth = new Date().getMonth();
-
-        for (let i = 6; i >= 0; i--) {
-          const monthIdx = (currentMonth - i + 12) % 12;
-          // Simulating growth
-          const factor = 1 - i * 0.05;
-          chartData.push({
-            name: months[monthIdx],
-            mrr: Math.round(mrr * factor),
-            subscriptions: Math.round(activeCustomers * factor),
-          });
-        }
+        chartData = [{ name: new Date().toLocaleString("en", { month: "short" }), mrr: Math.round(mrr), subscriptions: activeCustomers }];
 
         res.json({
           success: true,
@@ -4482,7 +4538,8 @@ async function startServer() {
             activeCustomers,
             averageRevenuePerUser:
               activeCustomers > 0 ? Math.round(mrr / activeCustomers) : 0,
-            growthRate: 12.5, // Mocked growth rate
+            growthRate: null,
+            hasGrowthData: false,
             chartData,
             isLive: true,
           },
@@ -4520,44 +4577,12 @@ async function startServer() {
           let activeCustomersCount = 0;
 
           (activeBusinesses || []).forEach((biz) => {
-            // Count active and trialing subscriptions (trialing represents projected MRR)
-            if (
-              biz.subscription_status === "active" ||
-              biz.subscription_status === "trialing"
-            ) {
+            if (biz.subscription_status === "active") {
               calculatedMrr += priceMap[biz.plan] || 0;
               activeCustomersCount++;
             }
           });
-
-          // Generate semi-realistic historical data based on current DB state
-          const months = [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
-          ];
-          const currentMonthIndex = new Date().getMonth();
-          const chartData = [];
-
-          for (let i = 6; i >= 0; i--) {
-            const monthIdx = (currentMonthIndex - i + 12) % 12;
-            // Simulate historical trend for the UI based on current actuals
-            const growthFactor = 1 - i * 0.05;
-            chartData.push({
-              name: months[monthIdx],
-              mrr: Math.round(calculatedMrr * growthFactor),
-              subscriptions: Math.round(activeCustomersCount * growthFactor),
-            });
-          }
+          const chartData = [{ name: new Date().toLocaleString("en", { month: "short" }), mrr: calculatedMrr, subscriptions: activeCustomersCount }];
 
           res.json({
             success: true,
@@ -4569,6 +4594,7 @@ async function startServer() {
                   ? Math.round(calculatedMrr / activeCustomersCount)
                   : 0,
               growthRate: 0,
+              hasGrowthData: false,
               chartData,
               isLive: false,
               source: "database",

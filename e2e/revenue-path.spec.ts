@@ -416,3 +416,54 @@ test("connects the website growth review to a prefilled preview", async ({ page 
   await expect(page.getByPlaceholder("Current website URL optional")).toHaveValue("https://example.test");
   await expect(page.getByPlaceholder("Email")).toHaveValue("owner@example.test");
 });
+
+test("connects the primary revenue offer to a recorded website growth call", async ({ page }) => {
+  await page.route("https://ipapi.co/json/", (route) => json(route, { country_code: "SG", country_name: "Singapore" }));
+  await page.route("**/api/platform-events", (route) => json(route, { success: true }));
+  await page.route("**/api/platform-leads", async (route) => {
+    const payload = await route.request().postDataJSON();
+    expect(payload.leadType).toBe("website_growth_call");
+    expect(payload.country).toBe("SG");
+    await json(route, { success: true, leadId: "00000000-0000-4000-8000-000000000401" });
+  });
+
+  await page.goto("/pricing");
+  await expect(page.getByRole("heading", { name: "Website Growth Partner", exact: true })).toBeVisible();
+  await expect(page.getByText("Launch", { exact: true })).toHaveCount(0);
+  await page.getByRole("link", { name: /Book a Website Growth Call/i }).click();
+  await expect(page).toHaveURL(/\/book-demo/);
+  await page.getByLabel("Your name").fill("Jane Buyer");
+  await page.getByLabel("Work email").fill("jane@example.test");
+  await page.getByLabel("Business").fill("Example Services");
+  await page.getByLabel("Industry").fill("Professional services");
+  await page.getByRole("button", { name: /Request Website Growth Call/i }).click();
+  await expect(page.getByRole("heading", { name: "Request received" })).toBeVisible();
+});
+
+test("shows and accepts a public proposal without exposing checkout secrets", async ({ page }) => {
+  const proposalToken = "00000000-0000-4000-8000-000000000501";
+  await page.route("**/api/platform-events", (route) => json(route, { success: true }));
+  await page.route(`**/api/public/proposals/${proposalToken}`, (route) => json(route, { proposal: {
+    id: "00000000-0000-4000-8000-000000000502",
+    title: "Website Growth Partner proposal",
+    package_name: "Website Growth Partner",
+    value: 799,
+    setup_fee: 1800,
+    status: "Sent",
+    expires_at: "2026-08-31",
+    scope: ["Website strategy, copy and managed build", "Monthly improvements"],
+    outcome: "A clearer managed website and enquiry journey.",
+    config: { market: "US", commitmentMonths: 6 },
+    leads: { name: "Jane Buyer", raw_fields: { businessName: "Example Services" } },
+  } }));
+  await page.route(`**/api/public/proposals/${proposalToken}/accept`, async (route) => {
+    expect((await route.request().postDataJSON()).email).toBe("jane@example.test");
+    await json(route, { success: true, checkoutUrl: null });
+  });
+
+  await page.goto(`/proposal/${proposalToken}`);
+  await expect(page.getByRole("heading", { name: "Website Growth Partner proposal" })).toBeVisible();
+  await page.getByLabel("Confirm your email").fill("jane@example.test");
+  await page.getByRole("button", { name: /Accept proposal/i }).click();
+  await expect(page.getByRole("heading", { name: "Proposal accepted" })).toBeVisible();
+});

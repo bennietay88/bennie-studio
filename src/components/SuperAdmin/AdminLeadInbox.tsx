@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { ExternalLink, Inbox, Loader2, Mail, MessageSquare, Phone, RefreshCw, Search } from "lucide-react";
+import { CalendarClock, ExternalLink, Inbox, Loader2, Mail, MessageSquare, Phone, RefreshCw, Save, Search } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -19,10 +19,13 @@ type AdminLead = {
   sourcePage?: string;
   businessName?: string;
   websiteUrl?: string;
+  nextAction?: string;
+  nextFollowUpAt?: string;
+  lastFollowUpAt?: string;
   createdAt: string;
 };
 
-const LEAD_STATUSES = ["new", "contacted", "qualified", "meeting", "closed"] as const;
+const LEAD_STATUSES = ["new", "contacted", "qualified", "meeting", "proposal", "won", "lost"] as const;
 
 const mapLead = (lead: any): AdminLead => ({
   id: lead.id,
@@ -35,6 +38,9 @@ const mapLead = (lead: any): AdminLead => ({
   sourcePage: lead.source_page || lead.raw_fields?.sourcePage || "",
   businessName: lead.raw_fields?.businessName || lead.raw_fields?.companyName || "",
   websiteUrl: lead.raw_fields?.websiteUrl || "",
+  nextAction: lead.automation_next_action || "",
+  nextFollowUpAt: lead.next_follow_up_at || "",
+  lastFollowUpAt: lead.last_follow_up_at || "",
   createdAt: lead.created_at || new Date().toISOString(),
 });
 
@@ -43,6 +49,8 @@ export function AdminLeadInbox() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [savingLeadId, setSavingLeadId] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, { nextAction: string; nextFollowUpAt: string }>>({});
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -87,10 +95,17 @@ export function AdminLeadInbox() {
     });
   }, [leads, search, status]);
 
-  const updateStatus = async (leadId: string, nextStatus: string) => {
+  const updateLead = async (leadId: string, updates: Record<string, unknown>) => {
     const previous = leads;
-    setLeads((current) => current.map((lead) => lead.id === leadId ? { ...lead, status: nextStatus } : lead));
+    const optimistic = {
+      ...(updates.status ? { status: String(updates.status) } : {}),
+      ...(updates.nextAction !== undefined ? { nextAction: String(updates.nextAction || "") } : {}),
+      ...(updates.nextFollowUpAt !== undefined ? { nextFollowUpAt: String(updates.nextFollowUpAt || "") } : {}),
+      ...(updates.channel ? { lastFollowUpAt: new Date().toISOString() } : {}),
+    };
+    setLeads((current) => current.map((lead) => lead.id === leadId ? { ...lead, ...optimistic } : lead));
     try {
+      setSavingLeadId(leadId);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Your admin session has expired. Please sign in again.");
       const response = await fetch(`/api/admin/leads/${leadId}/status`, {
@@ -99,17 +114,38 @@ export function AdminLeadInbox() {
           Authorization: `Bearer ${session.access_token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify(updates),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Lead status was not updated");
+      setLeads((current) => current.map((lead) => lead.id === leadId ? mapLead(payload.lead) : lead));
     } catch (error: any) {
       setLeads(previous);
-      toast.error(error?.message || "Lead status was not updated");
+      toast.error(error?.message || "Lead was not updated");
+    } finally {
+      setSavingLeadId("");
     }
   };
 
+  const saveFollowUp = async (lead: AdminLead) => {
+    const draft = drafts[lead.id] || {
+      nextAction: lead.nextAction || "",
+      nextFollowUpAt: lead.nextFollowUpAt ? new Date(lead.nextFollowUpAt).toISOString().slice(0, 16) : "",
+    };
+    await updateLead(lead.id, {
+      nextAction: draft.nextAction || null,
+      nextFollowUpAt: draft.nextFollowUpAt ? new Date(draft.nextFollowUpAt).toISOString() : null,
+      note: draft.nextAction ? `Next action set: ${draft.nextAction}` : "Follow-up plan updated",
+    });
+    toast.success("Next action saved");
+  };
+
+  const logContact = (lead: AdminLead, channel: "email" | "phone" | "whatsapp") => {
+    void updateLead(lead.id, { status: lead.status === "new" ? "contacted" : lead.status, channel, note: `${channel} follow-up opened` });
+  };
+
   const newCount = leads.filter((lead) => lead.status === "new").length;
+  const overdueCount = leads.filter((lead) => lead.nextFollowUpAt && new Date(lead.nextFollowUpAt) < new Date() && !["won", "lost"].includes(lead.status)).length;
 
   return (
     <div className="space-y-6 pt-4">
@@ -128,7 +164,7 @@ export function AdminLeadInbox() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="rounded-3xl border-slate-200 shadow-sm"><CardContent className="p-6"><p className="text-xs font-bold text-slate-500">New enquiries</p><p className="mt-2 text-4xl font-black text-indigo-600">{newCount}</p></CardContent></Card>
-        <Card className="rounded-3xl border-slate-200 shadow-sm"><CardContent className="p-6"><p className="text-xs font-bold text-slate-500">Needs follow-up</p><p className="mt-2 text-4xl font-black text-slate-950 dark:text-white">{leads.filter((lead) => ["new", "contacted"].includes(lead.status)).length}</p></CardContent></Card>
+        <Card className="rounded-3xl border-slate-200 shadow-sm"><CardContent className="p-6"><p className="text-xs font-bold text-slate-500">Overdue follow-ups</p><p className={`mt-2 text-4xl font-black ${overdueCount ? "text-rose-600" : "text-slate-950 dark:text-white"}`}>{overdueCount}</p></CardContent></Card>
         <Card className="rounded-3xl border-slate-200 shadow-sm"><CardContent className="p-6"><p className="text-xs font-bold text-slate-500">All enquiries</p><p className="mt-2 text-4xl font-black text-slate-950 dark:text-white">{leads.length}</p></CardContent></Card>
       </div>
 
@@ -158,7 +194,7 @@ export function AdminLeadInbox() {
               {filtered.map((lead) => {
                 const whatsapp = lead.phone ? String(lead.phone).replace(/[^0-9]/g, "") : "";
                 return (
-                  <article key={lead.id} className="grid gap-4 p-5 hover:bg-slate-50/70 lg:grid-cols-[1.2fr_1.6fr_auto] lg:items-center dark:hover:bg-slate-800/50">
+                  <article key={lead.id} className="grid gap-4 p-5 hover:bg-slate-50/70 lg:grid-cols-[1.05fr_1.35fr_1fr] lg:items-start dark:hover:bg-slate-800/50">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2"><h2 className="truncate font-black text-slate-950 dark:text-white">{lead.businessName || lead.name}</h2>{lead.status === "new" && <Badge className="border-0 bg-indigo-50 text-indigo-700">New</Badge>}</div>
                       {lead.businessName && <p className="mt-1 text-xs font-semibold text-slate-500">Contact: {lead.name}</p>}
@@ -168,13 +204,26 @@ export function AdminLeadInbox() {
                       <p className="line-clamp-2 text-sm font-medium leading-6 text-slate-600 dark:text-slate-300">{lead.message || "No message supplied."}</p>
                       {lead.websiteUrl && <a href={lead.websiteUrl.startsWith("http") ? lead.websiteUrl : `https://${lead.websiteUrl}`} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:underline">View website <ExternalLink className="h-3 w-3" /></a>}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                      {lead.email && <a aria-label={`Email ${lead.name}`} href={`mailto:${lead.email}`} className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"><Mail className="h-4 w-4" /></a>}
-                      {lead.phone && <a aria-label={`Call ${lead.name}`} href={`tel:${lead.phone}`} className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"><Phone className="h-4 w-4" /></a>}
-                      {whatsapp && <a aria-label={`WhatsApp ${lead.name}`} href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:border-emerald-200 hover:text-emerald-600"><MessageSquare className="h-4 w-4" /></a>}
-                      <select aria-label={`Status for ${lead.name}`} value={lead.status} onChange={(event) => void updateStatus(lead.id, event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold capitalize text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                      {lead.email && <a onClick={() => logContact(lead, "email")} aria-label={`Email ${lead.name}`} href={`mailto:${lead.email}`} className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"><Mail className="h-4 w-4" /></a>}
+                      {lead.phone && <a onClick={() => logContact(lead, "phone")} aria-label={`Call ${lead.name}`} href={`tel:${lead.phone}`} className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"><Phone className="h-4 w-4" /></a>}
+                      {whatsapp && <a onClick={() => logContact(lead, "whatsapp")} aria-label={`WhatsApp ${lead.name}`} href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:border-emerald-200 hover:text-emerald-600"><MessageSquare className="h-4 w-4" /></a>}
+                      <select aria-label={`Status for ${lead.name}`} value={lead.status} onChange={(event) => void updateLead(lead.id, { status: event.target.value })} className="h-10 min-w-32 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold capitalize text-slate-700 dark:bg-slate-900 dark:text-slate-200">
                         {LEAD_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}
                       </select>
+                      </div>
+                      <Input
+                        aria-label={`Next action for ${lead.name}`}
+                        value={drafts[lead.id]?.nextAction ?? lead.nextAction ?? ""}
+                        onChange={(event) => setDrafts((current) => ({ ...current, [lead.id]: { nextAction: event.target.value, nextFollowUpAt: current[lead.id]?.nextFollowUpAt ?? (lead.nextFollowUpAt ? new Date(lead.nextFollowUpAt).toISOString().slice(0, 16) : "") } }))}
+                        placeholder="Next action"
+                        className="h-10 rounded-xl"
+                      />
+                      <div className="flex gap-2">
+                        <div className="relative flex-1"><CalendarClock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input type="datetime-local" aria-label={`Follow-up date for ${lead.name}`} value={drafts[lead.id]?.nextFollowUpAt ?? (lead.nextFollowUpAt ? new Date(lead.nextFollowUpAt).toISOString().slice(0, 16) : "")} onChange={(event) => setDrafts((current) => ({ ...current, [lead.id]: { nextAction: current[lead.id]?.nextAction ?? lead.nextAction ?? "", nextFollowUpAt: event.target.value } }))} className="h-10 rounded-xl pl-9 text-xs" /></div>
+                        <Button type="button" size="icon" variant="outline" disabled={savingLeadId === lead.id} onClick={() => void saveFollowUp(lead)} className="h-10 w-10 rounded-xl" aria-label={`Save follow-up for ${lead.name}`}>{savingLeadId === lead.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}</Button>
+                      </div>
                     </div>
                   </article>
                 );

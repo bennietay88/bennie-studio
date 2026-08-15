@@ -1,345 +1,213 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "motion/react";
 import {
-  Globe,
-  ArrowLeft,
-  Send,
+  ArrowRight,
+  Building2,
+  CalendarDays,
   CheckCircle2,
-  Calendar,
-  Clock,
-  User,
-  Mail,
-  Building,
-  MessageSquare,
+  Clock3,
+  Globe2,
   Loader2,
+  Mail,
+  MessageSquare,
+  Phone,
+  User,
 } from "lucide-react";
+import { toast } from "sonner";
+import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { supabase } from "../lib/supabase";
-import { toast } from "sonner";
+import { trackPublicEvent } from "../lib/publicTracking";
+import { REVENUE_MARKETS, type RevenueMarket } from "../constants/revenueOffer";
 
-const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.6, ease: "easeOut" },
+type CallForm = {
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  websiteUrl: string;
+  market: RevenueMarket;
+  industry: string;
+  preferredDate: string;
+  preferredTime: string;
+  message: string;
+};
+
+const readSavedContext = (): Partial<CallForm> => {
+  try {
+    const audit = JSON.parse(sessionStorage.getItem("bt_audit_preview_context") || "{}");
+    const preview = JSON.parse(localStorage.getItem("bt_preview_intent") || "{}");
+    return {
+      company: preview.businessName || audit.businessName || "",
+      email: preview.email || audit.email || "",
+      phone: preview.phone || "",
+      websiteUrl: preview.websiteUrl || audit.website || "",
+      industry: preview.industry || "",
+    };
+  } catch {
+    return {};
+  }
 };
 
 export default function BookDemo() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [formData, setFormData] = useState({
+  const saved = React.useMemo(readSavedContext, []);
+  const [loading, setLoading] = React.useState(false);
+  const [submitted, setSubmitted] = React.useState(false);
+  const [form, setForm] = React.useState<CallForm>({
     name: "",
-    email: "",
-    company: "",
-    message: "",
+    email: saved.email || "",
+    phone: saved.phone || "",
+    company: saved.company || "",
+    websiteUrl: saved.websiteUrl || "",
+    market: "SG",
+    industry: saved.industry || "",
     preferredDate: "",
     preferredTime: "",
+    message: "",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  React.useEffect(() => {
+    trackPublicEvent({ eventType: "growth_call_viewed", label: "Website Growth Call", target: "/book-demo" });
+  }, []);
+
+  const update = <K extends keyof CallForm>(key: K, value: CallForm[K]) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
+    trackPublicEvent({
+      eventType: "growth_call_requested",
+      label: form.company,
+      target: "/book-demo",
+      metadata: { market: form.market, industry: form.industry, hasWebsite: Boolean(form.websiteUrl) },
+    });
 
     try {
-      // Save as a lead for the platform
-      const { error } = await supabase.from("leads").insert([
-        {
-          name: formData.name,
-          email: formData.email,
-          phone: "", // Optional in DB usually
-          message: `Company: ${formData.company}\nPreferred Date: ${formData.preferredDate}\nPreferred Time: ${formData.preferredTime}\n\nMessage: ${formData.message}`,
-          status: "new",
-          created_at: new Date().toISOString(),
-        },
-      ]);
-
-      if (error) throw error;
-
+      const response = await fetch("/api/platform-leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          businessName: form.company,
+          websiteUrl: form.websiteUrl,
+          industry: form.industry,
+          country: form.market,
+          leadType: "website_growth_call",
+          formName: "Website Growth Call",
+          sourcePage: "/book-demo",
+          message: [
+            `Preferred call: ${form.preferredDate || "Flexible"} ${form.preferredTime || ""}`.trim(),
+            `Market: ${REVENUE_MARKETS[form.market].label}`,
+            form.message ? `Goals: ${form.message}` : null,
+          ].filter(Boolean).join("\n"),
+        }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.message || "Your request could not be saved.");
       setSubmitted(true);
-      toast.success("Demo request submitted successfully!");
+      toast.success("Your website growth call request is in the inbox.");
     } catch (error: any) {
-      console.error("Error submitting demo request:", error);
-      toast.error("Failed to submit request. Please try again.");
+      toast.error(error?.message || "Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-white rounded-[2.5rem] p-12 text-center shadow-xl border border-slate-100"
-        >
-          <div className="h-20 w-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-8">
-            <CheckCircle2 className="h-10 w-10" />
-          </div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-4">
-            Request Received!
-          </h2>
-          <p className="text-slate-600 mb-8 leading-relaxed">
-            Thank you for your interest in Bennie Studio. Our team will
-            review your request and reach out within 24 hours to schedule your
-            personalized demo.
-          </p>
-          <Button
-            onClick={() => navigate("/")}
-            className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-lg font-bold"
-          >
-            Back to Home
-          </Button>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-slate-50 py-20 px-4">
-      <div className="max-w-4xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="mb-12"
-        >
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/")}
-            className="gap-2 text-slate-600 hover:text-indigo-600 rounded-xl"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to Home
-          </Button>
-        </motion.div>
-
-        <div className="grid lg:grid-cols-2 gap-12 items-start">
-          <motion.div
-            initial="initial"
-            animate="animate"
-            variants={fadeInUp}
-            className="space-y-8"
-          >
+    <div className="min-h-screen bg-slate-50 text-slate-950">
+      <PublicSiteHeader />
+      <main>
+        <section className="border-b border-slate-200 bg-slate-950 text-white">
+          <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100 mb-6">
-                <Globe className="h-4 w-4 text-indigo-600" />
-                <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">
-                  Book a Demo
-                </span>
-              </div>
-              <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight leading-tight mb-6">
-                See the future of{" "}
-                <span className="text-indigo-600">digital growth</span> in
-                action.
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-300">Website growth consultation</p>
+              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.03] tracking-tight sm:text-6xl">
+                Let’s find the clearest path from website visitor to real enquiry.
               </h1>
-              <p className="text-lg text-slate-600 leading-relaxed">
-                Discover how Bennie Studio can help you synthesize a
-                high-converting digital empire with AI. Get a personalized
-                walkthrough of our ecosystem.
+              <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-slate-300">
+                Bring your current website, business goals, or prepared review. We’ll discuss what is getting in the way, what should change first, and whether Bennie Studio is the right partner to build it.
               </p>
-            </div>
-
-            <div className="space-y-6">
-              {[
-                {
-                  icon: CheckCircle2,
-                  text: "Personalized walkthrough of the AI Growth Engine",
-                },
-                {
-                  icon: CheckCircle2,
-                  text: "Custom growth strategy for your business niche",
-                },
-                {
-                  icon: CheckCircle2,
-                  text: "Overview of enterprise-grade security & infrastructure",
-                },
-                {
-                  icon: CheckCircle2,
-                  text: "Q&A with our digital architecture experts",
-                },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="h-6 w-6 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-                    <item.icon className="h-4 w-4 text-emerald-600" />
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                {[
+                  "A practical review of the current enquiry journey",
+                  "A recommended website and offer direction",
+                  "A clear scope, timeline and commercial fit",
+                  "No invented forecasts or pressure tactics",
+                ].map((item) => (
+                  <div key={item} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-bold text-slate-200">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /> {item}
                   </div>
-                  <span className="text-slate-700 font-medium">
-                    {item.text}
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
-            <div className="p-8 bg-indigo-600 rounded-[2rem] text-white shadow-xl shadow-indigo-200">
-              <p className="text-lg italic mb-6">
-                "The demo was a game-changer. Seeing the AI synthesize a full
-                site in seconds convinced us immediately."
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-white/20 border border-white/30" />
-                <div>
-                  <p className="font-bold">David Miller</p>
-                  <p className="text-xs text-indigo-100 uppercase tracking-widest">
-                    CTO, Nexus Digital
+            <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur sm:p-8">
+              {submitted ? (
+                <div className="py-10 text-center">
+                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>
+                  <h2 className="mt-6 text-3xl font-black">Request received</h2>
+                  <p className="mx-auto mt-3 max-w-md font-semibold leading-7 text-slate-300">
+                    Your details are now in the sales inbox. We’ll review the context and reply with the next available call options.
                   </p>
+                  <Button onClick={() => navigate("/case-studies")} className="mt-7 min-h-12 rounded-2xl bg-white px-6 text-slate-950 hover:bg-indigo-100">
+                    View case studies <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </div>
-              </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Request a call</p>
+                    <h2 className="mt-2 text-2xl font-black">Tell us enough to prepare properly.</h2>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field icon={User} label="Your name" id="call-name"><Input id="call-name" required value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Your name" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                    <Field icon={Mail} label="Work email" id="call-email"><Input id="call-email" required type="email" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="you@business.com" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field icon={Building2} label="Business" id="call-company"><Input id="call-company" required value={form.company} onChange={(e) => update("company", e.target.value)} placeholder="Business name" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                    <Field icon={Phone} label="WhatsApp / phone" id="call-phone"><Input id="call-phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="Optional" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field icon={Globe2} label="Market" id="call-market">
+                      <select id="call-market" value={form.market} onChange={(e) => update("market", e.target.value as RevenueMarket)} className="h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-semibold text-slate-950">
+                        {Object.entries(REVENUE_MARKETS).filter(([key]) => key !== "US").map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}
+                      </select>
+                    </Field>
+                    <Field icon={Building2} label="Industry" id="call-industry"><Input id="call-industry" required value={form.industry} onChange={(e) => update("industry", e.target.value)} placeholder="e.g. renovation" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                  </div>
+                  <Field icon={Globe2} label="Current website" id="call-website"><Input id="call-website" value={form.websiteUrl} onChange={(e) => update("websiteUrl", e.target.value)} placeholder="https://... (optional)" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field icon={CalendarDays} label="Preferred date" id="call-date"><Input id="call-date" type="date" value={form.preferredDate} onChange={(e) => update("preferredDate", e.target.value)} className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                    <Field icon={Clock3} label="Preferred time" id="call-time"><Input id="call-time" type="time" value={form.preferredTime} onChange={(e) => update("preferredTime", e.target.value)} className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                  </div>
+                  <Field icon={MessageSquare} label="What needs to improve?" id="call-message"><Textarea id="call-message" value={form.message} onChange={(e) => update("message", e.target.value)} placeholder="Tell us what is happening now and what a good result would look like." className="min-h-28 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                  <Button type="submit" disabled={loading} className="min-h-13 w-full rounded-2xl bg-indigo-500 px-6 py-3 font-black text-white shadow-xl shadow-indigo-950/30 hover:bg-indigo-400">
+                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving request</> : <>Request Website Growth Call <ArrowRight className="ml-2 h-4 w-4" /></>}
+                  </Button>
+                  <p className="text-center text-xs font-semibold leading-5 text-slate-400">This is a call request, not a confirmed calendar booking. We will reply with available times.</p>
+                </form>
+              )}
             </div>
-          </motion.div>
+          </div>
+        </section>
+      </main>
+      <PublicSiteFooter />
+    </div>
+  );
+}
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-xl border border-slate-100"
-          >
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-700 font-bold">
-                    Full Name
-                  </Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                      id="name"
-                      required
-                      placeholder="John Doe"
-                      className="pl-10 rounded-xl h-12 border-slate-200 focus:ring-indigo-500"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-700 font-bold">
-                    Work Email
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      required
-                      placeholder="john@company.com"
-                      className="pl-10 rounded-xl h-12 border-slate-200 focus:ring-indigo-500"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="company" className="text-slate-700 font-bold">
-                  Company Name
-                </Label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="company"
-                    required
-                    placeholder="Acme Corp"
-                    className="pl-10 rounded-xl h-12 border-slate-200 focus:ring-indigo-500"
-                    value={formData.company}
-                    onChange={(e) =>
-                      setFormData({ ...formData, company: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="grid sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="date" className="text-slate-700 font-bold">
-                    Preferred Date
-                  </Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                      id="date"
-                      type="date"
-                      className="pl-10 rounded-xl h-12 border-slate-200 focus:ring-indigo-500"
-                      value={formData.preferredDate}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          preferredDate: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="time" className="text-slate-700 font-bold">
-                    Preferred Time
-                  </Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                      id="time"
-                      type="time"
-                      className="pl-10 rounded-xl h-12 border-slate-200 focus:ring-indigo-500"
-                      value={formData.preferredTime}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          preferredTime: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="message" className="text-slate-700 font-bold">
-                  Anything specific you'd like to see?
-                </Label>
-                <div className="relative">
-                  <MessageSquare className="absolute left-3 top-4 h-4 w-4 text-slate-400" />
-                  <Textarea
-                    id="message"
-                    placeholder="Tell us about your goals..."
-                    className="pl-10 rounded-xl min-h-[120px] border-slate-200 focus:ring-indigo-500"
-                    value={formData.message}
-                    onChange={(e) =>
-                      setFormData({ ...formData, message: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-lg font-bold shadow-lg shadow-indigo-200"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    Request Demo <Send className="ml-2 h-5 w-5" />
-                  </>
-                )}
-              </Button>
-              <p className="text-center text-xs text-slate-400 font-medium">
-                By submitting, you agree to our Terms of Service and Privacy
-                Policy.
-              </p>
-            </form>
-          </motion.div>
-        </div>
-      </div>
+function Field({ icon: Icon, label, id, children }: { icon: React.ComponentType<{ className?: string }>; label: string; id: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id} className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-slate-300"><Icon className="h-3.5 w-3.5" /> {label}</Label>
+      {children}
     </div>
   );
 }

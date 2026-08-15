@@ -1,494 +1,150 @@
-import React, { useState, useEffect } from "react";
-import { FileText, CircleDollarSign, CheckCircle2, Clock, MoreVertical, CreditCard, Plus, Loader2, Trash2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
-import { supabase } from "../../lib/supabase";
+import React from "react";
+import { CheckCircle2, CircleDollarSign, Clock3, Copy, FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Label } from "../ui/label";
+import { getOfferForMarket, REVENUE_MARKETS, type RevenueMarket } from "../../constants/revenueOffer";
+import { supabase } from "../../lib/supabase";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { cn } from "../../lib/utils";
 
-const packagePresets = {
-  Launch: {
-    value: 49,
-    setup_fee: 497,
-    scope: [
-      "One-page managed business website",
-      "Mobile-responsive layout and enquiry CTA",
-      "Basic SEO title and meta description",
-      "Contact form and WhatsApp-ready lead path",
-    ],
-    outcome: "Fast professional launch for a business that needs a clean online presence without a large upfront website project.",
-  },
-  Growth: {
-    value: 99,
-    setup_fee: 997,
-    scope: [
-      "Up to three managed website pages",
-      "Home, services, and contact/enquiry structure",
-      "Local SEO-ready copy sections",
-      "Monthly content update support",
-    ],
-    outcome: "A stronger small business website with clearer service proof, more conversion paths, and room to improve monthly.",
-  },
-  Scale: {
-    value: 199,
-    setup_fee: 1497,
-    scope: [
-      "Up to five managed website pages",
-      "Campaign or landing page support",
-      "Advanced CTA sections and enquiry tracking",
-      "Priority updates and growth recommendations",
-    ],
-    outcome: "A managed growth website for businesses that need more pages, campaign support, and stronger enquiry performance.",
-  },
-  "Custom Website": {
-    value: 0,
-    setup_fee: 3500,
-    scope: [
-      "Custom website project scope",
-      "CMS access for blog and content publishing",
-      "Advanced SEO page structure",
-      "Custom integrations quoted separately",
-    ],
-    outcome: "A premium custom build for companies that need full CMS control, content publishing, ownership, and deeper customization.",
-  },
-};
+const PROPOSAL_STATUSES = ["Draft", "Sent", "Accepted", "Declined", "Expired"];
 
 export function ProposalsDeals() {
-  const [proposals, setProposals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [businesses, setBusinesses] = useState<any[]>([]);
-  const [newProposal, setNewProposal] = useState({
-    business_id: "",
-    title: "",
-    package_name: "Launch",
-    value: packagePresets.Launch.value,
-    setup_fee: packagePresets.Launch.setup_fee,
-    status: "Sent",
-    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-  });
+  const [proposals, setProposals] = React.useState<any[]>([]);
+  const [leads, setLeads] = React.useState<any[]>([]);
+  const [businesses, setBusinesses] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+  const [open, setOpen] = React.useState(false);
+  const [form, setForm] = React.useState({ target: "", title: "Website Growth Partner proposal", market: "SG" as RevenueMarket, expiresAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), checkoutUrl: "" });
 
-  const stats = {
-    pipelineVolume: proposals.reduce((acc, p) => acc + (p.value || 0), 0),
-    avgDaysToClose: 14.2, // Still static for now or can be derived if we have closed_at
-    pendingFees: proposals.filter(p => p.status !== 'Accepted').reduce((acc, p) => acc + (p.setup_fee || 0), 0),
-  };
-
-  useEffect(() => {
-    fetchProposals();
-    fetchBusinesses();
+  const fetchData = React.useCallback(async () => {
+    setLoading(true);
+    const [proposalResult, leadResult, businessResult] = await Promise.all([
+      supabase.from("proposals").select("*, businesses(name), leads(name,email)").order("created_at", { ascending: false }),
+      supabase.from("leads").select("id,name,email,status,raw_fields").not("status", "in", '("won","lost","closed")').order("created_at", { ascending: false }).limit(250),
+      supabase.from("businesses").select("id,name").order("name"),
+    ]);
+    if (proposalResult.error) toast.error(proposalResult.error.message || "Could not load proposals");
+    setProposals(proposalResult.data || []);
+    setLeads(leadResult.data || []);
+    setBusinesses(businessResult.data || []);
+    setLoading(false);
   }, []);
 
-  const fetchProposals = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("proposals")
-        .select("*, businesses(name)")
-        .order("created_at", { ascending: false });
+  React.useEffect(() => { void fetchData(); }, [fetchData]);
 
-      if (error) throw error;
-      setProposals(data || []);
-    } catch (error: any) {
-      console.error("Error fetching proposals:", error);
-      toast.error("Failed to load pipeline");
-    } finally {
-      setLoading(false);
-    }
+  const offer = getOfferForMarket(form.market);
+  const active = proposals.filter((proposal) => !["Declined", "Expired"].includes(proposal.status));
+  const accepted = proposals.filter((proposal) => proposal.status === "Accepted");
+  const stats = {
+    pipelineMrr: active.reduce((sum, proposal) => sum + Number(proposal.value || proposal.amount || 0), 0),
+    acceptedMrr: accepted.reduce((sum, proposal) => sum + Number(proposal.value || proposal.amount || 0), 0),
+    pendingSetup: active.filter((proposal) => proposal.status !== "Accepted").reduce((sum, proposal) => sum + Number(proposal.setup_fee || 0), 0),
   };
 
-  const fetchBusinesses = async () => {
+  const createProposal = async () => {
+    if (!form.target || !form.title.trim()) return toast.error("Choose a lead or customer and add a proposal title.");
+    setSaving(true);
     try {
-      const { data, error } = await supabase
-        .from("businesses")
-        .select("id, name")
-        .order("name");
+      const [kind, id] = form.target.split(":");
+      const payload = {
+        lead_id: kind === "lead" ? id : null,
+        business_id: kind === "business" ? id : null,
+        title: form.title.trim(),
+        package_name: offer.name,
+        value: offer.monthlyPrice,
+        amount: offer.monthlyPrice,
+        setup_fee: offer.setupFee,
+        status: "Draft",
+        expires_at: form.expiresAt,
+        valid_until: form.expiresAt,
+        scope: offer.included,
+        outcome: offer.description,
+        checkout_url: form.checkoutUrl.trim() || null,
+        config: { offerId: offer.id, planId: offer.planId, market: form.market, commitmentMonths: offer.commitmentMonths, package_name: offer.name, setup_fee: offer.setupFee, scope: offer.included, outcome: offer.description },
+      };
+      const { data, error } = await supabase.from("proposals").insert(payload).select("*, businesses(name), leads(name,email)").single();
       if (error) throw error;
-      setBusinesses(data || []);
-    } catch (error) {
-      console.error("Error fetching businesses:", error);
-    }
-  };
-
-  const handleCreateProposal = async () => {
-    if (!newProposal.business_id || !newProposal.title) {
-      toast.error("Business and Title are required");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      const { data, error } = await supabase
-        .from("proposals")
-        .insert([newProposal])
-        .select("*, businesses(name)")
-        .single();
-
-      if (error) throw error;
-      
-      setProposals([data, ...proposals]);
-      setIsAddModalOpen(false);
-      setNewProposal({
-        business_id: "",
-        title: "",
-        package_name: "Launch",
-        value: packagePresets.Launch.value,
-        setup_fee: packagePresets.Launch.setup_fee,
-        status: "Sent",
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      });
-      toast.success("Proposal sent to prospect");
+      if (kind === "lead") await supabase.from("leads").update({ status: "proposal", automation_next_action: "Send proposal and schedule follow-up", next_follow_up_at: new Date(Date.now() + 2 * 86400000).toISOString() }).eq("id", id);
+      setProposals((current) => [data, ...current]);
+      setOpen(false);
+      toast.success("Proposal created. Review it before sharing.");
     } catch (error: any) {
-      console.error("Error sending proposal:", error);
-      toast.error(error.message || "Failed to send proposal");
+      toast.error(error.message || "Proposal could not be created");
     } finally {
       setSaving(false);
     }
   };
 
-  const deleteProposal = async (id: string) => {
-    if (!confirm("Are you sure you want to retract this proposal?")) return;
-
-    try {
-      const { error } = await supabase.from("proposals").delete().eq("id", id);
-      if (error) throw error;
-      
-      setProposals(proposals.filter(p => p.id !== id));
-      toast.success("Proposal retracted");
-    } catch (error: any) {
-      console.error("Error deleting proposal:", error);
-      toast.error("Failed to retract proposal");
-    }
+  const updateStatus = async (proposal: any, status: string) => {
+    const updates: Record<string, any> = { status, updated_at: new Date().toISOString() };
+    if (status === "Accepted") updates.accepted_at = new Date().toISOString();
+    const { data, error } = await supabase.from("proposals").update(updates).eq("id", proposal.id).select("*, businesses(name), leads(name,email)").single();
+    if (error) return toast.error(error.message);
+    setProposals((current) => current.map((item) => item.id === proposal.id ? data : item));
+    const leadStatus = status === "Accepted" ? "won" : status === "Declined" ? "lost" : status === "Sent" ? "proposal" : null;
+    if (proposal.lead_id && leadStatus) await supabase.from("leads").update({ status: leadStatus }).eq("id", proposal.lead_id);
   };
 
-  const [selectedProposal, setSelectedProposal] = useState<any>(null);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-
-  const handlePreview = (proposal: any) => {
-    setSelectedProposal(proposal);
-    setShowPreviewModal(true);
+  const copyLink = async (proposal: any) => {
+    if (!proposal.proposal_token) return toast.error("This legacy proposal does not have a share token yet.");
+    await navigator.clipboard.writeText(`${window.location.origin}/proposal/${proposal.proposal_token}`);
+    if (proposal.status === "Draft") await updateStatus(proposal, "Sent");
+    toast.success("Proposal link copied and marked sent.");
   };
 
-  const selectedPackage = selectedProposal
-    ? packagePresets[selectedProposal.package_name as keyof typeof packagePresets] || packagePresets.Growth
-    : packagePresets.Growth;
+  const remove = async (id: string) => {
+    if (!window.confirm("Retract and delete this proposal?")) return;
+    const { error } = await supabase.from("proposals").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    setProposals((current) => current.filter((proposal) => proposal.id !== id));
+  };
 
   return (
-    <div className="space-y-8 pt-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 dark:text-white">
-          Proposals <span className="text-indigo-600">& Deals</span>
-        </h1>
-        <Button 
-          onClick={() => setIsAddModalOpen(true)}
-          className="rounded-xl bg-indigo-600 hover:bg-indigo-700 h-11 px-8 font-black uppercase tracking-widest text-[10px]"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Proposal
-        </Button>
+    <div className="space-y-7 pt-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">Lead to checkout</p><h1 className="mt-2 text-4xl font-black tracking-tight text-slate-950 dark:text-white">Proposals & deals</h1><p className="mt-2 text-sm font-semibold text-slate-500">Create a proposal directly from an inbound lead or an existing customer, then share one trackable link.</p></div>
+        <Button onClick={() => setOpen(true)} className="min-h-11 rounded-xl bg-slate-950 px-6 text-white hover:bg-indigo-600"><Plus className="mr-2 h-4 w-4" /> New proposal</Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="rounded-[2.5rem] border-slate-100 shadow-sm overflow-hidden bg-white dark:bg-slate-900/50 dark:border-slate-800">
-           <CardHeader className="p-8 pb-4">
-             <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pipeline Volume</CardTitle>
-           </CardHeader>
-           <CardContent className="px-8 pb-8 flex items-end justify-between">
-              <div>
-                 <div className="text-5xl font-black italic text-slate-900 dark:text-white tracking-tighter leading-none mb-1">
-                   ${stats.pipelineVolume.toLocaleString()}
-                 </div>
-                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Potential Monthly Revenue</p>
-              </div>
-              <div className="flex flex-col items-end">
-                 <Badge className="bg-emerald-50 text-emerald-600 border-none rounded-full px-3 py-1 mb-2">
-                    <span className="h-1 w-1 rounded-full bg-emerald-500 mr-1.5" />
-                    Healthy
-                 </Badge>
-                 <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">+18% MoM</p>
-              </div>
-           </CardContent>
-        </Card>
-
-        <Card className="rounded-[2.5rem] border-slate-100 shadow-sm overflow-hidden bg-indigo-600 text-white border-none">
-           <CardHeader className="p-8 pb-4">
-             <CardTitle className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Closing Velocity</CardTitle>
-           </CardHeader>
-           <CardContent className="px-8 pb-8 flex items-end justify-between">
-              <div>
-                 <div className="text-5xl font-black italic text-white tracking-tighter leading-none mb-1">{stats.avgDaysToClose}</div>
-                 <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest">Avg. Days to Close</p>
-              </div>
-              <div className="h-16 w-16 rounded-2xl bg-white/20 flex items-center justify-center">
-                 <Clock className="h-8 w-8 text-white" />
-              </div>
-           </CardContent>
-        </Card>
-
-        <Card className="rounded-[2.5rem] border-slate-100 shadow-sm overflow-hidden bg-slate-900 text-white border-none">
-           <CardHeader className="p-8 pb-4">
-             <CardTitle className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Uncollected Fees</CardTitle>
-           </CardHeader>
-           <CardContent className="px-8 pb-8 flex items-end justify-between">
-              <div>
-                 <div className="text-5xl font-black italic text-rose-400 tracking-tighter leading-none mb-1">
-                   ${stats.pendingFees.toLocaleString()}
-                 </div>
-                 <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Setup Fees Pending</p>
-              </div>
-              <div className="h-16 w-16 rounded-2xl bg-white/5 flex items-center justify-center">
-                 <CreditCard className="h-8 w-8 text-rose-400" />
-              </div>
-           </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Metric icon={CircleDollarSign} label="Open proposal MRR" value={`$${stats.pipelineMrr.toLocaleString()}`} note="Actual open proposal value" />
+        <Metric icon={CheckCircle2} label="Accepted MRR" value={`$${stats.acceptedMrr.toLocaleString()}`} note={accepted.length ? `${accepted.length} accepted proposal${accepted.length === 1 ? "" : "s"}` : "Not enough data yet"} />
+        <Metric icon={Clock3} label="Pending setup fees" value={`$${stats.pendingSetup.toLocaleString()}`} note="Excludes accepted and declined proposals" />
       </div>
 
-      <Card className="rounded-[3rem] border-slate-100 shadow-xl shadow-slate-100/50 bg-white dark:bg-slate-900/50 dark:border-slate-800 overflow-hidden">
-        <CardHeader className="p-8 border-b border-slate-50 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex flex-row items-center justify-between">
-          <CardTitle className="text-2xl font-black italic uppercase tracking-tight dark:text-white">Active Proposals</CardTitle>
-        </CardHeader>
+      <Card className="overflow-hidden rounded-3xl border-slate-200 shadow-sm">
+        <CardHeader className="border-b border-slate-100 p-5"><CardTitle className="text-base">Proposal pipeline</CardTitle></CardHeader>
         <CardContent className="p-0">
-           <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/50">
-                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Prospect</th>
-                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">WAAS Package</th>
-                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Value</th>
-                    <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Expiration</th>
-                    <th className="px-8 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={5} className="py-20 text-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
-                        <p className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Accessing Pipeline...</p>
-                      </td>
-                    </tr>
-                  ) : proposals.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-20 text-center">
-                        <p className="text-slate-400 font-bold text-sm">No active proposals in scope.</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    proposals.map((deal) => (
-                      <tr key={deal.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-8 py-8">
-                           <p className="text-sm font-black text-slate-900 dark:text-white italic uppercase italic tracking-tight">{deal.businesses?.name || "Global Entity"}</p>
-                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{deal.title}</p>
-                        </td>
-                        <td className="px-8 py-8 items-center">
-                           <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-indigo-100 text-indigo-600 px-3 py-1 rounded-full">
-                             {deal.package_name}
-                           </Badge>
-                        </td>
-                        <td className="px-8 py-8">
-                           <div className="space-y-0.5">
-                              <p className="text-sm font-black text-slate-900 dark:text-white italic">${deal.value}/mo</p>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase">${deal.setup_fee} Setup</p>
-                           </div>
-                        </td>
-                        <td className="px-8 py-8">
-                           <p className="text-xs font-black text-rose-500 italic uppercase">
-                             {deal.expires_at ? new Date(deal.expires_at).toLocaleDateString() : "No Expiry"}
-                           </p>
-                        </td>
-                        <td className="px-8 py-8 text-right">
-                           <div className="flex gap-2 justify-end">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => handlePreview(deal)}
-                                className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50"
-                              >
-                                View
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                onClick={() => deleteProposal(deal.id)}
-                                className="rounded-xl h-8 w-8 hover:bg-rose-50 hover:text-rose-600"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                           </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-           </div>
+          {loading ? <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-indigo-600" /></div> : proposals.length === 0 ? <div className="py-20 text-center"><FileText className="mx-auto h-10 w-10 text-slate-300" /><p className="mt-4 font-black text-slate-700">No active proposals yet.</p><p className="mt-1 text-sm text-slate-500">Qualify a lead and create the first proposal from this page.</p></div> : <div className="divide-y divide-slate-100">{proposals.map((proposal) => {
+            const contact = proposal.leads?.name || proposal.businesses?.name || "Unassigned prospect";
+            const market = proposal.config?.market || "US";
+            const value = Number(proposal.value || proposal.amount || 0);
+            return <article key={proposal.id} className="grid gap-4 p-5 lg:grid-cols-[1.3fr_0.7fr_auto] lg:items-center">
+              <div><div className="flex flex-wrap items-center gap-2"><h2 className="font-black text-slate-950 dark:text-white">{proposal.title}</h2><Badge variant="outline">{market}</Badge></div><p className="mt-1 text-sm font-semibold text-slate-500">{contact} · {proposal.package_name || "Custom proposal"}</p><p className="mt-2 text-xs font-bold text-slate-400">Expires {proposal.expires_at || proposal.valid_until || "not set"}</p></div>
+              <div><p className="text-2xl font-black text-slate-950 dark:text-white">{REVENUE_MARKETS[market as RevenueMarket] ? getOfferForMarket(market as RevenueMarket).monthlyLabel : `$${value.toLocaleString()}`}<span className="text-xs text-slate-400">/mo</span></p><p className="mt-1 text-xs font-bold text-slate-500">Setup: {Number(proposal.setup_fee || 0).toLocaleString()}</p></div>
+              <div className="flex flex-wrap items-center gap-2"><Select value={proposal.status || "Draft"} onValueChange={(value) => void updateStatus(proposal, value)}><SelectTrigger className="w-32 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{PROPOSAL_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select><Button variant="outline" size="icon" onClick={() => void copyLink(proposal)} className="rounded-xl" aria-label="Copy proposal link"><Copy className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => void remove(proposal.id)} className="rounded-xl text-rose-500" aria-label="Delete proposal"><Trash2 className="h-4 w-4" /></Button></div>
+            </article>;
+          })}</div>}
         </CardContent>
       </Card>
 
-      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="rounded-3xl max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-black italic uppercase italic tracking-tight">Draft Neural Proposal</DialogTitle>
-            <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              Synthesize a professional WAAS agreement for an active target.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Target Business</Label>
-              <Select 
-                value={newProposal.business_id}
-                onValueChange={(val) => setNewProposal({...newProposal, business_id: val})}
-              >
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="Select business..." />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  {businesses.map((biz) => (
-                    <SelectItem key={biz.id} value={biz.id}>{biz.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Proposal Title</Label>
-              <Input 
-                value={newProposal.title}
-                onChange={(e) => setNewProposal({...newProposal, title: e.target.value})}
-                placeholder="e.g. Website Growth Strategy 2024"
-                className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Recommended Package</Label>
-              <Select
-                value={newProposal.package_name}
-                onValueChange={(val) => {
-                  const preset = packagePresets[val as keyof typeof packagePresets] || packagePresets.Launch;
-                  setNewProposal({
-                    ...newProposal,
-                    package_name: val,
-                    value: preset.value,
-                    setup_fee: preset.setup_fee,
-                  });
-                }}
-              >
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  {Object.keys(packagePresets).map((plan) => (
-                    <SelectItem key={plan} value={plan}>{plan}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Monthly Recurring</Label>
-                <Input 
-                  type="number"
-                  value={newProposal.value}
-                  onChange={(e) => setNewProposal({...newProposal, value: parseInt(e.target.value) || 0})}
-                  className="rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">One-time Setup</Label>
-                <Input 
-                  type="number"
-                  value={newProposal.setup_fee}
-                  onChange={(e) => setNewProposal({...newProposal, setup_fee: parseInt(e.target.value) || 0})}
-                  className="rounded-xl"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddModalOpen(false)} className="rounded-xl">Cancel</Button>
-            <Button onClick={handleCreateProposal} disabled={saving} className="rounded-xl bg-indigo-600 text-[10px] font-black uppercase tracking-widest">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
-              Dispatch Proposal
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3rem] p-0 border-none bg-white">
-            {selectedProposal && (
-               <div className="flex flex-col">
-                  <div className="bg-slate-900 p-12 text-white relative overflow-hidden">
-                     <FileText className="absolute -right-10 -bottom-10 h-64 w-64 text-white/5" />
-                     <div className="relative z-10 flex justify-between items-start">
-                        <div className="space-y-4">
-                          <Badge className="bg-indigo-600 font-black px-4 py-1.5 rounded-full text-[10px] tracking-[0.2em] uppercase">GROWTH OS AGREEMENT</Badge>
-                           <h2 className="text-4xl font-black italic uppercase tracking-tighter leading-tight">
-                              Managed Website Proposal / <span className="text-indigo-400">{selectedProposal.businesses?.name}</span>
-                           </h2>
-                           <p className="max-w-xl text-sm font-semibold leading-6 text-slate-300">
-                              {selectedPackage.outcome}
-                           </p>
-                        </div>
-                        <div className="text-right">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valid Until</p>
-                           <p className="text-xl font-black italic text-white">{new Date(selectedProposal.expires_at).toLocaleDateString()}</p>
-                        </div>
-                     </div>
-                  </div>
-
-                  <div className="p-12 space-y-12">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                        <div className="space-y-6">
-                           <h3 className="text-sm font-black uppercase text-indigo-600 tracking-widest">Recommended Scope</h3>
-                           <div className="space-y-4">
-                              {selectedPackage.scope.map((item, i) => (
-                                 <div key={i} className="flex items-center gap-3">
-                                    <CheckCircle2 className="h-4 w-4 text-indigo-600" />
-                                    <span className="text-xs font-bold text-slate-700 uppercase tracking-tight">{item}</span>
-                                 </div>
-                              ))}
-                           </div>
-                        </div>
-                        <div className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 flex flex-col justify-between">
-                           <div>
-                              <h3 className="text-sm font-black uppercase text-slate-900 tracking-widest mb-6">Investment Structure</h3>
-                              <div className="space-y-4">
-                                 <div className="flex justify-between items-center pb-4 border-b border-slate-200">
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Managed Website Plan</span>
-                                    <span className="text-lg font-black italic">
-                                      {selectedProposal.value > 0 ? `$${selectedProposal.value}/mo` : "Custom quote"}
-                                    </span>
-                                 </div>
-                                 <div className="flex justify-between items-center pb-4">
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Setup / Project Fee</span>
-                                    <span className="text-lg font-black italic">${selectedProposal.setup_fee}</span>
-                                 </div>
-                              </div>
-                           </div>
-                           <div className="mt-8 pt-8 border-t border-slate-200">
-                              <div className="flex justify-between items-center mb-6">
-                                 <span className="text-sm font-black uppercase text-slate-900 tracking-widest">Initial Due</span>
-                                 <span className="text-2xl font-black italic text-indigo-600">
-                                   ${selectedProposal.setup_fee}
-                                 </span>
-                              </div>
-                              <Button className="w-full bg-slate-900 text-white h-14 rounded-2xl font-black uppercase tracking-widest text-[10px]">
-                                 Accept Proposal
-                              </Button>
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-            )}
-         </DialogContent>
-      </Dialog>
+      <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-w-xl rounded-3xl"><DialogHeader><DialogTitle>Create revenue proposal</DialogTitle></DialogHeader><div className="space-y-4 py-2">
+        <div><Label>Lead or customer</Label><Select value={form.target} onValueChange={(target) => setForm((current) => ({ ...current, target }))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue placeholder="Choose a qualified lead" /></SelectTrigger><SelectContent>{leads.map((lead) => <SelectItem key={lead.id} value={`lead:${lead.id}`}>{lead.raw_fields?.businessName || lead.name} · {lead.email}</SelectItem>)}{businesses.map((business) => <SelectItem key={business.id} value={`business:${business.id}`}>{business.name} · customer</SelectItem>)}</SelectContent></Select></div>
+        <div><Label htmlFor="proposal-title">Proposal title</Label><Input id="proposal-title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className="mt-2 rounded-xl" /></div>
+        <div className="grid gap-4 sm:grid-cols-2"><div><Label>Market</Label><Select value={form.market} onValueChange={(market) => setForm((current) => ({ ...current, market: market as RevenueMarket }))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(REVENUE_MARKETS).map(([code, market]) => <SelectItem key={code} value={code}>{market.label}</SelectItem>)}</SelectContent></Select></div><div><Label htmlFor="proposal-expiry">Valid until</Label><Input id="proposal-expiry" type="date" value={form.expiresAt} onChange={(event) => setForm((current) => ({ ...current, expiresAt: event.target.value }))} className="mt-2 rounded-xl" /></div></div>
+        <div><Label htmlFor="proposal-checkout">Secure checkout URL <span className="font-medium text-slate-400">(optional)</span></Label><Input id="proposal-checkout" type="url" placeholder="https://buy.stripe.com/..." value={form.checkoutUrl} onChange={(event) => setForm((current) => ({ ...current, checkoutUrl: event.target.value }))} className="mt-2 rounded-xl" /><p className="mt-2 text-xs font-semibold text-slate-500">When supplied, an accepted proposal continues directly to this Stripe checkout or payment link.</p></div>
+        <div className="rounded-2xl bg-indigo-50 p-4 text-sm font-bold leading-6 text-slate-700">{offer.monthlyLabel}/month + {offer.setupLabel} setup · {offer.commitmentMonths}-month initial commitment</div>
+      </div><DialogFooter><Button variant="outline" onClick={() => setOpen(false)} className="rounded-xl">Cancel</Button><Button onClick={() => void createProposal()} disabled={saving} className="rounded-xl bg-slate-950 text-white hover:bg-indigo-600">{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Create draft</Button></DialogFooter></DialogContent></Dialog>
     </div>
   );
+}
+
+function Metric({ icon: Icon, label, value, note }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; note: string }) {
+  return <Card className="rounded-3xl border-slate-200 shadow-sm"><CardContent className="p-6"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">{label}</p><Icon className="h-5 w-5 text-indigo-600" /></div><p className="mt-4 text-4xl font-black tracking-tight text-slate-950 dark:text-white">{value}</p><p className="mt-2 text-xs font-semibold text-slate-500">{note}</p></CardContent></Card>;
 }
