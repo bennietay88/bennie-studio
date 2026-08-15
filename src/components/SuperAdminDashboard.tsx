@@ -153,6 +153,7 @@ import { AICreditAdmin } from "./SuperAdmin/AICreditAdmin";
 import { LocalSeoManager } from "./SuperAdmin/LocalSeoManager";
 import { LaunchAudit } from "./SuperAdmin/LaunchAudit";
 import { OperationsControlCenter } from "./SuperAdmin/OperationsControlCenter";
+import { AdminLeadInbox } from "./SuperAdmin/AdminLeadInbox";
 import ComplianceMarketSettings from "./SuperAdmin/ComplianceMarketSettings";
 import { SystemStatusPage } from "./SystemStatusPage";
 import { PLANS as STATIC_PLANS, normalizePlans } from "../constants/plans";
@@ -219,6 +220,7 @@ export default function SuperAdminDashboard() {
     if (location.pathname.includes("/admin/templates")) return "templates";
     if (last === "admin" || last === "overview") return "overview";
     if (last === "sales_home") return "sales_home";
+    if (last === "inbound_leads") return "inbound_leads";
     if (last === "growth_os_config") return "growth_os_config";
     if (last === "settings") return "settings";
     if (last === "revenue") return "revenue";
@@ -1485,122 +1487,14 @@ export default function SuperAdminDashboard() {
       
       {/* OVERVIEW TAB */}
       {activeTab === "overview" && (
-        <div className="tour-dashboard space-y-10 animate-in fade-in duration-500">
-           <div className="flex justify-between items-end">
-              <div>
-                 <h1 className="text-5xl font-black italic tracking-tighter uppercase text-slate-900">
-                    Platform <span className="text-purple-600">Overview</span>
-                 </h1>
-                 <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-2">Growth OS Ecosystem Mission Control</p>
-              </div>
-              <div className="flex gap-3">
-                 <Button 
-                   variant="outline" 
-                   className="rounded-xl font-bold uppercase tracking-widest text-[10px] h-11 px-6 border-slate-200 gap-2"
-                   onClick={() => setShowTour(true)}
-                 >
-                    <Rocket className="h-4 w-4 text-indigo-600" /> Start Tour
-                 </Button>
-                 <Button
-                   variant="outline"
-                   className="tour-sync rounded-xl font-bold uppercase tracking-widest text-[10px] h-11 px-6 border-slate-200"
-                   onClick={() => {
-                     fetchTrafficMetrics();
-                     toast.success("Platform records refreshed.");
-                   }}
-                 >
-                    <History className="h-4 w-4 mr-2" /> Sync Records
-                 </Button>
-                 <Button
-                   className="tour-scale rounded-xl bg-purple-600 hover:bg-purple-700 font-black uppercase tracking-widest text-[10px] h-11 px-8 shadow-xl shadow-purple-100"
-                   onClick={() => navigate("/admin/growth_os_config")}
-                 >
-                    <Rocket className="h-4 w-4 mr-2" /> Scale Infrastructure
-                 </Button>
-              </div>
-           </div>
-
-           <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-             {[
-               {
-                 label: "Managed Hosted Sites",
-                 value: businesses.filter((b) => (b.platform_type || "waas") !== "wordpress").length,
-                 detail: "Target tech cost below $5/site",
-                 icon: Globe,
-                 tone: "text-indigo-600 bg-indigo-50",
-               },
-               {
-                 label: "Website Quote Path",
-                 value: customApps.length + projects.filter((p) => String(p.type || p.category || "").toLowerCase().includes("wordpress")).length,
-                 detail: "Premium custom projects",
-                 icon: FileText,
-                 tone: "text-slate-700 bg-slate-100",
-               },
-               {
-                 label: "Review Refresh Due",
-                 value: businesses.filter((b) => {
-                   const last = b.onboarding_steps?.reviewPowered?.lastRefreshDate || b.updated_at;
-                   return !last || Date.now() - new Date(last).getTime() > 25 * 24 * 60 * 60 * 1000;
-                 }).length,
-                 detail: "Monthly retention opportunities",
-                 icon: RefreshCw,
-                 tone: "text-amber-600 bg-amber-50",
-               },
-               {
-                 label: "Margin Watch",
-                 value: businesses.filter((b) => Number(b.ai_credits_used || b.ai_used || 0) > 500).length,
-                 detail: "High AI/support usage",
-                 icon: CircleDollarSign,
-                 tone: "text-emerald-600 bg-emerald-50",
-               },
-             ].map((item) => {
-               const Icon = item.icon;
-               return (
-                 <Card key={item.label} className="rounded-[2rem] border-slate-100 shadow-sm">
-                   <CardContent className="p-6">
-                     <div className={cn("mb-5 flex h-11 w-11 items-center justify-center rounded-2xl", item.tone)}>
-                       <Icon className="h-5 w-5" />
-                     </div>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
-                     <p className="mt-2 text-3xl font-black text-slate-950">{item.value}</p>
-                     <p className="mt-1 text-xs font-bold text-slate-500">{item.detail}</p>
-                   </CardContent>
-                 </Card>
-               );
-             })}
-           </div>
-
-           <Card className="rounded-[2rem] border-indigo-100 bg-indigo-50/40 shadow-sm">
-             <CardHeader>
-               <CardTitle className="flex items-center gap-2 text-xl font-black text-slate-950">
-                 <BrainCircuit className="h-5 w-5 text-indigo-600" />
-                 Review-Powered Operations
-               </CardTitle>
-               <CardDescription>
-                 Manage review scans, managed publishing, custom website upgrade intent, support load, and monthly refresh work.
-               </CardDescription>
-             </CardHeader>
-             <CardContent className="grid gap-4 md:grid-cols-3">
-               {[
-                 ["Admin actions", "Approve site, publish managed website, suspend site, trigger review refresh, create Website quote."],
-                 ["Profitability logic", "Track revenue, estimated hosting cost, AI usage, support load, and gross margin risk per site."],
-                 ["Plan gates", "Free preview cannot publish. Launch 1 page, Growth 3 pages, Scale 5 pages, custom website quote only."],
-               ].map(([title, copy]) => (
-                 <div key={title} className="rounded-2xl bg-white p-5">
-                   <p className="font-black text-slate-950">{title}</p>
-                   <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{copy}</p>
-                 </div>
-               ))}
-             </CardContent>
-           </Card>
-           
-           <div className="tour-revenue-command">
-             <RevenueCommand />
-           </div>
+        <div className="tour-dashboard animate-in fade-in duration-500">
+          <RevenueCommand />
         </div>
       )}
 
       {activeTab === "sales_home" && <SalesHome />}
+
+      {activeTab === "inbound_leads" && <AdminLeadInbox />}
 
       {activeTab === "prospect_explorer" && <ProspectExplorer />}
       {activeTab === "neural_auditor" && <NeuralAuditor />}
@@ -2530,7 +2424,7 @@ export default function SuperAdminDashboard() {
           {activeTab === "update_requests" && <MonthlyUpdateQueue />}
 
           {/* Catch-all for tabs that might not have specialized rendering yet or are in development */}
-          {!["overview", "revenue_command", "sales_home", "prospect_explorer", "neural_auditor", "outreach_lab", "mass_campaigns", "webinar_engine", "proposals_deals", "custom_applications", "projects", "launch_audit", "client_onboarding", "operations", "local_seo", "businesses", "users", "affiliates", "growth_os_config", "revenue", "geo_pricing", "templates", "plans", "compliance_market", "ai_credits", "status", "intelligence_lab", "traffic", "settings", "support", "update_requests", "blog", "policies", "ecosystem_architect", "admin"].includes(activeTab) && (
+          {!["overview", "revenue_command", "sales_home", "inbound_leads", "prospect_explorer", "neural_auditor", "outreach_lab", "mass_campaigns", "webinar_engine", "proposals_deals", "custom_applications", "projects", "launch_audit", "client_onboarding", "operations", "local_seo", "businesses", "users", "affiliates", "growth_os_config", "revenue", "geo_pricing", "templates", "plans", "compliance_market", "ai_credits", "status", "intelligence_lab", "traffic", "settings", "support", "update_requests", "blog", "policies", "ecosystem_architect", "admin"].includes(activeTab) && (
             <div className="h-full flex items-center justify-center p-12">
                <Card className="p-24 flex flex-col items-center justify-center text-center rounded-[3rem] border-slate-100 bg-slate-50/50 max-w-2xl">
                   <div className="h-20 w-20 rounded-[2rem] bg-white shadow-xl shadow-slate-200 flex items-center justify-center text-indigo-600 mb-6">

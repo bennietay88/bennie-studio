@@ -703,12 +703,19 @@ async function startServer() {
   const getProfileForUser = async (userId: string) => {
     const { data, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, role, business_id")
+      .select("id, role, business_id, staff_permissions")
       .eq("id", userId)
       .single();
     if (error || !data) throw new Error("PROFILE_NOT_FOUND");
     return data;
   };
+
+  const canManageLeadInbox = (profile: any) =>
+    profile?.role === "super_admin" ||
+    (profile?.role === "platform_staff" &&
+      ["sales", "customer_health"].some((permission) =>
+        Array.isArray(profile.staff_permissions) && profile.staff_permissions.includes(permission),
+      ));
 
   const assertBusinessAccess = async (userId: string, businessId: string) => {
     if (!businessId) throw new Error("BUSINESS_ID_REQUIRED");
@@ -2640,6 +2647,77 @@ async function startServer() {
       } catch (err: any) {
         console.error("Platform lead submission error:", err);
         res.status(500).json({ success: false, message: "Failed to submit preview request" });
+      }
+    },
+  );
+
+  app.get(
+    "/api/admin/leads",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: "admin-leads", key: (req) => req.user?.id || getClientIp(req) }),
+    async (req: any, res) => {
+      try {
+        const profile = await getProfileForUser(req.user.id);
+        if (!canManageLeadInbox(profile)) {
+          return res.status(403).json({ error: "Forbidden: sales access required" });
+        }
+
+        const { data, error } = await supabaseAdmin
+          .from("leads")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(250);
+
+        if (error) throw error;
+        return res.json({ leads: data || [] });
+      } catch (error: any) {
+        if (error?.message === "PROFILE_NOT_FOUND") {
+          return res.status(403).json({ error: "Profile not found" });
+        }
+        console.error("Admin lead inbox load failed:", error);
+        return res.status(500).json({ error: "Failed to load enquiries" });
+      }
+    },
+  );
+
+  app.patch(
+    "/api/admin/leads/:leadId/status",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: "admin-lead-status", key: (req) => req.user?.id || getClientIp(req) }),
+    async (req: any, res) => {
+      if (!UUID_SCHEMA.safeParse(req.params.leadId).success) {
+        return res.status(400).json({ error: "Invalid lead ID" });
+      }
+
+      const body = validateBody(
+        z.object({ status: z.enum(["new", "contacted", "qualified", "meeting", "closed"]) }),
+        req,
+        res,
+      );
+      if (!body) return;
+
+      try {
+        const profile = await getProfileForUser(req.user.id);
+        if (!canManageLeadInbox(profile)) {
+          return res.status(403).json({ error: "Forbidden: sales access required" });
+        }
+
+        const { data, error } = await supabaseAdmin
+          .from("leads")
+          .update({ status: body.status })
+          .eq("id", req.params.leadId)
+          .select("id,status")
+          .maybeSingle();
+
+        if (error) throw error;
+        if (!data) return res.status(404).json({ error: "Lead not found" });
+        return res.json({ lead: data });
+      } catch (error: any) {
+        if (error?.message === "PROFILE_NOT_FOUND") {
+          return res.status(403).json({ error: "Profile not found" });
+        }
+        console.error("Admin lead status update failed:", error);
+        return res.status(500).json({ error: "Failed to update lead status" });
       }
     },
   );

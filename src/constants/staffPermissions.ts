@@ -21,6 +21,7 @@ export const DEFAULT_PLATFORM_STAFF_PERMISSIONS: StaffPermissionId[] = [
 ];
 
 export const ADMIN_TAB_PERMISSIONS: Record<string, StaffPermissionId> = {
+  inbound_leads: "sales",
   sales_home: "sales",
   prospect_explorer: "prospects",
   neural_auditor: "prospects",
@@ -33,4 +34,3 @@ export const ADMIN_TAB_PERMISSIONS: Record<string, StaffPermissionId> = {
   update_requests: "support",
   operations: "customer_health",
 };
-

@@ -44,6 +44,7 @@ import {
   MapPin,
   ExternalLink,
   BriefcaseBusiness,
+  Inbox,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -133,66 +134,35 @@ export function Sidebar({
     if (role === "super_admin") {
       return [
         {
-          label: "WAAS Ecosystem",
+          label: "Sales",
           items: [
             { to: "/admin", icon: LayoutDashboard, label: "Overview", className: "tour-dashboard" },
-            { to: "/admin/businesses", icon: Globe, label: "Active Tenants", className: "tour-businesses" },
-            { to: "/admin/users", icon: Users, label: "System Users" },
-            { to: "/admin/templates", icon: Layout, label: "Asset Templates" },
-            { to: "/admin/local_seo", icon: MapPin, label: "Local SEO Engine" },
-            { to: "/admin/plans", icon: CreditCard, label: "Billing Plans" },
-            { to: "/admin/compliance_market", icon: Shield, label: "Compliance & Market" },
-            { to: "/admin/ai_credits", icon: Zap, label: "AI Credits" },
-            { to: "/admin/intelligence_lab", icon: Cpu, label: "AI Control", className: "tour-ai-lab" },
-          ]
-        },
-        {
-          label: "Agency Operations",
-          items: [
-            { to: "/admin/sales_home", icon: Rocket, label: "Operations Lab" },
-            { to: "/admin/custom_applications", icon: FileText, label: "Custom Apps" },
-            { to: "/admin/projects", icon: Briefcase, label: "Service Projects" },
-            { to: "/admin/launch_audit", icon: Shield, label: "Launch Audit" },
+            { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox" },
+            { to: "/admin/prospect_explorer", icon: Users, label: "Prospects" },
+            { to: "/admin/neural_auditor", icon: Globe, label: "Website Reviews" },
+            { to: "/admin/outreach_lab", icon: MessageSquare, label: "Outreach" },
             { to: "/admin/proposals_deals", icon: FileText, label: "Sales Pipeline" },
+          ]
+        },
+        {
+          label: "Delivery",
+          items: [
+            { to: "/admin/businesses", icon: Globe, label: "Active Sites", className: "tour-businesses" },
+            { to: "/admin/projects", icon: Briefcase, label: "Service Projects" },
+            { to: "/admin/launch_audit", icon: Shield, label: "Launch Checks" },
             { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover" },
-            { to: "/admin/operations", icon: Activity, label: "Operations Control" },
-          ]
-        },
-        {
-          label: "Marketing OS",
-          items: [
-            { to: "/admin/prospect_explorer", icon: Users, label: "Discovery" },
-            { to: "/admin/neural_auditor", icon: Globe, label: "Neural Audits" },
-            { to: "/admin/outreach_lab", icon: MessageSquare, label: "Outreach Hub" },
-            { to: "/admin/mass_campaigns", icon: Zap, label: "Mass Campaigns" },
-            { to: "/admin/webinar_engine", icon: Globe, label: "Webinar Engine" },
-          ]
-        },
-        {
-          label: "Platform Assets",
-          items: [
-            { to: "/admin/blog", icon: FileText, label: "Internal Blog" },
-            { to: "/admin/policies", icon: FileText, label: "Policies" },
-            { to: "/admin/support", icon: Headphones, label: "Support Desk" },
             { to: "/admin/update_requests", icon: FileText, label: "Update Queue" },
-            { to: "/admin/status", icon: Shield, label: "System Status" },
-            { to: "/admin/traffic", icon: BarChart3, label: "Traffic Analytics" },
+            { to: "/admin/support", icon: Headphones, label: "Support" },
           ]
         },
         {
-          label: "Financial Core",
+          label: "Platform",
           items: [
+            { to: "/admin/plans", icon: CreditCard, label: "Plans & Pricing" },
             { to: "/admin/revenue", icon: CreditCard, label: "Revenue" },
-            { to: "/admin/geo_pricing", icon: Globe, label: "Geo Pricing" },
-            { to: "/admin/affiliates", icon: Gift, label: "Partnerships" },
-          ]
-        },
-        {
-          label: "Infrastructure",
-          items: [
-            { to: "/admin/growth_os_config", icon: Settings, label: "Engine Features" },
-            { to: "/admin/settings", icon: Settings, label: "Platform Branding" },
-            { to: "/admin/ecosystem_architect", icon: Layout, label: "Architect Hub", className: "tour-architect" },
+            { to: "/admin/traffic", icon: BarChart3, label: "Traffic" },
+            { to: "/admin/status", icon: Shield, label: "System Status" },
+            { to: "/admin/settings", icon: Settings, label: "Settings" },
           ]
         }
       ];
@@ -204,6 +174,7 @@ export function Sidebar({
           label: "Sales Ops",
           items: [
             { to: "/admin", icon: LayoutDashboard, label: "Ops Overview" },
+            { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox", permission: "sales" },
             { to: "/admin/sales_home", icon: Rocket, label: "Sales Home", permission: "sales" },
             { to: "/admin/prospect_explorer", icon: Users, label: "Prospecting", permission: "prospects" },
             { to: "/admin/neural_auditor", icon: Globe, label: "Website Audits", permission: "prospects" },
