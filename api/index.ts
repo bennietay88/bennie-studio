@@ -46,6 +46,8 @@ import {
   requestLogger,
   structuredLog,
 } from "../server/observability.js";
+import { analyzeTechnicalSeo } from "../server/seo/auditEngine.js";
+import { loadSeoWorkspace, resolveSeoAccess } from "../server/seo/service.js";
 
 dotenv.config();
 initServerObservability();
@@ -1478,6 +1480,216 @@ async function startServer() {
     return report;
   };
 
+  const runSeoAudit = async (payload: {
+    auditRunId: string;
+    projectId: string;
+    businessId: string;
+    url?: string | null;
+    requestId: string;
+  }) => {
+    const [{ data: project, error: projectError }, { data: business, error: businessError }] = await Promise.all([
+      supabaseAdmin
+        .from("seo_projects")
+        .select("id,business_id,website_id,domain,status,adapter_type")
+        .eq("id", payload.projectId)
+        .eq("business_id", payload.businessId)
+        .single(),
+      supabaseAdmin
+        .from("businesses")
+        .select("id,name,custom_domain")
+        .eq("id", payload.businessId)
+        .single(),
+    ]);
+    if (projectError || !project) throw projectError || new Error("SEO_PROJECT_NOT_FOUND");
+    if (businessError || !business) throw businessError || new Error("BUSINESS_NOT_FOUND");
+    if (project.status !== "active") throw new Error("SEO_PROJECT_NOT_ACTIVE");
+
+    const configuredDomain = String(payload.url || project.domain || business.custom_domain || "").trim();
+    const platformBase = String(process.env.APP_PUBLIC_URL || process.env.PUBLIC_APP_URL || "https://app.bennietay.com").replace(/\/+$/, "");
+    const sourceUrl = configuredDomain
+      ? (/^https?:\/\//i.test(configuredDomain) ? configuredDomain : `https://${configuredDomain}`)
+      : `${platformBase}/w/${payload.businessId}`;
+
+    await supabaseAdmin.from("seo_audit_runs").update({
+      status: "running",
+      source_url: sourceUrl,
+      started_at: new Date().toISOString(),
+      error_message: null,
+    }).eq("id", payload.auditRunId).eq("project_id", payload.projectId);
+
+    const startedAt = Date.now();
+    const { response, finalUrl } = await fetchAuditResource(sourceUrl);
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) {
+      throw new Error("The SEO project URL did not return an HTML page.");
+    }
+    const html = await response.text();
+    if (!html.trim() || new TextEncoder().encode(html).length > 2_000_000) {
+      throw new Error("The SEO project page returned no analysable HTML or exceeded the audit limit.");
+    }
+
+    const origin = new URL(finalUrl).origin;
+    const safeStatus = async (resourceUrl: string) => {
+      try {
+        const result = await fetchAuditResource(resourceUrl, "HEAD");
+        return result.response.status >= 200 && result.response.status < 400;
+      } catch {
+        return false;
+      }
+    };
+    const internalTargets = [...html.matchAll(/<a\b[^>]+href=["']([^"'#]+)["']/gi)]
+      .map((match) => { try { return new URL(match[1], finalUrl); } catch { return null; } })
+      .filter((target): target is URL => Boolean(target && target.origin === origin && ["http:", "https:"].includes(target.protocol)))
+      .filter((target, index, list) => list.findIndex((item) => item.href === target.href) === index)
+      .slice(0, 8);
+    const [robotsFound, sitemapFound, linkResults, moduleConfig] = await Promise.all([
+      safeStatus(`${origin}/robots.txt`),
+      safeStatus(`${origin}/sitemap.xml`),
+      Promise.all(internalTargets.map(async (target) => ({ target: target.href, ok: await safeStatus(target.href) }))),
+      supabaseAdmin.from("seo_module_definitions").select("default_config").eq("module_key", "technical").maybeSingle(),
+    ]);
+    const technicalResult = analyzeTechnicalSeo({
+      url: finalUrl,
+      html,
+      statusCode: response.status,
+      responseTimeMs: Date.now() - startedAt,
+      robotsFound,
+      sitemapFound,
+      checkedLinks: linkResults.length,
+      brokenLinks: linkResults.filter((item) => !item.ok).map((item) => item.target),
+      weights: moduleConfig.data?.default_config?.healthWeights,
+    });
+
+    const { data: previousIssues, error: previousIssuesError } = await supabaseAdmin
+      .from("seo_issues")
+      .select("id,issue_key,status")
+      .eq("project_id", payload.projectId);
+    if (previousIssuesError) throw previousIssuesError;
+    const detectedKeys = new Set(technicalResult.findings.map((finding) => finding.issueKey));
+    const issueRows = technicalResult.findings.map((finding) => ({
+      business_id: payload.businessId,
+      project_id: payload.projectId,
+      audit_run_id: payload.auditRunId,
+      issue_key: finding.issueKey,
+      module_key: finding.moduleKey,
+      severity: finding.severity,
+      title: finding.title,
+      what_we_found: finding.whatWeFound,
+      why_it_matters: finding.whyItMatters,
+      recommended_action: finding.recommendedAction,
+      evidence: finding.evidence,
+      affected_urls: finding.affectedUrls,
+      status: "open",
+      last_detected_at: new Date().toISOString(),
+      resolved_at: null,
+      validated_at: null,
+    }));
+    const { data: savedIssues, error: saveIssuesError } = issueRows.length
+      ? await supabaseAdmin.from("seo_issues").upsert(issueRows, { onConflict: "project_id,issue_key" }).select("*")
+      : { data: [], error: null };
+    if (saveIssuesError) throw saveIssuesError;
+
+    const resolvedIssues = (previousIssues || []).filter((issue: any) =>
+      !detectedKeys.has(issue.issue_key) && !["validated", "dismissed"].includes(issue.status),
+    );
+    if (resolvedIssues.length > 0) {
+      await Promise.all(resolvedIssues.map((issue: any) =>
+        supabaseAdmin.from("seo_issues").update({
+          status: "validated",
+          resolved_at: new Date().toISOString(),
+          validated_at: new Date().toISOString(),
+          audit_run_id: payload.auditRunId,
+        }).eq("id", issue.id),
+      ));
+    }
+
+    const issueIds = (savedIssues || []).map((issue: any) => issue.id);
+    const { data: existingOpportunities, error: opportunityReadError } = issueIds.length
+      ? await supabaseAdmin.from("seo_opportunities").select("id,source_issue_id,status").in("source_issue_id", issueIds)
+      : { data: [], error: null };
+    if (opportunityReadError) throw opportunityReadError;
+    const existingByIssue = new Map((existingOpportunities || []).map((item: any) => [item.source_issue_id, item]));
+    for (const issue of savedIssues || []) {
+      const existing = existingByIssue.get(issue.id) as any;
+      const priority = issue.severity === "critical" || issue.severity === "high" ? "high" : issue.severity === "medium" ? "medium" : "low";
+      const opportunityPayload = {
+        business_id: payload.businessId,
+        project_id: payload.projectId,
+        source_issue_id: issue.id,
+        module_key: issue.module_key,
+        title: issue.title,
+        what_we_found: issue.what_we_found,
+        why_it_matters: issue.why_it_matters,
+        recommended_action: issue.recommended_action,
+        expected_impact: "Remove the confirmed technical obstacle, then validate the page and monitor connected search data for any measured change.",
+        effort: technicalResult.findings.find((finding) => finding.issueKey === issue.issue_key)?.effort || "medium",
+        priority,
+        evidence: issue.evidence,
+        automation_available: project.adapter_type === "waas",
+        status: existing?.status && existing.status !== "completed" ? existing.status : "detected",
+      };
+      if (existing?.id) {
+        const { error } = await supabaseAdmin.from("seo_opportunities").update(opportunityPayload).eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabaseAdmin.from("seo_opportunities").insert(opportunityPayload);
+        if (error) throw error;
+      }
+    }
+
+    const completedAt = new Date().toISOString();
+    const [{ error: runUpdateError }, { error: projectUpdateError }] = await Promise.all([
+      supabaseAdmin.from("seo_audit_runs").update({
+        status: "completed",
+        source_url: finalUrl,
+        pages_crawled: 1,
+        health_score: technicalResult.score,
+        health_explanation: technicalResult.scoreExplanation,
+        summary: technicalResult.summary,
+        metrics: technicalResult.metrics,
+        completed_at: completedAt,
+      }).eq("id", payload.auditRunId),
+      supabaseAdmin.from("seo_projects").update({ last_audited_at: completedAt }).eq("id", payload.projectId),
+    ]);
+    if (runUpdateError) throw runUpdateError;
+    if (projectUpdateError) throw projectUpdateError;
+
+    const { data: usageRow } = await supabaseAdmin.from("seo_usage")
+      .select("id,quantity")
+      .eq("business_id", payload.businessId)
+      .eq("project_id", payload.projectId)
+      .eq("usage_date", new Date().toISOString().slice(0, 10))
+      .eq("metric_key", "pages_crawled")
+      .maybeSingle();
+    await supabaseAdmin.from("seo_usage").upsert({
+      ...(usageRow?.id ? { id: usageRow.id } : {}),
+      business_id: payload.businessId,
+      project_id: payload.projectId,
+      usage_date: new Date().toISOString().slice(0, 10),
+      metric_key: "pages_crawled",
+      quantity: Number(usageRow?.quantity || 0) + 1,
+      metadata: { auditRunId: payload.auditRunId },
+    }, { onConflict: "business_id,project_id,usage_date,metric_key" });
+    await supabaseAdmin.from("seo_activity_logs").insert({
+      business_id: payload.businessId,
+      project_id: payload.projectId,
+      event_type: "seo_audit_completed",
+      object_type: "seo_audit_run",
+      object_id: payload.auditRunId,
+      description: technicalResult.summary,
+      metadata: { healthScore: technicalResult.score, findingCount: technicalResult.findings.length },
+    });
+
+    return {
+      auditRunId: payload.auditRunId,
+      projectId: payload.projectId,
+      summary: technicalResult.summary,
+      healthScore: technicalResult.score,
+      findingCount: technicalResult.findings.length,
+      completedAt,
+    };
+  };
+
   const runAsyncJob = async (job: AsyncJobRecord) => {
     if (job.job_type === "website_audit") {
       const report = await runWebsiteAudit({
@@ -1489,6 +1701,17 @@ async function startServer() {
         requestId: job.id,
       });
       return { success: true, report, completedAt: new Date().toISOString() };
+    }
+
+    if (job.job_type === "seo_audit") {
+      const result = await runSeoAudit({
+        auditRunId: String(job.payload?.auditRunId || ""),
+        projectId: String(job.payload?.projectId || ""),
+        businessId: String(job.business_id || job.payload?.businessId || ""),
+        url: job.payload?.url || null,
+        requestId: job.id,
+      });
+      return { success: true, ...result };
     }
 
     if (job.job_type === "ai_generation" || job.job_type === "local_seo_audit") {
@@ -1515,6 +1738,14 @@ async function startServer() {
         jobType: job.job_type,
         attempts: job.attempts,
       });
+      if (job.job_type === "seo_audit" && job.payload?.auditRunId) {
+        const willRetry = job.attempts < job.max_attempts;
+        await supabaseAdmin.from("seo_audit_runs").update({
+          status: willRetry ? "queued" : "failed",
+          error_message: message,
+          completed_at: willRetry ? null : new Date().toISOString(),
+        }).eq("id", job.payload.auditRunId);
+      }
       await failAsyncJob(supabaseAdmin, job, message);
       return { processed: true, job: { ...job, status: "failed" as const }, error: message };
     }
@@ -1570,6 +1801,397 @@ async function startServer() {
         updatedAt: job.updated_at,
         completedAt: job.completed_at,
       });
+    } catch (error: any) {
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  app.get("/api/seo/workspace/:businessId", authenticate, async (req: any, res: any) => {
+    if (!UUID_SCHEMA.safeParse(req.params.businessId).success) {
+      return res.status(400).json({ error: "Invalid business ID" });
+    }
+    try {
+      await assertBusinessAccess(req.user.id, req.params.businessId);
+      const workspace = await loadSeoWorkspace(supabaseAdmin, { businessId: req.params.businessId });
+      return res.json(workspace);
+    } catch (error: any) {
+      if (["BUSINESS_ID_REQUIRED", "BUSINESS_NOT_FOUND", "PROFILE_NOT_FOUND", "FORBIDDEN_BUSINESS_ACCESS"].includes(error?.message)) {
+        return handleAccessError(res, error);
+      }
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  app.post(
+    "/api/seo/projects/:projectId/audit",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 6, keyPrefix: "seo-audit" }),
+    async (req: any, res: any) => {
+      if (!UUID_SCHEMA.safeParse(req.params.projectId).success) {
+        return res.status(400).json({ error: "Invalid SEO project ID" });
+      }
+      try {
+        const { data: project, error: projectError } = await supabaseAdmin
+          .from("seo_projects")
+          .select("id,business_id,website_id,domain,status")
+          .eq("id", req.params.projectId)
+          .single();
+        if (projectError || !project) return res.status(404).json({ error: "SEO project not found" });
+        await assertBusinessAccess(req.user.id, project.business_id);
+        const { data: business, error: businessError } = await supabaseAdmin
+          .from("businesses")
+          .select("plan")
+          .eq("id", project.business_id)
+          .single();
+        if (businessError || !business) throw businessError || new Error("BUSINESS_NOT_FOUND");
+        const access = await resolveSeoAccess(supabaseAdmin, {
+          businessId: project.business_id,
+          websiteId: project.website_id,
+          planKey: String(business.plan || "starter"),
+        });
+        const auditModules = access.modules.filter((module) =>
+          ["audit", "technical"].includes(module.module_key) && module.enabled,
+        );
+        const auditEnabled = auditModules.length > 0;
+        if (!access.activated || !auditEnabled) {
+          return res.status(403).json({ error: access.reason || "SEO auditing is not enabled for this website." });
+        }
+        if (access.emergencyStop) {
+          return res.status(503).json({ error: "SEO processing is temporarily paused." });
+        }
+
+        const monthlyAuditLimit = auditModules.reduce((current, module) => {
+          const configured = Number(module.limits?.auditsPerMonth || 0);
+          return configured > 0 && (current === 0 || configured < current) ? configured : current;
+        }, 0);
+        if (monthlyAuditLimit > 0) {
+          const monthStartedAt = new Date();
+          monthStartedAt.setUTCDate(1);
+          monthStartedAt.setUTCHours(0, 0, 0, 0);
+          const { count, error: usageError } = await supabaseAdmin
+            .from("seo_audit_runs")
+            .select("id", { count: "exact", head: true })
+            .eq("project_id", project.id)
+            .gte("created_at", monthStartedAt.toISOString());
+          if (usageError) throw usageError;
+          if (Number(count || 0) >= monthlyAuditLimit) {
+            return res.status(429).json({
+              error: `This website has used its ${monthlyAuditLimit} scheduled SEO audits for the current month.`,
+              limit: monthlyAuditLimit,
+            });
+          }
+        }
+
+        const { data: runningAudit } = await supabaseAdmin
+          .from("seo_audit_runs")
+          .select("id,status,created_at")
+          .eq("project_id", project.id)
+          .in("status", ["queued", "running"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (runningAudit) {
+          return res.status(409).json({ error: "An SEO audit is already in progress.", auditRun: runningAudit });
+        }
+
+        const { data: auditRun, error: auditError } = await supabaseAdmin.from("seo_audit_runs").insert({
+          business_id: project.business_id,
+          project_id: project.id,
+          run_type: "technical",
+          status: "queued",
+          source_url: project.domain,
+          requested_by: req.user.id,
+        }).select("*").single();
+        if (auditError) throw auditError;
+
+        await supabaseAdmin.from("seo_activity_logs").insert({
+          business_id: project.business_id,
+          project_id: project.id,
+          user_id: req.user.id,
+          event_type: "seo_audit_started",
+          object_type: "seo_audit_run",
+          object_id: auditRun.id,
+          description: "A technical SEO audit was requested.",
+          metadata: { sourceUrl: project.domain, monthlyAuditLimit: monthlyAuditLimit || null },
+        });
+
+        const { job } = await createAsyncJob(supabaseAdmin, {
+          jobType: "seo_audit",
+          businessId: project.business_id,
+          userId: req.user.id,
+          payload: {
+            auditRunId: auditRun.id,
+            projectId: project.id,
+            businessId: project.business_id,
+            url: project.domain,
+          },
+          idempotencyKey: `seo_audit:${project.id}:${auditRun.id}`,
+          maxAttempts: 3,
+        });
+        await supabaseAdmin.from("seo_audit_runs").update({ job_id: job.id }).eq("id", auditRun.id);
+        const dispatch = await publishJobToQstash(job.id).catch((error) => {
+          console.warn(`[SEO:${job.id}] QStash dispatch skipped:`, error?.message || error);
+          return { published: false, reason: "QStash dispatch failed" };
+        });
+        if (!dispatch.published) {
+          await processQueuedJob(job.id);
+        }
+        const { data: refreshedRun } = await supabaseAdmin.from("seo_audit_runs").select("*").eq("id", auditRun.id).single();
+        return res.status(dispatch.published ? 202 : 200).json({ auditRun: refreshedRun || auditRun, job, dispatch });
+      } catch (error: any) {
+        if (["BUSINESS_ID_REQUIRED", "BUSINESS_NOT_FOUND", "PROFILE_NOT_FOUND", "FORBIDDEN_BUSINESS_ACCESS"].includes(error?.message)) {
+          return handleAccessError(res, error);
+        }
+        return res.status(500).json({ error: safeErrorMessage(error) });
+      }
+    },
+  );
+
+  app.post("/api/seo/opportunities/:opportunityId/tasks", authenticate, async (req: any, res: any) => {
+    if (!UUID_SCHEMA.safeParse(req.params.opportunityId).success) {
+      return res.status(400).json({ error: "Invalid opportunity ID" });
+    }
+    try {
+      const { data: opportunity, error } = await supabaseAdmin
+        .from("seo_opportunities")
+        .select("*")
+        .eq("id", req.params.opportunityId)
+        .single();
+      if (error || !opportunity) return res.status(404).json({ error: "SEO opportunity not found" });
+      await assertBusinessAccess(req.user.id, opportunity.business_id);
+      const { data: existingTask } = await supabaseAdmin.from("seo_tasks")
+        .select("*")
+        .eq("opportunity_id", opportunity.id)
+        .not("status", "in", "(completed,cancelled)")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existingTask) return res.json({ task: existingTask, existing: true });
+
+      const { data: project } = await supabaseAdmin.from("seo_projects").select("approval_level").eq("id", opportunity.project_id).single();
+      const { data: task, error: taskError } = await supabaseAdmin.from("seo_tasks").insert({
+        business_id: opportunity.business_id,
+        project_id: opportunity.project_id,
+        opportunity_id: opportunity.id,
+        issue_id: opportunity.source_issue_id,
+        module_key: opportunity.module_key,
+        task_type: "recommended_improvement",
+        priority: opportunity.priority,
+        title: opportunity.title,
+        description: opportunity.why_it_matters,
+        recommended_action: opportunity.recommended_action,
+        fulfillment_type: opportunity.automation_available ? "hybrid" : "human",
+        status: "planned",
+        approval_state: project?.approval_level === "automatic" ? "not_required" : "pending",
+        created_by: req.user.id,
+      }).select("*").single();
+      if (taskError) throw taskError;
+      await supabaseAdmin.from("seo_opportunities").update({ status: "planned" }).eq("id", opportunity.id);
+      await supabaseAdmin.from("seo_activity_logs").insert({
+        business_id: opportunity.business_id,
+        project_id: opportunity.project_id,
+        user_id: req.user.id,
+        event_type: "seo_improvement_requested",
+        object_type: "seo_task",
+        object_id: task.id,
+        description: `Improvement requested: ${opportunity.title}`,
+        metadata: { opportunityId: opportunity.id, moduleKey: opportunity.module_key },
+      });
+      return res.status(201).json({ task });
+    } catch (error: any) {
+      if (["BUSINESS_ID_REQUIRED", "BUSINESS_NOT_FOUND", "PROFILE_NOT_FOUND", "FORBIDDEN_BUSINESS_ACCESS"].includes(error?.message)) {
+        return handleAccessError(res, error);
+      }
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  app.get("/api/seo/admin", authenticate, superAdminOnly, async (_req: any, res: any) => {
+    try {
+      const [config, modules, entitlements, businesses, websites, businessAccess, projects, jobs, usage] = await Promise.all([
+        supabaseAdmin.from("seo_product_config").select("*").eq("id", "default").single(),
+        supabaseAdmin.from("seo_module_definitions").select("*").order("sort_order"),
+        supabaseAdmin.from("seo_plan_entitlements").select("*").order("plan_key").order("module_key"),
+        supabaseAdmin.from("businesses").select("id,name,plan,status,subscription_status,created_at").order("created_at", { ascending: false }),
+        supabaseAdmin.from("websites").select("id,business_id,status,updated_at").order("updated_at", { ascending: false }),
+        supabaseAdmin.from("seo_business_entitlements").select("*"),
+        supabaseAdmin.from("seo_projects").select("*"),
+        supabaseAdmin.from("async_jobs").select("id,job_type,status,attempts,max_attempts,business_id,last_error,created_at,updated_at,completed_at").like("job_type", "seo_%").order("created_at", { ascending: false }).limit(100),
+        supabaseAdmin.from("seo_usage").select("*").order("usage_date", { ascending: false }).limit(500),
+      ]);
+      const firstError = [config.error, modules.error, entitlements.error, businesses.error, websites.error, businessAccess.error, projects.error, jobs.error, usage.error].find(Boolean);
+      if (firstError) throw firstError;
+      const accessByBusiness = new Map((businessAccess.data || []).map((item: any) => [item.business_id, item]));
+      const projectByBusiness = new Map((projects.data || []).map((item: any) => [item.business_id, item]));
+      const websiteByBusiness = new Map<string, any>();
+      for (const website of websites.data || []) {
+        if (!websiteByBusiness.has(website.business_id)) websiteByBusiness.set(website.business_id, website);
+      }
+      const customers = (businesses.data || []).map((business: any) => ({
+        ...business,
+        website: websiteByBusiness.get(business.id) || null,
+        seoEntitlement: accessByBusiness.get(business.id) || null,
+        seoProject: projectByBusiness.get(business.id) || null,
+      }));
+      return res.json({
+        productConfig: config.data,
+        modules: modules.data || [],
+        entitlements: entitlements.data || [],
+        customers,
+        jobs: jobs.data || [],
+        usage: usage.data || [],
+      });
+    } catch (error: any) {
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  app.patch("/api/seo/admin/config", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const body = validateBody(z.object({
+      is_enabled: z.boolean().optional(),
+      emergency_stop: z.boolean().optional(),
+      product_name: z.string().trim().min(1).max(80).optional(),
+      addon_prices: z.record(z.string(), z.object({ amount: z.number().nonnegative(), currency: z.string().trim().min(3).max(3) })).optional(),
+      included_plan_keys: z.array(z.string().trim().min(1).max(80)).optional(),
+      default_limits: z.record(z.string(), z.union([z.number(), z.string(), z.boolean()])).optional(),
+    }).strict(), req, res);
+    if (!body) return;
+    try {
+      const { data, error } = await supabaseAdmin.from("seo_product_config").update({
+        ...body,
+        updated_by: req.user.id,
+      }).eq("id", "default").select("*").single();
+      if (error) throw error;
+      await supabaseAdmin.from("seo_activity_logs").insert({
+        user_id: req.user.id,
+        event_type: "seo_product_config_updated",
+        object_type: "seo_product_config",
+        description: "SEO product configuration was updated.",
+        metadata: { changedFields: Object.keys(body) },
+      });
+      return res.json({ productConfig: data });
+    } catch (error: any) {
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  app.patch("/api/seo/admin/modules/:moduleKey", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const moduleKey = String(req.params.moduleKey || "");
+    if (!/^[a-z][a-z0-9_]{1,60}$/.test(moduleKey)) return res.status(400).json({ error: "Invalid module key" });
+    const body = validateBody(z.object({
+      is_enabled: z.boolean().optional(),
+      customer_visible: z.boolean().optional(),
+      default_approval_level: z.enum(["automatic", "ai_human", "manual_only"]).optional(),
+      default_config: z.record(z.string(), z.any()).optional(),
+      description: z.string().trim().max(500).optional(),
+    }).strict(), req, res);
+    if (!body) return;
+    try {
+      const { data, error } = await supabaseAdmin.from("seo_module_definitions").update(body).eq("module_key", moduleKey).select("*").single();
+      if (error) throw error;
+      return res.json({ module: data });
+    } catch (error: any) {
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  app.put("/api/seo/admin/entitlements/:planKey/:moduleKey", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const planKey = String(req.params.planKey || "");
+    const moduleKey = String(req.params.moduleKey || "");
+    if (!/^[a-z][a-z0-9_]{1,80}$/.test(planKey) || !/^[a-z][a-z0-9_]{1,60}$/.test(moduleKey)) {
+      return res.status(400).json({ error: "Invalid plan or module key" });
+    }
+    const body = validateBody(z.object({
+      access_mode: z.enum(["included", "addon", "unavailable"]),
+      limits: z.record(z.string(), z.union([z.number(), z.string(), z.boolean()])).optional(),
+      configuration: z.record(z.string(), z.any()).optional(),
+    }).strict(), req, res);
+    if (!body) return;
+    try {
+      const { data, error } = await supabaseAdmin.from("seo_plan_entitlements").upsert({
+        plan_key: planKey,
+        module_key: moduleKey,
+        access_mode: body.access_mode,
+        limits: body.limits || {},
+        configuration: body.configuration || {},
+      }, { onConflict: "plan_key,module_key" }).select("*").single();
+      if (error) throw error;
+      return res.json({ entitlement: data });
+    } catch (error: any) {
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  app.post("/api/seo/admin/projects/activate", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const body = validateBody(z.object({
+      businessId: UUID_SCHEMA,
+      websiteId: UUID_SCHEMA,
+      accessMode: z.enum(["included", "addon", "trial", "custom"]),
+    }), req, res);
+    if (!body) return;
+    try {
+      const [{ data: business, error: businessError }, { data: website, error: websiteError }] = await Promise.all([
+        supabaseAdmin.from("businesses").select("id,name,custom_domain,platform_type").eq("id", body.businessId).single(),
+        supabaseAdmin.from("websites").select("id,business_id").eq("id", body.websiteId).eq("business_id", body.businessId).single(),
+      ]);
+      if (businessError || !business) return res.status(404).json({ error: "Business not found" });
+      if (websiteError || !website) return res.status(404).json({ error: "Website not found for this business" });
+      const { error: accessError } = await supabaseAdmin.from("seo_business_entitlements").upsert({
+        business_id: body.businessId,
+        status: "active",
+        access_mode: body.accessMode,
+        updated_by: req.user.id,
+      }, { onConflict: "business_id" });
+      if (accessError) throw accessError;
+      const { data: project, error: projectError } = await supabaseAdmin.from("seo_projects").upsert({
+        business_id: body.businessId,
+        website_id: body.websiteId,
+        name: `${business.name} SEO`,
+        domain: business.custom_domain || null,
+        adapter_type: business.platform_type === "wordpress" ? "wordpress" : "waas",
+        status: "active",
+        created_by: req.user.id,
+      }, { onConflict: "website_id" }).select("*").single();
+      if (projectError) throw projectError;
+      await supabaseAdmin.from("seo_activity_logs").insert({
+        business_id: body.businessId,
+        project_id: project.id,
+        user_id: req.user.id,
+        event_type: "seo_project_activated",
+        object_type: "seo_project",
+        object_id: project.id,
+        description: `SEO Growth was activated with ${body.accessMode} access.`,
+      });
+      return res.status(201).json({ project });
+    } catch (error: any) {
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  app.patch("/api/seo/admin/customers/:businessId", authenticate, superAdminOnly, async (req: any, res: any) => {
+    if (!UUID_SCHEMA.safeParse(req.params.businessId).success) return res.status(400).json({ error: "Invalid business ID" });
+    const body = validateBody(z.object({
+      status: z.enum(["active", "disabled", "trial", "expired"]).optional(),
+      access_mode: z.enum(["included", "addon", "trial", "custom"]).optional(),
+      enabled_modules: z.array(z.string().trim().min(1).max(60)).nullable().optional(),
+      limit_overrides: z.record(z.string(), z.union([z.number(), z.string(), z.boolean()])).optional(),
+      expires_at: z.string().datetime().nullable().optional(),
+      notes: z.string().trim().max(2000).nullable().optional(),
+    }).strict(), req, res);
+    if (!body) return;
+    try {
+      const { data, error } = await supabaseAdmin.from("seo_business_entitlements").upsert({
+        business_id: req.params.businessId,
+        ...body,
+        updated_by: req.user.id,
+      }, { onConflict: "business_id" }).select("*").single();
+      if (error) throw error;
+      if (body.status === "disabled" || body.status === "expired") {
+        await supabaseAdmin.from("seo_projects").update({ status: "disabled" }).eq("business_id", req.params.businessId);
+      } else if (body.status === "active" || body.status === "trial") {
+        await supabaseAdmin.from("seo_projects").update({ status: "active" }).eq("business_id", req.params.businessId);
+      }
+      return res.json({ entitlement: data });
     } catch (error: any) {
       return res.status(500).json({ error: safeErrorMessage(error) });
     }

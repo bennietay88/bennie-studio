@@ -164,6 +164,7 @@ const CustomerApprovals = lazy(() =>
 const MyWebsitePage = lazy(() =>
   import("./components/MyWebsitePage").then((m) => ({ default: m.MyWebsitePage })),
 );
+const SeoGrowthWorkspace = lazy(() => import("./modules/seo/components/SeoGrowthWorkspace"));
 
 function TrafficTracker() {
   useTrafficTracker();
@@ -573,6 +574,14 @@ export default function App() {
                                   <FeatureGate featureId="local_seo_geo">
                                     <LocalSeoDashboard />
                                   </FeatureGate>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="seo/*"
+                              element={
+                                <ProtectedRoute allowedRoles={["business_admin", "staff"]}>
+                                  <SeoGrowthWorkspace />
                                 </ProtectedRoute>
                               }
                             />

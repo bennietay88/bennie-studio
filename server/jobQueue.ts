@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type AsyncJobStatus = "queued" | "processing" | "completed" | "failed" | "cancelled";
-export type AsyncJobType = "website_audit" | "ai_generation" | "local_seo_audit";
+export type AsyncJobType = "website_audit" | "seo_audit" | "ai_generation" | "local_seo_audit";
 
 export interface AsyncJobRecord {
   id: string;

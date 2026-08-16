@@ -45,6 +45,7 @@ import {
   ExternalLink,
   BriefcaseBusiness,
   Inbox,
+  Search,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -200,6 +201,7 @@ export function Sidebar({
             { to: "/admin/launch_audit", icon: Shield, label: "Launch Checks", moduleId: "launch_checks" },
             { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover", moduleId: "client_handover" },
             { to: "/admin/operations", icon: Activity, label: "Operations Control", moduleId: "operations_control" },
+            { to: "/admin/seo_management", icon: Search, label: "SEO Management", moduleId: "seo_management" },
             { to: "/admin/update_requests", icon: FileText, label: "Update Queue", moduleId: "update_queue" },
             { to: "/admin/support", icon: Headphones, label: "Support", moduleId: "support" },
           ]
@@ -275,6 +277,7 @@ export function Sidebar({
           { to: "/dashboard/leads", icon: Users, label: "Leads", featureId: "lead_crm" },
           { to: "/dashboard/update-requests", icon: FileText, label: "Updates" },
           { to: "/dashboard/analytics", icon: BarChart3, label: "Performance", featureId: "analytics" },
+          { to: "/dashboard/seo/overview", icon: Search, label: "SEO Growth" },
           { to: "/dashboard/industry-content", icon: Briefcase, label: "Content & Marketing", featureId: "industry_content" },
         ]},
         { label: "Account", items: [
@@ -312,6 +315,7 @@ export function Sidebar({
             { to: "/dashboard/update-requests", icon: FileText, label: "Update Requests", devOnly: true },
             { to: "/dashboard/seo-domain", icon: Globe, label: "Domain & SEO", devOnly: true },
             { to: "/dashboard/local-seo", icon: MapPin, label: "Local SEO", devOnly: true },
+            { to: "/dashboard/seo/overview", icon: Search, label: "SEO Growth" },
             { to: "/dashboard/industry-content", icon: Briefcase, label: "Listings & Content", featureId: "industry_content" },
             { to: "/dashboard/reviews", icon: Star, label: "Reviews & Reputation", featureId: "review_management" },
             { to: "/dashboard/team", icon: Users, label: "Staff Accounts", roles: ["business_admin"] },

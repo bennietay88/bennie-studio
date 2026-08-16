@@ -163,6 +163,7 @@ import {
   DEFAULT_ADMIN_MODULE_VISIBILITY,
 } from "../constants/adminModules";
 import { ADMIN_TAB_PERMISSIONS, DEFAULT_PLATFORM_STAFF_PERMISSIONS } from "../constants/staffPermissions";
+import SeoAdmin from "../modules/seo/components/SeoAdmin";
 
 const CUSTOMER_DASHBOARD_FEATURES = [
   { id: "ai_synthesis", label: "Website Generator" },
@@ -241,6 +242,7 @@ export default function SuperAdminDashboard() {
     if (last === "launch_audit") return "launch_audit";
     if (last === "client_onboarding") return "client_onboarding";
     if (last === "operations") return "operations";
+    if (last === "seo_management") return "seo_management";
     if (last === "templates") return "templates";
     if (last === "plans") return "plans";
     if (last === "compliance_market") return "compliance_market";
@@ -1517,6 +1519,7 @@ export default function SuperAdminDashboard() {
       {activeTab === "launch_audit" && <LaunchAudit />}
       {activeTab === "client_onboarding" && <ClientOnboarding />}
       {activeTab === "operations" && <OperationsControlCenter />}
+      {activeTab === "seo_management" && <SeoAdmin />}
       {activeTab === "local_seo" && <LocalSeoManager />}
       
       {(activeTab === "businesses" || activeTab === "admin") && (
@@ -2485,7 +2488,7 @@ export default function SuperAdminDashboard() {
           {activeTab === "update_requests" && <MonthlyUpdateQueue />}
 
           {/* Catch-all for tabs that might not have specialized rendering yet or are in development */}
-          {!["overview", "revenue_command", "sales_home", "inbound_leads", "prospect_explorer", "neural_auditor", "outreach_lab", "mass_campaigns", "webinar_engine", "proposals_deals", "custom_applications", "projects", "launch_audit", "client_onboarding", "operations", "local_seo", "businesses", "users", "affiliates", "growth_os_config", "revenue", "geo_pricing", "templates", "plans", "compliance_market", "ai_credits", "status", "intelligence_lab", "traffic", "settings", "support", "update_requests", "blog", "policies", "ecosystem_architect", "admin"].includes(activeTab) && (
+          {!['overview', 'revenue_command', 'sales_home', 'inbound_leads', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'mass_campaigns', 'webinar_engine', 'proposals_deals', 'custom_applications', 'projects', 'launch_audit', 'client_onboarding', 'operations', 'seo_management', 'local_seo', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'geo_pricing', 'templates', 'plans', 'compliance_market', 'ai_credits', 'status', 'intelligence_lab', 'traffic', 'settings', 'support', 'update_requests', 'blog', 'policies', 'ecosystem_architect', 'admin'].includes(activeTab) && (
             <div className="h-full flex items-center justify-center p-12">
                <Card className="p-24 flex flex-col items-center justify-center text-center rounded-[3rem] border-slate-100 bg-slate-50/50 max-w-2xl">
                   <div className="h-20 w-20 rounded-[2rem] bg-white shadow-xl shadow-slate-200 flex items-center justify-center text-indigo-600 mb-6">
