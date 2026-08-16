@@ -62,8 +62,8 @@ export const REVIEW_POWERED_PLANS: ReviewPoweredPlan[] = [
   },
   {
     id: "business",
-    publicName: "Growth",
-    internalName: "Managed Website Growth",
+    publicName: "Business",
+    internalName: "Managed Website Business",
     price: "$99/month",
     hostingType: "managed",
     pageLimit: 3,
@@ -72,7 +72,7 @@ export const REVIEW_POWERED_PLANS: ReviewPoweredPlan[] = [
     locationPageLimit: 3,
     canPublish: true,
     bestFor: "Recommended default for service businesses that need Home, Services, Contact, proof, and monthly improvement support.",
-    cta: "Start With Growth",
+    cta: "Start With Business",
     features: [
       "Up to 3 managed-hosted pages",
       "Review-powered homepage and service copy",

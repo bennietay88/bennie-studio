@@ -196,9 +196,9 @@ export const DEFAULT_LANDING_CONTENT = {
     ],
   },
   pricing: {
-    title: "Start With Growth, Then Adjust Up or Down",
+    title: "Basic Website Plans From $49/Month",
     subtitle:
-      "Growth is the recommended managed plan for most service businesses because it includes Home, Services, Contact, trust proof, WhatsApp/contact flow, SEO basics, hosting, and monthly update support.",
+      "Choose Launch, Business, or Scale when you want a practical template-led website without the full consultant-led Growth Partner service.",
     trialNote: "Start with a card-required trial or subscription checkout before full onboarding and delivery work begins.",
   },
   dashboard: {

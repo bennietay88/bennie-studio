@@ -55,6 +55,7 @@ import { useGeoPricing } from "../hooks/useGeoPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
+import { countryToRevenueMarket, getOfferForMarket } from "../constants/revenueOffer";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -410,6 +411,9 @@ export default function LandingPage() {
     plus: true,
     applyGeoDiscount: false,
   });
+  const growthPartnerOffer = getOfferForMarket(
+    countryToRevenueMarket(geoPricing.countryCode),
+  );
   const salesPageTitle =
     typeof platformSettings?.salesPageTitle === "string" &&
     platformSettings.salesPageTitle.trim()
@@ -1132,10 +1136,10 @@ export default function LandingPage() {
                   {c.monthlyService.subtitle}
                 </p>
                 <Button
-                  onClick={() => trackAndScroll("#pricing", "Monthly Service Growth Plan CTA", "pricing_cta_clicked")}
+                  onClick={() => trackAndScroll("#growth-partner", "Monthly Service Growth Partner CTA", "pricing_cta_clicked")}
                   className="mt-8 h-12 rounded-2xl bg-white px-6 font-black uppercase tracking-widest text-slate-950 hover:bg-emerald-100"
                 >
-                  View Growth Plan
+                  Explore Growth Partner
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
@@ -1315,6 +1319,68 @@ export default function LandingPage() {
           </div>
         </section>
       )}
+
+      {/* Core Website Growth Partner Offer */}
+      <section id="growth-partner" className="relative overflow-hidden bg-indigo-600 px-5 py-16 text-white lg:py-24">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(255,255,255,0.18),transparent_30%),radial-gradient(circle_at_90%_80%,rgba(15,23,42,0.28),transparent_35%)]" />
+        <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.12fr_0.88fr] lg:items-center">
+          <div>
+            <Badge className="border border-white/20 bg-white/15 px-4 py-1.5 text-white">
+              Core managed service
+            </Badge>
+            <h2 className="mt-6 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-6xl">
+              Website Growth Partner
+            </h2>
+            <p className="mt-5 max-w-2xl text-lg font-semibold leading-8 text-indigo-100">
+              For businesses that want Bennie Studio to lead the website strategy, copy, build, enquiry tracking, and ongoing improvement—not simply provide another website tool.
+            </p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              {growthPartnerOffer.included.slice(0, 5).map((feature) => (
+                <div key={feature} className="flex gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 text-sm font-bold leading-6 text-white">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                  {feature}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-[2.5rem] border border-white/20 bg-slate-950 p-7 shadow-2xl sm:p-9">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Consultant-led partnership</p>
+            <p className="mt-5 text-5xl font-black tracking-tight text-white">
+              {growthPartnerOffer.monthlyLabel}
+              <span className="text-base text-slate-400">/month</span>
+            </p>
+            <p className="mt-3 text-sm font-bold text-slate-300">
+              Plus {growthPartnerOffer.setupLabel} one-time strategy, copy, and build fee.
+            </p>
+            <p className="mt-5 rounded-2xl bg-white/10 p-4 text-sm font-semibold leading-6 text-slate-200">
+              Six-month initial commitment. Scope and launch timing are confirmed during the website growth call.
+            </p>
+            <Button
+              onClick={() => {
+                localStorage.setItem("bt_offer_intent", JSON.stringify({
+                  offerId: growthPartnerOffer.id,
+                  planId: growthPartnerOffer.planId,
+                  market: growthPartnerOffer.market,
+                  monthly: growthPartnerOffer.monthlyPrice,
+                  setupFee: growthPartnerOffer.setupFee,
+                  savedAt: new Date().toISOString(),
+                }));
+                trackAndNavigate("/book-demo", "Homepage Website Growth Partner", "click_growth_partner_home");
+              }}
+              className="mt-7 min-h-14 w-full rounded-2xl bg-white px-6 py-4 text-sm font-black uppercase tracking-[0.12em] text-slate-950 shadow-xl hover:bg-indigo-100"
+            >
+              Book a Website Growth Call <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+            <button
+              type="button"
+              onClick={() => trackAndScroll("#pricing", "Homepage View Basic Plans", "pricing_cta_clicked")}
+              className="mt-4 w-full rounded-xl px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-indigo-200 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            >
+              Or view basic plans from $49/month
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* Pricing Section */}
       <section

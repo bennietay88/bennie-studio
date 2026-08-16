@@ -33,7 +33,7 @@ export const PLANS: Plan[] = [
     maxPages: 1,
     maxLocationPages: 0,
     monthlyUpdates: "Limited monthly update request",
-    upgradePrompt: "Most businesses should use Growth to add separate Services and Contact pages, stronger trust sections, and more update allowance.",
+    upgradePrompt: "Most businesses should use Business to add separate Services and Contact pages, stronger trust sections, and more update allowance.",
     features: [
       "1-page website",
       "Managed hosting",
@@ -65,7 +65,7 @@ export const PLANS: Plan[] = [
   },
   {
     id: "business",
-    name: "Growth",
+    name: "Business",
     price: "$99",
     isPopular: true,
     priceId: "price_business_id",
@@ -141,7 +141,7 @@ export const PLANS: Plan[] = [
     monthlyUpdates: "6 monthly managed update requests",
     upgradePrompt: "Request a Custom Website quote for full CMS control, blog publishing, advanced SEO, ownership, ecommerce, or integrations.",
     features: [
-      "Everything in Growth",
+      "Everything in Business",
       "Up to 5 managed pages",
       "Homepage, Services, About, Contact, Landing Page",
       "Landing page support",

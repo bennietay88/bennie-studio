@@ -430,7 +430,7 @@ test("connects the primary revenue offer to a recorded website growth call", asy
   await page.goto("/pricing");
   await expect(page.getByRole("heading", { name: "Website Growth Partner", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Launch", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Growth", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Business", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Scale", exact: true })).toBeVisible();
   await expect(page.getByText("AI Production Credits", { exact: true })).toHaveCount(0);
   await page.getByRole("link", { name: /Book a Website Growth Call/i }).click();
@@ -441,6 +441,17 @@ test("connects the primary revenue offer to a recorded website growth call", asy
   await page.getByLabel("Industry").fill("Professional services");
   await page.getByRole("button", { name: /Request Website Growth Call/i }).click();
   await expect(page.getByRole("heading", { name: "Request received" })).toBeVisible();
+});
+
+test("presents the core growth partner clearly on the homepage", async ({ page }) => {
+  await page.route("https://ipapi.co/json/", (route) => json(route, { country_code: "SG", country_name: "Singapore" }));
+  await page.route("**/api/platform-events", (route) => json(route, { success: true }));
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Website Growth Partner", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Book a Website Growth Call/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /view basic plans from \$49\/month/i })).toBeVisible();
+  await expect(page.getByText(/one-time strategy, copy, and build fee/i)).toBeVisible();
 });
 
 test("shows and accepts a public proposal without exposing checkout secrets", async ({ page }) => {

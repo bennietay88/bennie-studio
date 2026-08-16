@@ -1472,7 +1472,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600">Recommended from your answers</p>
                         <h3 className="mt-1 text-2xl font-black text-slate-950">
-                          {(availablePackages.find((pkg) => pkg.id === recommendedPlanId) || availablePackages.find((pkg) => pkg.id === "growth") || selectedPackageConfig)?.name || "Growth"}
+                          {(availablePackages.find((pkg) => pkg.id === recommendedPlanId) || availablePackages.find((pkg) => pkg.id === "growth") || selectedPackageConfig)?.name || "Scale"}
                         </h3>
                         <p className="mt-1 text-sm font-semibold text-slate-600">
                           Based on {businessData.pagesNeeded.length} requested page(s), {businessData.localSeoCities.split(/,|\n/).filter(Boolean).length} location target(s), and your goal: {businessData.websiteGoal}.

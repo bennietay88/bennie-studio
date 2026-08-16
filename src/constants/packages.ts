@@ -17,7 +17,7 @@ export interface Package {
 export const PACKAGES: Package[] = [
   {
     id: "starter",
-    name: "Starter",
+    name: "Launch",
     price: 49,
     description: "Launch a simple one-page business website fast.",
     features: ["Professional 1-page website", "All key sections on home", "Hosting and SSL included", "Lead capture form", "WhatsApp/contact CTA", "Basic SEO setup", "One primary location"],
@@ -47,7 +47,7 @@ export const PACKAGES: Package[] = [
   },
   {
     id: "growth",
-    name: "Growth",
+    name: "Scale",
     price: 199,
     description: "Create a stronger website with authority pages, portfolio/case studies, and better SEO structure.",
     features: ["Everything in Business", "Up to 10 website pages", "Landing page support", "Blog setup", "Up to 25 location pages", "Internal linking suggestions", "Local content publishing checklist"],

@@ -50,6 +50,11 @@ const mapPlanTableRows = (tablePlans: any[]): Plan[] =>
     })),
   );
 
+const withCustomerFacingPlanNames = (plans: Plan[]) =>
+  plans.map((plan) =>
+    plan.id === "business" ? { ...plan, name: "Business" } : plan,
+  );
+
 export const Pricing: React.FC<PricingProps> = ({
   currentPlan,
   onSelectPlan,
@@ -76,7 +81,7 @@ export const Pricing: React.FC<PricingProps> = ({
           .order("price_usd", { ascending: true });
 
         if (!tableError && Array.isArray(tablePlans) && tablePlans.length > 0) {
-          setPlans(mapPlanTableRows(tablePlans));
+          setPlans(withCustomerFacingPlanNames(mapPlanTableRows(tablePlans)));
           return;
         }
 
@@ -87,12 +92,12 @@ export const Pricing: React.FC<PricingProps> = ({
           .maybeSingle();
 
         if (data?.content?.pricing) {
-          setPlans(activePlans(normalizePlans(data.content.pricing)));
+          setPlans(withCustomerFacingPlanNames(activePlans(normalizePlans(data.content.pricing))));
         } else {
-          setPlans(activePlans(STATIC_PLANS));
+          setPlans(withCustomerFacingPlanNames(activePlans(STATIC_PLANS)));
         }
       } catch (err) {
-        setPlans(activePlans(STATIC_PLANS));
+        setPlans(withCustomerFacingPlanNames(activePlans(STATIC_PLANS)));
       } finally {
         setLoading(false);
       }
@@ -202,13 +207,13 @@ export const Pricing: React.FC<PricingProps> = ({
       <div className="flex flex-col items-center gap-6 mb-8">
         <div className="flex flex-col items-center gap-2 text-center max-w-2xl px-4">
           <Badge variant="outline" className="text-indigo-600 border-indigo-200 bg-indigo-50 mb-3 px-4 py-1 font-black">
-            Recommended Managed Website Plan
+            Basic Website Plans
           </Badge>
           <h2 className={cn(
             "text-4xl sm:text-6xl font-black tracking-tighter uppercase italic",
             onDark ? "text-white" : "text-slate-900 dark:text-white",
           )}>
-            Start With Growth
+            Choose Your Starting Plan
           </h2>
           <p className={cn(
             "text-lg font-medium leading-relaxed",

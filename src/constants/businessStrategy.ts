@@ -34,7 +34,7 @@ export const MONTHLY_MANAGED_SERVICE_RITUAL = [
 ] as const;
 
 export const GROWTH_PLAN_POSITIONING = {
-  headline: "Start with Growth unless you only need a one-page website.",
+  headline: "Choose the basic plan that fits your current stage.",
   description:
-    "Growth is the default managed website plan because it gives most service businesses the minimum useful structure: Home, Services, Contact, review-powered trust, WhatsApp or quote flow, and monthly improvement support.",
+    "Business is the recommended basic plan for most service businesses because it includes the essential pages, trust sections, enquiry paths, hosting, and monthly update support.",
 };
