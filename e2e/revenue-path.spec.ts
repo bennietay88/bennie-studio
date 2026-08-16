@@ -429,7 +429,10 @@ test("connects the primary revenue offer to a recorded website growth call", asy
 
   await page.goto("/pricing");
   await expect(page.getByRole("heading", { name: "Website Growth Partner", exact: true })).toBeVisible();
-  await expect(page.getByText("Launch", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Launch", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Growth", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Scale", exact: true })).toBeVisible();
+  await expect(page.getByText("AI Production Credits", { exact: true })).toHaveCount(0);
   await page.getByRole("link", { name: /Book a Website Growth Call/i }).click();
   await expect(page).toHaveURL(/\/book-demo/);
   await page.getByLabel("Your name").fill("Jane Buyer");

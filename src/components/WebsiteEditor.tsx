@@ -841,9 +841,9 @@ export function WebsiteEditor({
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.response?.data?.error || err.response?.data?.details || err.message;
       if (errorMessage === "INSUFFICIENT_CREDITS" || errorMessage?.toLowerCase().includes("credits")) {
-        toast.error("Insufficient AI credits. Please upgrade your plan.");
+        toast.error("You have reached this plan's AI-assisted editing allowance. Send the change as a managed update request or contact support.");
       } else if (errorMessage === "DAILY_LIMIT_EXCEEDED" || errorMessage?.toLowerCase().includes("daily")) {
-        toast.info("Daily AI limit exceeded. Your quota will reset at midnight UTC.", { duration: 6000 });
+        toast.info("Today's AI-assisted editing allowance has been reached. Try again tomorrow or send the change as a managed update request.", { duration: 6000 });
       } else {
         toast.error(errorMessage || "AI Improvement failed. Please try again.");
       }

@@ -329,7 +329,6 @@ export function Sidebar({
                 label: "WordPress Setup",
                 devOnly: true,
               },
-            { to: "/dashboard/ai-usage", icon: Zap, label: "Resource Credits", devOnly: true },
             { to: "/dashboard/status", icon: Shield, label: "System Status" },
             { to: "/dashboard/billing", icon: CreditCard, label: "Billing & Plans", roles: ["business_admin"] },
             { to: "/dashboard/support", icon: Headphones, label: "Support" },

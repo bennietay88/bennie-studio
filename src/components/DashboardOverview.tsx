@@ -556,23 +556,6 @@ export default function DashboardOverview() {
       ],
       featureId: "review_management",
     },
-    {
-      label: "Neural Fuel",
-      value: (stats as any).aiCredits?.toString() || "0",
-      icon: Zap,
-      color: "text-amber-600",
-      bg: "bg-amber-50",
-      data: [
-        { v: (stats as any).aiUsed || 0 },
-        { v: (stats as any).aiUsed || 0 },
-        { v: (stats as any).aiUsed || 0 },
-        { v: (stats as any).aiUsed || 0 },
-        { v: (stats as any).aiUsed || 0 },
-        { v: (stats as any).aiUsed || 0 },
-        { v: (stats as any).aiCredits || 0 },
-      ],
-      featureId: "ai_credits",
-    },
   ];
   const onboarding = business?.onboarding_steps || {};
   const launchChecks = [

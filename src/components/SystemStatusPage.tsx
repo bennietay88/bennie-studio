@@ -67,13 +67,13 @@ export function SystemStatusPage() {
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
       });
       next.push({
-        name: "AI Credits",
+        name: "AI-assisted editing",
         status: response.ok ? "ok" : "warn",
-        detail: response.ok ? "Usage endpoint responding" : `Needs login/configuration: HTTP ${response.status}`,
+        detail: response.ok ? "Content service responding" : `Needs login/configuration: HTTP ${response.status}`,
         icon: Shield,
       });
     } catch (error: any) {
-      next.push({ name: "AI Credits", status: "warn", detail: error.message || "Unable to check AI usage", icon: Shield });
+      next.push({ name: "AI-assisted editing", status: "warn", detail: error.message || "Unable to check the content service", icon: Shield });
     }
 
     next.push({

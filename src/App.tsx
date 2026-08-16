@@ -102,7 +102,6 @@ const MarketingHub = lazy(() =>
 );
 const LocalSeoDashboard = lazy(() => import("./components/LocalSeoDashboard"));
 const MonthlyUpdateRequests = lazy(() => import("./components/MonthlyUpdateRequests"));
-const AICreditDashboard = lazy(() => import("./components/AICreditDashboard").then(m => ({ default: m.AICreditDashboard })));
 const TeamManagement = lazy(() => import("./components/TeamManagement"));
 const PlanEditor = lazy(() => import("./components/PlanEditor"));
 const LandingPageEditor = lazy(() => import("./components/LandingPageEditor"));
@@ -543,9 +542,7 @@ export default function App() {
                             />
                             <Route
                               path="ai-usage"
-                              element={
-                                <AICreditDashboard />
-                              }
+                              element={<Navigate to="/dashboard" replace />}
                             />
                             <Route
                               path="onboarding"

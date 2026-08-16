@@ -36,7 +36,7 @@ export function DemoModePage() {
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {[
             ["Safe data", "Use a separate demo business and demo admin user."],
-            ["Guided tour", "Show website generation, leads, AI credits, and settings."],
+            ["Guided tour", "Show website generation, leads, managed updates, and settings."],
             ["Sales-ready", "Pair this with your portfolio page during calls."],
           ].map(([title, desc], index) => (
             <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">

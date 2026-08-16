@@ -37,6 +37,7 @@ import {
   getOfferForMarket,
   type RevenueMarket,
 } from "../constants/revenueOffer";
+import { BASIC_WEBSITE_OFFERS, saveBasicPlanIntent } from "../constants/publicOffers";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { supabase } from "../lib/supabase";
 import {
@@ -589,8 +590,8 @@ function PricingPage() {
   return (
     <>
       <Hero
-        title="One accountable website growth partner"
-        copy={`A focused managed service for ${market.country} businesses that want a stronger website and enquiry journey without managing freelancers, hosting, copy, analytics, and monthly improvements separately.`}
+        title="Choose how much help you need"
+        copy={`Start with a practical website plan from US$49, work with Bennie Studio as your managed growth partner, or commission a fully custom website. Each option has a different level of ownership and support.`}
         icon={ClipboardCheck}
       />
       <section className="mx-auto max-w-7xl px-5 py-14">
@@ -612,11 +613,63 @@ function PricingPage() {
             </select>
           </label>
         </div>
+        <div className="mb-6 rounded-[2.5rem] border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Basic website plans</p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Start smaller from US$49/month</h2>
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
+                Template-led plans for businesses that can provide their own content and direction. Prices are billed in USD.
+              </p>
+            </div>
+            <p className="rounded-2xl bg-slate-100 px-4 py-3 text-xs font-bold leading-5 text-slate-600">
+              Best for getting online first. Upgrade when you need deeper strategy and proactive improvement.
+            </p>
+          </div>
+          <div className="mt-7 grid gap-5 lg:grid-cols-3">
+            {BASIC_WEBSITE_OFFERS.map((plan) => (
+              <article
+                key={plan.id}
+                className={`flex h-full flex-col rounded-[2rem] border p-6 ${plan.isPopular ? "border-indigo-300 bg-indigo-50/70 ring-4 ring-indigo-50" : "border-slate-200 bg-slate-50"}`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-2xl font-black text-slate-950">{plan.name}</h3>
+                  {plan.isPopular ? <Badge className="border-0 bg-indigo-600 text-white">Popular</Badge> : null}
+                </div>
+                <p className="mt-4 text-4xl font-black tracking-tight text-slate-950">{plan.price}<span className="text-sm text-slate-500">/month</span></p>
+                <p className="mt-3 min-h-12 text-sm font-semibold leading-6 text-slate-600">{plan.bestFor}</p>
+                <ul className="mt-5 space-y-3">
+                  {plan.included.map((feature) => (
+                    <li key={feature} className="flex gap-2 text-sm font-bold text-slate-700">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to="/signup?redirectTo=%2Fdashboard%2Fonboarding"
+                  onClick={() => {
+                    saveBasicPlanIntent(plan.id);
+                    trackPublicEvent({ eventType: "click_pricing_plan", label: plan.name, target: "/signup", metadata: { planId: plan.id, price: plan.price, tier: "basic" } });
+                  }}
+                  className={`${plan.isPopular ? primaryCtaClass : secondaryCtaClass} mt-6 w-full`}
+                >
+                  Choose {plan.name}
+                </Link>
+              </article>
+            ))}
+          </div>
+        </div>
+        <div className="mb-5 flex items-center gap-4 px-2">
+          <div className="h-px flex-1 bg-slate-200" />
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Need Bennie Studio to lead the work?</p>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-[2.5rem] border border-indigo-200 bg-indigo-50 p-7 shadow-sm sm:p-9">
-            <Badge className="border-0 bg-indigo-600 text-white">Primary managed service</Badge>
+            <Badge className="border-0 bg-indigo-600 text-white">Core managed service</Badge>
             <h2 className="mt-5 text-4xl font-black tracking-tight text-slate-950">{PRIMARY_REVENUE_OFFER.name}</h2>
             <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-slate-600">{PRIMARY_REVENUE_OFFER.description}</p>
+            <p className="mt-3 text-sm font-black text-indigo-700">Bennie Studio leads the strategy, copy, build, tracking, and ongoing improvement.</p>
             <div className="mt-7 grid gap-4 sm:grid-cols-2">
               <div className="rounded-3xl bg-white p-5 shadow-sm">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Ongoing partnership</p>

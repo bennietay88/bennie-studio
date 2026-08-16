@@ -9,7 +9,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -19,7 +18,6 @@ import {
   ExternalLink,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
   Star,
   Shield,
 } from "lucide-react";
@@ -29,7 +27,6 @@ import { PLANS } from "../constants/plans";
 import { cn } from "../lib/utils";
 import { motion } from "motion/react";
 import { stripePublishableKey, holdsValidStripeKey } from "../lib/stripe";
-import { trackPinterestCheckout } from "../lib/pinterestTracking";
 
 export const Billing = () => {
   const { profile } = useAuth();
@@ -77,6 +74,7 @@ export const Billing = () => {
           stripeCustomerId: data.stripe_customer_id,
           stripeSubscriptionId: data.stripe_subscription_id,
           subscriptionStatus: data.subscription_status,
+          // Retained for backward-compatible business records; intentionally not shown to customers.
           aiCredits: data.ai_credits || 0,
           aiCreditsUsed: data.ai_credits_used || 0,
           trialEndsAt: data.trial_ends_at
@@ -151,96 +149,6 @@ export const Billing = () => {
       setPortalLoading(false);
     }
   };
-
-  const handleBuyCredits = async (priceId: string) => {
-    if (!priceId || priceId === "") {
-      toast.error("This bundle is not configured yet.");
-      return;
-    }
-
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token;
-
-      if (!token) {
-        toast.error("You must be logged in to purchase credits");
-        return;
-      }
-
-      const response = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          priceId,
-          businessId: profile?.businessId,
-          customerEmail: profile?.email,
-          type: "credits",
-        }),
-      });
-
-      const data = await response.json();
-      if (data.url) {
-        trackPinterestCheckout("credits_checkout", {
-          price_id: priceId,
-        });
-        window.location.href = data.url;
-      } else {
-        throw new Error(data.error || "Failed to create checkout session");
-      }
-    } catch (error: any) {
-      console.error("Checkout error:", error);
-      toast.error(error.message || "Failed to start checkout");
-    }
-  };
-
-  const [creditBundles, setCreditBundles] = useState<any[]>([]);
-
-  useEffect(() => {
-    const fetchBundles = async () => {
-      const { data } = await supabase
-        .from("settings")
-        .select("content")
-        .eq("id", "credit_bundles")
-        .maybeSingle();
-      if (data?.content?.bundles) {
-        setCreditBundles(data.content.bundles);
-      }
-    };
-    fetchBundles();
-  }, []);
-
-  const defaultBundles = [
-    {
-      id: "starter",
-      name: "Starter Pack",
-      amount: 10,
-      price: 10,
-      priceId: import.meta.env.VITE_STRIPE_PRICE_10_CREDITS,
-    },
-    {
-      id: "growth",
-      name: "Pro Growth",
-      amount: 50,
-      price: 40,
-      priceId: import.meta.env.VITE_STRIPE_PRICE_50_CREDITS,
-      bestValue: true,
-    },
-    {
-      id: "agency",
-      name: "Agency Bundle",
-      amount: 200,
-      price: 150,
-      priceId: import.meta.env.VITE_STRIPE_PRICE_200_CREDITS,
-    },
-  ];
-
-  const activeBundles =
-    creditBundles.length > 0 ? creditBundles : defaultBundles;
 
   if (loading) {
     return (
@@ -606,112 +514,6 @@ export const Billing = () => {
           </CardContent>
         </Card>
       </motion.div>
-
-      {/* AI Credits Section */}
-      <Card className="border-2 border-indigo-100 dark:border-indigo-900/30 overflow-hidden">
-        <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4">
-          <div className="space-y-1">
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-indigo-600" /> AI Production
-              Credits
-            </CardTitle>
-            <CardDescription>
-              Credits used for AI website and content generation.
-            </CardDescription>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <Badge className="bg-indigo-600 hover:bg-indigo-600 text-white font-black px-4 py-1.5 rounded-full text-base">
-              {business?.aiCredits || 0} TOTAL
-            </Badge>
-            <span className="text-[10px] text-slate-400 font-medium px-2">
-              {business?.aiCreditsUsed || 0} Credits Used
-            </span>
-          </div>
-        </CardHeader>
-        <CardContent className="py-8 space-y-8">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-slate-500">Usage Progress</span>
-              <span className="font-bold text-indigo-600">
-                {Math.min(
-                  100,
-                  Math.round(
-                    ((business?.aiCreditsUsed || 0) /
-                      (business?.aiCredits || 1)) *
-                      100,
-                  ),
-                )}
-                %
-              </span>
-            </div>
-            <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{
-                  width: `${Math.min(100, ((business?.aiCreditsUsed || 0) / (business?.aiCredits || 1)) * 100)}%`,
-                }}
-                className={cn(
-                  "h-full rounded-full transition-all duration-1000",
-                  (business?.aiCreditsUsed || 0) / (business?.aiCredits || 1) >
-                    0.9
-                    ? "bg-red-500"
-                    : "bg-indigo-600",
-                )}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {activeBundles.map((bundle) => (
-              <div
-                key={bundle.id}
-                className={cn(
-                  "space-y-2 p-6 rounded-2xl border transition-all text-center group",
-                  bundle.bestValue
-                    ? "bg-indigo-50 dark:bg-indigo-900/20 border-2 border-indigo-200 dark:border-indigo-800 relative shadow-xl shadow-indigo-100 dark:shadow-none sm:scale-105"
-                    : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-indigo-200",
-                )}
-              >
-                {bundle.bestValue && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest whitespace-nowrap">
-                    Best Value
-                  </div>
-                )}
-                <h4 className="font-bold text-slate-900 dark:text-white">
-                  {bundle.name}
-                </h4>
-                <p className="text-3xl font-black text-indigo-600">
-                  ${bundle.price}
-                </p>
-                <p className="text-xs text-slate-500 pb-4">
-                  {bundle.amount} AI Credits
-                </p>
-                <Button
-                  variant={bundle.bestValue ? "default" : "outline"}
-                  className={cn(
-                    "w-full rounded-xl font-bold transition-all",
-                    bundle.bestValue
-                      ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
-                      : "group-hover:bg-indigo-600 group-hover:text-white",
-                  )}
-                  onClick={() => handleBuyCredits(bundle.priceId)}
-                >
-                  Buy Now
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-        <CardFooter className="bg-slate-50/30 dark:bg-slate-800/20 py-4 px-6">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <AlertCircle className="h-4 w-4 text-slate-400" />
-            <span>
-              AI Credits never expire. Consumed per generation: Website (3),
-              Blog Post (1).
-            </span>
-          </div>
-        </CardFooter>
-      </Card>
 
       <div id="pricing-plans" className="space-y-6">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white text-center">

@@ -17,7 +17,6 @@ import {
   Loader2,
   LogOut,
   HelpCircle,
-  Sparkles,
   ExternalLink,
   Globe,
   BriefcaseBusiness,
@@ -290,17 +289,6 @@ export function DashboardLayout({
                 >
                   <AlertTriangle className="h-3 w-3 mr-1" /> Maintenance Mode
                   Active
-                </Badge>
-              )}
-              {role === "business_admin" && business && (
-                <Badge
-                  variant="outline"
-                  className="ml-4 bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800 flex gap-2 py-1 px-3"
-                >
-                  <Sparkles className="h-3 w-3" />
-                  <span className="text-[10px] font-black uppercase tracking-tighter">
-                    {business.aiCredits || 0} AI Credits Remaining
-                  </span>
                 </Badge>
               )}
             </div>

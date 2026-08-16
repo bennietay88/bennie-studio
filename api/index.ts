@@ -251,7 +251,7 @@ const useCredits = async (
     // Only enforce if ai_credits is set (not 0)
     if (biz.ai_credits > 0 && (biz.ai_credits_used || 0) >= biz.ai_credits) {
       throw new Error(
-        "AI credits exceeded. Please top up your balance in Billing.",
+        "AI-assisted editing allowance reached. Please use a managed update request or contact support.",
       );
     }
 
@@ -262,7 +262,7 @@ const useCredits = async (
       model_name: modelName,
     });
   } catch (err) {
-    if (err instanceof Error && err.message.includes("credits exceeded")) {
+    if (err instanceof Error && err.message.includes("allowance reached")) {
       throw err;
     }
     console.error("AI Usage Tracking Error:", err);
@@ -2218,7 +2218,7 @@ async function startServer() {
         });
         return res.status(503).json({
           error: "AI_CREDIT_CHECK_UNAVAILABLE",
-          message: "AI usage could not be verified right now. No credits were charged. Please retry shortly.",
+          message: "AI-assisted editing could not be verified right now. No allowance was used. Please retry shortly.",
         });
       }
 
@@ -2262,11 +2262,11 @@ async function startServer() {
         return res.status(402).json({ 
           error: deductionResult.error,
           message: deductionResult.error === "INSUFFICIENT_CREDITS" 
-            ? "You do not have enough AI credits for this action. Upgrade your plan or wait until your credits reset."
+            ? "This plan's AI-assisted editing allowance has been reached. Use a managed update request or try again after it resets."
             : deductionResult.error === "DAILY_LIMIT_EXCEEDED"
-            ? "Daily request limit reached. Please try again tomorrow or upgrade your plan."
+            ? "Today's AI-assisted editing allowance has been reached. Try again tomorrow or use a managed update request."
             : deductionResult.error === "CHATGPT_NOT_ALLOWED"
-            ? "This is a Premium AI feature. Upgrade to Growth, Pro, or Agency to unlock premium AI rewrites and agency-grade landing pages."
+            ? "This editing action is not included in the current plan. Use a managed update request or contact support."
             : "Action blocked by usage limits."
         });
       }

@@ -5,6 +5,8 @@ import { ArrowRight, Check, Globe, MessageSquare, Rocket, Shield, Sparkles, MapP
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { findOwnSalesSeoPage } from "../constants/ownSalesSeoPages";
+import { BASIC_WEBSITE_OFFERS, saveBasicPlanIntent } from "../constants/publicOffers";
+import { getOfferForMarket, type RevenueMarket } from "../constants/revenueOffer";
 
 export default function OwnSalesSeoPage() {
   const location = useLocation();
@@ -42,29 +44,14 @@ export default function OwnSalesSeoPage() {
   const isCityPage = page.path.startsWith("/website-design/");
   const isCountryPage = page.path.startsWith("/website-subscription-service/") && ["UK", "Malaysia", "Singapore"].includes(marketLabel);
   const cityName = isCityPage ? page.h1.replace(/^Website Design\s+/i, "") : marketLabel;
-  const packageOptions = [
-    {
-      name: "Starter",
-      price: isUk ? "£49/mo" : isMalaysia ? "Local pricing" : isSingapore ? "SGD-ready" : "$49/mo",
-      label: "Fast launch",
-      description: "A clean one-page website for businesses that need to look professional quickly.",
-      features: ["1-page website", "Contact form", "Primary CTA", "Basic SEO setup"],
-    },
-    {
-      name: "Growth",
-      price: isUk ? "£99/mo" : isMalaysia ? "Local pricing" : isSingapore ? "SGD-ready" : "$99/mo",
-      label: "Most useful",
-      description: "A stronger small business website with more space for services, proof, and enquiries.",
-      features: ["Up to 3 pages", "Service sections", "Local SEO-ready layout", "Monthly update support"],
-    },
-    {
-      name: "Authority",
-      price: isUk ? "£199/mo" : isMalaysia ? "Local pricing" : isSingapore ? "SGD-ready" : "$199/mo",
-      label: "Best for growth",
-      description: "For businesses that want more pages, stronger positioning, and location-aware growth.",
-      features: ["Up to 5 pages", "Location content", "Campaign sections", "Priority improvements"],
-    },
-  ];
+  const revenueMarket: RevenueMarket = isUk ? "GB" : isMalaysia ? "MY" : isSingapore ? "SG" : "US";
+  const coreOffer = getOfferForMarket(revenueMarket);
+  const packageOptions = BASIC_WEBSITE_OFFERS.map((plan, index) => ({
+    ...plan,
+    price: `${plan.price}/mo`,
+    label: index === 0 ? "Fast launch" : index === 1 ? "Most useful" : "More room",
+    features: plan.included,
+  }));
   const serviceSchema = {
     "@context": "https://schema.org",
     "@type": "Service",
@@ -79,14 +66,18 @@ export default function OwnSalesSeoPage() {
     serviceType: isCityPage ? "Website design and managed website subscription" : "Website subscription service",
     offers: {
       "@type": "OfferCatalog",
-      name: `Managed website packages for ${marketLabel}`,
-      itemListElement: packageOptions.map((plan) => ({
+      name: `Website service options for ${marketLabel}`,
+      itemListElement: [...packageOptions, {
+        name: coreOffer.name,
+        description: coreOffer.description,
+        price: coreOffer.monthlyLabel,
+      }].map((plan) => ({
         "@type": "Offer",
         name: plan.name,
         description: plan.description,
         priceSpecification: {
           "@type": "PriceSpecification",
-          priceCurrency: isUk ? "GBP" : isMalaysia ? "MYR" : isSingapore ? "SGD" : "USD",
+          priceCurrency: plan.name === coreOffer.name ? coreOffer.prices[revenueMarket].currency : "USD",
           price: plan.price.replace(/[^0-9.]/g, "") || undefined,
         },
       })),
@@ -433,7 +424,7 @@ export default function OwnSalesSeoPage() {
               <Badge className="mb-4 bg-indigo-50 text-indigo-700">Choose a package</Badge>
               <h2 className="text-3xl font-black tracking-tight sm:text-5xl">Simple managed website options</h2>
               <p className="mx-auto mt-4 max-w-2xl text-base font-semibold text-slate-600">
-                Start with the package that matches your current stage. Your preview can be generated first, then upgraded or refined before launch.
+                Start with the package that matches your current stage. Basic plans are billed in USD. Your preview can be generated first, then upgraded or refined before launch.
               </p>
             </div>
             <div className="grid gap-6 lg:grid-cols-3">
@@ -460,13 +451,32 @@ export default function OwnSalesSeoPage() {
                     ))}
                   </ul>
                   <Button
-                    onClick={() => navigate("/signup")}
+                    onClick={() => {
+                      saveBasicPlanIntent(plan.id);
+                      navigate("/signup?redirectTo=%2Fdashboard%2Fonboarding");
+                    }}
                     className={`mt-7 h-12 w-full rounded-xl font-black ${index === 1 ? "bg-indigo-600 hover:bg-indigo-700" : "bg-slate-950 hover:bg-indigo-600"}`}
                   >
                     Generate Preview
                   </Button>
                 </div>
               ))}
+            </div>
+            <div className="mt-7 rounded-[2rem] border border-indigo-200 bg-indigo-50 p-6 shadow-sm lg:flex lg:items-center lg:justify-between lg:gap-8">
+              <div>
+                <Badge className="border-0 bg-indigo-600 text-white">Core managed service</Badge>
+                <h3 className="mt-4 text-2xl font-black text-slate-950">{coreOffer.name}</h3>
+                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-600">
+                  Bennie Studio leads the strategy, copy, build, tracking, and monthly improvements. This is for businesses that want an accountable growth partner, not another website tool.
+                </p>
+              </div>
+              <div className="mt-5 shrink-0 lg:mt-0 lg:text-right">
+                <p className="text-3xl font-black text-slate-950">{coreOffer.monthlyLabel}<span className="text-sm text-slate-500">/month</span></p>
+                <p className="mt-1 text-xs font-bold text-slate-500">plus {coreOffer.setupLabel} setup</p>
+                <Button onClick={() => navigate("/book-demo")} className="mt-4 h-12 rounded-xl bg-slate-950 px-6 font-black hover:bg-indigo-600">
+                  Book a Growth Call
+                </Button>
+              </div>
             </div>
           </div>
         </section>
