@@ -2310,7 +2310,7 @@ export default function DashboardOverview() {
                   <div className="absolute -inset-20 bg-primary/20 blur-[100px] rounded-full animate-pulse" />
                   <div className="relative border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl bg-slate-900 p-3 transform hover:rotate-2 transition-transform duration-700">
                     <img
-                      src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=2426"
+                      src="/brand-template-preview.svg"
                       alt="Setup"
                       className="w-full h-auto rounded-[2rem] opacity-40 grayscale hover:grayscale-0 transition-all duration-700"
                       referrerPolicy="no-referrer"

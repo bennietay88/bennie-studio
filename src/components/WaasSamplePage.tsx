@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { SafeImage } from "./SafeImage";
+import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
 
 const samples = {
   dental: {
@@ -35,7 +35,7 @@ const samples = {
     metaDescription:
       "Dental clinic website demo for Kuala Lumpur with treatment pages, WhatsApp booking, patient FAQs, dentist trust sections, and local SEO-ready content.",
     image:
-      "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=1600",
+      "/brand-template-preview.svg",
     accent: "text-cyan-700",
     button: "bg-cyan-600 hover:bg-cyan-700",
     soft: "bg-cyan-50 text-cyan-800",
@@ -68,7 +68,7 @@ const samples = {
     metaDescription:
       "Consultant website demo with service positioning, proof sections, case-study prompts, lead capture, and strategy-call CTAs.",
     image:
-      "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&q=80&w=1600",
+      "/brand-template-preview.svg",
     accent: "text-indigo-700",
     button: "bg-indigo-600 hover:bg-indigo-700",
     soft: "bg-indigo-50 text-indigo-800",
@@ -101,7 +101,7 @@ const samples = {
     metaDescription:
       "Beauty salon website demo with service menus, package CTAs, gallery sections, WhatsApp booking, and local SEO-ready content.",
     image:
-      "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1600",
+      "/brand-template-preview.svg",
     accent: "text-pink-700",
     button: "bg-pink-600 hover:bg-pink-700",
     soft: "bg-pink-50 text-pink-800",
@@ -134,7 +134,7 @@ const samples = {
     metaDescription:
       "Renovation contractor website demo with service pages, project gallery, quote request flow, service areas, and local SEO-ready content.",
     image:
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1600",
+      "/brand-template-preview.svg",
     accent: "text-amber-700",
     button: "bg-amber-600 hover:bg-amber-700",
     soft: "bg-amber-50 text-amber-800",
@@ -167,7 +167,7 @@ const samples = {
     metaDescription:
       "Restaurant and cafe website demo with menu sections, reservation CTA, gallery, delivery links, location details, and local SEO-ready content.",
     image:
-      "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1600",
+      "/brand-template-preview.svg",
     accent: "text-orange-700",
     button: "bg-orange-600 hover:bg-orange-700",
     soft: "bg-orange-50 text-orange-800",
@@ -200,7 +200,7 @@ const samples = {
     metaDescription:
       "Tuition centre website demo with programme pages, teacher trust sections, parent FAQs, trial class CTA, and enrolment enquiry flow.",
     image:
-      "https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?auto=format&fit=crop&q=80&w=1600",
+      "/brand-template-preview.svg",
     accent: "text-blue-700",
     button: "bg-blue-600 hover:bg-blue-700",
     soft: "bg-blue-50 text-blue-800",
@@ -295,12 +295,7 @@ export default function WaasSamplePage() {
             </div>
           </div>
           <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 shadow-2xl">
-            <SafeImage
-              src={sample.image}
-              alt={sample.name}
-              className="h-full w-full object-cover"
-              containerClassName="aspect-[4/3]"
-            />
+            <WebsiteConceptVisual title={sample.name} eyebrow={sample.eyebrow} index={Object.keys(samples).indexOf(sampleKey)} className="aspect-[4/3]" />
           </div>
         </section>
 

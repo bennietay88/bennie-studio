@@ -204,7 +204,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "Get Quote",
     premiumLevel: "Agency Grade",
     description: "Designed for rapid conversion and trust building for local service providers.",
-    thumbnail: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: {
       primaryColor: "#2563eb",
       secondaryColor: "#ffffff",
@@ -272,7 +272,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "Book Call",
     premiumLevel: "Agency Grade",
     description: "A sophisticated layout that emphasizes scale, stability, and professional excellence.",
-    thumbnail: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: {
       primaryColor: "#0f172a",
       secondaryColor: "#f8fafc",
@@ -339,7 +339,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "View Properties",
     premiumLevel: "Agency Grade",
     description: "Visual-heavy layout designed to showcase listings and capture high-intent buyer leads.",
-    thumbnail: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: {
       primaryColor: "#c29b40",
       secondaryColor: "#111827",
@@ -407,7 +407,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "Request Consultation",
     premiumLevel: "Agency Grade",
     description: "Classic design aesthetic that projects authority, depth of experience, and absolute trust.",
-    thumbnail: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: {
       primaryColor: "#1e293b",
       secondaryColor: "#f1f5f9",
@@ -474,7 +474,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "Book Call",
     premiumLevel: "Agency Grade",
     description: "A brand-centric design that focuses on story, expertise, and direct engagement.",
-    thumbnail: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: {
       primaryColor: "#6366f1",
       secondaryColor: "#ffffff",
@@ -533,7 +533,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "Book Call",
     premiumLevel: "Agency Grade",
     description: "Clean, hygienic, and comforting design to reduce anxiety and promote bookings.",
-    thumbnail: "https://images.unsplash.com/photo-1505751172107-59ec9c6adfd7?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: {
       primaryColor: "#0ea5e9",
       secondaryColor: "#ffffff",
@@ -600,7 +600,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "Book Call",
     premiumLevel: "Agency Grade",
     description: "Minimalist layout that lets work speak for itself with premium typography.",
-    thumbnail: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: {
       primaryColor: "#000000",
       secondaryColor: "#ffffff",
@@ -651,7 +651,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "Reserve Table",
     premiumLevel: "Agency Grade",
     description: "High-impact visual design focused on menu immersion and easy reservations.",
-    thumbnail: "https://images.unsplash.com/photo-1517248135467-4c7ed9d874b7?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: {
       primaryColor: "#78350f",
       secondaryColor: "#fffbeb",
@@ -718,7 +718,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "Start Free Trial",
     premiumLevel: "Agency Grade",
     description: "High-performance landing page designed for conversion and feature clarity.",
-    thumbnail: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: {
       primaryColor: "#6366f1",
       secondaryColor: "#ffffff",
@@ -778,7 +778,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "Book Call",
     premiumLevel: "Agency Grade",
     description: "Serene, sophisticated design focused on sanctuary and stillness.",
-    thumbnail: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: {
       primaryColor: "#78350f",
       secondaryColor: "#fffbeb",
@@ -829,7 +829,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "WhatsApp",
     premiumLevel: "Growth OS",
     description: "Elegant, product-focused design with an emphasis on visual storytelling and brand feel.",
-    thumbnail: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: {
       primaryColor: "#111827",
       secondaryColor: "#ffffff",
@@ -888,7 +888,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "WhatsApp",
     premiumLevel: "Launch",
     description: "A community-focused layout that emphasizes local presence and easy communication.",
-    thumbnail: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e12?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: {
       primaryColor: "#059669",
       secondaryColor: "#ffffff",
@@ -1126,7 +1126,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Skin clinics, medspas, facial clinics, and aesthetic practitioners.",
     services: ["Skin consultation", "Facial treatments", "Laser treatments", "Injectables"],
     sectionPreset: ["Premium hero", "Treatment categories", "Skin concern selector", "Results gallery", "Consultation form"],
-    thumbnail: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: { primaryColor: "#7c3aed", secondaryColor: "#f5f3ff", fontFamily: "'Plus Jakarta Sans', sans-serif", style: "corporate" },
   }),
   ...buildNicheTemplate({
@@ -1143,7 +1143,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Physiotherapy, rehabilitation, sports recovery, and pain management clinics.",
     services: ["Back pain treatment", "Sports injury rehab", "Post-surgery recovery", "Mobility assessment"],
     sectionPreset: ["Hero with assessment CTA", "Pain selector", "Conditions treated", "Recovery benefits", "Booking form"],
-    thumbnail: "https://images.unsplash.com/photo-1571019613576-2b22c76fd955?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: { primaryColor: "#0f766e", secondaryColor: "#ecfdf5", fontFamily: "'Plus Jakarta Sans', sans-serif", style: "modern" },
   }),
   ...buildNicheTemplate({
@@ -1160,7 +1160,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Renovation contractors, builders, interior contractors, and home improvement companies.",
     services: ["Home renovation", "Kitchen renovation", "Bathroom renovation", "Office renovation"],
     sectionPreset: ["Quote hero", "Service categories", "Project gallery", "Before/after", "Service areas"],
-    thumbnail: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: { primaryColor: "#ea580c", secondaryColor: "#fff7ed", fontFamily: "'Plus Jakarta Sans', sans-serif", style: "modern" },
   }),
   ...buildNicheTemplate({
@@ -1177,7 +1177,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Home cleaning, office cleaning, move-out cleaning, and commercial cleaning companies.",
     services: ["Home cleaning", "Office cleaning", "Deep cleaning", "Move-out cleaning"],
     sectionPreset: ["Booking hero", "Cleaning service cards", "Pricing preview", "How it works", "Service areas"],
-    thumbnail: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: { primaryColor: "#0284c7", secondaryColor: "#f0f9ff", fontFamily: "'Inter', sans-serif", style: "modern" },
   }),
   ...buildNicheTemplate({
@@ -1194,7 +1194,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Pest control, termite treatment, rodent removal, and emergency inspection services.",
     services: ["Termite control", "Rodent control", "Cockroach treatment", "Bed bug treatment"],
     sectionPreset: ["Emergency hero", "Sticky call bar", "Pest selector", "Warranty section", "Inspection form"],
-    thumbnail: "https://images.unsplash.com/photo-1581600140682-d4e68c8cde32?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: { primaryColor: "#dc2626", secondaryColor: "#fef2f2", fontFamily: "'Plus Jakarta Sans', sans-serif", style: "action" },
     urgency: "Emergency",
     stylePreset: "High-Contrast Action",
@@ -1213,7 +1213,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Accounting firms, tax consultants, bookkeepers, and financial advisory providers.",
     services: ["Tax filing", "Bookkeeping", "Payroll", "Business advisory"],
     sectionPreset: ["Professional hero", "Services", "Who we help", "Packages preview", "Consultation form"],
-    thumbnail: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: { primaryColor: "#1e3a8a", secondaryColor: "#eff6ff", fontFamily: "'Inter', sans-serif", style: "corporate" },
   }),
   ...buildNicheTemplate({
@@ -1230,7 +1230,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Tuition centres, enrichment centres, private tutors, and education businesses.",
     services: ["Primary tuition", "Secondary tuition", "Exam preparation", "Trial class"],
     sectionPreset: ["Trial class hero", "Program cards", "Age selector", "Results section", "Enquiry form"],
-    thumbnail: "https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: { primaryColor: "#4f46e5", secondaryColor: "#eef2ff", fontFamily: "'Plus Jakarta Sans', sans-serif", style: "modern" },
   }),
   ...buildNicheTemplate({
@@ -1247,7 +1247,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Hair salons, beauty salons, spas, nail studios, and lifestyle treatment businesses.",
     services: ["Hair styling", "Facial treatment", "Massage", "Nail services"],
     sectionPreset: ["Lifestyle hero", "Service menu", "Treatment highlights", "Gallery", "Appointment form"],
-    thumbnail: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: { primaryColor: "#be185d", secondaryColor: "#fdf2f8", fontFamily: "'Fraunces', serif", style: "immersive" },
   }),
   ...buildNicheTemplate({
@@ -1264,7 +1264,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "MSPs, IT support teams, cybersecurity providers, and business technology consultants.",
     services: ["Managed IT support", "Cybersecurity", "Cloud migration", "Helpdesk support"],
     sectionPreset: ["B2B hero", "Service packages", "Response proof", "Security trust", "Consultation form"],
-    thumbnail: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: { primaryColor: "#2563eb", secondaryColor: "#eff6ff", fontFamily: "'Space Grotesk', sans-serif", style: "corporate" },
   }),
   ...buildNicheTemplate({
@@ -1281,7 +1281,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Recruitment agencies, staffing firms, headhunters, and HR service providers.",
     services: ["Permanent hiring", "Temporary staffing", "Executive search", "Candidate screening"],
     sectionPreset: ["Employer hero", "Specialisms", "Hiring process", "Candidate CTA", "Employer form"],
-    thumbnail: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: { primaryColor: "#334155", secondaryColor: "#f8fafc", fontFamily: "'Inter', sans-serif", style: "corporate" },
   }),
   ...buildNicheTemplate({
@@ -1298,7 +1298,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Insurance agents, financial planners, takaful advisors, and coverage consultants.",
     services: ["Life insurance", "Medical insurance", "Business insurance", "Retirement planning"],
     sectionPreset: ["Trust hero", "Coverage cards", "Who we help", "FAQ", "Consultation form"],
-    thumbnail: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: { primaryColor: "#0f766e", secondaryColor: "#f0fdfa", fontFamily: "'Inter', sans-serif", style: "authority" },
   }),
   ...buildNicheTemplate({
@@ -1315,7 +1315,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Interior designers, decor studios, styling consultants, and design-build firms.",
     services: ["Residential design", "Commercial design", "Space planning", "Project styling"],
     sectionPreset: ["Visual hero", "Portfolio gallery", "Before/after", "Design process", "Project form"],
-    thumbnail: "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&q=80&w=800",
+    thumbnail: "/brand-template-preview.svg",
     theme: { primaryColor: "#111827", secondaryColor: "#f9fafb", fontFamily: "'Playfair Display', serif", style: "prestige" },
   }),
 };

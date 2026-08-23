@@ -584,7 +584,7 @@ export function ProductManagement() {
                   </div>
                   <div className="flex-1 space-y-2">
                     <Input
-                      placeholder="https://images.unsplash.com/..."
+                      placeholder="/brand-template-preview.svg"
                       className="rounded-xl h-12 bg-white dark:bg-slate-900"
                       value={currentProduct?.image_url || ""}
                       onChange={(e) =>

@@ -20,7 +20,7 @@ export function ProposalsDeals() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [open, setOpen] = React.useState(false);
-  const [form, setForm] = React.useState({ target: "", title: "Website Growth Partner proposal", market: "SG" as RevenueMarket, expiresAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), checkoutUrl: "" });
+  const [form, setForm] = React.useState({ target: typeof window !== "undefined" && sessionStorage.getItem("bts_proposal_lead_id") ? `lead:${sessionStorage.getItem("bts_proposal_lead_id")}` : "", title: "Website Growth Partner proposal", market: "SG" as RevenueMarket, expiresAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), checkoutUrl: "" });
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);
@@ -37,6 +37,7 @@ export function ProposalsDeals() {
   }, []);
 
   React.useEffect(() => { void fetchData(); }, [fetchData]);
+  React.useEffect(() => { if (form.target) sessionStorage.removeItem("bts_proposal_lead_id"); }, [form.target]);
 
   const offer = getOfferForMarket(form.market);
   const active = proposals.filter((proposal) => !["Declined", "Expired"].includes(proposal.status));
@@ -66,7 +67,7 @@ export function ProposalsDeals() {
         scope: offer.included,
         outcome: offer.description,
         checkout_url: form.checkoutUrl.trim() || null,
-        config: { offerId: offer.id, planId: offer.planId, market: form.market, commitmentMonths: offer.commitmentMonths, package_name: offer.name, setup_fee: offer.setupFee, scope: offer.included, outcome: offer.description },
+        config: { offerId: offer.id, planId: offer.planId, market: form.market, currency: offer.prices[form.market].currency, commitmentMonths: offer.commitmentMonths, package_name: offer.name, setup_fee: offer.setupFee, scope: offer.included, outcome: offer.description },
       };
       const { data, error } = await supabase.from("proposals").insert(payload).select("*, businesses(name), leads(name,email)").single();
       if (error) throw error;
@@ -89,6 +90,14 @@ export function ProposalsDeals() {
     setProposals((current) => current.map((item) => item.id === proposal.id ? data : item));
     const leadStatus = status === "Accepted" ? "won" : status === "Declined" ? "lost" : status === "Sent" ? "proposal" : null;
     if (proposal.lead_id && leadStatus) await supabase.from("leads").update({ status: leadStatus }).eq("id", proposal.lead_id);
+    if (proposal.lead_id && status === "Sent") {
+      await supabase.from("sales_tasks").insert({ lead_id: proposal.lead_id, proposal_id: proposal.id, title: "Review proposal engagement and follow up personally", task_type: "proposal_follow_up", priority: "high", due_at: new Date(Date.now() + 2 * 86400000).toISOString(), metadata: { proposalToken: proposal.proposal_token } });
+      const { data: sequence } = await supabase.from("outreach_sequences").select("id").eq("name", "Proposal follow-up").eq("status", "active").maybeSingle();
+      if (sequence) {
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch("/api/admin/sales-automation/enroll", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` }, body: JSON.stringify({ sequenceId: sequence.id, leadId: proposal.lead_id, observation: "A tailored proposal has been sent and may need a clear answer on scope, timing, or commercial terms." }) });
+      }
+    }
   };
 
   const copyLink = async (proposal: any) => {
@@ -96,6 +105,23 @@ export function ProposalsDeals() {
     await navigator.clipboard.writeText(`${window.location.origin}/proposal/${proposal.proposal_token}`);
     if (proposal.status === "Draft") await updateStatus(proposal, "Sent");
     toast.success("Proposal link copied and marked sent.");
+  };
+
+  const createCheckout = async (proposal: any) => {
+    setSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`/api/admin/proposals/${proposal.id}/create-checkout`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` }, body: "{}" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Checkout could not be created");
+      setProposals((current) => current.map((item) => item.id === proposal.id ? { ...item, checkout_url: payload.checkoutUrl } : item));
+      await navigator.clipboard.writeText(payload.checkoutUrl);
+      toast.success("Secure Stripe checkout created and copied.");
+    } catch (error: any) {
+      toast.error(error.message || "Checkout could not be created");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id: string) => {
@@ -126,9 +152,9 @@ export function ProposalsDeals() {
             const market = proposal.config?.market || "US";
             const value = Number(proposal.value || proposal.amount || 0);
             return <article key={proposal.id} className="grid gap-4 p-5 lg:grid-cols-[1.3fr_0.7fr_auto] lg:items-center">
-              <div><div className="flex flex-wrap items-center gap-2"><h2 className="font-black text-slate-950 dark:text-white">{proposal.title}</h2><Badge variant="outline">{market}</Badge></div><p className="mt-1 text-sm font-semibold text-slate-500">{contact} · {proposal.package_name || "Custom proposal"}</p><p className="mt-2 text-xs font-bold text-slate-400">Expires {proposal.expires_at || proposal.valid_until || "not set"}</p></div>
+              <div><div className="flex flex-wrap items-center gap-2"><h2 className="font-black text-slate-950 dark:text-white">{proposal.title}</h2><Badge variant="outline">{market}</Badge>{Number(proposal.view_count || 0) > 0 && <Badge className="bg-indigo-50 text-indigo-700">Viewed {proposal.view_count}×</Badge>}</div><p className="mt-1 text-sm font-semibold text-slate-500">{contact} · {proposal.package_name || "Custom proposal"}</p><p className="mt-2 text-xs font-bold text-slate-400">Expires {proposal.expires_at || proposal.valid_until || "not set"}</p></div>
               <div><p className="text-2xl font-black text-slate-950 dark:text-white">{REVENUE_MARKETS[market as RevenueMarket] ? getOfferForMarket(market as RevenueMarket).monthlyLabel : `$${value.toLocaleString()}`}<span className="text-xs text-slate-400">/mo</span></p><p className="mt-1 text-xs font-bold text-slate-500">Setup: {Number(proposal.setup_fee || 0).toLocaleString()}</p></div>
-              <div className="flex flex-wrap items-center gap-2"><Select value={proposal.status || "Draft"} onValueChange={(value) => void updateStatus(proposal, value)}><SelectTrigger className="w-32 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{PROPOSAL_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select><Button variant="outline" size="icon" onClick={() => void copyLink(proposal)} className="rounded-xl" aria-label="Copy proposal link"><Copy className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => void remove(proposal.id)} className="rounded-xl text-rose-500" aria-label="Delete proposal"><Trash2 className="h-4 w-4" /></Button></div>
+              <div className="flex flex-wrap items-center gap-2"><Select value={proposal.status || "Draft"} onValueChange={(value) => void updateStatus(proposal, value)}><SelectTrigger className="w-32 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{PROPOSAL_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>{!proposal.checkout_url && <Button variant="outline" onClick={() => void createCheckout(proposal)} disabled={saving} className="rounded-xl"><CircleDollarSign className="mr-2 h-4 w-4" /> Create checkout</Button>}<Button variant="outline" size="icon" onClick={() => void copyLink(proposal)} className="rounded-xl" aria-label="Copy proposal link"><Copy className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => void remove(proposal.id)} className="rounded-xl text-rose-500" aria-label="Delete proposal"><Trash2 className="h-4 w-4" /></Button></div>
             </article>;
           })}</div>}
         </CardContent>

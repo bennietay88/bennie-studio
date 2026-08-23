@@ -5,7 +5,6 @@ import {
   Building2,
   CalendarDays,
   CheckCircle2,
-  Clock3,
   Globe2,
   Loader2,
   Mail,
@@ -30,8 +29,7 @@ type CallForm = {
   websiteUrl: string;
   market: RevenueMarket;
   industry: string;
-  preferredDate: string;
-  preferredTime: string;
+  selectedSlot: string;
   message: string;
 };
 
@@ -56,6 +54,9 @@ export default function BookDemo() {
   const saved = React.useMemo(readSavedContext, []);
   const [loading, setLoading] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
+  const [slots, setSlots] = React.useState<string[]>([]);
+  const [timezone, setTimezone] = React.useState("Asia/Kuala_Lumpur");
+  const [manageUrl, setManageUrl] = React.useState("");
   const [form, setForm] = React.useState<CallForm>({
     name: "",
     email: saved.email || "",
@@ -64,13 +65,16 @@ export default function BookDemo() {
     websiteUrl: saved.websiteUrl || "",
     market: "SG",
     industry: saved.industry || "",
-    preferredDate: "",
-    preferredTime: "",
+    selectedSlot: "",
     message: "",
   });
 
   React.useEffect(() => {
     trackPublicEvent({ eventType: "growth_call_viewed", label: "Website Growth Call", target: "/book-demo" });
+    fetch("/api/public/call-availability").then((response) => response.json()).then((payload) => {
+      setSlots(Array.isArray(payload.slots) ? payload.slots : []);
+      if (payload.timezone) setTimezone(payload.timezone);
+    }).catch(() => setSlots([]));
   }, []);
 
   const update = <K extends keyof CallForm>(key: K, value: CallForm[K]) => {
@@ -103,7 +107,7 @@ export default function BookDemo() {
           formName: "Website Growth Call",
           sourcePage: "/book-demo",
           message: [
-            `Preferred call: ${form.preferredDate || "Flexible"} ${form.preferredTime || ""}`.trim(),
+            `Confirmed slot requested: ${form.selectedSlot}`,
             `Market: ${REVENUE_MARKETS[form.market].label}`,
             form.message ? `Goals: ${form.message}` : null,
           ].filter(Boolean).join("\n"),
@@ -111,8 +115,29 @@ export default function BookDemo() {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.message || "Your request could not be saved.");
+      if (!form.selectedSlot) throw new Error("Choose an available call time.");
+      const bookingResponse = await fetch("/api/public/call-bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: payload.leadId,
+          name: form.name,
+          email: form.email,
+          phone: form.phone || undefined,
+          businessName: form.company,
+          market: form.market,
+          industry: form.industry,
+          websiteUrl: form.websiteUrl || undefined,
+          startAt: form.selectedSlot,
+          timezone,
+          goals: form.message || undefined,
+        }),
+      });
+      const bookingPayload = await bookingResponse.json().catch(() => ({}));
+      if (!bookingResponse.ok) throw new Error(bookingPayload.error || "The selected time is no longer available.");
+      setManageUrl(bookingPayload.manageUrl || (bookingPayload.booking?.confirmation_token ? `/manage-call/${bookingPayload.booking.confirmation_token}` : ""));
       setSubmitted(true);
-      toast.success("Your website growth call request is in the inbox.");
+      toast.success("Your website growth call is confirmed.");
     } catch (error: any) {
       toast.error(error?.message || "Please try again.");
     } finally {
@@ -128,7 +153,7 @@ export default function BookDemo() {
           <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-300">Website growth consultation</p>
-              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.03] tracking-tight sm:text-6xl">
+              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.03] tracking-tight text-white sm:text-6xl">
                 Let’s find the clearest path from website visitor to real enquiry.
               </h1>
               <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-slate-300">
@@ -152,19 +177,20 @@ export default function BookDemo() {
               {submitted ? (
                 <div className="py-10 text-center">
                   <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>
-                  <h2 className="mt-6 text-3xl font-black">Request received</h2>
+                  <h2 className="mt-6 text-3xl font-black">Call confirmed</h2>
                   <p className="mx-auto mt-3 max-w-md font-semibold leading-7 text-slate-300">
-                    Your details are now in the sales inbox. We’ll review the context and reply with the next available call options.
+                    Your time is reserved. We’ll review your website and goals before the call so the conversation starts with useful context.
                   </p>
                   <Button onClick={() => navigate("/case-studies")} className="mt-7 min-h-12 rounded-2xl bg-white px-6 text-slate-950 hover:bg-indigo-100">
                     View case studies <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
+                  {manageUrl && <Button variant="ghost" onClick={() => navigate(new URL(manageUrl, window.location.origin).pathname)} className="mt-3 min-h-11 rounded-xl text-indigo-200 hover:bg-white/10 hover:text-white">Reschedule or cancel</Button>}
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Request a call</p>
-                    <h2 className="mt-2 text-2xl font-black">Tell us enough to prepare properly.</h2>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Book a call</p>
+                    <h2 className="mt-2 text-2xl font-black text-white">Tell us enough to prepare properly.</h2>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field icon={User} label="Your name" id="call-name"><Input id="call-name" required value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Your name" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
@@ -183,15 +209,17 @@ export default function BookDemo() {
                     <Field icon={Building2} label="Industry" id="call-industry"><Input id="call-industry" required value={form.industry} onChange={(e) => update("industry", e.target.value)} placeholder="e.g. renovation" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
                   </div>
                   <Field icon={Globe2} label="Current website" id="call-website"><Input id="call-website" value={form.websiteUrl} onChange={(e) => update("websiteUrl", e.target.value)} placeholder="https://... (optional)" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field icon={CalendarDays} label="Preferred date" id="call-date"><Input id="call-date" type="date" value={form.preferredDate} onChange={(e) => update("preferredDate", e.target.value)} className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
-                    <Field icon={Clock3} label="Preferred time" id="call-time"><Input id="call-time" type="time" value={form.preferredTime} onChange={(e) => update("preferredTime", e.target.value)} className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
-                  </div>
+                  <Field icon={CalendarDays} label={`Available 30-minute times · ${timezone}`} id="call-slot">
+                    <select id="call-slot" required value={form.selectedSlot} onChange={(event) => update("selectedSlot", event.target.value)} className="h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-semibold text-slate-950">
+                      <option value="">Choose a confirmed time</option>
+                      {slots.map((slot) => <option key={slot} value={slot}>{new Date(slot).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</option>)}
+                    </select>
+                  </Field>
                   <Field icon={MessageSquare} label="What needs to improve?" id="call-message"><Textarea id="call-message" value={form.message} onChange={(e) => update("message", e.target.value)} placeholder="Tell us what is happening now and what a good result would look like." className="min-h-28 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
                   <Button type="submit" disabled={loading} className="min-h-13 w-full rounded-2xl bg-indigo-500 px-6 py-3 font-black text-white shadow-xl shadow-indigo-950/30 hover:bg-indigo-400">
-                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving request</> : <>Request Website Growth Call <ArrowRight className="ml-2 h-4 w-4" /></>}
+                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Confirming time</> : <>Confirm Website Growth Call <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>
-                  <p className="text-center text-xs font-semibold leading-5 text-slate-400">This is a call request, not a confirmed calendar booking. We will reply with available times.</p>
+                  <p className="text-center text-xs font-semibold leading-5 text-slate-400">Your selected time is reserved immediately. Rescheduling remains available through support.</p>
                 </form>
               )}
             </div>

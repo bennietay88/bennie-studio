@@ -26,6 +26,7 @@ export const ADMIN_TAB_PERMISSIONS: Record<string, StaffPermissionId> = {
   prospect_explorer: "prospects",
   neural_auditor: "prospects",
   outreach_lab: "prospects",
+  sales_automation: "sales",
   proposals_deals: "sales",
   projects: "delivery",
   launch_audit: "delivery",

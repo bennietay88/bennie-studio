@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { SafeImage } from "./SafeImage";
+import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
 
 const featuredBuilds = [
   {
@@ -37,7 +37,7 @@ const featuredBuilds = [
     niche: "Clinic / Healthcare",
     plan: "Growth-style build",
     image:
-      "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=1400",
+      "/brand-template-preview.svg",
     summary:
       "A patient-friendly clinic website structure for treatments, practitioner trust, FAQs, and appointment enquiries.",
     pages: ["Home", "Treatments", "About Practitioners", "Patient FAQ", "Appointment"],
@@ -50,7 +50,7 @@ const featuredBuilds = [
     niche: "Consultant / Coach",
     plan: "Business-style build",
     image:
-      "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&q=80&w=1400",
+      "/brand-template-preview.svg",
     summary:
       "A credibility-first website for consultants who need service positioning, proof sections, and call booking.",
     pages: ["Home", "Services", "Case Results", "FAQ", "Book a Call"],
@@ -63,7 +63,7 @@ const featuredBuilds = [
     niche: "Salon / Beauty",
     plan: "Launch-to-Growth build",
     image:
-      "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1400",
+      "/brand-template-preview.svg",
     summary:
       "A polished service menu and package website for salons, facial studios, aesthetic clinics, and wellness brands.",
     pages: ["Home", "Services", "Packages", "Gallery", "Booking"],
@@ -76,7 +76,7 @@ const featuredBuilds = [
     niche: "Contractor / Renovation",
     plan: "Growth-style build",
     image:
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1400",
+      "/brand-template-preview.svg",
     summary:
       "A quote-focused contractor site with services, project highlights, trust points, and local service areas.",
     pages: ["Home", "Services", "Projects", "Areas Served", "Quote Request"],
@@ -89,7 +89,7 @@ const featuredBuilds = [
     niche: "Restaurant / F&B",
     plan: "Business-style build",
     image:
-      "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1400",
+      "/brand-template-preview.svg",
     summary:
       "A local discovery website for menus, promotions, reservations, location details, and delivery links.",
     pages: ["Home", "Menu", "Promotions", "Gallery", "Reservation"],
@@ -102,7 +102,7 @@ const featuredBuilds = [
     niche: "Education / Tuition",
     plan: "Business-style build",
     image:
-      "https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?auto=format&fit=crop&q=80&w=1400",
+      "/brand-template-preview.svg",
     summary:
       "An enrolment-focused website for classes, trial lessons, teacher trust, programmes, and parent enquiries.",
     pages: ["Home", "Programmes", "Teachers", "FAQ", "Trial Class"],
@@ -244,15 +244,9 @@ export default function PortfolioPage() {
               </span>
             </div>
             <div className="grid gap-4 p-5 sm:grid-cols-2">
-              {featuredBuilds.slice(0, 4).map((item) => (
+              {featuredBuilds.slice(0, 4).map((item, index) => (
                 <div key={item.title} className="overflow-hidden rounded-2xl bg-white">
-                  <SafeImage
-                    src={item.image}
-                    alt={item.title}
-                    loading="lazy"
-                    className="h-full w-full object-cover"
-                    containerClassName="aspect-[4/3] bg-slate-100"
-                  />
+                  <WebsiteConceptVisual title={item.title} eyebrow={item.niche} index={index} className="aspect-[4/3]" />
                   <div className="p-4">
                     <p className="text-[9px] font-black uppercase tracking-widest text-indigo-600">
                       {item.niche}
@@ -307,13 +301,7 @@ export default function PortfolioPage() {
                 transition={{ duration: 0.5, delay: index * 0.035 }}
                 className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-xl"
               >
-                <SafeImage
-                  src={item.image}
-                  alt={item.title}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
-                  containerClassName="aspect-[16/9] bg-slate-100"
-                />
+                <WebsiteConceptVisual title={item.title} eyebrow={item.niche} index={index} className="aspect-[16/9]" />
                 <div className="p-6 sm:p-8">
                   <div className="mb-5 flex flex-wrap items-center gap-3">
                     <Badge variant="outline" className="rounded-full px-3 py-1">

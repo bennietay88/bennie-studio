@@ -1335,7 +1335,7 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
                     thumbnail: e.target.value,
                   })
                 }
-                placeholder="https://images.unsplash.com/..."
+                placeholder="/brand-template-preview.svg"
                 className="rounded-xl"
               />
             </div>

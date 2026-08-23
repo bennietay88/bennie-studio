@@ -204,7 +204,7 @@ export const DEFAULT_LANDING_CONTENT = {
   dashboard: {
     title: "Track Website Progress and Enquiries From Your Portal",
     subtitle: "Customers can track project progress, submit updates, and view enquiries without learning a website builder.",
-    image: "https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&q=80&w=1200",
+    image: "/brand-template-preview.svg",
     features: [
       { title: "Lead Inbox", description: "View new enquiries from forms, WhatsApp paths, bookings, and calls where supported." },
       { title: "WhatsApp Direct", description: "Contact leads via WhatsApp with one click." },
@@ -363,7 +363,7 @@ export const DEFAULT_LANDING_CONTENT = {
   successStory: {
     title: "Sample Website Transformation",
     content: "This labelled demonstration shows how real business information, services, reviews, and contact details can become a clearer website structure before full production work starts.",
-    image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&q=80&w=1200",
+    image: "/brand-template-preview.svg",
     stats: [
       { label: "Proof Type", value: "Demo" },
       { label: "Scope", value: "Sample" },

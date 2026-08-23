@@ -1381,7 +1381,7 @@ export function WebsiteEditor({
             template?.description || updatedWebsiteConfig.seo.description,
           thumbnail:
             template?.thumbnail ||
-            "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800",
+            "/brand-template-preview.svg",
           config: {
             theme: updatedWebsiteConfig.theme,
             pages: updatedWebsiteConfig.pages,
@@ -3955,7 +3955,7 @@ export function WebsiteEditor({
 
         {isTemplateMode && (
           <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-900 text-white px-6 py-4 flex items-center justify-between border-b border-white/10 shrink-0 shadow-lg shadow-indigo-500/10 relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.16),transparent_35%),radial-gradient(circle_at_80%_65%,rgba(139,92,246,0.12),transparent_30%)] pointer-events-none" />
             <div className="flex items-center gap-4 relative z-10">
               <div className="h-10 w-10 rounded-2xl bg-indigo-500/20 backdrop-blur-md flex items-center justify-center border border-indigo-400/30">
                 <Sparkles className="h-6 w-6 text-indigo-400" />
@@ -6343,7 +6343,7 @@ export function WebsiteEditor({
                                               <img
                                                 src={
                                                   section.content.imageUrl ||
-                                                  `https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200`
+                                                  `/brand-template-preview.svg`
                                                 }
                                                 alt="Hero Preview"
                                                 className="w-full h-full object-cover"
@@ -6854,7 +6854,7 @@ export function WebsiteEditor({
                                                     role: "Specialist",
                                                     bio: "Expert bio...",
                                                     imageUrl:
-                                                      "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400",
+                                                      "/brand-template-preview.svg",
                                                   },
                                                 ];
                                                 updateSectionContent(
@@ -8436,7 +8436,7 @@ export function WebsiteEditor({
                                 thumbnail: e.target.value,
                               })
                             }
-                            placeholder="https://images.unsplash.com/..."
+                            placeholder="/brand-template-preview.svg"
                             className="h-10 rounded-xl"
                           />
                           <div className="h-10 w-16 border rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">

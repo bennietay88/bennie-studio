@@ -313,6 +313,7 @@ const app = express();
 app.use(compression());
 app.disable("x-powered-by");
 app.use((req, res, next) => {
+  const localDevelopment = process.env.NODE_ENV !== "production" && !process.env.VERCEL;
   const requestId = String(req.headers["x-request-id"] || crypto.randomUUID());
   (req as any).requestId = requestId;
   res.setHeader("X-Request-ID", requestId);
@@ -327,11 +328,11 @@ app.use((req, res, next) => {
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://s.pinimg.com",
-      "style-src 'self' 'unsafe-inline'",
+      `script-src 'self'${localDevelopment ? " 'unsafe-inline'" : ""} https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://s.pinimg.com`,
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: https:",
-      "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.deepseek.com https://generativelanguage.googleapis.com https://api.openai.com https://api.resend.com https://ct.pinterest.com https://*.sentry.io https://*.ingest.sentry.io",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      `connect-src 'self'${localDevelopment ? " ws://127.0.0.1:* ws://localhost:*" : ""} https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.deepseek.com https://generativelanguage.googleapis.com https://api.openai.com https://api.resend.com https://ct.pinterest.com https://*.sentry.io https://*.ingest.sentry.io`,
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",
@@ -892,7 +893,16 @@ async function startServer() {
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
           const businessId = session.metadata?.businessId;
+          const proposalId = session.metadata?.proposalId;
           const type = session.metadata?.type;
+
+          if (proposalId && UUID_SCHEMA.safeParse(proposalId).success) {
+            const paidAt = new Date().toISOString();
+            const { data: paidProposal } = await supabaseAdmin.from("proposals").update({ status: "Accepted", accepted_at: paidAt, updated_at: paidAt }).eq("id", proposalId).select("id,lead_id").maybeSingle();
+            if (paidProposal?.lead_id) await supabaseAdmin.from("leads").update({ status: "won", automation_next_action: "Begin onboarding and collect website content", next_follow_up_at: paidAt }).eq("id", paidProposal.lead_id);
+            await supabaseAdmin.from("proposal_events").insert({ proposal_id: proposalId, event_type: "paid", session_id: session.id, metadata: { amountTotal: session.amount_total, currency: session.currency } });
+            await supabaseAdmin.from("sales_tasks").insert({ lead_id: paidProposal?.lead_id || null, proposal_id: proposalId, title: "Start onboarding for paid proposal", task_type: "onboarding", priority: "high", due_at: paidAt, metadata: { stripeSessionId: session.id } });
+          }
 
           if (businessId) {
             console.log(
@@ -1362,7 +1372,90 @@ async function startServer() {
     },
     credentials: true,
   }));
-  app.use(express.json());
+  app.use(express.json({
+    verify: (req: any, _res, buffer) => {
+      req.rawBody = buffer;
+    },
+  }));
+
+  const publicAppUrl = () => String(process.env.APP_PUBLIC_URL || process.env.PUBLIC_APP_URL || "https://app.bennietay.com").replace(/\/+$/, "");
+
+  const classifySalesReply = (value: string) => {
+    const text = value.toLowerCase();
+    if (/unsubscribe|remove me|stop email|do not contact/.test(text)) return "unsubscribe";
+    if (/not interested|no thanks|no thank you/.test(text)) return "not_interested";
+    if (/later|next month|not now|circle back/.test(text)) return "not_now";
+    if (/price|cost|expensive|budget|already have|need to think/.test(text)) return "objection";
+    if (/how|what|when|where|which|\?/.test(text)) return "question";
+    if (/interested|yes|book|call|show me|send it/.test(text)) return "interested";
+    return "unknown";
+  };
+
+  const processDueSalesMessages = async (limit = 40) => {
+    const now = new Date().toISOString();
+    const { data: messages, error } = await supabaseAdmin
+      .from("sales_messages")
+      .select("*, outreach_enrollments(status)")
+      .in("status", ["approved", "queued"])
+      .lte("scheduled_at", now)
+      .eq("direction", "outbound")
+      .order("scheduled_at", { ascending: true })
+      .limit(limit);
+    if (error) throw error;
+
+    let sent = 0;
+    let suppressed = 0;
+    let failed = 0;
+    let deliveryBlocked = 0;
+    for (const message of messages || []) {
+      if (message.enrollment_id && message.outreach_enrollments?.status !== "active") continue;
+      if (message.enrollment_id) {
+        const stepOrder = Number(message.provider_payload?.stepOrder || 0);
+        const { data: earlier } = await supabaseAdmin.from("sales_messages").select("id,status,provider_payload").eq("enrollment_id", message.enrollment_id).eq("direction", "outbound");
+        const waitingForEarlierStep = (earlier || []).some((item) => Number(item.provider_payload?.stepOrder || 0) < stepOrder && !["sent","delivered","opened","clicked","replied"].includes(item.status));
+        if (waitingForEarlierStep) continue;
+      }
+      const recipient = String(message.recipient || "").trim().toLowerCase();
+      if (!recipient || !EMAIL_SCHEMA.safeParse(recipient).success || message.channel !== "email") {
+        await supabaseAdmin.from("sales_messages").update({ status: "failed", error: "A valid email recipient is required", updated_at: now }).eq("id", message.id);
+        failed += 1;
+        continue;
+      }
+      const { data: suppression } = await supabaseAdmin.from("sales_suppressions").select("id").ilike("email", recipient).limit(1).maybeSingle();
+      if (suppression) {
+        await supabaseAdmin.from("sales_messages").update({ status: "suppressed", error: "Recipient is on the suppression list", updated_at: now }).eq("id", message.id);
+        suppressed += 1;
+        continue;
+      }
+      await supabaseAdmin.from("sales_messages").update({ status: "sending", updated_at: now }).eq("id", message.id).in("status", ["approved", "queued"]);
+      try {
+        const unsubscribeUrl = `${publicAppUrl()}/api/public/unsubscribe/${message.unsubscribe_token}`;
+        const html = message.body_html || `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
+        const resend = getResend();
+        const { data, error: sendError } = await resend.emails.send({
+          from: platformSettings?.emailFrom || process.env.RESEND_FROM_EMAIL || "Bennie Studio <onboarding@resend.dev>",
+          to: recipient,
+          subject: message.subject || "A note from Bennie Studio",
+          html,
+          replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
+          tags: [{ name: "sales_message_id", value: message.id }],
+        }, { idempotencyKey: message.idempotency_key });
+        if (sendError) throw new Error(sendError.message);
+        await supabaseAdmin.from("sales_messages").update({ status: "sent", sent_at: now, provider_message_id: data?.id || null, error: null, updated_at: now }).eq("id", message.id);
+        if (message.enrollment_id) await supabaseAdmin.from("outreach_enrollments").update({ current_step: Number(message.provider_payload?.stepOrder || 0), updated_at: now }).eq("id", message.enrollment_id);
+        sent += 1;
+      } catch (sendError: any) {
+        if (sendError?.message === "RESEND_CONFIG_ERROR") {
+          await supabaseAdmin.from("sales_messages").update({ status: message.status, error: "Email delivery is not configured yet", updated_at: now }).eq("id", message.id);
+          deliveryBlocked += 1;
+        } else {
+          await supabaseAdmin.from("sales_messages").update({ status: "failed", error: safeErrorMessage(sendError), updated_at: now }).eq("id", message.id);
+          failed += 1;
+        }
+      }
+    }
+    return { processed: (messages || []).length, sent, suppressed, failed, deliveryBlocked };
+  };
 
   const isPrivateAddress = (address: string) => {
     const normalized = address.replace(/^::ffff:/, "").toLowerCase();
@@ -3302,6 +3395,43 @@ async function startServer() {
     },
   );
 
+  app.post("/api/admin/proposals/:proposalId/create-checkout", authenticate, async (req: any, res) => {
+    if (!UUID_SCHEMA.safeParse(req.params.proposalId).success) return res.status(400).json({ error: "Invalid proposal ID" });
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageLeadInbox(profile)) return res.status(403).json({ error: "Sales access required" });
+      const { data: proposal, error } = await supabaseAdmin.from("proposals").select("*").eq("id", req.params.proposalId).single();
+      if (error || !proposal) return res.status(404).json({ error: "Proposal not found" });
+      if (proposal.checkout_url) return res.json({ checkoutUrl: proposal.checkout_url, reused: true });
+      const market = String(proposal.config?.market || "US").toUpperCase();
+      const currencyByMarket: Record<string, string> = { MY: "myr", SG: "sgd", GB: "gbp", UK: "gbp", US: "usd" };
+      const currency = currencyByMarket[market] || String(proposal.config?.currency || "usd").toLowerCase();
+      const monthlyAmount = Math.round(Number(proposal.value || proposal.amount || 0) * 100);
+      const setupAmount = Math.round(Number(proposal.setup_fee || 0) * 100);
+      if (!monthlyAmount) return res.status(400).json({ error: "Proposal monthly value is missing" });
+      const stripe = await getStripe();
+      const product = await stripe.products.create({ name: proposal.package_name || proposal.title || "Bennie Studio managed website", metadata: { proposalId: proposal.id } });
+      const monthlyPrice = await stripe.prices.create({ product: product.id, currency, unit_amount: monthlyAmount, recurring: { interval: "month" }, metadata: { proposalId: proposal.id, chargeType: "monthly" } });
+      const lineItems: Stripe.PaymentLinkCreateParams.LineItem[] = [{ price: monthlyPrice.id, quantity: 1 }];
+      if (setupAmount > 0) {
+        const setupPrice = await stripe.prices.create({ product: product.id, currency, unit_amount: setupAmount, metadata: { proposalId: proposal.id, chargeType: "setup" } });
+        lineItems.push({ price: setupPrice.id, quantity: 1 });
+      }
+      const paymentLink = await stripe.paymentLinks.create({
+        line_items: lineItems,
+        after_completion: { type: "redirect", redirect: { url: `${publicAppUrl()}/onboarding?proposal=${proposal.id}` } },
+        metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "", type: "proposal_subscription" },
+        subscription_data: { metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "" } },
+      });
+      await supabaseAdmin.from("proposals").update({ checkout_url: paymentLink.url, updated_at: new Date().toISOString() }).eq("id", proposal.id);
+      await supabaseAdmin.from("proposal_events").insert({ proposal_id: proposal.id, event_type: "checkout_started", metadata: { paymentLinkId: paymentLink.id, createdBy: req.user.id } });
+      return res.json({ checkoutUrl: paymentLink.url });
+    } catch (error: any) {
+      console.error("Proposal checkout creation failed:", error);
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
   app.get(
     "/api/public/proposals/:token",
     rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-proposal" }),
@@ -3310,12 +3440,21 @@ async function startServer() {
       try {
         const { data, error } = await supabaseAdmin
           .from("proposals")
-          .select("id,title,package_name,value,setup_fee,status,expires_at,scope,outcome,config,checkout_url,proposal_token,businesses(name),leads(name,raw_fields)")
+          .select("id,title,package_name,value,setup_fee,status,expires_at,scope,outcome,config,checkout_url,proposal_token,view_count,first_viewed_at,last_viewed_at,businesses(name),leads(name,raw_fields)")
           .eq("proposal_token", req.params.token)
           .maybeSingle();
         if (error) throw error;
         if (!data) return res.status(404).json({ error: "Proposal not found" });
-        return res.json({ proposal: data });
+        const viewedAt = new Date().toISOString();
+        const visitorKey = crypto.createHash("sha256").update(`${req.params.token}:${getClientIp(req)}:${req.get("user-agent") || ""}`).digest("hex").slice(0, 24);
+        const dedupeAfter = new Date(Date.now() - 30 * 60000).toISOString();
+        const { data: recentView } = await supabaseAdmin.from("proposal_events").select("id").eq("proposal_id", data.id).eq("event_type", "viewed").gte("created_at", dedupeAfter).contains("metadata", { visitorKey }).limit(1).maybeSingle();
+        const viewCount = Number(data.view_count || 0) + (recentView ? 0 : 1);
+        if (!recentView) {
+          await supabaseAdmin.from("proposals").update({ first_viewed_at: data.first_viewed_at || viewedAt, last_viewed_at: viewedAt, view_count: viewCount }).eq("id", data.id);
+          await supabaseAdmin.from("proposal_events").insert({ proposal_id: data.id, event_type: "viewed", metadata: { visitorKey } });
+        }
+        return res.json({ proposal: { ...data, view_count: viewCount, first_viewed_at: data.first_viewed_at || viewedAt, last_viewed_at: viewedAt } });
       } catch (error) {
         console.error("Public proposal load failed:", error);
         return res.status(500).json({ error: "Proposal could not be loaded" });
@@ -3342,9 +3481,10 @@ async function startServer() {
         const leadEmail = String((proposal as any).leads?.email || "").toLowerCase();
         if (leadEmail && leadEmail !== body.email.toLowerCase()) return res.status(403).json({ error: "Use the email address that received this proposal." });
         const acceptedAt = new Date().toISOString();
-        const { error: updateError } = await supabaseAdmin.from("proposals").update({ status: "Accepted", accepted_at: acceptedAt, updated_at: acceptedAt }).eq("id", proposal.id);
+        const { error: updateError } = await supabaseAdmin.from("proposals").update({ status: "Accepted", accepted_at: acceptedAt, accepted_email: body.email.toLowerCase(), updated_at: acceptedAt }).eq("id", proposal.id);
         if (updateError) throw updateError;
         if (proposal.lead_id) await supabaseAdmin.from("leads").update({ status: "won", automation_next_action: "Send secure checkout and onboarding link", next_follow_up_at: acceptedAt }).eq("id", proposal.lead_id);
+        await supabaseAdmin.from("proposal_events").insert({ proposal_id: proposal.id, event_type: "accepted", metadata: { leadId: proposal.lead_id || null } });
         await supabaseAdmin.from("tracking_events").insert({ event_type: "proposal_accepted", source_platform: "bennie_studio_public", source_page: `/proposal/${req.params.token}`, metadata: { proposalId: proposal.id, leadId: proposal.lead_id || null } }).then(({ error: trackingError }) => {
           if (trackingError) console.warn("Proposal acceptance tracking skipped:", trackingError.message);
         });
@@ -4296,6 +4436,235 @@ async function startServer() {
       }
       res.status(500).json({ error: safeErrorMessage(err) });
     }
+  });
+
+  // Approval-first sales automation. The cron and manual runner use the same
+  // idempotent worker so a retry cannot send the same message twice.
+  app.get("/api/cron/sales-automation", async (req, res) => {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) return res.status(401).json({ error: "Unauthorized" });
+    try {
+      return res.json({ success: true, ...(await processDueSalesMessages()) });
+    } catch (error) {
+      console.error("Sales automation cron failed:", error);
+      return res.status(500).json({ error: "Sales automation run failed" });
+    }
+  });
+
+  app.post("/api/admin/sales-automation/run", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageLeadInbox(profile)) return res.status(403).json({ error: "Sales access required" });
+      return res.json({ success: true, ...(await processDueSalesMessages()) });
+    } catch (error) {
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  app.post("/api/admin/sales-automation/messages/:messageId/approve", authenticate, async (req: any, res) => {
+    if (!UUID_SCHEMA.safeParse(req.params.messageId).success) return res.status(400).json({ error: "Invalid message ID" });
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageLeadInbox(profile)) return res.status(403).json({ error: "Sales access required" });
+      const body = validateBody(z.object({ subject: z.string().trim().max(160).optional(), bodyText: z.string().trim().min(1).max(10000).optional(), sendNow: z.boolean().optional() }), req, res);
+      if (!body) return;
+      const updates: Record<string, any> = { status: "approved", updated_at: new Date().toISOString() };
+      if (body.subject !== undefined) updates.subject = body.subject;
+      if (body.bodyText !== undefined) updates.body_text = body.bodyText;
+      if (body.sendNow) updates.scheduled_at = new Date().toISOString();
+      const { data, error } = await supabaseAdmin.from("sales_messages").update(updates).eq("id", req.params.messageId).eq("status", "draft").select("*").maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(409).json({ error: "Only draft messages can be approved" });
+      return res.json({ message: data });
+    } catch (error) {
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  app.post("/api/admin/sales-automation/enroll", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageLeadInbox(profile)) return res.status(403).json({ error: "Sales access required" });
+      const body = validateBody(z.object({
+        sequenceId: UUID_SCHEMA,
+        leadId: UUID_SCHEMA.optional(),
+        prospectId: UUID_SCHEMA.optional(),
+        observation: z.string().trim().max(1000).optional(),
+      }).refine((value) => Boolean(value.leadId) !== Boolean(value.prospectId), { message: "Choose one lead or prospect" }), req, res);
+      if (!body) return;
+      const { data: sequence, error: sequenceError } = await supabaseAdmin.from("outreach_sequences").select("*, outreach_sequence_steps(*)").eq("id", body.sequenceId).single();
+      if (sequenceError || !sequence) return res.status(404).json({ error: "Sequence not found" });
+      if (sequence.status !== "active") return res.status(409).json({ error: "Activate the sequence before enrolling contacts" });
+      const enrollmentFilter = body.leadId ? { lead_id: body.leadId } : { prospect_id: body.prospectId };
+      const { data: existingEnrollment } = await supabaseAdmin.from("outreach_enrollments").select("id").eq("sequence_id", sequence.id).match(enrollmentFilter).in("status", ["pending", "active", "paused"]).limit(1).maybeSingle();
+      if (existingEnrollment) return res.status(409).json({ error: "This contact is already enrolled in the sequence" });
+      const table = body.leadId ? "leads" : "prospects";
+      const entityId = body.leadId || body.prospectId;
+      const { data: entity, error: entityError } = await supabaseAdmin.from(table).select("*").eq("id", entityId).single();
+      if (entityError || !entity) return res.status(404).json({ error: "Contact not found" });
+      const recipient = String(entity.email || entity.contact_email || "").trim().toLowerCase();
+      if (!EMAIL_SCHEMA.safeParse(recipient).success) return res.status(400).json({ error: "Contact has no valid email" });
+      const { data: suppression } = await supabaseAdmin.from("sales_suppressions").select("id").ilike("email", recipient).maybeSingle();
+      if (suppression) return res.status(409).json({ error: "This contact is suppressed" });
+      const startAt = new Date();
+      const { data: enrollment, error: enrollmentError } = await supabaseAdmin.from("outreach_enrollments").insert({ sequence_id: sequence.id, lead_id: body.leadId || null, prospect_id: body.prospectId || null, status: "active", current_step: 0, next_run_at: startAt.toISOString(), metadata: { observation: body.observation || null } }).select("*").single();
+      if (enrollmentError) throw enrollmentError;
+      const rawFields = entity.raw_fields || {};
+      const businessName = entity.business_name || entity.company_name || rawFields.businessName || rawFields.companyName || entity.name || "your business";
+      const firstName = String(entity.name || "there").trim().split(/\s+/)[0];
+      const values: Record<string, string> = { business_name: businessName, first_name: firstName, observation: body.observation || "the primary enquiry action is not immediately clear" };
+      const steps = [...(sequence.outreach_sequence_steps || [])].sort((a: any, b: any) => a.step_order - b.step_order);
+      let elapsedHours = 0;
+      const rows = steps.map((step: any, index: number) => {
+        elapsedHours += Number(step.delay_hours || 0);
+        const render = (template: string) => template.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_m: string, key: string) => values[key] || "");
+        return {
+          enrollment_id: enrollment.id,
+          lead_id: body.leadId || null,
+          prospect_id: body.prospectId || null,
+          recipient,
+          channel: step.channel,
+          subject: render(step.subject_template || "A note from Bennie Studio"),
+          body_text: render(step.body_template),
+          status: step.requires_approval || (index === 0 && sequence.requires_first_step_approval) ? "draft" : "queued",
+          scheduled_at: new Date(startAt.getTime() + elapsedHours * 3600000).toISOString(),
+          provider_payload: { sequenceId: sequence.id, stepId: step.id, stepOrder: step.step_order, stopOnReply: step.stop_on_reply },
+        };
+      });
+      const { data: messages, error: messageError } = await supabaseAdmin.from("sales_messages").insert(rows).select("*");
+      if (messageError) throw messageError;
+      await supabaseAdmin.from("deal_stage_events").insert({ lead_id: body.leadId || null, prospect_id: body.prospectId || null, to_stage: "sequence_enrolled", event_type: "automation_enrolled", metadata: { sequenceId: sequence.id } });
+      return res.json({ enrollment, messages: messages || [] });
+    } catch (error) {
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  app.get("/api/public/unsubscribe/:token", async (req, res) => {
+    if (!UUID_SCHEMA.safeParse(req.params.token).success) return res.status(400).send("Invalid unsubscribe link");
+    const { data: message } = await supabaseAdmin.from("sales_messages").select("id,recipient,enrollment_id").eq("unsubscribe_token", req.params.token).maybeSingle();
+    if (message?.recipient) {
+      await supabaseAdmin.from("sales_suppressions").upsert({ email: String(message.recipient).toLowerCase(), reason: "opt_out", source: "email_unsubscribe" }, { onConflict: "email" });
+      await supabaseAdmin.from("sales_messages").update({ status: "suppressed", updated_at: new Date().toISOString() }).eq("recipient", message.recipient).in("status", ["draft", "approved", "queued"]);
+      if (message.enrollment_id) await supabaseAdmin.from("outreach_enrollments").update({ status: "stopped", stop_reason: "Recipient unsubscribed", updated_at: new Date().toISOString() }).eq("id", message.enrollment_id);
+    }
+    return res.type("html").send("<!doctype html><html><body style='font-family:system-ui;background:#f8fafc;color:#0f172a;padding:60px'><main style='max-width:560px;margin:auto;background:white;padding:40px;border-radius:24px'><h1>You have been unsubscribed.</h1><p>Bennie Studio will not send further sales follow-ups to this address.</p></main></body></html>");
+  });
+
+  app.post("/api/webhooks/resend", async (req: any, res) => {
+    const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+    if (!webhookSecret) return res.status(503).json({ error: "Webhook is not configured" });
+    try {
+      const resend = getResend();
+      const event: any = resend.webhooks.verify({
+        payload: req.rawBody?.toString("utf8") || JSON.stringify(req.body),
+        headers: {
+          id: String(req.headers["svix-id"] || req.headers["webhook-id"] || ""),
+          timestamp: String(req.headers["svix-timestamp"] || req.headers["webhook-timestamp"] || ""),
+          signature: String(req.headers["svix-signature"] || req.headers["webhook-signature"] || ""),
+        },
+        webhookSecret,
+      });
+      const providerId = event?.data?.email_id;
+      const statusMap: Record<string, string> = { "email.sent": "sent", "email.delivered": "delivered", "email.opened": "opened", "email.clicked": "clicked", "email.bounced": "bounced", "email.complained": "complained", "email.suppressed": "suppressed", "email.failed": "failed" };
+      if (providerId && statusMap[event.type]) {
+        const { data: message } = await supabaseAdmin.from("sales_messages").update({ status: statusMap[event.type], provider_payload: event, updated_at: new Date().toISOString() }).eq("provider_message_id", providerId).select("*").maybeSingle();
+        if (message && ["bounced", "complained", "suppressed"].includes(statusMap[event.type])) await supabaseAdmin.from("sales_suppressions").upsert({ email: message.recipient, reason: statusMap[event.type] === "suppressed" ? "bounced" : statusMap[event.type], source: "resend_webhook" }, { onConflict: "email" });
+      }
+      if (event.type === "email.received" && providerId) {
+        const received: any = await resend.emails.receiving.get(providerId);
+        const bodyText = received?.data?.text || received?.data?.html?.replace(/<[^>]+>/g, " ") || "Inbound reply received";
+        const sender = String(event.data.from || "").toLowerCase();
+        const { data: prior } = await supabaseAdmin.from("sales_messages").select("*").eq("recipient", sender).eq("direction", "outbound").order("sent_at", { ascending: false }).limit(1).maybeSingle();
+        const classification = classifySalesReply(bodyText);
+        await supabaseAdmin.from("sales_messages").insert({ enrollment_id: prior?.enrollment_id || null, prospect_id: prior?.prospect_id || null, lead_id: prior?.lead_id || null, direction: "inbound", channel: "email", recipient: sender, subject: event.data.subject || "Reply", body_text: bodyText, status: "replied", sent_at: event.created_at, provider_message_id: providerId, reply_to_message_id: prior?.id || null, classification, provider_payload: event });
+        if (prior?.enrollment_id) await supabaseAdmin.from("outreach_enrollments").update({ status: "stopped", stop_reason: "Reply received", updated_at: new Date().toISOString() }).eq("id", prior.enrollment_id);
+        if (classification === "unsubscribe") await supabaseAdmin.from("sales_suppressions").upsert({ email: sender, reason: "opt_out", source: "reply_classification" }, { onConflict: "email" });
+        await supabaseAdmin.from("sales_tasks").insert({ prospect_id: prior?.prospect_id || null, lead_id: prior?.lead_id || null, title: classification === "objection" ? "Review objection and approve a personal reply" : "Reply personally to the prospect", task_type: "reply", priority: "high", due_at: new Date().toISOString(), metadata: { classification, messageId: providerId } });
+      }
+      return res.json({ received: true });
+    } catch (error) {
+      console.error("Resend webhook verification failed:", error);
+      return res.status(400).json({ error: "Invalid webhook" });
+    }
+  });
+
+  app.get("/api/public/call-availability", async (_req, res) => {
+    const now = new Date();
+    const end = new Date(now.getTime() + 15 * 86400000);
+    const { data: existing } = await supabaseAdmin.from("sales_call_bookings").select("start_at").eq("status", "booked").gte("start_at", now.toISOString()).lte("start_at", end.toISOString());
+    const occupied = new Set((existing || []).map((item) => new Date(item.start_at).toISOString()));
+    const slots: string[] = [];
+    const malaysiaNow = new Date(now.getTime() + 8 * 3600000);
+    for (let dayOffset = 1; dayOffset <= 14 && slots.length < 18; dayOffset += 1) {
+      const calendarDay = new Date(Date.UTC(malaysiaNow.getUTCFullYear(), malaysiaNow.getUTCMonth(), malaysiaNow.getUTCDate() + dayOffset));
+      if (calendarDay.getUTCDay() === 0 || calendarDay.getUTCDay() === 6) continue;
+      const datePart = `${calendarDay.getUTCFullYear()}-${String(calendarDay.getUTCMonth() + 1).padStart(2, "0")}-${String(calendarDay.getUTCDate()).padStart(2, "0")}`;
+      for (const hour of [10, 14, 16]) {
+        const slot = new Date(`${datePart}T${String(hour).padStart(2, "0")}:00:00+08:00`);
+        if (!occupied.has(slot.toISOString())) slots.push(slot.toISOString());
+      }
+    }
+    return res.json({ slots, timezone: "Asia/Kuala_Lumpur", durationMinutes: 30 });
+  });
+
+  app.post("/api/public/call-bookings", rateLimit({ windowMs: 60 * 1000, max: 8, keyPrefix: "call-bookings" }), async (req, res) => {
+    const body = validateBody(z.object({ leadId: UUID_SCHEMA.optional(), name: TEXT_SCHEMA, email: EMAIL_SCHEMA, phone: z.string().max(80).optional(), businessName: TEXT_SCHEMA, market: z.string().max(20).optional(), industry: z.string().max(160).optional(), websiteUrl: z.string().max(500).optional(), startAt: z.string().datetime(), timezone: z.string().max(80).default("Asia/Kuala_Lumpur"), goals: z.string().max(2000).optional() }), req, res);
+    if (!body) return;
+    const startAt = new Date(body.startAt);
+    if (startAt <= new Date() || startAt > new Date(Date.now() + 15 * 86400000)) return res.status(400).json({ error: "Choose an available time in the next 14 days" });
+    const endAt = new Date(startAt.getTime() + 30 * 60000);
+    const { data: conflict } = await supabaseAdmin.from("sales_call_bookings").select("id").eq("status", "booked").lt("start_at", endAt.toISOString()).gt("end_at", startAt.toISOString()).maybeSingle();
+    if (conflict) return res.status(409).json({ error: "That time was just booked. Please choose another." });
+    const { data: booking, error } = await supabaseAdmin.from("sales_call_bookings").insert({ lead_id: body.leadId || null, name: body.name, email: body.email, phone: body.phone || null, business_name: body.businessName, market: body.market || null, industry: body.industry || null, website_url: body.websiteUrl || null, start_at: startAt.toISOString(), end_at: endAt.toISOString(), timezone: body.timezone, goals: body.goals || null }).select("*").single();
+    if (error) return res.status(500).json({ error: "Booking could not be saved" });
+    if (body.leadId) await supabaseAdmin.from("leads").update({ status: "meeting", automation_next_action: "Prepare for confirmed growth call", next_follow_up_at: startAt.toISOString() }).eq("id", body.leadId);
+    await supabaseAdmin.from("sales_tasks").insert({ lead_id: body.leadId || null, title: `Prepare for call with ${body.businessName}`, task_type: "call_prep", priority: "high", due_at: new Date(startAt.getTime() - 24 * 3600000).toISOString(), metadata: { bookingId: booking.id } });
+    const formattedSlot = new Intl.DateTimeFormat("en", { dateStyle: "full", timeStyle: "short", timeZone: body.timezone }).format(startAt);
+    const reminderLeadTime = startAt.getTime() - Date.now() > 26 * 3600000 ? 24 * 3600000 : 2 * 3600000;
+    await supabaseAdmin.from("sales_messages").insert([
+      { lead_id: body.leadId || null, recipient: body.email.toLowerCase(), channel: "email", subject: `Confirmed: Bennie Studio website growth call`, body_text: `Hi ${body.name.split(/\s+/)[0]},\n\nYour 30-minute website growth call for ${body.businessName} is confirmed for ${formattedSlot} (${body.timezone}).\n\nI will review the context you shared before the call. If your priorities change, reply to this email so I can prepare around the right goal.\n\nReschedule or cancel: ${publicAppUrl()}/manage-call/${booking.confirmation_token}\n\nBennie`, status: "queued", scheduled_at: new Date().toISOString(), provider_payload: { bookingId: booking.id, messageType: "booking_confirmation" } },
+      { lead_id: body.leadId || null, recipient: body.email.toLowerCase(), channel: "email", subject: `Reminder: upcoming website growth call`, body_text: `Hi ${body.name.split(/\s+/)[0]},\n\nA quick reminder that our website growth call for ${body.businessName} is scheduled for ${formattedSlot} (${body.timezone}).\n\nPlease reply if there is a specific service, offer, or enquiry problem you want me to prioritise.\n\nBennie`, status: "queued", scheduled_at: new Date(startAt.getTime() - reminderLeadTime).toISOString(), provider_payload: { bookingId: booking.id, messageType: "booking_reminder" } },
+    ]);
+    void processDueSalesMessages(10).catch((sendError) => console.warn("Booking confirmation will retry on cron:", safeErrorMessage(sendError)));
+    return res.status(201).json({ booking, manageUrl: `${publicAppUrl()}/manage-call/${booking.confirmation_token}` });
+  });
+
+  app.get("/api/public/call-bookings/:token", rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: "call-booking-manage" }), async (req, res) => {
+    if (!UUID_SCHEMA.safeParse(req.params.token).success) return res.status(400).json({ error: "Invalid booking link" });
+    const { data, error } = await supabaseAdmin.from("sales_call_bookings").select("id,name,business_name,start_at,end_at,timezone,status,confirmation_token").eq("confirmation_token", req.params.token).maybeSingle();
+    if (error || !data) return res.status(404).json({ error: "Booking not found" });
+    return res.json({ booking: data });
+  });
+
+  app.post("/api/public/call-bookings/:token/reschedule", rateLimit({ windowMs: 60 * 1000, max: 6, keyPrefix: "call-booking-reschedule" }), async (req, res) => {
+    if (!UUID_SCHEMA.safeParse(req.params.token).success) return res.status(400).json({ error: "Invalid booking link" });
+    const body = validateBody(z.object({ startAt: z.string().datetime() }), req, res);
+    if (!body) return;
+    const startAt = new Date(body.startAt);
+    const endAt = new Date(startAt.getTime() + 30 * 60000);
+    if (startAt <= new Date() || startAt > new Date(Date.now() + 15 * 86400000)) return res.status(400).json({ error: "Choose an available time in the next 14 days" });
+    const { data: booking } = await supabaseAdmin.from("sales_call_bookings").select("*").eq("confirmation_token", req.params.token).maybeSingle();
+    if (!booking || booking.status === "cancelled") return res.status(404).json({ error: "Active booking not found" });
+    const { data: conflict } = await supabaseAdmin.from("sales_call_bookings").select("id").neq("id", booking.id).eq("status", "booked").lt("start_at", endAt.toISOString()).gt("end_at", startAt.toISOString()).maybeSingle();
+    if (conflict) return res.status(409).json({ error: "That time was just booked. Please choose another." });
+    const { data: updated, error } = await supabaseAdmin.from("sales_call_bookings").update({ start_at: startAt.toISOString(), end_at: endAt.toISOString(), status: "booked", updated_at: new Date().toISOString() }).eq("id", booking.id).select("*").single();
+    if (error) return res.status(500).json({ error: "Booking could not be rescheduled" });
+    await supabaseAdmin.from("sales_messages").update({ status: "cancelled", updated_at: new Date().toISOString() }).contains("provider_payload", { bookingId: booking.id }).in("status", ["queued", "approved"]);
+    const formattedSlot = new Intl.DateTimeFormat("en", { dateStyle: "full", timeStyle: "short", timeZone: booking.timezone }).format(startAt);
+    await supabaseAdmin.from("sales_messages").insert({ lead_id: booking.lead_id || null, recipient: booking.email.toLowerCase(), channel: "email", subject: "Updated: Bennie Studio website growth call", body_text: `Hi ${booking.name.split(/\s+/)[0]},\n\nYour website growth call for ${booking.business_name} has been moved to ${formattedSlot} (${booking.timezone}).\n\nBennie`, status: "queued", scheduled_at: new Date().toISOString(), provider_payload: { bookingId: booking.id, messageType: "reschedule_confirmation" } });
+    if (booking.lead_id) await supabaseAdmin.from("leads").update({ status: "meeting", next_follow_up_at: startAt.toISOString(), automation_next_action: "Prepare for rescheduled growth call" }).eq("id", booking.lead_id);
+    void processDueSalesMessages(10).catch(() => undefined);
+    return res.json({ booking: updated });
+  });
+
+  app.post("/api/public/call-bookings/:token/cancel", rateLimit({ windowMs: 60 * 1000, max: 6, keyPrefix: "call-booking-cancel" }), async (req, res) => {
+    if (!UUID_SCHEMA.safeParse(req.params.token).success) return res.status(400).json({ error: "Invalid booking link" });
+    const { data: booking, error } = await supabaseAdmin.from("sales_call_bookings").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("confirmation_token", req.params.token).neq("status", "cancelled").select("id,lead_id").maybeSingle();
+    if (error || !booking) return res.status(404).json({ error: "Active booking not found" });
+    await supabaseAdmin.from("sales_messages").update({ status: "cancelled", updated_at: new Date().toISOString() }).contains("provider_payload", { bookingId: booking.id }).in("status", ["queued", "approved"]);
+    if (booking.lead_id) await supabaseAdmin.from("leads").update({ status: "qualified", automation_next_action: "Ask whether a different call time would help", next_follow_up_at: null }).eq("id", booking.lead_id);
+    return res.json({ success: true });
   });
 
   // Resend Email API

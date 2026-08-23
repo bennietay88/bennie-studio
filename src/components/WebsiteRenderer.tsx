@@ -2366,7 +2366,7 @@ export function WebsiteRenderer({
                             <img
                               src={
                                 section.content.imageUrl ||
-                                `https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1200`
+                                `/brand-template-preview.svg`
                               }
                               alt="Hero Image"
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
@@ -3130,7 +3130,7 @@ export function WebsiteRenderer({
                               >
                                 <div className="aspect-[4/5] rounded-[2rem] overflow-hidden mb-8 relative">
                                   <img
-                                    src={member.imageUrl || `https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=600`}
+                                    src={member.imageUrl || `/brand-template-preview.svg`}
                                     alt={member.name}
                                     className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
                                     referrerPolicy="no-referrer"

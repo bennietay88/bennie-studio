@@ -616,18 +616,10 @@ export default function LandingPage() {
               className="flex flex-col items-center lg:items-start gap-6 mt-8"
             >
               <div className="flex flex-col items-center lg:items-start gap-4">
-                <div className="flex -space-x-4">
-                  {(c.hero?.socialProof?.avatars || []).map(
-                    (avatar: string, i: number) => (
-                        <SafeImage
-                          key={i}
-                          src={avatar}
-                          alt={`User ${i}`}
-                          className="w-full h-full object-cover"
-                          containerClassName="h-10 w-10 rounded-full border-4 border-white bg-slate-200"
-                        />
-                    ),
-                  )}
+                <div className="flex flex-wrap gap-2">
+                  {["Managed setup", "Real enquiry tracking", "Monthly improvements"].map((label) => (
+                    <span key={label} className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-wider text-slate-600 shadow-sm">{label}</span>
+                  ))}
                 </div>
                 <p className="text-sm font-semibold text-slate-500 tracking-wide uppercase">
                   {c.hero?.socialProof?.text}
@@ -646,7 +638,7 @@ export default function LandingPage() {
             <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[3rem] blur-2xl opacity-20 group-hover:opacity-30 transition duration-1000" />
             <div className="relative bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 p-2">
               <SafeImage
-                src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=1200"
+                src="/brand-template-preview.svg"
                 alt="Dashboard Preview"
                 loading="eager"
                 className="w-full h-full object-cover transform group-hover:scale-[1.05] transition-transform duration-700"
@@ -1037,7 +1029,7 @@ export default function LandingPage() {
                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[3rem] p-4 sm:p-8">
                   <div className="aspect-video bg-slate-800 rounded-[2rem] overflow-hidden relative group">
                     <SafeImage 
-                      src="https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&q=80&w=1200"
+                      src="/brand-template-preview.svg"
                       alt="Managed lead-generation website platform"
                       loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
@@ -1620,7 +1612,7 @@ export default function LandingPage() {
                   <SafeImage
                     src={
                       post.image_url ||
-                      `https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&q=80&w=800`
+                      `/brand-template-preview.svg`
                     }
                     alt={post.title}
                     loading="lazy"
