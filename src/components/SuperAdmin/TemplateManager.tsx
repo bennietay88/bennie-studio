@@ -60,6 +60,7 @@ import { toast } from "sonner";
 import { motion } from "motion/react";
 import { WebsiteRenderer } from "../WebsiteRenderer";
 import { generateId } from "../../lib/utils";
+import { TemplatePreviewThumbnail } from "../TemplatePreviewThumbnail";
 import {
   CONVERSION_GOALS,
   PLAN_PAGE_STRUCTURES,
@@ -681,17 +682,7 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
           return (
           <Card key={template.id} className="rounded-3xl overflow-hidden border-slate-200 dark:border-slate-800 shadow-sm relative group">
             <div className="aspect-video relative overflow-hidden bg-slate-100">
-              {template.thumbnail ? (
-                <img
-                  src={template.thumbnail}
-                  alt={template.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-300">
-                  <Layout className="h-12 w-12" />
-                </div>
-              )}
+              <TemplatePreviewThumbnail templateId={template.id} templateName={template.name} />
               {template.is_premium && (
                 <Badge className="absolute top-4 right-4 bg-amber-400 text-amber-950 border-none">
                   PREMIUM

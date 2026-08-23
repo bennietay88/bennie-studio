@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { ArrowRight, Eye, LayoutTemplate, Search, Sparkles } from "lucide-react";
+import { ArrowRight, Eye, Search, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   CONVERSION_GOALS,
@@ -14,40 +14,9 @@ import {
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 
 const allOption = "all";
-
-const createFallbackPreview = (title: string, industry?: string) => {
-  const safeTitle = title || "Website Template";
-  const safeIndustry = industry || "Bennie Studio";
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="900" height="620" viewBox="0 0 900 620">
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#020617"/>
-          <stop offset="0.52" stop-color="#111827"/>
-          <stop offset="1" stop-color="#4338ca"/>
-        </linearGradient>
-        <radialGradient id="glow" cx="26%" cy="20%" r="70%">
-          <stop offset="0" stop-color="#7c3aed" stop-opacity="0.55"/>
-          <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
-        </radialGradient>
-      </defs>
-      <rect width="900" height="620" rx="36" fill="url(#bg)"/>
-      <rect width="900" height="620" rx="36" fill="url(#glow)"/>
-      <rect x="56" y="56" width="180" height="34" rx="17" fill="#ffffff" opacity="0.14"/>
-      <rect x="56" y="122" width="440" height="28" rx="14" fill="#ffffff" opacity="0.24"/>
-      <rect x="56" y="170" width="610" height="64" rx="16" fill="#ffffff" opacity="0.1"/>
-      <rect x="56" y="274" width="220" height="132" rx="28" fill="#ffffff" opacity="0.13"/>
-      <rect x="306" y="274" width="220" height="132" rx="28" fill="#ffffff" opacity="0.13"/>
-      <rect x="556" y="274" width="220" height="132" rx="28" fill="#ffffff" opacity="0.13"/>
-      <text x="56" y="505" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="800">${safeTitle.slice(0, 28)}</text>
-      <text x="56" y="550" fill="#c7d2fe" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="5">${safeIndustry.toUpperCase().slice(0, 34)}</text>
-    </svg>
-  `;
-
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-};
 
 export function TemplateMarketplace() {
   const navigate = useNavigate();
@@ -168,28 +137,15 @@ export function TemplateMarketplace() {
         {templates.map((template) => {
           const templateRecord = template as any;
           const meta = getTemplateCommercialMetadata(template);
-          const previewImage =
-            templateRecord.thumbnail ||
-            templateRecord.preview_image ||
-            templateRecord.previewImage ||
-            templateRecord.image ||
-            templateRecord.config?.commercial?.previewImage;
-          const fallbackPreview = createFallbackPreview(meta.customerName || template.name, meta.industry || template.category);
           return (
             <Card key={template.id} className="overflow-hidden rounded-3xl border-slate-100 shadow-sm">
               <div className="grid min-h-full md:grid-cols-[280px_1fr]">
-              <div className="relative flex min-h-56 items-center justify-center overflow-hidden bg-slate-950 text-white md:min-h-full">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.45),transparent_34%),linear-gradient(135deg,#020617,#111827)]" />
-                <img
-                  src={previewImage || fallbackPreview}
-                  alt={`${meta.customerName || template.name} preview`}
-                  className="absolute inset-0 h-full w-full object-cover"
-                  loading="lazy"
-                  onError={(event) => {
-                    event.currentTarget.src = fallbackPreview;
-                  }}
+              <div className="relative min-h-56 overflow-hidden bg-slate-100 md:min-h-full">
+                <TemplatePreviewThumbnail
+                  templateId={template.id}
+                  templateName={meta.customerName || template.name}
+                  className="h-full min-h-56 md:aspect-auto md:min-h-full"
                 />
-                <LayoutTemplate className="relative h-10 w-10 text-indigo-200 opacity-0" aria-hidden="true" />
                 <div className="absolute left-4 top-4 flex gap-2">
                   {(templateRecord.premium_status === "premium" || template.isPremium || meta.isPremium) && <Badge className="border-none bg-amber-400 text-amber-950">Premium</Badge>}
                   {meta.localSeoReadiness && <Badge className="border-none bg-emerald-500 text-white">SEO Ready</Badge>}

@@ -39,6 +39,7 @@ import { SECTION_TEMPLATES } from "../constants/sectionTemplates";
 import { toast } from "sonner";
 import { PACKAGES } from "../constants/packages";
 import { activePlans } from "../constants/plans";
+import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import {
   buildNavigationPreview,
   buildPagesFromBlueprint,
@@ -984,11 +985,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                           animate={{ opacity: 1, scale: 1 }}
                           className="p-6 bg-indigo-50 border-2 border-indigo-100 rounded-[2rem] flex items-center gap-6"
                         >
-                          <div className="h-20 w-20 rounded-2xl overflow-hidden bg-slate-200 shrink-0 shadow-lg border-2 border-white">
-                            <img
-                              src={templates.find(t => t.id === selectedTemplate)?.thumbnail}
-                              className="w-full h-full object-cover"
-                              alt="Blueprint"
+                          <div className="w-32 rounded-2xl overflow-hidden bg-slate-200 shrink-0 shadow-lg border-2 border-white">
+                            <TemplatePreviewThumbnail
+                              templateId={selectedTemplate}
+                              templateName={templates.find(t => t.id === selectedTemplate)?.name || "Selected blueprint"}
                             />
                           </div>
                           <div className="space-y-1">

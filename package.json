@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "description": "Professionally managed website service for customer enquiry generation.",
   "type": "module",
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "dev": "tsx api/index.ts",
     "build": "vite build && esbuild api/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",

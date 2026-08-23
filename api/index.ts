@@ -131,7 +131,8 @@ const merchantStripeCache = new Map<
 
 let resendInstance: Resend | null = null;
 function getResend() {
-  const key = platformSettings?.resendApiKey || process.env.RESEND_API_KEY;
+  // Production credentials belong in the deployment environment, never in CMS data.
+  const key = process.env.RESEND_API_KEY;
   if (!key || key.trim() === "" || key.includes("TODO")) {
     throw new Error("RESEND_CONFIG_ERROR");
   }
@@ -144,7 +145,7 @@ const MAX_CACHE_SIZE = 500; // Keep up to 500 active merchant instances in memor
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour TTL
 
 async function getStripe(merchantBusinessId?: string) {
-  let key = platformSettings?.stripeSecretKey || process.env.STRIPE_SECRET_KEY;
+  let key = process.env.STRIPE_SECRET_KEY;
 
   if (merchantBusinessId) {
     const cached = merchantStripeCache.get(merchantBusinessId);
@@ -180,8 +181,7 @@ async function getStripe(merchantBusinessId?: string) {
 
     // Case 2: Merchant used Stripe Connect (Single Click)
     if (biz?.stripe_connected_account_id) {
-      const platformKey =
-        platformSettings?.stripeSecretKey || process.env.STRIPE_SECRET_KEY;
+      const platformKey = process.env.STRIPE_SECRET_KEY;
       if (platformKey && platformKey.startsWith("sk_")) {
         const merchantStripe = new Stripe(platformKey, {
           apiVersion: "2025-01-27.acacia" as any,
@@ -320,6 +320,10 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Origin-Agent-Cluster", "?1");
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+    res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  }
   res.setHeader(
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=(), payment=(self)",
@@ -336,6 +340,8 @@ app.use((req, res, next) => {
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://ct.pinterest.com",
       "object-src 'none'",
       "base-uri 'self'",
+      "frame-ancestors 'self'",
+      "form-action 'self' https://checkout.stripe.com",
     ].join("; "),
   );
   next();
@@ -1361,18 +1367,27 @@ async function startServer() {
       try {
         const hostname = new URL(origin).hostname.toLowerCase();
         const configuredHosts = getPlatformHosts();
+        const vercelHosts = [
+          process.env.VERCEL_URL,
+          process.env.VERCEL_BRANCH_URL,
+          process.env.VERCEL_PROJECT_PRODUCTION_URL,
+        ].filter(Boolean).map((host) => String(host).toLowerCase());
+        const localDevelopment = process.env.NODE_ENV !== "production" && !process.env.VERCEL;
         const allowed = configuredHosts.has(hostname)
-          || hostname.endsWith(".bennietay.com")
-          || hostname.endsWith(".growthos.app")
-          || hostname.endsWith(".vercel.app");
+          || vercelHosts.includes(hostname)
+          || (localDevelopment && ["localhost", "127.0.0.1"].includes(hostname));
         return callback(null, allowed);
       } catch {
         return callback(null, false);
       }
     },
     credentials: true,
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Authorization", "Content-Type", "Idempotency-Key", "X-Request-ID", "X-API-Key"],
+    maxAge: 600,
   }));
   app.use(express.json({
+    limit: "1mb",
     verify: (req: any, _res, buffer) => {
       req.rawBody = buffer;
     },
@@ -1433,7 +1448,7 @@ async function startServer() {
         const html = message.body_html || `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
         const resend = getResend();
         const { data, error: sendError } = await resend.emails.send({
-          from: platformSettings?.emailFrom || process.env.RESEND_FROM_EMAIL || "Bennie Studio <onboarding@resend.dev>",
+          from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "Bennie Studio <onboarding@resend.dev>",
           to: recipient,
           subject: message.subject || "A note from Bennie Studio",
           html,
@@ -2873,9 +2888,9 @@ async function startServer() {
         values.find(isUsableKey)?.toString().trim() || "";
 
       const providerKeys: Record<string, string> = {
-        google: firstUsableKey(platformSettings?.geminiApiKey, process.env.GEMINI_API_KEY),
-        openai: firstUsableKey(platformSettings?.openaiApiKey, process.env.OPENAI_API_KEY),
-        deepseek: firstUsableKey(platformSettings?.deepseekApiKey, process.env.DEEPSEEK_API_KEY),
+        google: firstUsableKey(process.env.GEMINI_API_KEY),
+        openai: firstUsableKey(process.env.OPENAI_API_KEY),
+        deepseek: firstUsableKey(process.env.DEEPSEEK_API_KEY),
       };
       const fallbackModels: Record<string, string> = {
         google: "gemini-1.5-flash",
@@ -4279,7 +4294,6 @@ async function startServer() {
     }),
     async (req, res) => {
     const envKey = process.env.DEEPSEEK_API_KEY;
-    const settingsKey = platformSettings?.deepseekApiKey;
     
     const isValid = (k: any) => {
       if (!k || typeof k !== "string") return false;
@@ -4287,7 +4301,7 @@ async function startServer() {
       return ck !== "" && ck !== "undefined" && !ck.includes("YOUR_") && !ck.includes("PLACEHOLDER") && ck !== "null";
     };
 
-    const apiKey = isValid(settingsKey) ? settingsKey!.trim() : (isValid(envKey) ? envKey!.trim() : null);
+    const apiKey = isValid(envKey) ? envKey!.trim() : null;
 
     if (!apiKey) {
       return res.status(400).json({
@@ -4766,7 +4780,7 @@ async function startServer() {
       console.log(`[Email] Sending to ${to} subject: ${subject}`);
       const resend = getResend();
       const { data, error } = await resend.emails.send({
-        from: platformSettings?.emailFrom || "onboarding@resend.dev",
+        from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "onboarding@resend.dev",
         to,
         subject,
         html,
@@ -4953,8 +4967,8 @@ async function startServer() {
           priceId.includes("credits") || checkoutBody.type === "credits"
             ? "payment"
             : "subscription",
-        success_url: `${req.headers.origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${req.headers.origin}/checkout/cancel?plan=${encodeURIComponent(planId || "")}&billing=${billingCycle}`,
+        success_url: `${publicAppUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${publicAppUrl()}/checkout/cancel?plan=${encodeURIComponent(planId || "")}&billing=${billingCycle}`,
         metadata: {
           businessId,
           planId: planId || "",
@@ -5134,8 +5148,8 @@ async function startServer() {
           },
         ],
         mode: "payment",
-        success_url: `${req.headers.origin}/?success=true&order_id=${order.id}`,
-        cancel_url: `${req.headers.origin}/?canceled=true`,
+        success_url: `${publicAppUrl()}/?success=true&order_id=${order.id}`,
+        cancel_url: `${publicAppUrl()}/?canceled=true`,
         metadata: {
           businessId,
           productId,
@@ -5348,7 +5362,7 @@ async function startServer() {
       const stripe = await getStripe();
       const session = await stripe.billingPortal.sessions.create({
         customer: customerId,
-        return_url: `${req.headers.origin}/dashboard/settings`,
+        return_url: `${publicAppUrl()}/dashboard/settings`,
       });
 
       res.json({ url: session.url });
@@ -6094,8 +6108,8 @@ async function startServer() {
       const env = {
         supabaseUrl: Boolean(process.env.VITE_SUPABASE_URL),
         supabaseServiceRole: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
-        stripe: Boolean(process.env.STRIPE_SECRET_KEY || platformSettings?.stripeSecretKey),
-        gemini: Boolean(process.env.GEMINI_API_KEY || platformSettings?.geminiApiKey),
+        stripe: Boolean(process.env.STRIPE_SECRET_KEY),
+        gemini: Boolean(process.env.GEMINI_API_KEY),
         openai: Boolean(process.env.OPENAI_API_KEY),
         upstash: Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN),
       };
@@ -6485,7 +6499,7 @@ async function startServer() {
         });
       }
 
-      const platformSecretKey = platformSettings?.stripeSecretKey || process.env.STRIPE_SECRET_KEY;
+      const platformSecretKey = process.env.STRIPE_SECRET_KEY;
       if (!platformSecretKey || !platformSecretKey.startsWith("sk_")) {
          return res.status(400).json({
           error: "Platform Stripe Secret Key is not configured. Connect integration requires a valid platform secret key.",
@@ -6504,7 +6518,7 @@ async function startServer() {
         userId: req.user.id,
         createdAt: Date.now(),
       });
-      const redirectUri = `${req.headers.origin}/api/stripe/callback`;
+      const redirectUri = `${publicAppUrl()}/api/stripe/callback`;
 
       const stripeUrl = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write&state=${state}&redirect_uri=${redirectUri}`;
 

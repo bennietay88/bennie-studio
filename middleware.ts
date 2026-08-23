@@ -100,7 +100,7 @@ export default async function middleware(request: Request) {
   const url = new URL(request.url);
   const host = normalizeDomainInput(request.headers.get("host") || url.hostname);
 
-  if (!host || getPlatformHosts(process.env as Record<string, string | undefined>).has(host) || host.endsWith(".vercel.app")) {
+  if (!host || getPlatformHosts(process.env as Record<string, string | undefined>).has(host)) {
     return next();
   }
 
