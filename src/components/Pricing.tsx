@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { Check, Zap, Star, Loader2, Rocket } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { PLANS as STATIC_PLANS, Plan, activePlans, normalizePlans } from "../constants/plans";
+import { PLANS as STATIC_PLANS, Plan, activePlans, formatPlanMoney, normalizePlans } from "../constants/plans";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { toast } from "sonner";
@@ -39,6 +39,11 @@ const mapPlanTableRows = (tablePlans: any[]): Plan[] =>
       maxPages: plan.project_limit ?? 1,
       maxLocationPages: plan.location_page_limit ?? 0,
       monthlyUpdates: plan.monthly_update_allowance || plan.monthly_updates || "Monthly update support",
+      monthlyUpdateLimit: plan.monthly_update_limit,
+      commitmentMonths: plan.commitment_months,
+      setupFee: plan.setup_fee,
+      marketPrices: plan.market_prices,
+      marketPriceIds: plan.market_price_ids,
       upgradePrompt: plan.upgrade_prompt || "Upgrade to unlock more pages and growth tools.",
       enabled_features: Array.isArray(plan.enabled_features) ? plan.enabled_features : [],
       features: Array.isArray(plan.features) ? plan.features : [],
@@ -104,7 +109,7 @@ export const Pricing: React.FC<PricingProps> = ({
       return;
     }
 
-    const checkoutIntent = { planId: plan.id, billingCycle, savedAt: new Date().toISOString() };
+    const checkoutIntent = { planId: plan.id, market: geoPricing.countryCode, billingCycle, savedAt: new Date().toISOString() };
     localStorage.setItem("bt_checkout_intent", JSON.stringify(checkoutIntent));
 
     if (!profile) {
@@ -115,9 +120,12 @@ export const Pricing: React.FC<PricingProps> = ({
       return;
     }
 
+    const marketPriceIds = plan.marketPriceIds?.[geoPricing.countryCode] || plan.market_price_ids?.[geoPricing.countryCode];
     const priceId = billingCycle === "yearly"
-      ? plan.yearlyPriceId || plan.yearly_price_id
-      : plan.priceId ||
+      ? marketPriceIds?.yearly ||
+      plan.yearlyPriceId || plan.yearly_price_id
+      : marketPriceIds?.monthly ||
+      plan.priceId ||
       plan.stripe_price_id ||
       plan.stripePriceId ||
       plan.monthlyPriceId ||
@@ -160,6 +168,7 @@ export const Pricing: React.FC<PricingProps> = ({
           type: "subscription",
           planId: plan.id,
           billingCycle,
+          market: geoPricing.countryCode,
         }),
       });
 
@@ -177,14 +186,7 @@ export const Pricing: React.FC<PricingProps> = ({
     }
   };
 
-  const calculatePrice = (planPrice: string) => {
-    const numericPrice = Number(String(planPrice).replace(/[^0-9.]/g, ""));
-    if (!Number.isFinite(numericPrice) || numericPrice <= 0) return planPrice;
-
-    return geoPricing.formatUsd(planPrice, {
-      yearlyMonthlyAverage: billingCycle === "yearly",
-    });
-  };
+  const calculatePrice = (plan: Plan) => formatPlanMoney(plan, geoPricing.countryCode);
 
   if (loading) {
     return (
@@ -263,7 +265,7 @@ export const Pricing: React.FC<PricingProps> = ({
           <PricingCard
             key={plan.id}
             plan={plan}
-            price={calculatePrice(plan.price)}
+            price={calculatePrice(plan)}
             index={index}
             billingCycle={billingCycle}
             onSelect={() => handleSelect(plan)}
@@ -315,7 +317,7 @@ const getPlanHighlights = (plan: Plan) => {
         "Up to 5 managed pages",
         "Landing + location pages",
         "Enquiry tracking + monthly report",
-        "6 monthly updates + priority support",
+        "2 monthly updates + priority support",
       ],
     };
   }
@@ -325,7 +327,7 @@ const getPlanHighlights = (plan: Plan) => {
       "Home, Services + Contact",
       "WhatsApp + lead capture",
       "Local SEO + trust sections",
-      "3 monthly managed updates",
+      "1 consolidated monthly update",
     ],
   };
 };
@@ -407,6 +409,9 @@ const PricingCard = ({
               {isCustom ? "project" : `/ ${billingCycle === "yearly" ? "month" : "month"}`}
             </span>
           </div>
+          <p className={cn("mt-2 text-xs font-bold", isPopular ? "text-slate-300" : "text-slate-500")}>
+            {formatPlanMoney(plan, geoPricing?.countryCode || "US", "setupFee")} setup · {plan.commitmentMonths || 12}-month term
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-7">

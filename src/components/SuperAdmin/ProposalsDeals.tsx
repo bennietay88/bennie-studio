@@ -20,7 +20,7 @@ export function ProposalsDeals() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [open, setOpen] = React.useState(false);
-  const [form, setForm] = React.useState({ target: typeof window !== "undefined" && sessionStorage.getItem("bts_proposal_lead_id") ? `lead:${sessionStorage.getItem("bts_proposal_lead_id")}` : "", title: "Website Growth Partner proposal", market: "SG" as RevenueMarket, expiresAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), checkoutUrl: "" });
+  const [form, setForm] = React.useState({ target: typeof window !== "undefined" && sessionStorage.getItem("bts_proposal_lead_id") ? `lead:${sessionStorage.getItem("bts_proposal_lead_id")}` : "", title: "Website Growth Partner proposal", market: "MY" as RevenueMarket, expiresAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), checkoutUrl: "" });
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);

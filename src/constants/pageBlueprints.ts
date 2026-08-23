@@ -80,8 +80,8 @@ export const PLAN_POSITIONING: Record<BlueprintPlanId, string> = {
 };
 
 export const UPGRADE_MESSAGES: Record<BlueprintPlanId, string> = {
-  starter: "Add dedicated service and contact pages, improve trust, and unlock up to 5 location pages with Business.",
-  business: "Unlock up to 10 website pages, up to 25 location pages, stronger SEO structure, and priority growth support.",
+  starter: "Add dedicated service and contact pages, improve trust, and unlock one location page with Business.",
+  business: "Unlock up to 5 website pages, up to 3 location pages, landing-page support, and priority improvements with Scale.",
   growth: "You are already on the strongest website structure for this generator.",
 };
 

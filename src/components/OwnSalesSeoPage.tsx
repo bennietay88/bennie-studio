@@ -5,7 +5,7 @@ import { ArrowRight, Check, Globe, MessageSquare, Rocket, Shield, Sparkles, MapP
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { findOwnSalesSeoPage } from "../constants/ownSalesSeoPages";
-import { BASIC_WEBSITE_OFFERS, saveBasicPlanIntent } from "../constants/publicOffers";
+import { getBasicWebsiteOffers, saveBasicPlanIntent } from "../constants/publicOffers";
 import { getOfferForMarket, type RevenueMarket } from "../constants/revenueOffer";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 
@@ -47,7 +47,7 @@ export default function OwnSalesSeoPage() {
   const cityName = isCityPage ? page.h1.replace(/^Website Design\s+/i, "") : marketLabel;
   const revenueMarket: RevenueMarket = isUk ? "GB" : isMalaysia ? "MY" : isSingapore ? "SG" : "US";
   const coreOffer = getOfferForMarket(revenueMarket);
-  const packageOptions = BASIC_WEBSITE_OFFERS.map((plan, index) => ({
+  const packageOptions = getBasicWebsiteOffers(revenueMarket).map((plan, index) => ({
     ...plan,
     price: `${plan.price}/mo`,
     label: index === 0 ? "Fast launch" : index === 1 ? "Most useful" : "More room",
@@ -78,7 +78,7 @@ export default function OwnSalesSeoPage() {
         description: plan.description,
         priceSpecification: {
           "@type": "PriceSpecification",
-          priceCurrency: plan.name === coreOffer.name ? coreOffer.prices[revenueMarket].currency : "USD",
+          priceCurrency: coreOffer.prices[revenueMarket].currency,
           price: plan.price.replace(/[^0-9.]/g, "") || undefined,
         },
       })),
@@ -410,7 +410,7 @@ export default function OwnSalesSeoPage() {
               <Badge className="mb-4 bg-indigo-50 text-indigo-700">Choose a package</Badge>
               <h2 className="text-3xl font-black tracking-tight sm:text-5xl">Simple managed website options</h2>
               <p className="mx-auto mt-4 max-w-2xl text-base font-semibold text-slate-600">
-                Start with the package that matches your current stage. Basic plans are billed in USD. Your preview can be generated first, then upgraded or refined before launch.
+                Start with the package that matches your current stage. Prices are shown in {coreOffer.prices[revenueMarket].currency}. Generate a preview first, then choose the right launch path.
               </p>
             </div>
             <div className="grid gap-6 lg:grid-cols-3">
@@ -438,7 +438,7 @@ export default function OwnSalesSeoPage() {
                   </ul>
                   <Button
                     onClick={() => {
-                      saveBasicPlanIntent(plan.id);
+                      saveBasicPlanIntent(plan.id, revenueMarket);
                       navigate("/generate-preview");
                     }}
                     className={`mt-7 h-12 w-full rounded-xl font-black ${index === 1 ? "bg-indigo-600 hover:bg-indigo-700" : "bg-slate-950 hover:bg-indigo-600"}`}

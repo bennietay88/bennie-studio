@@ -129,6 +129,11 @@ const PlanEditor = () => {
                   maxPages: plan.project_limit ?? 1,
                   maxLocationPages: plan.location_page_limit ?? 0,
                   monthlyUpdates: plan.monthly_update_allowance || plan.monthly_updates || "Monthly update support",
+                  monthlyUpdateLimit: plan.monthly_update_limit ?? 1,
+                  commitmentMonths: plan.commitment_months ?? 12,
+                  setupFee: plan.setup_fee ?? 0,
+                  marketPrices: plan.market_prices || {},
+                  marketPriceIds: plan.market_price_ids || {},
                   upgradePrompt: plan.upgrade_prompt || "Upgrade to unlock more pages and growth tools.",
                   enabled_features: Array.isArray(plan.enabled_features) ? plan.enabled_features : [],
                   features: Array.isArray(plan.features) ? plan.features : [],
@@ -217,6 +222,11 @@ const PlanEditor = () => {
             enabled_features: plan.enabled_features || [],
             location_page_limit: Number(plan.maxLocationPages || 0),
             monthly_update_allowance: plan.monthlyUpdates || null,
+            monthly_update_limit: Number(plan.monthlyUpdateLimit || 0),
+            commitment_months: Number(plan.commitmentMonths || 0),
+            setup_fee: Number(plan.setupFee || 0),
+            market_prices: plan.marketPrices || {},
+            market_price_ids: plan.marketPriceIds || {},
             upgrade_prompt: plan.upgradePrompt || null,
             is_popular: !!plan.isPopular,
             stripe_product_id: plan.productId || null,
@@ -475,6 +485,34 @@ const PlanEditor = () => {
                     />
                   </div>
                 </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Update limit</Label>
+                  <Input type="number" min="0" value={plan.monthlyUpdateLimit ?? 1} onChange={(e) => updatePlan(planIndex, "monthlyUpdateLimit", parseInt(e.target.value) || 0)} className="rounded-xl" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Commitment (months)</Label>
+                  <Input type="number" min="0" value={plan.commitmentMonths ?? 12} onChange={(e) => updatePlan(planIndex, "commitmentMonths", parseInt(e.target.value) || 0)} className="rounded-xl" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>USD setup fee</Label>
+                  <Input type="number" min="0" value={plan.setupFee ?? 0} onChange={(e) => updatePlan(planIndex, "setupFee", Number(e.target.value) || 0)} className="rounded-xl" />
+                </div>
+              </div>
+              <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Malaysia checkout</p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>MYR monthly price ID</Label>
+                    <Input value={plan.marketPriceIds?.MY?.monthly || ""} onChange={(e) => updatePlan(planIndex, "marketPriceIds", { ...(plan.marketPriceIds || {}), MY: { ...(plan.marketPriceIds?.MY || {}), monthly: e.target.value } })} placeholder="price_..." className="rounded-xl text-xs" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>MYR setup price ID</Label>
+                    <Input value={plan.marketPriceIds?.MY?.setup || ""} onChange={(e) => updatePlan(planIndex, "marketPriceIds", { ...(plan.marketPriceIds || {}), MY: { ...(plan.marketPriceIds?.MY || {}), setup: e.target.value } })} placeholder="price_..." className="rounded-xl text-xs" />
+                  </div>
+                </div>
+                <p className="mt-2 text-[10px] font-semibold text-slate-500">Create both prices in Stripe, then paste their IDs here. The setup fee is charged once with the first subscription payment.</p>
               </div>
               <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 p-3">
                 <div>

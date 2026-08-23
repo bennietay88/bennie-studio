@@ -37,7 +37,7 @@ import {
   getOfferForMarket,
   type RevenueMarket,
 } from "../constants/revenueOffer";
-import { BASIC_WEBSITE_OFFERS, saveBasicPlanIntent } from "../constants/publicOffers";
+import { getBasicWebsiteOffers, saveBasicPlanIntent } from "../constants/publicOffers";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { supabase } from "../lib/supabase";
 import {
@@ -581,7 +581,8 @@ function PricingPage() {
         const market = countryToRevenueMarket(data?.countryCode);
         if (cancelled) return;
         setSelectedMarket(market);
-        setDetectedLabel(`Detected ${data?.countryName || pricingMarkets[market].label}`);
+        const countryName = String(data?.countryName || pricingMarkets[market].label);
+        setDetectedLabel(`Detected ${countryName.charAt(0).toUpperCase()}${countryName.slice(1)}`);
       } catch {
         if (cancelled) return;
         setSelectedMarket("US");
@@ -597,6 +598,8 @@ function PricingPage() {
 
   const market = pricingMarkets[selectedMarket];
   const offer = getOfferForMarket(selectedMarket);
+  const basicOffers = getBasicWebsiteOffers(selectedMarket);
+  const entryPrice = basicOffers[0]?.price || "$49";
   const customWebsiteQuote = formatUsdRangeForCountry(1500, 3500, selectedMarket, {
     from: true,
     plus: true,
@@ -606,7 +609,7 @@ function PricingPage() {
     <>
       <Hero
         title="Choose how much help you need"
-        copy={`Start with a practical website plan from US$49, work with Bennie Studio as your managed growth partner, or commission a fully custom website. Each option has a different level of ownership and support.`}
+        copy={`Start with a practical managed website from ${entryPrice}/month, add a hands-on growth partnership when you are ready, or commission a fully custom website.`}
         icon={ClipboardCheck}
       />
       <section className="mx-auto max-w-7xl px-5 py-14">
@@ -619,7 +622,11 @@ function PricingPage() {
             Pricing market
             <select
               value={selectedMarket}
-              onChange={(event) => setSelectedMarket(event.target.value as PricingMarket)}
+              onChange={(event) => {
+                const nextMarket = event.target.value as PricingMarket;
+                setSelectedMarket(nextMarket);
+                setDetectedLabel(`Showing ${pricingMarkets[nextMarket].label} pricing`);
+              }}
               className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black normal-case tracking-normal text-slate-950 outline-none focus:border-indigo-400"
             >
               {Object.entries(pricingMarkets).map(([code, item]) => (
@@ -632,9 +639,9 @@ function PricingPage() {
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Basic website plans</p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Start smaller from US$49/month</h2>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Managed website plans from {entryPrice}/month</h2>
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
-                Template-led plans for businesses that can provide their own content and direction. Prices are billed in USD.
+                Template-led plans for businesses that provide their core information and approve the direction. Billed in {selectedMarket === "MY" ? "Malaysian Ringgit" : selectedMarket === "SG" ? "Singapore Dollars" : selectedMarket === "GB" ? "British Pounds" : "US Dollars"}.
               </p>
             </div>
             <p className="rounded-2xl bg-slate-100 px-4 py-3 text-xs font-bold leading-5 text-slate-600">
@@ -642,7 +649,7 @@ function PricingPage() {
             </p>
           </div>
           <div className="mt-7 grid gap-5 lg:grid-cols-3">
-            {BASIC_WEBSITE_OFFERS.map((plan) => (
+            {basicOffers.map((plan) => (
               <article
                 key={plan.id}
                 className={`flex h-full flex-col rounded-[2rem] border p-6 ${plan.isPopular ? "border-indigo-300 bg-indigo-50/70 ring-4 ring-indigo-50" : "border-slate-200 bg-slate-50"}`}
@@ -652,6 +659,7 @@ function PricingPage() {
                   {plan.isPopular ? <Badge className="border-0 bg-indigo-600 text-white">Popular</Badge> : null}
                 </div>
                 <p className="mt-4 text-4xl font-black tracking-tight text-slate-950">{plan.price}<span className="text-sm text-slate-500">/month</span></p>
+                <p className="mt-2 text-xs font-bold text-slate-500">{plan.setupFee} one-time setup · {plan.commitmentMonths}-month term</p>
                 <p className="mt-3 min-h-12 text-sm font-semibold leading-6 text-slate-600">{plan.bestFor}</p>
                 <ul className="mt-5 space-y-3">
                   {plan.included.map((feature) => (
@@ -663,7 +671,7 @@ function PricingPage() {
                 <Link
                   to="/signup?redirectTo=%2Fdashboard%2Fonboarding"
                   onClick={() => {
-                    saveBasicPlanIntent(plan.id);
+                    saveBasicPlanIntent(plan.id, selectedMarket);
                     trackPublicEvent({ eventType: "click_pricing_plan", label: plan.name, target: "/signup", metadata: { planId: plan.id, price: plan.price, tier: "basic" } });
                   }}
                   className={`${plan.isPopular ? primaryCtaClass : secondaryCtaClass} mt-6 w-full`}

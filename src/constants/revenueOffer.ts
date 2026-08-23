@@ -9,7 +9,7 @@ export type RevenueOfferPrice = {
 
 export const PRIMARY_REVENUE_OFFER = {
   id: "website_growth_partner",
-  planId: "business",
+  planId: "website_growth_partner",
   name: "Website Growth Partner",
   commitmentMonths: 6,
   description:

@@ -1,4 +1,4 @@
-import { PLANS } from "./plans";
+import { PLANS, formatPlanMoney, getPlanMarketPrice } from "./plans";
 
 export type BasicWebsiteOffer = {
   id: string;
@@ -8,6 +8,8 @@ export type BasicWebsiteOffer = {
   bestFor: string;
   included: string[];
   isPopular: boolean;
+  setupFee: string;
+  commitmentMonths: number;
 };
 
 const publicDetails: Record<string, Pick<BasicWebsiteOffer, "bestFor" | "included">> = {
@@ -26,7 +28,7 @@ const publicDetails: Record<string, Pick<BasicWebsiteOffer, "bestFor" | "include
       "Up to three managed pages",
       "Service, trust and FAQ sections",
       "Local search-ready structure",
-      "Three update requests each month",
+      "One consolidated update each month",
     ],
   },
   growth: {
@@ -35,26 +37,32 @@ const publicDetails: Record<string, Pick<BasicWebsiteOffer, "bestFor" | "include
       "Up to five managed pages",
       "Landing and service-area pages",
       "Enquiry tracking and monthly summary",
-      "Six update requests each month",
+      "Two managed updates each month",
     ],
   },
 };
 
-export const BASIC_WEBSITE_OFFERS: BasicWebsiteOffer[] = PLANS
+export const getBasicWebsiteOffers = (market = "US"): BasicWebsiteOffer[] => PLANS
   .filter((plan) => ["starter", "business", "growth"].includes(plan.id))
   .map((plan) => ({
     id: plan.id,
     name: plan.name,
-    price: plan.price,
+    price: formatPlanMoney(plan, market),
+    setupFee: formatPlanMoney(plan, market, "setupFee"),
+    commitmentMonths: plan.commitmentMonths,
     description: plan.description,
     bestFor: publicDetails[plan.id].bestFor,
     included: publicDetails[plan.id].included,
     isPopular: plan.id === "business",
   }));
 
-export const saveBasicPlanIntent = (planId: string) => {
+export const BASIC_WEBSITE_OFFERS = getBasicWebsiteOffers("US");
+
+export const saveBasicPlanIntent = (planId: string, market = "US") => {
+  const plan = PLANS.find((item) => item.id === planId) || PLANS[0];
+  const pricing = getPlanMarketPrice(plan, market);
   localStorage.setItem(
     "bt_checkout_intent",
-    JSON.stringify({ planId, billingCycle: "monthly", savedAt: new Date().toISOString() }),
+    JSON.stringify({ planId, market, currency: pricing.currency, billingCycle: "monthly", savedAt: new Date().toISOString() }),
   );
 };

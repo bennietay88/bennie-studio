@@ -88,6 +88,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const checkoutIntent = React.useMemo(() => {
     try { return JSON.parse(localStorage.getItem("bt_checkout_intent") || "{}"); } catch { return {}; }
   }, []);
+  const proposalId = React.useMemo(() => new URLSearchParams(window.location.search).get("proposal"), []);
   const [selectedPackage, setSelectedPackage] = useState<string>(checkoutIntent.planId || "starter");
   const [availablePackages, setAvailablePackages] = useState<any[]>(activePlans(PACKAGES as any));
   const [trialDays, setTrialDays] = useState(14);
@@ -142,8 +143,12 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         ? "Starter"
         : "Business";
   const recommendedStructure = getTemplatePlanStructure(recommendedNicheTemplate.id, recommendedPlanLabel as any);
-  const formatPackagePrice = (price: string | number) =>
-    typeof price === "number" ? `$${price}` : price;
+  const formatPackagePrice = (pkg: any) => {
+    const market = String(checkoutIntent.market || "US").toUpperCase();
+    const pricing = pkg?.marketPrices?.[market] || pkg?.marketPrices?.US;
+    if (!pricing) return typeof pkg?.price === "number" ? `$${pkg.price}` : pkg?.price;
+    return new Intl.NumberFormat(pricing.locale, { style: "currency", currency: pricing.currency, maximumFractionDigits: 0 }).format(pricing.monthly);
+  };
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -709,7 +714,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       const handoffResponse = await fetch("/api/onboarding/complete", {
         method: "POST",
         headers: { "content-type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
-        body: JSON.stringify({ businessId, websiteId, planId: selectedPackage }),
+        body: JSON.stringify({ businessId, websiteId, planId: selectedPackage, proposalId }),
       });
       if (!handoffResponse.ok) {
         const payload = await handoffResponse.json().catch(() => ({}));
@@ -1448,7 +1453,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         <div>
                           <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-1">{pkg.name}</p>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-4xl font-black text-slate-950">{formatPackagePrice(pkg.price)}</span>
+                            <span className="text-4xl font-black text-slate-950">{formatPackagePrice(pkg)}</span>
                             <span className="text-slate-400 font-bold text-xs">/mo</span>
                           </div>
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-2">After trial period</p>

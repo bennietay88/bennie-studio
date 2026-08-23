@@ -904,7 +904,28 @@ async function startServer() {
 
           if (proposalId && UUID_SCHEMA.safeParse(proposalId).success) {
             const paidAt = new Date().toISOString();
-            const { data: paidProposal } = await supabaseAdmin.from("proposals").update({ status: "Accepted", accepted_at: paidAt, updated_at: paidAt }).eq("id", proposalId).select("id,lead_id").maybeSingle();
+            const { data: currentProposal } = await supabaseAdmin.from("proposals").select("config").eq("id", proposalId).maybeSingle();
+            const payment = {
+              stripeSessionId: session.id,
+              stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
+              stripeSubscriptionId: typeof session.subscription === "string" ? session.subscription : null,
+              paidAt,
+            };
+            const { data: paidProposal } = await supabaseAdmin.from("proposals").update({
+              status: "Accepted",
+              accepted_at: paidAt,
+              accepted_email: session.customer_details?.email || session.customer_email || undefined,
+              updated_at: paidAt,
+              config: { ...(currentProposal?.config || {}), payment },
+            }).eq("id", proposalId).select("id,lead_id,business_id,config").maybeSingle();
+            if (paidProposal?.business_id) {
+              await supabaseAdmin.from("businesses").update({
+                plan: paidProposal.config?.planId || "website_growth_partner",
+                subscription_status: "active",
+                stripe_customer_id: payment.stripeCustomerId,
+                stripe_subscription_id: payment.stripeSubscriptionId,
+              }).eq("id", paidProposal.business_id);
+            }
             if (paidProposal?.lead_id) await supabaseAdmin.from("leads").update({ status: "won", automation_next_action: "Begin onboarding and collect website content", next_follow_up_at: paidAt }).eq("id", paidProposal.lead_id);
             await supabaseAdmin.from("proposal_events").insert({ proposal_id: proposalId, event_type: "paid", session_id: session.id, metadata: { amountTotal: session.amount_total, currency: session.currency } });
             await supabaseAdmin.from("sales_tasks").insert({ lead_id: paidProposal?.lead_id || null, proposal_id: proposalId, title: "Start onboarding for paid proposal", task_type: "onboarding", priority: "high", due_at: paidAt, metadata: { stripeSessionId: session.id } });
@@ -3440,8 +3461,8 @@ async function startServer() {
             url: `${publicAppUrl()}/signup?redirect=${encodeURIComponent(`/dashboard/onboarding?proposal=${proposal.id}`)}`,
           },
         },
-        metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "", type: "proposal_subscription" },
-        subscription_data: { metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "" } },
+        metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "", businessId: proposal.business_id || "", planId: proposal.config?.planId || "website_growth_partner", market, type: "proposal_subscription" },
+        subscription_data: { metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "", businessId: proposal.business_id || "", planId: proposal.config?.planId || "website_growth_partner", market } },
       });
       await supabaseAdmin.from("proposals").update({ checkout_url: paymentLink.url, updated_at: new Date().toISOString() }).eq("id", proposal.id);
       await supabaseAdmin.from("proposal_events").insert({ proposal_id: proposal.id, event_type: "checkout_started", metadata: { paymentLinkId: paymentLink.id, createdBy: req.user.id } });
@@ -4656,7 +4677,9 @@ async function startServer() {
       platform: publicPlatform,
       landingPage: settings.get("landing_page") || null,
       policies,
-      plans: !plansError && Array.isArray(planRows) ? planRows : [],
+      plans: !plansError && Array.isArray(planRows)
+        ? planRows.filter((plan: any) => !plan.sales_motion || plan.sales_motion === "self_serve")
+        : [],
       legacyPricing: settings.get("plans")?.pricing || null,
       posts: !postsError && Array.isArray(postRows) ? postRows : [],
     });
@@ -4912,28 +4935,45 @@ async function startServer() {
         type: z.enum(["credits", "subscription"]).optional(),
         planId: z.string().trim().min(1).max(80).optional().nullable(),
         billingCycle: z.enum(["monthly", "yearly"]).optional().default("monthly"),
+        market: z.enum(["MY", "SG", "GB", "US"]).optional().default("US"),
       }),
       req,
       res,
     );
     if (!checkoutBody) return;
 
-    const { priceId, businessId, customerEmail, couponId, planId, billingCycle } = checkoutBody;
+    const { priceId, businessId, customerEmail, couponId, planId, billingCycle, market } = checkoutBody;
 
     try {
       await assertBusinessAccess(req.user.id, businessId);
+      let configuredSetupPriceId: string | null = null;
 
       if (checkoutBody.type !== "credits") {
         if (!planId) return res.status(400).json({ error: "Select a valid plan before checkout." });
-        const { data: planSettings } = await supabaseAdmin.from("settings").select("content").eq("id", "plans").maybeSingle();
-        const configuredPlans = Array.isArray(planSettings?.content?.pricing) ? planSettings.content.pricing : [];
-        const configuredPlan = configuredPlans.find((plan: any) => String(plan.id).toLowerCase() === String(planId).toLowerCase() && plan.isActive !== false && plan.is_active !== false);
+        const { data: configuredPlan } = await supabaseAdmin
+          .from("plans")
+          .select("slug,is_active,sales_motion,setup_fee,stripe_price_id,yearly_stripe_price_id,market_price_ids")
+          .eq("slug", String(planId).toLowerCase())
+          .maybeSingle();
         if (!configuredPlan) return res.status(400).json({ error: "This plan is unavailable or inactive." });
+        if (configuredPlan.is_active === false || configuredPlan.sales_motion !== "self_serve") {
+          return res.status(400).json({ error: "This plan is available by proposal, not self-serve checkout." });
+        }
+        const marketPriceIds = configuredPlan.market_price_ids && typeof configuredPlan.market_price_ids === "object"
+          ? configuredPlan.market_price_ids[market]
+          : null;
         const configuredPriceId = billingCycle === "yearly"
-          ? configuredPlan.yearlyPriceId || configuredPlan.yearly_price_id
-          : configuredPlan.priceId || configuredPlan.stripe_price_id || configuredPlan.monthlyPriceId || configuredPlan.monthly_price_id;
+          ? marketPriceIds?.yearly || configuredPlan.yearly_stripe_price_id
+          : marketPriceIds?.monthly || configuredPlan.stripe_price_id;
+        configuredSetupPriceId = marketPriceIds?.setup || null;
         if (!configuredPriceId || configuredPriceId !== priceId) {
           return res.status(400).json({ error: `${billingCycle === "yearly" ? "Yearly" : "Monthly"} checkout is not configured for this plan.` });
+        }
+        if (Number(configuredPlan.setup_fee || 0) > 0 && !configuredSetupPriceId) {
+          return res.status(400).json({ error: `${market} setup-fee checkout is not configured for this plan.` });
+        }
+        if (configuredSetupPriceId && !/^price_[A-Za-z0-9_]+$/.test(configuredSetupPriceId)) {
+          return res.status(400).json({ error: "The setup-fee Stripe Price ID is invalid." });
         }
       }
 
@@ -4958,10 +4998,8 @@ async function startServer() {
 	      const sessionOptions: any = {
 	        payment_method_types: ["card"],
         line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
+          { price: priceId, quantity: 1 },
+          ...(configuredSetupPriceId ? [{ price: configuredSetupPriceId, quantity: 1 }] : []),
         ],
         mode:
           priceId.includes("credits") || checkoutBody.type === "credits"
@@ -4973,6 +5011,7 @@ async function startServer() {
           businessId,
           planId: planId || "",
           billingCycle,
+          market,
           type:
             priceId.includes("credits") || checkoutBody.type === "credits"
               ? "credits"
@@ -5288,15 +5327,38 @@ async function startServer() {
     authenticate,
     rateLimit({ windowMs: 60 * 1000, max: 10, keyPrefix: "onboarding-complete", key: (req) => req.user?.id || getClientIp(req) }),
     async (req: any, res) => {
-      const body = validateBody(z.object({ businessId: UUID_SCHEMA, websiteId: UUID_SCHEMA, planId: z.string().trim().min(1).max(80) }), req, res);
+      const body = validateBody(z.object({ businessId: UUID_SCHEMA, websiteId: UUID_SCHEMA, planId: z.string().trim().min(1).max(80), proposalId: UUID_SCHEMA.optional().nullable() }), req, res);
       if (!body) return;
       try {
+	        let effectivePlanId = body.planId;
 	        await assertBusinessAccess(req.user.id, body.businessId);
-	        const { data: business } = await supabaseAdmin
+	        let { data: business } = await supabaseAdmin
 	          .from("businesses")
 	          .select("id,name,subscription_status,stripe_customer_id,stripe_subscription_id")
 	          .eq("id", body.businessId)
 	          .single();
+	        if (body.proposalId) {
+	          const { data: proposal } = await supabaseAdmin
+	            .from("proposals")
+	            .select("id,status,accepted_email,business_id,config,leads(email)")
+	            .eq("id", body.proposalId)
+	            .maybeSingle();
+	          const buyerEmail = String(proposal?.accepted_email || (proposal?.leads as any)?.email || "").trim().toLowerCase();
+	          const signedInEmail = String(req.user?.email || "").trim().toLowerCase();
+	          const payment = proposal?.config?.payment;
+	          if (proposal?.status === "Accepted" && payment?.stripeSubscriptionId && buyerEmail && buyerEmail === signedInEmail) {
+	            effectivePlanId = proposal.config?.planId || "website_growth_partner";
+	            await supabaseAdmin.from("businesses").update({
+	              plan: effectivePlanId,
+	              subscription_status: "active",
+	              stripe_customer_id: payment.stripeCustomerId || null,
+	              stripe_subscription_id: payment.stripeSubscriptionId,
+	            }).eq("id", body.businessId);
+	            await supabaseAdmin.from("proposals").update({ business_id: body.businessId, updated_at: new Date().toISOString() }).eq("id", proposal.id);
+	            const refreshed = await supabaseAdmin.from("businesses").select("id,name,subscription_status,stripe_customer_id,stripe_subscription_id").eq("id", body.businessId).single();
+	            business = refreshed.data;
+	          }
+	        }
 	        const subscriptionStatus = String((business as any)?.subscription_status || "").toLowerCase();
 	        const billingConfirmed =
 	          subscriptionStatus === "active" ||
@@ -5308,7 +5370,7 @@ async function startServer() {
 	          });
 	        }
 	        const { data: existingProject } = await supabaseAdmin.from("projects").select("id").eq("business_id", body.businessId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-        const projectPayload = { website_id: body.websiteId, title: `${business.name} Managed Website`, package_name: body.planId, status: "ready_for_build", updated_at: new Date().toISOString() };
+        const projectPayload = { website_id: body.websiteId, title: `${business.name} Managed Website`, package_name: effectivePlanId, status: "ready_for_build", updated_at: new Date().toISOString() };
         if (existingProject) await supabaseAdmin.from("projects").update(projectPayload).eq("id", existingProject.id);
         else await supabaseAdmin.from("projects").insert({ business_id: body.businessId, type: "waas", priority: "medium", ...projectPayload });
 
@@ -5320,7 +5382,7 @@ async function startServer() {
         const { data: admins } = await supabaseAdmin.from("profiles").select("id").in("role", ["super_admin", "platform_staff"]);
         if (admins?.length) await supabaseAdmin.from("notifications").insert(admins.map((admin: any) => ({ user_id: admin.id, business_id: body.businessId, title: "Customer onboarding completed", message: `${business.name} submitted onboarding and is ready for production.`, type: "onboarding", metadata: { websiteId: body.websiteId } })))
           .then(({ error }) => { if (error) console.warn("Onboarding admin notification skipped:", error.message); });
-        await supabaseAdmin.from("tracking_events").insert({ event_type: "onboarding_completed", source_platform: "customer_dashboard", metadata: { businessId: body.businessId, websiteId: body.websiteId, planId: body.planId } })
+        await supabaseAdmin.from("tracking_events").insert({ event_type: "onboarding_completed", source_platform: "customer_dashboard", metadata: { businessId: body.businessId, websiteId: body.websiteId, planId: effectivePlanId } })
           .then(({ error }) => { if (error) console.warn("Onboarding tracking skipped:", error.message); });
         return res.json({ success: true, projectStatus: "ready_for_build" });
       } catch (error: any) {
@@ -5633,9 +5695,10 @@ async function startServer() {
             .maybeSingle();
 
           const planDefinitions = plansData?.content?.pricing || [
-            { id: "starter", price: "$59" },
-            { id: "growth", price: "$99" },
-            { id: "premium", price: "$399" },
+            { id: "starter", price: "$49" },
+            { id: "business", price: "$99" },
+            { id: "growth", price: "$199" },
+            { id: "website_growth_partner", price: "$799" },
           ];
 
           // Create a lookup for numeric prices

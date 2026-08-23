@@ -590,7 +590,7 @@ export default function DashboardOverview() {
     const samePeriod = request.allowance_period === new Date().toISOString().slice(0, 7);
     return samePeriod && !["declined", "cancelled"].includes(String(request.status || ""));
   }).length;
-  const numericMonthlyAllowance = Number(String(currentPlan.monthlyUpdates || limits.monthlyUpdates || "").match(/\d+/)?.[0] || 1);
+  const numericMonthlyAllowance = Math.max(0, Number(currentPlan.monthlyUpdateLimit ?? 1));
   const remainingUpdateAllowance = Math.max(0, numericMonthlyAllowance - completedUpdateRequestsThisMonth);
   const paymentComplete =
     business?.subscription_status === "active" ||

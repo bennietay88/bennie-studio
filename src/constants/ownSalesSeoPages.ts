@@ -267,14 +267,14 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
   publish({
     path: "/pay-monthly-websites/malaysia",
     seoTitle: "Pay Monthly Websites Malaysia | Managed Website Plans",
-    metaDescription: "Pay monthly websites for Malaysian small businesses. Launch from $49/month with hosting, WhatsApp CTA, SEO setup, and local pages when needed.",
+    metaDescription: "Pay monthly websites for Malaysian small businesses. Launch from RM199/month with hosting, WhatsApp CTA, SEO setup, and local pages when needed.",
     h1: "Pay Monthly Websites Malaysia",
     eyebrow: "Website subscription plans for Malaysian businesses",
     heroCopy: "For Malaysian SMEs, clinics, contractors, consultants, salons, and service businesses that need a professional website without paying a large upfront build fee.",
     offer: "Your website can include clear service sections, WhatsApp enquiry buttons, local SEO fields, and city targeting options for Kuala Lumpur, Selangor, Johor, Penang, and other service areas.",
     whoFor: ["Malaysian SMEs that rely on WhatsApp enquiries", "Local service businesses targeting cities or states", "Businesses that want predictable monthly website costs"],
     marketWhy: "Malaysia buyers often compare trust, speed, WhatsApp response, and affordability. A managed monthly website helps you look professional while keeping launch cost predictable.",
-    pricingNote: "Plans start from $49/month. Malaysian businesses can use USD plan pricing or localized pricing if enabled in the platform.",
+    pricingNote: "Malaysia plans start at RM199/month plus setup. Business is RM399/month and Scale is RM799/month, each with a 12-month term.",
     localInputs: ["WhatsApp CTA should be prominent", "Kuala Lumpur and Selangor service-area targeting", "SME-friendly pricing expectations", "Local proof can include project areas, Google reviews, and screenshots"],
     examples: [
       { industry: "Renovation contractor", plan: "Business", pages: "Home, Services, Projects, Quote", localSeo: "KL and Selangor service areas" },
@@ -285,7 +285,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
       { question: "Can Malaysian businesses use WhatsApp on the website?", answer: "Yes. WhatsApp CTA buttons can be added so visitors can enquire quickly from mobile." },
       { question: "Can I target Kuala Lumpur and Selangor?", answer: "Yes. Business and Growth plans support location content, with limits depending on the plan." },
       { question: "Is this suitable for SMEs?", answer: "Yes. The monthly plans are designed for small businesses that want a professional website and support without agency-level upfront cost." },
-      { question: "Can pricing be shown in RM?", answer: "Localized pricing can be supported when enabled, while the core subscription plans are managed from the platform plan settings." },
+      { question: "Can pricing be shown in RM?", answer: "Yes. Malaysia plan pricing is displayed and billed in Malaysian Ringgit." },
     ],
     links: standardLinks,
     primaryCta: "Build My Malaysia Website",
@@ -404,7 +404,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     offer: "We prepare your website from proven templates and adapt the content for your services, contact flow, and KL business audience.",
     whoFor: ["KL service businesses that need enquiries", "Consultants, clinics, salons, agencies, and contractors", "Businesses that want landing page design and monthly support"],
     marketWhy: "Kuala Lumpur is competitive. Buyers compare trust, speed, proof, and ease of contact. Your website should explain your offer quickly and guide visitors to enquire.",
-    pricingNote: "Monthly website plans start from $49/month. Custom KL website projects start from $1,500 to $3,500+.",
+    pricingNote: "Monthly website plans start from RM199/month plus setup. Custom KL website projects are quoted separately in MYR.",
     localInputs: ["KL service buyer competition", "WhatsApp-first enquiry behaviour", "Landing page design demand", "Nearby Selangor and Klang Valley coverage"],
     examples: [
       { industry: "Beauty clinic", plan: "Growth", pages: "Home, Treatments, FAQ, Booking, Contact", localSeo: "KL treatment page and FAQs" },
@@ -485,7 +485,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     offer: "Start with a clear template-based site, then upgrade when you need more pages, service areas, or local SEO content.",
     whoFor: ["Malaysian SMEs starting their first proper website", "Local companies that rely on WhatsApp and referrals", "Service providers that need trust and enquiries"],
     marketWhy: "Many Malaysian businesses need a better website but do not want a large upfront bill. A monthly plan helps launch sooner and improve over time.",
-    pricingNote: "Starter begins at $49/month. Business is recommended when you need service pages and more local SEO support.",
+    pricingNote: "Launch begins at RM199/month plus setup. Business at RM399/month is recommended when you need separate service pages and stronger local structure.",
     localInputs: ["Affordable SME website demand", "WhatsApp-driven enquiries", "Malaysia city and state targeting", "Start small and upgrade later positioning"],
     examples: [
       { industry: "Salon", plan: "Starter", pages: "One-page website", localSeo: "Primary location and WhatsApp CTA" },
@@ -516,8 +516,8 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     localInputs: ["Managed monthly support", "Hosting and SSL included", "Upgrade path for more pages and cities", "Clear difference from bespoke custom projects"],
     examples: [
       { industry: "Local service", plan: "Starter", pages: "One-page website", localSeo: "Primary location fields" },
-      { industry: "Professional service", plan: "Business", pages: "Home, About, Services, Contact", localSeo: "Up to 5 location pages" },
-      { industry: "Growth business", plan: "Growth", pages: "Home, Services, Blog, Landing Pages, Contact", localSeo: "Up to 25 location pages" },
+      { industry: "Professional service", plan: "Business", pages: "Home, Services, Contact", localSeo: "Up to 1 location page" },
+      { industry: "Growth business", plan: "Scale", pages: "Home, Services, About, Landing Page, Contact", localSeo: "Up to 3 location pages" },
     ],
     faqs: [
       { question: "What is included in a website subscription service?", answer: "The monthly plan includes website setup, hosting, SSL, lead capture, basic SEO fields, and support based on your plan." },

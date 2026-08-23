@@ -61,7 +61,7 @@ export default function MonthlyUpdateRequests() {
   const currentPlan = findPlan(planSettings, business?.plan || "starter");
   const limits = getLocalSeoLimits(business?.plan || "starter", currentPlan.maxPages, currentPlan);
   const currentAllowancePeriod = new Date().toISOString().slice(0, 7);
-  const monthlyAllowance = Number(String(currentPlan.monthlyUpdates || limits.monthlyUpdates || "").match(/\d+/)?.[0] || 1);
+  const monthlyAllowance = Math.max(0, Number(currentPlan.monthlyUpdateLimit ?? 1));
   const usedAllowance = requests.filter((request) =>
     request.allowance_period === currentAllowancePeriod &&
     !["declined", "cancelled"].includes(String(request.status || "")),

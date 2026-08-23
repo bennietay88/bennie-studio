@@ -15,6 +15,11 @@ export interface Plan {
   maxPages: number;
   maxLocationPages: number;
   monthlyUpdates: string;
+  monthlyUpdateLimit: number;
+  commitmentMonths: number;
+  setupFee: number;
+  marketPrices: Record<string, { monthly: number; setupFee: number; currency: string; locale: string }>;
+  marketPriceIds: Record<string, { monthly?: string; yearly?: string; setup?: string }>;
   upgradePrompt: string;
   isActive?: boolean;
 }
@@ -33,6 +38,16 @@ export const PLANS: Plan[] = [
     maxPages: 1,
     maxLocationPages: 0,
     monthlyUpdates: "Limited monthly update request",
+    monthlyUpdateLimit: 1,
+    commitmentMonths: 12,
+    setupFee: 149,
+    marketPrices: {
+      MY: { monthly: 199, setupFee: 499, currency: "MYR", locale: "en-MY" },
+      SG: { monthly: 69, setupFee: 199, currency: "SGD", locale: "en-SG" },
+      GB: { monthly: 39, setupFee: 119, currency: "GBP", locale: "en-GB" },
+      US: { monthly: 49, setupFee: 149, currency: "USD", locale: "en-US" },
+    },
+    marketPriceIds: {},
     upgradePrompt: "Most businesses should use Business to add separate Services and Contact pages, stronger trust sections, and more update allowance.",
     features: [
       "1-page website",
@@ -43,7 +58,7 @@ export const PLANS: Plan[] = [
       "Contact form",
       "WhatsApp button",
       "Custom domain support",
-      "Limited monthly update request",
+      "One consolidated update request each month",
       "Guided content setup",
       "Basic website improvement checklist",
       "Clear service offer structure",
@@ -75,8 +90,18 @@ export const PLANS: Plan[] = [
     description: "Recommended managed website plan for service businesses that need clearer enquiries.",
     aiCredits: 200,
     maxPages: 3,
-    maxLocationPages: 3,
-    monthlyUpdates: "3 monthly managed update requests",
+    maxLocationPages: 1,
+    monthlyUpdates: "1 consolidated update request each month",
+    monthlyUpdateLimit: 1,
+    commitmentMonths: 12,
+    setupFee: 299,
+    marketPrices: {
+      MY: { monthly: 399, setupFee: 1200, currency: "MYR", locale: "en-MY" },
+      SG: { monthly: 139, setupFee: 399, currency: "SGD", locale: "en-SG" },
+      GB: { monthly: 79, setupFee: 239, currency: "GBP", locale: "en-GB" },
+      US: { monthly: 99, setupFee: 299, currency: "USD", locale: "en-US" },
+    },
+    marketPriceIds: {},
     upgradePrompt: "Upgrade to Scale when you need campaign landing pages, more local pages, and priority conversion support.",
     features: [
       "Default managed website plan",
@@ -89,7 +114,7 @@ export const PLANS: Plan[] = [
       "FAQ section",
       "Lead capture form",
       "SEO title and meta description setup",
-      "3 monthly managed update requests",
+      "1 consolidated update request each month",
       "Expanded content support",
       "WhatsApp enquiry message setup",
       "Contact and quote path tracking",
@@ -137,8 +162,18 @@ export const PLANS: Plan[] = [
     description: "Upgrade plan for businesses that need landing pages, local expansion, and priority improvement support.",
     aiCredits: 1000,
     maxPages: 5,
-    maxLocationPages: 5,
-    monthlyUpdates: "6 monthly managed update requests",
+    maxLocationPages: 3,
+    monthlyUpdates: "2 managed update requests each month",
+    monthlyUpdateLimit: 2,
+    commitmentMonths: 12,
+    setupFee: 499,
+    marketPrices: {
+      MY: { monthly: 799, setupFee: 2000, currency: "MYR", locale: "en-MY" },
+      SG: { monthly: 269, setupFee: 699, currency: "SGD", locale: "en-SG" },
+      GB: { monthly: 159, setupFee: 399, currency: "GBP", locale: "en-GB" },
+      US: { monthly: 199, setupFee: 499, currency: "USD", locale: "en-US" },
+    },
+    marketPriceIds: {},
     upgradePrompt: "Request a Custom Website quote for full CMS control, blog publishing, advanced SEO, ownership, ecommerce, or integrations.",
     features: [
       "Everything in Business",
@@ -150,7 +185,7 @@ export const PLANS: Plan[] = [
       "Conversion recommendations",
       "Analytics-ready structure",
       "Priority support",
-      "6 monthly managed update requests",
+      "2 managed update requests each month",
       "Advanced website improvement review",
       "Campaign landing page support",
       "Local service-area pages",
@@ -235,9 +270,31 @@ export const normalizePlan = (plan: Partial<Plan> & { id?: string }, index = 0):
       ? Math.floor(Number(inferredLocationPages))
       : 0,
     monthlyUpdates: String(plan.monthlyUpdates || fallback.monthlyUpdates || "Monthly update support"),
+    monthlyUpdateLimit: Number((plan as any).monthlyUpdateLimit ?? (plan as any).monthly_update_limit ?? fallback.monthlyUpdateLimit ?? 1),
+    commitmentMonths: Number((plan as any).commitmentMonths ?? (plan as any).commitment_months ?? fallback.commitmentMonths ?? 12),
+    setupFee: Number((plan as any).setupFee ?? (plan as any).setup_fee ?? fallback.setupFee ?? 0),
+    marketPrices: ((plan as any).marketPrices || (plan as any).market_prices || fallback.marketPrices || {}) as Plan["marketPrices"],
+    marketPriceIds: ((plan as any).marketPriceIds || (plan as any).market_price_ids || fallback.marketPriceIds || {}) as Plan["marketPriceIds"],
     upgradePrompt: String(plan.upgradePrompt || fallback.upgradePrompt || "Upgrade to unlock more pages and grow your website."),
     isActive: (plan as any).isActive ?? (plan as any).is_active ?? fallback.isActive ?? true,
   };
+};
+
+export const getPlanMarketPrice = (plan: Plan, market = "US") =>
+  plan.marketPrices?.[String(market).toUpperCase()] || plan.marketPrices?.US || {
+    monthly: Number(String(plan.price).replace(/[^0-9.]/g, "")) || 0,
+    setupFee: plan.setupFee || 0,
+    currency: "USD",
+    locale: "en-US",
+  };
+
+export const formatPlanMoney = (plan: Plan, market = "US", value: "monthly" | "setupFee" = "monthly") => {
+  const pricing = getPlanMarketPrice(plan, market);
+  return new Intl.NumberFormat(pricing.locale, {
+    style: "currency",
+    currency: pricing.currency,
+    maximumFractionDigits: 0,
+  }).format(pricing[value]);
 };
 
 export const normalizePlans = (plans?: Array<Partial<Plan> & { id?: string }>): Plan[] => {
