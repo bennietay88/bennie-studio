@@ -333,7 +333,7 @@ app.use((req, res, next) => {
       "img-src 'self' data: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
       `connect-src 'self'${localDevelopment ? " ws://127.0.0.1:* ws://localhost:*" : ""} https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.deepseek.com https://generativelanguage.googleapis.com https://api.openai.com https://api.resend.com https://ct.pinterest.com https://*.sentry.io https://*.ingest.sentry.io`,
-      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://ct.pinterest.com",
       "object-src 'none'",
       "base-uri 'self'",
     ].join("; "),

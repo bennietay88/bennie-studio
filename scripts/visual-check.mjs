@@ -9,6 +9,9 @@ page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
 page.on("console", (message) => {
   if (message.type() === "error") errors.push(`console: ${message.text()}`);
 });
+page.on("response", (response) => {
+  if (response.status() >= 400) errors.push(`response ${response.status()}: ${response.url()}`);
+});
 
 for (const route of routes) {
   await page.goto(`${baseUrl}${route}`, { waitUntil: "domcontentloaded" });
