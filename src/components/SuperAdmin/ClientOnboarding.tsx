@@ -51,31 +51,18 @@ export function ClientOnboarding() {
   }, []);
 
   const updateHandoverPlatform = async (businessId: string, platformType: string) => {
-    const { error: rpcError } = await supabase.rpc("set_handover_platform_type", {
-      p_business_id: businessId,
-      p_platform_type: platformType,
+    const { data: sessionData } = await supabase.auth.getSession();
+    const response = await fetch(`/api/admin/businesses/${businessId}/platform-type`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${sessionData.session?.access_token || ""}`,
+      },
+      body: JSON.stringify({ platformType }),
     });
-
-    if (!rpcError) return;
-
-    const missingRpc =
-      rpcError.code === "PGRST202" ||
-      rpcError.code === "42883" ||
-      rpcError.message?.includes("set_handover_platform_type");
-
-    if (!missingRpc) throw rpcError;
-
-    // Backward-compatible path for superadmins before the handover migration is applied.
-    const { error: fallbackError } = await supabase
-      .from("businesses")
-      .update({ platform_type: platformType })
-      .eq("id", businessId);
-
-    if (fallbackError) {
-      throw new Error(
-        "Apply the latest Client Handover migration before changing the delivery platform.",
-      );
-    }
+    if (response.ok) return;
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.error || "Unable to change the delivery platform");
   };
 
   const fetchSessions = async () => {

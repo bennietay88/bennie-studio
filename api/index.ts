@@ -792,6 +792,52 @@ async function startServer() {
     }
   };
 
+  app.get(
+    "/api/admin/affiliates/unpaid-total",
+    authenticate,
+    superAdminOnly,
+    async (_req: any, res: any) => {
+      const { data, error } = await supabaseAdmin.rpc("sum_unpaid_earnings");
+      if (error) return res.status(500).json({ error: error.message });
+      return res.json({ unpaidTotal: Number(data || 0) });
+    },
+  );
+
+  app.post(
+    "/api/admin/prospects/:prospectId/convert",
+    authenticate,
+    superAdminOnly,
+    async (req: any, res: any) => {
+      const { plan, subdomain } = req.body || {};
+      if (!plan || !subdomain) {
+        return res.status(400).json({ error: "Plan and subdomain are required" });
+      }
+      const { data, error } = await supabaseAdmin.rpc("convert_prospect_to_customer", {
+        p_prospect_id: req.params.prospectId,
+        p_plan: plan,
+        p_subdomain: subdomain,
+      });
+      if (error) return res.status(400).json({ error: error.message });
+      return res.json({ businessId: data });
+    },
+  );
+
+  app.patch(
+    "/api/admin/businesses/:businessId/platform-type",
+    authenticate,
+    superAdminOnly,
+    async (req: any, res: any) => {
+      const { platformType } = req.body || {};
+      if (!platformType) return res.status(400).json({ error: "Platform type is required" });
+      const { error } = await supabaseAdmin.rpc("set_handover_platform_type", {
+        p_business_id: req.params.businessId,
+        p_platform_type: platformType,
+      });
+      if (error) return res.status(400).json({ error: error.message });
+      return res.status(204).send();
+    },
+  );
+
   const stripeTimestampToIso = (value?: number | null) =>
     value ? new Date(value * 1000).toISOString() : null;
 

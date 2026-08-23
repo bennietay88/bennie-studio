@@ -259,15 +259,23 @@ export function ProspectExplorer() {
     }
     try {
       setSaving(true);
-      const { data, error } = await supabase.rpc("convert_prospect_to_customer", {
-        p_prospect_id: convertingProspect.id,
-        p_plan: conversionPlan,
-        p_subdomain: conversionSubdomain,
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await fetch(`/api/admin/prospects/${convertingProspect.id}/convert`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          plan: conversionPlan,
+          subdomain: conversionSubdomain,
+        }),
       });
-      if (error) throw error;
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Prospect conversion failed");
       setProspects((rows) => rows.map((row) => row.id === convertingProspect.id ? {
         ...row,
-        converted_business_id: data,
+        converted_business_id: payload.businessId,
         converted_at: new Date().toISOString(),
         outreach_status: "won",
         status: "converted",

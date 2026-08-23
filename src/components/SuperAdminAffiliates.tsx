@@ -56,7 +56,12 @@ export function SuperAdminAffiliates() {
         .from("affiliates")
         .select("*", { count: "exact", head: true });
 
-      const { data: unpaidSum } = await supabase.rpc("sum_unpaid_earnings");
+      const { data: sessionData } = await supabase.auth.getSession();
+      const unpaidResponse = await fetch("/api/admin/affiliates/unpaid-total", {
+        headers: { Authorization: `Bearer ${sessionData.session?.access_token || ""}` },
+      });
+      if (!unpaidResponse.ok) throw new Error("Unable to load unpaid affiliate earnings");
+      const { unpaidTotal } = await unpaidResponse.json();
       const { data: paidSum } = await supabase
         .from("affiliate_payouts")
         .select("amount")
@@ -64,7 +69,7 @@ export function SuperAdminAffiliates() {
 
       setStats({
         totalAffiliates: affCount || 0,
-        pendingPayouts: unpaidSum || 0,
+        pendingPayouts: unpaidTotal || 0,
         totalPaid: paidSum?.reduce((acc, p) => acc + p.amount, 0) || 0,
       });
 
