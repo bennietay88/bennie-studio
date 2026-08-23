@@ -37,7 +37,6 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
-import { supabase } from "../lib/supabase";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import {
@@ -88,27 +87,6 @@ const buildWhatsAppHref = (rawValue?: string, message?: string) => {
     ? `?text=${encodeURIComponent(message.trim())}`
     : "";
   return `https://wa.me/${digits}${text}`;
-};
-
-const fetchPlatformPosts = async (signal: AbortSignal) => {
-  const { data, error } = await supabase
-    .from("posts")
-    .select("*")
-    .eq("is_platform_post", true)
-    .eq("status", "published")
-    .order("created_at", { ascending: false })
-    .abortSignal(signal)
-    .limit(3);
-
-  if (error) {
-    if (error.code === "42703" || /is_platform_post/i.test(error.message || "")) {
-      console.warn("Platform post flag is not available yet; hiding latest posts.");
-      return [];
-    }
-    throw error;
-  }
-
-  return data || [];
 };
 
 const SALES_COOKIE_CONSENT_KEY = "bt_sales_cookie_consent";
@@ -282,31 +260,16 @@ export default function LandingPage() {
       const timeoutId = window.setTimeout(() => controller.abort(), 5000);
 
       try {
-        const [settingsRes, policiesRes, postsRes] = await Promise.all([
-          supabase
-            .from("settings")
-            .select("content")
-            .eq("id", "platform")
-            .abortSignal(controller.signal)
-            .maybeSingle(),
-          supabase
-            .from("settings")
-            .select("content")
-            .eq("id", "platform_policies")
-            .abortSignal(controller.signal)
-            .maybeSingle(),
-          fetchPlatformPosts(controller.signal),
-        ]);
+        const configResponse = await fetch("/api/public/site-config", { signal: controller.signal });
+        const siteConfig = configResponse.ok ? await configResponse.json() : null;
 
-        if (settingsRes.data) setPlatformSettings(settingsRes.data.content);
-        
-        if (policiesRes.data?.content?.policies) {
-          setPlatformPolicies(
-            policiesRes.data.content.policies.filter((p: any) => p.status === "published")
-          );
+        if (siteConfig?.platform) setPlatformSettings(siteConfig.platform);
+        if (siteConfig?.landingPage && typeof siteConfig.landingPage === "object") {
+          setContent({ ...DEFAULT_LANDING_CONTENT, ...siteConfig.landingPage });
         }
+        if (Array.isArray(siteConfig?.policies)) setPlatformPolicies(siteConfig.policies);
 
-        setBlogPosts(Array.isArray(postsRes) ? postsRes : []);
+        setBlogPosts(Array.isArray(siteConfig?.posts) ? siteConfig.posts : []);
       } catch (err) {
         if (import.meta.env.DEV) {
           console.debug("Landing page optional data unavailable; using defaults.", err);
@@ -326,53 +289,6 @@ export default function LandingPage() {
       return () => clearTimeout(timer);
     }
   }, [error, clearError]);
-
-  React.useEffect(() => {
-    const fetchSettings = async () => {
-      const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), 5000);
-
-      try {
-        const { data: landingData } = await supabase
-          .from("settings")
-          .select("content")
-          .eq("id", "landing_page")
-          .abortSignal(controller.signal)
-          .maybeSingle();
-
-        if (landingData?.content && typeof landingData.content === "object") {
-          setContent({ ...DEFAULT_LANDING_CONTENT, ...landingData.content });
-        }
-      } catch (err) {
-        if (import.meta.env.DEV) {
-          console.debug("Landing page settings unavailable; using defaults.", err);
-        }
-      } finally {
-        window.clearTimeout(timeoutId);
-      }
-    };
-
-    fetchSettings();
-
-    const channel = supabase
-      .channel("public:settings")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "settings" },
-        (payload) => {
-          if (payload.new && (payload.new as any).id === "landing_page") {
-            setContent((payload.new as any).content);
-          } else if (payload.new && (payload.new as any).id === "platform") {
-            setPlatformSettings((payload.new as any).content);
-          }
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   const c = React.useMemo(
     () => ({

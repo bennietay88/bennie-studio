@@ -73,26 +73,18 @@ export const Pricing: React.FC<PricingProps> = ({
   React.useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const { data: tablePlans, error: tableError } = await supabase
-          .from("plans")
-          .select("*")
-          .eq("is_active", true)
-          .order("sort_order", { ascending: true, nullsFirst: false })
-          .order("price_usd", { ascending: true });
+        const response = await fetch("/api/public/site-config");
+        if (!response.ok) throw new Error("Public plans are unavailable");
+        const config = await response.json();
+        const tablePlans = config?.plans;
 
-        if (!tableError && Array.isArray(tablePlans) && tablePlans.length > 0) {
+        if (Array.isArray(tablePlans) && tablePlans.length > 0) {
           setPlans(withCustomerFacingPlanNames(mapPlanTableRows(tablePlans)));
           return;
         }
 
-        const { data } = await supabase
-          .from("settings")
-          .select("content")
-          .eq("id", "plans")
-          .maybeSingle();
-
-        if (data?.content?.pricing) {
-          setPlans(withCustomerFacingPlanNames(activePlans(normalizePlans(data.content.pricing))));
+        if (Array.isArray(config?.legacyPricing)) {
+          setPlans(withCustomerFacingPlanNames(activePlans(normalizePlans(config.legacyPricing))));
         } else {
           setPlans(withCustomerFacingPlanNames(activePlans(STATIC_PLANS)));
         }

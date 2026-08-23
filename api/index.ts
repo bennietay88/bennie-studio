@@ -4613,6 +4613,41 @@ async function startServer() {
     return res.json({ slots, timezone: "Asia/Kuala_Lumpur", durationMinutes: 30 });
   });
 
+  app.get("/api/public/site-config", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-site-config" }), async (_req, res) => {
+    const [
+      { data: settingsRows, error: settingsError },
+      { data: planRows, error: plansError },
+      { data: postRows, error: postsError },
+    ] = await Promise.all([
+      supabaseAdmin.from("settings").select("id,content").in("id", ["platform", "platform_policies", "landing_page", "plans"]),
+      supabaseAdmin.from("plans").select("*").eq("is_active", true).order("sort_order", { ascending: true, nullsFirst: false }).order("price_usd", { ascending: true }),
+      supabaseAdmin.from("posts").select("*").eq("is_platform_post", true).eq("status", "published").order("created_at", { ascending: false }).limit(3),
+    ]);
+    if (settingsError) return res.status(500).json({ error: "Public site settings are unavailable" });
+
+    const settings = new Map((settingsRows || []).map((row: any) => [row.id, row.content || {}]));
+    const platform = settings.get("platform") || {};
+    const publicPlatformKeys = [
+      "name", "salesPageTitle", "maintenanceMode", "maintenanceMessage", "maintenanceTitle", "estimatedDowntime",
+      "supportEmail", "gaMeasurementId", "metaPixelId", "salesWhatsappAriaLabel", "salesWhatsappEnabled",
+      "salesWhatsappLink", "salesWhatsappMessage", "salesCookieBannerEnabled", "trackingScriptsHeader", "trackingScriptsFooter",
+    ];
+    const publicPlatform = Object.fromEntries(publicPlatformKeys.filter((key) => platform[key] !== undefined).map((key) => [key, platform[key]]));
+    const policies = Array.isArray(settings.get("platform_policies")?.policies)
+      ? settings.get("platform_policies").policies.filter((policy: any) => policy?.status === "published")
+      : [];
+
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+    return res.json({
+      platform: publicPlatform,
+      landingPage: settings.get("landing_page") || null,
+      policies,
+      plans: !plansError && Array.isArray(planRows) ? planRows : [],
+      legacyPricing: settings.get("plans")?.pricing || null,
+      posts: !postsError && Array.isArray(postRows) ? postRows : [],
+    });
+  });
+
   app.post("/api/public/call-bookings", rateLimit({ windowMs: 60 * 1000, max: 8, keyPrefix: "call-bookings" }), async (req, res) => {
     const body = validateBody(z.object({ leadId: UUID_SCHEMA.optional(), name: TEXT_SCHEMA, email: EMAIL_SCHEMA, phone: z.string().max(80).optional(), businessName: TEXT_SCHEMA, market: z.string().max(20).optional(), industry: z.string().max(160).optional(), websiteUrl: z.string().max(500).optional(), startAt: z.string().datetime(), timezone: z.string().max(80).default("Asia/Kuala_Lumpur"), goals: z.string().max(2000).optional() }), req, res);
     if (!body) return;

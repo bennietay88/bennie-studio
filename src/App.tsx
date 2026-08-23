@@ -272,17 +272,14 @@ export default function App() {
       const timeoutId = window.setTimeout(() => controller.abort(), 5000);
 
       try {
-        const { data } = await supabase
-          .from("settings")
-          .select("content")
-          .eq("id", "platform")
-          .abortSignal(controller.signal)
-          .maybeSingle();
+        const response = await fetch("/api/public/site-config", { signal: controller.signal });
+        if (!response.ok) throw new Error("Public site settings are unavailable");
+        const data = await response.json();
 
-        if (data?.content) {
-          if (!cancelled) setPlatformSettings(data.content);
+        if (data?.platform) {
+          if (!cancelled) setPlatformSettings(data.platform);
           try {
-            sessionStorage.setItem("bts_platform_settings", JSON.stringify(data.content));
+            sessionStorage.setItem("bts_platform_settings", JSON.stringify(data.platform));
           } catch {
             // Settings cache is an optimization only.
           }
