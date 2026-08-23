@@ -5,6 +5,7 @@ import "./index.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { initClientObservability } from "./lib/observability";
+import { MotionConfig } from "motion/react";
 
 const referralCode = new URLSearchParams(window.location.search).get("ref");
 if (referralCode) localStorage.setItem("ref_platform", referralCode);
@@ -15,7 +16,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>
       <AuthProvider>
-        <App />
+        <MotionConfig reducedMotion="user">
+          <App />
+        </MotionConfig>
       </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,

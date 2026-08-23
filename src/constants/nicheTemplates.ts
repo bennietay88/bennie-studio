@@ -407,7 +407,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "Request Consultation",
     premiumLevel: "Agency Grade",
     description: "Classic design aesthetic that projects authority, depth of experience, and absolute trust.",
-    thumbnail: "/brand-template-preview.svg",
+    thumbnail: "/template-assets/flagship-professional.jpg",
     theme: {
       primaryColor: "#1e293b",
       secondaryColor: "#f1f5f9",
@@ -428,6 +428,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
             headline: "Justice Driven by Experience",
             subheadline: "Protecting your interests with rigorous strategy and personal dedication.",
             ctaText: "Schedule Consultation",
+            imageUrl: "/template-assets/flagship-professional.jpg",
           }),
           createSection("proof", {
             title: "Proven Results",
@@ -533,7 +534,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     ctaType: "Book Call",
     premiumLevel: "Agency Grade",
     description: "Clean, hygienic, and comforting design to reduce anxiety and promote bookings.",
-    thumbnail: "/brand-template-preview.svg",
+    thumbnail: "/template-assets/flagship-clinic.jpg",
     theme: {
       primaryColor: "#0ea5e9",
       secondaryColor: "#ffffff",
@@ -554,6 +555,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
             headline: "A Healthy Smile for Life",
             subheadline: "Gentle care for all ages in a modern, welcoming environment.",
             ctaText: "Book Appointment",
+            imageUrl: "/template-assets/flagship-clinic.jpg",
           }),
           createSection("proof", {
             title: "Patient Trust",
@@ -1069,6 +1071,7 @@ const buildNicheTemplate = ({
             headline: `${name} Services Built Around Results`,
             subheadline: `A focused website structure for ${bestFor.toLowerCase()} with clear services, local trust, and a direct enquiry path.`,
             ctaText: String(cta),
+            imageUrl: thumbnail,
           }),
           createSection("proof", {
             title: "Built for Local Trust",
@@ -1126,7 +1129,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Skin clinics, medspas, facial clinics, and aesthetic practitioners.",
     services: ["Skin consultation", "Facial treatments", "Laser treatments", "Injectables"],
     sectionPreset: ["Premium hero", "Treatment categories", "Skin concern selector", "Results gallery", "Consultation form"],
-    thumbnail: "/brand-template-preview.svg",
+    thumbnail: "/template-assets/flagship-clinic.jpg",
     theme: { primaryColor: "#7c3aed", secondaryColor: "#f5f3ff", fontFamily: "'Plus Jakarta Sans', sans-serif", style: "corporate" },
   }),
   ...buildNicheTemplate({
@@ -1143,7 +1146,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Physiotherapy, rehabilitation, sports recovery, and pain management clinics.",
     services: ["Back pain treatment", "Sports injury rehab", "Post-surgery recovery", "Mobility assessment"],
     sectionPreset: ["Hero with assessment CTA", "Pain selector", "Conditions treated", "Recovery benefits", "Booking form"],
-    thumbnail: "/brand-template-preview.svg",
+    thumbnail: "/template-assets/flagship-clinic.jpg",
     theme: { primaryColor: "#0f766e", secondaryColor: "#ecfdf5", fontFamily: "'Plus Jakarta Sans', sans-serif", style: "modern" },
   }),
   ...buildNicheTemplate({
@@ -1160,7 +1163,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Renovation contractors, builders, interior contractors, and home improvement companies.",
     services: ["Home renovation", "Kitchen renovation", "Bathroom renovation", "Office renovation"],
     sectionPreset: ["Quote hero", "Service categories", "Project gallery", "Before/after", "Service areas"],
-    thumbnail: "/brand-template-preview.svg",
+    thumbnail: "/template-assets/flagship-renovation.jpg",
     theme: { primaryColor: "#ea580c", secondaryColor: "#fff7ed", fontFamily: "'Plus Jakarta Sans', sans-serif", style: "modern" },
   }),
   ...buildNicheTemplate({
@@ -1230,7 +1233,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Tuition centres, enrichment centres, private tutors, and education businesses.",
     services: ["Primary tuition", "Secondary tuition", "Exam preparation", "Trial class"],
     sectionPreset: ["Trial class hero", "Program cards", "Age selector", "Results section", "Enquiry form"],
-    thumbnail: "/brand-template-preview.svg",
+    thumbnail: "/template-assets/flagship-education.jpg",
     theme: { primaryColor: "#4f46e5", secondaryColor: "#eef2ff", fontFamily: "'Plus Jakarta Sans', sans-serif", style: "modern" },
   }),
   ...buildNicheTemplate({
@@ -1247,7 +1250,7 @@ const ADDITIONAL_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     bestFor: "Hair salons, beauty salons, spas, nail studios, and lifestyle treatment businesses.",
     services: ["Hair styling", "Facial treatment", "Massage", "Nail services"],
     sectionPreset: ["Lifestyle hero", "Service menu", "Treatment highlights", "Gallery", "Appointment form"],
-    thumbnail: "/brand-template-preview.svg",
+    thumbnail: "/template-assets/flagship-beauty.jpg",
     theme: { primaryColor: "#be185d", secondaryColor: "#fdf2f8", fontFamily: "'Fraunces', serif", style: "immersive" },
   }),
   ...buildNicheTemplate({

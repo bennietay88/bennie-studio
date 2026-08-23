@@ -3565,11 +3565,20 @@ async function startServer() {
           return res.status(403).json({ error: "Forbidden: sales access required" });
         }
 
+        const { data: existingLead } = body.channel
+          ? await supabaseAdmin.from("leads").select("first_response_at").eq("id", req.params.leadId).maybeSingle()
+          : { data: null };
         const updatePayload: Record<string, any> = {};
         if (body.status !== undefined) updatePayload.status = body.status;
         if (body.nextAction !== undefined) updatePayload.automation_next_action = body.nextAction;
         if (body.nextFollowUpAt !== undefined) updatePayload.next_follow_up_at = body.nextFollowUpAt;
-        if (body.channel) updatePayload.last_follow_up_at = new Date().toISOString();
+        if (body.channel) {
+          const respondedAt = new Date().toISOString();
+          updatePayload.last_follow_up_at = respondedAt;
+          if (!existingLead?.first_response_at) updatePayload.first_response_at = respondedAt;
+          updatePayload.response_channel = body.channel;
+          updatePayload.response_owner = req.user.id;
+        }
 
         const { data, error } = await supabaseAdmin
           .from("leads")

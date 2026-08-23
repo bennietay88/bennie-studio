@@ -46,6 +46,7 @@ import {
   BriefcaseBusiness,
   Inbox,
   Search,
+  Target,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -182,6 +183,7 @@ export function Sidebar({
           items: [
             { to: "/admin", icon: LayoutDashboard, label: "Overview", className: "tour-dashboard" },
             { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox" },
+            { to: "/admin/growth_operations", icon: Target, label: "Growth Operations", moduleId: "growth_operations" },
             { to: "/admin/prospect_explorer", icon: Users, label: "Prospects", moduleId: "prospects" },
             { to: "/admin/neural_auditor", icon: Globe, label: "Website Reviews", moduleId: "website_reviews" },
             { to: "/admin/outreach_lab", icon: MessageSquare, label: "Outreach", moduleId: "outreach" },

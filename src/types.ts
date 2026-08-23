@@ -456,6 +456,8 @@ export interface Lead {
   automationTemperature?: "Cold" | "Warm" | "Hot";
   lastFollowUpAt?: number;
   nextFollowUpAt?: number;
+  firstResponseAt?: number;
+  responseChannel?: "email" | "whatsapp" | "phone" | "manual";
   lastActiveAt?: number;
   createdAt: number;
 }

@@ -39,6 +39,8 @@ import {
 } from "../constants/revenueOffer";
 import { getBasicWebsiteOffers, saveBasicPlanIntent } from "../constants/publicOffers";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
+import { FlagshipTemplateGallery } from "./FlagshipTemplateGallery";
+import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { supabase } from "../lib/supabase";
 import {
   normalizeWebsiteAuditResult,
@@ -195,6 +197,7 @@ const deliveryStages = [
 const caseStudies = [
   {
     title: "SmileHaus Dental Clinic",
+    templateId: "dental-clinic-v1",
     industry: "Dental clinic",
     type: "Appointment conversion",
     image: "/brand-template-preview.svg",
@@ -206,6 +209,7 @@ const caseStudies = [
   },
   {
     title: "PrimeBuild Renovation",
+    templateId: "renovation-contractor-v1",
     industry: "Renovation contractor",
     type: "Qualified quote flow",
     image: "/brand-template-preview.svg",
@@ -217,6 +221,7 @@ const caseStudies = [
   },
   {
     title: "NorthStar Growth Advisory",
+    templateId: "law-firm-v1",
     industry: "Consulting",
     type: "Authority and call booking",
     image: "/brand-template-preview.svg",
@@ -228,6 +233,7 @@ const caseStudies = [
   },
   {
     title: "Lumi Beauty Studio",
+    templateId: "salon-spa-v1",
     industry: "Beauty salon",
     type: "Treatment booking",
     image: "/brand-template-preview.svg",
@@ -239,6 +245,7 @@ const caseStudies = [
   },
   {
     title: "Kopi Yard Cafe",
+    templateId: "restaurant-v1",
     industry: "Restaurant and cafe",
     type: "Local discovery",
     image: "/brand-template-preview.svg",
@@ -250,6 +257,7 @@ const caseStudies = [
   },
   {
     title: "BrightPath Tuition Centre",
+    templateId: "tuition-centre-v1",
     industry: "Education",
     type: "Trial-class enquiries",
     image: "/brand-template-preview.svg",
@@ -498,7 +506,21 @@ function TemplatesPage() {
         icon={LayoutTemplate}
       />
       <section className="mx-auto max-w-7xl px-5 py-14">
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-8 max-w-3xl">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Five flagship directions</p>
+          <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Preview the real website—not a generic wireframe.</h2>
+          <p className="mt-4 text-base font-semibold leading-7 text-slate-600">Each family uses a distinct visual direction, enquiry path, proof structure and launch checklist. Open the live build, then personalise it with your business details.</p>
+        </div>
+        <FlagshipTemplateGallery />
+
+        <div className="mt-14 border-t border-slate-200 pt-12">
+          <div className="max-w-3xl">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">More niche starting points</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">The same managed system, organised around your market.</h2>
+            <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">These packs help us choose the right CTA, page structure and evidence requirements. They are not separate low-quality themes.</p>
+          </div>
+        </div>
+        <div className="mt-7 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {WAAS_TEMPLATE_PACKS.map((pack) => (
             <div key={pack.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">{pack.name}</p>
@@ -513,36 +535,13 @@ function TemplatesPage() {
             </div>
           ))}
         </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {industries.map(([name, description]) => (
-            <div key={name} className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-              <p className="text-lg font-black text-slate-950">{name}</p>
-              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{description}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-10 rounded-[2rem] border border-slate-200 bg-slate-950 p-6 text-white shadow-xl sm:p-8">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">See the structure before launch</p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight">Every template starts as a clear enquiry journey.</h2>
-              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300">These wireframes show the hierarchy, CTA placement, trust blocks, and mobile direction. Your approved content replaces the placeholders during the build.</p>
-            </div>
-            <Link to="/generate-preview" className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-slate-950 shadow-lg transition hover:-translate-y-0.5 hover:bg-indigo-100">Generate My Preview <ArrowRight className="ml-2 h-4 w-4" /></Link>
-          </div>
-          <div className="mt-7 grid gap-5 lg:grid-cols-3">
-            <WebsiteWireframe title="Lead service" accent="indigo" />
-            <WebsiteWireframe title="Clinic booking" accent="emerald" />
-            <WebsiteWireframe title="Quote request" accent="amber" />
-          </div>
-        </div>
-        <div className="mt-12 rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
+        <div className="mt-10 rounded-[2rem] border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
           <div className="max-w-3xl">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Industry sales paths</p>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Industry sales paths</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-white">
               Start from the business type, then choose the right template.
             </h2>
-            <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
+            <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
               These quick starts keep the customer conversation simple: niche, goal, pages, CTA, and local SEO direction.
             </p>
           </div>
@@ -551,12 +550,12 @@ function TemplatesPage() {
               <Link
                 key={item.industry}
                 to={item.path}
-                className="rounded-3xl border border-slate-200 bg-slate-50 p-5 transition hover:border-indigo-200 hover:bg-indigo-50"
+                className="rounded-3xl border border-white/10 bg-white/5 p-5 transition hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-white/10"
               >
-                <p className="text-lg font-black text-slate-950">{item.industry}</p>
-                <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{item.promise}</p>
-                <span className="mt-4 inline-flex items-center text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
-                  View matching templates <ArrowRight className="ml-2 h-4 w-4" />
+                <p className="text-lg font-black text-white">{item.industry}</p>
+                <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{item.promise}</p>
+                <span className="mt-4 inline-flex items-center text-xs font-black uppercase tracking-[0.18em] text-indigo-200">
+                  View the industry path <ArrowRight className="ml-2 h-4 w-4" />
                 </span>
               </Link>
             ))}
@@ -859,7 +858,7 @@ function CaseStudiesPage() {
     let cancelled = false;
     supabase
       .from("customer_testimonials")
-      .select("id,customer_name,company,testimonial,result_summary,evidence_reference,date_approved")
+      .select("id,slug,title,customer_name,company,testimonial,result_summary,evidence_reference,date_approved,before_summary,changes,result_metrics,before_image_url,after_image_url")
       .eq("publish_status", "published")
       .eq("consent_status", "approved")
       .order("date_approved", { ascending: false })
@@ -877,7 +876,7 @@ function CaseStudiesPage() {
       <section className="mx-auto max-w-7xl px-5 py-14">
         <div className="mb-10 rounded-[2rem] bg-slate-950 p-6 text-white sm:p-8">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Verified customer outcomes</p>
-          {verifiedProof.length ? <div className="mt-5 grid gap-4 md:grid-cols-2">{verifiedProof.map((proof) => <article key={proof.id} className="rounded-3xl border border-white/10 bg-white/5 p-5"><p className="text-lg font-black">{proof.result_summary || "Customer experience"}</p><p className="mt-3 text-sm font-semibold leading-6 text-slate-300">“{proof.testimonial}”</p><p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-indigo-200">{proof.customer_name}{proof.company ? ` · ${proof.company}` : ""}</p>{proof.evidence_reference && <a href={proof.evidence_reference} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-black text-emerald-300 hover:text-emerald-200">View supporting reference <ExternalLink className="ml-1 h-3.5 w-3.5" /></a>}</article>)}</div> : <div className="mt-5 rounded-3xl border border-white/10 bg-white/5 p-5"><p className="font-black">No verified customer result has been published yet.</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">The concept studies below demonstrate strategy and design direction. Real outcomes will appear here only after customer approval and evidence review.</p></div>}
+          {verifiedProof.length ? <div className="mt-5 grid gap-4 md:grid-cols-2">{verifiedProof.map((proof) => <article key={proof.id} className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">{(proof.before_image_url || proof.after_image_url) && <div className="grid grid-cols-2">{proof.before_image_url && <img src={proof.before_image_url} alt={`Before improvements for ${proof.company || proof.customer_name}`} className="h-40 w-full object-cover" />}{proof.after_image_url && <img src={proof.after_image_url} alt={`After improvements for ${proof.company || proof.customer_name}`} className="h-40 w-full object-cover" />}</div>}<div className="p-5"><p className="text-lg font-black">{proof.title || proof.result_summary || "Customer outcome"}</p>{proof.before_summary && <div className="mt-4"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Before</p><p className="mt-1 text-sm font-semibold text-slate-300">{proof.before_summary}</p></div>}{Array.isArray(proof.changes) && proof.changes.length > 0 && <div className="mt-4"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">What changed</p><ul className="mt-2 space-y-1 text-sm font-semibold text-slate-300">{proof.changes.map((change: string) => <li key={change}>• {change}</li>)}</ul></div>}{Array.isArray(proof.result_metrics) && proof.result_metrics.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{proof.result_metrics.map((metric: any) => <span key={`${metric.metric}-${metric.value}`} className="rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-black text-emerald-300">{metric.metric}: {metric.value}</span>)}</div>}<p className="mt-4 text-sm font-semibold leading-6 text-slate-300">“{proof.testimonial}”</p><p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-indigo-200">{proof.customer_name}{proof.company ? ` · ${proof.company}` : ""}</p>{proof.evidence_reference && <a href={proof.evidence_reference} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-black text-emerald-300 hover:text-emerald-200">View supporting reference <ExternalLink className="ml-1 h-3.5 w-3.5" /></a>}</div></article>)}</div> : <div className="mt-5 rounded-3xl border border-white/10 bg-white/5 p-5"><p className="font-black">No verified customer result has been published yet.</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">The concept studies below demonstrate strategy and design direction. Real outcomes will appear here only after customer approval and evidence review.</p></div>}
         </div>
         <div className="mb-10 grid gap-4 rounded-[2rem] border border-indigo-100 bg-indigo-50 p-6 md:grid-cols-[1fr_auto] md:items-center">
           <div>
@@ -897,7 +896,10 @@ function CaseStudiesPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           {caseStudies.map((item) => (
             <article key={item.title} className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-              <WebsiteWireframe title={item.industry} accent={item.industry.includes("clinic") ? "emerald" : item.industry.includes("Renovation") ? "amber" : "indigo"} />
+              <div className="relative min-h-64 overflow-hidden border-b border-slate-200 bg-slate-100">
+                <TemplatePreviewThumbnail templateId={item.templateId} templateName={item.title} className="min-h-64" />
+                <Badge className="absolute right-4 top-4 border-0 bg-white/90 text-slate-900 shadow-sm backdrop-blur">Working demonstration</Badge>
+              </div>
               <div className="p-6">
                 <div className="mb-4 flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className="text-indigo-600">{item.industry}</Badge>
@@ -1038,7 +1040,14 @@ const previewGoals = [
 
 function GeneratePreviewPage() {
   const navigate = useNavigate();
-  const [industryId, setIndustryId] = React.useState(previewIndustries[0].id);
+  const location = useLocation();
+  const initialParams = React.useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const initialIndustry = initialParams.get("industry") || previewIndustries[0].id;
+  const explicitTemplateId = initialParams.get("template");
+  const [industryId, setIndustryId] = React.useState(previewIndustries.some((item) => item.id === initialIndustry) ? initialIndustry : previewIndustries[0].id);
+  const selectedTemplateId = explicitTemplateId && industryId === initialIndustry
+    ? explicitTemplateId
+    : ({ clinic: "dental-clinic-v1", contractor: "renovation-contractor-v1", consultant: "law-firm-v1", education: "tuition-centre-v1", beauty: "salon-spa-v1" } as Record<string, string>)[industryId] || "dental-clinic-v1";
   const [goal, setGoal] = React.useState(previewGoals[0]);
   const [generated, setGenerated] = React.useState(false);
   const [generating, setGenerating] = React.useState(false);
@@ -1387,6 +1396,16 @@ function GeneratePreviewPage() {
                   </div>
                 </div>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    onClick={() => {
+                      const params = new URLSearchParams({ business: form.businessName, city: form.location, service: form.mainService, cta: reviewStrategy.primaryCta });
+                      trackPublicEvent({ eventType: "personalized_template_opened", label: selectedTemplateId, target: `/preview/template/${selectedTemplateId}` });
+                      window.open(`/preview/template/${selectedTemplateId}?${params.toString()}`, "_blank", "noopener,noreferrer");
+                    }}
+                    className="rounded-2xl bg-slate-950 font-black uppercase tracking-widest text-white hover:bg-indigo-600"
+                  >
+                    Open Live Personalised Preview
+                  </Button>
                   <Button onClick={() => action("create_account_after_preview", "Save My Preview", "/signup?redirectTo=%2Fdashboard%2Fonboarding")} className="rounded-2xl bg-indigo-600 font-black uppercase tracking-widest">
                     Create Account & Save
                   </Button>

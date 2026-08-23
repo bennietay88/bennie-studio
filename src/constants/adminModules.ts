@@ -9,6 +9,7 @@ export type AdminModuleDefinition = {
 };
 
 export const ADMIN_MODULES: AdminModuleDefinition[] = [
+  { id: "growth_operations", label: "Growth Operations", description: "Run response, previews, follow-up, capacity, and retention from one queue.", group: "Sales & Leads", priority: "sell_now" },
   { id: "prospects", label: "Prospects", description: "Build and qualify target customer lists.", group: "Sales & Leads", priority: "sell_now" },
   { id: "website_reviews", label: "Website Reviews", description: "Prepare evidence-based reviews for prospects.", group: "Sales & Leads", priority: "sell_now" },
   { id: "outreach", label: "Outreach", description: "Create personalised outreach from prospect research.", group: "Sales & Leads", priority: "sell_now" },

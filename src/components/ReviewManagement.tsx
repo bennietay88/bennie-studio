@@ -30,12 +30,19 @@ export function ReviewManagement() {
     messageTemplate: "Thanks again for choosing us. If the service was helpful, could you leave a short Google review? It helps local customers decide with more confidence.",
   });
   const [testimonialForm, setTestimonialForm] = useState({
+    slug: "",
+    title: "",
     customerName: "",
     company: "",
     testimonial: "",
     customerImageUrl: "",
     resultSummary: "",
     evidenceReference: "",
+    beforeSummary: "",
+    changes: "",
+    resultMetrics: "",
+    beforeImageUrl: "",
+    afterImageUrl: "",
     consentStatus: "pending",
     publishStatus: "draft",
     dateApproved: "",
@@ -110,12 +117,22 @@ export function ReviewManagement() {
     setActionLoading("testimonial_save");
     const { error } = await supabase.from("customer_testimonials").insert({
       business_id: businessId,
+      slug: testimonialForm.slug.trim() || null,
+      title: testimonialForm.title.trim() || null,
       customer_name: testimonialForm.customerName.trim(),
       company: testimonialForm.company.trim() || null,
       testimonial: testimonialForm.testimonial.trim(),
       customer_image_url: testimonialForm.customerImageUrl.trim() || null,
       result_summary: testimonialForm.resultSummary.trim() || null,
       evidence_reference: testimonialForm.evidenceReference.trim() || null,
+      before_summary: testimonialForm.beforeSummary.trim() || null,
+      changes: testimonialForm.changes.split("\n").map((item) => item.trim()).filter(Boolean),
+      result_metrics: testimonialForm.resultMetrics.split("\n").map((item) => {
+        const [metric, ...value] = item.split(":");
+        return { metric: metric.trim(), value: value.join(":").trim() };
+      }).filter((item) => item.metric && item.value),
+      before_image_url: testimonialForm.beforeImageUrl.trim() || null,
+      after_image_url: testimonialForm.afterImageUrl.trim() || null,
       consent_status: testimonialForm.consentStatus,
       publish_status: testimonialForm.publishStatus,
       date_approved: testimonialForm.dateApproved || null,
@@ -127,12 +144,19 @@ export function ReviewManagement() {
     }
     toast.success("Testimonial saved.");
     setTestimonialForm({
+      slug: "",
+      title: "",
       customerName: "",
       company: "",
       testimonial: "",
       customerImageUrl: "",
       resultSummary: "",
       evidenceReference: "",
+      beforeSummary: "",
+      changes: "",
+      resultMetrics: "",
+      beforeImageUrl: "",
+      afterImageUrl: "",
       consentStatus: "pending",
       publishStatus: "draft",
       dateApproved: "",
@@ -407,12 +431,18 @@ export function ReviewManagement() {
         </CardHeader>
         <CardContent className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="grid gap-3">
+            <input value={testimonialForm.title} onChange={(event) => setTestimonialForm((current) => ({ ...current, title: event.target.value }))} placeholder="Case study title" className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-indigo-300" />
+            <input value={testimonialForm.slug} onChange={(event) => setTestimonialForm((current) => ({ ...current, slug: event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-") }))} placeholder="case-study-slug" className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-indigo-300" />
             <input value={testimonialForm.customerName} onChange={(event) => setTestimonialForm((current) => ({ ...current, customerName: event.target.value }))} placeholder="Customer name" className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-indigo-300" />
             <input value={testimonialForm.company} onChange={(event) => setTestimonialForm((current) => ({ ...current, company: event.target.value }))} placeholder="Company" className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-indigo-300" />
             <textarea value={testimonialForm.testimonial} onChange={(event) => setTestimonialForm((current) => ({ ...current, testimonial: event.target.value }))} placeholder="Testimonial" className="min-h-28 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 outline-none focus:border-indigo-300" />
             <input value={testimonialForm.customerImageUrl} onChange={(event) => setTestimonialForm((current) => ({ ...current, customerImageUrl: event.target.value }))} placeholder="Customer image URL, if approved" className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-indigo-300" />
             <input value={testimonialForm.resultSummary} onChange={(event) => setTestimonialForm((current) => ({ ...current, resultSummary: event.target.value }))} placeholder="Result summary, only if evidence exists" className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-indigo-300" />
             <input value={testimonialForm.evidenceReference} onChange={(event) => setTestimonialForm((current) => ({ ...current, evidenceReference: event.target.value }))} placeholder="Evidence or internal reference" className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-indigo-300" />
+            <textarea value={testimonialForm.beforeSummary} onChange={(event) => setTestimonialForm((current) => ({ ...current, beforeSummary: event.target.value }))} placeholder="Before: observable starting point" className="min-h-24 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 outline-none focus:border-indigo-300" />
+            <textarea value={testimonialForm.changes} onChange={(event) => setTestimonialForm((current) => ({ ...current, changes: event.target.value }))} placeholder={"What changed — one verified item per line"} className="min-h-24 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 outline-none focus:border-indigo-300" />
+            <textarea value={testimonialForm.resultMetrics} onChange={(event) => setTestimonialForm((current) => ({ ...current, resultMetrics: event.target.value }))} placeholder={"Measured results — one per line, e.g. WhatsApp enquiries: 14"} className="min-h-24 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 outline-none focus:border-indigo-300" />
+            <div className="grid gap-3 sm:grid-cols-2"><input value={testimonialForm.beforeImageUrl} onChange={(event) => setTestimonialForm((current) => ({ ...current, beforeImageUrl: event.target.value }))} placeholder="Before image URL" className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-indigo-300" /><input value={testimonialForm.afterImageUrl} onChange={(event) => setTestimonialForm((current) => ({ ...current, afterImageUrl: event.target.value }))} placeholder="After image URL" className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-indigo-300" /></div>
             <div className="grid gap-3 sm:grid-cols-3">
               <select value={testimonialForm.consentStatus} onChange={(event) => setTestimonialForm((current) => ({ ...current, consentStatus: event.target.value }))} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold">
                 <option value="pending">Consent pending</option>

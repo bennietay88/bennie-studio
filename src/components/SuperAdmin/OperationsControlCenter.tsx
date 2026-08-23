@@ -26,9 +26,6 @@ import { Switch } from "../ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Textarea } from "../ui/textarea";
 
-const healthTone = (score: number) =>
-  score >= 80 ? "bg-emerald-50 text-emerald-700" : score >= 55 ? "bg-amber-50 text-amber-700" : "bg-rose-50 text-rose-700";
-
 const eventLabel = (value: string) => value?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 export function OperationsControlCenter() {
@@ -113,16 +110,15 @@ export function OperationsControlCenter() {
         const businessLeads = leads.filter((lead) => lead.business_id === business.id);
         const openTickets = tickets.filter((ticket) => ticket.business_id === business.id && !["resolved", "closed"].includes(ticket.status));
         const website = websites.find((item) => item.business_id === business.id);
-        let score = 100;
         const risks: string[] = [];
-        if (["unpaid", "past_due"].includes(business.subscription_status) || business.status === "unpaid") { score -= 35; risks.push("Payment attention"); }
-        if (["inactive", "suspended", "cancelled"].includes(business.status)) { score -= 30; risks.push("Account inactive"); }
-        if (!website) { score -= 20; risks.push("No website"); }
-        if (openTickets.length) { score -= Math.min(20, openTickets.length * 5); risks.push(`${openTickets.length} open support item(s)`); }
-        if (!businessLeads.length) { score -= 10; risks.push("No recorded enquiries"); }
-        if (business.trial_ends_at && new Date(business.trial_ends_at).getTime() - Date.now() < 3 * 86400000) { score -= 15; risks.push("Trial ending soon"); }
-        return { business, score: Math.max(0, score), risks, leads: businessLeads.length, tickets: openTickets.length };
-      }).sort((a, b) => a.score - b.score),
+        if (["unpaid", "past_due"].includes(business.subscription_status) || business.status === "unpaid") risks.push("Payment attention");
+        if (["inactive", "suspended", "cancelled"].includes(business.status)) risks.push("Account inactive");
+        if (!website) risks.push("No website record");
+        if (openTickets.length) risks.push(`${openTickets.length} open support item(s)`);
+        if (!businessLeads.length) risks.push("No recorded enquiries yet");
+        if (business.trial_ends_at && new Date(business.trial_ends_at).getTime() - Date.now() < 3 * 86400000) risks.push("Trial ending soon");
+        return { business, risks, leads: businessLeads.length, tickets: openTickets.length };
+      }).sort((a, b) => b.risks.length - a.risks.length),
     [businesses, leads, tickets, websites],
 	  );
 
@@ -333,7 +329,7 @@ export function OperationsControlCenter() {
 
       <div className="grid gap-4 md:grid-cols-4">
         {[
-          canView("customer_health") && ["At-risk customers", healthRows.filter((row) => row.score < 55).length, HeartPulse],
+          canView("customer_health") && ["Customers needing attention", healthRows.filter((row) => row.risks.length > 0).length, HeartPulse],
           canView("delivery") && ["Active delivery", projects.filter((item) => !["live", "cancelled"].includes(item.status)).length, Activity],
           canView("approvals") && ["Pending approvals", approvals.filter((item) => item.status === "pending").length, ShieldCheck],
           canView("billing") && ["Billing attention", billingEvents.filter((item) => item.status === "open").length, CreditCard],
@@ -377,7 +373,7 @@ export function OperationsControlCenter() {
 
       <Tabs defaultValue={defaultTab}>
         <TabsList className="h-auto flex-wrap rounded-2xl bg-slate-100 p-1">
-          {canView("customer_health") && <TabsTrigger value="health" className="rounded-xl">Customer Health</TabsTrigger>}
+          {canView("customer_health") && <TabsTrigger value="health" className="rounded-xl">Customer Signals</TabsTrigger>}
           {canView("approvals") && <TabsTrigger value="approvals" className="rounded-xl">Approvals</TabsTrigger>}
           {canView("billing") && <TabsTrigger value="billing" className="rounded-xl">Billing Lifecycle</TabsTrigger>}
           {canView("activity_logs") && <TabsTrigger value="activity" className="rounded-xl">Activity Log</TabsTrigger>}
@@ -385,11 +381,10 @@ export function OperationsControlCenter() {
         </TabsList>
 
         <TabsContent value="health" className="space-y-3 pt-4">
-          {healthRows.map(({ business, score, risks, leads: leadCount, tickets: ticketCount }) => (
+          {healthRows.map(({ business, risks, leads: leadCount, tickets: ticketCount }) => (
             <Card key={business.id} className="rounded-2xl border-slate-200"><CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center">
               <div className="min-w-0 flex-1"><p className="font-black text-slate-950">{business.name}</p><p className="text-xs font-semibold text-slate-500">{business.plan} · {business.status} · {leadCount} enquiries · {ticketCount} support items</p></div>
-              <div className="flex flex-wrap gap-2">{risks.length ? risks.map((risk) => <Badge key={risk} variant="outline" className="rounded-full">{risk}</Badge>) : <Badge className="bg-emerald-100 text-emerald-700">Healthy</Badge>}</div>
-              <Badge className={`rounded-full px-4 py-2 ${healthTone(score)}`}>{score}/100</Badge>
+              <div className="flex flex-wrap gap-2">{risks.length ? risks.map((risk) => <Badge key={risk} variant="outline" className="rounded-full">{risk}</Badge>) : <Badge className="bg-emerald-100 text-emerald-700">No attention signal</Badge>}</div>
             </CardContent></Card>
           ))}
         </TabsContent>

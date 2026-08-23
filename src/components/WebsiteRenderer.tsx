@@ -109,6 +109,7 @@ export function WebsiteRenderer({
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const draftPreview = searchParams.get("draft") === "1" || searchParams.get("draft") === "true";
+  const isThumbnail = searchParams.get("thumbnail") === "1";
   const requestedWebsiteId = searchParams.get("website");
   const { isFeatureEnabled } = useFeatures();
   const [website, setWebsite] = useState<Website | null>(initialData || null);
@@ -379,17 +380,37 @@ export function WebsiteRenderer({
     if (isTemplatePreview && templateId) {
       const hardcodedTemplate = Object.values(NICHE_TEMPLATES).find(t => t.id === templateId);
       if (hardcodedTemplate) {
+        const previewParams = new URLSearchParams(location.search);
+        const businessName = previewParams.get("business")?.trim() || "";
+        const city = previewParams.get("city")?.trim() || "";
+        const mainService = previewParams.get("service")?.trim() || "";
+        const preferredCta = previewParams.get("cta")?.trim() || "";
+        const personalizedPages = hardcodedTemplate.pages.map((page) => ({
+          ...page,
+          id: generateId(),
+          sections: page.sections.map((section) => {
+            const content = { ...section.content };
+            if (section.type === "hero") {
+              if (mainService && city) content.headline = `${mainService} in ${city}`;
+              else if (mainService) content.headline = `${mainService}, made easier`;
+              if (businessName || city) {
+                content.subheadline = `${businessName || hardcodedTemplate.name} helps customers${city ? ` in ${city}` : ""} understand the service, trust the business, and take the next step with confidence.`;
+              }
+              if (preferredCta) content.ctaText = preferredCta;
+            }
+            if (section.type === "contact" && preferredCta) {
+              content.title = preferredCta;
+            }
+            return { ...section, id: generateId(), content };
+          }),
+        }));
         setWebsite(normalizeWebsiteForPreview({
           id: "preview",
           businessId: "preview",
           theme: hardcodedTemplate.theme as any,
-          pages: hardcodedTemplate.pages.map(p => ({
-            ...p,
-            id: generateId(),
-            sections: p.sections.map(s => ({ ...s, id: generateId() }))
-          })) as any,
+          pages: personalizedPages as any,
           seo: {
-            title: hardcodedTemplate.name,
+            title: businessName ? `${businessName} | ${hardcodedTemplate.name}` : hardcodedTemplate.name,
             description: hardcodedTemplate.description,
             keywords: [],
           },
@@ -506,7 +527,7 @@ export function WebsiteRenderer({
       }
     };
     fetchWebsite();
-  }, [businessId, templateId, isTemplatePreview, initialData, draftPreview, requestedWebsiteId]);
+  }, [businessId, templateId, isTemplatePreview, initialData, draftPreview, requestedWebsiteId, location.search]);
 
   useEffect(() => {
     // We're using Helmet now, so we don't need manual title updates
@@ -4330,7 +4351,7 @@ export function WebsiteRenderer({
           )}
         </AnimatePresence>
 
-        {whatsappHref && (
+        {!isThumbnail && whatsappHref && (
           <a
             href={whatsappHref}
             target="_blank"
@@ -4344,7 +4365,7 @@ export function WebsiteRenderer({
         )}
 
         {/* AI Chatbot Widget */}
-        <div className="fixed bottom-6 right-6 z-[100]">
+        {!isThumbnail && <div className="fixed bottom-6 right-6 z-[100]">
           <AnimatePresence>
             {isChatOpen && (
               <motion.div
@@ -4501,9 +4522,9 @@ export function WebsiteRenderer({
               <span className="absolute -top-1 -right-1 h-4 w-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse" />
             )}
           </motion.button>
-        </div>
+        </div>}
 
-        {cookieBannerEnabled && (!cookieConsent || showCookiePrefs) && (
+        {!isThumbnail && cookieBannerEnabled && (!cookieConsent || showCookiePrefs) && (
           <div className="fixed inset-x-4 bottom-4 z-[140] mx-auto max-w-5xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex gap-4">
