@@ -3419,7 +3419,12 @@ async function startServer() {
       }
       const paymentLink = await stripe.paymentLinks.create({
         line_items: lineItems,
-        after_completion: { type: "redirect", redirect: { url: `${publicAppUrl()}/onboarding?proposal=${proposal.id}` } },
+        after_completion: {
+          type: "redirect",
+          redirect: {
+            url: `${publicAppUrl()}/signup?redirect=${encodeURIComponent(`/dashboard/onboarding?proposal=${proposal.id}`)}`,
+          },
+        },
         metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "", type: "proposal_subscription" },
         subscription_data: { metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "" } },
       });
@@ -4652,7 +4657,11 @@ async function startServer() {
     if (error) return res.status(500).json({ error: "Booking could not be rescheduled" });
     await supabaseAdmin.from("sales_messages").update({ status: "cancelled", updated_at: new Date().toISOString() }).contains("provider_payload", { bookingId: booking.id }).in("status", ["queued", "approved"]);
     const formattedSlot = new Intl.DateTimeFormat("en", { dateStyle: "full", timeStyle: "short", timeZone: booking.timezone }).format(startAt);
-    await supabaseAdmin.from("sales_messages").insert({ lead_id: booking.lead_id || null, recipient: booking.email.toLowerCase(), channel: "email", subject: "Updated: Bennie Studio website growth call", body_text: `Hi ${booking.name.split(/\s+/)[0]},\n\nYour website growth call for ${booking.business_name} has been moved to ${formattedSlot} (${booking.timezone}).\n\nBennie`, status: "queued", scheduled_at: new Date().toISOString(), provider_payload: { bookingId: booking.id, messageType: "reschedule_confirmation" } });
+    const reminderLeadTime = startAt.getTime() - Date.now() > 26 * 3600000 ? 24 * 3600000 : 2 * 3600000;
+    await supabaseAdmin.from("sales_messages").insert([
+      { lead_id: booking.lead_id || null, recipient: booking.email.toLowerCase(), channel: "email", subject: "Updated: Bennie Studio website growth call", body_text: `Hi ${booking.name.split(/\s+/)[0]},\n\nYour website growth call for ${booking.business_name} has been moved to ${formattedSlot} (${booking.timezone}).\n\nBennie`, status: "queued", scheduled_at: new Date().toISOString(), provider_payload: { bookingId: booking.id, messageType: "reschedule_confirmation" } },
+      { lead_id: booking.lead_id || null, recipient: booking.email.toLowerCase(), channel: "email", subject: "Reminder: upcoming website growth call", body_text: `Hi ${booking.name.split(/\s+/)[0]},\n\nA quick reminder that our website growth call for ${booking.business_name} is scheduled for ${formattedSlot} (${booking.timezone}).\n\nPlease reply if there is a specific service, offer, or enquiry problem you want me to prioritise.\n\nBennie`, status: "queued", scheduled_at: new Date(startAt.getTime() - reminderLeadTime).toISOString(), provider_payload: { bookingId: booking.id, messageType: "booking_reminder" } },
+    ]);
     if (booking.lead_id) await supabaseAdmin.from("leads").update({ status: "meeting", next_follow_up_at: startAt.toISOString(), automation_next_action: "Prepare for rescheduled growth call" }).eq("id", booking.lead_id);
     void processDueSalesMessages(10).catch(() => undefined);
     return res.json({ booking: updated });
