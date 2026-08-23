@@ -4648,6 +4648,29 @@ async function startServer() {
     });
   });
 
+  app.get("/api/public/geo-pricing", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-geo-pricing" }), async (req, res) => {
+    const countryCode = String(req.headers["x-vercel-ip-country"] || "US").toUpperCase().slice(0, 2);
+    let detectedCountryName = countryCode === "US" ? "Global" : countryCode;
+    try {
+      detectedCountryName = new Intl.DisplayNames(["en"], { type: "region" }).of(countryCode) || detectedCountryName;
+    } catch {
+      // A readable fallback is already set.
+    }
+    const { data } = await supabaseAdmin
+      .from("geo_pricing")
+      .select("discount_percentage,country_name,stripe_coupon_id")
+      .eq("country_code", countryCode)
+      .eq("is_enabled", true)
+      .maybeSingle();
+    res.setHeader("Cache-Control", "private, max-age=300");
+    return res.json({
+      countryCode,
+      countryName: data?.country_name || detectedCountryName,
+      discountPercentage: Number(data?.discount_percentage || 0),
+      couponId: data?.stripe_coupon_id || null,
+    });
+  });
+
   app.post("/api/public/call-bookings", rateLimit({ windowMs: 60 * 1000, max: 8, keyPrefix: "call-bookings" }), async (req, res) => {
     const body = validateBody(z.object({ leadId: UUID_SCHEMA.optional(), name: TEXT_SCHEMA, email: EMAIL_SCHEMA, phone: z.string().max(80).optional(), businessName: TEXT_SCHEMA, market: z.string().max(20).optional(), industry: z.string().max(160).optional(), websiteUrl: z.string().max(500).optional(), startAt: z.string().datetime(), timezone: z.string().max(80).default("Asia/Kuala_Lumpur"), goals: z.string().max(2000).optional() }), req, res);
     if (!body) return;

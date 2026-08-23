@@ -575,13 +575,13 @@ function PricingPage() {
     let cancelled = false;
     const detectMarket = async () => {
       try {
-        const response = await fetch("https://ipapi.co/json/");
+        const response = await fetch("/api/public/geo-pricing");
         if (!response.ok) throw new Error("Location detection failed");
         const data = await response.json();
-        const market = countryToRevenueMarket(data?.country_code);
+        const market = countryToRevenueMarket(data?.countryCode);
         if (cancelled) return;
         setSelectedMarket(market);
-        setDetectedLabel(`Detected ${data?.country_name || pricingMarkets[market].label}`);
+        setDetectedLabel(`Detected ${data?.countryName || pricingMarkets[market].label}`);
       } catch {
         if (cancelled) return;
         setSelectedMarket("US");

@@ -1,7 +1,7 @@
 import { chromium } from "@playwright/test";
 
 const baseUrl = process.env.SMOKE_BASE_URL || "http://127.0.0.1:3111";
-const routes = ["/book-demo", "/case-studies"];
+const routes = ["/", "/pricing", "/book-demo", "/case-studies"];
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const errors = [];
@@ -18,7 +18,8 @@ for (const route of routes) {
   await page.waitForTimeout(2500);
   const textLength = (await page.locator("body").innerText()).trim().length;
   if (textLength < 100) errors.push(`${route}: page body is unexpectedly empty`);
-  await page.screenshot({ path: `/private/tmp/bennie-${route.slice(1).replaceAll("/", "-")}.png`, fullPage: true });
+  const screenshotName = route === "/" ? "home" : route.slice(1).replaceAll("/", "-");
+  await page.screenshot({ path: `/private/tmp/bennie-${screenshotName}.png`, fullPage: true });
   console.log(`${route}: ${textLength} visible characters, title "${await page.title()}"`);
 }
 

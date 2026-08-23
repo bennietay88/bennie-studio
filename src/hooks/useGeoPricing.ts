@@ -1,5 +1,4 @@
 import React from "react";
-import { supabase } from "../lib/supabase";
 
 type CurrencyCode = "USD" | "MYR" | "SGD" | "GBP";
 
@@ -77,26 +76,16 @@ export const useGeoPricing = () => {
 
     const detectGeoPricing = async () => {
       try {
-        const geoRes = await fetch("https://ipapi.co/json/");
+        const geoRes = await fetch("/api/public/geo-pricing");
+        if (!geoRes.ok) throw new Error("Geo-pricing detection failed");
         const geoData = await geoRes.json();
-        const detectedCode = String(geoData?.country_code || "US").toUpperCase();
+        const detectedCode = String(geoData?.countryCode || "US").toUpperCase();
 
         if (!cancelled) {
           setCountryCode(detectedCode);
-          setCountryName(geoData?.country_name || "Global");
-        }
-
-        const { data } = await supabase
-          .from("geo_pricing")
-          .select("discount_percentage, country_name, stripe_coupon_id")
-          .eq("country_code", detectedCode)
-          .eq("is_enabled", true)
-          .maybeSingle();
-
-        if (!cancelled && data) {
-          setDiscountPercentage(Number(data.discount_percentage || 0));
-          setCouponId(data.stripe_coupon_id || undefined);
-          setCountryName(data.country_name || geoData?.country_name || "Global");
+          setCountryName(geoData?.countryName || "Global");
+          setDiscountPercentage(Number(geoData?.discountPercentage || 0));
+          setCouponId(geoData?.couponId || undefined);
         }
       } catch (err) {
         if (import.meta.env.DEV) {
