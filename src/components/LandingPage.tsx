@@ -1760,21 +1760,15 @@ export default function LandingPage() {
 
       <PublicSiteFooter tagline={c.footer?.tagline} email={c.footer?.email} onManageCookies={() => setShowCookiePreferences(true)} />
       {showCookieBanner && (
-        <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-slate-200 bg-white/95 px-4 py-4 shadow-2xl shadow-slate-950/10 backdrop-blur-md">
-          <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="fixed inset-x-0 bottom-0 z-[70] border-t border-slate-200 bg-white/95 px-4 py-3 shadow-2xl shadow-slate-950/10 backdrop-blur-md">
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex max-w-3xl gap-3">
               <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 sm:flex">
                 <Cookie className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-black uppercase tracking-widest text-slate-950">
-                  Cookie Preferences
-                </p>
-                <p className="mt-1 text-sm font-medium leading-relaxed text-slate-600">
-                  We use strictly necessary cookies to run this site. With your consent,
-                  we also use analytics and marketing cookies to understand visits and
-                  improve our lead-generation website pages.
-                </p>
+                <p className="text-sm font-black uppercase tracking-widest text-slate-950">Cookie Preferences</p>
+                <p className="mt-1 text-xs font-medium leading-5 text-slate-600">Necessary cookies keep Bennie Studio working. Optional analytics help us improve the website.</p>
                 <button
                   onClick={() => navigate("/cookie-policy")}
                   className="mt-2 text-xs font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700"

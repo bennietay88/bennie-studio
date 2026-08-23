@@ -521,6 +521,21 @@ function TemplatesPage() {
             </div>
           ))}
         </div>
+        <div className="mt-10 rounded-[2rem] border border-slate-200 bg-slate-950 p-6 text-white shadow-xl sm:p-8">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">See the structure before launch</p>
+              <h2 className="mt-3 text-3xl font-black tracking-tight">Every template starts as a clear enquiry journey.</h2>
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300">These wireframes show the hierarchy, CTA placement, trust blocks, and mobile direction. Your approved content replaces the placeholders during the build.</p>
+            </div>
+            <Link to="/generate-preview" className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black uppercase tracking-[0.12em] text-slate-950 shadow-lg transition hover:-translate-y-0.5 hover:bg-indigo-100">Generate My Preview <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          </div>
+          <div className="mt-7 grid gap-5 lg:grid-cols-3">
+            <WebsiteWireframe title="Lead service" accent="indigo" />
+            <WebsiteWireframe title="Clinic booking" accent="emerald" />
+            <WebsiteWireframe title="Quote request" accent="amber" />
+          </div>
+        </div>
         <div className="mt-12 rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
           <div className="max-w-3xl">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Industry sales paths</p>
@@ -691,6 +706,14 @@ function PricingPage() {
             <div className="mt-7 rounded-2xl border border-indigo-200 bg-white/70 p-4 text-sm font-bold leading-6 text-slate-700">
               Six-month initial commitment. Final scope and launch timing are confirmed after the website growth call.
             </div>
+            <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-100/70 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-indigo-700">Your first 30 days</p>
+              <div className="mt-3 grid gap-2 text-sm font-bold text-slate-700 sm:grid-cols-3">
+                <span>1. Review and direction</span>
+                <span>2. Priority pages and CTAs</span>
+                <span>3. Launch plan and tracking</span>
+              </div>
+            </div>
             <Link
               to="/book-demo"
               onClick={() => {
@@ -792,6 +815,35 @@ function HowItWorksPage() {
   );
 }
 
+function WebsiteWireframe({ title, accent = "indigo" }: { title: string; accent?: "indigo" | "emerald" | "amber" }) {
+  const accentClass = accent === "emerald" ? "bg-emerald-500" : accent === "amber" ? "bg-amber-400" : "bg-indigo-600";
+  return (
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-100 p-4">
+      <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-xl">
+        <div className="flex items-center gap-1.5 border-b border-slate-200 bg-slate-50 px-4 py-3">
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-300" /><span className="h-2.5 w-2.5 rounded-full bg-amber-300" /><span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
+          <span className="ml-3 h-2 w-24 rounded-full bg-slate-200" />
+        </div>
+        <div className="grid gap-5 p-5 sm:grid-cols-[1.1fr_0.9fr] sm:p-7">
+          <div>
+            <div className={`h-2.5 w-20 rounded-full ${accentClass}`} />
+            <div className="mt-4 h-7 w-11/12 rounded-lg bg-slate-900" />
+            <div className="mt-2 h-7 w-8/12 rounded-lg bg-slate-200" />
+            <div className="mt-4 h-3 w-full rounded-full bg-slate-100" /><div className="mt-2 h-3 w-10/12 rounded-full bg-slate-100" />
+            <div className={`mt-6 h-10 w-32 rounded-xl ${accentClass}`} />
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="h-24 rounded-xl bg-[linear-gradient(135deg,#e2e8f0_25%,#cbd5e1_25%,#cbd5e1_50%,#e2e8f0_50%,#e2e8f0_75%,#cbd5e1_75%)] bg-[length:18px_18px]" />
+            <div className="mt-3 h-3 w-9/12 rounded-full bg-slate-300" /><div className="mt-2 h-3 w-6/12 rounded-full bg-slate-200" />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 border-t border-slate-100 p-5"><div className="h-12 rounded-xl bg-slate-100" /><div className="h-12 rounded-xl bg-slate-100" /><div className="h-12 rounded-xl bg-slate-100" /></div>
+      </div>
+      <div className="pointer-events-none absolute bottom-6 left-6 rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-lg">{title} · wireframe direction</div>
+    </div>
+  );
+}
+
 function CaseStudiesPage() {
   const [verifiedProof, setVerifiedProof] = React.useState<any[]>([]);
 
@@ -837,13 +889,7 @@ function CaseStudiesPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           {caseStudies.map((item) => (
             <article key={item.title} className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-              <SafeImage
-                src={item.image}
-                alt={`${item.title} concept case study`}
-                loading="lazy"
-                className="h-full w-full object-cover transition duration-700 hover:scale-105"
-                containerClassName="aspect-[16/8] bg-slate-100"
-              />
+              <WebsiteWireframe title={item.industry} accent={item.industry.includes("clinic") ? "emerald" : item.industry.includes("Renovation") ? "amber" : "indigo"} />
               <div className="p-6">
                 <div className="mb-4 flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className="text-indigo-600">{item.industry}</Badge>
@@ -1188,7 +1234,7 @@ function GeneratePreviewPage() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="h-12 rounded-2xl"
             />
-            <Input required placeholder="WhatsApp or phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl" />
+            <Input placeholder="WhatsApp or phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl" />
             <select value={form.brandStyle} onChange={(e) => setForm({ ...form, brandStyle: e.target.value })} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 sm:col-span-2">
               {["Modern professional", "Premium corporate", "Friendly local business", "Bold sales landing page", "Clean minimal", "Luxury premium"].map((style) => <option key={style}>{style}</option>)}
             </select>
@@ -1415,7 +1461,9 @@ function EnquiryJourneyFlow({ title, steps, recommended = false }: { title: stri
 }
 
 function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; form: { businessName: string; email: string; website: string } }) {
-  const plan = getOfferForMarket("MY");
+  // Keep the result market-neutral. Pricing is selected on the pricing page so an audit
+  // never shows a country's price to the wrong prospect.
+  const plan = getOfferForMarket("US");
   const savePreviewContext = () => {
     sessionStorage.setItem("bt_audit_preview_context", JSON.stringify({
       businessName: form.businessName,
@@ -1541,7 +1589,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Recommended plan</p>
             <p className="mt-2 text-2xl font-black">{plan.name}</p>
-            <p className="mt-1 text-sm font-bold text-slate-600">Malaysia: {plan.monthlyLabel}/month plus {plan.setupLabel} setup. Localised pricing is available for Singapore and the UK.</p>
+            <p className="mt-1 text-sm font-bold text-slate-600">From {plan.monthlyLabel}/month plus {plan.setupLabel} setup. View local pricing for your market before checkout.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link to="/generate-preview" onClick={savePreviewContext} className={primaryCtaClass}>See My Website Preview</Link>
@@ -1737,8 +1785,8 @@ function WebsiteAuditPage() {
               <Input required placeholder="Business name" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
               <Input required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
               <Input placeholder="Industry / business type (optional)" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Input placeholder="WhatsApp / phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Textarea placeholder="What do you want the website to improve?" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-28 rounded-2xl bg-white text-slate-950" />
+              <Input placeholder="WhatsApp / phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Textarea placeholder="What do you want the website to improve? (optional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-28 rounded-2xl bg-white text-slate-950" />
               <Button type="submit" disabled={submitting} className="h-13 rounded-2xl bg-indigo-600 font-black uppercase tracking-widest hover:bg-indigo-500">
                 {submitting ? "Reviewing Website..." : "Start My Website Growth Review"} <Search className="ml-2 h-4 w-4" />
               </Button>

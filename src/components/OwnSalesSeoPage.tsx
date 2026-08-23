@@ -7,6 +7,7 @@ import { Badge } from "./ui/badge";
 import { findOwnSalesSeoPage } from "../constants/ownSalesSeoPages";
 import { BASIC_WEBSITE_OFFERS, saveBasicPlanIntent } from "../constants/publicOffers";
 import { getOfferForMarket, type RevenueMarket } from "../constants/revenueOffer";
+import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 
 export default function OwnSalesSeoPage() {
   const location = useLocation();
@@ -208,22 +209,7 @@ export default function OwnSalesSeoPage() {
         <script type="application/ld+json">{JSON.stringify(serviceSchema)}</script>
       </Helmet>
 
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
-          <button onClick={() => navigate("/")} className="flex items-center gap-2 bg-transparent border-0 cursor-pointer">
-            <Globe className="h-7 w-7 text-indigo-600" />
-            <span className="text-lg font-black text-slate-950">Bennie Studio</span>
-          </button>
-          <div className="hidden items-center gap-6 md:flex">
-            <Link to="/portfolio" className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600">Portfolio</Link>
-            <Link to="/#pricing" className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600">Pricing</Link>
-            <Link to="/book-demo" className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600">Book a Call</Link>
-          </div>
-          <Button onClick={() => navigate("/signup")} className="rounded-xl bg-slate-950 px-5 font-black hover:bg-indigo-600">
-            Generate Preview
-          </Button>
-        </nav>
-      </header>
+      <PublicSiteHeader />
 
       <main>
         <section className="relative overflow-hidden px-5 py-10 lg:py-14">
@@ -246,7 +232,7 @@ export default function OwnSalesSeoPage() {
                 {page.heroCopy}
               </p>
               <div className="mt-7 flex flex-col gap-4 sm:flex-row">
-                <Button onClick={() => navigate("/signup")} className="h-14 rounded-2xl bg-indigo-600 px-8 text-sm font-black uppercase tracking-widest">
+                <Button onClick={() => navigate("/generate-preview")} className="h-14 rounded-2xl bg-indigo-600 px-8 text-sm font-black uppercase tracking-widest">
                   {page.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button
@@ -453,7 +439,7 @@ export default function OwnSalesSeoPage() {
                   <Button
                     onClick={() => {
                       saveBasicPlanIntent(plan.id);
-                      navigate("/signup?redirectTo=%2Fdashboard%2Fonboarding");
+                      navigate("/generate-preview");
                     }}
                     className={`mt-7 h-12 w-full rounded-xl font-black ${index === 1 ? "bg-indigo-600 hover:bg-indigo-700" : "bg-slate-950 hover:bg-indigo-600"}`}
                   >
@@ -579,7 +565,7 @@ export default function OwnSalesSeoPage() {
         )}
 
         <section className="bg-slate-950 px-5 py-14 text-white">
-          <div className="mx-auto max-w-4xl text-center">
+            <div className="mx-auto max-w-4xl text-center">
             <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600">
               <PhoneCall className="h-6 w-6 text-white" />
             </div>
@@ -588,7 +574,7 @@ export default function OwnSalesSeoPage() {
               Start with a monthly website plan, then add pages, locations, and support as your business grows.
             </p>
             <div className="mt-9 flex flex-col justify-center gap-4 sm:flex-row">
-              <Button onClick={() => navigate("/signup")} className="h-14 rounded-2xl bg-white px-8 text-sm font-black uppercase tracking-widest text-indigo-600 hover:bg-slate-950 hover:text-white">
+              <Button onClick={() => navigate("/generate-preview")} className="h-14 rounded-2xl bg-white px-8 text-sm font-black uppercase tracking-widest text-indigo-600 hover:bg-slate-950 hover:text-white">
                 {page.primaryCta}
               </Button>
               <Button onClick={() => navigate("/book-demo")} variant="outline" className="h-14 rounded-2xl border-white/30 bg-white/10 px-8 text-sm font-black uppercase tracking-widest text-white hover:bg-white hover:text-indigo-600">
@@ -598,7 +584,7 @@ export default function OwnSalesSeoPage() {
           </div>
         </section>
 
-        <footer className="border-t border-slate-200 bg-white px-5 py-12">
+        <footer className="hidden border-t border-slate-200 bg-white px-5 py-12">
           <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.15fr_2fr]">
             <div>
               <button onClick={() => navigate("/")} className="flex items-center gap-2 bg-transparent border-0 p-0 cursor-pointer">
@@ -629,6 +615,7 @@ export default function OwnSalesSeoPage() {
             <p>Professional websites for small businesses, built and managed for one monthly fee.</p>
           </div>
         </footer>
+        <PublicSiteFooter />
       </main>
     </div>
   );

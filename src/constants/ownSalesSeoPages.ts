@@ -142,7 +142,7 @@ const makeWebsiteDesignCityPage = (input: CitySalesPageInput) => publish({
   links: [
     { label: "View managed plans", href: "/#pricing" },
     { label: "See portfolio", href: "/portfolio" },
-    { label: "Generate preview", href: "/signup" },
+    { label: "Generate preview", href: "/generate-preview" },
     { label: "Request custom quote", href: "/apply-custom" },
   ],
   primaryCta: `Generate My ${input.city} Website Preview`,
@@ -361,7 +361,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     links: [
       { label: "View managed plans", href: "/#pricing" },
       { label: "See portfolio", href: "/portfolio" },
-      { label: "Generate preview", href: "/signup" },
+      { label: "Generate preview", href: "/generate-preview" },
       { label: "Request Website quote", href: "/apply-custom" },
     ],
     primaryCta: "Generate My UK Website Preview",
