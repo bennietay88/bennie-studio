@@ -818,6 +818,20 @@ async function startServer() {
         p_subdomain: subdomain,
       });
       if (error) return res.status(400).json({ error: error.message });
+      const { error: auditError } = await supabaseAdmin
+        .from("admin_action_audit_logs")
+        .update({ actor_user_id: req.user.id })
+        .eq("action_type", "prospect.converted")
+        .eq("target_type", "business")
+        .eq("target_id", String(data))
+        .is("actor_user_id", null);
+      if (auditError) {
+        structuredLog("warn", "prospect_conversion_actor_attribution_failed", {
+          businessId: data,
+          actorUserId: req.user.id,
+          error: auditError.message,
+        });
+      }
       return res.json({ businessId: data });
     },
   );
