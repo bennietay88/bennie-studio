@@ -5962,8 +5962,18 @@ async function startServer() {
         try {
           const { data: activeBusinesses } = await supabaseAdmin
             .from("businesses")
-            .select("plan, subscription_status")
+            .select("plan, subscription_status, commercial_product_slug, commercial_market")
             .eq("status", "active");
+
+          const { data: currentPrices } = await supabaseAdmin
+            .from("commercial_market_prices")
+            .select("product_id, market, monthly_price, commercial_products!inner(slug)")
+            .eq("active", true);
+          const currentPriceMap: Record<string, number> = {};
+          (currentPrices || []).forEach((entry: any) => {
+            const slug = entry.commercial_products?.slug;
+            if (slug && entry.market && Number(entry.monthly_price) > 0) currentPriceMap[`${slug}:${entry.market}`] = Number(entry.monthly_price);
+          });
 
           // Get plan pricing from settings or default constants
           const { data: plansData } = await supabaseAdmin
@@ -5972,12 +5982,7 @@ async function startServer() {
             .eq("id", "plans")
             .maybeSingle();
 
-          const planDefinitions = plansData?.content?.pricing || [
-            { id: "starter", price: "$49" },
-            { id: "business", price: "$99" },
-            { id: "growth", price: "$199" },
-            { id: "website_growth_partner", price: "$799" },
-          ];
+          const planDefinitions = plansData?.content?.pricing || [];
 
           // Create a lookup for numeric prices
           const priceMap: Record<string, number> = {};
@@ -5991,7 +5996,9 @@ async function startServer() {
 
           (activeBusinesses || []).forEach((biz) => {
             if (biz.subscription_status === "active") {
-              calculatedMrr += priceMap[biz.plan] || 0;
+              calculatedMrr += biz.commercial_product_slug
+                ? currentPriceMap[`${biz.commercial_product_slug}:${biz.commercial_market || "INTL"}`] || 0
+                : priceMap[biz.plan] || 0;
               activeCustomersCount++;
             }
           });

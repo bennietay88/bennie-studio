@@ -5,8 +5,7 @@ import { ArrowRight, Check, Globe, MessageSquare, Rocket, Shield, Sparkles, MapP
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { findOwnSalesSeoPage } from "../constants/ownSalesSeoPages";
-import { getBasicWebsiteOffers, saveBasicPlanIntent } from "../constants/publicOffers";
-import { getOfferForMarket, type RevenueMarket } from "../constants/revenueOffer";
+import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKETS, formatCommercialMoney, getCommercialPrice, type CommercialMarket } from "../lib/commercialPricing";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 
 export default function OwnSalesSeoPage() {
@@ -45,14 +44,14 @@ export default function OwnSalesSeoPage() {
   const isCityPage = page.path.startsWith("/website-design/");
   const isCountryPage = page.path.startsWith("/website-subscription-service/") && ["UK", "Malaysia", "Singapore"].includes(marketLabel);
   const cityName = isCityPage ? page.h1.replace(/^Website Design\s+/i, "") : marketLabel;
-  const revenueMarket: RevenueMarket = isUk ? "GB" : isMalaysia ? "MY" : isSingapore ? "SG" : "US";
-  const coreOffer = getOfferForMarket(revenueMarket);
-  const packageOptions = getBasicWebsiteOffers(revenueMarket).map((plan, index) => ({
-    ...plan,
-    price: `${plan.price}/mo`,
-    label: index === 0 ? "Fast launch" : index === 1 ? "Most useful" : "More room",
-    features: plan.included,
-  }));
+  const revenueMarket: CommercialMarket = isUk ? "GB" : isMalaysia ? "MY" : isSingapore ? "SG" : "INTL";
+  const managedProduct = COMMERCIAL_FALLBACK_PRODUCTS.find((product) => product.slug === "managed-website")!;
+  const managedPrice = getCommercialPrice(managedProduct, revenueMarket)!;
+  const coreOffer = { name: managedProduct.name, description: managedProduct.description, monthlyLabel: formatCommercialMoney(managedPrice.monthlyPrice, managedPrice.currency), setupLabel: formatCommercialMoney(managedPrice.setupFee, managedPrice.currency), prices: { [revenueMarket]: { currency: managedPrice.currency } } } as any;
+  const packageOptions = COMMERCIAL_FALLBACK_PRODUCTS.filter((product) => ["managed-website", "website-growth"].includes(product.slug)).map((product, index) => {
+    const price = getCommercialPrice(product, revenueMarket)!;
+    return { id: product.slug, name: product.name, price: `${formatCommercialMoney(price.monthlyPrice, price.currency)}/mo`, description: product.description, label: index === 0 ? "Recommended starting point" : "For active growth", features: index === 0 ? ["Hosting and SSL", "Conversion-focused structure", "WhatsApp and enquiry paths", "Managed updates"] : ["Monthly conversion optimisation", "Local SEO expansion", "Landing and location pages", "Priority support"] };
+  });
   const serviceSchema = {
     "@context": "https://schema.org",
     "@type": "Service",
@@ -407,10 +406,10 @@ export default function OwnSalesSeoPage() {
         <section className="px-5 py-10">
           <div className="mx-auto max-w-7xl">
             <div className="mb-10 text-center">
-              <Badge className="mb-4 bg-indigo-50 text-indigo-700">Choose a package</Badge>
+              <Badge className="mb-4 bg-indigo-50 text-indigo-700">Choose your starting point</Badge>
               <h2 className="text-3xl font-black tracking-tight sm:text-5xl">Simple managed website options</h2>
               <p className="mx-auto mt-4 max-w-2xl text-base font-semibold text-slate-600">
-                Start with the package that matches your current stage. Prices are shown in {coreOffer.prices[revenueMarket].currency}. Generate a preview first, then choose the right launch path.
+                Start with a managed website or add ongoing growth support. Prices are shown in {coreOffer.prices[revenueMarket].currency}. Generate a preview first, then choose the right path.
               </p>
             </div>
             <div className="grid gap-6 lg:grid-cols-3">
@@ -438,7 +437,7 @@ export default function OwnSalesSeoPage() {
                   </ul>
                   <Button
                     onClick={() => {
-                      saveBasicPlanIntent(plan.id, revenueMarket);
+                      localStorage.setItem("bt_checkout_intent", JSON.stringify({ productSlug: plan.id, market: revenueMarket, currency: coreOffer.prices[revenueMarket].currency, billingCycle: "monthly", savedAt: new Date().toISOString() }));
                       navigate("/generate-preview");
                     }}
                     className={`mt-7 h-12 w-full rounded-xl font-black ${index === 1 ? "bg-indigo-600 hover:bg-indigo-700" : "bg-slate-950 hover:bg-indigo-600"}`}

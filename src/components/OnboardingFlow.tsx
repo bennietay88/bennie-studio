@@ -145,6 +145,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       : selectedPackage === "starter"
         ? "Starter"
         : "Business";
+  const publicProductLabel = (id: string) => id === "starter" ? "Managed Website" : id === "growth" || id === "premium" ? "Website Growth" : "Custom Website";
   const recommendedStructure = getTemplatePlanStructure(recommendedNicheTemplate.id, recommendedPlanLabel as any);
   const formatPackagePrice = (pkg: any) => {
     const market = String(checkoutIntent.market || "US").toUpperCase();
@@ -950,7 +951,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                               {recommendedTemplateMeta.customerName || recommendedNicheTemplate.name}
                             </h4>
                             <p className="text-xs font-bold leading-relaxed text-slate-500">
-                              {recommendedTemplateMeta.conversionGoal} · {recommendedTemplateMeta.ctaStrategy?.[0] || recommendedNicheTemplate.ctaType} · {recommendedStructure.pageCount}-page {recommendedPlanLabel} structure
+                              {recommendedTemplateMeta.conversionGoal} · {recommendedTemplateMeta.ctaStrategy?.[0] || recommendedNicheTemplate.ctaType} · {recommendedStructure.pageCount}-section managed website structure
                             </p>
                           </div>
                           <Badge className="w-fit border-none bg-emerald-50 text-emerald-700">
@@ -1443,7 +1444,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                     <div className="space-y-2">
                       <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-                        Choose Your Plan
+                        Confirm Your Product
                       </h2>
                       <p className="text-slate-500 text-base sm:text-lg font-medium">
                         Confirm the website direction that matches your business before production begins.
@@ -1468,11 +1469,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                           </div>
                         )}
                         <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-1">{pkg.name}</p>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-4xl font-black text-slate-950">{formatPackagePrice(pkg)}</span>
-                            <span className="text-slate-400 font-bold text-xs">/mo</span>
-                          </div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-1">{publicProductLabel(pkg.id)}</p>
+                          <p className="text-sm font-bold text-slate-500">Pricing is confirmed in the secure checkout summary.</p>
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-2">Current commercial entitlement</p>
                         </div>
                         <div className="space-y-3">
@@ -1494,7 +1492,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600">Recommended from your answers</p>
                         <h3 className="mt-1 text-2xl font-black text-slate-950">
-                          {(availablePackages.find((pkg) => pkg.id === recommendedPlanId) || availablePackages.find((pkg) => pkg.id === "growth") || selectedPackageConfig)?.name || "Scale"}
+                          {publicProductLabel((availablePackages.find((pkg) => pkg.id === recommendedPlanId) || availablePackages.find((pkg) => pkg.id === "growth") || selectedPackageConfig)?.id || "starter")}
                         </h3>
                         <p className="mt-1 text-sm font-semibold text-slate-600">
                           Based on {businessData.pagesNeeded.length} requested page(s), {businessData.localSeoCities.split(/,|\n/).filter(Boolean).length} location target(s), and your goal: {businessData.websiteGoal}.
