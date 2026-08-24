@@ -1123,6 +1123,11 @@ async function startServer() {
                   })
                   .eq("id", businessId);
 
+                if (session.metadata?.promotionId) {
+                  const { data: promotionUsage } = await supabaseAdmin.from("commercial_promotions").select("usage_count").eq("id", session.metadata.promotionId).maybeSingle();
+                  if (promotionUsage) await supabaseAdmin.from("commercial_promotions").update({ usage_count: Number(promotionUsage.usage_count || 0) + 1, updated_at: new Date().toISOString() }).eq("id", session.metadata.promotionId);
+                }
+
                 // 2. Sync New User Subscriptions Table
                 const { data: businessInfo } = await supabaseAdmin
                   .from("businesses")
@@ -4808,6 +4813,58 @@ async function startServer() {
     return res.json({ products: products.data || [], prices: prices.data || [], promotions: promotions.data || [], legacyPlans: legacyPlans.data || [] });
   });
 
+  app.patch("/api/admin/commercial-catalogue/prices/:id", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const id = String(req.params.id || "");
+    if (!UUID_SCHEMA.safeParse(id).success) return res.status(400).json({ error: "Invalid price record" });
+    const body = validateBody(z.object({
+      monthlyPrice: z.number().finite().min(0).nullable().optional(),
+      setupFee: z.number().finite().min(0).optional(),
+      annualPrice: z.number().finite().min(0).nullable().optional(),
+      stripeMonthlyPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
+      stripeAnnualPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
+      stripeSetupPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
+      active: z.boolean().optional(),
+    }), req, res);
+    if (!body) return;
+    const patch: Record<string, unknown> = {};
+    if (body.monthlyPrice !== undefined) patch.monthly_price = body.monthlyPrice;
+    if (body.setupFee !== undefined) patch.setup_fee = body.setupFee;
+    if (body.annualPrice !== undefined) patch.annual_price = body.annualPrice;
+    if (body.stripeMonthlyPriceId !== undefined) patch.stripe_monthly_price_id = body.stripeMonthlyPriceId;
+    if (body.stripeAnnualPriceId !== undefined) patch.stripe_annual_price_id = body.stripeAnnualPriceId;
+    if (body.stripeSetupPriceId !== undefined) patch.stripe_setup_price_id = body.stripeSetupPriceId;
+    if (body.active !== undefined) patch.active = body.active;
+    patch.updated_at = new Date().toISOString();
+    const { data, error } = await supabaseAdmin.from("commercial_market_prices").update(patch).eq("id", id).select("*").single();
+    if (error) return res.status(400).json({ error: "Price record could not be updated" });
+    return res.json({ price: data });
+  });
+
+  app.post("/api/admin/commercial-catalogue/promotions", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const body = validateBody(z.object({
+      name: z.string().trim().min(2).max(160), code: z.string().trim().max(80).nullable().optional(), market: z.enum(["MY", "SG", "GB", "INTL"]).nullable().optional(), productId: UUID_SCHEMA.nullable().optional(),
+      promotionalMonthlyPrice: z.number().finite().min(0).nullable().optional(), promotionalSetupFee: z.number().finite().min(0).nullable().optional(), startsAt: z.string().datetime().nullable().optional(), endsAt: z.string().datetime().nullable().optional(), usageLimit: z.number().int().positive().nullable().optional(), commitmentMonths: z.number().int().positive().nullable().optional(), stripeMonthlyPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(), stripeSetupPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(), active: z.boolean().optional().default(false),
+    }), req, res);
+    if (!body) return;
+    const { data, error } = await supabaseAdmin.from("commercial_promotions").insert({ code: body.code || null, name: body.name, market: body.market || null, product_id: body.productId || null, promotional_monthly_price: body.promotionalMonthlyPrice ?? null, promotional_setup_fee: body.promotionalSetupFee ?? null, starts_at: body.startsAt || null, ends_at: body.endsAt || null, usage_limit: body.usageLimit ?? null, commitment_months: body.commitmentMonths ?? null, stripe_monthly_price_id: body.stripeMonthlyPriceId || null, stripe_setup_price_id: body.stripeSetupPriceId || null, active: body.active }).select("*").single();
+    if (error) return res.status(400).json({ error: "Promotion could not be created" });
+    return res.status(201).json({ promotion: data });
+  });
+
+  app.patch("/api/admin/commercial-catalogue/promotions/:id", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const id = String(req.params.id || "");
+    if (!UUID_SCHEMA.safeParse(id).success) return res.status(400).json({ error: "Invalid promotion" });
+    const body = validateBody(z.object({ active: z.boolean().optional(), usageLimit: z.number().int().positive().nullable().optional(), endsAt: z.string().datetime().nullable().optional() }), req, res);
+    if (!body) return;
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (body.active !== undefined) patch.active = body.active;
+    if (body.usageLimit !== undefined) patch.usage_limit = body.usageLimit;
+    if (body.endsAt !== undefined) patch.ends_at = body.endsAt;
+    const { data, error } = await supabaseAdmin.from("commercial_promotions").update(patch).eq("id", id).select("*").single();
+    if (error) return res.status(400).json({ error: "Promotion could not be updated" });
+    return res.json({ promotion: data });
+  });
+
   app.get("/api/public/site-config", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-site-config" }), async (_req, res) => {
     const [
       { data: settingsRows, error: settingsError },
@@ -5113,16 +5170,15 @@ async function startServer() {
     const legacyMarket = checkoutBody.market === "US" ? "US" : market;
     let priceId = checkoutBody.priceId || "";
     let resolvedProductSlug = productSlug || null;
+    let resolvedPromotionId: string | null = null;
 
     try {
       await assertBusinessAccess(req.user.id, businessId);
       let configuredSetupPriceId: string | null = null;
 
       // Current-product checkout never trusts a browser-supplied Stripe coupon.
-      // Promotions must be activated and mapped in the server catalogue first.
-      if (productSlug && (couponId || checkoutBody.promotionCode)) {
-        return res.status(400).json({ error: "This promotion is not configured for checkout." });
-      }
+      // A promotion is valid only when an admin activated it and mapped Stripe prices.
+      if (productSlug && couponId) return res.status(400).json({ error: "Use a configured promotion code instead of a Stripe coupon ID." });
 
       if (checkoutBody.type !== "credits") {
         if (productSlug) {
@@ -5142,6 +5198,15 @@ async function startServer() {
           // A Growth upgrade does not repeat the Managed Website setup fee.
           const isUpgrade = productSlug === "website-growth" && checkoutBody.upgradeFrom === "managed-website";
           configuredSetupPriceId = isUpgrade ? null : (currentPrice.stripe_setup_price_id || null);
+          if (checkoutBody.promotionCode) {
+            const now = new Date().toISOString();
+            const { data: promotion } = await supabaseAdmin.from("commercial_promotions").select("id,market,product_id,promotional_monthly_price,promotional_setup_fee,starts_at,ends_at,usage_limit,usage_count,stripe_monthly_price_id,stripe_setup_price_id,active").eq("code", checkoutBody.promotionCode).eq("active", true).or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).maybeSingle();
+            const promotionMatches = promotion && (!promotion.market || promotion.market === market) && (!promotion.product_id || promotion.product_id === currentProduct.id) && (!promotion.usage_limit || promotion.usage_count < promotion.usage_limit) && promotion.stripe_monthly_price_id;
+            if (!promotionMatches) return res.status(400).json({ error: "This promotion is unavailable for the selected product or market." });
+            resolvedPromotionId = promotion.id;
+            priceId = billingCycle === "yearly" ? priceId : promotion.stripe_monthly_price_id;
+            configuredSetupPriceId = isUpgrade ? null : (promotion.stripe_setup_price_id || configuredSetupPriceId);
+          }
           if (Number(currentPrice.setup_fee || 0) > 0 && !configuredSetupPriceId && !isUpgrade) {
             return res.status(400).json({ error: `${market} setup-fee checkout is not configured for this product.` });
           }
@@ -5212,6 +5277,7 @@ async function startServer() {
           market,
           currency: commercialCurrencyForMarket(market),
           termMonths: resolvedProductSlug ? "12" : "",
+          promotionId: resolvedPromotionId || "",
           type:
             priceId.includes("credits") || checkoutBody.type === "credits"
               ? "credits"

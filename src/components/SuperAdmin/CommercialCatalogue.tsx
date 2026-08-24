@@ -1,19 +1,62 @@
 import React from "react";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Input } from "../ui/input";
+import { supabase } from "../../lib/supabase";
+
+const authHeaders = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+};
 
 export const CommercialCatalogue: React.FC = () => {
   const [catalogue, setCatalogue] = React.useState<any>(null);
   const [error, setError] = React.useState("");
-  React.useEffect(() => {
-    fetch("/api/admin/commercial-catalogue").then(async (response) => {
+  const [saving, setSaving] = React.useState<string | null>(null);
+  const [promotionName, setPromotionName] = React.useState("");
+  const [promotionCode, setPromotionCode] = React.useState("");
+
+  const load = React.useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/commercial-catalogue", { headers: await authHeaders() });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Unable to load catalogue");
       setCatalogue(data);
-    }).catch((reason) => setError(reason.message));
+    } catch (reason: any) { setError(reason.message); }
   }, []);
-  if (error) return <Card><CardContent className="p-6 text-sm font-bold text-rose-600">{error}</CardContent></Card>;
+  React.useEffect(() => { void load(); }, [load]);
+
+  const savePrice = async (price: any) => {
+    setSaving(price.id);
+    try {
+      const response = await fetch(`/api/admin/commercial-catalogue/prices/${price.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...(await authHeaders()) }, body: JSON.stringify({ monthlyPrice: price.monthly_price === "" ? null : Number(price.monthly_price), setupFee: Number(price.setup_fee || 0), annualPrice: price.annual_price === "" ? null : Number(price.annual_price), stripeMonthlyPriceId: price.stripe_monthly_price_id || null, stripeAnnualPriceId: price.stripe_annual_price_id || null, stripeSetupPriceId: price.stripe_setup_price_id || null, active: price.active }) });
+      if (!response.ok) throw new Error((await response.json()).error || "Price could not be saved");
+    } catch (reason: any) { setError(reason.message); } finally { setSaving(null); }
+  };
+
+  const createPromotion = async () => {
+    if (!promotionName.trim()) return;
+    setSaving("promotion");
+    try {
+      const response = await fetch("/api/admin/commercial-catalogue/promotions", { method: "POST", headers: { "Content-Type": "application/json", ...(await authHeaders()) }, body: JSON.stringify({ name: promotionName.trim(), code: promotionCode.trim() || null, active: false }) });
+      if (!response.ok) throw new Error((await response.json()).error || "Promotion could not be created");
+      setPromotionName(""); setPromotionCode(""); await load();
+    } catch (reason: any) { setError(reason.message); } finally { setSaving(null); }
+  };
+
+  const togglePromotion = async (promotion: any) => {
+    await fetch(`/api/admin/commercial-catalogue/promotions/${promotion.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...(await authHeaders()) }, body: JSON.stringify({ active: !promotion.active }) });
+    await load();
+  };
+
+  if (error && !catalogue) return <Card><CardContent className="p-6 text-sm font-bold text-rose-600">{error}</CardContent></Card>;
   if (!catalogue) return <Card><CardContent className="p-6 text-sm font-bold text-slate-500">Loading current commercial catalogue…</CardContent></Card>;
-  return <Card className="mb-8 rounded-3xl border-indigo-100 shadow-sm"><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><div><CardTitle className="text-2xl font-black">Products &amp; Pricing</CardTitle><p className="mt-1 text-sm font-semibold text-slate-500">Current products are sold from this catalogue. Legacy plans below remain available for existing subscribers only.</p></div><Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">Current sales architecture</Badge></div></CardHeader><CardContent className="space-y-4">{catalogue.products.map((product: any) => <div key={product.slug} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-black text-slate-950">{product.name}</p><p className="text-xs font-semibold text-slate-500">{product.slug} · {product.sales_motion} · {product.active ? "active" : "inactive"}</p></div><div className="flex flex-wrap gap-2">{catalogue.prices.filter((price: any) => price.product_id === product.id).map((price: any) => <span key={price.id} className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-700 shadow-sm">{price.market} · {price.currency} {price.monthly_price === null ? `from ${price.setup_fee}` : `${price.monthly_price}/mo + ${price.setup_fee} setup`}</span>)}</div></div></div>)}<div className="border-t border-slate-100 pt-4"><p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-400">Legacy plans · existing customers</p><div className="flex flex-wrap gap-2">{catalogue.legacyPlans.map((plan: any) => <Badge key={plan.id} variant="outline" className="font-bold">{plan.name} · {plan.slug} · {plan.is_active ? "active" : "inactive"}</Badge>)}</div></div><div><p className="text-xs font-black uppercase tracking-widest text-slate-400">Promotions</p><p className="mt-1 text-sm font-semibold text-slate-500">{catalogue.promotions.length ? `${catalogue.promotions.length} configured promotion(s)` : "No promotions active. Configure one before applying a campaign."}</p></div></CardContent></Card>;
+  return <Card className="mb-8 rounded-3xl border-indigo-100 shadow-sm"><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><div><CardTitle className="text-2xl font-black">Products &amp; Pricing</CardTitle><p className="mt-1 text-sm font-semibold text-slate-500">Edit fixed prices and paste Stripe Price IDs here. Legacy plans remain available for existing subscribers only.</p></div><Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">Current sales architecture</Badge></div></CardHeader><CardContent className="space-y-6">
+    {error && <p className="rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700">{error}</p>}
+    {catalogue.products.map((product: any) => <div key={product.slug} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-black text-slate-950">{product.name}</p><p className="text-xs font-semibold text-slate-500">{product.slug} · {product.sales_motion} · {product.active ? "active" : "inactive"}</p></div></div><div className="mt-4 space-y-3">{catalogue.prices.filter((price: any) => price.product_id === product.id).map((price: any) => <div key={price.id} className="rounded-xl bg-white p-3 shadow-sm"><div className="mb-2 flex items-center justify-between"><span className="text-xs font-black uppercase tracking-widest text-slate-500">{price.market} · {price.currency}</span><Button size="sm" onClick={() => void savePrice(price)} disabled={saving === price.id} className="h-8 rounded-lg bg-indigo-600 text-xs font-black">{saving === price.id ? "Saving…" : "Save"}</Button></div><div className="grid gap-2 md:grid-cols-3"><Input aria-label={`${price.market} monthly price`} value={price.monthly_price ?? ""} onChange={(event) => setCatalogue((current: any) => ({ ...current, prices: current.prices.map((item: any) => item.id === price.id ? { ...item, monthly_price: event.target.value } : item) }))} placeholder="Monthly" /><Input aria-label={`${price.market} setup fee`} value={price.setup_fee ?? ""} onChange={(event) => setCatalogue((current: any) => ({ ...current, prices: current.prices.map((item: any) => item.id === price.id ? { ...item, setup_fee: event.target.value } : item) }))} placeholder="Setup fee" /><Input aria-label={`${price.market} annual price`} value={price.annual_price ?? ""} onChange={(event) => setCatalogue((current: any) => ({ ...current, prices: current.prices.map((item: any) => item.id === price.id ? { ...item, annual_price: event.target.value } : item) }))} placeholder="Annual price" /></div><div className="mt-2 grid gap-2 md:grid-cols-3"><Input aria-label={`${price.market} monthly Stripe price ID`} value={price.stripe_monthly_price_id || ""} onChange={(event) => setCatalogue((current: any) => ({ ...current, prices: current.prices.map((item: any) => item.id === price.id ? { ...item, stripe_monthly_price_id: event.target.value } : item) }))} placeholder="price_ monthly ID" /><Input aria-label={`${price.market} annual Stripe price ID`} value={price.stripe_annual_price_id || ""} onChange={(event) => setCatalogue((current: any) => ({ ...current, prices: current.prices.map((item: any) => item.id === price.id ? { ...item, stripe_annual_price_id: event.target.value } : item) }))} placeholder="price_ annual ID" /><Input aria-label={`${price.market} setup Stripe price ID`} value={price.stripe_setup_price_id || ""} onChange={(event) => setCatalogue((current: any) => ({ ...current, prices: current.prices.map((item: any) => item.id === price.id ? { ...item, stripe_setup_price_id: event.target.value } : item) }))} placeholder="price_ setup ID" /></div></div>)}</div></div>)}
+    <div className="border-t border-slate-100 pt-5"><p className="mb-3 text-xs font-black uppercase tracking-widest text-slate-400">Promotion framework</p><div className="flex flex-col gap-2 sm:flex-row"><Input value={promotionName} onChange={(event) => setPromotionName(event.target.value)} placeholder="Promotion name" /><Input value={promotionCode} onChange={(event) => setPromotionCode(event.target.value)} placeholder="Optional code" /><Button onClick={() => void createPromotion()} disabled={saving === "promotion" || !promotionName.trim()} className="font-black">Create inactive promotion</Button></div><div className="mt-3 flex flex-wrap gap-2">{catalogue.promotions.map((promotion: any) => <Button key={promotion.id} onClick={() => void togglePromotion(promotion)} variant="outline" className="h-9 rounded-xl text-xs font-bold">{promotion.name} · {promotion.active ? "active" : "inactive"}</Button>)}</div></div>
+    <div className="border-t border-slate-100 pt-4"><p className="mb-2 text-xs font-black uppercase tracking-widest text-slate-400">Legacy plans · existing customers</p><div className="flex flex-wrap gap-2">{catalogue.legacyPlans.map((plan: any) => <Badge key={plan.id} variant="outline" className="font-bold">{plan.name} · {plan.slug} · {plan.is_active ? "active" : "inactive"}</Badge>)}</div></div>
+  </CardContent></Card>;
 };
 export default CommercialCatalogue;

@@ -88,25 +88,28 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const checkoutIntent = React.useMemo(() => {
     try { return JSON.parse(localStorage.getItem("bt_checkout_intent") || "{}"); } catch { return {}; }
   }, []);
+  const previewIntent = React.useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("bt_preview_intent") || "{}"); } catch { return {}; }
+  }, []);
   const proposalId = React.useMemo(() => new URLSearchParams(window.location.search).get("proposal"), []);
   const [selectedPackage, setSelectedPackage] = useState<string>(checkoutIntent.planId || "starter");
   const [availablePackages, setAvailablePackages] = useState<any[]>(activePlans(PACKAGES as any));
   const [trialDays, setTrialDays] = useState(14);
   const [businessData, setBusinessData] = useState({
-    name: "",
+    name: String(previewIntent.businessName || ""),
     subdomain: "",
     customDomain: "",
     businessType: "creative",
-    industry: "",
+    industry: String(previewIntent.industry || ""),
     businessNature: "",
     description: "",
-    location: "",
-    market: "",
-    mainOffer: "",
+    location: String(previewIntent.location || ""),
+    market: String(previewIntent.market || checkoutIntent.market || ""),
+    mainOffer: String(previewIntent.mainService || ""),
     serviceArea: "",
-    contactEmail: "",
-    contactPhone: "",
-    whatsappNumber: "",
+    contactEmail: String(previewIntent.email || ""),
+    contactPhone: String(previewIntent.phone || ""),
+    whatsappNumber: String(previewIntent.phone || ""),
     targetAudience: "",
     service1: "",
     service2: "",
@@ -122,7 +125,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     hasLocalProof: "no",
     testimonials: "",
     faq: "",
-    existingUrl: "",
+    existingUrl: String(previewIntent.websiteUrl || ""),
     platform_type: "waas" as "waas",
   });
   const [agreed, setAgreed] = useState(false);
@@ -177,6 +180,20 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     };
     fetchData();
   }, []);
+
+  React.useEffect(() => {
+    if (!Object.keys(previewIntent).length) return;
+    setBusinessData((current) => ({
+      ...current,
+      name: current.name || String(previewIntent.businessName || ""),
+      industry: current.industry || String(previewIntent.industry || ""),
+      location: current.location || String(previewIntent.location || ""),
+      mainOffer: current.mainOffer || String(previewIntent.mainService || ""),
+      contactEmail: current.contactEmail || String(previewIntent.email || ""),
+      contactPhone: current.contactPhone || String(previewIntent.phone || ""),
+      existingUrl: current.existingUrl || String(previewIntent.websiteUrl || ""),
+    }));
+  }, [previewIntent]);
 
   React.useEffect(() => {
     try {
