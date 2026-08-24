@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { CalendarClock, ExternalLink, Inbox, Loader2, Mail, MessageSquare, Phone, RefreshCw, Save, Search } from "lucide-react";
+import { CalendarClock, ExternalLink, Inbox, Loader2, Mail, MessageSquare, Phone, RefreshCw, Save, Search, Trash2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -50,6 +50,7 @@ export function AdminLeadInbox() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [savingLeadId, setSavingLeadId] = useState("");
+  const [deletingLeadId, setDeletingLeadId] = useState("");
   const [drafts, setDrafts] = useState<Record<string, { nextAction: string; nextFollowUpAt: string }>>({});
 
   const fetchLeads = useCallback(async () => {
@@ -144,6 +145,34 @@ export function AdminLeadInbox() {
     void updateLead(lead.id, { status: lead.status === "new" ? "contacted" : lead.status, channel, note: `${channel} follow-up opened` });
   };
 
+  const deleteLead = async (lead: AdminLead) => {
+    const confirmed = window.confirm(`Delete this enquiry from ${lead.businessName || lead.name || lead.email}? This cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      setDeletingLeadId(lead.id);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Your admin session has expired. Please sign in again.");
+      const response = await fetch(`/api/admin/leads/${lead.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Could not delete enquiry");
+      setLeads((current) => current.filter((item) => item.id !== lead.id));
+      setDrafts((current) => {
+        const next = { ...current };
+        delete next[lead.id];
+        return next;
+      });
+      toast.success("Enquiry deleted");
+    } catch (error: any) {
+      toast.error(error?.message || "Could not delete enquiry");
+    } finally {
+      setDeletingLeadId("");
+    }
+  };
+
   const newCount = leads.filter((lead) => lead.status === "new").length;
   const overdueCount = leads.filter((lead) => lead.nextFollowUpAt && new Date(lead.nextFollowUpAt) < new Date() && !["won", "lost"].includes(lead.status)).length;
 
@@ -209,6 +238,7 @@ export function AdminLeadInbox() {
                       {lead.email && <a onClick={() => logContact(lead, "email")} aria-label={`Email ${lead.name}`} href={`mailto:${lead.email}`} className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"><Mail className="h-4 w-4" /></a>}
                       {lead.phone && <a onClick={() => logContact(lead, "phone")} aria-label={`Call ${lead.name}`} href={`tel:${lead.phone}`} className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"><Phone className="h-4 w-4" /></a>}
                       {whatsapp && <a onClick={() => logContact(lead, "whatsapp")} aria-label={`WhatsApp ${lead.name}`} href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:border-emerald-200 hover:text-emerald-600"><MessageSquare className="h-4 w-4" /></a>}
+                      <Button type="button" size="icon" variant="outline" disabled={deletingLeadId === lead.id} onClick={() => void deleteLead(lead)} className="h-10 w-10 rounded-xl border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700" aria-label={`Delete enquiry from ${lead.name}`} title="Delete enquiry">{deletingLeadId === lead.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button>
                       <select aria-label={`Status for ${lead.name}`} value={lead.status} onChange={(event) => void updateLead(lead.id, { status: event.target.value })} className="h-10 min-w-32 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold capitalize text-slate-700 dark:bg-slate-900 dark:text-slate-200">
                         {LEAD_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}
                       </select>

@@ -3899,6 +3899,42 @@ async function startServer() {
     },
   );
 
+  app.delete(
+    "/api/admin/leads/:leadId",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: "admin-lead-delete", key: (req) => req.user?.id || getClientIp(req) }),
+    async (req: any, res) => {
+      if (!UUID_SCHEMA.safeParse(req.params.leadId).success) {
+        return res.status(400).json({ error: "Invalid lead ID" });
+      }
+
+      try {
+        const profile = await getProfileForUser(req.user.id);
+        if (!canManageLeadInbox(profile)) {
+          return res.status(403).json({ error: "Forbidden: sales access required" });
+        }
+
+        const { data: existingLead, error: lookupError } = await supabaseAdmin
+          .from("leads")
+          .select("id")
+          .eq("id", req.params.leadId)
+          .maybeSingle();
+        if (lookupError) throw lookupError;
+        if (!existingLead) return res.status(404).json({ error: "Lead not found" });
+
+        const { error } = await supabaseAdmin.from("leads").delete().eq("id", req.params.leadId);
+        if (error) throw error;
+        return res.json({ success: true });
+      } catch (error: any) {
+        if (error?.message === "PROFILE_NOT_FOUND") {
+          return res.status(403).json({ error: "Profile not found" });
+        }
+        console.error("Admin lead deletion failed:", error);
+        return res.status(500).json({ error: "Failed to delete enquiry" });
+      }
+    },
+  );
+
   app.post(
     "/api/wordpress-project-leads",
     rateLimit({ windowMs: 60 * 1000, max: 12, keyPrefix: "wordpress-project-leads" }),
