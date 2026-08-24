@@ -1253,6 +1253,7 @@ function GeneratePreviewPage() {
           <h2 className="mt-3 text-3xl font-black text-slate-950">Add the basic brief</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <Input
+              aria-label="Business name"
               required
               placeholder="Business name"
               value={form.businessName}
@@ -1260,6 +1261,7 @@ function GeneratePreviewPage() {
               className="h-12 rounded-2xl"
             />
             <Input
+              aria-label="City or area served"
               required
               placeholder="City / area served"
               value={form.location}
@@ -1267,6 +1269,7 @@ function GeneratePreviewPage() {
               className="h-12 rounded-2xl"
             />
             <Input
+              aria-label="Main services"
               required
               placeholder="Main services"
               value={form.mainService}
@@ -1274,23 +1277,26 @@ function GeneratePreviewPage() {
               className="h-12 rounded-2xl"
             />
             <Input
+              aria-label="Current website URL"
               placeholder="Current website URL optional"
               value={form.websiteUrl}
               onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })}
               className="h-12 rounded-2xl"
             />
             <Input
+              aria-label="Email"
               required type="email" placeholder="Email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="h-12 rounded-2xl"
             />
-            <Input placeholder="WhatsApp or phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl" />
-            <select value={form.brandStyle} onChange={(e) => setForm({ ...form, brandStyle: e.target.value })} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 sm:col-span-2">
+            <Input aria-label="WhatsApp or phone" placeholder="WhatsApp or phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl" />
+              <select aria-label="Preferred brand style" value={form.brandStyle} onChange={(e) => setForm({ ...form, brandStyle: e.target.value })} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 sm:col-span-2">
               {["Modern professional", "Premium corporate", "Friendly local business", "Bold sales landing page", "Clean minimal", "Luxury premium"].map((style) => <option key={style}>{style}</option>)}
             </select>
-            <Input placeholder="Google Business / social profile URL optional" value={form.socialUrl} onChange={(e) => setForm({ ...form, socialUrl: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
+            <Input aria-label="Google Business or social profile URL" placeholder="Google Business / social profile URL optional" value={form.socialUrl} onChange={(e) => setForm({ ...form, socialUrl: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
             <Textarea
+              aria-label="Customer reviews"
               placeholder={`Paste real reviews here, one per line if possible.\n\nExample:\nFast response and easy to contact by WhatsApp.\nThe team was professional and explained every step clearly.\nConvenient location and reasonable price.`}
               value={form.reviews}
               onChange={(e) => {
@@ -1843,12 +1849,12 @@ function WebsiteAuditPage() {
                   {error}
                 </div>
               )}
-              <Input required placeholder="Website URL" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Input required placeholder="Business name" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Input required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Input placeholder="Industry / business type (optional)" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Input placeholder="WhatsApp / phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Textarea placeholder="What do you want the website to improve? (optional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-28 rounded-2xl bg-white text-slate-950" />
+              <Input aria-label="Website URL" required placeholder="Website URL" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Input aria-label="Business name" required placeholder="Business name" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Input aria-label="Email" required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Input aria-label="Industry or business type" placeholder="Industry / business type (optional)" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Input aria-label="WhatsApp or phone" placeholder="WhatsApp / phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
+              <Textarea aria-label="Website improvement notes" placeholder="What do you want the website to improve? (optional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-28 rounded-2xl bg-white text-slate-950" />
               <Button type="submit" disabled={submitting} className="h-13 rounded-2xl bg-indigo-600 font-black uppercase tracking-widest hover:bg-indigo-500">
                 {submitting ? "Reviewing Website..." : "Start My Website Growth Review"} <Search className="ml-2 h-4 w-4" />
               </Button>
@@ -1996,13 +2002,13 @@ function PreviewRequestPanel() {
         <form onSubmit={submitPreviewRequest} className="grid gap-4">
           {error && <div className="rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</div>}
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-12 rounded-2xl" />
-            <Input required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl" />
-            <Input placeholder="WhatsApp / phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl" />
-            <Input placeholder="Business name" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-2xl" />
-            <Input placeholder="Industry" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
+            <Input aria-label="Name" required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-12 rounded-2xl" />
+            <Input aria-label="Email" required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl" />
+            <Input aria-label="WhatsApp or phone" placeholder="WhatsApp / phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl" />
+            <Input aria-label="Business name" placeholder="Business name" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-2xl" />
+            <Input aria-label="Industry" placeholder="Industry" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
           </div>
-          <Textarea placeholder="Main service, city, and what the website should help them get." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="min-h-28 rounded-2xl" />
+          <Textarea aria-label="Message" placeholder="Main service, city, and what the website should help them get." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="min-h-28 rounded-2xl" />
           <Button type="submit" disabled={submitting} className="h-12 rounded-2xl bg-indigo-600 font-black uppercase tracking-widest hover:bg-indigo-500">
             {submitting ? "Sending Request..." : "Send Preview Request"} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
