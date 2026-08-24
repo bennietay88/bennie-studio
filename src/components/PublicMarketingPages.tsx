@@ -28,6 +28,7 @@ import {
   assessManualReviewInput,
 } from "../constants/reviewPoweredWaas";
 import { formatUsdRangeForCountry } from "../hooks/useGeoPricing";
+import { Pricing as CommercialPricing } from "./Pricing";
 import { trackPinterestLead } from "../lib/pinterestTracking";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { FREE_PREVIEW_LIMITS, PUBLIC_PROMISE, SUBSCRIPTION_DELIVERY_FLOW } from "../constants/salesFlow";
@@ -394,6 +395,9 @@ const getTrackingContext = () => {
       utmMedium: "",
       utmCampaign: "",
       country: "",
+      source: "",
+      campaign: "",
+      referrer: "",
     };
   }
 
@@ -404,6 +408,9 @@ const getTrackingContext = () => {
     utmSource: params.get("utm_source") || "",
     utmMedium: params.get("utm_medium") || "",
     utmCampaign: params.get("utm_campaign") || "",
+    source: params.get("source") || params.get("src") || "",
+    campaign: params.get("campaign") || params.get("utm_campaign") || "",
+    referrer: document.referrer || "",
     country: navigator.language?.split("-")?.[1] || "",
     referralCode: params.get("ref") || params.get("referral") || localStorage.getItem("ref_platform") || "",
   };
@@ -567,6 +574,8 @@ function TemplatesPage() {
 }
 
 function PricingPage() {
+  return <CommercialPricing />;
+  /*
   const [selectedMarket, setSelectedMarket] = React.useState<PricingMarket>("US");
   const [detectedLabel, setDetectedLabel] = React.useState("Detecting your location...");
 
@@ -763,6 +772,7 @@ function PricingPage() {
       </section>
     </>
   );
+  */
 }
 
 function HowItWorksPage() {
@@ -1145,6 +1155,11 @@ function GeneratePreviewPage() {
         goal,
         recommendedPlan: industry.recommendedPlan,
         leadId: lead.leadId,
+        attribution: getTrackingContext(),
+        market: initialParams.get("market") || "INTL",
+        source: initialParams.get("source") || "",
+        campaign: initialParams.get("campaign") || initialParams.get("utm_campaign") || "",
+        templateId: selectedTemplateId,
         reviewSuggestions: reviewQuality.suggestions,
         reviewStrategy: {
           heroHeadline: reviewStrategy.heroHeadline,

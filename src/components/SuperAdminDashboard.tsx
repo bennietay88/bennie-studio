@@ -157,6 +157,7 @@ import { OperationsControlCenter } from "./SuperAdmin/OperationsControlCenter";
 import { GrowthOperationsCenter } from "./SuperAdmin/GrowthOperationsCenter";
 import { AdminLeadInbox } from "./SuperAdmin/AdminLeadInbox";
 import ComplianceMarketSettings from "./SuperAdmin/ComplianceMarketSettings";
+import CommercialCatalogue from "./SuperAdmin/CommercialCatalogue";
 import { SystemStatusPage } from "./SystemStatusPage";
 import { PLANS as STATIC_PLANS, normalizePlans } from "../constants/plans";
 import {
@@ -2178,7 +2179,7 @@ export default function SuperAdminDashboard() {
                 <SuperAdminAffiliatePartners onViewProfile={(user) => { setViewingUser(user); setIsViewUserDialogOpen(true); }} />
              </div>
           )}
-          {activeTab === "plans" && <PlanEditor />}
+          {activeTab === "plans" && <><CommercialCatalogue /><PlanEditor /></>}
           {activeTab === "compliance_market" && <ComplianceMarketSettings />}
 
           {/* Placeholder for remaining tabs */}

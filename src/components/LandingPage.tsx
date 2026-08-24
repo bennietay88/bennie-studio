@@ -725,7 +725,7 @@ export default function LandingPage() {
                     onClick={() => scrollToId("#launch-models")}
                     className="h-14 rounded-2xl border-white/20 bg-white/5 px-8 font-black uppercase tracking-widest text-white hover:bg-white hover:text-slate-950"
                   >
-                    Compare Launch Options
+                    See managed website options
                   </Button>
                 </div>
               </motion.div>
@@ -1284,7 +1284,7 @@ export default function LandingPage() {
               onClick={() => trackAndScroll("#pricing", "Homepage View Basic Plans", "pricing_cta_clicked")}
               className="mt-4 w-full rounded-xl px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-indigo-200 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             >
-              Or view basic plans from $49/month
+              Or view managed website pricing
             </button>
           </div>
         </div>

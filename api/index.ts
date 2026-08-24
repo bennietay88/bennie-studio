@@ -310,6 +310,15 @@ async function logSyncEvent(data: {
 }
 
 const app = express();
+
+const normalizeCommercialMarket = (value: unknown) => {
+  const market = String(value || "").toUpperCase();
+  if (market === "MY") return "MY";
+  if (market === "SG") return "SG";
+  if (market === "GB" || market === "UK") return "GB";
+  return "INTL";
+};
+const commercialCurrencyForMarket = (market: string) => ({ MY: "MYR", SG: "SGD", GB: "GBP", INTL: "USD" } as Record<string, string>)[market] || "USD";
 app.use(compression());
 app.disable("x-powered-by");
 app.use((req, res, next) => {
@@ -1075,11 +1084,20 @@ async function startServer() {
                 const priceId = lineItems.data[0]?.price?.id;
                 
                 const requestedPlanSlug = String(session.metadata?.planId || "").toLowerCase();
+                const requestedProductSlug = String(session.metadata?.productSlug || "").toLowerCase();
+                const { data: currentPrice } = await supabaseAdmin
+                  .from("commercial_market_prices")
+                  .select("product_id,market,currency,monthly_price,annual_price")
+                  .or(`stripe_monthly_price_id.eq.${priceId},stripe_annual_price_id.eq.${priceId}`)
+                  .maybeSingle();
+                const { data: currentProduct } = currentPrice?.product_id
+                  ? await supabaseAdmin.from("commercial_products").select("slug,entitlement_plan_slug").eq("id", currentPrice.product_id).maybeSingle()
+                  : { data: null };
                 const plan = plans.find((p: any) => p.stripe_price_id === priceId || p.yearly_stripe_price_id === priceId || (requestedPlanSlug && p.slug === requestedPlanSlug));
-                const planSlug = plan?.slug || requestedPlanSlug;
+                const planSlug = currentProduct?.entitlement_plan_slug || plan?.slug || requestedPlanSlug;
                 const planId = plan?.id;
 
-                if (!planSlug || !plan) {
+                if (!planSlug || (!plan && !currentProduct)) {
                   throw new Error(`Unable to map paid Stripe price ${priceId || "unknown"} to an active plan`);
                 }
 
@@ -1096,6 +1114,11 @@ async function startServer() {
                     subscription_status: subscription.status,
                     status: "active",
                     plan: planSlug,
+                    commercial_product_slug: currentProduct?.slug || requestedProductSlug || null,
+                    commercial_market: currentPrice?.market || session.metadata?.market || null,
+                    commercial_currency: currentPrice?.currency || session.metadata?.currency || null,
+                    commercial_term_months: session.metadata?.termMonths ? Number(session.metadata.termMonths) : null,
+                    commercial_started_at: new Date().toISOString(),
                     ai_credits: plan?.monthly_credit_limit || 300
                   })
                   .eq("id", businessId);
@@ -3306,6 +3329,11 @@ async function startServer() {
           utmSource: z.string().trim().max(120).optional().nullable(),
           utmMedium: z.string().trim().max(120).optional().nullable(),
           utmCampaign: z.string().trim().max(160).optional().nullable(),
+          campaign: z.string().trim().max(160).optional().nullable(),
+          referrer: z.string().trim().max(500).optional().nullable(),
+          previewId: z.string().trim().max(160).optional().nullable(),
+          market: z.string().trim().max(20).optional().nullable(),
+          currency: z.string().trim().max(10).optional().nullable(),
           firstTouch: z.record(z.string(), z.any()).optional(),
           lastTouch: z.record(z.string(), z.any()).optional(),
         }),
@@ -3331,6 +3359,11 @@ async function startServer() {
         utmSource,
         utmMedium,
         utmCampaign,
+        campaign,
+        referrer,
+        previewId,
+        market,
+        currency,
         firstTouch,
         lastTouch,
       } = leadBody;
@@ -3366,11 +3399,23 @@ async function startServer() {
             utmSource,
             utmMedium,
             utmCampaign,
+            campaign,
+            referrer,
+            previewId,
+            market,
+            currency,
             firstTouch,
             lastTouch,
             intent: leadType || "free_website_preview",
           },
           status: "new",
+          first_touch_source: firstTouch?.sourcePage || firstTouch?.utmSource || null,
+          last_touch_source: lastTouch?.sourcePage || lastTouch?.utmSource || null,
+          referrer: referrer || null,
+          preview_id: previewId || null,
+          market: market || null,
+          currency: currency || null,
+          campaign: campaign || utmCampaign || null,
         },
         {
           name,
@@ -4717,6 +4762,52 @@ async function startServer() {
     return res.json({ slots, timezone: "Asia/Kuala_Lumpur", durationMinutes: 30 });
   });
 
+  app.get("/api/public/pricing", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-pricing" }), async (req, res) => {
+    const market = normalizeCommercialMarket(req.query.market);
+    const { data, error } = await supabaseAdmin
+      .from("commercial_products")
+      .select("id,slug,name,description,product_type,sales_motion,includes_product_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,active,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id)")
+      .eq("active", true)
+      .eq("commercial_market_prices.market", market)
+      .eq("commercial_market_prices.active", true)
+      .order("sort_order", { ascending: true });
+    if (error) return res.status(503).json({ error: "Commercial pricing is temporarily unavailable" });
+    const products = (data || []).map((product: any) => {
+      const price = Array.isArray(product.commercial_market_prices) ? product.commercial_market_prices[0] : product.commercial_market_prices;
+      return {
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+        description: product.description,
+        productType: product.product_type,
+        salesMotion: product.sales_motion,
+        includesProductSlug: product.includes_product_slug,
+        price: price ? {
+          market,
+          currency: price.currency,
+          monthlyPrice: price.monthly_price === null ? null : Number(price.monthly_price),
+          setupFee: Number(price.setup_fee || 0),
+          annualPrice: price.annual_price === null ? null : Number(price.annual_price),
+          monthlyConfigured: Boolean(price.stripe_monthly_price_id),
+          annualConfigured: Boolean(price.stripe_annual_price_id),
+        } : null,
+      };
+    });
+    res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=900");
+    return res.json({ market, currency: commercialCurrencyForMarket(market), products });
+  });
+
+  app.get("/api/admin/commercial-catalogue", authenticate, superAdminOnly, async (_req: any, res: any) => {
+    const [products, prices, promotions, legacyPlans] = await Promise.all([
+      supabaseAdmin.from("commercial_products").select("*").order("sort_order", { ascending: true }),
+      supabaseAdmin.from("commercial_market_prices").select("*").order("market", { ascending: true }),
+      supabaseAdmin.from("commercial_promotions").select("*").order("created_at", { ascending: false }),
+      supabaseAdmin.from("plans").select("id,name,slug,is_active,sales_motion,price_usd,setup_fee,commitment_months").order("sort_order", { ascending: true }),
+    ]);
+    if (products.error || prices.error || legacyPlans.error) return res.status(500).json({ error: "Commercial catalogue unavailable" });
+    return res.json({ products: products.data || [], prices: prices.data || [], promotions: promotions.data || [], legacyPlans: legacyPlans.data || [] });
+  });
+
   app.get("/api/public/site-config", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-site-config" }), async (_req, res) => {
     const [
       { data: settingsRows, error: settingsError },
@@ -4756,6 +4847,7 @@ async function startServer() {
 
   app.get("/api/public/geo-pricing", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-geo-pricing" }), async (req, res) => {
     const countryCode = String(req.headers["x-vercel-ip-country"] || "US").toUpperCase().slice(0, 2);
+    const market = normalizeCommercialMarket(countryCode);
     let detectedCountryName = countryCode === "US" ? "Global" : countryCode;
     try {
       detectedCountryName = new Intl.DisplayNames(["en"], { type: "region" }).of(countryCode) || detectedCountryName;
@@ -4771,6 +4863,8 @@ async function startServer() {
     res.setHeader("Cache-Control", "private, max-age=300");
     return res.json({
       countryCode,
+      market,
+      currency: commercialCurrencyForMarket(market),
       countryName: data?.country_name || detectedCountryName,
       discountPercentage: Number(data?.discount_percentage || 0),
       couponId: data?.stripe_coupon_id || null,
@@ -4997,28 +5091,63 @@ async function startServer() {
     async (req: any, res) => {
     const checkoutBody = validateBody(
       z.object({
-        priceId: z.string().regex(/^price_[A-Za-z0-9_]+$/),
+        priceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).optional().nullable(),
         businessId: UUID_SCHEMA,
         customerEmail: EMAIL_SCHEMA.optional().nullable(),
         couponId: z.string().trim().max(120).optional().nullable(),
         type: z.enum(["credits", "subscription"]).optional(),
         planId: z.string().trim().min(1).max(80).optional().nullable(),
+        productSlug: z.enum(["managed-website", "website-growth", "growth-partner", "custom-website"]).optional().nullable(),
         billingCycle: z.enum(["monthly", "yearly"]).optional().default("monthly"),
-        market: z.enum(["MY", "SG", "GB", "US"]).optional().default("US"),
+        market: z.enum(["MY", "SG", "GB", "US", "INTL"]).optional().default("INTL"),
+        promotionCode: z.string().trim().max(120).optional().nullable(),
+        upgradeFrom: z.string().trim().max(80).optional().nullable(),
       }),
       req,
       res,
     );
     if (!checkoutBody) return;
 
-    const { priceId, businessId, customerEmail, couponId, planId, billingCycle, market } = checkoutBody;
+    const { businessId, customerEmail, couponId, planId, productSlug, billingCycle } = checkoutBody;
+    const market = normalizeCommercialMarket(checkoutBody.market);
+    const legacyMarket = checkoutBody.market === "US" ? "US" : market;
+    let priceId = checkoutBody.priceId || "";
+    let resolvedProductSlug = productSlug || null;
 
     try {
       await assertBusinessAccess(req.user.id, businessId);
       let configuredSetupPriceId: string | null = null;
 
+      // Current-product checkout never trusts a browser-supplied Stripe coupon.
+      // Promotions must be activated and mapped in the server catalogue first.
+      if (productSlug && (couponId || checkoutBody.promotionCode)) {
+        return res.status(400).json({ error: "This promotion is not configured for checkout." });
+      }
+
       if (checkoutBody.type !== "credits") {
-        if (!planId) return res.status(400).json({ error: "Select a valid plan before checkout." });
+        if (productSlug) {
+          const { data: currentProduct } = await supabaseAdmin
+            .from("commercial_products")
+            .select("id,slug,name,sales_motion,entitlement_plan_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,active)")
+            .eq("slug", productSlug)
+            .eq("active", true)
+            .eq("commercial_market_prices.market", market)
+            .eq("commercial_market_prices.active", true)
+            .maybeSingle();
+          const currentPrice = currentProduct && (Array.isArray(currentProduct.commercial_market_prices) ? currentProduct.commercial_market_prices[0] : currentProduct.commercial_market_prices);
+          if (!currentProduct || !currentPrice) return res.status(400).json({ error: "This product is unavailable in the selected market." });
+          if (currentProduct.sales_motion !== "self_serve") return res.status(400).json({ error: "This product is available by consultation, not self-serve checkout." });
+          priceId = billingCycle === "yearly" ? (currentPrice.stripe_annual_price_id || "") : (currentPrice.stripe_monthly_price_id || "");
+          if (!priceId) return res.status(400).json({ error: `${billingCycle === "yearly" ? "Annual" : "Monthly"} checkout is not configured for this market yet.` });
+          // A Growth upgrade does not repeat the Managed Website setup fee.
+          const isUpgrade = productSlug === "website-growth" && checkoutBody.upgradeFrom === "managed-website";
+          configuredSetupPriceId = isUpgrade ? null : (currentPrice.stripe_setup_price_id || null);
+          if (Number(currentPrice.setup_fee || 0) > 0 && !configuredSetupPriceId && !isUpgrade) {
+            return res.status(400).json({ error: `${market} setup-fee checkout is not configured for this product.` });
+          }
+          resolvedProductSlug = currentProduct.slug;
+        } else {
+          if (!planId || !priceId) return res.status(400).json({ error: "Select a valid plan before checkout." });
         const { data: configuredPlan } = await supabaseAdmin
           .from("plans")
           .select("slug,is_active,sales_motion,setup_fee,stripe_price_id,yearly_stripe_price_id,market_price_ids")
@@ -5029,7 +5158,7 @@ async function startServer() {
           return res.status(400).json({ error: "This plan is available by proposal, not self-serve checkout." });
         }
         const marketPriceIds = configuredPlan.market_price_ids && typeof configuredPlan.market_price_ids === "object"
-          ? configuredPlan.market_price_ids[market]
+          ? configuredPlan.market_price_ids[legacyMarket]
           : null;
         const configuredPriceId = billingCycle === "yearly"
           ? marketPriceIds?.yearly || configuredPlan.yearly_stripe_price_id
@@ -5044,11 +5173,10 @@ async function startServer() {
         if (configuredSetupPriceId && !/^price_[A-Za-z0-9_]+$/.test(configuredSetupPriceId)) {
           return res.status(400).json({ error: "The setup-fee Stripe Price ID is invalid." });
         }
+        }
       }
 
-      if (
-        /price_(starter|business|growth|launch|premium|pro|elite|.*_id)$/i.test(priceId)
-      ) {
+      if (!priceId || /price_(starter|business|growth|launch|premium|pro|elite|.*_id)$/i.test(priceId)) {
         return res.status(400).json({
           error:
             "This plan still uses a placeholder Stripe Price ID. Add the real price_... value from Stripe in Super Admin > Billing Plans.",
@@ -5075,12 +5203,15 @@ async function startServer() {
             ? "payment"
             : "subscription",
         success_url: `${publicAppUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${publicAppUrl()}/checkout/cancel?plan=${encodeURIComponent(planId || "")}&billing=${billingCycle}`,
+        cancel_url: `${publicAppUrl()}/checkout/cancel?plan=${encodeURIComponent(resolvedProductSlug || planId || "")}&billing=${billingCycle}`,
         metadata: {
           businessId,
           planId: planId || "",
+          productSlug: resolvedProductSlug || "",
           billingCycle,
           market,
+          currency: commercialCurrencyForMarket(market),
+          termMonths: resolvedProductSlug ? "12" : "",
           type:
             priceId.includes("credits") || checkoutBody.type === "credits"
               ? "credits"
