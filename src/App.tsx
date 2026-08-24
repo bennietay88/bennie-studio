@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { lazy, Suspense } from "react";
+import React, { lazy as reactLazy, Suspense } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -23,6 +23,42 @@ import { LoadingFallback } from "./components/LoadingFallback";
 import { classifyTenantHost } from "./lib/tenantDomains";
 import LandingPage from "./components/LandingPage";
 import LoginPage from "./components/LoginPage";
+
+const CHUNK_RETRY_KEY = "bt_chunk_retry_once";
+
+// Vite assets are content-hashed. A browser that cached the previous index
+// can request an old lazy chunk after a deployment, so recover once with a
+// cache-busting URL before showing the global error boundary.
+const lazy = <T extends React.ComponentType<any>>(
+  importer: () => Promise<{ default: T }>,
+) => reactLazy(async () => {
+  try {
+    const module = await importer();
+    try {
+      sessionStorage.removeItem(CHUNK_RETRY_KEY);
+      const currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.has("_chunk_retry")) {
+        currentUrl.searchParams.delete("_chunk_retry");
+        window.history.replaceState({}, "", currentUrl.toString());
+      }
+    } catch {
+      // Storage/history may be unavailable in privacy-restricted browsers.
+    }
+    return module;
+  } catch (error) {
+    try {
+      if (!sessionStorage.getItem(CHUNK_RETRY_KEY)) {
+        sessionStorage.setItem(CHUNK_RETRY_KEY, "1");
+        const retryUrl = new URL(window.location.href);
+        retryUrl.searchParams.set("_chunk_retry", String(Date.now()));
+        window.location.replace(retryUrl.toString());
+      }
+    } catch {
+      // Let ErrorBoundary handle the failure if recovery is unavailable.
+    }
+    throw error;
+  }
+});
 
 // --- Lazy Loaded Components ---
 const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
