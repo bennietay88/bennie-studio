@@ -900,7 +900,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
           <div className="mb-8">
             <h1 className="text-4xl font-black tracking-tight uppercase leading-none mb-2">
               {step === 0 && "Business Input"}
-              {step === 1 && "Choose Launch Plan"}
+              {step === 1 && "Choose Website Direction"}
               {step === 2 && "Business Details"}
               {step === 3 && "CTA Goal"}
               {step === 4 && "Review-Powered Strategy"}

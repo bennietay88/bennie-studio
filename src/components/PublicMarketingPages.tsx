@@ -731,7 +731,7 @@ function PricingPage() {
               <div className="mt-3 grid gap-2 text-sm font-bold text-slate-700 sm:grid-cols-3">
                 <span>1. Review and direction</span>
                 <span>2. Priority pages and CTAs</span>
-                <span>3. Launch plan and tracking</span>
+                <span>3. Launch roadmap and tracking</span>
               </div>
             </div>
             <Link

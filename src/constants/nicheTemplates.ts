@@ -717,7 +717,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     businessGoal: "Drive Demo Calls",
     visualStyle: "Startup Gradient",
     targetMarket: "Tech-savvy professionals and enterprises",
-    ctaType: "Start Free Trial",
+    ctaType: "Request Consultation",
     premiumLevel: "Agency Grade",
     description: "High-performance landing page designed for conversion and feature clarity.",
     thumbnail: "/brand-template-preview.svg",
@@ -730,7 +730,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
     conversionFeatures: ["Pricing table", "Feature grid", "Testimonial row", "Interactive demo"],
     seoFocus: "Software product name, solution keywords, trial terms",
     trustElements: ["Trust logos", "User counts", "Security badges", "App ratings"],
-    leadCapture: "Free trial sign-up / Demo booking",
+    leadCapture: "Website preview request / Demo booking",
     automation: "Onboarding sequence + CRM hook",
     pages: [
       {

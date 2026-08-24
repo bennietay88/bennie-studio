@@ -23,7 +23,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   const [pendingProduct, setPendingProduct] = React.useState<CommercialProduct | null>(null);
   React.useEffect(() => {
     persistCommercialMarket(market);
-    fetch(`/api/public/pricing?market=${market}`).then(async (response) => {
+    fetch(`/api/public/pricing?market=${market}`, { cache: "no-store" }).then(async (response) => {
       if (!response.ok) throw new Error("Pricing unavailable");
       const data = await response.json();
       if (Array.isArray(data.products) && data.products.length) setProducts(data.products.map((product: any) => ({ ...product, prices: product.price ? [product.price] : [] })));

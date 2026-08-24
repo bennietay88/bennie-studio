@@ -4807,7 +4807,7 @@ async function startServer() {
         } : null,
       };
     });
-    res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=900");
+    res.setHeader("Cache-Control", "no-store");
     return res.json({ market, currency: commercialCurrencyForMarket(market), products });
   });
 

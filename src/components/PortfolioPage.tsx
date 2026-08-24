@@ -433,7 +433,7 @@ export default function PortfolioPage() {
                 Build Process
               </Badge>
               <h2 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
-                From case study to launch plan
+                From case study to managed website direction
               </h2>
             </div>
             <div className="grid gap-4">
