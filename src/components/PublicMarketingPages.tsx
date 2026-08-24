@@ -436,6 +436,9 @@ async function submitPlatformLead(input: {
   message?: string;
   formName: string;
   leadType: string;
+  landingPage?: string;
+  service?: string;
+  selectedProduct?: string;
 }) {
   const response = await fetch("/api/platform-leads", {
     method: "POST",
@@ -575,6 +578,7 @@ function TemplatesPage() {
 
 function PricingPage() {
   return <CommercialPricing />;
+  /* Legacy implementation retained in git history; current pricing is rendered by CommercialPricing. */
   /*
   const [selectedMarket, setSelectedMarket] = React.useState<PricingMarket>("US");
   const [detectedLabel, setDetectedLabel] = React.useState("Detecting your location...");
@@ -1048,6 +1052,17 @@ const previewGoals = [
   "Build more trust before sales calls",
 ];
 
+function recommendCommercialProduct(input: { goal: string; notes: string; industry: string; requestedPages?: number }) {
+  const text = `${input.goal} ${input.notes} ${input.industry}`.toLowerCase();
+  if (/ecommerce|e-commerce|membership|wordpress|woocommerce|integration|multilingual|custom software/.test(text)) {
+    return { slug: "custom-website", label: "Custom Website", reason: "Your brief suggests functionality that deserves a scoped consultation." };
+  }
+  if (/seo|search|location|locations|traffic|growth|landing page|multiple services|scale/.test(text) || (input.requestedPages || 0) > 4) {
+    return { slug: "website-growth", label: "Website Growth", reason: "Your goals point to ongoing optimisation, local search expansion and new landing pages." };
+  }
+  return { slug: "managed-website", label: "Managed Website", reason: "A managed website is the clearest starting point for your enquiry journey." };
+}
+
 function GeneratePreviewPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1103,6 +1118,7 @@ function GeneratePreviewPage() {
     googleBusinessUrl: form.socialUrl,
     reviews: form.reviews,
   });
+  const commercialRecommendation = recommendCommercialProduct({ goal, notes: `${form.mainService} ${form.websiteUrl}`, industry: industry.label, requestedPages: industry.pages.length });
 
   React.useEffect(() => {
     trackPublicEvent({ eventType: "start_preview_flow", label: "Generate Preview Page Loaded", target: "/generate-preview" });
@@ -1147,13 +1163,16 @@ function GeneratePreviewPage() {
         message: `Location: ${form.location}\nServices: ${form.mainService}\nPreferred action: ${goal}\nBrand style: ${form.brandStyle}\nSocial / Google Business: ${form.socialUrl || "Not provided"}\nReview signals:\n${form.reviews || "Not provided"}`,
         formName: "Review-powered website preview generator",
         leadType: "free_website_preview",
+        landingPage: window.location.pathname,
+        service: form.mainService,
+        selectedProduct: "managed-website",
       });
       localStorage.setItem("bt_preview_intent", JSON.stringify({
         ...form,
         industryId,
         industry: industry.label,
         goal,
-        recommendedPlan: industry.recommendedPlan,
+        recommendedProduct: commercialRecommendation.slug,
         leadId: lead.leadId,
         attribution: getTrackingContext(),
         market: initialParams.get("market") || "INTL",
@@ -1179,7 +1198,7 @@ function GeneratePreviewPage() {
         eventType: "preview_generated",
         label: previewTitle,
         target: "/generate-preview",
-        metadata: { industry: industry.label, recommendedPlan: industry.recommendedPlan, goal },
+        metadata: { industry: industry.label, recommendedProduct: commercialRecommendation.slug, goal },
       });
     } catch (submissionError: any) {
       setError(submissionError?.message || "The preview could not be prepared. Please retry.");
@@ -1352,7 +1371,7 @@ function GeneratePreviewPage() {
                 </div>
 	                <div className="mt-6 grid gap-3 sm:grid-cols-2">
                   {[
-                    ["Recommended plan", industry.recommendedPlan],
+                    ["Recommended product", commercialRecommendation.label],
                     ["Primary CTA", reviewStrategy.primaryCta],
                     ["Template direction", industry.template],
                     ["Local SEO focus", `${serviceLabel} in ${locationLabel}`],
@@ -1373,8 +1392,8 @@ function GeneratePreviewPage() {
 	                      </div>
 	                    ))}
 	                  </div>
-	                  <p className="mt-4 text-xs font-bold leading-5 text-amber-800">
-	                    Full onboarding, manual production work, publishing, and custom domain setup begin only after payment or a valid card-required trial is confirmed.
+                    <p className="mt-4 text-xs font-bold leading-5 text-amber-800">
+	                    Full onboarding, manual production work, publishing, and custom domain setup begin only after payment or an approved commercial commitment.
 	                  </p>
 	                </div>
                 <div className="mt-6 grid gap-4 lg:grid-cols-2">
@@ -1424,8 +1443,8 @@ function GeneratePreviewPage() {
                   <Button onClick={() => action("create_account_after_preview", "Save My Preview", "/signup?redirectTo=%2Fdashboard%2Fonboarding")} className="rounded-2xl bg-indigo-600 font-black uppercase tracking-widest">
                     Create Account & Save
                   </Button>
-                  <Button onClick={() => action("click_start_plan", "Start Managed Website Plan", "/pricing")} variant="outline" className="rounded-2xl font-black uppercase tracking-widest">
-                    Start Managed Plan
+                  <Button onClick={() => action("click_start_plan", `Start ${commercialRecommendation.label}`, `/pricing?product=${commercialRecommendation.slug}`)} variant="outline" className="rounded-2xl font-black uppercase tracking-widest">
+                    Start {commercialRecommendation.label}
                   </Button>
                   <Button onClick={() => action("click_custom_strategy", "Request Custom Website Strategy", "/apply-custom")} variant="outline" className="rounded-2xl font-black uppercase tracking-widest">
                     Custom Strategy
@@ -1505,7 +1524,8 @@ function EnquiryJourneyFlow({ title, steps, recommended = false }: { title: stri
 function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; form: { businessName: string; email: string; website: string } }) {
   // Keep the result market-neutral. Pricing is selected on the pricing page so an audit
   // never shows a country's price to the wrong prospect.
-  const plan = getOfferForMarket("US");
+  const recommendedPlanKey = String(report.recommendedPlan || "").toLowerCase();
+  const recommendedProduct = recommendedPlanKey === "custom" ? "Custom Website" : recommendedPlanKey === "growth" ? "Website Growth" : "Managed Website";
   const savePreviewContext = () => {
     sessionStorage.setItem("bt_audit_preview_context", JSON.stringify({
       businessName: form.businessName,
@@ -1513,13 +1533,13 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
       website: form.website,
       auditSummary: report.summary,
       direction: report.recommendedWebsiteDirection,
-      recommendedPlan: report.recommendedPlan,
+      recommendedProduct,
     }));
     trackPublicEvent({
       eventType: "audit_preview_clicked",
       label: "See My Website Preview",
       target: "/generate-preview",
-      metadata: { recommendedPlan: report.recommendedPlan, findingCount: report.findings.length },
+        metadata: { recommendedProduct, findingCount: report.findings.length },
     });
   };
 
@@ -1629,13 +1649,13 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
         </div>
         <div className="mt-6 flex flex-col gap-5 rounded-3xl bg-indigo-50 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Recommended plan</p>
-            <p className="mt-2 text-2xl font-black">{plan.name}</p>
-            <p className="mt-1 text-sm font-bold text-slate-600">From {plan.monthlyLabel}/month plus {plan.setupLabel} setup. View local pricing for your market before checkout.</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Recommended product</p>
+            <p className="mt-2 text-2xl font-black">{recommendedProduct}</p>
+            <p className="mt-1 text-sm font-bold text-slate-600">View local pricing and the exact setup fee for your market before checkout.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link to="/generate-preview" onClick={savePreviewContext} className={primaryCtaClass}>See My Website Preview</Link>
-            <Link to="/pricing" onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: plan.name, target: "/pricing", metadata: { offerId: plan.id, recommendedPlan: report.recommendedPlan } })} className={secondaryCtaClass}>View Plan</Link>
+            <Link to={`/pricing?product=${encodeURIComponent(recommendedProduct.toLowerCase().replaceAll(" ", "-"))}`} onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: recommendedProduct, target: "/pricing", metadata: { recommendedProduct } })} className={secondaryCtaClass}>View Pricing</Link>
           </div>
         </div>
       </section>

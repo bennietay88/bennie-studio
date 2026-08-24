@@ -26,7 +26,7 @@ export const SUBSCRIPTION_DELIVERY_FLOW = [
   "Select a subscription plan",
   "Create an account or log in",
   "Create the business record",
-  "Complete Stripe checkout or card-required trial setup",
+  "Complete Stripe checkout before production work begins",
   "Confirm payment or valid payment method",
   "Submit onboarding details, services, reviews, contacts, images, and domain information",
   "Generate a website draft",

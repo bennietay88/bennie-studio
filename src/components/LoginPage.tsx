@@ -89,7 +89,7 @@ export default function LoginPage({
             </h1>
             <p className="text-slate-500">
               {isSignUp
-                ? "Start your 14-day free trial today."
+                ? "Start with a free website preview, then choose the right managed service."
                 : "Sign in to manage your website, leads, and account."}
             </p>
           </div>

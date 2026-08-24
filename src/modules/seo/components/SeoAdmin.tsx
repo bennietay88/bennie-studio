@@ -144,7 +144,7 @@ export default function SeoAdmin() {
                   if (!Number.isFinite(next) || next < 0) return toast.error("Enter a valid non-negative price.");
                   void runAction("addon-price", () => updateSeoProductConfig({ addon_prices: { ...data.productConfig.addon_prices, US: { amount: next, currency: "USD" } } }), "SEO add-on price updated.");
                 }} className="h-12 rounded-full bg-slate-950 px-6 font-bold text-white">Save</Button></div>
-                <p className="mt-4 rounded-2xl bg-indigo-50 p-4 text-xs font-semibold leading-5 text-indigo-800">The $799 Website Growth Partner remains the included managed tier. Launch, Business, and Scale can receive SEO through an explicit add-on or customer override.</p>
+                <p className="mt-4 rounded-2xl bg-indigo-50 p-4 text-xs font-semibold leading-5 text-indigo-800">Website Growth customers receive ongoing SEO expansion. Managed Website customers can request a scoped growth upgrade or add-on.</p>
                 <div className="mt-6 border-t border-slate-100 pt-6">
                   <Label className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Default usage safeguards</Label>
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">

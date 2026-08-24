@@ -196,10 +196,10 @@ export const DEFAULT_LANDING_CONTENT = {
     ],
   },
   pricing: {
-    title: "Basic Website Plans From $49/Month",
+    title: "Managed websites built around enquiries",
     subtitle:
-      "Choose Launch, Business, or Scale when you want a practical template-led website without the full consultant-led Growth Partner service.",
-    trialNote: "Start with a card-required trial or subscription checkout before full onboarding and delivery work begins.",
+      "Start with one managed website offer, then add ongoing growth support or request a custom build when your requirements are more complex.",
+    trialNote: "Start with a free, limited website preview. Production work begins after payment or an approved commercial commitment.",
   },
   dashboard: {
     title: "Track Website Progress and Enquiries From Your Portal",
@@ -281,13 +281,13 @@ export const DEFAULT_LANDING_CONTENT = {
     subtitle: "DIY tools give you pages. Cheap builds often stop at design. Bennie Studio structures your website around enquiries, trust, local visibility, and follow-up.",
     plans: ["Typical Website", "Bennie Studio"],
     features: [
-      { label: "Best for", launch: "Getting a basic website online", business: "Getting clearer enquiries and leads" },
-      { label: "Strategy", launch: "Usually left to the owner", business: "Offer, page, CTA, and proof structure included" },
-      { label: "CTA flow", launch: "Often generic buttons", business: "WhatsApp, quote, booking, call, or form flow" },
-      { label: "Local search", launch: "Basic or unclear", business: "Service and location structure prepared" },
-      { label: "Trust sections", launch: "Often missing or buried", business: "Reviews, proof, FAQs, service areas, reassurance" },
-      { label: "Maintenance", launch: "DIY or ad hoc", business: "Managed update path based on plan" },
-      { label: "Expansion", launch: "Requires more setup", business: "Landing pages and custom website upgrade path" },
+      { label: "Best for", launch: "Owners who want a website managed for them", business: "Businesses ready for ongoing growth support" },
+      { label: "Strategy", launch: "Offer and enquiry direction included", business: "Monthly conversion and SEO priorities" },
+      { label: "CTA flow", launch: "WhatsApp, quote, booking, call, or form flow", business: "Continually tested and improved" },
+      { label: "Local search", launch: "Service and location foundation", business: "Expansion into new service and location pages" },
+      { label: "Trust sections", launch: "Reviews, proof, FAQs and reassurance", business: "Ongoing proof and review improvements" },
+      { label: "Maintenance", launch: "Hosting, maintenance and managed updates", business: "Priority support and monthly review" },
+      { label: "Expansion", launch: "Upgrade to Website Growth or Custom Website", business: "Landing pages and growth roadmap" },
     ],
   },
   faq: {

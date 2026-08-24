@@ -1125,6 +1125,17 @@ export default function DashboardOverview() {
           </div>
         </section>
 
+        {business?.commercial_product_slug === "managed-website" && (
+          <section className="flex flex-col gap-4 rounded-3xl border border-indigo-100 bg-indigo-50/70 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-700">Recommended next improvement</p>
+              <h2 className="mt-2 text-xl font-black text-slate-950">Want Bennie Studio to actively grow the website?</h2>
+              <p className="mt-1 text-sm font-semibold leading-6 text-slate-600">Website Growth adds ongoing conversion optimisation, local SEO expansion and new service or location pages.</p>
+            </div>
+            <button type="button" onClick={() => navigate("/pricing?product=website-growth")} className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 px-5 py-3 text-xs font-black uppercase tracking-widest text-white hover:bg-indigo-500">Explore Website Growth</button>
+          </section>
+        )}
+
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {simpleActions.map((item) => (
             <button

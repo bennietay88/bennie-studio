@@ -811,7 +811,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         Start Your <span className="text-indigo-600">Lead Website</span>
                       </h2>
                       <p className="text-slate-500 text-base sm:text-lg font-medium max-w-xl mx-auto px-4">
-                        Start with a managed lead-generation website preview. No credit card required. Your 14-day trial begins after setup.
+                        Start with a free, limited website preview. Production work begins after you choose a product and complete payment.
                       </p>
                     </div>
                   </div>
@@ -834,7 +834,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         }
                       />
                       <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-2">
-                         Your 14-day trial begins after your website preview is prepared.
+                         Your preview is free. Payment is only requested when you are ready to start production.
                       </p>
                     </div>
                   </div>
@@ -845,7 +845,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       disabled={!businessData.name}
                       className="h-20 px-16 text-xl font-black uppercase tracking-[0.2em] bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-200 rounded-[2.5rem] group transition-all"
                     >
-                      Initialize Trial{" "}
+                      Continue to Website Direction{" "}
                       <ArrowRight className="ml-3 h-6 w-6 transition-transform group-hover:translate-x-1" />
                     </Button>
                   </div>
@@ -1438,7 +1438,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <div className="text-center space-y-4">
                     <div className="flex justify-center">
                       <div className="inline-flex items-center gap-3 px-6 py-2 bg-indigo-950 text-indigo-400 rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-indigo-500/20 shadow-2xl shadow-indigo-900/10 mb-2">
-                        <Sparkles className="h-3 w-3" /> Select Trial Package
+                        <Sparkles className="h-3 w-3" /> Confirm Website Direction
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -1446,7 +1446,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         Choose Your Plan
                       </h2>
                       <p className="text-slate-500 text-base sm:text-lg font-medium">
-                        Select which tier you&apos;d like to experience during your 14-day trial.
+                        Confirm the website direction that matches your business before production begins.
                       </p>
                     </div>
                   </div>
@@ -1473,7 +1473,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                             <span className="text-4xl font-black text-slate-950">{formatPackagePrice(pkg)}</span>
                             <span className="text-slate-400 font-bold text-xs">/mo</span>
                           </div>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-2">After trial period</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-2">Current commercial entitlement</p>
                         </div>
                         <div className="space-y-3">
                            <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-2">Capabilities</p>
@@ -1588,7 +1588,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                                 {selectedPackageConfig?.name} Tier
                               </h3>
                               <p className="text-indigo-200/40 text-[10px] font-black uppercase tracking-widest">
-                                14-Day Free Access
+                                Preview complete
                               </p>
                             </div>
                             <div className="text-right">
@@ -1596,7 +1596,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                                 $0.00
                               </div>
                               <div className="text-[10px] text-indigo-400 font-extrabold uppercase tracking-widest">
-                                Free Trial Active
+                                Ready for checkout
                               </div>
                             </div>
                           </div>

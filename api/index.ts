@@ -3339,6 +3339,9 @@ async function startServer() {
           previewId: z.string().trim().max(160).optional().nullable(),
           market: z.string().trim().max(20).optional().nullable(),
           currency: z.string().trim().max(10).optional().nullable(),
+          landingPage: z.string().trim().max(500).optional().nullable(),
+          service: z.string().trim().max(160).optional().nullable(),
+          selectedProduct: z.string().trim().max(80).optional().nullable(),
           firstTouch: z.record(z.string(), z.any()).optional(),
           lastTouch: z.record(z.string(), z.any()).optional(),
         }),
@@ -3369,6 +3372,9 @@ async function startServer() {
         previewId,
         market,
         currency,
+        landingPage,
+        service,
+        selectedProduct,
         firstTouch,
         lastTouch,
       } = leadBody;
@@ -3409,6 +3415,9 @@ async function startServer() {
             previewId,
             market,
             currency,
+            landingPage,
+            service,
+            selectedProduct,
             firstTouch,
             lastTouch,
             intent: leadType || "free_website_preview",
@@ -5314,7 +5323,10 @@ async function startServer() {
         }
       }
 
-      if (!business?.stripe_subscription_id) {
+      // Current commercial products are paid from day one. Keep legacy trial
+      // handling for historical plan checkouts only; new Managed Website and
+      // Website Growth customers must not receive the retired public trial.
+      if (!business?.stripe_subscription_id && !resolvedProductSlug) {
         if (trialEnd) {
           sessionOptions.subscription_data = {
             trial_end: trialEnd,
@@ -5631,7 +5643,7 @@ async function startServer() {
 	          (subscriptionStatus === "trialing" && Boolean((business as any)?.stripe_customer_id) && Boolean((business as any)?.stripe_subscription_id));
 	        if (!billingConfirmed) {
 	          return res.status(402).json({
-	            error: "Payment or a card-required trial must be confirmed before onboarding can start production handoff.",
+	            error: "Payment must be confirmed before onboarding can start production handoff.",
 	            code: "BILLING_CONFIRMATION_REQUIRED",
 	          });
 	        }

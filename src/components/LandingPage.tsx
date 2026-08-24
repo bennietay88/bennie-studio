@@ -517,7 +517,7 @@ export default function LandingPage() {
             <motion.div variants={fadeInUp} className="mb-12">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-4">No complicated setup. No developer needed. Launch support included.</p>
               <div className="flex flex-wrap justify-center lg:justify-start gap-4">
-                {["14-Day Free Trial", "Fast Launch Workflow", "Lead Capture Ready", "SEO + Mobile Optimized"].map((badge) => (
+                {["Free Website Preview", "Fast Managed Workflow", "Lead Capture Ready", "SEO + Mobile Optimized"].map((badge) => (
                   <div key={badge} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-100 shadow-sm">
                     <Check className="h-3 w-3 text-emerald-500" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{badge}</span>
@@ -1313,7 +1313,7 @@ export default function LandingPage() {
                 "Choose the launch option that fits your business stage."}
             </p>
             <p className="mt-4 inline-flex rounded-full border border-indigo-400/30 bg-indigo-500/10 px-5 py-2 text-sm font-black uppercase tracking-[0.16em] text-indigo-100">
-              {c.pricing?.trialNote || "Start with a 14-day free trial before continuing your subscription."}
+                {c.pricing?.trialNote || "Start with a free, limited website preview before choosing a managed service."}
             </p>
           </motion.div>
 
