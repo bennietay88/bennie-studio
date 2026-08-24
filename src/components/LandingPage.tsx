@@ -49,11 +49,10 @@ import { cn } from "@/src/lib/utils";
 import { Pricing } from "./Pricing";
 import { DEFAULT_LANDING_CONTENT } from "../constants/landingPageContent";
 import { SafeImage } from "./SafeImage";
-import { useGeoPricing } from "../hooks/useGeoPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { getOfferForMarket, type RevenueMarket } from "../constants/revenueOffer";
-import { COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, getStoredMarket } from "../lib/commercialPricing";
+import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, formatCommercialMoney, getCommercialPrice, getStoredMarket } from "../lib/commercialPricing";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -103,7 +102,6 @@ type SalesCookieConsent = {
 export default function LandingPage() {
   const { user, error, clearError } = useAuth();
   const navigate = useNavigate();
-  const geoPricing = useGeoPricing();
   const [commercialMarket, setCommercialMarket] = React.useState(() => getStoredMarket());
   React.useEffect(() => {
     const onMarketChanged = () => setCommercialMarket(getStoredMarket());
@@ -327,15 +325,11 @@ export default function LandingPage() {
     }),
     [content],
   );
-  const customQuoteMinUsd = Number(c.customServices?.quoteMinUsd || 1500);
-  const customQuoteMaxUsd = Number(c.customServices?.quoteMaxUsd || 3500);
-  const customWebsiteQuote = geoPricing.formatUsdRange(customQuoteMinUsd, customQuoteMaxUsd, {
-    from: true,
-    plus: true,
-    applyGeoDiscount: false,
-  });
   const growthPartnerMarket: RevenueMarket = commercialMarket === "MY" || commercialMarket === "SG" || commercialMarket === "GB" ? commercialMarket : "US";
   const growthPartnerOffer = getOfferForMarket(growthPartnerMarket);
+  const customProduct = COMMERCIAL_FALLBACK_PRODUCTS.find((product) => product.slug === "custom-website") || COMMERCIAL_FALLBACK_PRODUCTS[3];
+  const customPrice = getCommercialPrice(customProduct, commercialMarket);
+  const customWebsiteQuote = `From ${formatCommercialMoney(customPrice?.setupFee, customPrice?.currency || "USD")}`;
   const salesPageTitle =
     typeof platformSettings?.salesPageTitle === "string" &&
     platformSettings.salesPageTitle.trim()
@@ -1265,6 +1259,7 @@ export default function LandingPage() {
                 </p>
                 <div className="p-6 sm:p-8 bg-indigo-50 rounded-[2rem] border border-indigo-100">
                   <div className="text-2xl sm:text-3xl font-black text-indigo-600 mb-2">{customWebsiteQuote}</div>
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-indigo-500">Pricing for {COMMERCIAL_MARKETS[commercialMarket].label} · {COMMERCIAL_MARKETS[commercialMarket].currency}</p>
                   <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">{c.customServices?.priceCaption || "Fully Done-For-You Strategy & Build"}</p>
                 </div>
                 <Button 
