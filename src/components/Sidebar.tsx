@@ -35,7 +35,6 @@ import {
   Headphones,
   Sparkles,
   Gift,
-  Cpu,
   Plug,
   Briefcase,
   Shield,
@@ -188,8 +187,6 @@ export function Sidebar({
             { to: "/admin/neural_auditor", icon: Globe, label: "Website Reviews", moduleId: "website_reviews" },
             { to: "/admin/outreach_lab", icon: MessageSquare, label: "Outreach", moduleId: "outreach" },
             { to: "/admin/sales_automation", icon: Activity, label: "Sales Automation", moduleId: "outreach" },
-            { to: "/admin/mass_campaigns", icon: Zap, label: "Campaigns", moduleId: "campaigns" },
-            { to: "/admin/webinar_engine", icon: CalendarIcon, label: "Webinars", moduleId: "webinars" },
             { to: "/admin/proposals_deals", icon: FileText, label: "Sales Pipeline", moduleId: "sales_pipeline" },
           ]
         },
@@ -198,7 +195,6 @@ export function Sidebar({
           items: [
             { to: "/admin/businesses", icon: Globe, label: "Active Sites", className: "tour-businesses" },
             { to: "/admin/users", icon: Users, label: "Users & Access" },
-            { to: "/admin/sales_home", icon: Rocket, label: "Operations Lab", moduleId: "operations_lab" },
             { to: "/admin/custom_applications", icon: FileText, label: "Custom Applications", moduleId: "custom_applications" },
             { to: "/admin/projects", icon: Briefcase, label: "Service Projects", moduleId: "service_projects" },
             { to: "/admin/launch_audit", icon: Shield, label: "Launch Checks", moduleId: "launch_checks" },
@@ -224,16 +220,13 @@ export function Sidebar({
           items: [
             { to: "/admin/plans", icon: CreditCard, label: "Plans & Pricing", moduleId: "plans_pricing" },
             { to: "/admin/revenue", icon: CreditCard, label: "Revenue", moduleId: "revenue" },
-            { to: "/admin/geo_pricing", icon: Globe, label: "Market Pricing", moduleId: "market_pricing" },
             { to: "/admin/affiliates", icon: Gift, label: "Partners & Affiliates", moduleId: "partners_affiliates" },
-            { to: "/admin/ai_credits", icon: Zap, label: "AI Credits", moduleId: "ai_credits" },
           ]
         },
         {
           label: "Platform & System",
           items: [
             { to: "/admin/growth_os_config", icon: Settings, label: "Feature Controls" },
-            { to: "/admin/intelligence_lab", icon: Cpu, label: "AI Control", className: "tour-ai-lab", moduleId: "ai_control" },
             { to: "/admin/traffic", icon: BarChart3, label: "Traffic Analytics", moduleId: "traffic_analytics" },
             { to: "/admin/status", icon: Shield, label: "System Status" },
             { to: "/admin/settings", icon: Settings, label: "Platform Settings" },
