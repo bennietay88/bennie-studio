@@ -92,7 +92,16 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     try { return JSON.parse(localStorage.getItem("bt_preview_intent") || "{}"); } catch { return {}; }
   }, []);
   const proposalId = React.useMemo(() => new URLSearchParams(window.location.search).get("proposal"), []);
-  const [selectedPackage, setSelectedPackage] = useState<string>(checkoutIntent.planId || "starter");
+  // Checkout now carries the canonical commercial product slug. Keep the
+  // legacy entitlement slugs internally for page limits and existing database
+  // compatibility, but never default a paid Managed Website purchase to the
+  // retired Launch/starter entitlement.
+  const initialPackageFromCheckout = checkoutIntent.planId || (
+    checkoutIntent.productSlug === "website-growth" ? "growth" :
+      checkoutIntent.productSlug === "managed-website" ? "business" :
+        checkoutIntent.productSlug === "custom-website" ? "premium" : "starter"
+  );
+  const [selectedPackage, setSelectedPackage] = useState<string>(initialPackageFromCheckout);
   const [availablePackages, setAvailablePackages] = useState<any[]>(activePlans(PACKAGES as any));
   const [trialDays, setTrialDays] = useState(14);
   const [businessData, setBusinessData] = useState({
@@ -145,7 +154,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       : selectedPackage === "starter"
         ? "Starter"
         : "Business";
-  const publicProductLabel = (id: string) => id === "starter" ? "Managed Website" : id === "growth" || id === "premium" ? "Website Growth" : "Custom Website";
+  const publicProductLabel = (id: string) =>
+    id === "starter" || id === "business" ? "Managed Website" :
+      id === "growth" || id === "premium" ? "Website Growth" : "Custom Website";
   const recommendedStructure = getTemplatePlanStructure(recommendedNicheTemplate.id, recommendedPlanLabel as any);
   const formatPackagePrice = (pkg: any) => {
     const market = String(checkoutIntent.market || "US").toUpperCase();
