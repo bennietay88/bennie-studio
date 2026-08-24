@@ -1,6 +1,7 @@
 export type CommercialMarket = "MY" | "SG" | "GB" | "INTL";
 export type CommercialCurrency = "MYR" | "SGD" | "GBP" | "USD";
 export type CommercialProductSlug = "managed-website" | "website-growth" | "growth-partner" | "custom-website";
+export const COMMERCIAL_MARKET_CHANGED_EVENT = "bt-commercial-market-changed";
 
 export type CommercialPrice = {
   market: CommercialMarket;

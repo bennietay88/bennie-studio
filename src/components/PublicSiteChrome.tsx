@@ -5,6 +5,34 @@ import { useAuth } from "../contexts/AuthContext";
 import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { Button } from "./ui/button";
+import { COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, CommercialMarket, getStoredMarket, normalizeCommercialMarket, persistCommercialMarket } from "../lib/commercialPricing";
+
+function MarketSwitcher({ compact = false }: { compact?: boolean }) {
+  const [market, setMarket] = React.useState<CommercialMarket>(getStoredMarket());
+
+  React.useEffect(() => {
+    const onMarketChanged = (event: Event) => {
+      const next = (event as CustomEvent<string>).detail;
+      setMarket(normalizeCommercialMarket(next));
+    };
+    window.addEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
+    return () => window.removeEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
+  }, []);
+
+  const changeMarket = (value: string) => {
+    const next = normalizeCommercialMarket(value);
+    setMarket(next);
+    persistCommercialMarket(next);
+    window.dispatchEvent(new CustomEvent(COMMERCIAL_MARKET_CHANGED_EVENT, { detail: next }));
+  };
+
+  return <label className={compact ? "flex items-center gap-2 text-xs font-bold text-slate-500" : "flex items-center gap-3 text-sm font-bold text-slate-600"}>
+    <span className={compact ? "sr-only" : ""}>Pricing market</span>
+    <select aria-label="Pricing market" value={market} onChange={(event) => changeMarket(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-black text-slate-900 shadow-sm transition hover:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10">
+      {Object.entries(COMMERCIAL_MARKETS).map(([value, item]) => <option key={value} value={value}>{item.currency} · {item.label}</option>)}
+    </select>
+  </label>;
+}
 
 const publicNavItems = [
   {
@@ -69,6 +97,7 @@ export function PublicSiteHeader() {
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">
+          <MarketSwitcher compact />
           <Link to={user ? "/dashboard" : "/login"} className="px-2 text-sm font-bold text-slate-600 transition hover:text-indigo-600">
             {user ? "Dashboard" : "Sign In"}
           </Link>
@@ -97,6 +126,7 @@ export function PublicSiteHeader() {
               ))}
             </div>
             <div className="mt-auto grid gap-3 border-t border-slate-100 pt-5">
+              <MarketSwitcher />
               <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-50">{user ? "Dashboard" : "Sign In"}</Link>
               <Link to={user ? "/dashboard" : "/website-audit"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-indigo-600">{user ? "Open Studio" : "Get Website Review"}</Link>
             </div>
@@ -110,7 +140,7 @@ export function PublicSiteHeader() {
 export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?: string; email?: string; onManageCookies?: () => void }) {
   return (
     <footer className="border-t border-slate-200 bg-white text-slate-600">
-      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 md:grid-cols-2 lg:grid-cols-6">
+      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 md:grid-cols-2 lg:grid-cols-7">
         <div>
           <div className="mb-3 flex items-center gap-2 font-black text-slate-950"><Globe className="h-5 w-5 text-indigo-600" />Bennie Studio</div>
           <p className="text-sm font-semibold leading-6 text-slate-600">{tagline || "Managed lead-generation websites and custom website builds for small businesses that need more enquiries, trust, and local visibility."}</p>
@@ -129,6 +159,11 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
             </div>
           </div>
         ))}
+        <div>
+          <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">Pricing</p>
+          <p className="mb-3 text-sm font-semibold leading-6 text-slate-500">Choose your billing market to view the matching local price.</p>
+          <MarketSwitcher />
+        </div>
       </div>
       <div className="border-t border-slate-100 px-5 py-5 text-center text-xs font-bold text-slate-500">© {new Date().getFullYear()} Bennie Studio. All rights reserved.</div>
     </footer>
