@@ -48,6 +48,11 @@ import {
 } from "../server/observability.js";
 import { analyzeTechnicalSeo } from "../server/seo/auditEngine.js";
 import { loadSeoWorkspace, resolveSeoAccess } from "../server/seo/service.js";
+import {
+  escapeHtml as escapePortfolioHtml,
+  normalizePortfolioLead,
+  PORTFOLIO_LEAD_MAX_BODY_BYTES,
+} from "../src/lib/portfolioLead.js";
 
 dotenv.config();
 initServerObservability();
@@ -379,6 +384,21 @@ const PUBLIC_URL_SCHEMA = z
 
 type RateBucket = { count: number; resetAt: number };
 const rateBuckets = new Map<string, RateBucket>();
+const PORTFOLIO_LEAD_ORIGIN = "https://portfolio.bennietay.com";
+
+function portfolioLeadCors(req: any, res: any, next: any) {
+  const origin = String(req.headers.origin || "");
+  res.setHeader("Vary", "Origin");
+  if (origin === PORTFOLIO_LEAD_ORIGIN) {
+    res.setHeader("Access-Control-Allow-Origin", PORTFOLIO_LEAD_ORIGIN);
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  }
+  if (origin !== PORTFOLIO_LEAD_ORIGIN) {
+    return res.status(403).json({ error: "Origin not allowed" });
+  }
+  return next();
+}
 
 function getClientIp(req: any) {
   const forwardedFor = req.headers["x-forwarded-for"];
@@ -3311,6 +3331,149 @@ async function startServer() {
       res.status(500).json({ success: false, message: "WordPress health check failed" });
     }
   });
+
+  app.options("/api/portfolio-leads", portfolioLeadCors, (_req, res) => res.status(204).end());
+  app.post(
+    "/api/portfolio-leads",
+    portfolioLeadCors,
+    rateLimit({
+      windowMs: 60 * 60 * 1000,
+      max: 8,
+      keyPrefix: "portfolio-leads",
+      key: (req) => `${getClientIp(req)}:${String(req.headers.origin || "")}`,
+    }),
+    async (req, res) => {
+      const contentType = String(req.headers["content-type"] || "").toLowerCase();
+      const declaredLength = Number(req.headers["content-length"] || 0);
+      if (!contentType.startsWith("application/json")) {
+        return res.status(400).json({ error: "Content-Type must be application/json" });
+      }
+      const rawBodyLength = Buffer.isBuffer((req as any).rawBody) ? (req as any).rawBody.length : 0;
+      if (declaredLength > PORTFOLIO_LEAD_MAX_BODY_BYTES || rawBodyLength > PORTFOLIO_LEAD_MAX_BODY_BYTES) {
+        return res.status(400).json({ error: "Request body is too large" });
+      }
+
+      let leadBody;
+      try {
+        leadBody = normalizePortfolioLead(req.body);
+      } catch {
+        return res.status(400).json({ error: "Please check the enquiry details." });
+      }
+      if (leadBody.honeypot) {
+        return res.status(400).json({ error: "Please check the enquiry details." });
+      }
+
+      const referrer = String(req.get("referer") || "").slice(0, 500) || null;
+      const sourcePage = leadBody.sourcePage || referrer || "/";
+      const notificationState = { status: "pending", attemptedAt: null as string | null };
+      const rawFields = {
+        industry: leadBody.industry || null,
+        consent: true,
+        consentGiven: true,
+        consentTimestamp: leadBody.consentTimestamp,
+        privacyPolicyVersion: leadBody.privacyPolicyVersion,
+        utmSource: leadBody.utmSource || null,
+        utmMedium: leadBody.utmMedium || null,
+        utmCampaign: leadBody.utmCampaign || null,
+        utmContent: leadBody.utmContent || null,
+        utmTerm: leadBody.utmTerm || null,
+        referrer,
+        landingPage: sourcePage,
+        notification: notificationState,
+      };
+
+      try {
+        const payloads = [
+          {
+            name: leadBody.name,
+            email: leadBody.email,
+            message: leadBody.message,
+            source: "portfolio",
+            source_platform: "portfolio",
+            source_page: sourcePage,
+            form_name: "Portfolio enquiry",
+            raw_fields: rawFields,
+            consent_given: true,
+            consent_timestamp: leadBody.consentTimestamp,
+            referrer,
+            campaign: leadBody.utmCampaign || null,
+            status: "new",
+          },
+          {
+            name: leadBody.name,
+            email: leadBody.email,
+            message: leadBody.message,
+            source: "portfolio",
+            source_page: sourcePage,
+            form_name: "Portfolio enquiry",
+            raw_fields: rawFields,
+            status: "new",
+          },
+          {
+            name: leadBody.name,
+            email: leadBody.email,
+            message: leadBody.message,
+            source: "portfolio",
+            status: "new",
+          },
+        ];
+        let lead: any = null;
+        let lastError: any = null;
+        for (const payload of payloads) {
+          const result = await supabaseAdmin.from("leads").insert(payload).select("id").single();
+          if (!result.error) {
+            lead = result.data;
+            lastError = null;
+            break;
+          }
+          lastError = result.error;
+          const missingOptionalColumn = result.error.code === "42703" || /column|schema cache/i.test(String(result.error.message || ""));
+          if (!missingOptionalColumn) break;
+        }
+        if (lastError || !lead?.id) throw lastError || new Error("LEAD_INSERT_FAILED");
+
+        await supabaseAdmin.from("tracking_events").insert({
+          event_type: "portfolio_lead_submitted",
+          source_platform: "portfolio",
+          source_page: sourcePage,
+          metadata: { leadId: lead.id, industry: leadBody.industry || null, utmSource: leadBody.utmSource || null, utmMedium: leadBody.utmMedium || null, utmCampaign: leadBody.utmCampaign || null },
+        }).then(({ error }) => {
+          if (error) console.warn("Portfolio lead tracking skipped:", error.message);
+        });
+
+        const notificationAttemptedAt = new Date().toISOString();
+        let notificationStatus = "sent";
+        try {
+          const recipient = process.env.SALES_REPLY_TO || platformSettings?.supportEmail || "support@bennietay.com";
+          const resend = getResend();
+          const safeName = escapePortfolioHtml(leadBody.name);
+          const safeEmail = escapePortfolioHtml(leadBody.email);
+          const safeIndustry = escapePortfolioHtml(leadBody.industry || "Not specified");
+          const safeMessage = escapePortfolioHtml(leadBody.message).replace(/\n/g, "<br />");
+          const { error: emailError } = await resend.emails.send({
+            from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "Bennie Studio <onboarding@resend.dev>",
+            to: recipient,
+            replyTo: leadBody.email,
+            subject: `New portfolio enquiry from ${safeName}`,
+            html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#172033"><h2>New portfolio enquiry</h2><p><strong>Name:</strong> ${safeName}</p><p><strong>Email:</strong> ${safeEmail}</p><p><strong>Industry:</strong> ${safeIndustry}</p><p><strong>Message:</strong><br />${safeMessage}</p><p style="font-size:12px;color:#64748b">Source: portfolio · ${escapePortfolioHtml(sourcePage)}</p></div>`,
+          });
+          if (emailError) throw new Error("EMAIL_SEND_FAILED");
+        } catch (emailError) {
+          notificationStatus = "failed";
+          console.warn("Portfolio lead notification failed:", emailError instanceof Error ? emailError.message : "unknown error");
+        }
+        notificationState.status = notificationStatus;
+        notificationState.attemptedAt = notificationAttemptedAt;
+        await supabaseAdmin.from("leads").update({ raw_fields: { ...rawFields, notification: notificationState } }).eq("id", lead.id);
+
+        return res.status(201).json({ success: true, submissionId: `lead_${lead.id}`, message: "Enquiry received." });
+      } catch (error) {
+        console.error("Portfolio lead submission failed:", error instanceof Error ? error.message : "unknown error");
+        return res.status(500).json({ error: "We could not receive your enquiry. Please try again." });
+      }
+    },
+  );
+  app.all("/api/portfolio-leads", portfolioLeadCors, (_req, res) => res.status(405).json({ error: "Method not allowed" }));
 
   app.post(
     "/api/platform-leads",
@@ -7302,6 +7465,10 @@ async function startServer() {
     }
 
     const status = err.status || err.statusCode || 500;
+    const isPortfolioLead = req.path === "/api/portfolio-leads";
+    if (isPortfolioLead && (err.type === "entity.parse.failed" || status === 413)) {
+      return res.status(status === 413 ? 400 : 400).json({ error: status === 413 ? "Request body is too large" : "Malformed JSON body" });
+    }
     res.status(status).json({
       error: status >= 500 ? "Internal Server Error" : err.name || "Request Error",
       message: process.env.NODE_ENV === "development" ? err.message || "An unexpected error occurred on the server." : status >= 500 ? "The request could not be completed. Please retry or contact support with the request ID." : safeErrorMessage(err),
