@@ -24,9 +24,9 @@ export const PRIMARY_REVENUE_OFFER = {
   ],
   prices: {
     US: { monthly: 799, setup: 1800, currency: "USD", locale: "en-US" },
-    GB: { monthly: 625, setup: 1400, currency: "GBP", locale: "en-GB" },
-    SG: { monthly: 1075, setup: 2400, currency: "SGD", locale: "en-SG" },
-    MY: { monthly: 3299, setup: 7500, currency: "MYR", locale: "en-MY" },
+    GB: { monthly: 750, setup: 0, currency: "GBP", locale: "en-GB" },
+    SG: { monthly: 1250, setup: 0, currency: "SGD", locale: "en-SG" },
+    MY: { monthly: 2500, setup: 3000, currency: "MYR", locale: "en-MY" },
   } satisfies Record<RevenueMarket, RevenueOfferPrice>,
 } as const;
 

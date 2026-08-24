@@ -54,7 +54,8 @@ import { useGeoPricing } from "../hooks/useGeoPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
-import { countryToRevenueMarket, getOfferForMarket } from "../constants/revenueOffer";
+import { getOfferForMarket, type RevenueMarket } from "../constants/revenueOffer";
+import { COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, getStoredMarket } from "../lib/commercialPricing";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -105,6 +106,12 @@ export default function LandingPage() {
   const { user, error, clearError } = useAuth();
   const navigate = useNavigate();
   const geoPricing = useGeoPricing();
+  const [commercialMarket, setCommercialMarket] = React.useState(() => getStoredMarket());
+  React.useEffect(() => {
+    const onMarketChanged = () => setCommercialMarket(getStoredMarket());
+    window.addEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
+    return () => window.removeEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
+  }, []);
   const { scrollY } = useScroll();
   const [content, setContent] = React.useState<any>(null);
   const [platformPolicies, setPlatformPolicies] = React.useState<any[]>([]);
@@ -327,9 +334,8 @@ export default function LandingPage() {
     plus: true,
     applyGeoDiscount: false,
   });
-  const growthPartnerOffer = getOfferForMarket(
-    countryToRevenueMarket(geoPricing.countryCode),
-  );
+  const growthPartnerMarket: RevenueMarket = commercialMarket === "MY" || commercialMarket === "SG" || commercialMarket === "GB" ? commercialMarket : "US";
+  const growthPartnerOffer = getOfferForMarket(growthPartnerMarket);
   const salesPageTitle =
     typeof platformSettings?.salesPageTitle === "string" &&
     platformSettings.salesPageTitle.trim()
@@ -1259,6 +1265,9 @@ export default function LandingPage() {
             </p>
             <p className="mt-3 text-sm font-bold text-slate-300">
               Plus {growthPartnerOffer.setupLabel} one-time strategy, copy, and build fee.
+            </p>
+            <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-indigo-300">
+              Pricing for {COMMERCIAL_MARKETS[commercialMarket].label} · {COMMERCIAL_MARKETS[commercialMarket].currency}
             </p>
             <p className="mt-5 rounded-2xl bg-white/10 p-4 text-sm font-semibold leading-6 text-slate-200">
               Six-month initial commitment. Scope and launch timing are confirmed during the website growth call.
