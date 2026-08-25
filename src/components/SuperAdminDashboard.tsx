@@ -2320,7 +2320,7 @@ export default function SuperAdminDashboard() {
                 className="rounded-xl"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Plan</Label>
                 <Select
@@ -2341,8 +2341,7 @@ export default function SuperAdminDashboard() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="space-y-2">
+              <div className="space-y-2">
               <Label>Status</Label>
                 <Select
                   value={editingBusiness?.status || "active"}
@@ -2366,6 +2365,7 @@ export default function SuperAdminDashboard() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
               <div className="flex flex-col gap-1">
                 <Label className="text-sm font-black text-slate-950">
