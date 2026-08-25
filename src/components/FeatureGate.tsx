@@ -10,6 +10,7 @@ import {
 import { Button } from "./ui/button";
 import { Lock, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 interface FeatureGateProps {
   featureId: FeatureId;
@@ -23,6 +24,7 @@ export function FeatureGate({
   fallback,
 }: FeatureGateProps) {
   const { isFeatureEnabled, loading } = useFeatures();
+  const { profile } = useAuth();
   const navigate = useNavigate();
 
   if (loading) {
@@ -63,16 +65,19 @@ export function FeatureGate({
             </p>
           </div>
           <div className="flex flex-col gap-3">
-            <Button
-              onClick={() => {
-                console.log("Navigating to billing...");
-                navigate("/dashboard/billing");
-              }}
-              className="w-full rounded-xl h-12 bg-indigo-600 hover:bg-indigo-700 gap-2 shadow-lg shadow-indigo-200 dark:shadow-none"
-            >
-              <Zap className="h-4 w-4 fill-current" />
-              View Upgrade Options
-            </Button>
+            {profile?.role === "business_admin" ? (
+              <Button
+                onClick={() => navigate("/dashboard/billing")}
+                className="w-full rounded-xl h-12 bg-indigo-600 hover:bg-indigo-700 gap-2 shadow-lg shadow-indigo-200 dark:shadow-none"
+              >
+                <Zap className="h-4 w-4 fill-current" />
+                View Upgrade Options
+              </Button>
+            ) : (
+              <p className="rounded-xl bg-slate-100 px-4 py-3 text-center text-sm font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                Ask your business admin to enable this feature.
+              </p>
+            )}
             <Button
               variant="ghost"
               onClick={() => {

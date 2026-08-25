@@ -86,7 +86,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
     defaultValues: {
       businessName: "", 
       templateId: "",
-      planId: "starter",
+      planId: "business",
       industry: "General",
       googleBusinessUrl: "",
       pastedReviews: "",
@@ -284,8 +284,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
             email: data.email,
             status: "active",
             plan: data.planId,
-            subscription_status: "trialing",
-            trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            subscription_status: "pending",
             platform_type: "waas"
           }])
           .select()

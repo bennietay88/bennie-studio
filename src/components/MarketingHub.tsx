@@ -160,37 +160,7 @@ export function MarketingHub() {
 
   const handleStartTrial = async () => {
     try {
-      if (!business?.id) {
-        throw new Error(
-          "No business found to start trial for. Please set up your business first.",
-        );
-      }
-      setLoading(true);
-      const trialDuration = 14; // Default 14 day trial
-      const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + trialDuration);
-
-      const { error } = await supabase
-        .from("businesses")
-        .update({
-          marketing_status: "trialing",
-          marketing_trial_ends_at: trialEndsAt.toISOString(),
-          marketing_plan: "none", // Still on none, but trialing
-        })
-        .eq("id", business.id);
-
-      if (error) throw error;
-
-      setBusiness({
-        ...business,
-        marketing_status: "trialing",
-        marketing_trial_ends_at: trialEndsAt.toISOString(),
-        marketing_plan: "none",
-      });
-
-      toast.success(
-        `Your ${trialDuration}-day Marketing Hub trial has started!`,
-      );
+      toast.info("Marketing Hub trials are paused. Contact Bennie Studio to discuss an active growth engagement.");
       setIsTrialDialogOpen(false);
     } catch (err: any) {
       toast.error("Failed to start trial: " + err.message);
@@ -616,7 +586,7 @@ export function MarketingHub() {
         </div>
       </motion.div>
 
-      {/* Trial / Upsell Dialog */}
+      {/* Paused growth module dialog */}
       <Dialog open={isTrialDialogOpen} onOpenChange={setIsTrialDialogOpen}>
         <DialogContent className="rounded-[2.5rem] max-w-xl p-0 overflow-hidden border-none shadow-2xl">
           <div className="bg-indigo-600 p-12 text-white relative">
@@ -632,12 +602,10 @@ export function MarketingHub() {
             </div>
             <Sparkles className="h-12 w-12 text-indigo-200 mb-6" />
             <h2 className="text-3xl font-bold mb-4">
-              Start your Marketing Hub trial
+              Marketing Hub is currently paused
             </h2>
             <p className="text-indigo-100 text-lg leading-relaxed">
-              Unlock powerful AI automations like SEO Audits and Ad Generators.
-              Experience the full power of the Bennie Studio Marketing
-              Engine.
+              Bennie Studio is focusing on managed website delivery first. Contact us if you need a consultant-led growth engagement.
             </p>
           </div>
           <div className="p-8 space-y-6">
@@ -673,10 +641,10 @@ export function MarketingHub() {
                 onClick={handleStartTrial}
                 className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 font-bold text-lg"
               >
-                Start 14-Day Free Trial
+                Contact Bennie Studio
               </Button>
               <p className="text-center text-xs text-slate-400 font-medium italic">
-                No credit card required to start your marketing trial.
+                Growth engagements are scoped and activated separately.
               </p>
             </div>
           </div>

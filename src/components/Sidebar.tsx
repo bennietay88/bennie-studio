@@ -266,13 +266,13 @@ export function Sidebar({
       ];
     }
 
-    if ((role === "business_admin" || role === "staff") && customerDashboardMode === "simple") {
+    if ((role === "business_admin" || role === "staff" || role === "client") && customerDashboardMode === "simple") {
       return [
         { label: "Website", items: [
           { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
           { to: "/dashboard/my-website", icon: Globe, label: "My Website" },
           { to: "/dashboard/leads", icon: Users, label: "Leads", featureId: "lead_crm" },
-          { to: "/dashboard/update-requests", icon: FileText, label: "Updates" },
+          { to: "/dashboard/update-requests", icon: FileText, label: "Updates", roles: ["business_admin"] },
           { to: "/dashboard/analytics", icon: BarChart3, label: "Performance", featureId: "analytics" },
           { to: "/dashboard/seo/overview", icon: Search, label: "SEO Growth" },
           { to: "/dashboard/industry-content", icon: Briefcase, label: "Content & Marketing", featureId: "industry_content" },
@@ -285,15 +285,15 @@ export function Sidebar({
       ];
     }
 
-    if (role === "business_admin" || role === "staff") {
+    if (role === "business_admin" || role === "staff" || role === "client") {
       return [
         {
           label: "Website",
           items: [
             { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-            { to: "/dashboard/website/regenerate", icon: Sparkles, label: "Web Generator", featureId: "ai_synthesis", devOnly: true },
-            { to: "/dashboard/website", icon: Globe, label: "Website Editor", featureId: "ai_synthesis", devOnly: true },
-            { to: "/dashboard/marketplace", icon: Layout, label: "Template Library", devOnly: true },
+            { to: "/dashboard/website/regenerate", icon: Sparkles, label: "Web Generator", featureId: "ai_synthesis", devOnly: true, roles: ["business_admin"] },
+            { to: "/dashboard/website", icon: Globe, label: "Website Editor", featureId: "ai_synthesis", devOnly: true, roles: ["business_admin"] },
+            { to: "/dashboard/marketplace", icon: Layout, label: "Template Library", devOnly: true, roles: ["business_admin"] },
           ]
         },
         {
@@ -308,10 +308,10 @@ export function Sidebar({
           label: "Business",
           items: [
             { to: "/dashboard/appointments", icon: CalendarIcon, label: "Booking Calendar", featureId: "booking" },
-            { to: "/dashboard/onboarding", icon: Rocket, label: "Launch Checklist", devOnly: true },
-            { to: "/dashboard/update-requests", icon: FileText, label: "Update Requests", devOnly: true },
-            { to: "/dashboard/seo-domain", icon: Globe, label: "Domain & SEO", devOnly: true },
-            { to: "/dashboard/local-seo", icon: MapPin, label: "Local SEO", devOnly: true },
+            { to: "/dashboard/onboarding", icon: Rocket, label: "Launch Checklist", devOnly: true, roles: ["business_admin"] },
+            { to: "/dashboard/update-requests", icon: FileText, label: "Update Requests", devOnly: true, roles: ["business_admin"] },
+            { to: "/dashboard/seo-domain", icon: Globe, label: "Domain & SEO", devOnly: true, roles: ["business_admin"] },
+            { to: "/dashboard/local-seo", icon: MapPin, label: "Local SEO", devOnly: true, roles: ["business_admin"] },
             { to: "/dashboard/seo/overview", icon: Search, label: "SEO Growth" },
             { to: "/dashboard/industry-content", icon: Briefcase, label: "Listings & Content", featureId: "industry_content" },
             { to: "/dashboard/reviews", icon: Star, label: "Reviews & Reputation", featureId: "review_management" },
@@ -329,12 +329,13 @@ export function Sidebar({
                 icon: Plug,
                 label: "WordPress Setup",
                 devOnly: true,
+                roles: ["business_admin"],
               },
             { to: "/dashboard/status", icon: Shield, label: "System Status" },
             { to: "/dashboard/billing", icon: CreditCard, label: "Billing & Plans", roles: ["business_admin"] },
             { to: "/dashboard/support", icon: Headphones, label: "Support" },
             isAffiliate && { to: "/dashboard/affiliate/dashboard", icon: Gift, label: "Affiliate Center" },
-            { to: "/dashboard/settings", icon: Settings, label: "System Settings", devOnly: true },
+            { to: "/dashboard/settings", icon: Settings, label: "System Settings", devOnly: true, roles: ["business_admin"] },
           ]
         }
       ];
@@ -349,7 +350,7 @@ export function Sidebar({
     }];
   }, [role, isFeatureEnabled, isFeatureVisible, isAffiliate, customerDashboardMode]);
 
-  const isCustomerRole = role === "business_admin" || role === "staff";
+  const isCustomerRole = role === "business_admin" || role === "staff" || role === "client";
   const visibleNavGroups = React.useMemo(
     () =>
       navGroups
@@ -357,6 +358,7 @@ export function Sidebar({
           ...group,
           items: group.items.filter((link: any) => {
             if (!link) return false;
+            if (Array.isArray(link.roles) && !link.roles.includes(role)) return false;
             if (
               role === "super_admin" &&
               link.moduleId &&
@@ -387,11 +389,14 @@ export function Sidebar({
             ) {
               return false;
             }
+            if (isCustomerRole && link.featureId && (!isFeatureEnabled(link.featureId) || !isFeatureVisible(link.featureId))) {
+              return false;
+            }
             return true;
           }),
         }))
         .filter((group) => group.items.length > 0),
-    [adminModuleVisibility, customerDashboardMode, isCustomerRole, navGroups, profile?.staffPermissions, role],
+    [adminModuleVisibility, customerDashboardMode, isCustomerRole, isFeatureEnabled, isFeatureVisible, navGroups, profile?.staffPermissions, role],
   );
   const mainWebsiteLink = getEcosystemLink("main");
   const portfolioLink = getEcosystemLink("portfolio");

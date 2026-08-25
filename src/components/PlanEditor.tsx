@@ -606,21 +606,6 @@ const PlanEditor = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>AI Credits (Gens/mo)</Label>
-                  <Input
-                    type="number"
-                    value={plan.aiCredits || 0}
-                    onChange={(e) =>
-                      updatePlan(
-                        planIndex,
-                        "aiCredits",
-                        parseInt(e.target.value),
-                      )
-                    }
-                    className="rounded-xl"
-                  />
-                </div>
-                <div className="space-y-1.5">
                   <Label>Max Pages</Label>
                   <Input
                     type="number"

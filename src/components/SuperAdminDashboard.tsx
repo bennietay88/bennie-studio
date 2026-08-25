@@ -127,14 +127,10 @@ import { TemplateManager } from "./SuperAdmin/TemplateManager";
 import { WebsiteEditor } from "./WebsiteEditor";
 import {
   DEFAULT_MODEL_CONFIG,
-  AI_MODELS,
-  AIUseCase,
-  USE_CASE_LABELS,
 } from "../constants/aiModels";
 import { ArrowLeft } from "lucide-react";
 import { SuperAdminAffiliates } from "./SuperAdminAffiliates";
 import { SuperAdminAffiliatePartners } from "./SuperAdminAffiliatePartners";
-import { GeoPricingEditor } from "./GeoPricingEditor";
 import { StyleThemeManager } from "./SuperAdmin/StyleThemeManager";
 
 import { RevenueCommand } from "./SuperAdmin/RevenueCommand";
@@ -147,10 +143,8 @@ import { MassCampaigns } from "./SuperAdmin/MassCampaigns";
 import { ProposalsDeals } from "./SuperAdmin/ProposalsDeals";
 import { SalesAutomation } from "./SuperAdmin/SalesAutomation";
 import { ClientOnboarding } from "./SuperAdmin/ClientOnboarding";
-import { AIControl } from "./SuperAdmin/AIControl";
 import { CustomApplications } from "./SuperAdmin/CustomApplications";
 import { Projects } from "./SuperAdmin/Projects";
-import { AICreditAdmin } from "./SuperAdmin/AICreditAdmin";
 import { LocalSeoManager } from "./SuperAdmin/LocalSeoManager";
 import { LaunchAudit } from "./SuperAdmin/LaunchAudit";
 import { OperationsControlCenter } from "./SuperAdmin/OperationsControlCenter";
@@ -311,19 +305,6 @@ export default function SuperAdminDashboard() {
     totalAffiliates: 0,
     totalReferrals: 0,
     totalEarnings: 0,
-  });
-  const [aiUsage, setAiUsage] = useState<{
-    totalGenerations: number;
-    estimatedCost: number;
-    monthly?: { [key: string]: { generations: number; cost: number } };
-    recentLogs: any[];
-    topSpenders: any[];
-  }>({
-    totalGenerations: 0,
-    estimatedCost: 0,
-    monthly: {},
-    recentLogs: [],
-    topSpenders: [],
   });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(getTabFromPath());
@@ -853,11 +834,6 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const token = session?.access_token;
-
         const settled = await Promise.allSettled([
           supabase.from("businesses").select("*").order("created_at", { ascending: false }),
           supabase.from("profiles").select("*").order("created_at", { ascending: false }),
@@ -876,15 +852,6 @@ export default function SuperAdminDashboard() {
             .select("*, affiliates(uid, referral_code), businesses(name)")
             .order("created_at", { ascending: false }),
           supabase.from("profiles").select("*").eq("role", "affiliate").order("created_at", { ascending: false }),
-          fetch("/api/platform/ai-usage", {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }).then(async (r) => {
-            if (!r.ok) {
-              const text = await r.text();
-              throw new Error(`Server returned ${r.status}: ${text.slice(0, 100)}`);
-            }
-            return r.json();
-          }),
           supabase.from("custom_website_applications").select("*"),
           supabase.from("projects").select("*"),
         ]);
@@ -906,9 +873,8 @@ export default function SuperAdminDashboard() {
         const allReferralsRes = readSettled<any>(7, "affiliate referrals", { data: [] });
         const allPayoutsRes = readSettled<any>(8, "affiliate payouts", { data: [] });
         const partnersRes = readSettled<any>(9, "affiliate partners", { data: [] });
-        const aiUsageRes = readSettled<any>(10, "AI usage", null);
-        const customAppsRes = readSettled<any>(11, "custom applications", { data: [] });
-        const projectsRes = readSettled<any>(12, "projects", { data: [] });
+        const customAppsRes = readSettled<any>(10, "custom applications", { data: [] });
+        const projectsRes = readSettled<any>(11, "projects", { data: [] });
 
         if (bizRes.data) setBusinesses(bizRes.data);
         if (userRes.data) setUsers(userRes.data);
@@ -936,53 +902,6 @@ export default function SuperAdminDashboard() {
           setAffiliatePrograms(affiliateProgsRes.data);
         if (allPayoutsRes.data) setAllPayouts(allPayoutsRes.data);
         if (partnersRes.data) setAllPartners(partnersRes.data);
-
-        // Fetch AI Usage Insights (Scaling focused)
-        let logsRes = { data: [] as any[] };
-        let topRes = { data: [] as any[] };
-
-        try {
-          const [lRes, tRes] = await Promise.all([
-            supabase
-              .from("ai_generation_logs")
-              .select("*")
-              .order("created_at", { ascending: false })
-              .limit(20),
-            supabase
-              .from("businesses")
-              .select("id, name, ai_credits, ai_credits_used")
-              .order("ai_credits_used", { ascending: false })
-              .limit(5),
-          ]);
-          logsRes = lRes;
-          topRes = tRes;
-
-          if (tRes.error && tRes.error.code === "42703") {
-            const { data } = await supabase
-              .from("businesses")
-              .select("id, name, ai_credits")
-              .limit(5);
-            topRes.data = data || [];
-          }
-        } catch (err) {
-          console.warn("Detailed AI usage fetch failed:", err);
-        }
-
-        // Process logs for UI compatibility (mapping feature_key to action_type etc)
-        const processedLogs = (logsRes.data || []).map((l: any) => ({
-          ...l,
-          action_type: l.feature_key,
-          model_name: l.model,
-          prompt_tokens: l.prompt_tokens || 0
-        }));
-
-        if (aiUsageRes?.success || logsRes.data) {
-          setAiUsage({
-            ...(aiUsageRes?.data || {}),
-            recentLogs: processedLogs,
-            topSpenders: topRes.data || [],
-          });
-        }
 
         // Calculate global stats
         if (
@@ -1498,6 +1417,23 @@ export default function SuperAdminDashboard() {
     );
   }
 
+  if (["geo_pricing", "ai_credits", "intelligence_lab"].includes(activeTab)) {
+    return (
+      <div className="mx-auto flex min-h-[60vh] max-w-2xl items-center justify-center p-8">
+        <Card className="rounded-[2rem] border-slate-100 p-10 text-center shadow-sm">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+            <Shield className="h-7 w-7" />
+          </div>
+          <h1 className="text-2xl font-black tracking-tight text-slate-950">Module paused</h1>
+          <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-500">
+            This legacy module is paused while Bennie Studio focuses on the active sales, delivery, and customer operations workflow.
+          </p>
+          <Button className="mt-6 rounded-xl bg-indigo-600" onClick={() => navigate("/admin")}>Return to overview</Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-12">
       {/* Active Component Mapping */}
@@ -1536,7 +1472,7 @@ export default function SuperAdminDashboard() {
                   <h1 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900">
                     Business <span className="text-indigo-600">Ecosystem</span>
                   </h1>
-                  <p className="text-slate-400 font-bold tracking-tight text-sm uppercase mt-1">Manage active WAAS tenants and trial accounts</p>
+                  <p className="text-slate-400 font-bold tracking-tight text-sm uppercase mt-1">Manage active managed-website customers and delivery state</p>
                 </div>
               </div>
               
@@ -1565,7 +1501,6 @@ export default function SuperAdminDashboard() {
                             <TableHead className="text-[10px] uppercase font-black tracking-widest text-slate-400">Status</TableHead>
                             <TableHead className="text-[10px] uppercase font-black tracking-widest text-slate-400">Launch Readiness</TableHead>
                             <TableHead className="text-[10px] uppercase font-black tracking-widest text-slate-400">Platform</TableHead>
-                            <TableHead className="text-[10px] uppercase font-black tracking-widest text-slate-400">AI Usage</TableHead>
                             <TableHead className="text-[10px] uppercase font-black tracking-widest text-slate-400 text-right">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1656,27 +1591,6 @@ export default function SuperAdminDashboard() {
                                     {biz.platform_type === "wordpress" ? "WordPress" : "WaaS"}
                                   </Badge>
                                 </TableCell>
-                                <TableCell>
-                                  <div className="space-y-1.5 w-24">
-                                     <div className="flex justify-between text-[8px] font-bold text-slate-400">
-                                        {(() => {
-                                          const used = Number(biz.ai_credits_used || 0);
-                                          const limit = Math.max(0, Number(biz.ai_credits || 10));
-                                          return (
-                                            <span className={used > limit ? "text-amber-600" : undefined}>
-                                              {used} / {limit}{used > limit ? " over" : ""}
-                                            </span>
-                                          );
-                                        })()}
-                                     </div>
-                                     <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                                        <div 
-                                          className={cn("h-full", Number(biz.ai_credits_used || 0) > Number(biz.ai_credits || 10) ? "bg-amber-500" : "bg-indigo-600")}
-                                          style={{ width: `${Math.min(100, ((biz.ai_credits_used || 0) / (biz.ai_credits || 10)) * 100)}%` }} 
-                                        />
-                                     </div>
-                                  </div>
-                                </TableCell>
                                 <TableCell className="text-right">
                                   <DropdownMenu>
                                     <DropdownMenuTrigger
@@ -1734,7 +1648,6 @@ export default function SuperAdminDashboard() {
             </div>
           )}
 
-          {activeTab === "geo_pricing" && <GeoPricingEditor />}
 
           {activeTab === "users" && (
              <div className="space-y-8">
@@ -1950,9 +1863,7 @@ export default function SuperAdminDashboard() {
 
                       <div className="space-y-6">
                          {[
-                           { id: "seoAudit", label: "Neural SEO Auditor", description: "AI-powered website analysis and optimization suggestions" },
-                           { id: "adGenerator", label: "Ad Creative Generator", description: "Automated high-conversion ad copy and creative blueprinting" },
-                            { id: "wordpressIntegration", label: "WordPress Connect", description: "Enable external WordPress CMS synchronization capabilities" }
+                           { id: "wordpressIntegration", label: "WordPress Connect", description: "Enable external WordPress CMS synchronization capabilities" }
                          ].map(feature => (
                            <div key={feature.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
                               <div className="space-y-1">
@@ -1983,44 +1894,6 @@ export default function SuperAdminDashboard() {
                       </div>
                    </Card>
 
-                   <Card className="rounded-[2rem] p-8 space-y-6">
-                      <div className="flex items-center justify-between">
-                         <div>
-                            <h3 className="font-black italic uppercase tracking-tight text-slate-900">Neural Engine Config</h3>
-                            <p className="text-xs text-slate-400 font-medium">Model routing for Growth OS features</p>
-                         </div>
-                         <Cpu className="h-5 w-5 text-indigo-600" />
-                      </div>
-                      
-                      <Separator className="bg-slate-100" />
-
-                      <div className="space-y-4">
-                         {(Object.keys(USE_CASE_LABELS) as AIUseCase[]).map((useCase) => (
-                            <div key={useCase} className="space-y-2">
-                               <Label className="text-[10px] font-black uppercase text-slate-400">{USE_CASE_LABELS[useCase]}</Label>
-                               <Select 
-                                 value={platformSettings.aiModelConfig[useCase]} 
-                                 onValueChange={(val) => setPlatformSettings({
-                                   ...platformSettings,
-                                   aiModelConfig: {
-                                     ...platformSettings.aiModelConfig,
-                                     [useCase]: val
-                                   }
-                                 })}
-                               >
-                                  <SelectTrigger className="rounded-xl h-10">
-                                     <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent className="rounded-xl">
-                                     {AI_MODELS.map(model => (
-                                        <SelectItem key={model.id} value={model.id}>{model.name} ({model.provider})</SelectItem>
-                                     ))}
-                                  </SelectContent>
-                               </Select>
-                            </div>
-                         ))}
-                      </div>
-                   </Card>
                 </div>
                 </div>
                 )}
@@ -2171,7 +2044,6 @@ export default function SuperAdminDashboard() {
               <TemplateManager onEdit={handleEditTemplate} />
             )
           )}
-          {activeTab === "ai_credits" && <AICreditAdmin />}
           {activeTab === "status" && <SystemStatusPage />}
           {activeTab === "affiliates" && (
              <div className="space-y-8">
@@ -2181,79 +2053,6 @@ export default function SuperAdminDashboard() {
           )}
           {activeTab === "plans" && <><CommercialCatalogue /><PlanEditor /></>}
           {activeTab === "compliance_market" && <ComplianceMarketSettings />}
-
-          {/* Placeholder for remaining tabs */}
-          {activeTab === "intelligence_lab" && (
-            <div className="space-y-8">
-              <AIControl />
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card className="rounded-[2rem] border-slate-100 overflow-hidden">
-                  <CardHeader className="p-8 pb-4">
-                    <CardTitle className="text-lg font-black italic tracking-tight">Recent Neural Activity</CardTitle>
-                    <CardDescription className="text-slate-400 font-bold text-[10px] uppercase">Live log of AI-driven synthesis events</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-8 pt-0">
-                    <ScrollArea className="h-[400px]">
-                      <div className="space-y-4">
-                        {aiUsage.recentLogs.map((log, i) => (
-                          <div key={i} className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-hover hover:border-indigo-200">
-                             <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm text-indigo-600">
-                                <Cpu className="h-5 w-5" />
-                             </div>
-                             <div className="flex-1">
-                                <div className="flex justify-between">
-                                  <p className="text-sm font-bold text-slate-900">{log.action_type?.replace("_", " ").toUpperCase()}</p>
-                                  <span className="text-[10px] font-bold text-slate-400">{formatDate(log.created_at)}</span>
-                                </div>
-                                <p className="text-xs text-slate-500 mt-1">{log.businesses?.name || "Global"}</p>
-                                <div className="mt-2 flex gap-2">
-                                  <Badge className="text-[8px] font-black bg-indigo-100 text-indigo-600 border-none uppercase">{log.model_name}</Badge>
-                                  <Badge className="text-[8px] font-black bg-emerald-100 text-emerald-600 border-none uppercase">{log.prompt_tokens} tokens</Badge>
-                                </div>
-                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-[2rem] border-slate-100 overflow-hidden">
-                  <CardHeader className="p-8 pb-4">
-                    <h2 className="text-lg font-black uppercase italic tracking-tight dark:text-white">Model Efficiency</h2>
-                    <p className="text-slate-400 font-bold text-[10px] uppercase mt-1 text-xs">Cost vs Performance analysis</p>
-                  </CardHeader>
-                  <CardContent className="p-8 pt-0">
-                    <div className="h-[400px] w-full">
-                       <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                         <AreaChart data={[
-                           { name: 'Gemini 1.5 Pro', efficiency: 94, cost: 40 },
-                           { name: 'Gemini 1.5 Flash', efficiency: 88, cost: 10 },
-                           { name: 'GPT-4o', efficiency: 96, cost: 100 },
-                           { name: 'DeepSeek V3', efficiency: 92, cost: 20 }
-                         ]}>
-                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                           <XAxis 
-                             dataKey="name" 
-                             axisLine={false} 
-                             tickLine={false} 
-                             tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} 
-                           />
-                           <YAxis hide />
-                           <Tooltip 
-                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                           />
-                           <Area type="monotone" dataKey="efficiency" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.1} strokeWidth={3} />
-                           <Area type="monotone" dataKey="cost" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.1} strokeWidth={3} />
-                         </AreaChart>
-                       </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
 
           {activeTab === "ecosystem_architect" && (
             <div className="space-y-8">
@@ -2607,20 +2406,6 @@ export default function SuperAdminDashboard() {
                   </SelectContent>
                 </Select>
               </div>
-            <div className="space-y-2">
-              <Label>AI Credits Allowance</Label>
-              <Input
-                type="number"
-                value={editingBusiness?.ai_credits || 0}
-                onChange={(e) =>
-                  setEditingBusiness({
-                    ...editingBusiness,
-                    ai_credits: parseInt(e.target.value) || 0,
-                  })
-                }
-                className="rounded-xl"
-              />
-            </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
               <div className="flex flex-col gap-1">
                 <Label className="text-sm font-black text-slate-950">

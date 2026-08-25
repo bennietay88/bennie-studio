@@ -56,6 +56,7 @@ export const ProtectedRoute = ({
 
   // Trial Expiration Gate
   const isTrialExpired =
+    ["starter", "business", "growth", "scale"].includes(String(business?.plan || "").toLowerCase()) &&
     business?.trial_ends_at &&
     new Date(business.trial_ends_at) < new Date() &&
     business?.subscription_status !== "active" &&

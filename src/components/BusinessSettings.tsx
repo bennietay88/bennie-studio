@@ -159,6 +159,9 @@ export function BusinessSettings() {
   const [showManualStripe, setShowManualStripe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>("");
+  const isLegacyTrialPlan = ["starter", "business", "growth", "scale"].includes(
+    String(business?.plan || "").toLowerCase(),
+  );
 
   useEffect(() => {
     if (!business?.trialEndsAt) return;
@@ -737,7 +740,7 @@ add_action('wp_ajax_bts_lead_sync_test', function () {
         </Button>
       </div>
 
-      {business.trialEndsAt && trialDaysLeft > 0 && (
+      {isLegacyTrialPlan && business.trialEndsAt && trialDaysLeft > 0 && (
         <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 flex items-center gap-4">
           <div className="h-12 w-12 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
             <Clock className="h-6 w-6 text-white" />
@@ -762,7 +765,7 @@ add_action('wp_ajax_bts_lead_sync_test', function () {
         </div>
       )}
 
-      {business.trialEndsAt &&
+      {isLegacyTrialPlan && business.trialEndsAt &&
         trialDaysLeft <= 0 &&
         !business.subscriptionStatus && (
           <div className="bg-red-50 border border-red-100 rounded-2xl p-6 flex items-center gap-4">
@@ -1776,28 +1779,6 @@ add_action('wp_ajax_bts_lead_sync_test', function () {
                     )}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-indigo-600">
-                  AI Credits (Override)
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={business.aiCredits || 0}
-                    onChange={(e) =>
-                      setBusiness({
-                        ...business,
-                        aiCredits: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    className="h-11 bg-white border-indigo-100"
-                  />
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter shrink-0">
-                    Used: {business.aiCreditsUsed || 0}
-                  </div>
-                </div>
               </div>
 
               <div className="space-y-2">

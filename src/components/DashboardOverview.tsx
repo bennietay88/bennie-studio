@@ -2328,15 +2328,8 @@ export default function DashboardOverview() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
                     <div className="absolute bottom-10 left-10 right-10">
-                      <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: "35%" }}
-                          className="h-full bg-primary"
-                        />
-                      </div>
-                      <p className="mt-4 text-[10px] uppercase font-black tracking-[0.4em] text-slate-400">
-                        Architectural Progress: 35%
+                      <p className="text-[10px] uppercase font-black tracking-[0.4em] text-slate-400">
+                        Setup status: Bennie Studio is preparing your website
                       </p>
                     </div>
                   </div>
@@ -2345,7 +2338,7 @@ export default function DashboardOverview() {
             </motion.div>
           )}
 
-          {business?.trial_ends_at && stats.websites > 0 && (
+          {!["starter", "business", "growth", "scale"].includes(String(business?.plan || "").toLowerCase()) ? null : business?.trial_ends_at && stats.websites > 0 && (
             <motion.div variants={fadeInUp}>
               {(() => {
                 const trialDaysLeft = Math.ceil(

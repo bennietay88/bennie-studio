@@ -99,11 +99,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const initialPackageFromCheckout = checkoutIntent.planId || (
     checkoutIntent.productSlug === "website-growth" ? "growth" :
       checkoutIntent.productSlug === "managed-website" ? "business" :
-        checkoutIntent.productSlug === "custom-website" ? "premium" : "starter"
+        checkoutIntent.productSlug === "custom-website" ? "premium" : "business"
   );
   const [selectedPackage, setSelectedPackage] = useState<string>(initialPackageFromCheckout);
   const [availablePackages, setAvailablePackages] = useState<any[]>(activePlans(PACKAGES as any));
-  const [trialDays, setTrialDays] = useState(14);
   const [businessData, setBusinessData] = useState({
     name: String(previewIntent.businessName || ""),
     subdomain: "",
@@ -183,9 +182,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           .maybeSingle(),
       ]);
 
-      if (sData?.content?.defaultTrialDays) {
-        setTrialDays(sData.content.defaultTrialDays);
-      }
       if (Array.isArray(plansData?.content?.pricing) && plansData.content.pricing.length > 0) {
         setAvailablePackages(activePlans(plansData.content.pricing));
       }
@@ -306,7 +302,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     if (businessData.websiteGoal === "Sell products" || requestedPages > MAX_ONBOARDING_PAGES || requestedLocations > 25) return "premium";
     if (requestedPages > 3 || requestedLocations > 5 || businessData.websiteGoal === "Rank in local searches") return "growth";
     if (requestedPages > 1 || requestedLocations > 0) return "business";
-    return "starter";
+    return "business";
   }, [businessData.pagesNeeded, businessData.localSeoCities, businessData.websiteGoal]);
 
   const togglePageNeeded = (page: string) => {
@@ -446,12 +442,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           owner_id: user.id,
           status: "active",
           plan: selectedPackage,
-          subscription_status: "trialing",
+          // New customers are activated through the paid checkout flow. Keep
+          // legacy trial records untouched, but do not create new trial states.
+          subscription_status: "pending",
           marketing_status: "none",
           marketing_plan: "none",
-          trial_ends_at: new Date(
-            Date.now() + trialDays * 24 * 60 * 60 * 1000,
-          ).toISOString(),
         };
 
         if (referredAffiliateId) {

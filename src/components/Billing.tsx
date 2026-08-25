@@ -160,6 +160,9 @@ export const Billing = () => {
 
   const isSubscribed = business?.subscriptionStatus === "active";
   const isTrialing = business?.subscriptionStatus === "trialing";
+  const isLegacyTrialPlan = ["starter", "business", "growth", "scale"].includes(
+    String(business?.plan || "").toLowerCase(),
+  );
   const hasStripeSubscription = !!business?.stripeSubscriptionId;
 
   const handleEndTrialEarly = async () => {
@@ -244,7 +247,7 @@ export const Billing = () => {
         </Card>
       </div>
 
-      {isTrialing && (
+      {isLegacyTrialPlan && isTrialing && (
         <Card
           className={cn(
             "border-2",
