@@ -176,15 +176,15 @@ export function LocalSeoManager() {
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6 pb-10">
-      <Card className="overflow-hidden rounded-3xl border-slate-200 bg-slate-950 text-white shadow-sm">
+      <Card className="overflow-hidden rounded-3xl border-slate-200 bg-white text-slate-950 shadow-sm">
         <CardContent className="flex flex-col gap-5 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Badge className="bg-indigo-500/20 text-indigo-200">Operations</Badge>
-            <Badge variant="outline" className="border-emerald-400/40 text-emerald-300">Publishing controls live</Badge>
+            <Badge className="bg-indigo-50 text-indigo-700">Operations</Badge>
+            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">Publishing controls live</Badge>
           </div>
           <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Local SEO operations</h1>
-          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-300">
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
             Review location-page quality, manage supported markets, and keep customer SEO delivery within the plan limits.
           </p>
         </div>
@@ -211,7 +211,7 @@ export function LocalSeoManager() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+      <div className="space-y-6">
       <Tabs defaultValue="limits" className="w-full space-y-5">
         <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl bg-slate-100 p-1">
           <TabsTrigger value="limits" className="min-h-10 shrink-0 rounded-xl px-4 text-xs font-bold sm:text-sm">Limits</TabsTrigger>
@@ -447,7 +447,7 @@ export function LocalSeoManager() {
           </div>
         </TabsContent>
       </Tabs>
-      <div className="space-y-4 lg:sticky lg:top-6">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card className="rounded-3xl border-slate-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Configuration at a glance</CardTitle>
