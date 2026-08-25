@@ -5362,7 +5362,7 @@ async function startServer() {
         couponId: z.string().trim().max(120).optional().nullable(),
         type: z.enum(["credits", "subscription"]).optional(),
         planId: z.string().trim().min(1).max(80).optional().nullable(),
-        productSlug: z.enum(["managed-website", "website-growth", "growth-partner", "custom-website"]).optional().nullable(),
+        productSlug: z.enum(["managed-website", "website-growth", "growth-partner"]).optional().nullable(),
         billingCycle: z.enum(["monthly", "yearly"]).optional().default("monthly"),
         market: z.enum(["MY", "SG", "GB", "US", "INTL"]).optional().default("INTL"),
         promotionCode: z.string().trim().max(120).optional().nullable(),

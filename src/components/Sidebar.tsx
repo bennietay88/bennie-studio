@@ -195,7 +195,6 @@ export function Sidebar({
           items: [
             { to: "/admin/businesses", icon: Globe, label: "Active Sites", className: "tour-businesses" },
             { to: "/admin/users", icon: Users, label: "Users & Access" },
-            { to: "/admin/custom_applications", icon: FileText, label: "Custom Applications", moduleId: "custom_applications" },
             { to: "/admin/projects", icon: Briefcase, label: "Service Projects", moduleId: "service_projects" },
             { to: "/admin/launch_audit", icon: Shield, label: "Launch Checks", moduleId: "launch_checks" },
             { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover", moduleId: "client_handover" },
@@ -323,14 +322,6 @@ export function Sidebar({
           label: "Account",
           items: [
             { to: "/dashboard/analytics", icon: BarChart3, label: "Business Insights", featureId: "analytics" },
-            isFeatureEnabled("wordpress_sync") &&
-              isFeatureVisible("wordpress_sync") && {
-                to: "/dashboard/integrations/wordpress",
-                icon: Plug,
-                label: "WordPress Setup",
-                devOnly: true,
-                roles: ["business_admin"],
-              },
             { to: "/dashboard/status", icon: Shield, label: "System Status" },
             { to: "/dashboard/billing", icon: CreditCard, label: "Billing & Plans", roles: ["business_admin"] },
             { to: "/dashboard/support", icon: Headphones, label: "Support" },

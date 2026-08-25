@@ -149,7 +149,6 @@ const AffiliateDashboard = lazy(() =>
 );
 const AffiliateJoinPage = lazy(() => import("./components/AffiliateJoinPage"));
 const AffiliateAuthPage = lazy(() => import("./components/AffiliateAuthPage"));
-const WordPressIntegration = lazy(() => import("./components/WordPressIntegration"));
 const PolicyPage = lazy(() =>
   import("./components/Policies").then((m) => ({ default: m.PolicyPage })),
 );
@@ -161,7 +160,6 @@ const WebsiteRenderer = lazy(() =>
 
 import { useTrafficTracker } from "./hooks/useTrafficTracker";
 
-const ApplyCustomService = lazy(() => import("./components/ApplyCustomService"));
 const DashboardLayout = lazy(() =>
   import("./components/DashboardLayout").then((m) => ({ default: m.DashboardLayout })),
 );
@@ -348,7 +346,6 @@ export default function App() {
     "/blog",
     "/book-demo",
     "/manage-call",
-    "/apply-custom",
   ];
   const currentPath = window.location.pathname;
   const isPublicPageWithoutSplash =
@@ -468,7 +465,6 @@ export default function App() {
               <Route path="/book-demo" element={<BookDemo />} />
               <Route path="/manage-call/:token" element={<ManageCallBooking />} />
               <Route path="/proposal/:token" element={<PublicProposalPage />} />
-              <Route path="/apply-custom" element={<ApplyCustomService />} />
               <Route path="/privacy" element={<PolicyPage type="privacy" />} />
               <Route path="/privacy-policy" element={<PolicyPage type="privacy" />} />
               <Route path="/terms" element={<PolicyPage type="terms" />} />
@@ -738,7 +734,6 @@ export default function App() {
                                 </ProtectedRoute>
                               }
                             />
-                            <Route path="wordpress" element={<Navigate to="/dashboard/integrations/wordpress" replace />} />
                             <Route
                               path="templates"
                               element={<Navigate to="/dashboard/marketplace" replace />}
@@ -780,16 +775,6 @@ export default function App() {
                                   allowedRoles={["business_admin"]}
                                 >
                                   <BusinessSettings />
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route
-                              path="integrations/wordpress"
-                              element={
-                                <ProtectedRoute
-                                  allowedRoles={["business_admin"]}
-                                >
-                                  <WordPressIntegration />
                                 </ProtectedRoute>
                               }
                             />

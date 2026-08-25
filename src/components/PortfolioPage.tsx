@@ -218,14 +218,6 @@ export default function PortfolioPage() {
                 Request Similar Website
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => navigate("/apply-custom")}
-                className="h-14 rounded-2xl px-8 text-xs font-black uppercase tracking-widest"
-              >
-                Custom Website Quote
-              </Button>
             </div>
           </motion.div>
 

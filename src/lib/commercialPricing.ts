@@ -1,6 +1,6 @@
 export type CommercialMarket = "MY" | "SG" | "GB" | "INTL";
 export type CommercialCurrency = "MYR" | "SGD" | "GBP" | "USD";
-export type CommercialProductSlug = "managed-website" | "website-growth" | "growth-partner" | "custom-website";
+export type CommercialProductSlug = "managed-website" | "website-growth" | "growth-partner";
 export const COMMERCIAL_MARKET_CHANGED_EVENT = "bt-commercial-market-changed";
 
 export type CommercialPrice = {
@@ -18,7 +18,7 @@ export type CommercialProduct = {
   slug: CommercialProductSlug;
   name: string;
   description: string;
-  productType: "managed_website" | "website_growth" | "growth_partner" | "custom_website";
+  productType: "managed_website" | "website_growth" | "growth_partner";
   salesMotion: "self_serve" | "proposal" | "quote";
   includesProductSlug?: CommercialProductSlug | null;
   prices: CommercialPrice[];
@@ -77,14 +77,6 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
     productType: "growth_partner",
     salesMotion: "proposal",
     prices: [["MY", 2500, 3000], ["SG", 1250, 0], ["GB", 750, 0], ["INTL", 799, 0]].map(([market, monthlyPrice, setupFee]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: setupFee as number, annualPrice: null })),
-  },
-  {
-    slug: "custom-website",
-    name: "Custom Website",
-    description: "Bespoke websites for ecommerce, complex integrations, multilingual and advanced content requirements.",
-    productType: "custom_website",
-    salesMotion: "quote",
-    prices: [["MY", 5000], ["SG", 2500], ["GB", 1500], ["INTL", 1800]].map(([market, setupFee]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: null, setupFee: setupFee as number, annualPrice: null })),
   },
 ];
 

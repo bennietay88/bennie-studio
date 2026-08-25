@@ -143,7 +143,6 @@ import { MassCampaigns } from "./SuperAdmin/MassCampaigns";
 import { ProposalsDeals } from "./SuperAdmin/ProposalsDeals";
 import { SalesAutomation } from "./SuperAdmin/SalesAutomation";
 import { ClientOnboarding } from "./SuperAdmin/ClientOnboarding";
-import { CustomApplications } from "./SuperAdmin/CustomApplications";
 import { Projects } from "./SuperAdmin/Projects";
 import { LocalSeoManager } from "./SuperAdmin/LocalSeoManager";
 import { LaunchAudit } from "./SuperAdmin/LaunchAudit";
@@ -177,7 +176,6 @@ const CUSTOMER_DASHBOARD_FEATURES = [
   { id: "campaign_landing_pages", label: "Campaign Pages" },
   { id: "whatsapp_enquiry_kit", label: "WhatsApp Enquiry Kit" },
   { id: "monthly_improvement_engine", label: "Monthly Improvement Engine" },
-  { id: "wordpress_sync", label: "WordPress Setup" },
 ];
 
 const CUSTOMER_DASHBOARD_PROFILES = [
@@ -186,7 +184,6 @@ const CUSTOMER_DASHBOARD_PROFILES = [
   { id: "local_seo_client", label: "Local SEO Client" },
   { id: "booking_client", label: "Booking Client" },
   { id: "growth_client", label: "Growth Client" },
-  { id: "wordpress_custom_client", label: "Custom Website Client" },
 ];
 
 const getBusinessWebsiteUrl = (business: any) => {
@@ -235,7 +232,6 @@ export default function SuperAdminDashboard() {
     if (last === "webinar_engine") return "webinar_engine";
     if (last === "proposals_deals") return "proposals_deals";
     if (last === "sales_automation") return "sales_automation";
-    if (last === "custom_applications") return "custom_applications";
     if (last === "projects") return "projects";
     if (last === "launch_audit") return "launch_audit";
     if (last === "client_onboarding") return "client_onboarding";
@@ -265,7 +261,6 @@ export default function SuperAdminDashboard() {
   const [affiliatePrograms, setAffiliatePrograms] = useState<any[]>([]);
   const [allPayouts, setAllPayouts] = useState<any[]>([]);
   const [allPartners, setAllPartners] = useState<any[]>([]);
-  const [customApps, setCustomApps] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [trafficMetrics, setTrafficMetrics] = useState<{
     aggregate: {
@@ -852,7 +847,6 @@ export default function SuperAdminDashboard() {
             .select("*, affiliates(uid, referral_code), businesses(name)")
             .order("created_at", { ascending: false }),
           supabase.from("profiles").select("*").eq("role", "affiliate").order("created_at", { ascending: false }),
-          supabase.from("custom_website_applications").select("*"),
           supabase.from("projects").select("*"),
         ]);
 
@@ -873,12 +867,10 @@ export default function SuperAdminDashboard() {
         const allReferralsRes = readSettled<any>(7, "affiliate referrals", { data: [] });
         const allPayoutsRes = readSettled<any>(8, "affiliate payouts", { data: [] });
         const partnersRes = readSettled<any>(9, "affiliate partners", { data: [] });
-        const customAppsRes = readSettled<any>(10, "custom applications", { data: [] });
-        const projectsRes = readSettled<any>(11, "projects", { data: [] });
+        const projectsRes = readSettled<any>(10, "projects", { data: [] });
 
         if (bizRes.data) setBusinesses(bizRes.data);
         if (userRes.data) setUsers(userRes.data);
-        if (customAppsRes.data) setCustomApps(customAppsRes.data);
         if (projectsRes.data) setProjects(projectsRes.data);
         if (apptRes.data) setAppointments(apptRes.data);
         if (settingsRes.data) {
@@ -1268,7 +1260,6 @@ export default function SuperAdminDashboard() {
 
       // 3. Save admin/AI fields independently.
       const adminResult = await updateBusinessStep("Admin fields", {
-        platform_type: editingBusiness.platform_type || "waas",
         admin_notes: editingBusiness.admin_notes,
         ai_credits: editingBusiness.ai_credits,
       });
@@ -1457,7 +1448,6 @@ export default function SuperAdminDashboard() {
       {activeTab === "mass_campaigns" && <MassCampaigns />}
       {activeTab === "proposals_deals" && <ProposalsDeals />}
       {activeTab === "sales_automation" && <SalesAutomation />}
-      {activeTab === "custom_applications" && <CustomApplications />}
       {activeTab === "projects" && <Projects />}
       {activeTab === "launch_audit" && <LaunchAudit />}
       {activeTab === "client_onboarding" && <ClientOnboarding />}
@@ -1500,7 +1490,6 @@ export default function SuperAdminDashboard() {
                             <TableHead className="text-[10px] uppercase font-black tracking-widest text-slate-400">Billing Plan</TableHead>
                             <TableHead className="text-[10px] uppercase font-black tracking-widest text-slate-400">Status</TableHead>
                             <TableHead className="text-[10px] uppercase font-black tracking-widest text-slate-400">Launch Readiness</TableHead>
-                            <TableHead className="text-[10px] uppercase font-black tracking-widest text-slate-400">Platform</TableHead>
                             <TableHead className="text-[10px] uppercase font-black tracking-widest text-slate-400 text-right">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -1579,17 +1568,6 @@ export default function SuperAdminDashboard() {
                                       </div>
                                     );
                                   })()}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "text-[8px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full border-none",
-                                      biz.platform_type === "wordpress" ? "bg-orange-50 text-orange-600" : "bg-indigo-50 text-indigo-600"
-                                    )}
-                                  >
-                                    {biz.platform_type === "wordpress" ? "WordPress" : "WaaS"}
-                                  </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
                                   <DropdownMenu>
@@ -1863,7 +1841,6 @@ export default function SuperAdminDashboard() {
 
                       <div className="space-y-6">
                          {[
-                           { id: "wordpressIntegration", label: "WordPress Connect", description: "Enable external WordPress CMS synchronization capabilities" }
                          ].map(feature => (
                            <div key={feature.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
                               <div className="space-y-1">
@@ -2294,7 +2271,7 @@ export default function SuperAdminDashboard() {
           {activeTab === "update_requests" && <MonthlyUpdateQueue />}
 
           {/* Catch-all for tabs that might not have specialized rendering yet or are in development */}
-          {!['overview', 'revenue_command', 'sales_home', 'inbound_leads', 'growth_operations', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'sales_automation', 'mass_campaigns', 'webinar_engine', 'proposals_deals', 'custom_applications', 'projects', 'launch_audit', 'client_onboarding', 'operations', 'seo_management', 'local_seo', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'geo_pricing', 'templates', 'plans', 'compliance_market', 'ai_credits', 'status', 'intelligence_lab', 'traffic', 'settings', 'support', 'update_requests', 'blog', 'policies', 'ecosystem_architect', 'admin'].includes(activeTab) && (
+          {!['overview', 'revenue_command', 'sales_home', 'inbound_leads', 'growth_operations', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'sales_automation', 'mass_campaigns', 'webinar_engine', 'proposals_deals', 'projects', 'launch_audit', 'client_onboarding', 'operations', 'seo_management', 'local_seo', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'geo_pricing', 'templates', 'plans', 'compliance_market', 'ai_credits', 'status', 'intelligence_lab', 'traffic', 'settings', 'support', 'update_requests', 'blog', 'policies', 'ecosystem_architect', 'admin'].includes(activeTab) && (
             <div className="h-full flex items-center justify-center p-12">
                <Card className="p-24 flex flex-col items-center justify-center text-center rounded-[3rem] border-slate-100 bg-slate-50/50 max-w-2xl">
                   <div className="h-20 w-20 rounded-[2rem] bg-white shadow-xl shadow-slate-200 flex items-center justify-center text-indigo-600 mb-6">
@@ -2361,23 +2338,6 @@ export default function SuperAdminDashboard() {
                         {plan.name || plan.id}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Platform Type</Label>
-                <Select
-                  value={editingBusiness?.platform_type || "waas"}
-                  onValueChange={(value) =>
-                    setEditingBusiness({ ...editingBusiness, platform_type: value })
-                  }
-                >
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="waas">WaaS Website</SelectItem>
-                    <SelectItem value="wordpress">WordPress</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

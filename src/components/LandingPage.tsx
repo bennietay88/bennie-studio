@@ -52,7 +52,7 @@ import { SafeImage } from "./SafeImage";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { getOfferForMarket, type RevenueMarket } from "../constants/revenueOffer";
-import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, formatCommercialMoney, getCommercialPrice, getStoredMarket } from "../lib/commercialPricing";
+import { COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, getStoredMarket } from "../lib/commercialPricing";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -327,9 +327,6 @@ export default function LandingPage() {
   );
   const growthPartnerMarket: RevenueMarket = commercialMarket === "MY" || commercialMarket === "SG" || commercialMarket === "GB" ? commercialMarket : "US";
   const growthPartnerOffer = getOfferForMarket(growthPartnerMarket);
-  const customProduct = COMMERCIAL_FALLBACK_PRODUCTS.find((product) => product.slug === "custom-website") || COMMERCIAL_FALLBACK_PRODUCTS[3];
-  const customPrice = getCommercialPrice(customProduct, commercialMarket);
-  const customWebsiteQuote = `From ${formatCommercialMoney(customPrice?.setupFee, customPrice?.currency || "USD")}`;
   const salesPageTitle =
     typeof platformSettings?.salesPageTitle === "string" &&
     platformSettings.salesPageTitle.trim()
@@ -1240,51 +1237,6 @@ export default function LandingPage() {
           </motion.div>
 
           <Pricing onSelectPlan={() => trackAndNavigate("/signup", "Pricing Plan Selected", "click_start_plan")} onDark />
-        </div>
-      </section>
-
-      {/* Premium Custom Website Option */}
-      <section id="custom-website" className="bg-slate-50 px-4 py-16 sm:px-8 lg:py-24 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-[2rem] sm:rounded-[4rem] border-4 sm:border-8 border-slate-900 p-6 sm:p-12 lg:p-24 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-3xl rounded-full" />
-            <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-center">
-              <div className="min-w-0 space-y-6 sm:space-y-8">
-                <Badge className="bg-slate-900 text-white border-none py-1.5 px-4 font-black uppercase tracking-widest">Premium Option</Badge>
-                <h2 className="max-w-full break-words text-3xl font-black uppercase leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-                  {c.customServices.title}
-                </h2>
-                <p className="text-lg sm:text-xl text-slate-600 font-medium leading-8">
-                  {c.customServices.subtitle}
-                </p>
-                <div className="p-6 sm:p-8 bg-indigo-50 rounded-[2rem] border border-indigo-100">
-                  <div className="text-2xl sm:text-3xl font-black text-indigo-600 mb-2">{customWebsiteQuote}</div>
-                  <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-indigo-500">Pricing for {COMMERCIAL_MARKETS[commercialMarket].label} · {COMMERCIAL_MARKETS[commercialMarket].currency}</p>
-                  <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">{c.customServices?.priceCaption || "Fully Done-For-You Strategy & Build"}</p>
-                </div>
-                <Button 
-                  size="lg"
-                  onClick={() => trackAndNavigate("/apply-custom", "Custom Website Quote CTA", "click_custom_strategy")}
-                  className="h-auto min-h-16 w-full whitespace-normal px-6 py-5 text-base sm:w-auto sm:px-10 sm:text-lg lg:text-xl font-black bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl uppercase tracking-widest transition-all"
-                >
-                  Request Custom Website Quote
-                </Button>
-              </div>
-              <div className="space-y-6">
-                <p className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Best for businesses that need:</p>
-                <div className="space-y-4">
-                  {(c.customServices.items[0].features || []).map((feat: string, i: number) => (
-                    <div key={i} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-indigo-200 transition-colors">
-                      <div className="h-8 w-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-indigo-600">
-                        <Check className="h-4 w-4 stroke-[3]" />
-                      </div>
-                      <span className="font-bold text-slate-700">{feat}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 

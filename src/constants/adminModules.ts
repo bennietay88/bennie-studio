@@ -14,7 +14,6 @@ export const ADMIN_MODULES: AdminModuleDefinition[] = [
   { id: "website_reviews", label: "Website Reviews", description: "Prepare evidence-based reviews for prospects.", group: "Sales & Leads", priority: "sell_now" },
   { id: "outreach", label: "Outreach", description: "Create personalised outreach from prospect research.", group: "Sales & Leads", priority: "sell_now" },
   { id: "sales_pipeline", label: "Sales Pipeline", description: "Track proposals, deal stages, and won work.", group: "Sales & Leads", priority: "sell_now" },
-  { id: "custom_applications", label: "Custom Applications", description: "Manage custom website and WordPress enquiries.", group: "Customers & Delivery", priority: "operate_now" },
   { id: "service_projects", label: "Service Projects", description: "Track delivery stages, owners, and blockers.", group: "Customers & Delivery", priority: "operate_now" },
   { id: "launch_checks", label: "Launch Checks", description: "Verify websites before publishing.", group: "Customers & Delivery", priority: "operate_now" },
   { id: "client_handover", label: "Client Handover", description: "Manage onboarding and launch handover.", group: "Customers & Delivery", priority: "operate_now" },

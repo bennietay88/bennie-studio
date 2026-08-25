@@ -36,7 +36,6 @@ export function ClientOnboarding() {
     current_step: "Profile Initialized",
     status: "In Progress",
     progress: 10,
-    platform_type: "waas" as "waas" | "wordpress"
   });
 
   const stats = {
@@ -50,28 +49,13 @@ export function ClientOnboarding() {
     fetchBusinesses();
   }, []);
 
-  const updateHandoverPlatform = async (businessId: string, platformType: string) => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const response = await fetch(`/api/admin/businesses/${businessId}/platform-type`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${sessionData.session?.access_token || ""}`,
-      },
-      body: JSON.stringify({ platformType }),
-    });
-    if (response.ok) return;
-    const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.error || "Unable to change the delivery platform");
-  };
-
   const fetchSessions = async () => {
     try {
       setLoading(true);
       setLoadError("");
       const { data, error } = await supabase
         .from("onboarding_sessions")
-        .select("*, businesses(name, platform_type)")
+        .select("*, businesses(name)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -93,7 +77,6 @@ export function ClientOnboarding() {
       status: session.status || "In Progress",
       progress: Number(session.progress) || 0,
       notes: session.notes || "",
-      platform_type: session.businesses?.platform_type || "waas",
     });
     setIsConfigModalOpen(true);
   };
@@ -114,11 +97,6 @@ export function ClientOnboarding() {
     try {
       setSaving(true);
 
-      await updateHandoverPlatform(
-        editingSession.business_id,
-        editingSession.platform_type,
-      );
-
       const { data, error } = await supabase
         .from("onboarding_sessions")
         .update({
@@ -129,7 +107,7 @@ export function ClientOnboarding() {
           updated_at: new Date().toISOString(),
         })
         .eq("id", editingSession.id)
-        .select("*, businesses(name, platform_type)")
+        .select("*, businesses(name)")
         .single();
 
       if (error) throw error;
@@ -182,11 +160,6 @@ export function ClientOnboarding() {
     try {
       setSaving(true);
       
-      await updateHandoverPlatform(
-        newSession.business_id,
-        newSession.platform_type,
-      );
-
       const { data, error } = await supabase
         .from("onboarding_sessions")
         .insert([{
@@ -195,14 +168,14 @@ export function ClientOnboarding() {
           status: newSession.status,
           progress: newSession.progress
         }])
-        .select("*, businesses(name, platform_type)")
+        .select("*, businesses(name)")
         .single();
 
       if (error) throw error;
       
       setSessions((current) => [data, ...current]);
       setIsAddModalOpen(false);
-      setNewSession({ business_id: "", current_step: "Profile Initialized", status: "In Progress", progress: 10, platform_type: "waas" });
+      setNewSession({ business_id: "", current_step: "Profile Initialized", status: "In Progress", progress: 10 });
       toast.success("Onboarding session started");
     } catch (error: any) {
       console.error("Error starting session:", error);
@@ -297,7 +270,6 @@ export function ClientOnboarding() {
                       <div>
                          <div className="flex items-center gap-2 mb-1">
                             <h3 className="text-lg font-black italic uppercase italic tracking-tight text-slate-900 dark:text-white leading-tight">{item.businesses?.name || "Unknown Client"}</h3>
-                            <Badge className="text-[8px] font-black uppercase bg-slate-100 text-slate-600 border-none shrink-0">{item.businesses?.platform_type || "waas"}</Badge>
                          </div>
                          <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Active Step: {item.current_step}</p>
                       </div>
@@ -398,21 +370,6 @@ export function ClientOnboarding() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Platform Infrastructure</Label>
-              <Select 
-                value={newSession.platform_type}
-                onValueChange={(val: any) => setNewSession({...newSession, platform_type: val})}
-              >
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  <SelectItem value="waas">Internal WaaS</SelectItem>
-                  <SelectItem value="wordpress">External WordPress</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Current Phase</Label>
               <Input 
                 value={newSession.current_step}
@@ -490,22 +447,6 @@ export function ClientOnboarding() {
                   }
                   className="rounded-xl"
                 />
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Delivery platform</Label>
-                <Select
-                  value={editingSession.platform_type}
-                  onValueChange={(value) =>
-                    setEditingSession({ ...editingSession, platform_type: value })
-                  }
-                >
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="waas">Managed Website</SelectItem>
-                    <SelectItem value="wordpress">External Website</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="space-y-2 sm:col-span-2">

@@ -99,7 +99,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const initialPackageFromCheckout = checkoutIntent.planId || (
     checkoutIntent.productSlug === "website-growth" ? "growth" :
       checkoutIntent.productSlug === "managed-website" ? "business" :
-        checkoutIntent.productSlug === "custom-website" ? "premium" : "business"
+        "business"
   );
   const [selectedPackage, setSelectedPackage] = useState<string>(initialPackageFromCheckout);
   const [availablePackages, setAvailablePackages] = useState<any[]>(activePlans(PACKAGES as any));
@@ -134,7 +134,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     testimonials: "",
     faq: "",
     existingUrl: String(previewIntent.websiteUrl || ""),
-    platform_type: "waas" as "waas",
   });
   const [agreed, setAgreed] = useState(false);
   const selectedPackageConfig =
@@ -155,7 +154,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         : "Business";
   const publicProductLabel = (id: string) =>
     id === "starter" || id === "business" ? "Managed Website" :
-      id === "growth" || id === "premium" ? "Website Growth" : "Custom Website";
+      id === "growth" || id === "premium" ? "Website Growth" : "Managed Website";
   const recommendedStructure = getTemplatePlanStructure(recommendedNicheTemplate.id, recommendedPlanLabel as any);
   const formatPackagePrice = (pkg: any) => {
     const market = String(checkoutIntent.market || "US").toUpperCase();
@@ -426,7 +425,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           custom_domain: businessData.customDomain || null,
           industry: businessData.industry || businessData.businessType,
           business_nature: businessData.businessNature,
-          platform_type: businessData.platform_type || "waas",
           onboarding_steps: {
             websiteGoal: businessData.websiteGoal,
             pagesNeeded: businessData.pagesNeeded,

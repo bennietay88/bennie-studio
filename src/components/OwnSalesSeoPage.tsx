@@ -167,7 +167,6 @@ export default function OwnSalesSeoPage() {
       links: [
         { label: "Website Subscription Service", href: "/website-subscription-service" },
         { label: "Managed Website Plans", href: "/pay-monthly-websites" },
-        { label: "Custom Website", href: "/apply-custom" },
         { label: "Portfolio", href: "/portfolio" },
       ],
     },

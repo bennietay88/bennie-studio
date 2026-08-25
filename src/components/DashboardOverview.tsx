@@ -2214,7 +2214,7 @@ export default function DashboardOverview() {
                     <div className="flex items-center justify-between">
                        <span className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">Platform Engine</span>
                        <Badge className="bg-indigo-600 font-black italic uppercase text-[8px] animate-pulse">
-                          {business.platform_type === 'wordpress' ? 'EXTERNAL / WORDPRESS' : 'INTERNAL / WAAS'}
+                          MANAGED WEBSITE / WAAS
                        </Badge>
                     </div>
                   </CardContent>

@@ -285,7 +285,6 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
             status: "active",
             plan: data.planId,
             subscription_status: "pending",
-            platform_type: "waas"
           }])
           .select()
           .single();
@@ -610,20 +609,6 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
                   <p className="text-[8px] uppercase tracking-widest text-indigo-300">Monthly Updates</p>
                   <p className="mt-1 text-white">{selectedPlan?.monthlyUpdates || "Plan allowance"}</p>
                 </div>
-              </div>
-            </div>
-            <div className="rounded-3xl border border-slate-200 bg-white p-6">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Need full CMS control?</p>
-                  <h3 className="mt-1 text-xl font-black text-slate-950">Request a Custom Website instead</h3>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-                    Best for blog publishing, advanced SEO pages, CMS editing, ecommerce, booking, integrations, and full WordPress ownership.
-                  </p>
-                </div>
-                <Button type="button" variant="outline" onClick={() => window.location.assign("/apply-custom")} className="h-12 shrink-0 rounded-2xl font-black uppercase tracking-widest">
-                  Website Quote
-                </Button>
               </div>
             </div>
           </motion.div>

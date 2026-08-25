@@ -15,9 +15,8 @@ test("managed website price book is fixed by market", () => {
   assert.equal(getCommercialPrice(product!, "MY")?.annualPrice, 2990);
 });
 
-test("custom website is quote-led, not a subscription", () => {
-  const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "custom-website");
-  assert.equal(product?.salesMotion, "quote");
-  assert.equal(getCommercialPrice(product!, "SG")?.monthlyPrice, null);
-  assert.equal(getCommercialPrice(product!, "SG")?.setupFee, 2500);
+test("growth partner is consultation-led, not a self-serve subscription", () => {
+  const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "growth-partner");
+  assert.equal(product?.salesMotion, "proposal");
+  assert.equal(getCommercialPrice(product!, "SG")?.monthlyPrice, 1250);
 });

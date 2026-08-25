@@ -49,7 +49,6 @@ const footerGroups = [
   ["Pages", [...publicNavItems, { label: "Generate Preview", href: "/generate-preview" }]],
   ["Services", [
     { label: "Managed Lead Website Plans", href: "/pricing" },
-    { label: "Custom Website", href: "/apply-custom" },
     { label: "Website Case Studies", href: "/case-studies" },
   ]],
   ["Ecosystem", BENNIE_ECOSYSTEM_LINKS.map((link) => ({ label: link.shortLabel, href: link.url, external: true }))],

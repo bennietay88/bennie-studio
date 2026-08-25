@@ -1055,7 +1055,7 @@ const previewGoals = [
 function recommendCommercialProduct(input: { goal: string; notes: string; industry: string; requestedPages?: number }) {
   const text = `${input.goal} ${input.notes} ${input.industry}`.toLowerCase();
   if (/ecommerce|e-commerce|membership|wordpress|woocommerce|integration|multilingual|custom software/.test(text)) {
-    return { slug: "custom-website", label: "Custom Website", reason: "Your brief suggests functionality that deserves a scoped consultation." };
+    return { slug: "website-growth", label: "Website Growth", reason: "Your brief needs a more involved managed website and growth plan." };
   }
   if (/seo|search|location|locations|traffic|growth|landing page|multiple services|scale/.test(text) || (input.requestedPages || 0) > 4) {
     return { slug: "website-growth", label: "Website Growth", reason: "Your goals point to ongoing optimisation, local search expansion and new landing pages." };
@@ -1452,9 +1452,6 @@ function GeneratePreviewPage() {
                   <Button onClick={() => action("click_start_plan", `Start ${commercialRecommendation.label}`, `/pricing?product=${commercialRecommendation.slug}`)} variant="outline" className="rounded-2xl font-black uppercase tracking-widest">
                     Start {commercialRecommendation.label}
                   </Button>
-                  <Button onClick={() => action("click_custom_strategy", "Request Custom Website Strategy", "/apply-custom")} variant="outline" className="rounded-2xl font-black uppercase tracking-widest">
-                    Custom Strategy
-                  </Button>
                 </div>
               </div>
               <div className="rounded-[1.5rem] bg-slate-950 p-6 text-white">
@@ -1531,7 +1528,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
   // Keep the result market-neutral. Pricing is selected on the pricing page so an audit
   // never shows a country's price to the wrong prospect.
   const recommendedPlanKey = String(report.recommendedPlan || "").toLowerCase();
-  const recommendedProduct = recommendedPlanKey === "custom" ? "Custom Website" : recommendedPlanKey === "growth" ? "Website Growth" : "Managed Website";
+  const recommendedProduct = recommendedPlanKey === "growth" ? "Website Growth" : "Managed Website";
   const savePreviewContext = () => {
     sessionStorage.setItem("bt_audit_preview_context", JSON.stringify({
       businessName: form.businessName,
