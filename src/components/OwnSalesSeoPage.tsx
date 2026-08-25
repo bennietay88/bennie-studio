@@ -11,6 +11,9 @@ import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
   if (typeof value === "string") {
     return value
+      // Preserve already-localized current prices while translating stale copy.
+      .replace(/US\$99\/month/g, "__CURRENT_US_99__")
+      .replace(/US\$199\/month/g, "__CURRENT_US_199__")
       .replace(/\$49(?:\/month)?/g, "US$99/month")
       .replace(/\$99(?:\/month)?/g, "US$99/month")
       .replace(/\$199(?:\/month)?/g, "US$199/month")
@@ -20,13 +23,22 @@ const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
       .replace(/£49(?:\/month)?/g, "£99/month")
       .replace(/£99(?:\/month)?/g, "£99/month")
       .replace(/£199(?:\/month)?/g, "£249/month")
+      .replace(/14[- ]day(?: free)? trial/gi, "free website preview")
+      .replace(/card[- ]required trial/gi, "free website preview")
+      .replace(/free trial/gi, "free website preview")
       .replace(/Starter/g, "Managed Website")
       .replace(/\bBusiness\b/g, "Managed Website")
       .replace(/Authority/g, "Growth Partner")
-      .replace(/Scale/g, "Website Growth") as T;
+      .replace(/Scale/g, "Website Growth")
+      .replace(/__CURRENT_US_99__/g, "US$99/month")
+      .replace(/__CURRENT_US_199__/g, "US$199/month") as T;
   }
   if (Array.isArray(value)) return value.map((item) => sanitizeLegacyCommercialCopy(item)) as T;
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, key === "plan" && item === "Business" ? [key, "Managed Website"] : [key, sanitizeLegacyCommercialCopy(item)]])) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, sanitizeLegacyCommercialCopy(item)]),
+    ) as T;
+  }
   return value;
 };
 

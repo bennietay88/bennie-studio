@@ -451,10 +451,10 @@ export function AffiliateDashboard() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-slate-600">
               {[
-                "Launch a professional website from $49/month.",
+                "Promote a professionally managed website from US$99/month.",
                 "Managed website subscription for small businesses.",
-                "No WordPress maintenance needed for managed plans.",
-                "Premium Website quote available when full control is needed.",
+                "Hosting, maintenance, and enquiry paths are managed for the customer.",
+                "Custom Website quotes are available for bespoke requirements.",
               ].map((item) => (
                 <div key={item} className="flex items-start gap-2 rounded-xl bg-slate-50 p-3">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" />

@@ -75,11 +75,11 @@ export const ProtectedRoute = ({
           <Zap className="h-10 w-10 fill-current" />
         </div>
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-          Trial Period Ended
+          Subscription access paused
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-3 max-w-md text-lg">
-          Your free trial has expired. To continue accessing your dashboard and
-          features, please activate a subscription.
+          Your account needs an active subscription to continue accessing the
+          dashboard and managed website features.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 mt-8">
           <Button

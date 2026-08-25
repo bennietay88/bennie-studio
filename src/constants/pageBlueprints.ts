@@ -74,15 +74,15 @@ export interface BlueprintBusinessInput {
 }
 
 export const PLAN_POSITIONING: Record<BlueprintPlanId, string> = {
-  starter: "Launch a simple one-page business website fast.",
-  business: "Build a complete small business website with the essential pages customers expect.",
-  growth: "Create a stronger website with authority pages, portfolio/case studies, and better SEO structure.",
+  starter: "Start with a focused managed website built around your primary enquiry path.",
+  business: "Build a complete Managed Website with the essential pages customers expect.",
+  growth: "Add Website Growth support for stronger SEO structure, landing pages, and ongoing improvements.",
 };
 
 export const UPGRADE_MESSAGES: Record<BlueprintPlanId, string> = {
-  starter: "Add dedicated service and contact pages, improve trust, and unlock one location page with Business.",
-  business: "Unlock up to 5 website pages, up to 3 location pages, landing-page support, and priority improvements with Scale.",
-  growth: "You are already on the strongest website structure for this generator.",
+  starter: "Upgrade to Managed Website for dedicated service and contact pages, stronger trust sections, and ongoing support.",
+  business: "Upgrade to Website Growth for landing-page support, local SEO expansion, and priority improvements.",
+  growth: "You are already on the ongoing Website Growth structure for this generator.",
 };
 
 const startCase = (value: string) =>
