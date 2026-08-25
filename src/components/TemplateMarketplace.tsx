@@ -10,6 +10,7 @@ import {
   TEMPLATE_CATEGORIES,
   TEMPLATE_INDUSTRIES,
   TEMPLATE_PLAN_ACCESS,
+  normalizeTemplatePlanLabel,
 } from "../constants/templateTaxonomy";
 import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
@@ -58,10 +59,10 @@ export function TemplateMarketplace() {
       const matchesQuery = !normalizedQuery || searchable.includes(normalizedQuery);
       const templateCategory = template.category || templateRecord.config?.commercial?.category;
       const templateIndustry = meta.industry || templateRecord.industry;
-      const planAccess = templateRecord.plan_access || templateRecord.config?.commercial?.planAccess || [meta.recommendedPlan || "Business"];
+      const planAccess = (templateRecord.plan_access || templateRecord.config?.commercial?.planAccess || [meta.recommendedPlan || "Managed Website"]).map(normalizeTemplatePlanLabel);
       const matchesCategory = category === allOption || templateCategory === category;
       const matchesIndustry = industry === allOption || templateIndustry === industry;
-      const matchesPlan = plan === allOption || meta.recommendedPlan === plan || planAccess.includes(plan);
+      const matchesPlan = plan === allOption || normalizeTemplatePlanLabel(meta.recommendedPlan) === plan || planAccess.includes(plan);
       const matchesGoal = goal === allOption || meta.conversionGoal === goal;
       return (
         matchesQuery &&

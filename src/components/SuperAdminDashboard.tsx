@@ -144,13 +144,10 @@ import { ProposalsDeals } from "./SuperAdmin/ProposalsDeals";
 import { SalesAutomation } from "./SuperAdmin/SalesAutomation";
 import { ClientOnboarding } from "./SuperAdmin/ClientOnboarding";
 import { Projects } from "./SuperAdmin/Projects";
-import { LocalSeoManager } from "./SuperAdmin/LocalSeoManager";
-import { LaunchAudit } from "./SuperAdmin/LaunchAudit";
 import { OperationsControlCenter } from "./SuperAdmin/OperationsControlCenter";
 import { GrowthOperationsCenter } from "./SuperAdmin/GrowthOperationsCenter";
 import { AdminLeadInbox } from "./SuperAdmin/AdminLeadInbox";
 import { DailyOperations } from "./SuperAdmin/DailyOperations";
-import ComplianceMarketSettings from "./SuperAdmin/ComplianceMarketSettings";
 import CommercialCatalogue from "./SuperAdmin/CommercialCatalogue";
 import { SystemStatusPage } from "./SystemStatusPage";
 import { PLANS as STATIC_PLANS, normalizePlans } from "../constants/plans";
@@ -235,14 +232,15 @@ export default function SuperAdminDashboard() {
     if (last === "proposals_deals") return "proposals_deals";
     if (last === "sales_automation") return "sales_automation";
     if (last === "projects") return "projects";
-    if (last === "launch_audit") return "launch_audit";
+    if (last === "launch_audit") return "operations";
     if (last === "client_onboarding") return "client_onboarding";
     if (last === "operations") return "operations";
     if (last === "growth_operations") return "growth_operations";
     if (last === "seo_management") return "seo_management";
+    if (last === "local_seo") return "seo_management";
     if (last === "templates") return "templates";
     if (last === "plans") return "plans";
-    if (last === "compliance_market") return "compliance_market";
+    if (last === "compliance_market") return "plans";
     if (last === "ai_credits") return "ai_credits";
     if (last === "status") return "status";
     if (last === "intelligence_lab") return "intelligence_lab";
@@ -1456,11 +1454,9 @@ export default function SuperAdminDashboard() {
       {activeTab === "proposals_deals" && <ProposalsDeals />}
       {activeTab === "sales_automation" && <SalesAutomation />}
       {activeTab === "projects" && <Projects />}
-      {activeTab === "launch_audit" && <LaunchAudit />}
       {activeTab === "client_onboarding" && <ClientOnboarding />}
       {activeTab === "operations" && <OperationsControlCenter />}
       {activeTab === "seo_management" && <SeoAdmin />}
-      {activeTab === "local_seo" && <LocalSeoManager />}
       
       {(activeTab === "businesses" || activeTab === "admin") && (
             <div className="space-y-8">
@@ -2036,7 +2032,6 @@ export default function SuperAdminDashboard() {
              </div>
           )}
           {activeTab === "plans" && <><CommercialCatalogue /><PlanEditor /></>}
-          {activeTab === "compliance_market" && <ComplianceMarketSettings />}
 
           {activeTab === "ecosystem_architect" && (
             <div className="space-y-8">
@@ -2278,7 +2273,7 @@ export default function SuperAdminDashboard() {
           {activeTab === "update_requests" && <MonthlyUpdateQueue />}
 
           {/* Catch-all for tabs that might not have specialized rendering yet or are in development */}
-          {!['overview', 'revenue_command', 'sales_home', 'daily_operations', 'inbound_leads', 'growth_operations', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'sales_automation', 'mass_campaigns', 'webinar_engine', 'proposals_deals', 'projects', 'launch_audit', 'client_onboarding', 'operations', 'seo_management', 'local_seo', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'geo_pricing', 'templates', 'plans', 'compliance_market', 'ai_credits', 'status', 'intelligence_lab', 'traffic', 'settings', 'support', 'update_requests', 'blog', 'policies', 'ecosystem_architect', 'admin'].includes(activeTab) && (
+          {!['overview', 'revenue_command', 'sales_home', 'daily_operations', 'inbound_leads', 'growth_operations', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'sales_automation', 'mass_campaigns', 'webinar_engine', 'proposals_deals', 'projects', 'client_onboarding', 'operations', 'seo_management', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'geo_pricing', 'templates', 'plans', 'ai_credits', 'status', 'intelligence_lab', 'traffic', 'settings', 'support', 'update_requests', 'blog', 'policies', 'ecosystem_architect', 'admin'].includes(activeTab) && (
             <div className="h-full flex items-center justify-center p-12">
                <Card className="p-24 flex flex-col items-center justify-center text-center rounded-[3rem] border-slate-100 bg-slate-50/50 max-w-2xl">
                   <div className="h-20 w-20 rounded-[2rem] bg-white shadow-xl shadow-slate-200 flex items-center justify-center text-indigo-600 mb-6">

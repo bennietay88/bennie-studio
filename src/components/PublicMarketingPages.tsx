@@ -27,18 +27,10 @@ import {
   buildReviewWebsiteStrategy,
   assessManualReviewInput,
 } from "../constants/reviewPoweredWaas";
-import { formatUsdRangeForCountry } from "../hooks/useGeoPricing";
 import { Pricing as CommercialPricing } from "./Pricing";
 import { trackPinterestLead } from "../lib/pinterestTracking";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { FREE_PREVIEW_LIMITS, PUBLIC_PROMISE, SUBSCRIPTION_DELIVERY_FLOW } from "../constants/salesFlow";
-import {
-  PRIMARY_REVENUE_OFFER,
-  countryToRevenueMarket,
-  getOfferForMarket,
-  type RevenueMarket,
-} from "../constants/revenueOffer";
-import { getBasicWebsiteOffers, saveBasicPlanIntent } from "../constants/publicOffers";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { FlagshipTemplateGallery } from "./FlagshipTemplateGallery";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
@@ -61,7 +53,7 @@ type PublicPageKind =
   | "beauty-salon-website-design"
   | "tuition-centre-website-design"
   | "consultant-website-design";
-type PricingMarket = RevenueMarket;
+type PricingMarket = "MY" | "SG" | "GB" | "US";
 
 const pageMeta: Record<PublicPageKind, { title: string; description: string }> = {
   templates: {

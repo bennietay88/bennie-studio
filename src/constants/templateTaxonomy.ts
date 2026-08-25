@@ -52,7 +52,16 @@ export const TEMPLATE_FILTER_TAGS = [
   "Free",
 ] as const;
 
-export const TEMPLATE_PLAN_ACCESS = ["Launch", "Starter", "Business", "Growth", "Scale", "Custom"] as const;
+export const TEMPLATE_PLAN_ACCESS = ["Managed Website", "Website Growth", "Growth Partner", "Custom Website"] as const;
+
+export const normalizeTemplatePlanLabel = (value?: string | null) => {
+  const normalized = String(value || "").toLowerCase();
+  if (["launch", "starter", "business"].includes(normalized)) return "Managed Website";
+  if (["growth", "scale"].includes(normalized)) return "Website Growth";
+  if (["authority", "agency"].includes(normalized)) return "Growth Partner";
+  if (normalized === "custom") return "Custom Website";
+  return value || "Managed Website";
+};
 
 export const FONT_PAIRINGS = [
   "Geist Sans / Geist Mono",

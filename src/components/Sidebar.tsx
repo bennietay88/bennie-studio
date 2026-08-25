@@ -197,7 +197,6 @@ export function Sidebar({
             { to: "/admin/businesses", icon: Globe, label: "Active Sites", className: "tour-businesses" },
             { to: "/admin/users", icon: Users, label: "Users & Access" },
             { to: "/admin/projects", icon: Briefcase, label: "Service Projects", moduleId: "service_projects" },
-            { to: "/admin/launch_audit", icon: Shield, label: "Launch Checks", moduleId: "launch_checks" },
             { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover", moduleId: "client_handover" },
             { to: "/admin/operations", icon: Activity, label: "Operations Control", moduleId: "operations_control" },
             { to: "/admin/seo_management", icon: Search, label: "SEO Management", moduleId: "seo_management" },
@@ -211,8 +210,6 @@ export function Sidebar({
             { to: "/admin/templates", icon: Layout, label: "Website Templates", moduleId: "website_templates" },
             { to: "/admin/blog", icon: FileText, label: "Blog CMS", moduleId: "blog_cms" },
             { to: "/admin/policies", icon: FileText, label: "Policies CMS", moduleId: "policies_cms" },
-            { to: "/admin/local_seo", icon: MapPin, label: "Local SEO", moduleId: "local_seo" },
-            { to: "/admin/compliance_market", icon: ShieldCheck, label: "Compliance & Market", moduleId: "compliance_market" },
           ]
         },
         {
@@ -261,7 +258,6 @@ export function Sidebar({
           label: "Delivery Ops",
           items: [
             { to: "/admin/projects", icon: Briefcase, label: "Service Projects", permission: "delivery" },
-            { to: "/admin/launch_audit", icon: Shield, label: "Launch Audit", permission: "delivery" },
             { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover", permission: "delivery" },
             { to: "/admin/operations", icon: Activity, label: "Operations Control", permissions: ["customer_health", "approvals", "billing", "activity_logs"] },
             { to: "/admin/support", icon: Headphones, label: "Support Desk", permission: "support" },
