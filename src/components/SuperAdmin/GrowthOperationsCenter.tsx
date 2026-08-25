@@ -37,11 +37,12 @@ type LoadState = {
   signals: any[];
   experiments: any[];
   kits: any[];
+  testimonials: any[];
 };
 
 const EMPTY_STATE: LoadState = {
   prospects: [], leads: [], tasks: [], proposals: [], projects: [], businesses: [],
-  reports: [], integrations: [], signals: [], experiments: [], kits: [],
+  reports: [], integrations: [], signals: [], experiments: [], kits: [], testimonials: [],
 };
 
 const label = (value?: string) => String(value || "Not set").replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -68,6 +69,7 @@ export function GrowthOperationsCenter() {
       ["signals", supabase.from("customer_health_signals").select("*").eq("status", "open").order("occurred_at", { ascending: false })],
       ["experiments", supabase.from("template_experiments").select("*").order("created_at", { ascending: false })],
       ["kits", supabase.from("vertical_delivery_kits").select("*").order("name")],
+      ["testimonials", supabase.from("customer_testimonials").select("*").order("created_at", { ascending: false }).limit(100)],
     ] as const;
     const results = await Promise.allSettled(sources.map(([, request]) => request));
     const next = { ...EMPTY_STATE };
@@ -94,6 +96,13 @@ export function GrowthOperationsCenter() {
   }, [data]);
 
   const previewQueue = data.prospects.filter((prospect) => !prospect.preview_url && prospect.status !== "lost");
+  const funnel = {
+    prospects: data.prospects.filter((prospect) => prospect.status !== "lost").length,
+    previews: data.prospects.filter((prospect) => prospect.preview_url && prospect.status !== "lost").length,
+    enquiries: data.leads.filter((lead) => !["spam", "lost"].includes(String(lead.status || "").toLowerCase())).length,
+    proposals: data.proposals.filter((proposal) => !["lost", "cancelled"].includes(String(proposal.status || "").toLowerCase())).length,
+    customers: data.businesses.filter((business) => !["cancelled", "paused"].includes(String(business.status || "").toLowerCase())).length,
+  };
   const businessName = (id?: string) => data.businesses.find((business) => business.id === id)?.name || "Customer";
 
   const generatePreview = async (prospect: any) => {
@@ -183,6 +192,21 @@ export function GrowthOperationsCenter() {
         <Metric icon={AlertCircle} label="Delivery blockers" value={today.blockers.length} attention={today.blockers.length > 0} />
       </div>
 
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <Card className="rounded-3xl border-indigo-100 bg-indigo-50/60 shadow-sm">
+          <CardHeader><CardTitle className="flex items-center gap-2 text-xl"><Rocket className="h-5 w-5 text-indigo-600" />30-day Growth Sprint</CardTitle><p className="text-sm font-semibold text-slate-600">A short operating cadence for acquiring and launching the next customers.</p></CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            {[
+              ["Week 1", "Choose one niche and prepare five evidence-based reviews.", "/admin/website_reviews"],
+              ["Week 2", "Send previews and personally follow up with every qualified reply.", "/admin/outreach_lab"],
+              ["Week 3", "Run calls, send proposals, and record objections in the pipeline.", "/admin/proposals_deals"],
+              ["Week 4", "Launch paid work quickly, capture proof, and ask for introductions.", "/admin/projects"],
+            ].map(([week, copy, href]) => <button key={week} type="button" onClick={() => window.location.assign(href)} className="rounded-2xl border border-indigo-100 bg-white p-4 text-left transition hover:border-indigo-300 hover:shadow-sm"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-indigo-600">{week}</p><p className="mt-2 text-sm font-bold leading-5 text-slate-800">{copy}</p><span className="mt-3 inline-flex text-xs font-black text-indigo-600">Open workspace <ArrowUpRight className="ml-1 h-3.5 w-3.5" /></span></button>)}
+          </CardContent>
+        </Card>
+        <Card className="rounded-3xl border-slate-200 shadow-sm"><CardHeader><CardTitle className="flex items-center gap-2 text-xl"><Target className="h-5 w-5 text-indigo-600" />Funnel snapshot</CardTitle><p className="text-sm font-semibold text-slate-500">Recorded volumes only; no invented conversion rates.</p></CardHeader><CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-5 xl:grid-cols-2"><Fact label="Prospects" value={String(funnel.prospects)} /><Fact label="Previews" value={String(funnel.previews)} /><Fact label="Enquiries" value={String(funnel.enquiries)} /><Fact label="Proposals" value={String(funnel.proposals)} /><Fact label="Customers" value={String(funnel.customers)} /></CardContent></Card>
+      </div>
+
       <Tabs defaultValue="today">
         <TabsList className="h-auto flex-wrap rounded-2xl bg-slate-100 p-1">
           <TabsTrigger value="today" className="rounded-xl">Today</TabsTrigger>
@@ -234,6 +258,7 @@ export function GrowthOperationsCenter() {
             return <Card key={business.id} className="rounded-3xl"><CardHeader><div className="flex items-start justify-between gap-3"><div><CardTitle>{business.name}</CardTitle><p className="mt-1 text-xs font-semibold text-slate-500">{business.plan || "Plan not set"} · {label(business.status)}</p></div><Badge className={signals.some((signal) => signal.severity === "urgent") ? "bg-rose-100 text-rose-700" : signals.length ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}>{signals.length ? `${signals.length} open signal(s)` : "No open signal"}</Badge></div></CardHeader><CardContent className="space-y-4"><div className="grid gap-3 sm:grid-cols-2"><Fact label="Latest measured report" value={report ? `${report.report_month} · ${report.lead_count || 0} enquiries` : "Not enough data yet"} /><Fact label="Google Business Profile" value={integration?.status === "connected" ? `Connected · synced ${dateTime(integration.last_synced_at)}` : "Not connected"} /></div>{signals.map((signal) => <div key={signal.id} className="rounded-2xl border border-amber-200 bg-amber-50 p-4"><p className="text-sm font-black text-amber-950">{signal.title}</p><p className="mt-1 text-xs font-semibold text-amber-800">{signal.evidence || "Evidence must be added before actioning this signal."}</p>{signal.recommended_action && <p className="mt-2 text-xs font-black text-amber-950">Next: {signal.recommended_action}</p>}</div>)}{!signals.length && <p className="text-sm font-semibold text-slate-500">No evidence-based opportunity is currently recorded.</p>}</CardContent></Card>;
           })}
           {!data.businesses.length && <Empty text="No customer business exists yet." />}
+          <Card className="rounded-3xl border-emerald-100 bg-emerald-50/50 xl:col-span-2"><CardHeader><CardTitle className="flex items-center gap-2 text-xl"><CheckCircle2 className="h-5 w-5 text-emerald-600" />Proof and referral queue</CardTitle><p className="text-sm font-semibold text-slate-600">Turn completed work into the evidence that makes the next sale easier.</p></CardHeader><CardContent className="grid gap-3 md:grid-cols-3"><Fact label="Proof records" value={String(data.testimonials.length)} /><Fact label="Published proof" value={String(data.testimonials.filter((item) => item.status === "published" || item.is_published).length)} /><div className="rounded-2xl border border-emerald-200 bg-white p-4"><p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Next action</p><p className="mt-2 text-sm font-bold leading-5 text-slate-800">Ask every launched customer for one approved change summary and one introduction.</p><Button className="mt-3 rounded-xl bg-emerald-600" onClick={() => window.location.assign("/admin/affiliates")}>Open partner referrals <ArrowUpRight className="ml-2 h-4 w-4" /></Button></div></CardContent></Card>
         </TabsContent>
 
         <TabsContent value="experiments" className="grid gap-6 pt-4 xl:grid-cols-[0.85fr_1.15fr]">
