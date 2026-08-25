@@ -300,14 +300,12 @@ export function Sidebar({
           items: [
             { to: "/dashboard/leads", icon: Users, label: "Leads & CRM", featureId: "lead_crm" },
             { to: "/dashboard/chatbot", icon: MessageSquare, label: "AI Sales Chat", featureId: "ai_chatbot", devOnly: true },
-            { to: "/dashboard/automations", icon: Zap, label: "Email & SMS Growth", featureId: "automation", devOnly: true },
           ]
         },
         {
           label: "Business",
           items: [
             { to: "/dashboard/appointments", icon: CalendarIcon, label: "Booking Calendar", featureId: "booking" },
-            { to: "/dashboard/onboarding", icon: Rocket, label: "Launch Checklist", devOnly: true, roles: ["business_admin"] },
             { to: "/dashboard/update-requests", icon: FileText, label: "Update Requests", devOnly: true, roles: ["business_admin"] },
             { to: "/dashboard/seo-domain", icon: Globe, label: "Domain & SEO", devOnly: true, roles: ["business_admin"] },
             { to: "/dashboard/local-seo", icon: MapPin, label: "Local SEO", devOnly: true, roles: ["business_admin"] },
@@ -321,7 +319,6 @@ export function Sidebar({
         {
           label: "Account",
           items: [
-            { to: "/dashboard/analytics", icon: BarChart3, label: "Business Insights", featureId: "analytics" },
             { to: "/dashboard/status", icon: Shield, label: "System Status" },
             { to: "/dashboard/billing", icon: CreditCard, label: "Billing & Plans", roles: ["business_admin"] },
             { to: "/dashboard/support", icon: Headphones, label: "Support" },

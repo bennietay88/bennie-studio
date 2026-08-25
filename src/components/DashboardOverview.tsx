@@ -56,7 +56,6 @@ import { getLocalSeoLimits } from "../constants/localSeoEngine";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { AIPerformanceAnalytics } from "./AIPerformanceAnalytics";
 import { AIDataAnalyst } from "./AIDataAnalyst";
-import { OnboardingChecklist } from "./OnboardingChecklist";
 import { toast } from "sonner";
 import type { MonthlyWebsiteResult, WebsiteImprovement } from "../types";
 import {
@@ -1295,7 +1294,7 @@ export default function DashboardOverview() {
   }
 
   return (
-    <Tabs defaultValue="overview" className="space-y-12 pb-20">
+    <Tabs defaultValue="overview" className="flex-col space-y-12 pb-20">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
         <motion.div variants={fadeInUp} className="space-y-2">
           <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">
@@ -1376,11 +1375,6 @@ export default function DashboardOverview() {
               </Button>
             </div>
           </motion.div>
-
-          {/* Setup Progress Widget */}
-          {profile?.businessId && isDevelopmentMode && (
-            <OnboardingChecklist businessId={profile.businessId} />
-          )}
 
           {savedGrowthActions.length > 0 && (
             <motion.div variants={fadeInUp}>
@@ -2435,54 +2429,6 @@ export default function DashboardOverview() {
             </motion.div>
           )}
 
-          {isDevelopmentMode && (
-          <motion.div variants={fadeInUp}>
-            <Card className="rounded-[2.5rem] border-slate-100 shadow-sm">
-              <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <Badge className="mb-3 bg-indigo-50 text-indigo-700 border-indigo-100">
-                    {launchStatus}
-                  </Badge>
-                  <CardTitle className="text-2xl font-black tracking-tight text-slate-950 dark:text-white">
-                    Website Launch Checklist
-                  </CardTitle>
-                  <CardDescription>
-                    {completedLaunchChecks}/{launchChecks.length} launch items complete. Keep this list green before sending traffic to your site.
-                  </CardDescription>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" className="rounded-2xl font-bold" onClick={() => navigate("/dashboard/website")}>
-                    Edit Website
-                  </Button>
-                  <Button className="rounded-2xl bg-indigo-600 font-bold" onClick={handleViewLive}>
-                    Preview Site
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                  {launchChecks.map((item) => (
-                    <div
-                      key={item.label}
-                      className={cn(
-                        "flex items-center gap-3 rounded-2xl border p-4",
-                        item.done ? "border-emerald-100 bg-emerald-50" : "border-slate-100 bg-slate-50",
-                      )}
-                    >
-                      <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", item.done ? "bg-emerald-600 text-white" : "bg-white text-slate-300")}>
-                        <Check className="h-4 w-4" />
-                      </div>
-                      <span className={cn("text-xs font-black uppercase tracking-widest", item.done ? "text-emerald-800" : "text-slate-500")}>
-                        {item.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-          )}
-
           <motion.div
             variants={staggerContainer}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
@@ -2823,6 +2769,7 @@ export default function DashboardOverview() {
             </motion.div>
           </div>
 
+          {false && (
           <motion.div
             variants={fadeInUp}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -2904,6 +2851,7 @@ export default function DashboardOverview() {
               />
             </div>
           </motion.div>
+          )}
 
           <motion.div
             variants={fadeInUp}
