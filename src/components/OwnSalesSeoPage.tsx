@@ -8,10 +8,32 @@ import { findOwnSalesSeoPage } from "../constants/ownSalesSeoPages";
 import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKETS, formatCommercialMoney, getCommercialPrice, type CommercialMarket } from "../lib/commercialPricing";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 
+const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
+  if (typeof value === "string") {
+    return value
+      .replace(/\$49(?:\/month)?/g, "US$99/month")
+      .replace(/\$99(?:\/month)?/g, "US$99/month")
+      .replace(/\$199(?:\/month)?/g, "US$199/month")
+      .replace(/RM199(?:\/month)?/g, "RM299/month")
+      .replace(/RM399(?:\/month)?/g, "RM699/month")
+      .replace(/RM799(?:\/month)?/g, "RM699/month")
+      .replace(/£49(?:\/month)?/g, "£99/month")
+      .replace(/£99(?:\/month)?/g, "£99/month")
+      .replace(/£199(?:\/month)?/g, "£249/month")
+      .replace(/Starter/g, "Managed Website")
+      .replace(/\bBusiness\b/g, "Managed Website")
+      .replace(/Authority/g, "Growth Partner")
+      .replace(/Scale/g, "Website Growth") as T;
+  }
+  if (Array.isArray(value)) return value.map((item) => sanitizeLegacyCommercialCopy(item)) as T;
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, key === "plan" && item === "Business" ? [key, "Managed Website"] : [key, sanitizeLegacyCommercialCopy(item)]])) as T;
+  return value;
+};
+
 export default function OwnSalesSeoPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const page = findOwnSalesSeoPage(location.pathname);
+  const page = sanitizeLegacyCommercialCopy(findOwnSalesSeoPage(location.pathname));
 
   if (!page) return <Navigate to="/" replace />;
 

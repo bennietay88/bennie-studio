@@ -3739,6 +3739,29 @@ async function startServer() {
     },
   );
 
+  app.get(
+    "/api/admin/appointments",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: "admin-appointments", key: (req) => req.user?.id || getClientIp(req) }),
+    async (req: any, res) => {
+      try {
+        const profile = await getProfileForUser(req.user.id);
+        if (!canManageLeadInbox(profile)) return res.status(403).json({ error: "Forbidden: operations access required" });
+        const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+        const from = String(req.query.from || new Date().toISOString().slice(0, 10));
+        const to = String(req.query.to || from);
+        if (!datePattern.test(from) || !datePattern.test(to)) return res.status(400).json({ error: "Invalid appointment date range" });
+        const { data, error } = await supabaseAdmin.from("appointments").select("id,customer_name,customer_email,service,date,time,status,business_id").gte("date", from).lte("date", to).order("date", { ascending: true }).order("time", { ascending: true }).limit(100);
+        if (error) throw error;
+        return res.json({ appointments: data || [], from, to });
+      } catch (error: any) {
+        if (error?.message === "PROFILE_NOT_FOUND") return res.status(403).json({ error: "Profile not found" });
+        console.error("Admin appointments load failed:", error);
+        return res.status(500).json({ error: "Failed to load appointments" });
+      }
+    },
+  );
+
   app.post("/api/admin/proposals/:proposalId/create-checkout", authenticate, async (req: any, res) => {
     if (!UUID_SCHEMA.safeParse(req.params.proposalId).success) return res.status(400).json({ error: "Invalid proposal ID" });
     try {
@@ -5102,11 +5125,9 @@ async function startServer() {
   app.get("/api/public/site-config", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-site-config" }), async (_req, res) => {
     const [
       { data: settingsRows, error: settingsError },
-      { data: planRows, error: plansError },
       { data: postRows, error: postsError },
     ] = await Promise.all([
-      supabaseAdmin.from("settings").select("id,content").in("id", ["platform", "platform_policies", "landing_page", "plans"]),
-      supabaseAdmin.from("plans").select("*").eq("is_active", true).order("sort_order", { ascending: true, nullsFirst: false }).order("price_usd", { ascending: true }),
+      supabaseAdmin.from("settings").select("id,content").in("id", ["platform", "platform_policies", "landing_page"]),
       supabaseAdmin.from("posts").select("*").eq("is_platform_post", true).eq("status", "published").order("created_at", { ascending: false }).limit(3),
     ]);
     if (settingsError) return res.status(500).json({ error: "Public site settings are unavailable" });
@@ -5128,10 +5149,6 @@ async function startServer() {
       platform: publicPlatform,
       landingPage: settings.get("landing_page") || null,
       policies,
-      plans: !plansError && Array.isArray(planRows)
-        ? planRows.filter((plan: any) => !plan.sales_motion || plan.sales_motion === "self_serve")
-        : [],
-      legacyPricing: settings.get("plans")?.pricing || null,
       posts: !postsError && Array.isArray(postRows) ? postRows : [],
     });
   });
@@ -5388,7 +5405,7 @@ async function startServer() {
         couponId: z.string().trim().max(120).optional().nullable(),
         type: z.enum(["credits", "subscription"]).optional(),
         planId: z.string().trim().min(1).max(80).optional().nullable(),
-        productSlug: z.enum(["managed-website", "website-growth", "growth-partner"]).optional().nullable(),
+        productSlug: z.enum(["managed-website", "website-growth", "growth-partner", "custom-website"]).optional().nullable(),
         billingCycle: z.enum(["monthly", "yearly"]).optional().default("monthly"),
         market: z.enum(["MY", "SG", "GB", "US", "INTL"]).optional().default("INTL"),
         promotionCode: z.string().trim().max(120).optional().nullable(),
@@ -5447,6 +5464,21 @@ async function startServer() {
           resolvedProductSlug = currentProduct.slug;
         } else {
           if (!planId || !priceId) return res.status(400).json({ error: "Select a valid plan before checkout." });
+        const { data: legacyBusiness } = await supabaseAdmin
+          .from("businesses")
+          .select("plan,commercial_product_slug,stripe_subscription_id,created_at")
+          .eq("id", businessId)
+          .maybeSingle();
+        const legacyPlanSlugs = new Set(["launch", "business", "growth", "scale", "starter", "pro", "agency"]);
+        const isHistoricalLegacyCustomer = Boolean(
+          legacyBusiness &&
+          legacyPlanSlugs.has(String(legacyBusiness.plan || "").toLowerCase()) &&
+          !legacyBusiness.commercial_product_slug &&
+          (legacyBusiness.stripe_subscription_id || legacyBusiness.created_at),
+        );
+        if (!isHistoricalLegacyCustomer) {
+          return res.status(400).json({ error: "Legacy plans are no longer available for new customers. Select Managed Website or Website Growth." });
+        }
         const { data: configuredPlan } = await supabaseAdmin
           .from("plans")
           .select("slug,is_active,sales_motion,setup_fee,stripe_price_id,yearly_stripe_price_id,market_price_ids")

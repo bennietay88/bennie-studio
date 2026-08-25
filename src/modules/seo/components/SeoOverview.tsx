@@ -79,11 +79,9 @@ export function SeoOverview({
           <CardHeader className="border-b border-slate-100 bg-slate-950 p-7 text-white">
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-300">Technical search health</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-300">Technical audit status</p>
                 <CardTitle className="mt-3 text-2xl font-black text-white">
-                  {audit?.health_score === null || audit?.health_score === undefined
-                    ? "Run the first evidence-based audit"
-                    : `${audit.health_score} / 100`}
+                  {!audit ? "Run the first evidence-based audit" : `${components.length} evidence checks recorded`}
                 </CardTitle>
                 <p className="mt-3 max-w-xl text-sm font-medium leading-6 text-slate-300">
                   {audit?.summary || "This is calculated only from observable technical checks—not from AI opinion, estimated traffic, or an invented business score."}
@@ -109,7 +107,7 @@ export function SeoOverview({
                       : <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />}
                     <div>
                       <p className="text-sm font-bold text-slate-900">{item.label}</p>
-                      <p className="mt-1 text-xs font-medium leading-5 text-slate-500">{item.evidence} · {item.weight} configured points</p>
+                      <p className="mt-1 text-xs font-medium leading-5 text-slate-500">{item.evidence}</p>
                     </div>
                   </div>
                 ))}

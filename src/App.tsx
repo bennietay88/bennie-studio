@@ -67,6 +67,7 @@ const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPage
 const PublicBlogPostPage = lazy(() => import("./components/PublicBlogPostPage"));
 const WaasSamplePage = lazy(() => import("./components/WaasSamplePage"));
 const BookDemo = lazy(() => import("./components/BookDemo"));
+const CustomWebsiteQuotePage = lazy(() => import("./components/CustomWebsiteQuotePage"));
 const ManageCallBooking = lazy(() => import("./components/ManageCallBooking"));
 const PublicProposalPage = lazy(() => import("./components/PublicProposalPage"));
 const ForgotPasswordPage = lazy(
@@ -216,6 +217,12 @@ function ScrollToTop() {
   return null;
 }
 
+function RouteRobotsMeta() {
+  const { pathname } = useLocation();
+  const privateRoute = /^\/(admin|dashboard|checkout|login|signup|forgot-password|reset-password|profile)(\/|$)/.test(pathname);
+  return <Helmet><meta name="robots" content={privateRoute ? "noindex,nofollow" : "index,follow"} /><link rel="canonical" href={`https://app.bennietay.com${pathname === "/" ? "/" : pathname.replace(/\/$/, "")}`} /></Helmet>;
+}
+
 function isCustomerDomainHost() {
   const host = window.location.hostname.toLowerCase();
   const tenant = classifyTenantHost(host, {
@@ -345,6 +352,7 @@ export default function App() {
     "/generate-preview",
     "/blog",
     "/book-demo",
+    "/apply-custom",
     "/manage-call",
   ];
   const currentPath = window.location.pathname;
@@ -379,6 +387,7 @@ export default function App() {
       <HelmetProvider>
         <Router>
           <ScrollToTop />
+          <RouteRobotsMeta />
           <TrafficTracker />
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
@@ -399,6 +408,7 @@ export default function App() {
       <ErrorBoundary>
         <Router>
           <ScrollToTop />
+          <RouteRobotsMeta />
           <TrafficTracker />
           <Helmet>
             <title>{defaultSiteTitle}</title>
@@ -463,6 +473,7 @@ export default function App() {
               <Route path="/portfolio/sample/:sampleType" element={<WaasSamplePage />} />
               <Route path="/demo" element={<DemoModePage />} />
               <Route path="/book-demo" element={<BookDemo />} />
+              <Route path="/apply-custom" element={<CustomWebsiteQuotePage />} />
               <Route path="/manage-call/:token" element={<ManageCallBooking />} />
               <Route path="/proposal/:token" element={<PublicProposalPage />} />
               <Route path="/privacy" element={<PolicyPage type="privacy" />} />

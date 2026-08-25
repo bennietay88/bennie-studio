@@ -137,7 +137,7 @@ const buildCapabilities = [
 
 const proofPoints = [
   ["Website setup", "Template-based, prepared around the customer’s niche and offer."],
-  ["Managed plans", "Launch from $49/month with hosting, maintenance, and support."],
+  ["Managed plans", "Managed Website pricing varies by market; start with a free website preview."],
   ["Custom upgrade", "Premium custom website build available when the client needs full CMS control."],
   ["Growth tools", "SEO checks, enquiry tracking, update requests, and monthly improvement suggestions."],
 ];

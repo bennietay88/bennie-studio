@@ -37,43 +37,13 @@
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://app.bennietay.com/examples</loc>
-    <lastmod>2026-06-23</lastmod>
+    <loc>https://app.bennietay.com/case-studies</loc>
+    <lastmod>2026-08-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://app.bennietay.com/how-it-works</loc>
-    <lastmod>2026-06-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://app.bennietay.com/pay-monthly-websites</loc>
-    <lastmod>2026-06-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://app.bennietay.com/pay-monthly-websites/australia</loc>
-    <lastmod>2026-06-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://app.bennietay.com/pay-monthly-websites/malaysia</loc>
-    <lastmod>2026-06-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://app.bennietay.com/pay-monthly-websites/singapore</loc>
-    <lastmod>2026-06-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://app.bennietay.com/pay-monthly-websites/uk</loc>
     <lastmod>2026-06-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>

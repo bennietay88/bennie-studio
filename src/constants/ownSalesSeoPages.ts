@@ -154,7 +154,7 @@ const makeSubscriptionMarketPage = (market: "UK" | "Malaysia" | "Singapore") => 
     UK: {
       path: "/website-subscription-service/uk",
       title: "Website Subscription Service UK",
-      price: "Starter from £49/month, Growth from £99/month, and Authority from £199/month. Custom websites start from £1,500+.",
+      price: "Managed Website from £99/month with a £199 setup fee. Website Growth is £249/month; custom work is quoted separately.",
       wording: "enquiries, quote requests, GDPR-friendly form consent, cookie banner support, and UK service-area content",
       cities: "London, Manchester, Birmingham, Leeds, Bristol, Glasgow, Liverpool, Sheffield, and Edinburgh",
       buyers: ["UK trades and local service businesses", "consultants and small firms", "clinics, agencies, coaches, and professional services"],
@@ -162,7 +162,7 @@ const makeSubscriptionMarketPage = (market: "UK" | "Malaysia" | "Singapore") => 
     Malaysia: {
       path: "/website-subscription-service/malaysia",
       title: "Website Subscription Service Malaysia",
-      price: "Malaysia-ready plans can be shown with local pricing when enabled, with managed website subscriptions structured around Starter, Growth, and Authority tiers.",
+      price: "Malaysia pricing is shown from the central catalogue: Managed Website RM299/month plus setup, and Website Growth RM699/month.",
       wording: "WhatsApp enquiries, service-area copy, SME-friendly pricing, local proof prompts, and mobile-first CTAs",
       cities: "Kuala Lumpur, Petaling Jaya, Shah Alam, Subang Jaya, Johor Bahru, Penang, Kuching, and Kota Kinabalu",
       buyers: ["Malaysian SMEs", "contractors and clinics", "salons, consultants, local shops, and service providers"],
@@ -170,7 +170,7 @@ const makeSubscriptionMarketPage = (market: "UK" | "Malaysia" | "Singapore") => 
     Singapore: {
       path: "/website-subscription-service/singapore",
       title: "Website Subscription Service Singapore",
-      price: "Singapore-ready plans can display SGD pricing when enabled, with managed website subscriptions structured around Starter, Growth, and Authority tiers.",
+      price: "Singapore pricing is shown from the central catalogue: Managed Website S$149/month plus setup, and Website Growth S$349/month.",
       wording: "premium service positioning, fast response CTAs, high-trust copy, appointment paths, and Singapore neighbourhood targeting",
       cities: "Singapore, Orchard, Tampines, Jurong, Woodlands, Toa Payoh, Bugis, Paya Lebar, and Ang Mo Kio",
       buyers: ["Singapore consultants", "clinics and wellness providers", "professional services, agencies, salons, and local service brands"],
@@ -240,14 +240,14 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
   publish({
     path: "/pay-monthly-websites",
     seoTitle: "Pay Monthly Websites for Small Businesses | Bennie Studio",
-    metaDescription: "Launch a professional business website from $49/month with hosting, SSL, lead capture, WhatsApp CTA, SEO setup, and managed support.",
+    metaDescription: "Start a managed lead-generation website with hosting, enquiry paths, WhatsApp CTAs, local search structure and ongoing support.",
     h1: "Pay Monthly Websites for Small Businesses",
-    eyebrow: "Managed website plans from $49/month",
+    eyebrow: "Managed lead-generation websites",
     heroCopy: "Get a professional website without a large upfront agency cost. Choose a monthly plan, submit your business details, review your pages, and launch with hosting, SSL, lead capture, and support included.",
     offer: "Bennie Studio prepares your website from approved templates, sets up the key sections, and gives you simple editing tools for ongoing updates.",
     whoFor: ["Small businesses that need a clean website fast", "Service providers that want enquiries", "Consultants, clinics, salons, contractors, coaches, and local companies"],
     marketWhy: "Pay monthly websites work well when you want a professional launch, predictable cost, and ongoing support instead of managing a one-off web project alone.",
-    pricingNote: "Plans start from $49/month. Business and Growth plans add more pages, location support, and stronger local SEO options.",
+    pricingNote: "Managed Website and Website Growth pricing is shown from the central market catalogue. Start with a free preview.",
     localInputs: ["No large upfront website cost", "Monthly support included", "Suitable for service businesses in multiple markets", "Local SEO options available as you grow"],
     examples: [
       { industry: "Consultant", plan: "Business", pages: "Home, About, Services, Contact", localSeo: "Primary city and service-area copy" },
@@ -267,14 +267,14 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
   publish({
     path: "/pay-monthly-websites/malaysia",
     seoTitle: "Pay Monthly Websites Malaysia | Managed Website Plans",
-    metaDescription: "Pay monthly websites for Malaysian small businesses. Launch from RM199/month with hosting, WhatsApp CTA, SEO setup, and local pages when needed.",
+    metaDescription: "Managed websites for Malaysian small businesses with hosting, WhatsApp enquiry paths, local search structure and ongoing support.",
     h1: "Pay Monthly Websites Malaysia",
     eyebrow: "Website subscription plans for Malaysian businesses",
     heroCopy: "For Malaysian SMEs, clinics, contractors, consultants, salons, and service businesses that need a professional website without paying a large upfront build fee.",
     offer: "Your website can include clear service sections, WhatsApp enquiry buttons, local SEO fields, and city targeting options for Kuala Lumpur, Selangor, Johor, Penang, and other service areas.",
     whoFor: ["Malaysian SMEs that rely on WhatsApp enquiries", "Local service businesses targeting cities or states", "Businesses that want predictable monthly website costs"],
     marketWhy: "Malaysia buyers often compare trust, speed, WhatsApp response, and affordability. A managed monthly website helps you look professional while keeping launch cost predictable.",
-    pricingNote: "Malaysia plans start at RM199/month plus setup. Business is RM399/month and Scale is RM799/month, each with a 12-month term.",
+    pricingNote: "Malaysia Managed Website is RM299/month plus RM499 setup. Website Growth is RM699/month, shown from the central catalogue.",
     localInputs: ["WhatsApp CTA should be prominent", "Kuala Lumpur and Selangor service-area targeting", "SME-friendly pricing expectations", "Local proof can include project areas, Google reviews, and screenshots"],
     examples: [
       { industry: "Renovation contractor", plan: "Business", pages: "Home, Services, Projects, Quote", localSeo: "KL and Selangor service areas" },
@@ -301,7 +301,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     offer: "We use structured templates and guided setup so your website can go live faster while still looking credible for a high-trust market.",
     whoFor: ["Singapore consultants and professional services", "Clinics, wellness brands, salons, and local service companies", "Businesses that want a premium website without a slow agency process"],
     marketWhy: "Singapore buyers expect clarity, speed, credibility, and professional presentation. A managed website plan helps your offer look established from day one.",
-    pricingNote: "Plans start from $49/month. SGD display can be supported when localized pricing is enabled.",
+    pricingNote: "Singapore pricing is shown in SGD from the central catalogue. Start with a free website preview.",
     localInputs: ["High-trust buyer expectations", "Premium service positioning", "Singapore as both country and city market", "Fast launch and mobile-first enquiries"],
     examples: [
       { industry: "Consultant", plan: "Business", pages: "Home, Services, Case Studies, Contact", localSeo: "Consultant-specific Singapore copy" },
@@ -333,7 +333,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
       "Businesses that are not ready for a full custom website build but still want a managed, polished website",
     ],
     marketWhy: "UK small businesses often compare high agency quotes, DIY website builders, WordPress maintenance, and pay monthly website plans. This page is built around the UK buyer journey: clear pricing, quote-ready wording, enquiry forms, local service-area visibility, and a managed setup that feels lower-risk than a traditional project.",
-    pricingNote: "UK managed website plans: Starter from £49/month, Growth from £99/month, Authority from £199/month. Premium custom websites are quoted separately from £1,500+ when you need full CMS control, ecommerce, advanced SEO, integrations, or bespoke design.",
+    pricingNote: "UK Managed Website is £99/month plus £199 setup. Website Growth is £249/month; premium custom websites are quoted separately from £1,500+.",
     localInputs: [
       "UK spelling and buyer language: enquiries, optimised, quote, local businesses, service areas",
       "City expansion potential for London, Manchester, Birmingham, Leeds, Bristol, Glasgow, Liverpool, Sheffield, and Edinburgh",
@@ -377,7 +377,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     offer: "Start with a template-based website plan and expand into service pages, location pages, and content updates as your business grows.",
     whoFor: ["Australian local service businesses", "Coaches, consultants, clinics, and trades", "Businesses that want quote-ready pages and local visibility"],
     marketWhy: "Australian buyers often look for local providers, clear service areas, and quote-based next steps. Your website should make those decisions easy.",
-    pricingNote: "Plans start from $49/month. AUD display can be supported when localized pricing is enabled.",
+    pricingNote: "International pricing is shown in USD from the central catalogue. Start with a free website preview.",
     localInputs: ["Use get a quote wording", "Sydney, Melbourne, Brisbane, Perth, and Adelaide expansion potential", "Service-area business support", "Local business and mobile-first expectations"],
     examples: [
       { industry: "Fitness coach", plan: "Business", pages: "Home, Programs, Results, Contact", localSeo: "City and training-area copy" },
@@ -431,7 +431,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     offer: "Instead of starting from a blank page, your website is prepared from approved templates and tailored to your business details and goals.",
     whoFor: ["Singapore small businesses that need credibility", "Professional services and consultants", "Local service brands that want booking or enquiry flows"],
     marketWhy: "Singapore visitors expect polish, clarity, and proof. Your website should quickly show what you do, who you help, and how to contact you.",
-    pricingNote: "Plans start from $49/month. Premium custom websites are quoted separately from $1,500 to $3,500+.",
+    pricingNote: "Managed Website and Website Growth pricing is shown from the central catalogue. Custom websites are quoted separately.",
     localInputs: ["Premium trust expectations", "High-value professional service buyers", "Singapore neighbourhood targeting", "Fast mobile enquiry path"],
     examples: [
       { industry: "Consultant", plan: "Business", pages: "Home, Services, Results, Contact", localSeo: "Singapore service positioning" },
@@ -458,7 +458,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     offer: "We prepare consultant websites using proven sections for positioning, services, proof, FAQs, consultation CTAs, and Singapore-focused messaging.",
     whoFor: ["Business consultants", "Coaches and advisors", "B2B service providers", "Independent experts selling high-trust services"],
     marketWhy: "Singapore consultant buyers need clarity, credibility, and a reason to take the next step. A structured website helps turn interest into booked conversations.",
-    pricingNote: "Business plans suit most consultants from $99/month. Growth is better when you need case studies, content, or multiple service pages.",
+    pricingNote: "Managed Website is the starting point; Website Growth is recommended when you need ongoing SEO, landing pages or conversion improvements.",
     localInputs: ["Consultation-led buyer journey", "High-trust Singapore professional market", "Proof and results sections matter", "Book a call CTA over generic contact copy"],
     examples: [
       { industry: "B2B consultant", plan: "Business", pages: "Home, Services, About, Book a Call", localSeo: "Singapore consultant keywords" },
@@ -485,7 +485,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     offer: "Start with a clear template-based site, then upgrade when you need more pages, service areas, or local SEO content.",
     whoFor: ["Malaysian SMEs starting their first proper website", "Local companies that rely on WhatsApp and referrals", "Service providers that need trust and enquiries"],
     marketWhy: "Many Malaysian businesses need a better website but do not want a large upfront bill. A monthly plan helps launch sooner and improve over time.",
-    pricingNote: "Launch begins at RM199/month plus setup. Business at RM399/month is recommended when you need separate service pages and stronger local structure.",
+    pricingNote: "Managed Website starts at RM299/month plus setup. Website Growth is RM699/month when you need ongoing growth work.",
     localInputs: ["Affordable SME website demand", "WhatsApp-driven enquiries", "Malaysia city and state targeting", "Start small and upgrade later positioning"],
     examples: [
       { industry: "Salon", plan: "Starter", pages: "One-page website", localSeo: "Primary location and WhatsApp CTA" },
@@ -512,7 +512,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     offer: "Bennie Studio uses approved website templates, guided setup, and section-by-section editing so your website stays manageable after launch.",
     whoFor: ["Small businesses that want predictable website costs", "Service providers that need enquiries", "Teams that want support without hiring developers"],
     marketWhy: "A subscription model works best when your website needs ongoing updates, clear support, and room to grow without restarting from scratch.",
-    pricingNote: "Starter is $49/month, Business is $99/month, and Growth is $199/month. Custom website projects are quoted separately.",
+    pricingNote: "Managed Website and Website Growth pricing is shown from the central catalogue. Custom website projects are quoted separately.",
     localInputs: ["Managed monthly support", "Hosting and SSL included", "Upgrade path for more pages and cities", "Clear difference from bespoke custom projects"],
     examples: [
       { industry: "Local service", plan: "Starter", pages: "One-page website", localSeo: "Primary location fields" },

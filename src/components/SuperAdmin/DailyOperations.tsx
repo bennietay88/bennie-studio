@@ -55,19 +55,14 @@ export function DailyOperations() {
 
       const [leadResponse, appointmentResponse] = await Promise.all([
         fetch("/api/admin/leads", { headers: { Authorization: `Bearer ${session.access_token}` } }),
-        supabase
-          .from("appointments")
-          .select("id,customer_name,customer_email,service,date,time,status,business_id")
-          .gte("date", today)
-          .order("date", { ascending: true })
-          .order("time", { ascending: true })
-          .limit(50),
+        fetch(`/api/admin/appointments?from=${today}&to=${format(new Date(Date.now() + 14 * 86400000), "yyyy-MM-dd")}`, { headers: { Authorization: `Bearer ${session.access_token}` } }),
       ]);
       const leadPayload = await leadResponse.json().catch(() => ({}));
       if (!leadResponse.ok) throw new Error(leadPayload.error || "Could not load customer CRM activity.");
-      if (appointmentResponse.error) throw appointmentResponse.error;
+      const appointmentPayload = await appointmentResponse.json().catch(() => ({}));
+      if (!appointmentResponse.ok) throw new Error(appointmentPayload.error || "Could not load appointments.");
       setLeads((leadPayload.leads || []).map(mapLead));
-      setAppointments((appointmentResponse.data || []) as OperatorAppointment[]);
+      setAppointments((appointmentPayload.appointments || []) as OperatorAppointment[]);
     } catch (err: any) {
       console.error("Daily operations load failed", err);
       setError(err?.message || "Daily operations could not be loaded.");
