@@ -175,19 +175,24 @@ export function LocalSeoManager() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="mx-auto max-w-[1400px] space-y-6 pb-10">
+      <Card className="overflow-hidden rounded-3xl border-slate-200 bg-slate-950 text-white shadow-sm">
+        <CardContent className="flex flex-col gap-5 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <Badge className="mb-4 bg-indigo-50 text-indigo-700">Admin Control</Badge>
-          <h1 className="text-4xl font-black tracking-tight text-slate-950">Local SEO Engine</h1>
-          <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-500">
-            Manage location markets, local page rules, upgrade prompts, and quality thresholds for customer location pages. Page and location limits are controlled in Plans.
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <Badge className="bg-indigo-500/20 text-indigo-200">Operations</Badge>
+            <Badge variant="outline" className="border-emerald-400/40 text-emerald-300">Publishing controls live</Badge>
+          </div>
+          <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Local SEO operations</h1>
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-300">
+            Review location-page quality, manage supported markets, and keep customer SEO delivery within the plan limits.
           </p>
         </div>
-        <Button onClick={saveConfig} className="rounded-xl bg-indigo-600 font-black">
-          <Save className="mr-2 h-4 w-4" /> Save Configuration
+        <Button onClick={saveConfig} className="h-11 shrink-0 rounded-xl bg-white px-5 font-black text-slate-950 hover:bg-slate-100">
+          <Save className="mr-2 h-4 w-4" /> Save configuration
         </Button>
-      </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-4">
         {[
@@ -206,13 +211,14 @@ export function LocalSeoManager() {
         ))}
       </div>
 
-      <Tabs defaultValue="limits" className="w-full space-y-6">
-        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1 md:grid-cols-3 xl:grid-cols-5">
-          <TabsTrigger value="limits" className="min-h-11 rounded-xl px-3 text-center text-xs font-bold sm:text-sm">Plan Limits Summary</TabsTrigger>
-          <TabsTrigger value="markets" className="min-h-11 rounded-xl px-3 text-center text-xs font-bold sm:text-sm">Markets</TabsTrigger>
-          <TabsTrigger value="quality" className="min-h-11 rounded-xl px-3 text-center text-xs font-bold sm:text-sm">Quality Rules</TabsTrigger>
-          <TabsTrigger value="review" className="min-h-11 rounded-xl px-3 text-center text-xs font-bold sm:text-sm">Review Queue</TabsTrigger>
-          <TabsTrigger value="upgrades" className="min-h-11 rounded-xl px-3 text-center text-xs font-bold sm:text-sm">Upgrade Logic</TabsTrigger>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+      <Tabs defaultValue="limits" className="w-full space-y-5">
+        <TabsList className="flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl bg-slate-100 p-1">
+          <TabsTrigger value="limits" className="min-h-10 shrink-0 rounded-xl px-4 text-xs font-bold sm:text-sm">Limits</TabsTrigger>
+          <TabsTrigger value="markets" className="min-h-10 shrink-0 rounded-xl px-4 text-xs font-bold sm:text-sm">Markets</TabsTrigger>
+          <TabsTrigger value="quality" className="min-h-10 shrink-0 rounded-xl px-4 text-xs font-bold sm:text-sm">Quality rules</TabsTrigger>
+          <TabsTrigger value="review" className="min-h-10 shrink-0 rounded-xl px-4 text-xs font-bold sm:text-sm">Review queue</TabsTrigger>
+          <TabsTrigger value="upgrades" className="min-h-10 shrink-0 rounded-xl px-4 text-xs font-bold sm:text-sm">Upgrade logic</TabsTrigger>
         </TabsList>
 
         <TabsContent value="limits">
@@ -220,10 +226,10 @@ export function LocalSeoManager() {
             <Card className="rounded-3xl border-indigo-100 bg-indigo-50/60">
               <CardContent className="flex flex-col gap-4 p-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <Badge className="mb-2 bg-white text-indigo-700">Single Source of Truth</Badge>
-                  <h3 className="text-xl font-black text-slate-950">Plan limits are edited in Subscription Plans</h3>
+                  <Badge className="mb-2 bg-white text-indigo-700">Single source of truth</Badge>
+                  <h3 className="text-xl font-black text-slate-950">Limits are inherited from Plans &amp; Pricing</h3>
                   <p className="mt-1 max-w-3xl text-sm font-semibold text-slate-600">
-                    Standard pages, dedicated location pages, and monthly update allowance now come from Super Admin &gt; Plans. The Local SEO Engine only reads those values.
+                    Standard pages, location pages, and monthly update allowance are managed centrally. This screen only reads them and applies publishing checks.
                   </p>
                 </div>
                 <Button onClick={() => navigate("/admin/plans")} className="rounded-xl bg-indigo-600 font-black">
@@ -232,12 +238,18 @@ export function LocalSeoManager() {
               </CardContent>
             </Card>
 
-            <div className="grid gap-6 lg:grid-cols-3">
-            {plans.map((plan) => (
+            <div className="grid gap-4 md:grid-cols-2">
+            {[
+              { ...businessPlan, displayName: "Managed Website" },
+              { ...growthPlan, displayName: "Website Growth" },
+            ].filter((plan, index, list) => plan?.id && list.findIndex((item) => item.id === plan.id) === index).map((plan: any) => (
               <Card key={plan.id} className="rounded-3xl">
                 <CardHeader>
-                  <CardTitle>{plan.name}</CardTitle>
-                  <CardDescription>Read from global plan settings.</CardDescription>
+                  <div className="flex items-center justify-between gap-3">
+                    <CardTitle>{plan.displayName}</CardTitle>
+                    <Badge variant="outline" className="text-[10px] uppercase tracking-wider">Inherited</Badge>
+                  </div>
+                  <CardDescription>Read from the central plan configuration.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
@@ -415,7 +427,7 @@ export function LocalSeoManager() {
               <CardContent className="space-y-4">
                 <MessageField label="Starter to Business" value={upgradeMessages.starterToBusiness} onChange={(value) => setUpgradeMessages((prev) => ({ ...prev, starterToBusiness: value }))} />
                 <MessageField label="Business to Growth" value={upgradeMessages.businessToGrowth} onChange={(value) => setUpgradeMessages((prev) => ({ ...prev, businessToGrowth: value }))} />
-                <MessageField label="Custom Website" value={upgradeMessages.custom} onChange={(value) => setUpgradeMessages((prev) => ({ ...prev, custom: value }))} />
+                <MessageField label="Website Growth" value={upgradeMessages.custom} onChange={(value) => setUpgradeMessages((prev) => ({ ...prev, custom: value }))} />
               </CardContent>
             </Card>
 
@@ -435,6 +447,27 @@ export function LocalSeoManager() {
           </div>
         </TabsContent>
       </Tabs>
+      <div className="space-y-4 lg:sticky lg:top-6">
+        <Card className="rounded-3xl border-slate-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Configuration at a glance</CardTitle>
+            <CardDescription>Operational limits currently used by local-page checks.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3"><span className="text-sm font-semibold text-slate-600">Supported markets</span><span className="font-black text-slate-950">{SUPPORTED_LOCATION_MARKETS.length}</span></div>
+            <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3"><span className="text-sm font-semibold text-slate-600">Managed Website locations</span><span className="font-black text-slate-950">{businessPlan?.maxLocationPages || 0}</span></div>
+            <div className="flex items-center justify-between rounded-2xl bg-indigo-50 px-4 py-3"><span className="text-sm font-semibold text-indigo-800">Website Growth locations</span><span className="font-black text-indigo-950">{growthPlan?.maxLocationPages || 0}</span></div>
+            <Button variant="outline" onClick={() => navigate("/admin/plans")} className="mt-2 w-full rounded-xl font-black">Edit plan limits</Button>
+          </CardContent>
+        </Card>
+        <Card className="rounded-3xl border-indigo-100 bg-indigo-50/60">
+          <CardContent className="p-5">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-indigo-700">Delivery guardrail</p>
+            <p className="mt-2 text-sm font-bold leading-6 text-slate-800">Only pages that pass the content and duplicate-risk checklist can move to review or publish.</p>
+          </CardContent>
+        </Card>
+      </div>
+      </div>
     </div>
   );
 }
