@@ -18,7 +18,7 @@ export const ADMIN_MODULES: AdminModuleDefinition[] = [
   { id: "launch_checks", label: "Launch Checks", description: "Verify websites before publishing.", group: "Customers & Delivery", priority: "operate_now" },
   { id: "client_handover", label: "Client Handover", description: "Manage onboarding and launch handover.", group: "Customers & Delivery", priority: "operate_now" },
   { id: "operations_control", label: "Operations Control", description: "Manage approvals, billing events, and staff work.", group: "Customers & Delivery", priority: "operate_now" },
-  { id: "seo_management", label: "SEO Management", description: "Control SEO modules, entitlements, customer delivery, jobs, and usage.", group: "Customers & Delivery", priority: "operate_now" },
+  { id: "seo_management", label: "SEO Operations", description: "Control SEO delivery, customer activation, jobs, and usage.", group: "Customers & Delivery", priority: "operate_now" },
   { id: "update_queue", label: "Update Queue", description: "Manage customer website improvement requests.", group: "Customers & Delivery", priority: "operate_now" },
   { id: "support", label: "Support", description: "Respond to customer support requests.", group: "Customers & Delivery", priority: "operate_now" },
   { id: "website_templates", label: "Website Templates", description: "Create and maintain reusable website templates.", group: "Content & CMS", priority: "operate_now" },

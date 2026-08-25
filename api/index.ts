@@ -2434,6 +2434,32 @@ async function startServer() {
     }
   });
 
+  app.post("/api/seo/admin/jobs/:jobId/retry", authenticate, superAdminOnly, async (req: any, res: any) => {
+    if (!UUID_SCHEMA.safeParse(req.params.jobId).success) return res.status(400).json({ error: "Invalid job ID" });
+    try {
+      const { data: job, error: jobError } = await supabaseAdmin
+        .from("async_jobs")
+        .select("id,job_type,status,attempts,max_attempts,business_id,payload")
+        .eq("id", req.params.jobId)
+        .single();
+      if (jobError || !job) return res.status(404).json({ error: "SEO job not found" });
+      if (!String(job.job_type || "").startsWith("seo_")) return res.status(400).json({ error: "Only SEO jobs can be retried here" });
+      if (job.status !== "failed") return res.status(409).json({ error: "Only failed SEO jobs can be retried" });
+      const { data: queued, error: updateError } = await supabaseAdmin
+        .from("async_jobs")
+        .update({ status: "queued", attempts: 0, last_error: null, completed_at: null, updated_at: new Date().toISOString() })
+        .eq("id", job.id)
+        .select("id,job_type,status,attempts,max_attempts,business_id,created_at,updated_at,completed_at,last_error")
+        .single();
+      if (updateError) throw updateError;
+      const dispatch = await publishJobToQstash(job.id).catch(() => ({ published: false }));
+      if (!dispatch.published) await processQueuedJob(job.id);
+      return res.json({ job: queued, dispatch });
+    } catch (error: any) {
+      return res.status(500).json({ error: safeErrorMessage(error) });
+    }
+  });
+
   app.get("/api/public/website-audit/jobs/:jobId", async (req: any, res: any) => {
     if (!UUID_SCHEMA.safeParse(req.params.jobId).success) {
       return res.status(400).json({ error: "Invalid job ID" });

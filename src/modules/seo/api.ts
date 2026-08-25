@@ -74,3 +74,9 @@ export const updateSeoCustomerAccess = (
   `/api/seo/admin/customers/${businessId}`,
   { method: "PATCH", body: JSON.stringify(changes) },
 );
+
+export const retrySeoJob = (jobId: string) =>
+  authenticatedRequest<{ job: Record<string, any> }>(`/api/seo/admin/jobs/${jobId}/retry`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
