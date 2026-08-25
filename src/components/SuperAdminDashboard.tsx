@@ -149,6 +149,7 @@ import { LaunchAudit } from "./SuperAdmin/LaunchAudit";
 import { OperationsControlCenter } from "./SuperAdmin/OperationsControlCenter";
 import { GrowthOperationsCenter } from "./SuperAdmin/GrowthOperationsCenter";
 import { AdminLeadInbox } from "./SuperAdmin/AdminLeadInbox";
+import { DailyOperations } from "./SuperAdmin/DailyOperations";
 import ComplianceMarketSettings from "./SuperAdmin/ComplianceMarketSettings";
 import CommercialCatalogue from "./SuperAdmin/CommercialCatalogue";
 import { SystemStatusPage } from "./SystemStatusPage";
@@ -221,6 +222,7 @@ export default function SuperAdminDashboard() {
     if (last === "admin" || last === "overview") return "overview";
     if (last === "sales_home") return "sales_home";
     if (last === "inbound_leads") return "inbound_leads";
+    if (last === "daily_operations") return "daily_operations";
     if (last === "growth_os_config") return "growth_os_config";
     if (last === "settings") return "settings";
     if (last === "revenue") return "revenue";
@@ -307,6 +309,9 @@ export default function SuperAdminDashboard() {
   const isPlatformStaff = profile?.role === "platform_staff";
   const canAccessActiveTab = React.useMemo(() => {
     if (isSuperAdmin || !isPlatformStaff || activeTab === "overview") return true;
+    if (activeTab === "daily_operations") {
+      return ["sales", "customer_health"].some((permission) => profile?.staffPermissions?.includes(permission));
+    }
     if (activeTab === "operations") {
       return ["customer_health", "approvals", "billing", "activity_logs"].some(
         (permission) => profile?.staffPermissions?.includes(permission),
@@ -1438,6 +1443,8 @@ export default function SuperAdminDashboard() {
 
       {activeTab === "sales_home" && <SalesHome />}
 
+      {activeTab === "daily_operations" && <DailyOperations />}
+
       {activeTab === "inbound_leads" && <AdminLeadInbox />}
       {activeTab === "growth_operations" && <GrowthOperationsCenter />}
 
@@ -2271,7 +2278,7 @@ export default function SuperAdminDashboard() {
           {activeTab === "update_requests" && <MonthlyUpdateQueue />}
 
           {/* Catch-all for tabs that might not have specialized rendering yet or are in development */}
-          {!['overview', 'revenue_command', 'sales_home', 'inbound_leads', 'growth_operations', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'sales_automation', 'mass_campaigns', 'webinar_engine', 'proposals_deals', 'projects', 'launch_audit', 'client_onboarding', 'operations', 'seo_management', 'local_seo', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'geo_pricing', 'templates', 'plans', 'compliance_market', 'ai_credits', 'status', 'intelligence_lab', 'traffic', 'settings', 'support', 'update_requests', 'blog', 'policies', 'ecosystem_architect', 'admin'].includes(activeTab) && (
+          {!['overview', 'revenue_command', 'sales_home', 'daily_operations', 'inbound_leads', 'growth_operations', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'sales_automation', 'mass_campaigns', 'webinar_engine', 'proposals_deals', 'projects', 'launch_audit', 'client_onboarding', 'operations', 'seo_management', 'local_seo', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'geo_pricing', 'templates', 'plans', 'compliance_market', 'ai_credits', 'status', 'intelligence_lab', 'traffic', 'settings', 'support', 'update_requests', 'blog', 'policies', 'ecosystem_architect', 'admin'].includes(activeTab) && (
             <div className="h-full flex items-center justify-center p-12">
                <Card className="p-24 flex flex-col items-center justify-center text-center rounded-[3rem] border-slate-100 bg-slate-50/50 max-w-2xl">
                   <div className="h-20 w-20 rounded-[2rem] bg-white shadow-xl shadow-slate-200 flex items-center justify-center text-indigo-600 mb-6">

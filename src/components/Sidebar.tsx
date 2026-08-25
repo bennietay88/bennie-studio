@@ -181,6 +181,7 @@ export function Sidebar({
           label: "Sales & Leads",
           items: [
             { to: "/admin", icon: LayoutDashboard, label: "Overview", className: "tour-dashboard" },
+            { to: "/admin/daily_operations", icon: CalendarIcon, label: "Daily Operations" },
             { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox" },
             { to: "/admin/growth_operations", icon: Target, label: "Growth Operations", moduleId: "growth_operations" },
             { to: "/admin/prospect_explorer", icon: Users, label: "Prospects", moduleId: "prospects" },
@@ -238,10 +239,16 @@ export function Sidebar({
     if (role === "platform_staff") {
       return [
         {
+          label: "Daily Operations",
+          items: [
+            { to: "/admin/daily_operations", icon: CalendarIcon, label: "Customer Operations" },
+            { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox", permission: "sales" },
+            { to: "/admin", icon: LayoutDashboard, label: "Ops Overview" },
+          ],
+        },
+        {
           label: "Sales Ops",
           items: [
-            { to: "/admin", icon: LayoutDashboard, label: "Ops Overview" },
-            { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox", permission: "sales" },
             { to: "/admin/sales_home", icon: Rocket, label: "Sales Home", permission: "sales" },
             { to: "/admin/prospect_explorer", icon: Users, label: "Prospecting", permission: "prospects" },
             { to: "/admin/neural_auditor", icon: Globe, label: "Website Audits", permission: "prospects" },
