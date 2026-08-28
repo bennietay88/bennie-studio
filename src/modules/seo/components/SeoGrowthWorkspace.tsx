@@ -104,8 +104,8 @@ export default function SeoGrowthWorkspace() {
           <div className="bg-slate-950 p-9 text-white sm:p-12">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-950"><Lock className="h-6 w-6" /></div>
             <p className="mt-8 text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">SEO Growth</p>
-            <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight sm:text-5xl">Find the opportunity, prepare the work, and measure what happened.</h1>
-            <p className="mt-5 max-w-2xl text-base font-medium leading-7 text-slate-300">{data.access.reason}</p>
+            <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-5xl">Find the opportunity, prepare the work, and measure what happened.</h1>
+            <p className="mt-5 max-w-2xl text-base font-medium leading-7 text-slate-200">{data.access.reason}</p>
           </div>
           <CardContent className="grid gap-8 p-9 sm:p-12 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>

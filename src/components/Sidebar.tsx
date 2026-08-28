@@ -272,7 +272,6 @@ export function Sidebar({
           { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
           { to: "/dashboard/my-website", icon: Globe, label: "My Website" },
           { to: "/dashboard/leads", icon: Users, label: "Leads", featureId: "lead_crm" },
-          { to: "/dashboard/update-requests", icon: FileText, label: "Updates", roles: ["business_admin"] },
           { to: "/dashboard/analytics", icon: BarChart3, label: "Performance", featureId: "analytics" },
           { to: "/dashboard/seo/overview", icon: Search, label: "SEO Growth" },
           { to: "/dashboard/industry-content", icon: Briefcase, label: "Content & Marketing", featureId: "industry_content" },
