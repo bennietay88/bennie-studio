@@ -150,7 +150,7 @@ function getDomainStatusMeta(status?: Business["customDomainStatus"]) {
 export function BusinessSettings() {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const { isFeatureEnabled } = useFeatures();
+  const { isFeatureEnabled, hasWordPressIntegration } = useFeatures();
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -881,7 +881,9 @@ add_action('wp_ajax_bts_lead_sync_test', function () {
           </CardContent>
         </Card>
 
-        {profile?.role === "super_admin" && (
+        {/* AI controls are paused commercially. Keep the legacy configuration readable in code
+            for historical records, but do not expose controls until explicitly re-enabled. */}
+        {profile?.role === "super_admin" && Boolean((business as any)?.aiControlsEnabled) && (
           <Card className="md:col-span-2 shadow-lg border-indigo-200 bg-indigo-50/10 overflow-hidden ring-1 ring-indigo-500/10">
             <CardHeader className="pb-3 border-b border-indigo-100/50 bg-white/50">
               <div className="flex items-center justify-between">
@@ -1159,7 +1161,7 @@ add_action('wp_ajax_bts_lead_sync_test', function () {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-slate-200">
+        {(hasWordPressIntegration || apiKeys.length > 0) && <Card className="shadow-sm border-slate-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Key className="h-5 w-5 text-indigo-600" />
@@ -1274,7 +1276,7 @@ add_action('wp_ajax_bts_lead_sync_test', function () {
                 </div>
              </div>
           </CardContent>
-        </Card>
+        </Card>}
 
         {isFeatureEnabled("custom_domain") && (
           <Card className="shadow-sm border-slate-200 relative overflow-hidden">

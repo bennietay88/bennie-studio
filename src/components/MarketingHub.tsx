@@ -445,6 +445,22 @@ export function MarketingHub() {
     );
   }
 
+  // Marketing Hub is a legacy add-on. Keep access for historical active/trialing
+  // customers, but do not expose a new-customer upsell or trial flow.
+  const legacyMarketingAccess = business?.marketing_status === "active" || business?.marketing_status === "trialing";
+  if (business && !legacyMarketingAccess) {
+    return (
+      <div className="mx-auto max-w-2xl py-20 text-center">
+        <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-slate-50 shadow-inner">
+          <Sparkles className="h-10 w-10 text-slate-300" />
+        </div>
+        <h2 className="mb-4 text-4xl font-black uppercase tracking-tighter text-slate-900">Marketing Hub paused</h2>
+        <p className="mx-auto mb-10 max-w-lg text-lg text-slate-500">Marketing Hub is no longer offered as a standalone add-on. Use your managed website and Website Growth service for ongoing conversion and SEO improvements.</p>
+        <Button onClick={() => navigate("/dashboard")} size="lg" className="h-14 rounded-2xl bg-indigo-600 px-8 font-black">Back to dashboard</Button>
+      </div>
+    );
+  }
+
   const isTrialActive = business?.marketing_status === "trialing";
   const hasMarketingPlan =
     business?.marketing_plan === "active" ||

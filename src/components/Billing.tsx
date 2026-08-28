@@ -386,8 +386,9 @@ export const Billing = () => {
         </div>
       )}
 
-      {/* Marketing Hub Add-on */}
-      <motion.div
+      {/* Historical Marketing Hub access remains visible only to businesses that already
+          have the legacy add-on active or in an existing trial. It is not sold to new customers. */}
+      {(business?.marketingStatus === "active" || business?.marketingStatus === "trialing") && <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
@@ -516,7 +517,7 @@ export const Billing = () => {
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </motion.div>}
 
       <div id="pricing-plans" className="space-y-6">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white text-center">

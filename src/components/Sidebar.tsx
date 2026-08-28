@@ -180,7 +180,7 @@ export function Sidebar({
         {
           label: "Sales & Leads",
           items: [
-            { to: "/admin", icon: LayoutDashboard, label: "Overview", className: "tour-dashboard" },
+            { to: "/admin", icon: LayoutDashboard, label: "Sales Command Center", className: "tour-dashboard" },
             { to: "/admin/daily_operations", icon: CalendarIcon, label: "Daily Operations" },
             { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox" },
             { to: "/admin/growth_operations", icon: Target, label: "Growth Operations", moduleId: "growth_operations" },
@@ -217,7 +217,6 @@ export function Sidebar({
           items: [
             { to: "/admin/plans", icon: CreditCard, label: "Plans & Pricing", moduleId: "plans_pricing" },
             { to: "/admin/revenue", icon: CreditCard, label: "Revenue", moduleId: "revenue" },
-            { to: "/admin/affiliates", icon: Gift, label: "Partners & Affiliates", moduleId: "partners_affiliates" },
           ]
         },
         {
@@ -227,7 +226,6 @@ export function Sidebar({
             { to: "/admin/traffic", icon: BarChart3, label: "Traffic Analytics", moduleId: "traffic_analytics" },
             { to: "/admin/status", icon: Shield, label: "System Status" },
             { to: "/admin/settings", icon: Settings, label: "Platform Settings" },
-            { to: "/admin/ecosystem_architect", icon: Layout, label: "Ecosystem Architect", className: "tour-architect", moduleId: "ecosystem_architect" },
           ]
         }
       ];

@@ -123,10 +123,11 @@ export default function LoginPage({
             </div>
           )}
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+            <label htmlFor="auth-email" className="text-sm font-bold text-slate-900 uppercase tracking-wider">
               Email Address
             </label>
             <Input
+              id="auth-email"
               type="email"
               placeholder="name@company.com"
               value={email}
@@ -138,7 +139,7 @@ export default function LoginPage({
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+              <label htmlFor="auth-password" className="text-sm font-bold text-slate-900 uppercase tracking-wider">
                 Password
               </label>
               {!isSignUp && (
@@ -152,6 +153,7 @@ export default function LoginPage({
               )}
             </div>
             <Input
+              id="auth-password"
               type="password"
               placeholder="••••••••"
               value={password}

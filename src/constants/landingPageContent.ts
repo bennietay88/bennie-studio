@@ -299,8 +299,8 @@ export const DEFAULT_LANDING_CONTENT = {
         answer: "It is a managed website plan where your site is structured around your offer, services, trust proof, local search readiness, contact forms, WhatsApp CTAs, and enquiries instead of only design.",
       },
       {
-        question: "Is the website hosted on WordPress?",
-        answer: "Managed lead website plans are not built on WordPress. A custom website project is available when you need full CMS control.",
+        question: "How is the managed website maintained?",
+        answer: "Bennie Studio hosts, maintains and updates the managed website for you. You do not need to manage plugins, servers or a separate CMS.",
       },
       {
         question: "What is the difference between the managed plan and a custom website?",
@@ -356,7 +356,7 @@ export const DEFAULT_LANDING_CONTENT = {
   cta: {
     headline: "See a Limited Website Direction Before You Pay",
     subheadline:
-      "Generate a homepage concept first, then choose a managed subscription or request a custom WordPress quotation.",
+      "Generate a homepage concept first, then choose the managed website service that fits your business.",
     buttonText: "Generate Limited Website Preview",
     secondaryButtonText: "Request Website Review",
   },

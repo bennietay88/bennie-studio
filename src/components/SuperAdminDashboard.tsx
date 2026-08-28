@@ -1435,9 +1435,11 @@ export default function SuperAdminDashboard() {
       {/* OVERVIEW TAB */}
       {activeTab === "overview" && (
         <div className="tour-dashboard animate-in fade-in duration-500">
-          <RevenueCommand />
+          <SalesHome />
         </div>
       )}
+
+      {activeTab === "revenue_command" && <RevenueCommand />}
 
       {activeTab === "sales_home" && <SalesHome />}
 

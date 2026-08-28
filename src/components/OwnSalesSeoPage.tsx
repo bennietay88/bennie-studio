@@ -36,7 +36,15 @@ const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
   if (Array.isArray(value)) return value.map((item) => sanitizeLegacyCommercialCopy(item)) as T;
   if (value && typeof value === "object") {
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, sanitizeLegacyCommercialCopy(item)]),
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => {
+        if (key === "plan" && typeof item === "string") {
+          const normalized = item.trim().toLowerCase();
+          if (["starter", "launch", "business"].includes(normalized)) return [key, "Managed Website"];
+          if (["growth", "scale"].includes(normalized)) return [key, "Website Growth"];
+          if (["authority", "agency"].includes(normalized)) return [key, "Growth Partner"];
+        }
+        return [key, sanitizeLegacyCommercialCopy(item)];
+      }),
     ) as T;
   }
   return value;
