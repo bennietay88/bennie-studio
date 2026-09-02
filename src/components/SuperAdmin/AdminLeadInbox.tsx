@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { CalendarClock, ExternalLink, Inbox, Loader2, Mail, MessageSquare, Phone, RefreshCw, Save, Search, Trash2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { toLocalFollowUpInput } from "../../lib/salesAutomation";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -51,6 +52,7 @@ export function AdminLeadInbox() {
   const [status, setStatus] = useState("all");
   const [savingLeadId, setSavingLeadId] = useState("");
   const [deletingLeadId, setDeletingLeadId] = useState("");
+  const [pendingResponse, setPendingResponse] = useState<{ id: string; channel: "email" | "phone" | "whatsapp" } | null>(null);
   const [drafts, setDrafts] = useState<Record<string, { nextAction: string; nextFollowUpAt: string }>>({});
 
   const fetchLeads = useCallback(async () => {
@@ -120,9 +122,11 @@ export function AdminLeadInbox() {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Lead status was not updated");
       setLeads((current) => current.map((lead) => lead.id === leadId ? mapLead(payload.lead) : lead));
+      return true;
     } catch (error: any) {
       setLeads(previous);
       toast.error(error?.message || "Lead was not updated");
+      return false;
     } finally {
       setSavingLeadId("");
     }
@@ -131,18 +135,25 @@ export function AdminLeadInbox() {
   const saveFollowUp = async (lead: AdminLead) => {
     const draft = drafts[lead.id] || {
       nextAction: lead.nextAction || "",
-      nextFollowUpAt: lead.nextFollowUpAt ? new Date(lead.nextFollowUpAt).toISOString().slice(0, 16) : "",
+      nextFollowUpAt: toLocalFollowUpInput(lead.nextFollowUpAt),
     };
-    await updateLead(lead.id, {
+    const saved = await updateLead(lead.id, {
       nextAction: draft.nextAction || null,
       nextFollowUpAt: draft.nextFollowUpAt ? new Date(draft.nextFollowUpAt).toISOString() : null,
       note: draft.nextAction ? `Next action set: ${draft.nextAction}` : "Follow-up plan updated",
     });
-    toast.success("Next action saved");
+    if (saved) toast.success("Next action saved");
   };
 
   const logContact = (lead: AdminLead, channel: "email" | "phone" | "whatsapp") => {
-    void updateLead(lead.id, { status: lead.status === "new" ? "contacted" : lead.status, channel, note: `${channel} follow-up opened` });
+    setPendingResponse({ id: lead.id, channel });
+  };
+
+  const confirmResponse = async (lead: AdminLead) => {
+    if (pendingResponse?.id !== lead.id) return;
+    const saved = await updateLead(lead.id, { status: lead.status === "new" ? "contacted" : lead.status,
+      channel: pendingResponse.channel, note: `${pendingResponse.channel} response confirmed by operator` });
+    if (saved) { setPendingResponse(null); toast.success("Response recorded."); }
   };
 
   const deleteLead = async (lead: AdminLead) => {
@@ -243,15 +254,16 @@ export function AdminLeadInbox() {
                         {LEAD_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}
                       </select>
                       </div>
+                      {pendingResponse?.id === lead.id && <Button type="button" variant="outline" disabled={savingLeadId === lead.id} onClick={() => void confirmResponse(lead)}>Confirm response sent</Button>}
                       <Input
                         aria-label={`Next action for ${lead.name}`}
                         value={drafts[lead.id]?.nextAction ?? lead.nextAction ?? ""}
-                        onChange={(event) => setDrafts((current) => ({ ...current, [lead.id]: { nextAction: event.target.value, nextFollowUpAt: current[lead.id]?.nextFollowUpAt ?? (lead.nextFollowUpAt ? new Date(lead.nextFollowUpAt).toISOString().slice(0, 16) : "") } }))}
+                        onChange={(event) => setDrafts((current) => ({ ...current, [lead.id]: { nextAction: event.target.value, nextFollowUpAt: current[lead.id]?.nextFollowUpAt ?? toLocalFollowUpInput(lead.nextFollowUpAt) } }))}
                         placeholder="Next action"
                         className="h-10 rounded-xl"
                       />
                       <div className="flex gap-2">
-                        <div className="relative flex-1"><CalendarClock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input type="datetime-local" aria-label={`Follow-up date for ${lead.name}`} value={drafts[lead.id]?.nextFollowUpAt ?? (lead.nextFollowUpAt ? new Date(lead.nextFollowUpAt).toISOString().slice(0, 16) : "")} onChange={(event) => setDrafts((current) => ({ ...current, [lead.id]: { nextAction: current[lead.id]?.nextAction ?? lead.nextAction ?? "", nextFollowUpAt: event.target.value } }))} className="h-10 rounded-xl pl-9 text-xs" /></div>
+                        <div className="relative flex-1"><CalendarClock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input type="datetime-local" aria-label={`Follow-up date for ${lead.name}`} value={drafts[lead.id]?.nextFollowUpAt ?? toLocalFollowUpInput(lead.nextFollowUpAt)} onChange={(event) => setDrafts((current) => ({ ...current, [lead.id]: { nextAction: current[lead.id]?.nextAction ?? lead.nextAction ?? "", nextFollowUpAt: event.target.value } }))} className="h-10 rounded-xl pl-9 text-xs" /></div>
                         <Button type="button" size="icon" variant="outline" disabled={savingLeadId === lead.id} onClick={() => void saveFollowUp(lead)} className="h-10 w-10 rounded-xl" aria-label={`Save follow-up for ${lead.name}`}>{savingLeadId === lead.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}</Button>
                       </div>
                     </div>

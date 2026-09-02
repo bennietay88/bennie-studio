@@ -69,10 +69,37 @@ const scoreSeoPage = (page: Omit<OwnSalesSeoPage, "quality" | "status">): OwnSal
   return { score, breakdown, suggestions };
 };
 
+// Public SEO records are also consumed by structured-data and preview tooling.
+// Normalize historical labels at the source boundary so no caller can
+// accidentally publish retired plan names or trial language.
+const sanitizePublicCommercialCopy = <T,>(value: T): T => {
+  if (typeof value === "string") {
+    return value
+      .replace(/Growth Partner/g, "__GROWTH_PARTNER__")
+      .replace(/14[- ]day(?: free)? trial/gi, "free website preview")
+      .replace(/card[- ]required trial/gi, "free website preview")
+      .replace(/free trial/gi, "free website preview")
+      .replace(/RM199(?:\/month)?/g, "RM299/month")
+      .replace(/\$49(?:\/month)?/g, "US$99/month")
+      .replace(/\bStarter\b/g, "Managed Website")
+      .replace(/\bBusiness\b/g, "Managed Website")
+      .replace(/\bAuthority\b/g, "Growth Partner")
+      .replace(/\bScale\b/g, "Website Growth")
+      .replace(/\bGrowth\b/g, "Website Growth")
+      .replace(/__GROWTH_PARTNER__/g, "Growth Partner") as T;
+  }
+  if (Array.isArray(value)) return value.map((item) => sanitizePublicCommercialCopy(item)) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, sanitizePublicCommercialCopy(item)])) as T;
+  }
+  return value;
+};
+
 const publish = (page: Omit<OwnSalesSeoPage, "quality" | "status">): OwnSalesSeoPage => {
-  const quality = scoreSeoPage(page);
+  const sanitizedPage = sanitizePublicCommercialCopy(page);
+  const quality = scoreSeoPage(sanitizedPage);
   return {
-    ...page,
+    ...sanitizedPage,
     quality,
     status: quality.score >= 75 ? "published" : "draft",
   };
@@ -222,8 +249,8 @@ const generatedOwnSalesSeoPages = [
     { country: "UK" as const, city: "Leeds", nearby: ["Bradford", "Wakefield", "York", "Huddersfield", "Harrogate"], currencyNote: "UK pricing is shown from £99/month plus setup.", pricing: "Managed Website is £99/month plus £199 setup. Website Growth is £249/month. Growth Partner and custom work are quoted separately.", buyerSignals: ["Leeds SMEs need professional service positioning and local trust", "Good fit for service-area pages across West Yorkshire"], industries: ["Professional services", "Local services", "Consultants"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
     { country: "UK" as const, city: "Bristol", nearby: ["Bath", "Filton", "Keynsham", "Weston-super-Mare", "South Gloucestershire"], currencyNote: "UK pricing is shown from £99/month plus setup.", pricing: "Managed Website is £99/month plus £199 setup. Website Growth is £249/month. Growth Partner and custom work are quoted separately.", buyerSignals: ["Bristol local businesses benefit from clear service pages and proof sections", "Strong fit for consultants, wellness, trades, and creative service firms"], industries: ["Consultants", "Wellness providers", "Trades businesses"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
     { country: "UK" as const, city: "Glasgow", nearby: ["Paisley", "East Kilbride", "Clydebank", "Hamilton", "Motherwell"], currencyNote: "UK pricing is shown from £99/month plus setup.", pricing: "Managed Website is £99/month plus £199 setup. Website Growth is £249/month. Growth Partner and custom work are quoted separately.", buyerSignals: ["Glasgow businesses need clear enquiry flow and service-area language", "Useful for companies wanting a professional site without a large upfront build"], industries: ["Local services", "Clinics", "Professional firms"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
-    { country: "Malaysia" as const, city: "Petaling Jaya", nearby: ["Damansara", "Subang Jaya", "Shah Alam", "Kelana Jaya", "Puchong"], currencyNote: "Malaysia pricing can be displayed in RM when enabled.", pricing: "Malaysia-ready managed plans can use local pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["PJ businesses often rely on WhatsApp enquiries and fast mobile contact", "Good fit for Klang Valley service-area coverage"], industries: ["Clinics", "Salons", "Consultants"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
-    { country: "Malaysia" as const, city: "Shah Alam", nearby: ["Klang", "Subang Jaya", "Petaling Jaya", "Setia Alam", "Puchong"], currencyNote: "Malaysia pricing can be displayed in RM when enabled.", pricing: "Malaysia-ready managed plans can use local pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["Shah Alam businesses need SME-friendly pricing and WhatsApp-first CTAs", "Useful for renovation companies, clinics, wellness providers, beauty salons, and home services"], industries: ["Renovation companies", "Clinics", "Home services"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
+    { country: "Malaysia" as const, city: "Petaling Jaya", nearby: ["Damansara", "Subang Jaya", "Shah Alam", "Kelana Jaya", "Puchong"], currencyNote: "Malaysia pricing is shown in MYR when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available when the business needs deeper ongoing support.", buyerSignals: ["PJ businesses often rely on WhatsApp enquiries and fast mobile contact", "Good fit for Klang Valley service-area coverage"], industries: ["Clinics", "Salons", "Consultants"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
+    { country: "Malaysia" as const, city: "Shah Alam", nearby: ["Klang", "Subang Jaya", "Petaling Jaya", "Setia Alam", "Puchong"], currencyNote: "Malaysia pricing is shown in MYR when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available when the business needs deeper ongoing support.", buyerSignals: ["Shah Alam businesses need SME-friendly pricing and WhatsApp-first CTAs", "Useful for renovation companies, clinics, wellness providers, beauty salons, and home services"], industries: ["Renovation companies", "Clinics", "Home services"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
     { country: "Malaysia" as const, city: "Subang Jaya", nearby: ["USJ", "Sunway", "Petaling Jaya", "Puchong", "Shah Alam"], currencyNote: "Malaysia pricing can be displayed in RM when enabled.", pricing: "Malaysia-ready managed plans can use local pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["Subang Jaya buyers often compare convenience, trust, and quick response", "Strong fit for education, clinics, lifestyle, and service brands"], industries: ["Tuition centres", "Clinics", "Lifestyle services"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
     { country: "Malaysia" as const, city: "Johor Bahru", nearby: ["Iskandar Puteri", "Skudai", "Pasir Gudang", "Kulai", "Tebrau"], currencyNote: "Malaysia pricing can be displayed in RM when enabled.", pricing: "Malaysia-ready managed plans can use local pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["JB businesses may target both local and cross-border buyers", "Useful for service providers, clinics, property, and local shops"], industries: ["Property services", "Clinics", "Local shops"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
     { country: "Malaysia" as const, city: "Penang", nearby: ["George Town", "Bayan Lepas", "Bukit Mertajam", "Butterworth", "Tanjung Bungah"], currencyNote: "Malaysia pricing can be displayed in RM when enabled.", pricing: "Malaysia-ready managed plans can use local pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["Penang businesses benefit from local proof, service-area content, and mobile-first enquiries", "Good fit for clinics, hospitality, SMEs, and service providers"], industries: ["Clinics", "Hospitality", "SMEs"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },

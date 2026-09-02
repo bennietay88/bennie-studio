@@ -1,5 +1,6 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import {
   ArrowRight,
   Building2,
@@ -20,6 +21,7 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { REVENUE_MARKETS, type RevenueMarket } from "../constants/revenueOffer";
+import { getStoredMarket } from "../lib/commercialPricing";
 
 type CallForm = {
   name: string;
@@ -33,28 +35,66 @@ type CallForm = {
   message: string;
 };
 
-const readSavedContext = (): Partial<CallForm> => {
+type SavedCallContext = Partial<CallForm> & {
+  previewId?: string;
+  service?: string;
+  location?: string;
+  goal?: string;
+  recommendedProduct?: string;
+  source?: string;
+  campaign?: string;
+  attribution?: Record<string, any>;
+};
+
+const readSavedContext = (): SavedCallContext => {
   try {
     const audit = JSON.parse(sessionStorage.getItem("bt_audit_preview_context") || "{}");
     const preview = JSON.parse(localStorage.getItem("bt_preview_intent") || "{}");
+    const storedMarket = getStoredMarket();
+    const revenueMarket: RevenueMarket = storedMarket === "INTL" ? "US" : storedMarket;
     return {
       company: preview.businessName || audit.businessName || "",
       email: preview.email || audit.email || "",
       phone: preview.phone || "",
       websiteUrl: preview.websiteUrl || audit.website || "",
       industry: preview.industry || "",
+      market: revenueMarket,
+      previewId: preview.previewId || undefined,
+      service: preview.mainService || undefined,
+      location: preview.location || undefined,
+      goal: preview.goal || undefined,
+      recommendedProduct: preview.recommendedProduct || "managed-website",
+      source: preview.source || undefined,
+      campaign: preview.campaign || undefined,
+      attribution: preview.attribution || undefined,
     };
   } catch {
     return {};
   }
 };
 
+const normalizeWebsiteUrl = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  try {
+    return new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`).toString();
+  } catch {
+    return null;
+  }
+};
+
 export default function BookDemo() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const saved = React.useMemo(readSavedContext, []);
+  const requestedProduct = searchParams.get("product") === "growth-partner" ? "growth-partner" : (saved.recommendedProduct || "managed-website");
+  const isGrowthPartner = requestedProduct === "growth-partner";
+  const requestedMarket = searchParams.get("market");
+  const initialMarket: RevenueMarket = requestedMarket === "MY" || requestedMarket === "SG" || requestedMarket === "GB" ? requestedMarket : requestedMarket === "INTL" ? "US" : (saved.market || "US");
   const [loading, setLoading] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
   const [slots, setSlots] = React.useState<string[]>([]);
+  const [availabilityError, setAvailabilityError] = React.useState("");
   const [timezone, setTimezone] = React.useState("Asia/Kuala_Lumpur");
   const [manageUrl, setManageUrl] = React.useState("");
   const [form, setForm] = React.useState<CallForm>({
@@ -63,19 +103,30 @@ export default function BookDemo() {
     phone: saved.phone || "",
     company: saved.company || "",
     websiteUrl: saved.websiteUrl || "",
-    market: "SG",
+    market: initialMarket,
     industry: saved.industry || "",
     selectedSlot: "",
     message: "",
   });
 
-  React.useEffect(() => {
-    trackPublicEvent({ eventType: "growth_call_viewed", label: "Website Growth Call", target: "/book-demo" });
-    fetch("/api/public/call-availability").then((response) => response.json()).then((payload) => {
+  const loadAvailability = React.useCallback(() => {
+    setAvailabilityError("");
+    fetch("/api/public/call-availability", { cache: "no-store" }).then(async (response) => {
+      if (!response.ok) throw new Error("Availability is temporarily unavailable.");
+      return response.json();
+    }).then((payload) => {
       setSlots(Array.isArray(payload.slots) ? payload.slots : []);
       if (payload.timezone) setTimezone(payload.timezone);
-    }).catch(() => setSlots([]));
+    }).catch(() => {
+      setSlots([]);
+      setAvailabilityError("Available times could not be loaded. Please retry.");
+    });
   }, []);
+
+  React.useEffect(() => {
+    trackPublicEvent({ eventType: isGrowthPartner ? "growth_partner_consultation_viewed" : "managed_website_review_viewed", label: isGrowthPartner ? "Growth Partner Consultation" : "Managed Website Review", target: "/book-demo" });
+    loadAvailability();
+  }, [isGrowthPartner, loadAvailability]);
 
   const update = <K extends keyof CallForm>(key: K, value: CallForm[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -83,9 +134,18 @@ export default function BookDemo() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!form.selectedSlot || !slots.includes(form.selectedSlot)) {
+      toast.error("Choose one of the currently available call times.");
+      return;
+    }
+    const normalizedWebsiteUrl = normalizeWebsiteUrl(form.websiteUrl);
+    if (normalizedWebsiteUrl === null) {
+      toast.error("Enter a valid website address or leave it blank.");
+      return;
+    }
     setLoading(true);
     trackPublicEvent({
-      eventType: "growth_call_requested",
+      eventType: isGrowthPartner ? "growth_partner_consultation_requested" : "managed_website_review_requested",
       label: form.company,
       target: "/book-demo",
       metadata: { market: form.market, industry: form.industry, hasWebsite: Boolean(form.websiteUrl) },
@@ -100,22 +160,37 @@ export default function BookDemo() {
           email: form.email,
           phone: form.phone,
           businessName: form.company,
-          websiteUrl: form.websiteUrl,
+          websiteUrl: normalizedWebsiteUrl,
           industry: form.industry,
-          country: form.market,
-          leadType: "website_growth_call",
-          formName: "Website Growth Call",
+          country: form.market === "US" ? "INTL" : form.market,
+          leadType: isGrowthPartner ? "growth_partner_consultation" : "managed_website_review",
+          formName: isGrowthPartner ? "Growth Partner Consultation" : "Managed Website Review",
           sourcePage: "/book-demo",
+          previewId: saved.previewId,
+          market: form.market === "US" ? "INTL" : form.market,
+          currency: form.market === "MY" ? "MYR" : form.market === "SG" ? "SGD" : form.market === "GB" ? "GBP" : "USD",
+          landingPage: saved.attribution?.landingPage || saved.attribution?.sourcePage,
+          service: saved.service,
+          selectedProduct: requestedProduct,
+          campaign: saved.campaign,
+          utmSource: saved.attribution?.utmSource,
+          utmMedium: saved.attribution?.utmMedium,
+          utmCampaign: saved.attribution?.utmCampaign,
+          referrer: saved.attribution?.referrer,
+          firstTouch: saved.attribution?.firstTouch,
+          lastTouch: saved.attribution?.lastTouch,
           message: [
             `Confirmed slot requested: ${form.selectedSlot}`,
             `Market: ${REVENUE_MARKETS[form.market].label}`,
+            saved.location ? `Location: ${saved.location}` : null,
+            saved.service ? `Primary service: ${saved.service}` : null,
+            saved.goal ? `Preview goal: ${saved.goal}` : null,
             form.message ? `Goals: ${form.message}` : null,
           ].filter(Boolean).join("\n"),
         }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.message || "Your request could not be saved.");
-      if (!form.selectedSlot) throw new Error("Choose an available call time.");
       const bookingResponse = await fetch("/api/public/call-bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -127,17 +202,20 @@ export default function BookDemo() {
           businessName: form.company,
           market: form.market,
           industry: form.industry,
-          websiteUrl: form.websiteUrl || undefined,
+          websiteUrl: normalizedWebsiteUrl || undefined,
           startAt: form.selectedSlot,
           timezone,
           goals: form.message || undefined,
+          previewId: saved.previewId,
+          selectedProduct: requestedProduct,
+          sourcePage: "/book-demo",
         }),
       });
       const bookingPayload = await bookingResponse.json().catch(() => ({}));
       if (!bookingResponse.ok) throw new Error(bookingPayload.error || "The selected time is no longer available.");
       setManageUrl(bookingPayload.manageUrl || (bookingPayload.booking?.confirmation_token ? `/manage-call/${bookingPayload.booking.confirmation_token}` : ""));
       setSubmitted(true);
-      toast.success("Your website growth call is confirmed.");
+      toast.success(isGrowthPartner ? "Your growth consultation is confirmed." : "Your website review is confirmed.");
     } catch (error: any) {
       toast.error(error?.message || "Please try again.");
     } finally {
@@ -147,12 +225,17 @@ export default function BookDemo() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
+      <Helmet>
+        <title>Book a Managed Website Review | Bennie Studio</title>
+        <meta name="description" content="Book a focused review of your website, offer and enquiry path with Bennie Studio." />
+        <link rel="canonical" href="https://app.bennietay.com/book-demo" />
+      </Helmet>
       <PublicSiteHeader />
       <main>
         <section className="border-b border-slate-200 bg-slate-950 text-white">
-          <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-300">Website growth consultation</p>
+          <div className="mx-auto grid max-w-7xl min-w-0 gap-10 px-5 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-300">{isGrowthPartner ? "Growth Partner consultation" : "Managed Website consultation"}</p>
               <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.03] tracking-tight text-white sm:text-6xl">
                 Let’s find the clearest path from website visitor to real enquiry.
               </h1>
@@ -173,7 +256,7 @@ export default function BookDemo() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur sm:p-8">
+            <div className="min-w-0 rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur sm:p-8">
               {submitted ? (
                 <div className="py-10 text-center">
                   <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>
@@ -187,7 +270,7 @@ export default function BookDemo() {
                   {manageUrl && <Button variant="ghost" onClick={() => navigate(new URL(manageUrl, window.location.origin).pathname)} className="mt-3 min-h-11 rounded-xl text-indigo-200 hover:bg-white/10 hover:text-white">Reschedule or cancel</Button>}
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="min-w-0 space-y-5">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Book a call</p>
                     <h2 className="mt-2 text-2xl font-black text-white">Tell us enough to prepare properly.</h2>
@@ -203,7 +286,7 @@ export default function BookDemo() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field icon={Globe2} label="Market" id="call-market">
                       <select id="call-market" value={form.market} onChange={(e) => update("market", e.target.value as RevenueMarket)} className="h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-semibold text-slate-950">
-                        {Object.entries(REVENUE_MARKETS).filter(([key]) => key !== "US").map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}
+                        {Object.entries(REVENUE_MARKETS).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}
                       </select>
                     </Field>
                     <Field icon={Building2} label="Industry" id="call-industry"><Input id="call-industry" required value={form.industry} onChange={(e) => update("industry", e.target.value)} placeholder="e.g. renovation" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
@@ -214,10 +297,11 @@ export default function BookDemo() {
                       <option value="">Choose a confirmed time</option>
                       {slots.map((slot) => <option key={slot} value={slot}>{new Date(slot).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</option>)}
                     </select>
+                    {availabilityError && <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold text-amber-200"><span>{availabilityError}</span><button type="button" onClick={loadAvailability} className="rounded-lg border border-white/20 px-3 py-1.5 font-black text-white hover:bg-white/10">Retry</button></div>}
                   </Field>
                   <Field icon={MessageSquare} label="What needs to improve?" id="call-message"><Textarea id="call-message" value={form.message} onChange={(e) => update("message", e.target.value)} placeholder="Tell us what is happening now and what a good result would look like." className="min-h-28 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
-                  <Button type="submit" disabled={loading} className="min-h-13 w-full rounded-2xl bg-indigo-500 px-6 py-3 font-black text-white shadow-xl shadow-indigo-950/30 hover:bg-indigo-400">
-                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Confirming time</> : <>Confirm Website Growth Call <ArrowRight className="ml-2 h-4 w-4" /></>}
+                  <Button type="submit" disabled={loading} className="h-auto min-h-13 w-full whitespace-normal rounded-2xl bg-indigo-500 px-6 py-3 text-center font-black text-white shadow-xl shadow-indigo-950/30 hover:bg-indigo-400">
+                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Confirming time</> : <>{isGrowthPartner ? "Confirm Growth Consultation" : "Confirm Website Review"} <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>
                   <p className="text-center text-xs font-semibold leading-5 text-slate-400">Your selected time is reserved immediately. Rescheduling remains available through support.</p>
                 </form>

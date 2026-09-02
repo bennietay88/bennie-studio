@@ -28,7 +28,7 @@ function MarketSwitcher({ compact = false }: { compact?: boolean }) {
 
   return <label className={compact ? "flex items-center gap-2 text-xs font-bold text-slate-500" : "flex items-center gap-3 text-sm font-bold text-slate-600"}>
     <span className={compact ? "sr-only" : ""}>Pricing market</span>
-    <select aria-label="Pricing market" value={market} onChange={(event) => changeMarket(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-black text-slate-900 shadow-sm transition hover:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10">
+    <select aria-label="Pricing market" value={market} onChange={(event) => changeMarket(event.target.value)} className="w-[min(100%,145px)] max-w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2 font-black text-slate-900 shadow-sm transition hover:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10">
       {Object.entries(COMMERCIAL_MARKETS).map(([value, item]) => <option key={value} value={value}>{item.currency} · {item.label}</option>)}
     </select>
   </label>;
@@ -40,18 +40,17 @@ const publicNavItems = [
     href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com",
     external: true,
   },
-  { label: "Case Studies", href: "/case-studies" },
+  { label: "Website Examples", href: "/case-studies" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Website Review", href: "/website-audit" },
+  { label: "How It Works", href: "/how-it-works" },
 ];
 
 const footerGroups = [
   ["Pages", [...publicNavItems, { label: "Generate Preview", href: "/generate-preview" }]],
   ["Services", [
     { label: "Managed Lead Website Plans", href: "/pricing" },
-    { label: "Website Case Studies", href: "/case-studies" },
+    { label: "Website Examples", href: "/case-studies" },
   ]],
-  ["Ecosystem", BENNIE_ECOSYSTEM_LINKS.map((link) => ({ label: link.shortLabel, href: link.url, external: true }))],
   ["Local SEO", [
     { label: "UK Website Subscription", href: "/website-subscription-service/uk" },
     { label: "Malaysia Website Subscription", href: "/website-subscription-service/malaysia" },
@@ -100,8 +99,8 @@ export function PublicSiteHeader() {
           <Link to={user ? "/dashboard" : "/login"} className="px-2 text-sm font-bold text-slate-600 transition hover:text-indigo-600">
             {user ? "Dashboard" : "Sign In"}
           </Link>
-          <Link to={user ? "/dashboard" : "/website-audit"} onClick={() => !user && trackPublicEvent({ eventType: "click_website_review", label: "Header Website Review", target: "/website-audit" })} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-[0_10px_24px_-14px_rgba(15,23,42,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20">
-            {user ? "Open Studio" : "Get Website Review"}
+          <Link to={user ? "/dashboard" : "/book-demo"} onClick={() => !user && trackPublicEvent({ eventType: "click_book_call", label: "Header 30-Minute Review", target: "/book-demo" })} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-[0_10px_24px_-14px_rgba(15,23,42,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20">
+            {user ? "Open Studio" : "Book 30-Minute Review"}
           </Link>
         </div>
 
@@ -127,7 +126,7 @@ export function PublicSiteHeader() {
             <div className="mt-auto grid gap-3 border-t border-slate-100 pt-5">
               <MarketSwitcher />
               <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-50">{user ? "Dashboard" : "Sign In"}</Link>
-              <Link to={user ? "/dashboard" : "/website-audit"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-indigo-600">{user ? "Open Studio" : "Get Website Review"}</Link>
+              <Link to={user ? "/dashboard" : "/book-demo"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-indigo-600">{user ? "Open Studio" : "Book 30-Minute Review"}</Link>
             </div>
           </div>
         </div>
@@ -139,10 +138,10 @@ export function PublicSiteHeader() {
 export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?: string; email?: string; onManageCookies?: () => void }) {
   return (
     <footer className="border-t border-slate-200 bg-white text-slate-600">
-      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 md:grid-cols-2 lg:grid-cols-7">
+      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 md:grid-cols-2 lg:grid-cols-6">
         <div>
           <div className="mb-3 flex items-center gap-2 font-black text-slate-950"><Globe className="h-5 w-5 text-indigo-600" />Bennie Studio</div>
-          <p className="text-sm font-semibold leading-6 text-slate-600">{tagline || "Managed lead-generation websites and custom website builds for small businesses that need more enquiries, trust, and local visibility."}</p>
+          <p className="text-sm font-semibold leading-6 text-slate-600">{tagline || "Managed lead-generation websites for small businesses that need clearer enquiries, stronger trust, and better local visibility."}</p>
           {email && <a href={`mailto:${email}`} className="mt-4 inline-flex text-sm font-black text-indigo-600 hover:text-indigo-700">Contact us</a>}
         </div>
         {footerGroups.map(([title, links]) => (

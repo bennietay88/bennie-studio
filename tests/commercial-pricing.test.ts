@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, normalizeCommercialMarket } from "../src/lib/commercialPricing.ts";
+import { OWN_SALES_SEO_PAGES } from "../src/constants/ownSalesSeoPages.ts";
 
 test("market detection uses fixed commercial markets", () => {
   assert.equal(normalizeCommercialMarket("MY"), "MY");
@@ -19,4 +20,11 @@ test("growth partner is consultation-led, not a self-serve subscription", () => 
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "growth-partner");
   assert.equal(product?.salesMotion, "proposal");
   assert.equal(getCommercialPrice(product!, "SG")?.monthlyPrice, 1250);
+});
+
+test("public SEO catalogue contains no retired plan or trial language", () => {
+  const copy = JSON.stringify(OWN_SALES_SEO_PAGES);
+  assert.doesNotMatch(copy, /14[- ]day free trial|card-required trial|\bStarter\b|\bBusiness\b|\bAuthority\b|\bScale\b/);
+  assert.doesNotMatch(copy, /"plan":"Growth"|Business and Growth plans|Starter, Growth/);
+  assert.doesNotMatch(copy, /RM199|\$49/);
 });

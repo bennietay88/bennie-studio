@@ -55,10 +55,9 @@ const e2eBusiness = {
   name: "Bennie Test Studio",
   slug: "bennie-test-studio",
   subdomain: "bennietest",
-  plan: "growth",
+  plan: "business",
   subscription_status: "active",
   status: "active",
-  trial_ends_at: new Date(Date.now() + 14 * 86_400_000).toISOString(),
   settings: {},
   contact_email: "owner@example.test",
   created_at: new Date().toISOString(),
@@ -66,11 +65,11 @@ const e2eBusiness = {
 
 const plans = [
   {
-    id: "plan_starter",
-    slug: "starter",
-    name: "Starter",
-    price_usd: 49,
-    description: "Starter website subscription plan",
+    id: "plan_business",
+    slug: "business",
+    name: "Managed Website",
+    price_usd: 99,
+    description: "Managed lead-generation website",
     monthly_credit_limit: 100,
     project_limit: 1,
     location_page_limit: 0,
@@ -80,15 +79,15 @@ const plans = [
     is_active: true,
     is_popular: false,
     sort_order: 1,
-    stripe_price_id: "price_starter_e2e",
-    stripe_product_id: "prod_starter_e2e",
+    stripe_price_id: "price_business_e2e",
+    stripe_product_id: "prod_business_e2e",
   },
   {
     id: "plan_growth",
     slug: "growth",
-    name: "Growth",
-    price_usd: 199,
-    description: "Growth website subscription plan",
+    name: "Website Growth",
+    price_usd: 249,
+    description: "Managed website with ongoing conversion and SEO growth",
     monthly_credit_limit: 500,
     project_limit: 5,
     location_page_limit: 4,
@@ -100,24 +99,6 @@ const plans = [
     sort_order: 2,
     stripe_price_id: "price_growth_e2e",
     stripe_product_id: "prod_growth_e2e",
-  },
-  {
-    id: "plan_scale",
-    slug: "scale",
-    name: "Scale",
-    price_usd: 399,
-    description: "Scale website subscription plan",
-    monthly_credit_limit: 900,
-    project_limit: 10,
-    location_page_limit: 8,
-    monthly_update_allowance: "Priority update support",
-    features: ["Up to 10 pages", "Campaign landing pages", "Priority support"],
-    enabled_features: ["ai_synthesis", "local_seo"],
-    is_active: true,
-    is_popular: false,
-    sort_order: 3,
-    stripe_price_id: "price_scale_e2e",
-    stripe_product_id: "prod_scale_e2e",
   },
 ];
 
@@ -334,21 +315,20 @@ test("covers signup, plan checkout, checkout confirmation, onboarding, and websi
 
   await expect(page.getByTestId("onboarding-flow")).toBeVisible();
   await page.getByTestId("onboarding-business-name").fill("Bennie Test Studio");
-  await page.getByRole("button", { name: /Initialize Trial/i }).click();
+  await page.getByRole("button", { name: /^Continue$/i }).click();
   await page.getByTestId("onboarding-subdomain").fill("bennietest");
   await page.getByTestId("onboarding-template").selectOption("template_service_business");
-  await page.getByRole("button", { name: /Continue to Strategic Intel/i }).click();
+  await page.getByRole("button", { name: /Continue to business details/i }).click();
   await page.getByPlaceholder("e.g. Malaysia, Singapore, Global").fill("Malaysia");
-  await page.getByPlaceholder("e.g. Free Strategy Session, 20% Off Design").fill("Free Website Review");
+  await page.getByPlaceholder("e.g. Dental implants, kitchen renovation, tax advisory").fill("Managed website service");
   await page.getByPlaceholder("e.g. Klang Valley, Nationwide").fill("Klang Valley");
   await page.getByRole("button", { name: /Continue to Services/i }).click();
   await page.getByPlaceholder("Service 1").fill("Managed website service");
   await page.getByPlaceholder("WhatsApp Number (e.g. +601...)").fill("+60123456789");
   await page.getByPlaceholder("Contact Email").fill("owner@example.test");
-  await page.getByRole("button", { name: /Style & Content/i }).click();
+  await page.getByRole("button", { name: /Add brand and proof/i }).click();
   await page.getByPlaceholder("Paste a few client reviews here...").fill("Clear communication and fast turnaround.");
-  await page.getByRole("button", { name: /Proceed to Activation/i }).click();
-  await page.getByRole("button", { name: /Use Recommendation/i }).click();
+  await page.getByRole("button", { name: /Review my brief/i }).click();
   await page.locator("#agree-protocols").check();
   await page.getByTestId("onboarding-launch").click();
 
@@ -420,38 +400,40 @@ test("connects the website growth review to a prefilled preview", async ({ page 
 test("connects the primary revenue offer to a recorded website growth call", async ({ page }) => {
   await page.route("https://ipapi.co/json/", (route) => json(route, { country_code: "SG", country_name: "Singapore" }));
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
+  await page.route("**/api/public/call-availability", (route) => json(route, { slots: [new Date(Date.now() + 86_400_000).toISOString()], timezone: "Asia/Kuala_Lumpur" }));
+  await page.route("**/api/public/call-bookings", (route) => json(route, { booking: { id: "00000000-0000-4000-8000-000000000402" }, manageUrl: "/manage-call/test" }, 201));
   await page.route("**/api/platform-leads", async (route) => {
     const payload = await route.request().postDataJSON();
-    expect(payload.leadType).toBe("website_growth_call");
+    expect(payload.leadType).toBe("growth_partner_consultation");
     expect(payload.country).toBe("SG");
     await json(route, { success: true, leadId: "00000000-0000-4000-8000-000000000401" });
   });
 
-  await page.goto("/pricing");
-  await expect(page.getByRole("heading", { name: "Website Growth Partner", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Launch", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Business", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Scale", exact: true })).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Managed Website", exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Launch", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Scale", exact: true })).toHaveCount(0);
   await expect(page.getByText("AI Production Credits", { exact: true })).toHaveCount(0);
-  await page.getByRole("link", { name: /Book a Website Growth Call/i }).click();
+  await page.getByRole("button", { name: /Book Growth Consultation/i }).click();
   await expect(page).toHaveURL(/\/book-demo/);
   await page.getByLabel("Your name").fill("Jane Buyer");
   await page.getByLabel("Work email").fill("jane@example.test");
   await page.getByLabel("Business").fill("Example Services");
   await page.getByLabel("Industry").fill("Professional services");
-  await page.getByRole("button", { name: /Request Website Growth Call/i }).click();
-  await expect(page.getByRole("heading", { name: "Request received" })).toBeVisible();
+  await page.getByLabel(/Available 30-minute times/i).selectOption({ index: 1 });
+  await page.getByRole("button", { name: /Confirm Growth Consultation/i }).click();
+  await expect(page.getByRole("heading", { name: "Call confirmed" })).toBeVisible();
 });
 
-test("presents the core growth partner clearly on the homepage", async ({ page }) => {
+test("presents Managed Website as the primary homepage offer", async ({ page }) => {
   await page.route("https://ipapi.co/json/", (route) => json(route, { country_code: "SG", country_name: "Singapore" }));
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Website Growth Partner", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Book a Website Growth Call/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /view basic plans from \$49\/month/i })).toBeVisible();
-  await expect(page.getByText(/one-time strategy, copy, and build fee/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /A professionally managed website from/i })).toBeVisible();
+  await expect(page.getByText("$99/month", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /See My Website Direction/i }).first()).toBeVisible();
+  await expect(page.getByText(/\$49/)).toHaveCount(0);
 });
 
 test("shows and accepts a public proposal without exposing checkout secrets", async ({ page }) => {

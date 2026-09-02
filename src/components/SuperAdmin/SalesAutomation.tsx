@@ -1,9 +1,10 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Activity, CalendarCheck, Check, Clock3, MailCheck, MessageSquareReply, Pause, Play, RefreshCw, Send, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { Activity, ArrowRight, CalendarCheck, Check, Clock3, MailCheck, MessageSquareReply, Pause, Play, RefreshCw, Send, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
 import type { OutreachSequence, SalesCallBooking, SalesMessage } from "../../lib/salesAutomation";
+import { getOutreachObservation } from "../../lib/salesAutomation";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -15,6 +16,7 @@ import { Textarea } from "../ui/textarea";
 type ContactOption = { id: string; kind: "lead" | "prospect"; name: string; email: string; detail: string; observation?: string };
 
 const suggestedReply = (message: SalesMessage) => {
+  if (["unsubscribe", "not_interested"].includes(message.classification || "")) return "No further sales outreach. This recipient is suppressed; respect their request.";
   const opener = "Thanks for the honest reply.";
   if (message.classification === "objection") return `${opener} I do not want to push past a concern. Which part feels least workable right now: the scope, setup fee, monthly commitment, or timing? I can answer that directly and tell you if a smaller starting point is the better fit.`;
   if (message.classification === "question") return `${opener} I will answer this specifically. Before I do, is your main priority getting the website live, improving the enquiry journey, or having someone manage ongoing changes?`;
@@ -57,8 +59,8 @@ export function SalesAutomation() {
       supabase.from("prospects").select("id,name,contact_email,industry,location,notes,outreach_status").order("created_at", { ascending: false }).limit(150),
       supabase.from("proposal_events").select("*").order("created_at", { ascending: false }).limit(200),
     ]);
-    const firstError = [sequenceResult, messageResult, bookingResult, taskResult].find((result) => result.error)?.error;
-    if (firstError) toast.error(firstError.message || "Apply the sales automation migration before using this page.");
+    const firstError = [sequenceResult, messageResult, bookingResult, taskResult, leadResult, prospectResult, eventResult].find((result) => result.error)?.error;
+    if (firstError) toast.error("Some sales records could not be loaded. Refresh before taking action.");
     setSequences((sequenceResult.data || []) as OutreachSequence[]);
     setMessages((messageResult.data || []) as SalesMessage[]);
     setBookings((bookingResult.data || []) as SalesCallBooking[]);
@@ -66,8 +68,8 @@ export function SalesAutomation() {
     setEvents(eventResult.data || []);
     setLostDeals((leadResult.data || []).filter((item) => item.status === "lost"));
     setContacts([
-      ...(leadResult.data || []).filter((item) => item.email).map((item) => ({ id: item.id, kind: "lead" as const, name: item.raw_fields?.businessName || item.name, email: item.email, detail: `Inbound · ${item.status || "new"}`, observation: item.message || "" })),
-      ...(prospectResult.data || []).filter((item) => item.contact_email).map((item) => ({ id: item.id, kind: "prospect" as const, name: item.name, email: item.contact_email, detail: [item.industry, item.location].filter(Boolean).join(" · ") || "Prospect", observation: item.notes || "" })),
+      ...(leadResult.data || []).filter((item) => item.email && !["won", "lost", "closed", "meeting"].includes(item.status)).map((item) => ({ id: item.id, kind: "lead" as const, name: item.raw_fields?.businessName || item.name, email: item.email, detail: `Inbound · ${item.status || "new"}`, observation: "" })),
+      ...(prospectResult.data || []).filter((item) => item.contact_email && !["won", "lost", "replied", "call_booked"].includes(item.outreach_status)).map((item) => ({ id: item.id, kind: "prospect" as const, name: item.name, email: item.contact_email, detail: [item.industry, item.location].filter(Boolean).join(" · ") || "Prospect", observation: getOutreachObservation(item.notes) })),
     ]);
     setLoading(false);
   }, []);
@@ -79,6 +81,14 @@ export function SalesAutomation() {
   const replies = messages.filter((item) => item.direction === "inbound" || item.status === "replied");
   const upcomingCalls = bookings.filter((item) => item.status === "booked" && new Date(item.start_at) >= new Date());
   const openTasks = tasks.filter((item) => item.status === "open");
+  const now = new Date();
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  const overdueTasks = openTasks.filter((item) => item.due_at && new Date(item.due_at) <= now);
+  const callsToday = upcomingCalls.filter((item) => new Date(item.start_at) <= endOfToday);
+  const recentReplyCutoff = now.getTime() - 48 * 60 * 60 * 1000;
+  const recentReplies = replies.filter((item) => new Date(item.sent_at || item.created_at || 0).getTime() >= recentReplyCutoff).slice(0, 5);
+  const todayActionCount = drafts.length + overdueTasks.length + callsToday.length + recentReplies.length;
 
   const toggleSequence = async (sequence: OutreachSequence) => {
     const status = sequence.status === "active" ? "paused" : "active";
@@ -91,7 +101,7 @@ export function SalesAutomation() {
   const enroll = async () => {
     const contact = contacts.find((item) => `${item.kind}:${item.id}` === selectedContact);
     if (!contact || !selectedSequence) return toast.error("Choose an active sequence and contact.");
-    if (!observation.trim()) return toast.error("Add one observable, verified website finding before enrolling.");
+    if (observation.trim().length < 10) return toast.error("Add one specific, verified website finding (at least 10 characters) before enrolling.");
     setWorking(true);
     try {
       await api("/api/admin/sales-automation/enroll", { method: "POST", body: JSON.stringify({ sequenceId: selectedSequence, [contact.kind === "lead" ? "leadId" : "prospectId"]: contact.id, observation: observation.trim() }) });
@@ -114,24 +124,25 @@ export function SalesAutomation() {
     setWorking(true);
     try {
       const result = await api("/api/admin/sales-automation/run", { method: "POST", body: "{}" });
-      if (result.deliveryBlocked) toast.error(`${result.deliveryBlocked} message${result.deliveryBlocked === 1 ? " is" : "s are"} ready, but Resend delivery is not configured yet.`);
+      if (result.deliveryBlocked) toast.error(`${result.deliveryBlocked} message${result.deliveryBlocked === 1 ? " needs" : "s need"} delivery review. Check configuration, safety checks and provider delivery before retrying.`);
       else toast.success(`${result.sent || 0} sent, ${result.suppressed || 0} suppressed, ${result.failed || 0} failed.`);
       await load();
     } catch (error: any) { toast.error(error.message); } finally { setWorking(false); }
   };
 
   const updateBooking = async (booking: SalesCallBooking, status: string) => {
-    const { error } = await supabase.from("sales_call_bookings").update({ status, updated_at: new Date().toISOString() }).eq("id", booking.id);
-    if (error) return toast.error(error.message);
-    await load();
+    try {
+      await api(`/api/admin/sales-automation/bookings/${booking.id}`, { method: "PATCH", body: JSON.stringify({ status }) });
+      await load();
+    } catch (error: any) { toast.error(error.message); }
   };
 
   const saveCallOutcome = async (booking: SalesCallBooking) => {
-    const { error } = await supabase.from("sales_call_bookings").update({ outcome: booking.outcome || null, next_action: booking.next_action || null, updated_at: new Date().toISOString() }).eq("id", booking.id);
-    if (error) return toast.error(error.message);
-    if (booking.next_action) await supabase.from("sales_tasks").insert({ lead_id: (booking as any).lead_id || null, title: booking.next_action, task_type: "call_follow_up", priority: "high", due_at: new Date(Date.now() + 24 * 3600000).toISOString(), metadata: { bookingId: booking.id } });
-    toast.success("Call outcome and next action saved.");
-    await load();
+    try {
+      await api(`/api/admin/sales-automation/bookings/${booking.id}`, { method: "PATCH", body: JSON.stringify({ outcome: booking.outcome || "", nextAction: booking.next_action || "" }) });
+      toast.success("Call outcome and next action saved.");
+      await load();
+    } catch (error: any) { toast.error(error.message); }
   };
 
   const completeTask = async (id: string) => {
@@ -155,8 +166,33 @@ export function SalesAutomation() {
         <Metric icon={Clock3} label="Open actions" value={openTasks.length} note="Real follow-ups and preparation" />
       </div>
 
-      <Tabs defaultValue="control">
-        <TabsList className="h-auto flex-wrap rounded-2xl bg-slate-100 p-1"><TabsTrigger value="control" className="rounded-xl">Control centre</TabsTrigger><TabsTrigger value="queue" className="rounded-xl">Approval queue</TabsTrigger><TabsTrigger value="calls" className="rounded-xl">Calls</TabsTrigger><TabsTrigger value="insights" className="rounded-xl">Sales learning</TabsTrigger></TabsList>
+      <Tabs defaultValue="today">
+        <TabsList className="h-auto flex-wrap rounded-2xl bg-slate-100 p-1"><TabsTrigger value="today" className="rounded-xl">Today {todayActionCount > 0 && <Badge className="ml-2 border-none bg-indigo-600 text-white">{todayActionCount}</Badge>}</TabsTrigger><TabsTrigger value="control" className="rounded-xl">Sequences</TabsTrigger><TabsTrigger value="queue" className="rounded-xl">Approval queue</TabsTrigger><TabsTrigger value="calls" className="rounded-xl">Calls & follow-ups</TabsTrigger><TabsTrigger value="insights" className="rounded-xl">Sales learning</TabsTrigger></TabsList>
+
+        <TabsContent value="today" className="mt-6 space-y-6">
+          <div className="rounded-3xl bg-slate-950 p-6 text-white sm:p-8">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">Next best action</p><h2 className="mt-2 text-2xl font-black">{todayActionCount ? `${todayActionCount} sales action${todayActionCount === 1 ? "" : "s"} need attention` : "Your sales queue is clear"}</h2><p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-300">Work replies and booked calls first, then approvals and overdue follow-ups. Start new outreach only after today’s commitments are handled.</p></div>
+              <Button type="button" onClick={() => navigate("/admin/outreach_lab")} className="min-h-11 rounded-xl bg-white text-slate-950 hover:bg-indigo-50">Open outreach workbench <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            </div>
+          </div>
+
+          {todayActionCount === 0 ? <Empty icon={Check} title="Nothing is waiting" description="Use the outreach workbench to prepare one verified, relevant message for a qualified prospect. New replies, calls and follow-ups will return here." /> : (
+            <div className="grid gap-6 xl:grid-cols-2">
+              <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Replies and approvals</CardTitle></CardHeader><CardContent className="space-y-3">
+                {recentReplies.map((message) => <div key={`reply-${message.id}`} className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4"><div className="flex items-center justify-between gap-3"><Badge className="bg-indigo-100 text-indigo-800">Recent reply</Badge><span className="truncate text-xs font-semibold text-slate-500">{message.recipient}</span></div><p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-slate-700">{message.body_text}</p><p className="mt-3 text-xs font-bold text-indigo-700">Respond personally before starting new cold outreach.</p></div>)}
+                {drafts.slice(0, 5).map((message) => <div key={`draft-${message.id}`} className="rounded-2xl border border-amber-200 bg-amber-50 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><Badge className="bg-amber-100 text-amber-800">Approval</Badge><p className="mt-3 font-black text-slate-950">{message.subject || "First outreach draft"}</p><p className="mt-1 text-xs font-semibold text-slate-500">To {message.recipient}</p></div><Button size="sm" onClick={() => void approve(message)} disabled={working} className="rounded-xl bg-slate-950 text-white"><Check className="mr-1 h-4 w-4" /> Review & queue</Button></div></div>)}
+                {!recentReplies.length && !drafts.length && <p className="py-8 text-center text-sm font-semibold text-slate-500">No recent replies or approvals are waiting.</p>}
+              </CardContent></Card>
+
+              <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Calls and commitments</CardTitle></CardHeader><CardContent className="space-y-3">
+                {callsToday.map((booking) => <div key={`call-${booking.id}`} className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><Badge className="bg-emerald-100 text-emerald-800">Call today</Badge><p className="mt-3 font-black text-slate-950">{booking.business_name}</p><p className="mt-1 text-xs font-semibold text-slate-600">{new Date(booking.start_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {booking.name}</p><p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-slate-700">{booking.goals || "Review the lead brief and confirm the desired enquiry path before the call."}</p></div>)}
+                {overdueTasks.map((task) => <div key={`task-${task.id}`} className="rounded-2xl border border-rose-200 bg-rose-50 p-4"><div className="flex items-start justify-between gap-3"><div><Badge className="bg-rose-100 text-rose-800">Overdue</Badge><p className="mt-3 font-black text-slate-950">{task.title}</p>{task.due_at && <p className="mt-1 text-xs font-semibold text-rose-700">Due {new Date(task.due_at).toLocaleString()}</p>}</div><Button size="sm" variant="outline" onClick={() => void completeTask(task.id)} className="rounded-xl bg-white"><Check className="mr-1 h-4 w-4" /> Done</Button></div></div>)}
+                {!callsToday.length && !overdueTasks.length && <p className="py-8 text-center text-sm font-semibold text-slate-500">No calls or overdue commitments today.</p>}
+              </CardContent></Card>
+            </div>
+          )}
+        </TabsContent>
 
         <TabsContent value="control" className="mt-6 space-y-6">
           <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Sequences</CardTitle></CardHeader><CardContent className="space-y-3">{sequences.map((sequence) => <div key={sequence.id} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4"><div><p className="font-black text-slate-950">{sequence.name}</p><p className="mt-1 text-xs font-semibold text-slate-500">{sequence.settings?.purpose as string || sequence.audience_type} · first message approval</p></div><Button variant="outline" onClick={() => void toggleSequence(sequence)} className="rounded-xl">{sequence.status === "active" ? <><Pause className="mr-2 h-4 w-4" /> Pause</> : <><Play className="mr-2 h-4 w-4" /> Activate</>}</Button></div>)}</CardContent></Card>
@@ -168,7 +204,7 @@ export function SalesAutomation() {
         </TabsContent>
 
         <TabsContent value="calls" className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Confirmed calls</CardTitle></CardHeader><CardContent className="space-y-3">{bookings.length === 0 ? <p className="py-12 text-center text-sm font-semibold text-slate-500">No confirmed calls yet.</p> : bookings.map((booking) => <div key={booking.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="font-black text-slate-950">{booking.business_name}</p><p className="mt-1 text-sm font-semibold text-slate-500">{booking.name} · {booking.email}</p><p className="mt-2 text-xs font-black text-indigo-600">{new Date(booking.start_at).toLocaleString()} · {booking.timezone}</p></div><Select value={booking.status} onValueChange={(value) => void updateBooking(booking, value)}><SelectTrigger className="w-36 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{["booked","completed","no_show","cancelled","rescheduled"].map((status) => <SelectItem key={status} value={status}>{status.replace("_", " ")}</SelectItem>)}</SelectContent></Select></div><div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-700"><strong>Pre-call brief:</strong> {booking.industry || "Industry not provided"} in {booking.market || "market not provided"}. {booking.goals || "No goal notes yet."} {booking.website_url && <a className="ml-1 font-bold text-indigo-600" href={booking.website_url} target="_blank" rel="noreferrer">Open website</a>}</div><div className="mt-4 grid gap-3"><Textarea value={booking.outcome || ""} onChange={(event) => setBookings((current) => current.map((item) => item.id === booking.id ? { ...item, outcome: event.target.value } : item))} placeholder="Call outcome: what the prospect said, decided, or objected to" className="min-h-20 rounded-xl" /><div className="flex flex-col gap-2 sm:flex-row"><Input value={booking.next_action || ""} onChange={(event) => setBookings((current) => current.map((item) => item.id === booking.id ? { ...item, next_action: event.target.value } : item))} placeholder="One concrete next action" className="rounded-xl" /><Button variant="outline" onClick={() => void saveCallOutcome(booking)} className="rounded-xl">Save</Button>{booking.lead_id && <Button onClick={() => { sessionStorage.setItem("bts_proposal_lead_id", booking.lead_id || ""); navigate("/admin/proposals_deals"); }} className="rounded-xl bg-slate-950 text-white">Create proposal</Button>}</div></div></div>)}</CardContent></Card>
+          <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Confirmed calls</CardTitle></CardHeader><CardContent className="space-y-3">{bookings.length === 0 ? <p className="py-12 text-center text-sm font-semibold text-slate-500">No confirmed calls yet.</p> : bookings.map((booking) => <div key={booking.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="font-black text-slate-950">{booking.business_name}</p><p className="mt-1 text-sm font-semibold text-slate-500">{booking.name} · {booking.email}</p><p className="mt-2 text-xs font-black text-indigo-600">{new Date(booking.start_at).toLocaleString()} · {booking.timezone}</p></div><Select value={booking.status} onValueChange={(value) => void updateBooking(booking, value)}><SelectTrigger className="w-36 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{["booked","completed","no_show","cancelled"].map((status) => <SelectItem key={status} value={status}>{status.replace("_", " ")}</SelectItem>)}</SelectContent></Select></div><div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-700"><strong>Pre-call brief:</strong> {booking.industry || "Industry not provided"} in {booking.market || "market not provided"}. {booking.goals || "No goal notes yet."} {booking.website_url && <a className="ml-1 font-bold text-indigo-600" href={booking.website_url} target="_blank" rel="noreferrer">Open website</a>}</div><div className="mt-4 grid gap-3"><Textarea value={booking.outcome || ""} onChange={(event) => setBookings((current) => current.map((item) => item.id === booking.id ? { ...item, outcome: event.target.value } : item))} placeholder="Call outcome: what the prospect said, decided, or objected to" className="min-h-20 rounded-xl" /><div className="flex flex-col gap-2 sm:flex-row"><Input value={booking.next_action || ""} onChange={(event) => setBookings((current) => current.map((item) => item.id === booking.id ? { ...item, next_action: event.target.value } : item))} placeholder="One concrete next action" className="rounded-xl" /><Button variant="outline" onClick={() => void saveCallOutcome(booking)} className="rounded-xl">Save</Button>{booking.lead_id && <Button onClick={() => { sessionStorage.setItem("bts_proposal_lead_id", booking.lead_id || ""); navigate("/admin/proposals_deals"); }} className="rounded-xl bg-slate-950 text-white">Create proposal</Button>}</div></div></div>)}</CardContent></Card>
           <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Actions due</CardTitle></CardHeader><CardContent className="space-y-3">{openTasks.length === 0 ? <p className="py-12 text-center text-sm font-semibold text-slate-500">No sales actions are due.</p> : openTasks.map((task) => <div key={task.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex items-start justify-between gap-3"><div><Badge className={task.priority === "high" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-700"}>{task.priority}</Badge><p className="mt-3 font-black text-slate-950">{task.title}</p>{task.due_at && <p className="mt-1 text-xs font-semibold text-slate-500">Due {new Date(task.due_at).toLocaleString()}</p>}</div><Button size="sm" variant="outline" onClick={() => void completeTask(task.id)} className="rounded-xl"><Check className="mr-1 h-4 w-4" /> Done</Button></div></div>)}</CardContent></Card>
         </TabsContent>
 

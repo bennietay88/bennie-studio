@@ -51,8 +51,8 @@ import { DEFAULT_LANDING_CONTENT } from "../constants/landingPageContent";
 import { SafeImage } from "./SafeImage";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
-import { getOfferForMarket, type RevenueMarket } from "../constants/revenueOffer";
-import { COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, getStoredMarket } from "../lib/commercialPricing";
+import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKET_CHANGED_EVENT, formatCommercialMoney, getCommercialPrice, getStoredMarket } from "../lib/commercialPricing";
+import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -103,6 +103,7 @@ export default function LandingPage() {
   const { user, error, clearError } = useAuth();
   const navigate = useNavigate();
   const [commercialMarket, setCommercialMarket] = React.useState(() => getStoredMarket());
+  const { products: commercialProducts } = usePublicCommercialPricing(commercialMarket);
   React.useEffect(() => {
     const onMarketChanged = () => setCommercialMarket(getStoredMarket());
     window.addEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
@@ -311,13 +312,7 @@ export default function LandingPage() {
       howItWorks: { ...DEFAULT_LANDING_CONTENT.howItWorks },
       comparison: { ...DEFAULT_LANDING_CONTENT.comparison },
       pricing: { ...DEFAULT_LANDING_CONTENT.pricing },
-      customServices: {
-        ...DEFAULT_LANDING_CONTENT.customServices,
-        ...((content || {}).customServices || {}),
-        items:
-          (content as any)?.customServices?.items ||
-          DEFAULT_LANDING_CONTENT.customServices.items,
-      },
+      customServices: null,
       faq: { ...DEFAULT_LANDING_CONTENT.faq },
       cta: { ...DEFAULT_LANDING_CONTENT.cta },
       testimonials: null,
@@ -325,8 +320,14 @@ export default function LandingPage() {
     }),
     [content],
   );
-  const growthPartnerMarket: RevenueMarket = commercialMarket === "MY" || commercialMarket === "SG" || commercialMarket === "GB" ? commercialMarket : "US";
-  const growthPartnerOffer = getOfferForMarket(growthPartnerMarket);
+  const managedWebsite = commercialProducts.find((product) => product.slug === "managed-website") || COMMERCIAL_FALLBACK_PRODUCTS[0];
+  const managedWebsitePrice = getCommercialPrice(managedWebsite, commercialMarket);
+  const managedMonthlyLabel = formatCommercialMoney(managedWebsitePrice?.monthlyPrice, managedWebsitePrice?.currency || "USD");
+  const managedSetupLabel = formatCommercialMoney(managedWebsitePrice?.setupFee, managedWebsitePrice?.currency || "USD");
+  const growthPartner = commercialProducts.find((product) => product.slug === "growth-partner") || COMMERCIAL_FALLBACK_PRODUCTS[2];
+  const growthPartnerPrice = getCommercialPrice(growthPartner, commercialMarket);
+  const growthPartnerMonthlyLabel = formatCommercialMoney(growthPartnerPrice?.monthlyPrice, growthPartnerPrice?.currency || "USD");
+  const growthPartnerSetupLabel = formatCommercialMoney(growthPartnerPrice?.setupFee, growthPartnerPrice?.currency || "USD");
   const salesPageTitle =
     typeof platformSettings?.salesPageTitle === "string" &&
     platformSettings.salesPageTitle.trim()
@@ -370,8 +371,9 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       <Helmet>
-        <title>{salesPageTitle}</title>
-        <meta name="description" content={c.hero.subheadline} />
+        <title>{`Managed Website from ${managedMonthlyLabel}/month | ${salesPageTitle}`}</title>
+        <meta name="description" content="Your business website built, hosted, maintained and continuously managed to help turn more visitors into enquiries." />
+        <link rel="canonical" href="https://app.bennietay.com/" />
 
         {/* Platform GA4 */}
         {analyticsAllowed && platformSettings?.gaMeasurementId && (
@@ -458,14 +460,15 @@ export default function LandingPage() {
               variants={fadeInUp}
               className="mx-auto mb-4 max-w-[21rem] whitespace-normal break-words text-3xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:max-w-3xl sm:text-5xl lg:mx-0 lg:text-6xl"
             >
-              {c.hero.headline}
+              A professionally managed website from{" "}
+              <span className="text-indigo-600">{managedMonthlyLabel}/month</span>
             </motion.h1>
 
             <motion.p
               variants={fadeInUp}
               className="mx-auto mb-8 max-w-[21rem] whitespace-normal break-words text-base font-semibold leading-relaxed text-slate-700 sm:max-w-3xl sm:text-xl lg:mx-0"
             >
-              {c.hero.subheadline}
+              Your website built, hosted, maintained and continuously managed to help turn more visitors into WhatsApp messages, calls, bookings and quotation enquiries.
             </motion.p>
 
             {c.hero.valueProp && (
@@ -474,7 +477,7 @@ export default function LandingPage() {
                 className="mx-auto mb-8 flex w-full max-w-[21rem] items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-3 text-left sm:max-w-3xl lg:mx-0 lg:w-fit"
               >
                 <div className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse" />
-                <span className="text-sm font-bold text-slate-900 tracking-tight">{c.hero.valueProp}</span>
+                <span className="text-sm font-bold text-slate-900 tracking-tight">{managedSetupLabel} setup · 12-month initial commitment · Hosting and maintenance included</span>
               </motion.div>
             )}
 
@@ -503,7 +506,7 @@ export default function LandingPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  onClick={() => trackAndNavigate("/website-audit", "Hero Website Growth Audit", "click_request_audit")}
+                  onClick={() => trackAndNavigate("/book-demo", "Hero 30-Minute Review", "click_book_call")}
                   className="h-12 sm:h-14 px-10 sm:px-12 text-lg sm:text-lg w-full sm:w-auto rounded-2xl border-2 hover:bg-slate-50 transition-all shadow-lg shadow-slate-200/50 bg-white font-black uppercase tracking-widest text-indigo-600"
                 >
                   {c.hero.ctaSecondary}
@@ -514,7 +517,7 @@ export default function LandingPage() {
             <motion.div variants={fadeInUp} className="mb-12">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-4">No complicated setup. No developer needed. Launch support included.</p>
               <div className="flex flex-wrap justify-center lg:justify-start gap-4">
-                {["Free Website Preview", "Fast Managed Workflow", "Lead Capture Ready", "SEO + Mobile Optimized"].map((badge) => (
+                {["Preview Before You Decide", "Managed Build", "Lead Capture Ready", "SEO + Mobile Optimised"].map((badge) => (
                   <div key={badge} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-100 shadow-sm">
                     <Check className="h-3 w-3 text-emerald-500" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{badge}</span>
@@ -685,7 +688,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="mx-auto grid max-w-4xl gap-6">
               <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6 sm:p-8">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                   {c.reviewCopyExample.reviewLabel}
@@ -733,7 +736,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl">
             <div className="mx-auto mb-12 max-w-3xl text-center">
               <Badge className="mb-5 bg-indigo-50 px-4 py-1 text-indigo-700 hover:bg-indigo-50">
-                Managed Subscription or Custom Website
+                One managed website service
               </Badge>
               <h2 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
                 {c.launchModels.title}
@@ -742,7 +745,7 @@ export default function LandingPage() {
                 {c.launchModels.subtitle}
               </p>
             </div>
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="mx-auto grid max-w-3xl gap-6">
               {(c.launchModels.items || []).map((item: any, index: number) => (
                 <motion.article
                   key={item.title}
@@ -762,7 +765,7 @@ export default function LandingPage() {
                       {item.badge}
                     </Badge>
                     <span className="text-xs font-black uppercase tracking-widest text-slate-400">
-                      {index === 0 ? "Managed Hosting Included" : "Built to Scope"}
+                      Managed Hosting Included
                     </span>
                   </div>
                   <h3 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
@@ -960,10 +963,10 @@ export default function LandingPage() {
                   {c.monthlyService.subtitle}
                 </p>
                 <Button
-                  onClick={() => trackAndScroll("#growth-partner", "Monthly Service Growth Partner CTA", "pricing_cta_clicked")}
+                  onClick={() => trackAndScroll("#pricing", "Monthly Service Website Growth CTA", "pricing_cta_clicked")}
                   className="mt-8 h-12 rounded-2xl bg-white px-6 font-black uppercase tracking-widest text-slate-950 hover:bg-emerald-100"
                 >
-                  Explore Growth Partner
+                  See Website Growth
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
@@ -1144,71 +1147,6 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/* Core Website Growth Partner Offer */}
-      <section id="growth-partner" className="relative overflow-hidden bg-indigo-600 px-5 py-16 text-white lg:py-24">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(255,255,255,0.18),transparent_30%),radial-gradient(circle_at_90%_80%,rgba(15,23,42,0.28),transparent_35%)]" />
-        <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.12fr_0.88fr] lg:items-center">
-          <div>
-            <Badge className="border border-white/20 bg-white/15 px-4 py-1.5 text-white">
-              Core managed service
-            </Badge>
-            <h2 className="mt-6 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-6xl">
-              Website Growth Partner
-            </h2>
-            <p className="mt-5 max-w-2xl text-lg font-semibold leading-8 text-indigo-100">
-              For businesses that want Bennie Studio to lead the website strategy, copy, build, enquiry tracking, and ongoing improvement—not simply provide another website tool.
-            </p>
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              {growthPartnerOffer.included.slice(0, 5).map((feature) => (
-                <div key={feature} className="flex gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 text-sm font-bold leading-6 text-white">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
-                  {feature}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-[2.5rem] border border-white/20 bg-slate-950 p-7 shadow-2xl sm:p-9">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Consultant-led partnership</p>
-            <p className="mt-5 text-5xl font-black tracking-tight text-white">
-              {growthPartnerOffer.monthlyLabel}
-              <span className="text-base text-slate-400">/month</span>
-            </p>
-            <p className="mt-3 text-sm font-bold text-slate-300">
-              Plus {growthPartnerOffer.setupLabel} one-time strategy, copy, and build fee.
-            </p>
-            <p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-indigo-300">
-              Pricing for {COMMERCIAL_MARKETS[commercialMarket].label} · {COMMERCIAL_MARKETS[commercialMarket].currency}
-            </p>
-            <p className="mt-5 rounded-2xl bg-white/10 p-4 text-sm font-semibold leading-6 text-slate-200">
-              Six-month initial commitment. Scope and launch timing are confirmed during the website growth call.
-            </p>
-            <Button
-              onClick={() => {
-                localStorage.setItem("bt_offer_intent", JSON.stringify({
-                  offerId: growthPartnerOffer.id,
-                  planId: growthPartnerOffer.planId,
-                  market: growthPartnerOffer.market,
-                  monthly: growthPartnerOffer.monthlyPrice,
-                  setupFee: growthPartnerOffer.setupFee,
-                  savedAt: new Date().toISOString(),
-                }));
-                trackAndNavigate("/book-demo", "Homepage Website Growth Partner", "click_growth_partner_home");
-              }}
-              className="mt-7 min-h-14 w-full rounded-2xl bg-white px-6 py-4 text-sm font-black uppercase tracking-[0.12em] text-slate-950 shadow-xl hover:bg-indigo-100"
-            >
-              Book a Website Growth Call <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-            <button
-              type="button"
-              onClick={() => trackAndScroll("#pricing", "Homepage View Basic Plans", "pricing_cta_clicked")}
-              className="mt-4 w-full rounded-xl px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-indigo-200 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            >
-              Or view managed website pricing
-            </button>
-          </div>
-        </div>
-      </section>
-
       {/* Pricing Section */}
       <section
         id="pricing"
@@ -1222,21 +1160,61 @@ export default function LandingPage() {
             whileInView="animate"
             viewport={{ once: true }}
             variants={fadeInUp}
-            className="text-center mb-16"
+            className="mb-8 text-center"
           >
+            <Badge className="mb-5 bg-indigo-500/15 px-4 py-1 text-indigo-100 hover:bg-indigo-500/15">Managed Website pricing</Badge>
             <h2 className="text-3xl sm:text-5xl font-bold text-white mb-4 tracking-tight">
-              {c.pricing?.title || "Simple, Transparent Pricing"}
+              Start with the managed website your business needs now.
             </h2>
-            <p className="text-slate-300 text-lg font-semibold">
-              {c.pricing?.subtitle ||
-                "Choose the launch option that fits your business stage."}
+            <p className="mx-auto max-w-3xl text-lg font-semibold leading-8 text-slate-300">
+              Begin with Managed Website, then add Website Growth when ongoing conversion work and local SEO expansion become useful.
             </p>
-            <p className="mt-4 inline-flex rounded-full border border-indigo-400/30 bg-indigo-500/10 px-5 py-2 text-sm font-black uppercase tracking-[0.16em] text-indigo-100">
+            <p className="mt-5 inline-flex max-w-4xl rounded-full border border-indigo-400/30 bg-indigo-500/10 px-5 py-2 text-xs font-black uppercase leading-5 tracking-[0.14em] text-indigo-100 sm:text-sm">
                 {c.pricing?.trialNote || "Start with a free, limited website preview before choosing a managed service."}
             </p>
           </motion.div>
 
-          <Pricing onSelectPlan={() => trackAndNavigate("/signup", "Pricing Plan Selected", "click_start_plan")} onDark />
+          <Pricing onDark hideIntro />
+        </div>
+      </section>
+
+      {/* Premium engagement follows the lower-entry Managed Website offer. */}
+      <section id="growth-partner" className="relative overflow-hidden bg-indigo-600 px-5 py-16 text-white lg:py-24">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(255,255,255,0.18),transparent_30%),radial-gradient(circle_at_90%_80%,rgba(15,23,42,0.28),transparent_35%)]" />
+        <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.12fr_0.88fr] lg:items-center">
+          <div className="min-w-0">
+            <Badge className="border border-white/20 bg-white/15 px-4 py-1.5 text-white">Premium consultant-led engagement</Badge>
+            <h2 className="mt-6 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-6xl">Need deeper strategic support?</h2>
+            <p className="mt-5 max-w-2xl text-lg font-semibold leading-8 text-indigo-100">
+              Growth Partner adds hands-on website, conversion, SEO and digital growth direction for businesses that need Bennie Studio involved beyond the managed website service.
+            </p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              {["Positioning and offer direction", "Conversion and funnel strategy", "SEO and content direction", "Ongoing strategic review"].map((feature) => (
+                <div key={feature} className="flex gap-3 rounded-2xl border border-white/15 bg-white/10 p-4 text-sm font-bold leading-6 text-white">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />{feature}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="min-w-0 rounded-[2.5rem] border border-white/20 bg-slate-950 p-7 shadow-2xl sm:p-9">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Growth Partner</p>
+            <p className="mt-5 break-words text-4xl font-black tracking-tight text-white sm:text-5xl">
+              {growthPartnerMonthlyLabel}<span className="text-base text-slate-400"> / month</span>
+            </p>
+            {Number(growthPartnerPrice?.setupFee || 0) > 0 && <p className="mt-3 text-sm font-bold text-slate-300">Plus {growthPartnerSetupLabel} onboarding.</p>}
+            <p className="mt-5 rounded-2xl bg-white/10 p-4 text-sm font-semibold leading-6 text-slate-200">
+              Premium scope and commercial fit are confirmed during a consultation. This is not the default starting option for most businesses.
+            </p>
+            <Button
+              onClick={() => {
+                localStorage.setItem("bt_offer_intent", JSON.stringify({ productSlug: growthPartner.slug, market: commercialMarket, currency: growthPartnerPrice?.currency, savedAt: new Date().toISOString() }));
+                trackAndNavigate(`/book-demo?product=${growthPartner.slug}&market=${commercialMarket}`, "Homepage Growth Partner Consultation", "click_growth_partner_home");
+              }}
+              className="mt-7 min-h-14 w-full whitespace-normal rounded-2xl bg-white px-6 py-4 text-sm font-black uppercase tracking-[0.12em] text-slate-950 shadow-xl hover:bg-indigo-100"
+            >
+              Book Growth Consultation <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </section>
 

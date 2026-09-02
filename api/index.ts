@@ -53,6 +53,16 @@ import {
   normalizePortfolioLead,
   PORTFOLIO_LEAD_MAX_BODY_BYTES,
 } from "../src/lib/portfolioLead.js";
+import {
+  buildAvailableSalesCallSlots,
+  isAllowedSalesCallSlot,
+  SALES_CALL_DURATION_MINUTES,
+  SALES_CALL_TIMEZONE,
+} from "../server/salesCallSlots.js";
+import { resolveOnboardingPlan } from "../server/onboarding.js";
+import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
+import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, suppressSalesRecipient } from "../server/salesOperations.js";
+import { parseProspectCsv } from "../src/lib/prospectImport.js";
 
 dotenv.config();
 initServerObservability();
@@ -1524,82 +1534,26 @@ async function startServer() {
 
   const publicAppUrl = () => String(process.env.APP_PUBLIC_URL || process.env.PUBLIC_APP_URL || "https://app.bennietay.com").replace(/\/+$/, "");
 
-  const classifySalesReply = (value: string) => {
-    const text = value.toLowerCase();
-    if (/unsubscribe|remove me|stop email|do not contact/.test(text)) return "unsubscribe";
-    if (/not interested|no thanks|no thank you/.test(text)) return "not_interested";
-    if (/later|next month|not now|circle back/.test(text)) return "not_now";
-    if (/price|cost|expensive|budget|already have|need to think/.test(text)) return "objection";
-    if (/how|what|when|where|which|\?/.test(text)) return "question";
-    if (/interested|yes|book|call|show me|send it/.test(text)) return "interested";
-    return "unknown";
-  };
-
-  const processDueSalesMessages = async (limit = 40) => {
-    const now = new Date().toISOString();
-    const { data: messages, error } = await supabaseAdmin
-      .from("sales_messages")
-      .select("*, outreach_enrollments(status)")
-      .in("status", ["approved", "queued"])
-      .lte("scheduled_at", now)
-      .eq("direction", "outbound")
-      .order("scheduled_at", { ascending: true })
-      .limit(limit);
-    if (error) throw error;
-
-    let sent = 0;
-    let suppressed = 0;
-    let failed = 0;
-    let deliveryBlocked = 0;
-    for (const message of messages || []) {
-      if (message.enrollment_id && message.outreach_enrollments?.status !== "active") continue;
-      if (message.enrollment_id) {
-        const stepOrder = Number(message.provider_payload?.stepOrder || 0);
-        const { data: earlier } = await supabaseAdmin.from("sales_messages").select("id,status,provider_payload").eq("enrollment_id", message.enrollment_id).eq("direction", "outbound");
-        const waitingForEarlierStep = (earlier || []).some((item) => Number(item.provider_payload?.stepOrder || 0) < stepOrder && !["sent","delivered","opened","clicked","replied"].includes(item.status));
-        if (waitingForEarlierStep) continue;
-      }
-      const recipient = String(message.recipient || "").trim().toLowerCase();
-      if (!recipient || !EMAIL_SCHEMA.safeParse(recipient).success || message.channel !== "email") {
-        await supabaseAdmin.from("sales_messages").update({ status: "failed", error: "A valid email recipient is required", updated_at: now }).eq("id", message.id);
-        failed += 1;
-        continue;
-      }
-      const { data: suppression } = await supabaseAdmin.from("sales_suppressions").select("id").ilike("email", recipient).limit(1).maybeSingle();
-      if (suppression) {
-        await supabaseAdmin.from("sales_messages").update({ status: "suppressed", error: "Recipient is on the suppression list", updated_at: now }).eq("id", message.id);
-        suppressed += 1;
-        continue;
-      }
-      await supabaseAdmin.from("sales_messages").update({ status: "sending", updated_at: now }).eq("id", message.id).in("status", ["approved", "queued"]);
-      try {
-        const unsubscribeUrl = `${publicAppUrl()}/api/public/unsubscribe/${message.unsubscribe_token}`;
-        const html = message.body_html || `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
-        const resend = getResend();
-        const { data, error: sendError } = await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "Bennie Studio <onboarding@resend.dev>",
-          to: recipient,
-          subject: message.subject || "A note from Bennie Studio",
-          html,
-          replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
-          tags: [{ name: "sales_message_id", value: message.id }],
-        }, { idempotencyKey: message.idempotency_key });
-        if (sendError) throw new Error(sendError.message);
-        await supabaseAdmin.from("sales_messages").update({ status: "sent", sent_at: now, provider_message_id: data?.id || null, error: null, updated_at: now }).eq("id", message.id);
-        if (message.enrollment_id) await supabaseAdmin.from("outreach_enrollments").update({ current_step: Number(message.provider_payload?.stepOrder || 0), updated_at: now }).eq("id", message.enrollment_id);
-        sent += 1;
-      } catch (sendError: any) {
-        if (sendError?.message === "RESEND_CONFIG_ERROR") {
-          await supabaseAdmin.from("sales_messages").update({ status: message.status, error: "Email delivery is not configured yet", updated_at: now }).eq("id", message.id);
-          deliveryBlocked += 1;
-        } else {
-          await supabaseAdmin.from("sales_messages").update({ status: "failed", error: safeErrorMessage(sendError), updated_at: now }).eq("id", message.id);
-          failed += 1;
-        }
-      }
-    }
-    return { processed: (messages || []).length, sent, suppressed, failed, deliveryBlocked };
-  };
+  const processDueSalesMessages = (limit = 40) => runSalesDelivery({
+    db: supabaseAdmin,
+    limit,
+    send: async (message) => {
+      const unsubscribeUrl = `${publicAppUrl()}/api/public/unsubscribe/${message.unsubscribe_token}`;
+      // Approved text is authoritative; a previous HTML draft must not override edits.
+      const html = `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
+      const { data, error } = await getResend().emails.send({
+        from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "Bennie Studio <onboarding@resend.dev>",
+        to: message.recipient,
+        subject: message.subject || "A note from Bennie Studio",
+        html,
+        text: `${message.body_text}\n\nStop receiving these emails: ${unsubscribeUrl}`,
+        replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
+        tags: [{ name: "sales_message_id", value: message.id }],
+      }, { idempotencyKey: message.idempotency_key });
+      if (error || !data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
+      return { id: data.id };
+    },
+  });
 
   const isPrivateAddress = (address: string) => {
     const normalized = address.replace(/^::ffff:/, "").toLowerCase();
@@ -3391,6 +3345,11 @@ async function startServer() {
 
       const referrer = String(req.get("referer") || "").slice(0, 500) || null;
       const sourcePage = leadBody.sourcePage || referrer || "/";
+      const automationSnapshot = buildInboundLeadSnapshot({
+        message: leadBody.message,
+        leadType: "portfolio_enquiry",
+        source: "portfolio",
+      });
       const notificationState = { status: "pending", attemptedAt: null as string | null };
       const rawFields = {
         industry: leadBody.industry || null,
@@ -3424,6 +3383,7 @@ async function startServer() {
             referrer,
             campaign: leadBody.utmCampaign || null,
             status: "new",
+            ...automationSnapshot,
           },
           {
             name: leadBody.name,
@@ -3491,6 +3451,16 @@ async function startServer() {
         notificationState.status = notificationStatus;
         notificationState.attemptedAt = notificationAttemptedAt;
         await supabaseAdmin.from("leads").update({ raw_fields: { ...rawFields, notification: notificationState } }).eq("id", lead.id);
+        await supabaseAdmin.from("sales_tasks").insert({
+          lead_id: lead.id,
+          title: "Respond to new portfolio enquiry",
+          task_type: "new_lead_response",
+          priority: automationSnapshot.automation_temperature === "Hot" ? "high" : "medium",
+          due_at: automationSnapshot.next_follow_up_at,
+          notes: automationSnapshot.automation_next_action,
+        }).then(({ error }) => {
+          if (error) console.warn("Portfolio lead sales task skipped:", error.message);
+        });
 
         return res.status(201).json({ success: true, submissionId: `lead_${lead.id}`, message: "Enquiry received." });
       } catch (error) {
@@ -3567,6 +3537,7 @@ async function startServer() {
         firstTouch,
         lastTouch,
       } = leadBody;
+      const automationSnapshot = buildInboundLeadSnapshot({ message, leadType, source: sourcePage, phone });
 
       const salesMessage = [
         leadType ? `Lead type: ${leadType}` : null,
@@ -3577,6 +3548,17 @@ async function startServer() {
         referralCode ? `Referral code: ${referralCode}` : null,
         message ? `Message: ${message}` : null,
       ].filter(Boolean).join("\n");
+
+      if (previewId) {
+        const { data: existingLead, error: duplicateLookupError } = await supabaseAdmin
+          .from("leads")
+          .select("id")
+          .eq("preview_id", previewId)
+          .ilike("email", email)
+          .maybeSingle();
+        if (duplicateLookupError) return res.status(503).json({ success: false, message: "Lead intake is temporarily unavailable" });
+        if (existingLead?.id) return res.status(200).json({ success: true, leadId: existingLead.id, reused: true });
+      }
 
       const payloads: Record<string, any>[] = [
         {
@@ -3612,6 +3594,7 @@ async function startServer() {
             intent: leadType || "free_website_preview",
           },
           status: "new",
+          ...automationSnapshot,
           first_touch_source: firstTouch?.sourcePage || firstTouch?.utmSource || null,
           last_touch_source: lastTouch?.sourcePage || lastTouch?.utmSource || null,
           referrer: referrer || null,
@@ -3702,7 +3685,18 @@ async function startServer() {
           if (error) console.warn("Platform lead analytics log failed:", error.message);
         });
 
-        res.json({ success: true, leadId: lead?.id });
+        await supabaseAdmin.from("sales_tasks").insert({
+          lead_id: lead?.id,
+          title: "Respond to new website enquiry",
+          task_type: "new_lead_response",
+          priority: automationSnapshot.automation_temperature === "Hot" ? "high" : "medium",
+          due_at: automationSnapshot.next_follow_up_at,
+          notes: automationSnapshot.automation_next_action,
+        }).then(({ error }) => {
+          if (error) console.warn("Platform lead sales task skipped:", error.message);
+        });
+
+        res.status(201).json({ success: true, leadId: lead?.id });
       } catch (err: any) {
         console.error("Platform lead submission error:", err);
         res.status(500).json({ success: false, message: "Failed to submit preview request" });
@@ -3896,9 +3890,10 @@ async function startServer() {
           return res.status(403).json({ error: "Forbidden: sales access required" });
         }
 
-        const { data: existingLead } = body.channel
+        const { data: existingLead, error: existingLeadError } = body.channel
           ? await supabaseAdmin.from("leads").select("first_response_at").eq("id", req.params.leadId).maybeSingle()
-          : { data: null };
+          : { data: null, error: null };
+        if (existingLeadError) throw existingLeadError;
         const updatePayload: Record<string, any> = {};
         if (body.status !== undefined) updatePayload.status = body.status;
         if (body.nextAction !== undefined) updatePayload.automation_next_action = body.nextAction;
@@ -3920,6 +3915,24 @@ async function startServer() {
 
         if (error) throw error;
         if (!data) return res.status(404).json({ error: "Lead not found" });
+        if (body.channel) {
+          const { error: taskError } = await supabaseAdmin.from("sales_tasks").update({ status: "completed", updated_at: new Date().toISOString() })
+            .eq("lead_id", data.id).eq("task_type", "new_lead_response").eq("status", "open");
+          if (taskError) throw taskError;
+        }
+        const followUpTaskId = salesRecordId(`lead-follow-up:${data.id}`);
+        if (["won", "lost", "closed"].includes(data.status) || body.nextFollowUpAt === null) {
+          const { error: taskError } = await supabaseAdmin.from("sales_tasks").update({ status: "dismissed", updated_at: new Date().toISOString() })
+            .eq("id", followUpTaskId).eq("status", "open");
+          if (taskError) throw taskError;
+        } else if (body.nextFollowUpAt !== undefined && body.nextFollowUpAt) {
+          const { error: taskError } = await supabaseAdmin.from("sales_tasks").upsert({
+            id: followUpTaskId, lead_id: data.id, title: data.automation_next_action || "Follow up with the lead",
+            task_type: "follow_up", priority: "medium", due_at: body.nextFollowUpAt,
+            status: "open", updated_at: new Date().toISOString(), metadata: { actorId: req.user.id },
+          }, { onConflict: "id" });
+          if (taskError) throw taskError;
+        }
         if (body.channel || body.note) {
           await supabaseAdmin.from("tracking_events").insert({
             event_type: body.channel ? "sales_follow_up_logged" : "sales_note_added",
@@ -4854,8 +4867,79 @@ async function startServer() {
     }
   });
 
-  // Approval-first sales automation. The cron and manual runner use the same
-  // idempotent worker so a retry cannot send the same message twice.
+  // Approval-first sales automation. Cron and manual runs share conditional
+  // database claims and provider idempotency keys; uncertain sends need review.
+  app.post("/api/admin/prospects/import", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      const body = validateBody(z.object({ csv: z.string().min(1).max(500000) }), req, res);
+      if (!body) return;
+      let parsed;
+      try { parsed = parseProspectCsv(body.csv); }
+      catch (error: any) { return res.status(400).json({ error: error.message }); }
+      const domains = new Set<string>(); const emails = new Set<string>(); const names = new Set<string>();
+      const domainKey = (value: string) => String(value || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+      // Read every page rather than silently checking only PostgREST's first 1,000 records.
+      for (let offset = 0; ; offset += 1000) {
+        if (offset >= 20000) return res.status(409).json({ error: "Large-list import needs a dedicated duplicate review before adding more prospects." });
+        const { data, error } = await supabaseAdmin.from("prospects").select("id,name,location,domain,contact_email").order("id").range(offset, offset + 999);
+        if (error) throw error;
+        for (const row of data || []) {
+          if (row.domain) domains.add(domainKey(row.domain));
+          if (row.contact_email) emails.add(row.contact_email.trim().toLowerCase());
+          names.add(`${String(row.name || "").trim().toLowerCase()}|${String(row.location || "").trim().toLowerCase()}`);
+        }
+        if ((data || []).length < 1000) break;
+      }
+      const rows = parsed.prospects.filter((row) => !(row.domain && domains.has(row.domain)) && !(row.contact_email && emails.has(row.contact_email))
+        && !names.has(`${row.name.toLowerCase()}|${(row.location || "").toLowerCase()}`));
+      if (!rows.length) return res.json({ prospects: [], imported: 0, duplicates: parsed.duplicates + parsed.prospects.length });
+      const { data, error } = await supabaseAdmin.from("prospects").insert(rows.map((row) => ({ ...row, created_by: req.user.id }))).select("*");
+      if (error) throw error;
+      return res.status(201).json({ prospects: data || [], imported: data?.length || 0, duplicates: parsed.duplicates + parsed.prospects.length - rows.length });
+    } catch {
+      return res.status(503).json({ error: "Prospect import could not be completed. Please retry; existing records will be checked again." });
+    }
+  });
+
+  app.post("/api/admin/prospects/:prospectId/outreach", authenticate, async (req: any, res) => {
+    if (!UUID_SCHEMA.safeParse(req.params.prospectId).success) return res.status(400).json({ error: "Invalid prospect ID" });
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      const body = validateBody(z.object({
+        action: z.enum(["prepare", "contacted"]), channel: z.enum(["email", "whatsapp"]),
+        observation: z.string().trim().min(10).max(1000), bodyText: z.string().trim().min(1).max(10000), requestId: UUID_SCHEMA,
+      }), req, res);
+      if (!body) return;
+      return res.json(await saveManualOutreach(supabaseAdmin, { ...body, prospectId: req.params.prospectId, actorId: req.user.id }, new Date().toISOString()));
+    } catch (error: any) {
+      const errors: Record<string, string> = {
+        CONTACT_NOT_FOUND: "Prospect not found", CONTACT_CLOSED: "This prospect is closed; do not restart outreach automatically.",
+        CONTACT_SUPPRESSED: "This contact has opted out or is suppressed.", CONTACT_CHANNEL_MISSING: "Add a valid contact for this channel.",
+        OUTREACH_REQUEST_CONFLICT: "This outreach confirmation belongs to another prospect.",
+      };
+      return res.status(errors[error?.message] ? 409 : 503).json({ error: errors[error?.message] || "Outreach could not be saved. No message was sent by the app." });
+    }
+  });
+
+  app.patch("/api/admin/sales-automation/bookings/:bookingId", authenticate, async (req: any, res) => {
+    if (!UUID_SCHEMA.safeParse(req.params.bookingId).success) return res.status(400).json({ error: "Invalid booking ID" });
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      const body = validateBody(z.object({
+        status: z.enum(["booked", "completed", "no_show", "cancelled"]).optional(),
+        outcome: z.string().trim().max(5000).optional(), nextAction: z.string().trim().max(1000).optional(),
+      }).refine((value) => Object.values(value).some((item) => item !== undefined)), req, res);
+      if (!body) return;
+      return res.json({ booking: await saveSalesCallOutcome(supabaseAdmin, req.params.bookingId, body, new Date().toISOString()) });
+    } catch (error: any) {
+      return res.status(error?.message === "BOOKING_NOT_FOUND" ? 404 : 503).json({ error: "Call outcome could not be saved. Please retry." });
+    }
+  });
+
   app.get("/api/cron/sales-automation", async (req, res) => {
     const cronSecret = process.env.CRON_SECRET;
     if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) return res.status(401).json({ error: "Unauthorized" });
@@ -4870,10 +4954,10 @@ async function startServer() {
   app.post("/api/admin/sales-automation/run", authenticate, async (req: any, res) => {
     try {
       const profile = await getProfileForUser(req.user.id);
-      if (!canManageLeadInbox(profile)) return res.status(403).json({ error: "Sales access required" });
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
       return res.json({ success: true, ...(await processDueSalesMessages()) });
     } catch (error) {
-      return res.status(500).json({ error: safeErrorMessage(error) });
+      return res.status(503).json({ error: "Sales operation could not be completed. Please retry." });
     }
   });
 
@@ -4881,7 +4965,7 @@ async function startServer() {
     if (!UUID_SCHEMA.safeParse(req.params.messageId).success) return res.status(400).json({ error: "Invalid message ID" });
     try {
       const profile = await getProfileForUser(req.user.id);
-      if (!canManageLeadInbox(profile)) return res.status(403).json({ error: "Sales access required" });
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
       const body = validateBody(z.object({ subject: z.string().trim().max(160).optional(), bodyText: z.string().trim().min(1).max(10000).optional(), sendNow: z.boolean().optional() }), req, res);
       if (!body) return;
       const updates: Record<string, any> = { status: "approved", updated_at: new Date().toISOString() };
@@ -4893,43 +4977,49 @@ async function startServer() {
       if (!data) return res.status(409).json({ error: "Only draft messages can be approved" });
       return res.json({ message: data });
     } catch (error) {
-      return res.status(500).json({ error: safeErrorMessage(error) });
+      return res.status(503).json({ error: "Sales operation could not be completed. Please retry." });
     }
   });
 
   app.post("/api/admin/sales-automation/enroll", authenticate, async (req: any, res) => {
     try {
       const profile = await getProfileForUser(req.user.id);
-      if (!canManageLeadInbox(profile)) return res.status(403).json({ error: "Sales access required" });
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
       const body = validateBody(z.object({
         sequenceId: UUID_SCHEMA,
         leadId: UUID_SCHEMA.optional(),
         prospectId: UUID_SCHEMA.optional(),
-        observation: z.string().trim().max(1000).optional(),
+        observation: z.string().trim().min(10, "Add a specific verified observation").max(1000),
       }).refine((value) => Boolean(value.leadId) !== Boolean(value.prospectId), { message: "Choose one lead or prospect" }), req, res);
       if (!body) return;
       const { data: sequence, error: sequenceError } = await supabaseAdmin.from("outreach_sequences").select("*, outreach_sequence_steps(*)").eq("id", body.sequenceId).single();
       if (sequenceError || !sequence) return res.status(404).json({ error: "Sequence not found" });
       if (sequence.status !== "active") return res.status(409).json({ error: "Activate the sequence before enrolling contacts" });
       const enrollmentFilter = body.leadId ? { lead_id: body.leadId } : { prospect_id: body.prospectId };
-      const { data: existingEnrollment } = await supabaseAdmin.from("outreach_enrollments").select("id").eq("sequence_id", sequence.id).match(enrollmentFilter).in("status", ["pending", "active", "paused"]).limit(1).maybeSingle();
-      if (existingEnrollment) return res.status(409).json({ error: "This contact is already enrolled in the sequence" });
+      const { data: existingEnrollment, error: existingEnrollmentError } = await supabaseAdmin.from("outreach_enrollments").select("id,sequence_id").match(enrollmentFilter).in("status", ["pending", "active", "paused"]).limit(1).maybeSingle();
+      if (existingEnrollmentError) throw existingEnrollmentError;
+      if (existingEnrollment) return res.status(409).json({ error: "This contact already has an active outreach sequence" });
       const table = body.leadId ? "leads" : "prospects";
       const entityId = body.leadId || body.prospectId;
       const { data: entity, error: entityError } = await supabaseAdmin.from(table).select("*").eq("id", entityId).single();
       if (entityError || !entity) return res.status(404).json({ error: "Contact not found" });
-      const recipient = String(entity.email || entity.contact_email || "").trim().toLowerCase();
+      const recipient = normalizeSalesEmail(entity.email || entity.contact_email);
       if (!EMAIL_SCHEMA.safeParse(recipient).success) return res.status(400).json({ error: "Contact has no valid email" });
-      const { data: suppression } = await supabaseAdmin.from("sales_suppressions").select("id").ilike("email", recipient).maybeSingle();
-      if (suppression) return res.status(409).json({ error: "This contact is suppressed" });
+      if (await isSalesSuppressed(supabaseAdmin, recipient)) return res.status(409).json({ error: "This contact is suppressed" });
+      if ([entity.status, entity.outreach_status].some((status) => ["won", "lost", "closed", "converted", "paid", "meeting", "call_booked", "appointment_booked", "replied"].includes(String(status).toLowerCase()))) {
+        return res.status(409).json({ error: "This contact has replied, is closed or has a booked call. Use a personal follow-up." });
+      }
+      const steps = [...(sequence.outreach_sequence_steps || [])].sort((a: any, b: any) => a.step_order - b.step_order);
+      if (!steps.length || steps.some((step: any) => step.channel !== "email" || !String(step.body_template || "").trim())) {
+        return res.status(409).json({ error: "The sequence needs valid email steps before enrolment. WhatsApp remains manual." });
+      }
       const startAt = new Date();
-      const { data: enrollment, error: enrollmentError } = await supabaseAdmin.from("outreach_enrollments").insert({ sequence_id: sequence.id, lead_id: body.leadId || null, prospect_id: body.prospectId || null, status: "active", current_step: 0, next_run_at: startAt.toISOString(), metadata: { observation: body.observation || null } }).select("*").single();
+      const { data: enrollment, error: enrollmentError } = await supabaseAdmin.from("outreach_enrollments").insert({ sequence_id: sequence.id, lead_id: body.leadId || null, prospect_id: body.prospectId || null, status: "pending", current_step: 0, next_run_at: startAt.toISOString(), metadata: { observation: body.observation, createdBy: req.user.id } }).select("*").single();
       if (enrollmentError) throw enrollmentError;
       const rawFields = entity.raw_fields || {};
       const businessName = entity.business_name || entity.company_name || rawFields.businessName || rawFields.companyName || entity.name || "your business";
       const firstName = String(entity.name || "there").trim().split(/\s+/)[0];
-      const values: Record<string, string> = { business_name: businessName, first_name: firstName, observation: body.observation || "the primary enquiry action is not immediately clear" };
-      const steps = [...(sequence.outreach_sequence_steps || [])].sort((a: any, b: any) => a.step_order - b.step_order);
+      const values: Record<string, string> = { business_name: businessName, first_name: firstName, observation: body.observation };
       let elapsedHours = 0;
       const rows = steps.map((step: any, index: number) => {
         elapsedHours += Number(step.delay_hours || 0);
@@ -4942,37 +5032,43 @@ async function startServer() {
           channel: step.channel,
           subject: render(step.subject_template || "A note from Bennie Studio"),
           body_text: render(step.body_template),
-          status: step.requires_approval || (index === 0 && sequence.requires_first_step_approval) ? "draft" : "queued",
+          status: step.requires_approval || index === 0 ? "draft" : "queued",
           scheduled_at: new Date(startAt.getTime() + elapsedHours * 3600000).toISOString(),
-          provider_payload: { sequenceId: sequence.id, stepId: step.id, stepOrder: step.step_order, stopOnReply: step.stop_on_reply },
+          provider_payload: { sequenceId: sequence.id, stepId: step.id, stepOrder: step.step_order, delayHours: step.delay_hours, stopOnReply: true },
         };
       });
       const { data: messages, error: messageError } = await supabaseAdmin.from("sales_messages").insert(rows).select("*");
-      if (messageError) throw messageError;
+      if (messageError) {
+        await supabaseAdmin.from("outreach_enrollments").update({ status: "stopped", stop_reason: "Draft creation failed; safe to enrol again", next_run_at: null }).eq("id", enrollment.id).eq("status", "pending");
+        throw messageError;
+      }
+      const { error: activationError } = await supabaseAdmin.from("outreach_enrollments").update({ status: "active" }).eq("id", enrollment.id).eq("status", "pending");
+      if (activationError) throw activationError;
       await supabaseAdmin.from("deal_stage_events").insert({ lead_id: body.leadId || null, prospect_id: body.prospectId || null, to_stage: "sequence_enrolled", event_type: "automation_enrolled", metadata: { sequenceId: sequence.id } });
-      return res.json({ enrollment, messages: messages || [] });
+      return res.json({ enrollment: { ...enrollment, status: "active" }, messages: messages || [] });
     } catch (error) {
-      return res.status(500).json({ error: safeErrorMessage(error) });
+      return res.status(503).json({ error: "Sales operation could not be completed. Please retry." });
     }
   });
 
   app.get("/api/public/unsubscribe/:token", async (req, res) => {
     if (!UUID_SCHEMA.safeParse(req.params.token).success) return res.status(400).send("Invalid unsubscribe link");
-    const { data: message } = await supabaseAdmin.from("sales_messages").select("id,recipient,enrollment_id").eq("unsubscribe_token", req.params.token).maybeSingle();
-    if (message?.recipient) {
-      await supabaseAdmin.from("sales_suppressions").upsert({ email: String(message.recipient).toLowerCase(), reason: "opt_out", source: "email_unsubscribe" }, { onConflict: "email" });
-      await supabaseAdmin.from("sales_messages").update({ status: "suppressed", updated_at: new Date().toISOString() }).eq("recipient", message.recipient).in("status", ["draft", "approved", "queued"]);
-      if (message.enrollment_id) await supabaseAdmin.from("outreach_enrollments").update({ status: "stopped", stop_reason: "Recipient unsubscribed", updated_at: new Date().toISOString() }).eq("id", message.enrollment_id);
+    try {
+      const { data: message, error } = await supabaseAdmin.from("sales_messages").select("recipient").eq("unsubscribe_token", req.params.token).maybeSingle();
+      if (error) throw error;
+      if (message?.recipient) await suppressSalesRecipient(supabaseAdmin, message.recipient, "opt_out", "email_unsubscribe", new Date().toISOString());
+      return res.type("html").send("<!doctype html><html><body style='font-family:system-ui;background:#f8fafc;color:#0f172a;padding:60px'><main style='max-width:560px;margin:auto;background:white;padding:40px;border-radius:24px'><h1>You have been unsubscribed.</h1><p>Bennie Studio will not send further sales follow-ups to this address.</p></main></body></html>");
+    } catch {
+      return res.status(503).type("text").send("We could not save your request. Please retry this link.");
     }
-    return res.type("html").send("<!doctype html><html><body style='font-family:system-ui;background:#f8fafc;color:#0f172a;padding:60px'><main style='max-width:560px;margin:auto;background:white;padding:40px;border-radius:24px'><h1>You have been unsubscribed.</h1><p>Bennie Studio will not send further sales follow-ups to this address.</p></main></body></html>");
   });
 
   app.post("/api/webhooks/resend", async (req: any, res) => {
     const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
     if (!webhookSecret) return res.status(503).json({ error: "Webhook is not configured" });
+    let event: any;
     try {
-      const resend = getResend();
-      const event: any = resend.webhooks.verify({
+      event = getResend().webhooks.verify({
         payload: req.rawBody?.toString("utf8") || JSON.stringify(req.body),
         headers: {
           id: String(req.headers["svix-id"] || req.headers["webhook-id"] || ""),
@@ -4981,47 +5077,39 @@ async function startServer() {
         },
         webhookSecret,
       });
-      const providerId = event?.data?.email_id;
-      const statusMap: Record<string, string> = { "email.sent": "sent", "email.delivered": "delivered", "email.opened": "opened", "email.clicked": "clicked", "email.bounced": "bounced", "email.complained": "complained", "email.suppressed": "suppressed", "email.failed": "failed" };
-      if (providerId && statusMap[event.type]) {
-        const { data: message } = await supabaseAdmin.from("sales_messages").update({ status: statusMap[event.type], provider_payload: event, updated_at: new Date().toISOString() }).eq("provider_message_id", providerId).select("*").maybeSingle();
-        if (message && ["bounced", "complained", "suppressed"].includes(statusMap[event.type])) await supabaseAdmin.from("sales_suppressions").upsert({ email: message.recipient, reason: statusMap[event.type] === "suppressed" ? "bounced" : statusMap[event.type], source: "resend_webhook" }, { onConflict: "email" });
-      }
-      if (event.type === "email.received" && providerId) {
-        const received: any = await resend.emails.receiving.get(providerId);
-        const bodyText = received?.data?.text || received?.data?.html?.replace(/<[^>]+>/g, " ") || "Inbound reply received";
-        const sender = String(event.data.from || "").toLowerCase();
-        const { data: prior } = await supabaseAdmin.from("sales_messages").select("*").eq("recipient", sender).eq("direction", "outbound").order("sent_at", { ascending: false }).limit(1).maybeSingle();
-        const classification = classifySalesReply(bodyText);
-        await supabaseAdmin.from("sales_messages").insert({ enrollment_id: prior?.enrollment_id || null, prospect_id: prior?.prospect_id || null, lead_id: prior?.lead_id || null, direction: "inbound", channel: "email", recipient: sender, subject: event.data.subject || "Reply", body_text: bodyText, status: "replied", sent_at: event.created_at, provider_message_id: providerId, reply_to_message_id: prior?.id || null, classification, provider_payload: event });
-        if (prior?.enrollment_id) await supabaseAdmin.from("outreach_enrollments").update({ status: "stopped", stop_reason: "Reply received", updated_at: new Date().toISOString() }).eq("id", prior.enrollment_id);
-        if (classification === "unsubscribe") await supabaseAdmin.from("sales_suppressions").upsert({ email: sender, reason: "opt_out", source: "reply_classification" }, { onConflict: "email" });
-        await supabaseAdmin.from("sales_tasks").insert({ prospect_id: prior?.prospect_id || null, lead_id: prior?.lead_id || null, title: classification === "objection" ? "Review objection and approve a personal reply" : "Reply personally to the prospect", task_type: "reply", priority: "high", due_at: new Date().toISOString(), metadata: { classification, messageId: providerId } });
+    } catch {
+      return res.status(400).json({ error: "Invalid webhook" });
+    }
+    try {
+      const now = new Date().toISOString();
+      if (event.type === "email.received") {
+        await recordSalesReply(supabaseAdmin, event, async () => {
+          // Sending-only keys cannot read incoming email. Keep the optional receiving
+          // credential server-side; never silently replace a failed read with fake text.
+          const receiver = process.env.RESEND_RECEIVING_API_KEY ? new Resend(process.env.RESEND_RECEIVING_API_KEY) : getResend();
+          const received = await receiver.emails.receiving.get(event.data.email_id);
+          if (received.error || !received.data) throw new Error("REPLY_RETRIEVAL_UNAVAILABLE");
+          return received.data.text || received.data.html?.replace(/<[^>]+>/g, " ") || "";
+        }, now);
+      } else {
+        await recordSalesDeliveryEvent(supabaseAdmin, event, now);
       }
       return res.json({ received: true });
-    } catch (error) {
-      console.error("Resend webhook verification failed:", error);
-      return res.status(400).json({ error: "Invalid webhook" });
+    } catch {
+      // A valid event whose storage/read failed must be retried by the provider.
+      structuredLog("warn", "sales_webhook_processing_failed", { type: event.type });
+      return res.status(503).json({ error: "Email event could not be processed. Please retry." });
     }
   });
 
-  app.get("/api/public/call-availability", async (_req, res) => {
+  app.get("/api/public/call-availability", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "call-availability" }), async (_req, res) => {
     const now = new Date();
     const end = new Date(now.getTime() + 15 * 86400000);
-    const { data: existing } = await supabaseAdmin.from("sales_call_bookings").select("start_at").eq("status", "booked").gte("start_at", now.toISOString()).lte("start_at", end.toISOString());
-    const occupied = new Set((existing || []).map((item) => new Date(item.start_at).toISOString()));
-    const slots: string[] = [];
-    const malaysiaNow = new Date(now.getTime() + 8 * 3600000);
-    for (let dayOffset = 1; dayOffset <= 14 && slots.length < 18; dayOffset += 1) {
-      const calendarDay = new Date(Date.UTC(malaysiaNow.getUTCFullYear(), malaysiaNow.getUTCMonth(), malaysiaNow.getUTCDate() + dayOffset));
-      if (calendarDay.getUTCDay() === 0 || calendarDay.getUTCDay() === 6) continue;
-      const datePart = `${calendarDay.getUTCFullYear()}-${String(calendarDay.getUTCMonth() + 1).padStart(2, "0")}-${String(calendarDay.getUTCDate()).padStart(2, "0")}`;
-      for (const hour of [10, 14, 16]) {
-        const slot = new Date(`${datePart}T${String(hour).padStart(2, "0")}:00:00+08:00`);
-        if (!occupied.has(slot.toISOString())) slots.push(slot.toISOString());
-      }
-    }
-    return res.json({ slots, timezone: "Asia/Kuala_Lumpur", durationMinutes: 30 });
+    const { data: existing, error } = await supabaseAdmin.from("sales_call_bookings").select("start_at").eq("status", "booked").gte("start_at", now.toISOString()).lte("start_at", end.toISOString());
+    if (error) return res.status(503).json({ error: "Call availability is temporarily unavailable" });
+    const slots = buildAvailableSalesCallSlots(now, (existing || []).map((item) => item.start_at));
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({ slots, timezone: SALES_CALL_TIMEZONE, durationMinutes: SALES_CALL_DURATION_MINUTES });
   });
 
   app.get("/api/public/pricing", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-pricing" }), async (req, res) => {
@@ -5030,6 +5118,9 @@ async function startServer() {
       .from("commercial_products")
       .select("id,slug,name,description,product_type,sales_motion,includes_product_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,active,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id)")
       .eq("active", true)
+      // Custom Website is quote-led but still belongs in the public catalogue
+      // so acquisition pages can route visitors to the correct consultation path.
+      .in("slug", ["managed-website", "website-growth", "growth-partner", "custom-website"])
       .eq("commercial_market_prices.market", market)
       .eq("commercial_market_prices.active", true)
       .order("sort_order", { ascending: true });
@@ -5180,22 +5271,28 @@ async function startServer() {
   });
 
   app.post("/api/public/call-bookings", rateLimit({ windowMs: 60 * 1000, max: 8, keyPrefix: "call-bookings" }), async (req, res) => {
-    const body = validateBody(z.object({ leadId: UUID_SCHEMA.optional(), name: TEXT_SCHEMA, email: EMAIL_SCHEMA, phone: z.string().max(80).optional(), businessName: TEXT_SCHEMA, market: z.string().max(20).optional(), industry: z.string().max(160).optional(), websiteUrl: z.string().max(500).optional(), startAt: z.string().datetime(), timezone: z.string().max(80).default("Asia/Kuala_Lumpur"), goals: z.string().max(2000).optional() }), req, res);
+    const body = validateBody(z.object({ leadId: UUID_SCHEMA.optional(), name: TEXT_SCHEMA, email: EMAIL_SCHEMA, phone: z.string().max(80).optional(), businessName: TEXT_SCHEMA, market: z.enum(["MY", "SG", "GB", "US"]).optional(), industry: z.string().max(160).optional(), websiteUrl: z.string().url().max(500).optional(), startAt: z.string().datetime(), timezone: z.literal(SALES_CALL_TIMEZONE).default(SALES_CALL_TIMEZONE), goals: z.string().max(2000).optional(), previewId: z.string().trim().max(160).optional(), selectedProduct: z.enum(["managed-website", "website-growth", "growth-partner"]).optional(), sourcePage: z.string().trim().max(500).optional() }), req, res);
     if (!body) return;
     const startAt = new Date(body.startAt);
     if (startAt <= new Date() || startAt > new Date(Date.now() + 15 * 86400000)) return res.status(400).json({ error: "Choose an available time in the next 14 days" });
-    const endAt = new Date(startAt.getTime() + 30 * 60000);
+    if (!isAllowedSalesCallSlot(startAt)) return res.status(400).json({ error: "Choose one of the published call times" });
+    if (body.leadId) {
+      const { data: lead, error: leadError } = await supabaseAdmin.from("leads").select("id,email").eq("id", body.leadId).maybeSingle();
+      if (leadError || !lead || String(lead.email || "").toLowerCase() !== body.email.toLowerCase()) return res.status(400).json({ error: "The lead reference is not valid for this booking" });
+    }
+    const endAt = new Date(startAt.getTime() + SALES_CALL_DURATION_MINUTES * 60000);
     const { data: conflict } = await supabaseAdmin.from("sales_call_bookings").select("id").eq("status", "booked").lt("start_at", endAt.toISOString()).gt("end_at", startAt.toISOString()).maybeSingle();
     if (conflict) return res.status(409).json({ error: "That time was just booked. Please choose another." });
-    const { data: booking, error } = await supabaseAdmin.from("sales_call_bookings").insert({ lead_id: body.leadId || null, name: body.name, email: body.email, phone: body.phone || null, business_name: body.businessName, market: body.market || null, industry: body.industry || null, website_url: body.websiteUrl || null, start_at: startAt.toISOString(), end_at: endAt.toISOString(), timezone: body.timezone, goals: body.goals || null }).select("*").single();
+    const { data: booking, error } = await supabaseAdmin.from("sales_call_bookings").insert({ lead_id: body.leadId || null, name: body.name, email: body.email, phone: body.phone || null, business_name: body.businessName, market: body.market || null, industry: body.industry || null, website_url: body.websiteUrl || null, start_at: startAt.toISOString(), end_at: endAt.toISOString(), timezone: body.timezone, goals: body.goals || null, metadata: { previewId: body.previewId || null, selectedProduct: body.selectedProduct || "managed-website", sourcePage: body.sourcePage || "/book-demo" } }).select("*").single();
+    if (error?.code === "23505") return res.status(409).json({ error: "That time was just booked. Please choose another." });
     if (error) return res.status(500).json({ error: "Booking could not be saved" });
     if (body.leadId) await supabaseAdmin.from("leads").update({ status: "meeting", automation_next_action: "Prepare for confirmed growth call", next_follow_up_at: startAt.toISOString() }).eq("id", body.leadId);
     await supabaseAdmin.from("sales_tasks").insert({ lead_id: body.leadId || null, title: `Prepare for call with ${body.businessName}`, task_type: "call_prep", priority: "high", due_at: new Date(startAt.getTime() - 24 * 3600000).toISOString(), metadata: { bookingId: booking.id } });
     const formattedSlot = new Intl.DateTimeFormat("en", { dateStyle: "full", timeStyle: "short", timeZone: body.timezone }).format(startAt);
     const reminderLeadTime = startAt.getTime() - Date.now() > 26 * 3600000 ? 24 * 3600000 : 2 * 3600000;
     await supabaseAdmin.from("sales_messages").insert([
-      { lead_id: body.leadId || null, recipient: body.email.toLowerCase(), channel: "email", subject: `Confirmed: Bennie Studio website growth call`, body_text: `Hi ${body.name.split(/\s+/)[0]},\n\nYour 30-minute website growth call for ${body.businessName} is confirmed for ${formattedSlot} (${body.timezone}).\n\nI will review the context you shared before the call. If your priorities change, reply to this email so I can prepare around the right goal.\n\nReschedule or cancel: ${publicAppUrl()}/manage-call/${booking.confirmation_token}\n\nBennie`, status: "queued", scheduled_at: new Date().toISOString(), provider_payload: { bookingId: booking.id, messageType: "booking_confirmation" } },
-      { lead_id: body.leadId || null, recipient: body.email.toLowerCase(), channel: "email", subject: `Reminder: upcoming website growth call`, body_text: `Hi ${body.name.split(/\s+/)[0]},\n\nA quick reminder that our website growth call for ${body.businessName} is scheduled for ${formattedSlot} (${body.timezone}).\n\nPlease reply if there is a specific service, offer, or enquiry problem you want me to prioritise.\n\nBennie`, status: "queued", scheduled_at: new Date(startAt.getTime() - reminderLeadTime).toISOString(), provider_payload: { bookingId: booking.id, messageType: "booking_reminder" } },
+      { lead_id: body.leadId || null, recipient: body.email.toLowerCase(), channel: "email", subject: `Confirmed: Bennie Studio website review`, body_text: `Hi ${body.name.split(/\s+/)[0]},\n\nYour 30-minute managed website review for ${body.businessName} is confirmed for ${formattedSlot} (${body.timezone}).\n\nI will review the context you shared before the call. If your priorities change, reply to this email so I can prepare around the right goal.\n\nReschedule or cancel: ${publicAppUrl()}/manage-call/${booking.confirmation_token}\n\nBennie`, status: "queued", scheduled_at: new Date().toISOString(), provider_payload: { bookingId: booking.id, messageType: "booking_confirmation" } },
+      { lead_id: body.leadId || null, recipient: body.email.toLowerCase(), channel: "email", subject: `Reminder: upcoming website review`, body_text: `Hi ${body.name.split(/\s+/)[0]},\n\nA quick reminder that our managed website review for ${body.businessName} is scheduled for ${formattedSlot} (${body.timezone}).\n\nPlease reply if there is a specific service, offer, or enquiry problem you want me to prioritise.\n\nBennie`, status: "queued", scheduled_at: new Date(startAt.getTime() - reminderLeadTime).toISOString(), provider_payload: { bookingId: booking.id, messageType: "booking_reminder" } },
     ]);
     void processDueSalesMessages(10).catch((sendError) => console.warn("Booking confirmation will retry on cron:", safeErrorMessage(sendError)));
     return res.status(201).json({ booking, manageUrl: `${publicAppUrl()}/manage-call/${booking.confirmation_token}` });
@@ -5215,18 +5312,20 @@ async function startServer() {
     const startAt = new Date(body.startAt);
     const endAt = new Date(startAt.getTime() + 30 * 60000);
     if (startAt <= new Date() || startAt > new Date(Date.now() + 15 * 86400000)) return res.status(400).json({ error: "Choose an available time in the next 14 days" });
+    if (!isAllowedSalesCallSlot(startAt)) return res.status(400).json({ error: "Choose one of the published call times" });
     const { data: booking } = await supabaseAdmin.from("sales_call_bookings").select("*").eq("confirmation_token", req.params.token).maybeSingle();
     if (!booking || booking.status === "cancelled") return res.status(404).json({ error: "Active booking not found" });
     const { data: conflict } = await supabaseAdmin.from("sales_call_bookings").select("id").neq("id", booking.id).eq("status", "booked").lt("start_at", endAt.toISOString()).gt("end_at", startAt.toISOString()).maybeSingle();
     if (conflict) return res.status(409).json({ error: "That time was just booked. Please choose another." });
     const { data: updated, error } = await supabaseAdmin.from("sales_call_bookings").update({ start_at: startAt.toISOString(), end_at: endAt.toISOString(), status: "booked", updated_at: new Date().toISOString() }).eq("id", booking.id).select("*").single();
+    if (error?.code === "23505") return res.status(409).json({ error: "That time was just booked. Please choose another." });
     if (error) return res.status(500).json({ error: "Booking could not be rescheduled" });
     await supabaseAdmin.from("sales_messages").update({ status: "cancelled", updated_at: new Date().toISOString() }).contains("provider_payload", { bookingId: booking.id }).in("status", ["queued", "approved"]);
     const formattedSlot = new Intl.DateTimeFormat("en", { dateStyle: "full", timeStyle: "short", timeZone: booking.timezone }).format(startAt);
     const reminderLeadTime = startAt.getTime() - Date.now() > 26 * 3600000 ? 24 * 3600000 : 2 * 3600000;
     await supabaseAdmin.from("sales_messages").insert([
-      { lead_id: booking.lead_id || null, recipient: booking.email.toLowerCase(), channel: "email", subject: "Updated: Bennie Studio website growth call", body_text: `Hi ${booking.name.split(/\s+/)[0]},\n\nYour website growth call for ${booking.business_name} has been moved to ${formattedSlot} (${booking.timezone}).\n\nBennie`, status: "queued", scheduled_at: new Date().toISOString(), provider_payload: { bookingId: booking.id, messageType: "reschedule_confirmation" } },
-      { lead_id: booking.lead_id || null, recipient: booking.email.toLowerCase(), channel: "email", subject: "Reminder: upcoming website growth call", body_text: `Hi ${booking.name.split(/\s+/)[0]},\n\nA quick reminder that our website growth call for ${booking.business_name} is scheduled for ${formattedSlot} (${booking.timezone}).\n\nPlease reply if there is a specific service, offer, or enquiry problem you want me to prioritise.\n\nBennie`, status: "queued", scheduled_at: new Date(startAt.getTime() - reminderLeadTime).toISOString(), provider_payload: { bookingId: booking.id, messageType: "booking_reminder" } },
+      { lead_id: booking.lead_id || null, recipient: booking.email.toLowerCase(), channel: "email", subject: "Updated: Bennie Studio website review", body_text: `Hi ${booking.name.split(/\s+/)[0]},\n\nYour managed website review for ${booking.business_name} has been moved to ${formattedSlot} (${booking.timezone}).\n\nBennie`, status: "queued", scheduled_at: new Date().toISOString(), provider_payload: { bookingId: booking.id, messageType: "reschedule_confirmation" } },
+      { lead_id: booking.lead_id || null, recipient: booking.email.toLowerCase(), channel: "email", subject: "Reminder: upcoming website review", body_text: `Hi ${booking.name.split(/\s+/)[0]},\n\nA quick reminder that our managed website review for ${booking.business_name} is scheduled for ${formattedSlot} (${booking.timezone}).\n\nPlease reply if there is a specific service, offer, or enquiry problem you want me to prioritise.\n\nBennie`, status: "queued", scheduled_at: new Date(startAt.getTime() - reminderLeadTime).toISOString(), provider_payload: { bookingId: booking.id, messageType: "booking_reminder" } },
     ]);
     if (booking.lead_id) await supabaseAdmin.from("leads").update({ status: "meeting", next_follow_up_at: startAt.toISOString(), automation_next_action: "Prepare for rescheduled growth call" }).eq("id", booking.lead_id);
     void processDueSalesMessages(10).catch(() => undefined);
@@ -5282,10 +5381,11 @@ async function startServer() {
 
       if (error) {
         console.error("Resend API Error:", error);
-        return res.status(error.statusCode || 400).json({
-          error: error.name || "RESEND_ERROR",
-          message: error.message,
-          details: error
+        // Provider responses can contain account, domain and request details.
+        // Keep those in server logs only; clients receive a stable generic error.
+        return res.status(502).json({
+          error: "EMAIL_PROVIDER_ERROR",
+          message: "Email could not be sent. Please try again.",
         });
       }
 
@@ -5300,7 +5400,7 @@ async function startServer() {
       }
       res.status(500).json({ 
         error: "Failed to send email",
-        message: safeErrorMessage(error)
+        message: "Email could not be sent. Please try again."
       });
     }
   });
@@ -5865,13 +5965,14 @@ async function startServer() {
       const body = validateBody(z.object({ businessId: UUID_SCHEMA, websiteId: UUID_SCHEMA, planId: z.string().trim().min(1).max(80), proposalId: UUID_SCHEMA.optional().nullable() }), req, res);
       if (!body) return;
       try {
-	        let effectivePlanId = body.planId;
-	        await assertBusinessAccess(req.user.id, body.businessId);
-	        let { data: business } = await supabaseAdmin
-	          .from("businesses")
-	          .select("id,name,subscription_status,stripe_customer_id,stripe_subscription_id")
-	          .eq("id", body.businessId)
-	          .single();
+		        let effectivePlanId = "";
+		        await assertBusinessAccess(req.user.id, body.businessId);
+		        let { data: business } = await supabaseAdmin
+		          .from("businesses")
+		          .select("id,name,plan,subscription_status,stripe_customer_id,stripe_subscription_id")
+		          .eq("id", body.businessId)
+		          .single();
+		        effectivePlanId = String((business as any)?.plan || "").trim();
 	        if (body.proposalId) {
 	          const { data: proposal } = await supabaseAdmin
 	            .from("proposals")
@@ -5882,7 +5983,7 @@ async function startServer() {
 	          const signedInEmail = String(req.user?.email || "").trim().toLowerCase();
 	          const payment = proposal?.config?.payment;
 	          if (proposal?.status === "Accepted" && payment?.stripeSubscriptionId && buyerEmail && buyerEmail === signedInEmail) {
-	            effectivePlanId = proposal.config?.planId || "website_growth_partner";
+		            effectivePlanId = resolveOnboardingPlan({ storedPlan: (business as any)?.plan, verifiedProposalPlan: proposal.config?.planId || "website_growth_partner" });
 	            await supabaseAdmin.from("businesses").update({
 	              plan: effectivePlanId,
 	              subscription_status: "active",
@@ -5890,10 +5991,15 @@ async function startServer() {
 	              stripe_subscription_id: payment.stripeSubscriptionId,
 	            }).eq("id", body.businessId);
 	            await supabaseAdmin.from("proposals").update({ business_id: body.businessId, updated_at: new Date().toISOString() }).eq("id", proposal.id);
-	            const refreshed = await supabaseAdmin.from("businesses").select("id,name,subscription_status,stripe_customer_id,stripe_subscription_id").eq("id", body.businessId).single();
-	            business = refreshed.data;
-	          }
-	        }
+		            const refreshed = await supabaseAdmin.from("businesses").select("id,name,plan,subscription_status,stripe_customer_id,stripe_subscription_id").eq("id", body.businessId).single();
+		            business = refreshed.data;
+		          }
+		        }
+		        try {
+		          effectivePlanId = resolveOnboardingPlan({ storedPlan: effectivePlanId });
+		        } catch {
+		          return res.status(409).json({ error: "The paid product could not be resolved for onboarding.", code: "PRODUCT_NOT_RESOLVED" });
+		        }
 	        const subscriptionStatus = String((business as any)?.subscription_status || "").toLowerCase();
 	        const billingConfirmed =
 	          subscriptionStatus === "active" ||

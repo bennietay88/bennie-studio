@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Zap, Rocket } from "lucide-react";
+import { Globe2 } from "lucide-react";
 import { motion } from "motion/react";
 
 interface LoadingFallbackProps {
@@ -12,10 +12,10 @@ interface LoadingFallbackProps {
 }
 
 export const LoadingFallback: React.FC<LoadingFallbackProps> = ({
-  message = "Initializing infrastructure...",
+  message = "Preparing your page...",
 }) => {
   return (
-    <div className="flex flex-col h-screen w-full items-center justify-center bg-slate-950 text-white p-6 overflow-hidden relative">
+    <div role="status" aria-live="polite" className="flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-slate-950 p-6 text-white relative">
       {/* Background Ambience */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(79,70,229,0.1),transparent_70%)] pointer-events-none" />
       <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
@@ -35,7 +35,7 @@ export const LoadingFallback: React.FC<LoadingFallbackProps> = ({
 
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="h-16 w-16 bg-slate-900 rounded-[1.5rem] border border-white/10 flex items-center justify-center shadow-2xl">
-              <Zap className="h-8 w-8 text-indigo-500 animate-pulse" />
+              <Globe2 className="h-8 w-8 text-indigo-400" aria-hidden="true" />
             </div>
           </div>
         </div>
@@ -46,9 +46,8 @@ export const LoadingFallback: React.FC<LoadingFallbackProps> = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <h2 className="text-3xl font-black uppercase tracking-tighter leading-none mb-2">
-              Synthesizing{" "}
-              <span className="text-indigo-500 italic">Ecosystem</span>
+            <h2 className="mb-2 text-3xl font-black tracking-tight leading-none">
+              Loading <span className="text-indigo-400">Bennie Studio</span>
             </h2>
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] animate-pulse">
               {message}
@@ -70,12 +69,11 @@ export const LoadingFallback: React.FC<LoadingFallbackProps> = ({
         </div>
       </motion.div>
 
-      {/* Decorative Brand Text */}
+      {/* Brand context */}
       <div className="absolute bottom-12 left-1/2 -translate-x-1/2">
-        <div className="flex items-center gap-3 opacity-20">
-          <Rocket className="h-4 w-4" />
+        <div className="flex items-center gap-3 opacity-30">
           <span className="text-[10px] font-black uppercase tracking-[0.3em]">
-            Bennie Studio v4
+            Managed websites built around enquiries
           </span>
         </div>
       </div>

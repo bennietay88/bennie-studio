@@ -9,8 +9,8 @@ export const DEFAULT_LANDING_CONTENT = {
     headline: "Turn Reviews and Business Information Into More Enquiries",
     subheadline:
       "Turn your reviews and business information into a professionally managed website that generates more WhatsApp, call, booking and quotation enquiries.",
-    ctaPrimary: "Generate My Limited Website Preview",
-    ctaSecondary: "Request Website Review",
+    ctaPrimary: "See My Website Direction",
+    ctaSecondary: "Book 30-Minute Review",
     socialProof: {
       text: "Focused first on clinics and wellness providers, renovation and home services, and beauty salons or aesthetic services.",
       avatars: [],
@@ -55,26 +55,17 @@ export const DEFAULT_LANDING_CONTENT = {
     insights: ["Fast response", "WhatsApp-friendly", "Clear process", "Price confidence"],
   },
   launchModels: {
-    title: "Choose the Website Path That Matches Your Business",
-    subtitle: "Start with a managed lead-generation website when you need a clearer enquiry path, or request a custom website when you need deeper CMS control, content publishing, and advanced expansion.",
+    title: "One Managed Website Service, Built Around Enquiries",
+    subtitle: "Bennie Studio plans, builds, hosts and maintains the website so you can focus on the business rather than managing website software.",
     items: [
       {
-        title: "Managed Website Subscription",
+        title: "Managed Website",
         badge: "Main Offer",
         description: "A managed website built around your reviews, services, trust proof, WhatsApp CTA, quote forms, and local search-ready structure.",
         bestFor: "Best for clinics, home service businesses, and beauty or aesthetic providers that want clearer WhatsApp, booking, call, or quote enquiries.",
-        cta: "Generate Limited Preview",
+        cta: "See My Website Direction",
         href: "/generate-preview",
         features: ["Review-powered copy", "WhatsApp/contact flow", "Managed hosting", "Monthly updates", "Local SEO-ready pages"],
-      },
-      {
-        title: "Custom Website Project",
-        badge: "Premium Upgrade",
-        description: "A custom quoted website project for clients who need full CMS control, blog publishing, advanced SEO pages, ecommerce, or integrations.",
-        bestFor: "Best for content-heavy businesses, SEO expansion, custom systems, and full ownership scope.",
-        cta: "Request Website Quote",
-        href: "/apply-custom",
-        features: ["Full CMS access", "Blog/content system", "Advanced SEO pages", "Custom integrations", "Premium design"],
       },
     ],
   },
@@ -177,8 +168,8 @@ export const DEFAULT_LANDING_CONTENT = {
         icon: "Globe",
       },
       {
-        title: "Custom Website Upgrade Path",
-        description: "Move to a premium custom website build when you need CMS control, advanced SEO, ecommerce, or integrations.",
+        title: "Website Growth Upgrade",
+        description: "Add ongoing conversion optimisation, local SEO expansion and new landing pages when the website is ready to grow.",
         icon: "Building",
       },
     ],
@@ -198,7 +189,7 @@ export const DEFAULT_LANDING_CONTENT = {
   pricing: {
     title: "Managed websites built around enquiries",
     subtitle:
-      "Start with one managed website offer, then add ongoing growth support or request a custom build when your requirements are more complex.",
+      "Start with Managed Website, then add Website Growth when you need ongoing conversion and local SEO expansion.",
     trialNote: "Start with a free, limited website preview. Production work begins after payment or an approved commercial commitment.",
   },
   dashboard: {
@@ -217,8 +208,8 @@ export const DEFAULT_LANDING_CONTENT = {
     subtitle: "A simple managed process from plan choice to launch.",
     steps: [
       {
-        title: "Step 1: Choose Your Website Model",
-        description: "Select a managed monthly website or request a custom website build.",
+        title: "Step 1: See Your Website Direction",
+        description: "Share a short business brief and review the recommended structure before making a decision.",
         icon: "Check"
       },
       {
@@ -238,7 +229,7 @@ export const DEFAULT_LANDING_CONTENT = {
       },
       {
         title: "Step 5: Launch and Manage",
-        description: "Your managed site goes live with managed hosting, or your custom website project is launched based on the agreed scope.",
+        description: "Your managed site goes live with hosting, support and an ongoing update workflow included.",
         icon: "TrendingUp"
       }
     ]
@@ -287,12 +278,12 @@ export const DEFAULT_LANDING_CONTENT = {
       { label: "Local search", launch: "Service and location foundation", business: "Expansion into new service and location pages" },
       { label: "Trust sections", launch: "Reviews, proof, FAQs and reassurance", business: "Ongoing proof and review improvements" },
       { label: "Maintenance", launch: "Hosting, maintenance and managed updates", business: "Priority support and monthly review" },
-      { label: "Expansion", launch: "Upgrade to Website Growth or Custom Website", business: "Landing pages and growth roadmap" },
+      { label: "Expansion", launch: "Upgrade to Website Growth", business: "Landing pages and growth roadmap" },
     ],
   },
   faq: {
     title: "Frequently Asked Questions",
-    subtitle: "Everything you need to know about managed website plans and custom website builds.",
+    subtitle: "Everything you need to know about the Bennie Studio managed website service.",
     items: [
       {
         question: "What is a managed lead website plan?",
@@ -301,10 +292,6 @@ export const DEFAULT_LANDING_CONTENT = {
       {
         question: "How is the managed website maintained?",
         answer: "Bennie Studio hosts, maintains and updates the managed website for you. You do not need to manage plugins, servers or a separate CMS.",
-      },
-      {
-        question: "What is the difference between the managed plan and a custom website?",
-        answer: "The managed plan is for speed, simplicity, hosting, updates, and enquiry generation. A custom website is for full CMS control, blog publishing, advanced SEO pages, integrations, ecommerce, and deeper customization.",
       },
       {
         question: "Why not just use a DIY website builder?",
@@ -342,23 +329,15 @@ export const DEFAULT_LANDING_CONTENT = {
         question: "Who is this best for?",
         answer: "It is best for clinics and wellness providers, renovation and home service businesses, beauty salons, and aesthetic services that want a managed website without learning a builder.",
       },
-      {
-        question: "Can I upgrade to a custom website later?",
-        answer: "Yes. You can start with a managed lead website plan and request a premium website build later when you need full CMS control or advanced expansion.",
-      },
-      {
-        question: "How do I request a custom website?",
-        answer: "Use the Website quote request option and share your required pages, blog needs, SEO goals, integrations, ecommerce, booking, or custom functionality.",
-      },
     ],
   },
   testimonials: null,
   cta: {
-    headline: "See a Limited Website Direction Before You Pay",
+    headline: "See Your Website Direction Before You Decide",
     subheadline:
       "Generate a homepage concept first, then choose the managed website service that fits your business.",
-    buttonText: "Generate Limited Website Preview",
-    secondaryButtonText: "Request Website Review",
+    buttonText: "See My Website Direction",
+    secondaryButtonText: "Book 30-Minute Review",
   },
   successStory: {
     title: "Sample Website Transformation",

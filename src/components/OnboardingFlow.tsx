@@ -200,7 +200,18 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       contactPhone: current.contactPhone || String(previewIntent.phone || ""),
       existingUrl: current.existingUrl || String(previewIntent.websiteUrl || ""),
     }));
+    if (previewIntent.businessName) {
+      setStep(3);
+    }
   }, [previewIntent]);
+
+  React.useEffect(() => {
+    if (businessData.subdomain || !businessData.name.trim()) return;
+    setBusinessData((current) => ({
+      ...current,
+      subdomain: sanitizeSubdomain(current.name),
+    }));
+  }, [businessData.name, businessData.subdomain]);
 
   React.useEffect(() => {
     try {
@@ -352,8 +363,12 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     return `${base.slice(0, 40)}-${Date.now().toString(36).slice(-6)}`;
   };
 
-  const startTrial = async () => {
+  const submitOnboarding = async () => {
     if (!user || !profile) return;
+    if (businessData.name.trim().length < 2) return toast.error("Enter your business name.");
+    if (!businessData.market.trim() || !businessData.mainOffer.trim() || !businessData.serviceArea.trim()) return toast.error("Complete the required business details.");
+    if (!businessData.service1.trim()) return toast.error("Add at least one service.");
+    if (![businessData.whatsappNumber, businessData.contactEmail, businessData.contactPhone].some((value) => value.trim())) return toast.error("Add at least one customer contact method.");
     setLoading(true);
     setProgress(5);
     setProgressMessage("Initializing infrastructure...");
@@ -361,7 +376,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
     try {
       if (!agreed) {
-        toast.error("Please agree to the Service Protocols to continue.");
+        toast.error("Please agree to the Terms of Service and Privacy Policy to continue.");
         return;
       }
       // Check if user already owns a business (defensive check)
@@ -382,7 +397,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           industry: businessData.industry || businessData.businessType,
           business_nature: businessData.businessNature,
           location: businessData.location,
-          plan: selectedPackage,
           onboarding_steps: {
             websiteGoal: businessData.websiteGoal, pagesNeeded: businessData.pagesNeeded, ctaPreference: businessData.ctaPreference,
             tonePreference: businessData.tonePreference, primaryLocation: businessData.location, serviceArea: businessData.serviceArea,
@@ -498,7 +512,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
       // 2. Update User Profile (Linking business but NOT completing onboarding yet)
       setProgress(40);
-      setProgressMessage("Configuring security protocols...");
+      setProgressMessage("Saving your business profile...");
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
@@ -750,8 +764,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         .eq("id", user.id);
 
       setProgress(100);
-      setProgressMessage("Deployment successful!");
-      toast.success("Your ecosystem is ready!");
+      setProgressMessage("Onboarding submitted");
+      toast.success("Your onboarding brief is ready for the delivery team.");
 
       // Ensure state is updated before navigating out
       await refreshProfile();
@@ -765,11 +779,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         onComplete();
       }, 500);
     } catch (err: any) {
-      console.error("Deployment failed:", err);
+      console.error("Onboarding submission failed:", err);
       setError(
-        err.message || "The deployment engine encountered a critical error.",
+        err.message || "Your onboarding brief could not be submitted.",
       );
-      toast.error(err.message || "Deployment failed. Please retry.");
+      toast.error(err.message || "Onboarding submission failed. Please retry.");
     } finally {
       setLoading(false);
     }
@@ -809,14 +823,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       </div>
                     </div>
                     <div className="space-y-2">
-                       <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-indigo-100 mb-2">
-                        <Sparkles className="h-3 w-3" /> Free Website Preview
+                      <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-indigo-100 mb-2">
+                        <Sparkles className="h-3 w-3" /> Saved automatically · about 5 minutes
                       </div>
                       <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tighter uppercase leading-none px-4">
-                        Start Your <span className="text-indigo-600">Lead Website</span>
+                        Tell us about <span className="text-indigo-600">your business</span>
                       </h2>
                       <p className="text-slate-500 text-base sm:text-lg font-medium max-w-xl mx-auto px-4">
-                        Start with a free, limited website preview. Production work begins after you choose a product and complete payment.
+                        We use this brief to prepare your managed website without asking you to repeat information already collected in your preview.
                       </p>
                     </div>
                   </div>
@@ -824,7 +838,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <div className="max-w-xl mx-auto space-y-8 pt-4">
                     <div className="space-y-3">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
-                        Enter Your Brand Identity
+                        Business name
                       </label>
                       <Input
                         className="h-20 text-2xl px-8 bg-slate-50 border-4 border-slate-100 rounded-[2.5rem] focus:bg-white focus:border-indigo-600 transition-all font-black placeholder:font-normal shadow-xl shadow-slate-100/50"
@@ -839,7 +853,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         }
                       />
                       <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-2">
-                         Your preview is free. Payment is only requested when you are ready to start production.
+                         You can leave and resume this brief on this device.
                       </p>
                     </div>
                   </div>
@@ -850,7 +864,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       disabled={!businessData.name}
                       className="h-20 px-16 text-xl font-black uppercase tracking-[0.2em] bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-200 rounded-[2.5rem] group transition-all"
                     >
-                      Continue to Website Direction{" "}
+                      Continue{" "}
                       <ArrowRight className="ml-3 h-6 w-6 transition-transform group-hover:translate-x-1" />
                     </Button>
                   </div>
@@ -873,10 +887,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                     <div className="space-y-2">
                       <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter uppercase">
-                        Infrastructure
+                        Website setup
                       </h2>
                       <p className="text-slate-500 text-base sm:text-lg font-medium">
-                        Configure your professional ecosystem headquarters.
+                        Confirm the address and starting structure for your managed website.
                       </p>
                     </div>
                   </div>
@@ -885,7 +899,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <div className="space-y-8">
                       <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
-                          Global Address (Subdomain)
+                          Temporary website address
                         </label>
                         <div className="relative">
                           <Input
@@ -912,7 +926,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <div className="space-y-8">
                       <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
-                          Industry Model / Business Type
+                          Starting website structure <span className="normal-case tracking-normal text-slate-400">(optional)</span>
                         </label>
                         <div className="relative group">
                           <select
@@ -932,7 +946,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                               }
                             }}
                           >
-                            <option value="" disabled>Select industry blueprint...</option>
+                            <option value="">Use the recommended structure</option>
                             {templates.map((t) => (
                               <option key={t.id} value={t.id}>
                                 {t.name}
@@ -1043,9 +1057,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <Button
                       onClick={handleNext}
                       className="flex-1 h-18 text-lg font-black uppercase tracking-[0.2em] bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-200 rounded-2xl group transition-all"
-                      disabled={!businessData.subdomain || !selectedTemplate}
+                      disabled={!businessData.subdomain}
                     >
-                      Continue to Strategic Intel{" "}
+                      Continue to business details{" "}
                       <ArrowRight className="ml-3 h-5 w-5 transition-transform group-hover:translate-x-1" />
                     </Button>
                   </div>
@@ -1068,10 +1082,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                     <div className="space-y-2">
                       <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-                        Strategic Intel
+                        Business details
                       </h2>
                       <p className="text-slate-500 text-base sm:text-lg font-medium">
-                        Define your market positioning and target audience.
+                        Help us understand what you sell, where you work, and the action visitors should take.
                       </p>
                     </div>
                   </div>
@@ -1080,7 +1094,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <div className="space-y-4">
                       <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
-                          Country / Market
+                          Country / market <span className="text-rose-500">*</span>
                         </label>
                         <Input
                           className="h-14 text-sm px-6 bg-slate-50 border-slate-100 rounded-2xl focus:bg-white transition-all font-bold placeholder:font-normal"
@@ -1091,11 +1105,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       </div>
                       <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
-                          Main Offer / Value Proposition
+                          Main service or offer <span className="text-rose-500">*</span>
                         </label>
                         <Input
                           className="h-14 text-sm px-6 bg-slate-50 border-slate-100 rounded-2xl focus:bg-white transition-all font-bold placeholder:font-normal"
-                          placeholder="e.g. Free Strategy Session, 20% Off Design"
+                          placeholder="e.g. Dental implants, kitchen renovation, tax advisory"
                           value={businessData.mainOffer}
                           onChange={(e) => setBusinessData({...businessData, mainOffer: e.target.value})}
                         />
@@ -1104,7 +1118,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <div className="space-y-4">
                        <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
-                          Service Area
+                          Service area <span className="text-rose-500">*</span>
                         </label>
                         <Input
                           className="h-14 text-sm px-6 bg-slate-50 border-slate-100 rounded-2xl focus:bg-white transition-all font-bold placeholder:font-normal"
@@ -1155,6 +1169,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </Button>
                     <Button
                       onClick={handleNext}
+                      disabled={!businessData.market.trim() || !businessData.mainOffer.trim() || !businessData.serviceArea.trim()}
                       className="flex-1 h-18 text-lg font-black uppercase tracking-[0.2em] bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-200 rounded-2xl transition-all"
                     >
                       Continue to Services <ArrowRight className="ml-3 h-5 w-5" />
@@ -1179,10 +1194,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                     <div className="space-y-2">
                       <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-                        Core Services
+                        Services and enquiries
                       </h2>
                       <p className="text-slate-500 text-base sm:text-lg font-medium">
-                        What exactly do you provide to your clients?
+                        Add the essentials needed to turn website visitors into real enquiries.
                       </p>
                     </div>
                   </div>
@@ -1191,7 +1206,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <div className="space-y-6">
                       <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
-                          Services Provided
+                          Services provided <span className="text-rose-500">*</span>
                         </label>
                         <div className="space-y-3">
                           <Input
@@ -1248,7 +1263,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <div className="space-y-6">
                        <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
-                          Contact Infrastructure
+                          Contact details <span className="text-rose-500">*</span>
                         </label>
                         <div className="grid grid-cols-1 gap-3">
                            <Input
@@ -1295,9 +1310,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </Button>
                     <Button
                       onClick={handleNext}
+                      disabled={!businessData.service1.trim() || !businessData.pagesNeeded.length || ![businessData.whatsappNumber, businessData.contactEmail, businessData.contactPhone].some((value) => value.trim())}
                       className="flex-1 h-18 text-lg font-black uppercase tracking-[0.2em] bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-200 rounded-2xl transition-all"
                     >
-                      Style & Content <ArrowRight className="ml-3 h-5 w-5" />
+                      Add brand and proof <ArrowRight className="ml-3 h-5 w-5" />
                     </Button>
                   </div>
                 </motion.div>
@@ -1319,10 +1335,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                     <div className="space-y-2">
                       <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-                        Style & Content
+                        Brand and proof
                       </h2>
                       <p className="text-slate-500 text-base sm:text-lg font-medium">
-                        Set the aesthetic and social proof elements of your site.
+                        These details are optional. Add what you have now; missing assets can be supplied later.
                       </p>
                     </div>
                   </div>
@@ -1426,7 +1442,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       onClick={handleNext}
                       className="flex-1 h-18 text-lg font-black uppercase tracking-[0.2em] bg-indigo-600 hover:bg-indigo-700 shadow-2xl shadow-indigo-200 rounded-2xl transition-all"
                     >
-                      Proceed to Activation <ArrowRight className="ml-3 h-5 w-5" />
+                      Review my brief <ArrowRight className="ml-3 h-5 w-5" />
                     </Button>
                   </div>
                 </motion.div>
@@ -1448,68 +1464,27 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                     <div className="space-y-2">
                       <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-                        Confirm Your Product
+                        Review your onboarding brief
                       </h2>
                       <p className="text-slate-500 text-base sm:text-lg font-medium">
-                        Confirm the website direction that matches your business before production begins.
+                        Check the information we will hand to the delivery team. Your product selection cannot be changed here.
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {availablePackages.map((pkg) => (
-                      <button
-                        key={pkg.id}
-                        onClick={() => setSelectedPackage(pkg.id)}
-                        className={`p-8 rounded-[3rem] border-4 transition-all text-left flex flex-col gap-6 relative overflow-hidden ${
-                          selectedPackage === pkg.id 
-                            ? "border-indigo-600 bg-white shadow-2xl shadow-indigo-100" 
-                            : "border-slate-50 bg-white hover:border-slate-100"
-                        }`}
-                      >
-                        {selectedPackage === pkg.id && (
-                          <div className="absolute top-6 right-6 h-8 w-8 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg">
-                            <Check className="h-5 w-5" />
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-1">{publicProductLabel(pkg.id)}</p>
-                          <p className="text-sm font-bold text-slate-500">Pricing is confirmed in the secure checkout summary.</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-2">Current commercial entitlement</p>
-                        </div>
-                        <div className="space-y-3">
-                           <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-2">Capabilities</p>
-                           <ul className="space-y-3">
-                              {pkg.features.map((f, i) => (
-                                <li key={i} className="text-[11px] font-bold text-slate-600 flex items-center gap-3">
-                                  <div className="h-1.5 w-1.5 bg-indigo-500 rounded-full shrink-0" />
-                                  {f}
-                                </li>
-                              ))}
-                           </ul>
-                        </div>
-                      </button>
-                    ))}
+                  <div className="rounded-[2rem] border-2 border-indigo-100 bg-white p-6 shadow-sm sm:p-8">
+                    <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">Selected product</p>
+                        <h3 className="mt-2 text-2xl font-black text-slate-950">{publicProductLabel(selectedPackage)}</h3>
+                        <p className="mt-2 text-sm font-semibold text-slate-500">Pricing and payment terms remain exactly as confirmed in checkout.</p>
+                      </div>
+                      <Badge className="w-fit border-none bg-emerald-50 px-3 py-1 text-emerald-700"><Check className="mr-1.5 h-4 w-4" /> Confirmed</Badge>
+                    </div>
                   </div>
                   <div className="rounded-[2rem] border border-indigo-100 bg-indigo-50 p-6">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600">Recommended from your answers</p>
-                        <h3 className="mt-1 text-2xl font-black text-slate-950">
-                          {publicProductLabel((availablePackages.find((pkg) => pkg.id === recommendedPlanId) || availablePackages.find((pkg) => pkg.id === "growth") || selectedPackageConfig)?.id || "starter")}
-                        </h3>
-                        <p className="mt-1 text-sm font-semibold text-slate-600">
-                          Based on {businessData.pagesNeeded.length} requested page(s), {businessData.localSeoCities.split(/,|\n/).filter(Boolean).length} location target(s), and your goal: {businessData.websiteGoal}.
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        onClick={() => setSelectedPackage((availablePackages.some((pkg) => pkg.id === recommendedPlanId) ? recommendedPlanId : "growth"))}
-                        className="rounded-2xl bg-indigo-600 font-black uppercase tracking-widest"
-                      >
-                        Use Recommendation
-                      </Button>
-                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600">Delivery summary</p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{businessData.mainOffer} for customers in {businessData.serviceArea}. Primary action: {businessData.ctaPreference}. Requested pages: {businessData.pagesNeeded.join(", ")}.</p>
                   </div>
 
                   <div className="h-px bg-slate-100 my-8" />
@@ -1540,7 +1515,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                             </div>
                             <div className="flex justify-between items-center px-1">
                               <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
-                                Infrastructure Active
+                                Brief submission progress
                               </span>
                               <span className="text-[10px] text-indigo-400 font-black tracking-widest">
                                 {progress}%
@@ -1558,7 +1533,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       </div>
                       <div className="space-y-3 relative z-10 px-4">
                         <h3 className="text-3xl font-black text-red-950 uppercase tracking-tighter">
-                          Deployment Failed
+                          Submission failed
                         </h3>
                         <p className="text-red-700 text-sm font-medium leading-relaxed max-w-sm mx-auto">
                           {error}
@@ -1566,10 +1541,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       </div>
                       <div className="pt-4 flex flex-col gap-4 relative z-10">
                         <Button
-                          onClick={startTrial}
+                          onClick={submitOnboarding}
                           className="w-full h-18 bg-red-600 hover:bg-red-700 rounded-2xl text-lg font-black uppercase tracking-widest shadow-xl shadow-red-200"
                         >
-                          Retry Deployment
+                          Retry submission
                         </Button>
                         <button
                           onClick={() => setError(null)}
@@ -1595,10 +1570,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                             </div>
                             <div className="text-right">
                               <div className="text-3xl font-black text-white">
-                                $0.00
+                                Brief ready
                               </div>
                               <div className="text-[10px] text-indigo-400 font-extrabold uppercase tracking-widest">
-                                Ready for checkout
+                                Ready for delivery
                               </div>
                             </div>
                           </div>
@@ -1640,12 +1615,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
                           <ul className="grid grid-cols-1 gap-5">
                             {[
-                              "Generation Engine (Unlimited)",
-                              "Global CDN Deployment",
-                              "Lead Acquisition Nexus",
-                              "Business Insights Core",
-                              "Custom Identity Protocol",
-                              "24/7 Strategic Support",
+                              "Business and service brief",
+                              "Enquiry path and primary CTA",
+                              "Website page direction",
+                              "Brand and proof supplied so far",
+                              "Delivery handoff with saved progress",
                             ].map((f, i) => (
                               <li
                                 key={i}
@@ -1669,7 +1643,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                             </div>
                             <div>
                               <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1">
-                                Live Subdomain
+                                Temporary website address
                               </p>
                               <p className="text-xs font-medium text-slate-500 line-clamp-1">
                                 {businessData.subdomain}.bennietay.com
@@ -1682,11 +1656,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                             </div>
                             <div>
                               <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1">
-                                Data Sovereignty
+                                What happens next
                               </p>
                               <p className="text-xs font-medium text-slate-500">
-                                Encrypted business intelligence hosted on
-                                tier-IV infrastructure.
+                                We review the brief, confirm any missing assets, and move the project into the delivery queue.
                               </p>
                             </div>
                           </div>
@@ -1711,7 +1684,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                                 onClick={() => window.open("/terms", "_blank", "noopener,noreferrer")}
                                 className="text-slate-900 underline hover:text-indigo-600"
                               >
-                                Service Protocols
+                                Terms of Service
                               </button>{" "}
                               and understand the{" "}
                               <button
@@ -1719,12 +1692,12 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                                 onClick={() => window.open("/privacy", "_blank", "noopener,noreferrer")}
                                 className="text-slate-900 underline hover:text-indigo-600"
                               >
-                                Privacy Encryptors
+                                Privacy Policy
                               </button>
                             </label>
                           </div>
                         <Button
-                          onClick={startTrial}
+                          onClick={submitOnboarding}
                           data-testid="onboarding-launch"
                           disabled={!agreed || loading}
                           className={`w-full h-20 text-xl font-black uppercase tracking-[0.3em] shadow-2xl rounded-[2rem] group transition-all ${
@@ -1733,14 +1706,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                                 : "bg-slate-200 text-slate-400 cursor-not-allowed"
                             }`}
                           >
-                            Launch Website{" "}
+                            Submit onboarding brief{" "}
                             <Zap className={`ml-4 h-6 w-6 group-hover:scale-125 transition-transform ${agreed ? "text-indigo-500" : "text-slate-400"}`} />
                           </Button>
                           <button
                             onClick={handleBack}
                             className="w-full text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors"
                           >
-                            Return to Content Studio
+                            Return to brand and proof
                           </button>
                         </div>
                       </div>
@@ -1748,13 +1721,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   )}
 
                     <p className="text-left text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] leading-relaxed max-w-sm">
-                      By engaging the deployment engine, you acknowledge the{" "}
+                      By submitting this brief, you acknowledge the{" "}
                       <span className="text-slate-900 underline cursor-pointer">
-                        Service Protocols
+                        Terms of Service
                       </span>{" "}
                       and{" "}
                       <span className="text-slate-900 underline cursor-pointer">
-                        Privacy Encryptors
+                        Privacy Policy
                       </span>
                       .
                     </p>

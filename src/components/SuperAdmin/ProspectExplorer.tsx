@@ -290,45 +290,21 @@ export function ProspectExplorer() {
   };
 
   const importCsv = async () => {
-    const lines = csvText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-    if (!lines.length) {
-      toast.error("Paste CSV rows first");
-      return;
-    }
-    const rows = lines.map((line) => line.split(",").map((cell) => cell.trim().replace(/^\"|\"$/g, "")));
-    const hasHeader = rows[0].some((cell) => /name|business|domain|email/i.test(cell));
-    const dataRows = hasHeader ? rows.slice(1) : rows;
-    const payload = dataRows
-      .map(([name, domain, industry, location, email, phone, whatsapp, social, notes]) => ({
-        name,
-        domain: domain ? cleanDomain(domain) : null,
-        industry: industry || null,
-        location: location || null,
-        contact_email: email || null,
-        contact_phone: phone || null,
-        contact_whatsapp: whatsapp || null,
-        social_url: social || null,
-        notes: notes || null,
-        source: "csv_import",
-        website_status: "unknown",
-        outreach_status: "not_started",
-        opportunity_level: "medium",
-      }))
-      .filter((row) => row.name);
-
-    if (!payload.length) {
-      toast.error("No valid prospect rows found");
-      return;
-    }
-
+    if (!csvText.trim()) return toast.error("Paste CSV rows first");
     try {
       setSaving(true);
-      const { data, error } = await supabase.from("prospects").insert(payload).select();
-      if (error) throw error;
-      setProspects([...(data || []), ...prospects]);
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch("/api/admin/prospects/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ csv: csvText }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "CSV import failed");
+      setProspects((current) => [...(payload.prospects || []), ...current]);
       setCsvText("");
       setIsImportModalOpen(false);
-      toast.success(`${payload.length} prospects imported`);
+      toast.success(`${payload.imported} prospects imported; ${payload.duplicates} duplicates skipped.`);
     } catch (error: any) {
       toast.error(error.message || "CSV import failed");
     } finally {

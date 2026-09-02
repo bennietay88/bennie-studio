@@ -92,7 +92,12 @@ export const getCommercialPrice = (product: CommercialProduct, market: Commercia
 
 export const getStoredMarket = (): CommercialMarket => {
   try {
-    return normalizeCommercialMarket(localStorage.getItem("bt_commercial_market"));
+    const stored = localStorage.getItem("bt_commercial_market");
+    if (stored) return normalizeCommercialMarket(stored);
+
+    // USD is the intentional first-visit default. Local pricing is opt-in via
+    // the visible market selector and is persisted after the user chooses it.
+    return "INTL";
   } catch {
     return "INTL";
   }

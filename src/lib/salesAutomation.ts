@@ -29,6 +29,7 @@ export type SalesMessage = {
   channel: string;
   scheduled_at?: string | null;
   sent_at?: string | null;
+  created_at?: string | null;
   classification?: ReplyClassification | null;
   prospect_id?: string | null;
   lead_id?: string | null;
@@ -66,15 +67,33 @@ export const getObservablePriority = (input: {
 };
 
 export const classifyReply = (value: string): ReplyClassification => {
-  const text = value.toLowerCase();
-  if (/unsubscribe|remove me|stop email|do not contact/.test(text)) return "unsubscribe";
-  if (/not interested|no thanks|no thank you/.test(text)) return "not_interested";
-  if (/later|next month|not now|circle back/.test(text)) return "not_now";
-  if (/price|cost|expensive|budget|already have|need to think/.test(text)) return "objection";
-  if (/how|what|when|where|which|\?/.test(text)) return "question";
-  if (/interested|yes|book|call|show me|send it/.test(text)) return "interested";
+  // Classify the new reply, not the original sales email quoted underneath it.
+  const text = value.split(/\n\s*(?:On .+wrote:|From:|>)/i)[0].toLowerCase();
+  if (/\b(?:unsubscribe|remove me|stop (?:email(?:ing)?|contacting)|do not contact|don't contact)\b/.test(text)) return "unsubscribe";
+  if (/\b(?:not interested|no thanks|no thank you)\b/.test(text)) return "not_interested";
+  if (/\b(?:later|next month|not now|circle back)\b/.test(text)) return "not_now";
+  if (/\b(?:price|cost|expensive|budget|already have|need to think)\b/.test(text)) return "objection";
+  if (/\b(?:how|what|when|where|which)\b|\?/.test(text)) return "question";
+  if (/\b(?:interested|yes|book|call|show me|send it)\b/.test(text)) return "interested";
   return "unknown";
 };
 
 export const renderSalesTemplate = (template: string, values: Record<string, string | null | undefined>) =>
   template.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_match, key) => values[key] || "");
+
+const OBSERVATION_PREFIX = "Verified website observation: ";
+export const getOutreachObservation = (notes?: string | null) =>
+  String(notes || "").split("\n").find((line) => line.startsWith(OBSERVATION_PREFIX))?.slice(OBSERVATION_PREFIX.length) || "";
+
+export const saveOutreachObservation = (notes: string | null | undefined, observation: string) =>
+  [OBSERVATION_PREFIX + observation.replace(/\s+/g, " ").trim(),
+    ...String(notes || "").split("\n").filter((line) => !line.startsWith(OBSERVATION_PREFIX))]
+    .join("\n").trim();
+
+export const toLocalFollowUpInput = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const pad = (number: number) => String(number).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};

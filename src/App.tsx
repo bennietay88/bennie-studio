@@ -21,7 +21,6 @@ import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingFallback } from "./components/LoadingFallback";
 import { classifyTenantHost } from "./lib/tenantDomains";
-import LandingPage from "./components/LandingPage";
 import LoginPage from "./components/LoginPage";
 
 const CHUNK_RETRY_KEY = "bt_chunk_retry_once";
@@ -61,13 +60,13 @@ const lazy = <T extends React.ComponentType<any>>(
 });
 
 // --- Lazy Loaded Components ---
+const LandingPage = lazy(() => import("./components/LandingPage"));
 const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
 const PortfolioPage = lazy(() => import("./components/PortfolioPage"));
 const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPages"));
 const PublicBlogPostPage = lazy(() => import("./components/PublicBlogPostPage"));
 const WaasSamplePage = lazy(() => import("./components/WaasSamplePage"));
 const BookDemo = lazy(() => import("./components/BookDemo"));
-const CustomWebsiteQuotePage = lazy(() => import("./components/CustomWebsiteQuotePage"));
 const ManageCallBooking = lazy(() => import("./components/ManageCallBooking"));
 const PublicProposalPage = lazy(() => import("./components/PublicProposalPage"));
 const ForgotPasswordPage = lazy(
@@ -220,7 +219,10 @@ function ScrollToTop() {
 function RouteRobotsMeta() {
   const { pathname } = useLocation();
   const privateRoute = /^\/(admin|dashboard|checkout|login|signup|forgot-password|reset-password|profile)(\/|$)/.test(pathname);
-  return <Helmet><meta name="robots" content={privateRoute ? "noindex,nofollow" : "index,follow"} /><link rel="canonical" href={`https://app.bennietay.com${pathname === "/" ? "/" : pathname.replace(/\/$/, "")}`} /></Helmet>;
+  // Canonicals belong to each public page so route-specific metadata can own
+  // the URL. A global canonical creates duplicate tags and can incorrectly
+  // consolidate every page into the homepage.
+  return <Helmet><meta name="robots" content={privateRoute ? "noindex,nofollow" : "index,follow"} /></Helmet>;
 }
 
 function isCustomerDomainHost() {
@@ -473,7 +475,7 @@ export default function App() {
               <Route path="/portfolio/sample/:sampleType" element={<WaasSamplePage />} />
               <Route path="/demo" element={<DemoModePage />} />
               <Route path="/book-demo" element={<BookDemo />} />
-              <Route path="/apply-custom" element={<CustomWebsiteQuotePage />} />
+              <Route path="/apply-custom" element={<Navigate to="/book-demo" replace />} />
               <Route path="/manage-call/:token" element={<ManageCallBooking />} />
               <Route path="/proposal/:token" element={<PublicProposalPage />} />
               <Route path="/privacy" element={<PolicyPage type="privacy" />} />

@@ -24,6 +24,20 @@ export default defineConfig(({ mode }) => {
         "@": path.resolve(__dirname, "./src"),
       },
     },
+    build: {
+      // Keep heavy admin/editor/chart dependencies out of the initial public
+      // chunk. Routes are already lazy-loaded; these stable vendor boundaries
+      // make that split effective in production and improve cache reuse.
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            "vendor-react": ["react", "react-dom", "react-router-dom"],
+            "vendor-ui": ["motion", "lucide-react", "sonner"],
+            "vendor-charts": ["recharts"],
+          },
+        },
+      },
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.

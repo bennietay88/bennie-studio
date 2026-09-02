@@ -62,9 +62,9 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
       "Browse focused website templates for clinics, wellness providers, renovation companies, home service businesses, beauty salons, and aesthetic services.",
   },
   pricing: {
-    title: "Lead Website Pricing by Location | Bennie Studio",
+    title: "Managed Website Pricing | Bennie Studio",
     description:
-      "Clear managed lead-generation website pricing shown by visitor location, with custom website pricing for businesses that need full control.",
+      "Clear Managed Website and Website Growth pricing for Malaysia, Singapore, the United Kingdom, and international customers.",
   },
   "how-it-works": {
     title: "How It Works | Bennie Studio",
@@ -72,9 +72,9 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
       "See how Bennie Studio takes you from signup and business brief to website build, review, launch, and ongoing support.",
   },
   "case-studies": {
-    title: "Website Case Studies by Industry | Bennie Studio",
+    title: "Website Examples by Industry | Bennie Studio",
     description:
-      "Explore complete concept case studies showing the challenge, website strategy, conversion path, and page structure for six service industries.",
+      "Explore working website examples showing the challenge, strategy, enquiry path, and page structure for six service industries.",
   },
   "website-audit": {
     title: "Free Website Growth Audit | Bennie Studio",
@@ -82,9 +82,9 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
       "Request a free website audit to identify design, mobile, SEO, enquiry, speed, content, and trust issues on your current website.",
   },
   "generate-preview": {
-    title: "Generate a Limited Website Preview | Bennie Studio",
+    title: "See Your Website Direction | Bennie Studio",
     description:
-      "Paste real reviews and business details to get a limited homepage concept before creating an account or choosing a managed website plan.",
+      "See a tailored managed website direction based on your business type, location, services, reviews, and preferred enquiry goal.",
   },
   "clinic-website-design-malaysia": {
     title: "Clinic Website Design Malaysia | Appointment Enquiry Websites",
@@ -114,9 +114,9 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
 };
 
 const primaryCtaClass =
-  "inline-flex min-h-12 items-center justify-center rounded-2xl bg-indigo-600 px-6 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_12px_28px_-14px_rgba(79,70,229,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-500 hover:shadow-[0_18px_34px_-16px_rgba(79,70,229,0.9)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/25 active:translate-y-0";
+  "inline-flex min-h-12 max-w-full items-center justify-center whitespace-normal rounded-2xl bg-indigo-600 px-6 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_12px_28px_-14px_rgba(79,70,229,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-500 hover:shadow-[0_18px_34px_-16px_rgba(79,70,229,0.9)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/25 active:translate-y-0";
 const secondaryCtaClass =
-  "inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_8px_22px_-14px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-[0_14px_28px_-16px_rgba(15,23,42,0.4)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20 active:translate-y-0";
+  "inline-flex min-h-12 max-w-full items-center justify-center whitespace-normal rounded-2xl border border-slate-200 bg-white px-6 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_8px_22px_-14px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-[0_14px_28px_-16px_rgba(15,23,42,0.4)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20 active:translate-y-0";
 
 const industries = [
   ["Dental Clinic", "Appointment booking, treatment pages, local SEO, WhatsApp enquiries."],
@@ -454,11 +454,28 @@ async function submitPlatformLead(input: {
   return data;
 }
 
-function Hero({ title, copy, icon: Icon }: { title: string; copy: string; icon: React.ElementType }) {
+function Hero({
+  title,
+  copy,
+  icon: Icon,
+  primaryLabel = "Generate My Website Preview",
+  primaryHref = "/generate-preview",
+  secondaryLabel,
+  secondaryHref,
+}: {
+  title: string;
+  copy: string;
+  icon: React.ElementType;
+  primaryLabel?: string;
+  primaryHref?: string;
+  secondaryLabel?: string;
+  secondaryHref?: string;
+}) {
+  const primaryContent = <>{primaryLabel} <ArrowRight className="ml-2 h-4 w-4" /></>;
   return (
     <section className="bg-slate-50">
-      <div className="mx-auto grid max-w-7xl items-center gap-8 px-5 py-16 md:grid-cols-[1.1fr_0.9fr] lg:py-20">
-        <div>
+      <div className="mx-auto grid max-w-7xl min-w-0 items-center gap-8 px-5 py-16 md:grid-cols-[1.1fr_0.9fr] lg:py-20">
+        <div className="min-w-0">
           <Badge className="mb-5 rounded-full bg-indigo-50 px-4 py-1 text-indigo-600 hover:bg-indigo-50">
             Lead-generation website system
           </Badge>
@@ -469,28 +486,24 @@ function Hero({ title, copy, icon: Icon }: { title: string; copy: string; icon: 
             {copy}
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link
-              to="/generate-preview"
-              onClick={() => trackPublicEvent({ eventType: "click_generate_preview", label: "Hero Generate Free Website Preview", target: "/generate-preview" })}
-              className={primaryCtaClass}
-            >
-              Generate My Free Website Preview <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-            <Link
-              to="/website-audit"
-              onClick={() => trackPublicEvent({ eventType: "click_request_audit", label: "Hero Website Growth Audit", target: "/website-audit" })}
-              className={secondaryCtaClass}
-            >
-              Request Website Growth Audit
-            </Link>
+            {primaryHref.startsWith("#") ? (
+              <a href={primaryHref} onClick={() => trackPublicEvent({ eventType: "click_generate_preview", label: primaryLabel, target: primaryHref })} className={primaryCtaClass}>{primaryContent}</a>
+            ) : (
+              <Link to={primaryHref} onClick={() => trackPublicEvent({ eventType: "click_primary_cta", label: primaryLabel, target: primaryHref })} className={primaryCtaClass}>{primaryContent}</Link>
+            )}
+            {secondaryLabel && secondaryHref ? (
+              <Link to={secondaryHref} onClick={() => trackPublicEvent({ eventType: "click_secondary_cta", label: secondaryLabel, target: secondaryHref })} className={secondaryCtaClass}>
+                {secondaryLabel}
+              </Link>
+            ) : null}
           </div>
         </div>
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl">
+        <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl">
           <div className="rounded-[1.5rem] bg-slate-950 p-7 text-white">
             <Icon className="mb-12 h-10 w-10 rounded-2xl bg-indigo-600 p-2" />
             <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">Built to sell faster</p>
             <p className="mt-4 text-2xl font-black leading-tight text-white">
-              Templates, pricing, case studies, website audit, and launch flow in one clear sales path.
+              See a tailored direction, review the recommendation, and choose the managed service when you are ready.
             </p>
           </div>
         </div>
@@ -569,7 +582,7 @@ function TemplatesPage() {
 }
 
 function PricingPage() {
-  return <CommercialPricing />;
+  return <><h1 className="sr-only">Managed Website pricing</h1><CommercialPricing /></>;
   /* Legacy implementation retained in git history; current pricing is rendered by CommercialPricing. */
   /*
   const [selectedMarket, setSelectedMarket] = React.useState<PricingMarket>("US");
@@ -875,20 +888,22 @@ function CaseStudiesPage() {
   return (
     <>
       <Hero
-        title="Website case studies built around real buyer journeys"
-        copy="Explore six complete concept case studies showing the business challenge, website strategy, conversion path, and page structure for service-led businesses. Every study opens into a working demonstration build."
+        title="Website examples built around real buyer journeys"
+        copy="Explore working examples that show the business challenge, website strategy, enquiry path, and page structure for service-led businesses."
         icon={Sparkles}
+        primaryLabel="See My Website Direction"
+        primaryHref="/generate-preview"
       />
       <section className="mx-auto max-w-7xl px-5 py-14">
-        <div className="mb-10 rounded-[2rem] bg-slate-950 p-6 text-white sm:p-8">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Verified customer outcomes</p>
-          {verifiedProof.length ? <div className="mt-5 grid gap-4 md:grid-cols-2">{verifiedProof.map((proof) => <article key={proof.id} className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">{(proof.before_image_url || proof.after_image_url) && <div className="grid grid-cols-2">{proof.before_image_url && <img src={proof.before_image_url} alt={`Before improvements for ${proof.company || proof.customer_name}`} className="h-40 w-full object-cover" />}{proof.after_image_url && <img src={proof.after_image_url} alt={`After improvements for ${proof.company || proof.customer_name}`} className="h-40 w-full object-cover" />}</div>}<div className="p-5"><p className="text-lg font-black">{proof.title || proof.result_summary || "Customer outcome"}</p>{proof.before_summary && <div className="mt-4"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Before</p><p className="mt-1 text-sm font-semibold text-slate-300">{proof.before_summary}</p></div>}{Array.isArray(proof.changes) && proof.changes.length > 0 && <div className="mt-4"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">What changed</p><ul className="mt-2 space-y-1 text-sm font-semibold text-slate-300">{proof.changes.map((change: string) => <li key={change}>• {change}</li>)}</ul></div>}{Array.isArray(proof.result_metrics) && proof.result_metrics.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{proof.result_metrics.map((metric: any) => <span key={`${metric.metric}-${metric.value}`} className="rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-black text-emerald-300">{metric.metric}: {metric.value}</span>)}</div>}<p className="mt-4 text-sm font-semibold leading-6 text-slate-300">“{proof.testimonial}”</p><p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-indigo-200">{proof.customer_name}{proof.company ? ` · ${proof.company}` : ""}</p>{proof.evidence_reference && <a href={proof.evidence_reference} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-black text-emerald-300 hover:text-emerald-200">View supporting reference <ExternalLink className="ml-1 h-3.5 w-3.5" /></a>}</div></article>)}</div> : <div className="mt-5 rounded-3xl border border-white/10 bg-white/5 p-5"><p className="font-black">No verified customer result has been published yet.</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">The concept studies below demonstrate strategy and design direction. Real outcomes will appear here only after customer approval and evidence review.</p></div>}
-        </div>
+        {verifiedProof.length ? <div className="mb-10 rounded-[2rem] bg-slate-950 p-6 text-white sm:p-8">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Customer outcomes</p>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">{verifiedProof.map((proof) => <article key={proof.id} className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">{(proof.before_image_url || proof.after_image_url) && <div className="grid grid-cols-2">{proof.before_image_url && <img src={proof.before_image_url} alt={`Before improvements for ${proof.company || proof.customer_name}`} className="h-40 w-full object-cover" />}{proof.after_image_url && <img src={proof.after_image_url} alt={`After improvements for ${proof.company || proof.customer_name}`} className="h-40 w-full object-cover" />}</div>}<div className="p-5"><p className="text-lg font-black">{proof.title || proof.result_summary || "Customer outcome"}</p>{proof.before_summary && <div className="mt-4"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Before</p><p className="mt-1 text-sm font-semibold text-slate-300">{proof.before_summary}</p></div>}{Array.isArray(proof.changes) && proof.changes.length > 0 && <div className="mt-4"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">What changed</p><ul className="mt-2 space-y-1 text-sm font-semibold text-slate-300">{proof.changes.map((change: string) => <li key={change}>• {change}</li>)}</ul></div>}{Array.isArray(proof.result_metrics) && proof.result_metrics.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{proof.result_metrics.map((metric: any) => <span key={`${metric.metric}-${metric.value}`} className="rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-black text-emerald-300">{metric.metric}: {metric.value}</span>)}</div>}<p className="mt-4 text-sm font-semibold leading-6 text-slate-300">“{proof.testimonial}”</p><p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-indigo-200">{proof.customer_name}{proof.company ? ` · ${proof.company}` : ""}</p>{proof.evidence_reference && <a href={proof.evidence_reference} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-black text-emerald-300 hover:text-emerald-200">View supporting reference <ExternalLink className="ml-1 h-3.5 w-3.5" /></a>}</div></article>)}</div>
+        </div> : null}
         <div className="mb-10 grid gap-4 rounded-[2rem] border border-indigo-100 bg-indigo-50 p-6 md:grid-cols-[1fr_auto] md:items-center">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Illustrative concept studies</p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Working website examples</p>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-700">
-              These are demonstration builds—not fabricated client claims. They show how Bennie Studio would solve a common conversion problem for each industry.
+              Each example demonstrates how Bennie Studio structures an offer, proof, services and enquiry path for a specific type of business.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 md:justify-end">
@@ -1145,27 +1160,19 @@ function GeneratePreviewPage() {
       metadata: { industry: industry.label, goal, location: form.location, hasWebsite: Boolean(form.websiteUrl) },
     });
     try {
-      const lead = await submitPlatformLead({
-        name: form.businessName,
-        email: form.email,
-        phone: form.phone,
-        businessName: form.businessName,
-        industry: industry.label,
-        websiteUrl: form.websiteUrl,
-        message: `Location: ${form.location}\nServices: ${form.mainService}\nPreferred action: ${goal}\nBrand style: ${form.brandStyle}\nSocial / Google Business: ${form.socialUrl || "Not provided"}\nReview signals:\n${form.reviews || "Not provided"}`,
-        formName: "Review-powered website preview generator",
-        leadType: "free_website_preview",
-        landingPage: window.location.pathname,
-        service: form.mainService,
-        selectedProduct: "managed-website",
-      });
+      let existingPreview: Record<string, unknown> = {};
+      try { existingPreview = JSON.parse(localStorage.getItem("bt_preview_intent") || "{}"); } catch { /* start a fresh preview */ }
+      const previewId = typeof existingPreview.previewId === "string" && existingPreview.previewId
+        ? existingPreview.previewId
+        : `preview_${globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
       localStorage.setItem("bt_preview_intent", JSON.stringify({
         ...form,
+        previewId,
         industryId,
         industry: industry.label,
         goal,
         recommendedProduct: commercialRecommendation.slug,
-        leadId: lead.leadId,
+        leadId: null,
         attribution: getTrackingContext(),
         market: initialParams.get("market") || "INTL",
         source: initialParams.get("source") || "",
@@ -1213,12 +1220,14 @@ function GeneratePreviewPage() {
   return (
     <>
       <Hero
-        title="Generate a limited managed website preview"
-        copy={`${PUBLIC_PROMISE} The free preview is limited to a homepage concept, core sections, and mobile direction before checkout.`}
+        title="See a website direction built around your business"
+        copy={`${PUBLIC_PROMISE} Share a short business brief and see the recommended structure before deciding whether to work with us.`}
         icon={Sparkles}
+        primaryLabel="Start My Preview"
+        primaryHref="#preview-brief"
       />
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-600">Step 1</p>
           <h2 className="mt-3 text-3xl font-black text-slate-950">Choose the business type</h2>
           <div className="mt-6 grid gap-3">
@@ -1240,7 +1249,7 @@ function GeneratePreviewPage() {
           </div>
         </div>
 
-        <form onSubmit={generatePreview} className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <form id="preview-brief" onSubmit={generatePreview} className="min-w-0 scroll-mt-28 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-600">Step 2</p>
           <h2 className="mt-3 text-3xl font-black text-slate-950">Add the basic brief</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -1275,46 +1284,18 @@ function GeneratePreviewPage() {
               onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })}
               className="h-12 rounded-2xl"
             />
-            <Input
-              aria-label="Email"
-              required type="email" placeholder="Email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="h-12 rounded-2xl"
-            />
-            <Input aria-label="WhatsApp or phone" placeholder="WhatsApp or phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl" />
+          </div>
+          <details className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+            <summary className="cursor-pointer text-sm font-black text-slate-800">Add brand details and customer reviews <span className="font-semibold text-slate-500">(optional)</span></summary>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <select aria-label="Preferred brand style" value={form.brandStyle} onChange={(e) => setForm({ ...form, brandStyle: e.target.value })} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 sm:col-span-2">
-              {["Modern professional", "Premium corporate", "Friendly local business", "Bold sales landing page", "Clean minimal", "Luxury premium"].map((style) => <option key={style}>{style}</option>)}
-            </select>
-            <Input aria-label="Google Business or social profile URL" placeholder="Google Business / social profile URL optional" value={form.socialUrl} onChange={(e) => setForm({ ...form, socialUrl: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
-            <Textarea
-              aria-label="Customer reviews"
-              placeholder={`Paste real reviews here, one per line if possible.\n\nExample:\nFast response and easy to contact by WhatsApp.\nThe team was professional and explained every step clearly.\nConvenient location and reasonable price.`}
-              value={form.reviews}
-              onChange={(e) => {
-                setGenerated(false);
-                setForm({ ...form, reviews: e.target.value });
-              }}
-              className="min-h-32 rounded-2xl sm:col-span-2"
-            />
-          </div>
-          <div className="mt-5 rounded-3xl border border-indigo-100 bg-indigo-50 p-5">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Review guidance</p>
-              <p className="mt-2 text-sm font-bold text-slate-700">
-                Real reviews make the preview more specific. Add customer language, concrete service details, and genuine outcomes where available.
-              </p>
+                {["Modern professional", "Premium corporate", "Friendly local business", "Bold sales landing page", "Clean minimal", "Luxury premium"].map((style) => <option key={style}>{style}</option>)}
+              </select>
+              <Input aria-label="Google Business or social profile URL" placeholder="Google Business / social profile URL" value={form.socialUrl} onChange={(e) => setForm({ ...form, socialUrl: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
+              <Textarea aria-label="Customer reviews" placeholder="Paste real customer reviews, one per line." value={form.reviews} onChange={(e) => { setGenerated(false); setForm({ ...form, reviews: e.target.value }); }} className="min-h-28 rounded-2xl sm:col-span-2" />
             </div>
-            {reviewQuality.suggestions.length > 0 && (
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {reviewQuality.suggestions.slice(0, 4).map((suggestion) => (
-                  <div key={suggestion} className="rounded-2xl bg-white px-4 py-3 text-xs font-bold leading-5 text-slate-600">
-                    {suggestion}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            {reviewQuality.suggestions.length > 0 && form.reviews.trim() ? <p className="mt-4 text-xs font-bold leading-5 text-slate-600">Tip: {reviewQuality.suggestions[0]}</p> : null}
+          </details>
           <div className="mt-6">
             <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">Website goal</p>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -1333,20 +1314,20 @@ function GeneratePreviewPage() {
             </div>
           </div>
           {error && <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</div>}
-          <Button type="submit" disabled={generating} className="mt-7 h-12 w-full rounded-2xl bg-indigo-600 font-black uppercase tracking-widest hover:bg-indigo-500">
+          <Button type="submit" disabled={generating} className="mt-7 h-auto min-h-12 w-full whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-black uppercase tracking-widest hover:bg-indigo-500">
             {generating ? "Preparing Preview..." : "Generate My Free Website Preview"} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </form>
       </section>
 
       <section className="mx-auto max-w-7xl px-5 pb-16">
-        <div className={`rounded-[2rem] border p-6 shadow-sm ${generated ? "border-indigo-200 bg-white" : "border-dashed border-slate-300 bg-slate-50"}`}>
+        <div className={`min-w-0 overflow-hidden rounded-[2rem] border p-6 shadow-sm ${generated ? "border-indigo-200 bg-white" : "border-dashed border-slate-300 bg-slate-50"}`}>
           {generated ? (
-            <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-              <div>
+            <div className="grid min-w-0 gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="min-w-0">
                 <div className="mb-4 flex flex-wrap gap-2">
                   <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Preview generated</Badge>
-                  <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50">Limited concept preview</Badge>
+                  <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">Website direction</Badge>
                 </div>
                 <h2 className="text-3xl font-black text-slate-950">{previewTitle}</h2>
                 <p className="mt-4 text-base font-semibold leading-7 text-slate-600">
@@ -1380,20 +1361,20 @@ function GeneratePreviewPage() {
 		                </div>
 	                  ))}
 	                </div>
-	                <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5">
-	                  <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-700">Free preview limit</p>
+	                <details className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+	                  <summary className="cursor-pointer text-xs font-black uppercase tracking-[0.18em] text-slate-600">What this preview includes</summary>
 	                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
 	                    {FREE_PREVIEW_LIMITS.map((limit) => (
 	                      <div key={limit} className="flex gap-2 text-sm font-bold text-slate-700">
-	                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+	                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
 	                        {limit}
 	                      </div>
 	                    ))}
 	                  </div>
-                    <p className="mt-4 text-xs font-bold leading-5 text-amber-800">
+                    <p className="mt-4 text-xs font-bold leading-5 text-slate-600">
 	                    Full onboarding, manual production work, publishing, and custom domain setup begin only after payment or an approved commercial commitment.
 	                  </p>
-	                </div>
+	                </details>
                 <div className="mt-6 grid gap-4 lg:grid-cols-2">
                   <div className="rounded-3xl bg-indigo-50 p-5">
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Trust signals to use</p>
@@ -1428,25 +1409,22 @@ function GeneratePreviewPage() {
                   </div>
                 </div>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <Button onClick={() => action("click_book_call_after_preview", "Book Website Review", "/book-demo")} className="h-auto min-h-10 whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-black uppercase tracking-widest hover:bg-indigo-500">
+                    Book My 30-Minute Review <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                   <Button
                     onClick={() => {
                       const params = new URLSearchParams({ business: form.businessName, city: form.location, service: form.mainService, cta: reviewStrategy.primaryCta });
                       trackPublicEvent({ eventType: "personalized_template_opened", label: selectedTemplateId, target: `/preview/template/${selectedTemplateId}` });
                       window.open(`/preview/template/${selectedTemplateId}?${params.toString()}`, "_blank", "noopener,noreferrer");
                     }}
-                    className="rounded-2xl bg-slate-950 font-black uppercase tracking-widest text-white hover:bg-indigo-600"
+                    variant="outline" className="rounded-2xl font-black uppercase tracking-widest"
                   >
-                    Open Live Personalised Preview
-                  </Button>
-                  <Button onClick={() => action("create_account_after_preview", "Save My Preview", "/signup?redirectTo=%2Fdashboard%2Fonboarding")} className="rounded-2xl bg-indigo-600 font-black uppercase tracking-widest">
-                    Create Account & Save
-                  </Button>
-                  <Button onClick={() => action("click_start_plan", `Start ${commercialRecommendation.label}`, `/pricing?product=${commercialRecommendation.slug}`)} variant="outline" className="rounded-2xl font-black uppercase tracking-widest">
-                    Start {commercialRecommendation.label}
+                    Open Full Preview
                   </Button>
                 </div>
               </div>
-              <div className="rounded-[1.5rem] bg-slate-950 p-6 text-white">
+              <div className="min-w-0 rounded-[1.5rem] bg-slate-950 p-6 text-white">
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-200">Recommended structure</p>
                 <div className="mt-5 grid gap-3">
                   {industry.pages.map((page, index) => (
@@ -1484,7 +1462,7 @@ function GeneratePreviewPage() {
               <ClipboardCheck className="mx-auto mb-4 h-12 w-12 rounded-2xl bg-white p-3 text-indigo-600 shadow-sm" />
               <h2 className="text-2xl font-black text-slate-950">Your preview recommendation will appear here.</h2>
               <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
-                The first preview does not require an account. After you see the plan and structure, you can save it, book a call, or start a managed website plan.
+                No account or contact details are required. See the direction first, then book a short review if it looks useful.
               </p>
             </div>
           )}
@@ -2034,6 +2012,7 @@ export default function PublicMarketingPages() {
       <Helmet>
         <title>{meta.title}</title>
         <meta name="description" content={meta.description} />
+        <link rel="canonical" href={`https://app.bennietay.com${location.pathname === "/" ? "/" : location.pathname.replace(/\/$/, "")}`} />
       </Helmet>
       <PublicSiteHeader />
       {pageContent}
@@ -2042,7 +2021,7 @@ export default function PublicMarketingPages() {
           <div>
             <h2 className="text-3xl font-black text-slate-950">Ready to see your website direction?</h2>
             <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-              Generate a free preview first, then choose the managed plan or custom website path that fits.
+              See a tailored website direction, then book a 30-minute review to confirm the right managed service.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -2051,19 +2030,19 @@ export default function PublicMarketingPages() {
                 trackPublicEvent({ eventType: "click_generate_preview", label: "Final Generate Preview", target: "/generate-preview" });
                 navigate("/generate-preview");
               }}
-              className="rounded-2xl bg-indigo-600 font-black uppercase tracking-widest"
+              className="h-auto min-h-10 w-full whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-black uppercase tracking-widest sm:w-auto"
             >
-              Generate Preview <ArrowRight className="ml-2 h-4 w-4" />
+              See My Website Direction <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button
               onClick={() => {
-                trackPublicEvent({ eventType: "click_book_call", label: "Final Ask a Question", target: "/book-demo" });
+                trackPublicEvent({ eventType: "click_book_call", label: "Final Website Review", target: "/book-demo" });
                 navigate("/book-demo");
               }}
               variant="outline"
-              className="rounded-2xl font-black uppercase tracking-widest"
+              className="h-auto min-h-10 w-full whitespace-normal rounded-2xl py-3 text-center font-black uppercase tracking-widest sm:w-auto"
             >
-              <MessageCircle className="mr-2 h-4 w-4" /> Ask a Question
+              <MessageCircle className="mr-2 h-4 w-4" /> Book 30-Minute Review
             </Button>
           </div>
         </div>
