@@ -21,7 +21,6 @@ import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingFallback } from "./components/LoadingFallback";
 import { classifyTenantHost } from "./lib/tenantDomains";
-import LoginPage from "./components/LoginPage";
 
 const CHUNK_RETRY_KEY = "bt_chunk_retry_once";
 
@@ -61,6 +60,7 @@ const lazy = <T extends React.ComponentType<any>>(
 
 // --- Lazy Loaded Components ---
 const LandingPage = lazy(() => import("./components/LandingPage"));
+const LoginPage = lazy(() => import("./components/LoginPage"));
 const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
 const PortfolioPage = lazy(() => import("./components/PortfolioPage"));
 const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPages"));

@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => {
             "vendor-react": ["react", "react-dom", "react-router-dom"],
             "vendor-ui": ["motion", "lucide-react", "sonner"],
             "vendor-charts": ["recharts"],
+            "vendor-auth": ["@supabase/supabase-js", "react-helmet-async"],
           },
         },
       },
