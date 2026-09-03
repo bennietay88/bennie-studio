@@ -246,7 +246,8 @@ export default function OwnSalesSeoPage() {
         <title>{page.seoTitle}</title>
         <meta name="description" content={page.metaDescription} />
         {page.status === "draft" && <meta name="robots" content="noindex,nofollow" />}
-        <link rel="canonical" href={`https://app.bennietay.com${page.path}/`} />
+        {/* Keep canonical URLs aligned with the no-trailing-slash paths published in sitemap.xml. */}
+        <link rel="canonical" href={`https://app.bennietay.com${page.path.replace(/\/$/, "") || "/"}`} />
         <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
         <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
         <script type="application/ld+json">{JSON.stringify(serviceSchema)}</script>

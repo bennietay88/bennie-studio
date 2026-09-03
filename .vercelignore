@@ -7,4 +7,6 @@ coverage
 *.log
 template-audit/
 supabase/.temp/
+audit-current/
+prospects/
 design-audit-*.png

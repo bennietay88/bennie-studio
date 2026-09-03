@@ -1328,6 +1328,187 @@ const ALL_BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
   ...ADDITIONAL_NICHE_TEMPLATES,
 };
 
+// Repeatable vertical variants let the sales team offer a relevant starting point
+// without creating a one-off site for every adjacent niche. Each variant inherits
+// the tested structure, conversion flow, SEO fields, and editable content from a
+// proven base template while presenting a niche-specific catalogue entry.
+const EXTENDED_TEMPLATE_VARIANTS: Record<string, NicheTemplate> = Object.fromEntries([
+  {
+    id: "chiropractor-v1",
+    source: "physiotherapy-clinic-v1",
+    name: "Chiropractic Clinic",
+    adminName: "Chiropractic Clinic — Assessment Booking — Clinical Trust",
+    category: "Clinic / Healthcare",
+    templatePack: "health_wellness",
+    conversionGoal: "Appointment Booking",
+    customerName: "Chiropractic Clinic Website",
+    bestFitCustomerProfile: "Chiropractors and spinal care practices that need treatment pages, trust proof, and assessment bookings.",
+    description: "A treatment-led clinic website with clear conditions, practitioner trust, and assessment booking flow.",
+    services: ["Spinal assessment", "Chiropractic care", "Posture correction", "Sports injury support"],
+  },
+  {
+    id: "electrician-v1",
+    source: "service-pro-v1",
+    name: "Electrician",
+    adminName: "Electrician — Emergency Quote — Local Trust",
+    category: "Local Services",
+    templatePack: "local_service",
+    conversionGoal: "Emergency Call",
+    customerName: "Electrician Lead Website",
+    bestFitCustomerProfile: "Electricians and electrical contractors that need emergency calls, quote requests, and service-area visibility.",
+    description: "A fast, mobile-first local service template built for urgent calls, quote requests, and proof of workmanship.",
+    services: ["Emergency electrical work", "Rewiring", "Consumer unit upgrades", "Lighting installation"],
+  },
+  {
+    id: "roofing-v1",
+    source: "service-pro-v1",
+    name: "Roofing Contractor",
+    adminName: "Roofing Contractor — Quote Request — Local Proof",
+    category: "Local Services",
+    templatePack: "local_service",
+    conversionGoal: "Quote Request",
+    customerName: "Roofing Contractor Website",
+    bestFitCustomerProfile: "Roofers and building contractors that sell through local trust, project proof, and quote requests.",
+    description: "A project-proof template for roof repairs, replacements, inspections, and local quote generation.",
+    services: ["Roof repairs", "Roof replacement", "Gutter and fascia", "Roof inspections"],
+  },
+  {
+    id: "mortgage-advisor-v1",
+    source: "accounting-firm-v1",
+    name: "Mortgage Advisor",
+    adminName: "Mortgage Advisor — Consultation Booking — Trust-led",
+    category: "Professional Services",
+    templatePack: "professional_services",
+    conversionGoal: "Consultation Booking",
+    customerName: "Mortgage Advisor Website",
+    bestFitCustomerProfile: "Mortgage brokers and financial advisers that need a compliant, trust-led consultation funnel.",
+    description: "A trust-first advisory template with service pathways, FAQs, proof, and consultation booking.",
+    services: ["First-time buyer mortgages", "Remortgages", "Buy-to-let", "Protection advice"],
+  },
+  {
+    id: "childcare-centre-v1",
+    source: "tuition-centre-v1",
+    name: "Childcare Centre",
+    adminName: "Childcare Centre — Enquiry & Tour Booking — Family Trust",
+    category: "Education / Family",
+    templatePack: "professional_services",
+    conversionGoal: "Consultation Booking",
+    customerName: "Childcare Centre Website",
+    bestFitCustomerProfile: "Nurseries, preschools, and childcare centres that need tour enquiries and parent reassurance.",
+    description: "A warm, parent-focused template for programmes, facilities, reviews, FAQs, and tour enquiries.",
+    services: ["Early years care", "Preschool programme", "After-school care", "Holiday clubs"],
+  },
+  {
+    id: "catering-v1",
+    source: "restaurant-v1",
+    name: "Catering Company",
+    adminName: "Catering Company — Event Enquiry — Menu-led",
+    category: "Hospitality",
+    templatePack: "hospitality_lifestyle",
+    conversionGoal: "Quote Request",
+    customerName: "Catering Company Website",
+    bestFitCustomerProfile: "Event caterers and private dining teams that need menus, gallery proof, and quote enquiries.",
+    description: "A visual menu and event-enquiry template for weddings, corporate catering, and private events.",
+    services: ["Wedding catering", "Corporate catering", "Private dining", "Canapés and grazing tables"],
+  },
+  {
+    id: "florist-v1",
+    source: "boutique-v1",
+    name: "Florist",
+    adminName: "Florist — Order Enquiry — Visual Local",
+    category: "Retail / Lifestyle",
+    templatePack: "hospitality_lifestyle",
+    conversionGoal: "WhatsApp Enquiry",
+    customerName: "Florist Website",
+    bestFitCustomerProfile: "Florists and floral designers that sell through visual proof, occasion packages, and fast enquiries.",
+    description: "A gallery-led local retail template for occasion flowers, weddings, gifting, and WhatsApp orders.",
+    services: ["Bouquets", "Wedding flowers", "Corporate arrangements", "Sympathy flowers"],
+  },
+  {
+    id: "photographer-v1",
+    source: "portfolio-v1",
+    name: "Photographer",
+    adminName: "Photographer — Session Enquiry — Portfolio Premium",
+    category: "Creative Services",
+    templatePack: "hospitality_lifestyle",
+    conversionGoal: "Portfolio Enquiry",
+    customerName: "Photographer Portfolio Website",
+    bestFitCustomerProfile: "Photographers that need a focused portfolio, packages, proof, and session enquiries.",
+    description: "A visual portfolio template with service packages, galleries, testimonials, and enquiry flow.",
+    services: ["Wedding photography", "Brand photography", "Family sessions", "Event photography"],
+  },
+].map((variant) => {
+  const source = ALL_BASE_NICHE_TEMPLATES[variant.source];
+  if (!source) throw new Error(`Missing base template for ${variant.id}: ${variant.source}`);
+  const { source: _source, ...metadata } = variant;
+  return [variant.id, {
+    ...source,
+    ...metadata,
+    id: variant.id,
+    templateStatus: "active",
+    isPremium: false,
+    pages: source.pages.map((page) => ({ ...page, sections: page.sections.map((section) => ({ ...section })) })),
+    theme: { ...source.theme },
+  } satisfies NicheTemplate] as const;
+}));
+
+const BASE_TEMPLATE_CATALOG: Record<string, NicheTemplate> = {
+  ...ALL_BASE_NICHE_TEMPLATES,
+  ...EXTENDED_TEMPLATE_VARIANTS,
+};
+
+type TemplateStyleVariant = {
+  key: string;
+  label: string;
+  primaryColor: string;
+  secondaryColor: string;
+  fontFamily: string;
+  style: string;
+};
+
+// Every niche can be sold in a distinct visual direction while retaining the
+// same tested conversion blocks and editable content. This keeps delivery fast
+// and gives prospects meaningful creative choice.
+const TEMPLATE_STYLE_VARIANTS: TemplateStyleVariant[] = [
+  { key: "clean", label: "Clean", primaryColor: "#4f46e5", secondaryColor: "#eef2ff", fontFamily: "'Geist', sans-serif", style: "clean" },
+  { key: "bold", label: "Bold", primaryColor: "#0f172a", secondaryColor: "#f1f5f9", fontFamily: "'Montserrat', sans-serif", style: "bold" },
+  { key: "editorial", label: "Editorial", primaryColor: "#7c3aed", secondaryColor: "#faf5ff", fontFamily: "'Playfair Display', serif", style: "editorial" },
+  { key: "warm", label: "Warm", primaryColor: "#c2410c", secondaryColor: "#fff7ed", fontFamily: "'DM Sans', sans-serif", style: "warm" },
+];
+
+const TEMPLATE_CATALOG: Record<string, NicheTemplate> = {
+  ...BASE_TEMPLATE_CATALOG,
+  ...Object.fromEntries(
+    Object.values(BASE_TEMPLATE_CATALOG).flatMap((template) =>
+      TEMPLATE_STYLE_VARIANTS.map((variant) => {
+        const variantId = `${template.id}-${variant.key}`;
+        return [variantId, {
+          ...template,
+          id: variantId,
+          name: `${template.name} — ${variant.label}`,
+          adminName: `${template.adminName || template.name} — ${variant.label}`,
+          customerName: `${template.customerName || template.name} (${variant.label})`,
+          description: `${template.description} Presented in a ${variant.label.toLowerCase()} visual direction.`,
+          stylePreset: variant.label,
+          templateStatus: "active",
+          isPremium: false,
+          theme: {
+            ...template.theme,
+            primaryColor: variant.primaryColor,
+            secondaryColor: variant.secondaryColor,
+            fontFamily: variant.fontFamily,
+            style: variant.style,
+          },
+          pages: template.pages.map((page) => ({
+            ...page,
+            sections: page.sections.map((section) => ({ ...section })),
+          })),
+        } satisfies NicheTemplate];
+      }),
+    ),
+  ),
+};
+
 const COMMERCIAL_TEMPLATE_OVERRIDES: Record<string, Partial<NicheTemplate>> = {
   "service-pro-v1": {
     customerName: "Local Service Lead Website",
@@ -1723,7 +1904,7 @@ const completeTemplateSections = (template: NicheTemplate, sections: NicheSectio
 };
 
 export const NICHE_TEMPLATES: Record<string, NicheTemplate> = Object.fromEntries(
-  Object.entries(ALL_BASE_NICHE_TEMPLATES).map(([key, template]) => [
+  Object.entries(TEMPLATE_CATALOG).map(([key, template]) => [
     key,
     (() => {
       const commercialTemplate = {
