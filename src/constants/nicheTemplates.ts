@@ -1445,6 +1445,11 @@ const EXTENDED_TEMPLATE_VARIANTS: Record<string, NicheTemplate> = Object.fromEnt
     ...source,
     ...metadata,
     id: variant.id,
+    // The catalogue metadata array is intentionally data-driven, so preserve
+    // the domain union here instead of widening conversionGoal to `string`.
+    conversionGoal: variant.conversionGoal as NicheTemplate["conversionGoal"],
+    templatePack: variant.templatePack as NicheTemplate["templatePack"],
+    category: variant.category as NicheTemplate["category"],
     templateStatus: "active",
     isPremium: false,
     pages: source.pages.map((page) => ({ ...page, sections: page.sections.map((section) => ({ ...section })) })),
