@@ -76,6 +76,7 @@ const sanitizePublicCommercialCopy = <T,>(value: T): T => {
   if (typeof value === "string") {
     return value
       .replace(/Growth Partner/g, "__GROWTH_PARTNER__")
+      .replace(/Website Growth/g, "__WEBSITE_GROWTH__")
       .replace(/14[- ]day(?: free)? trial/gi, "free website preview")
       .replace(/card[- ]required trial/gi, "free website preview")
       .replace(/free trial/gi, "free website preview")
@@ -86,7 +87,8 @@ const sanitizePublicCommercialCopy = <T,>(value: T): T => {
       .replace(/\bAuthority\b/g, "Growth Partner")
       .replace(/\bScale\b/g, "Website Growth")
       .replace(/\bGrowth\b/g, "Website Growth")
-      .replace(/__GROWTH_PARTNER__/g, "Growth Partner") as T;
+      .replace(/__GROWTH_PARTNER__/g, "Growth Partner")
+      .replace(/__WEBSITE_GROWTH__/g, "Website Growth") as T;
   }
   if (Array.isArray(value)) return value.map((item) => sanitizePublicCommercialCopy(item)) as T;
   if (value && typeof value === "object") {

@@ -12,6 +12,7 @@ const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
   if (typeof value === "string") {
     return value
       .replace(/Growth Partner/g, "__GROWTH_PARTNER__")
+      .replace(/Website Growth/g, "__WEBSITE_GROWTH__")
       // Preserve already-localized current prices while translating stale copy.
       .replace(/US\$99\/month/g, "__CURRENT_US_99__")
       .replace(/US\$199\/month/g, "__CURRENT_US_199__")
@@ -33,6 +34,7 @@ const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
       .replace(/Scale/g, "Website Growth")
       .replace(/\bGrowth\b/g, "Website Growth")
       .replace(/__GROWTH_PARTNER__/g, "Growth Partner")
+      .replace(/__WEBSITE_GROWTH__/g, "Website Growth")
       .replace(/__CURRENT_US_99__/g, "US$99/month")
       .replace(/__CURRENT_US_199__/g, "US$199/month") as T;
   }
