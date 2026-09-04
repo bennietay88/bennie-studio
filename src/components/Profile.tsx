@@ -72,42 +72,20 @@ export function Profile() {
 
     try {
       toast.loading("Preparing your data export...");
-
-      const tables = [
-        "businesses",
-        "websites",
-        "leads",
-        "posts",
-        "appointments",
-        "affiliate_programs",
-        "affiliates",
-      ];
-      const exportData: any = {
-        profile,
-        exportedAt: new Date().toISOString(),
-      };
-
-      for (const table of tables) {
-        const query = supabase.from(table).select("*");
-        if (table === "businesses") {
-          query.eq("id", profile.businessId);
-        } else if (table === "affiliate_programs") {
-          query.eq("business_id", profile.businessId);
-        } else {
-          query.eq("business_id", profile.businessId);
-        }
-
-        const { data } = await query;
-        exportData[table] = data || [];
-      }
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-        type: "application/json",
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Your session has expired. Please sign in again.");
+      const response = await fetch("/api/account/website-export", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || "Failed to prepare website export");
+      }
+      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `bennie_tay_studio_export_${new Date().toISOString().split("T")[0]}.json`;
+      link.download = `bennie_tay_studio_website_export_${new Date().toISOString().split("T")[0]}.tar.gz`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

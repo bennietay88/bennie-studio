@@ -5,6 +5,7 @@ import path from "path";
 import dns from "node:dns";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
+import { gzipSync } from "node:zlib";
 import Stripe from "stripe";
 import dotenv from "dotenv";
 import axios from "axios";
@@ -589,6 +590,34 @@ function buildWebsiteHtmlSnapshot(website: any, business: any) {
 </html>`;
 }
 
+/** Build a small, dependency-free tar.gz archive for customer handover exports. */
+function buildTarGz(files: Array<{ name: string; content: string }>) {
+  const blocks: Buffer[] = [];
+  for (const file of files) {
+    const name = Buffer.from(file.name, "utf8");
+    if (name.length > 100) throw new Error("EXPORT_FILENAME_TOO_LONG");
+    const content = Buffer.from(file.content, "utf8");
+    const header = Buffer.alloc(512, 0);
+    name.copy(header, 0);
+    header.write("0000644\0", 100, 8, "ascii");
+    header.write("0000000\0", 108, 8, "ascii");
+    header.write("0000000\0", 116, 8, "ascii");
+    header.write(`${content.length.toString(8).padStart(11, "0")}\0`, 124, 12, "ascii");
+    header.write(`${Math.floor(Date.now() / 1000).toString(8).padStart(11, "0")}\0`, 136, 12, "ascii");
+    header.fill(0x20, 148, 156);
+    header.write("0", 156, 1, "ascii");
+    Buffer.from("ustar\0", "ascii").copy(header, 257);
+    Buffer.from("00", "ascii").copy(header, 263);
+    const checksum = header.reduce((total, value) => total + value, 0);
+    header.write(`${checksum.toString(8).padStart(6, "0")}\0 `, 148, 8, "ascii");
+    blocks.push(header, content);
+    const padding = (512 - (content.length % 512)) % 512;
+    if (padding) blocks.push(Buffer.alloc(padding));
+  }
+  blocks.push(Buffer.alloc(1024));
+  return gzipSync(Buffer.concat(blocks), { level: 6 });
+}
+
 function getStateSecret() {
   return (
     process.env.STRIPE_CONNECT_STATE_SECRET ||
@@ -841,6 +870,48 @@ async function startServer() {
       return res.json({ unpaidTotal: Number(data || 0) });
     },
   );
+
+  // Customer self-service website handover. This export is scoped to the
+  // authenticated user's business and contains no billing records or secrets.
+  app.get("/api/account/website-export", authenticate, async (req: any, res: any) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!profile.business_id) return res.status(404).json({ error: "No business found for this account" });
+      await assertBusinessAccess(req.user.id, profile.business_id);
+
+      const [{ data: business, error: businessError }, { data: websites, error: websitesError }] = await Promise.all([
+        supabaseAdmin.from("businesses").select("id,name,subdomain,custom_domain,custom_domain_status,site_url,seo_settings").eq("id", profile.business_id).single(),
+        supabaseAdmin.from("websites").select("id,slug,status,pages,theme,seo,updated_at").eq("business_id", profile.business_id).eq("status", "published"),
+      ]);
+      if (businessError || !business) return res.status(404).json({ error: "Business not found" });
+      if (websitesError) throw websitesError;
+
+      const publishedWebsites = websites || [];
+      const files: Array<{ name: string; content: string }> = [];
+      publishedWebsites.forEach((website: any, index: number) => {
+        const filename = index === 0 ? "index.html" : `pages/${sanitizeFileName(website.slug || website.id)}.html`;
+        files.push({ name: filename, content: buildWebsiteHtmlSnapshot(website, business) });
+      });
+      if (files.length === 0) files.push({ name: "index.html", content: buildWebsiteHtmlSnapshot({ pages: [] }, business) });
+      files.push({
+        name: "bennie-studio-export.json",
+        content: JSON.stringify({ exportVersion: "1.0", exportedAt: new Date().toISOString(), business, websites: publishedWebsites }, null, 2),
+      });
+      files.push({
+        name: "README.md",
+        content: `# ${business.name || "Website"}\n\nThis is a static handover export from Bennie Studio. Upload index.html and the pages/ folder to any static host (for example Netlify, Vercel, GitHub Pages, or your own server).\n\nThe exported pages do not include Bennie Studio-hosted CRM submission endpoints, private credentials, billing data, or API keys. Replace contact forms and hosted integrations with services you control before launch.\n`,
+      });
+
+      const archive = buildTarGz(files);
+      const filename = `${sanitizeFileName(business.name || "website")}-website-export.tar.gz`;
+      res.setHeader("Content-Type", "application/gzip");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      return res.status(200).send(archive);
+    } catch (error: any) {
+      console.error("[Website Export] Failed:", error);
+      return res.status(500).json({ error: "Unable to prepare website export" });
+    }
+  });
 
   app.post(
     "/api/admin/prospects/:prospectId/convert",
