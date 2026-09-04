@@ -553,9 +553,9 @@ const buildSectionContent = (
       title: "Simple Packages",
       description: `Choose the right option for ${service}.`,
       plans: [
-        { name: "Starter", price: "Enquire", isPopular: false, features: ["Initial consultation", "Core service guidance", "Clear next step"] },
+        { name: "Essential", price: "Enquire", isPopular: false, features: ["Initial consultation", "Core service guidance", "Clear next step"] },
         { name: "Recommended", price: "Custom", isPopular: true, features: ["Personalized recommendation", "Priority response", "Follow-up support"] },
-        { name: "Premium", price: "Custom", isPopular: false, features: ["Full service support", "Dedicated guidance", "Ongoing care"] },
+        { name: "Complete", price: "Custom", isPopular: false, features: ["Full service support", "Dedicated guidance", "Ongoing care"] },
       ],
     };
   }
@@ -677,6 +677,6 @@ export const getPlanUpgradeValue = (plan: WebsitePlanId, maxPages?: number) => {
 };
 
 export const getReadablePlanName = (plan: WebsitePlanId) =>
-  plan === "starter" ? "Starter" : plan === "business" ? "Business" : "Growth";
+  plan === "starter" ? "Managed Website" : plan === "business" ? "Website Growth" : "Growth Partner";
 
 export const getSectionBlockLabel = (block: SectionBlockType) => startCase(block);

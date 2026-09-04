@@ -19,7 +19,6 @@ import {
   Mail,
   Phone,
   Link as LinkIcon,
-  ArrowRightCircle,
 } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
@@ -77,9 +76,6 @@ export function ProspectExplorer() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [csvText, setCsvText] = useState("");
   const [saving, setSaving] = useState(false);
-  const [convertingProspect, setConvertingProspect] = useState<any | null>(null);
-  const [conversionPlan, setConversionPlan] = useState("starter");
-  const [conversionSubdomain, setConversionSubdomain] = useState("");
   const [newProspect, setNewProspect] = useState({
     name: "",
     domain: "",
@@ -236,56 +232,6 @@ export function ProspectExplorer() {
     if (ok) {
       await navigator.clipboard.writeText(previewUrl).catch(() => undefined);
       toast.success("Preview/audit link saved and copied");
-    }
-  };
-
-  const openConversion = (prospect: any) => {
-    setConvertingProspect(prospect);
-    setConversionPlan("starter");
-    setConversionSubdomain(
-      cleanDomain(prospect.name || "customer")
-        .replace(/\./g, "-")
-        .replace(/[^a-z0-9-]/gi, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "")
-        .toLowerCase(),
-    );
-  };
-
-  const convertToCustomer = async () => {
-    if (!convertingProspect || conversionSubdomain.trim().length < 3) {
-      toast.error("Enter a unique subdomain with at least three characters");
-      return;
-    }
-    try {
-      setSaving(true);
-      const { data: sessionData } = await supabase.auth.getSession();
-      const response = await fetch(`/api/admin/prospects/${convertingProspect.id}/convert`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${sessionData.session?.access_token || ""}`,
-        },
-        body: JSON.stringify({
-          plan: conversionPlan,
-          subdomain: conversionSubdomain,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Prospect conversion failed");
-      setProspects((rows) => rows.map((row) => row.id === convertingProspect.id ? {
-        ...row,
-        converted_business_id: payload.businessId,
-        converted_at: new Date().toISOString(),
-        outreach_status: "won",
-        status: "converted",
-      } : row));
-      setConvertingProspect(null);
-      toast.success("Prospect converted. Project and onboarding records are ready.");
-    } catch (error: any) {
-      toast.error(error.message || "Prospect conversion failed");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -558,9 +504,6 @@ export function ProspectExplorer() {
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Preview</Button>
-                          {!prospect.converted_business_id && (
-                            <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><ArrowRightCircle className="h-3 w-3 mr-1.5" />Convert</Button>
-                          )}
                           {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
                           <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 hover:bg-rose-50 hover:text-rose-600" onClick={() => deleteProspect(prospect.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
@@ -630,39 +573,6 @@ export function ProspectExplorer() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(convertingProspect)} onOpenChange={(open) => !open && setConvertingProspect(null)}>
-        <DialogContent className="max-w-md rounded-3xl">
-          <DialogHeader>
-            <DialogTitle>Convert Prospect to Customer</DialogTitle>
-            <DialogDescription>
-              Creates a trial business, production project, and client onboarding queue entry for {convertingProspect?.name}.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-3">
-            <Field label="Starting plan">
-              <Select value={conversionPlan} onValueChange={setConversionPlan}>
-                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="starter">Starter</SelectItem>
-                  <SelectItem value="business">Business</SelectItem>
-                  <SelectItem value="growth">Growth</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Customer subdomain">
-              <Input value={conversionSubdomain} onChange={(event) => setConversionSubdomain(event.target.value)} placeholder="customer-name" className="rounded-xl" />
-            </Field>
-            <div className="rounded-xl bg-amber-50 p-3 text-xs font-semibold text-amber-800">
-              This creates the business workspace without an owner login. Assign or invite the customer owner from System Users after conversion.
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConvertingProspect(null)}>Cancel</Button>
-            <Button onClick={convertToCustomer} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700">{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Create Customer Workspace</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={Boolean(selectedProspect)} onOpenChange={(open) => !open && setSelectedProspect(null)}>
         <DialogContent className="max-w-2xl rounded-3xl">
           <DialogHeader><DialogTitle>{selectedProspect?.name}</DialogTitle><DialogDescription>Prospect history, qualification, audit, preview, and next action in one view.</DialogDescription></DialogHeader>
@@ -675,7 +585,7 @@ export function ProspectExplorer() {
             <Info label="Source" value={selectedProspect.source || "Unknown"} />
             <div className="sm:col-span-2 rounded-2xl bg-slate-50 p-4"><p className="text-xs font-black uppercase tracking-widest text-slate-400">Notes and outreach history</p><p className="mt-2 whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-700">{selectedProspect.notes || "No notes recorded."}</p></div>
           </div>}
-          <DialogFooter>{selectedProspect?.preview_url && <a href={selectedProspect.preview_url} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-bold"><ExternalLink className="mr-2 h-4 w-4"/>Open Preview</a>}<Button onClick={() => { const prospect = selectedProspect; setSelectedProspect(null); openConversion(prospect); }} disabled={Boolean(selectedProspect?.converted_business_id)} className="bg-emerald-600">Convert to Customer</Button></DialogFooter>
+          <DialogFooter>{selectedProspect?.preview_url && <a href={selectedProspect.preview_url} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-bold"><ExternalLink className="mr-2 h-4 w-4"/>Open Preview</a>}</DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

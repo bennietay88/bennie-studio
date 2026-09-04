@@ -1,3 +1,4 @@
+// IDs remain stable for historical records; public names and pricing use the current catalogue.
 export type ReviewPoweredPlanId = "free_preview" | "starter" | "business" | "growth" | "wordpress_custom";
 
 export interface ReviewPoweredPlan {
@@ -5,7 +6,7 @@ export interface ReviewPoweredPlan {
   publicName: string;
   internalName: string;
   price: string;
-  hostingType: "preview" | "managed" | "wordpress";
+  hostingType: "preview" | "managed";
   pageLimit: number;
   regenerationLimit: number;
   monthlyEditLimit: number;
@@ -40,17 +41,17 @@ export const REVIEW_POWERED_PLANS: ReviewPoweredPlan[] = [
   },
   {
     id: "starter",
-    publicName: "Launch",
-    internalName: "Managed Website Launch",
-    price: "$49/month",
+    publicName: "Managed Website",
+    internalName: "Managed Website",
+    price: "US$99/month",
     hostingType: "managed",
     pageLimit: 1,
     regenerationLimit: 5,
     monthlyEditLimit: 1,
     locationPageLimit: 0,
     canPublish: true,
-    bestFor: "Entry plan for businesses that only need a focused one-page website.",
-    cta: "Choose Launch",
+    bestFor: "Businesses that need a focused, enquiry-generating website with managed hosting and support.",
+    cta: "Choose Managed Website",
     features: [
       "Managed-hosted 1-page website",
       "Basic review-powered copy",
@@ -62,54 +63,54 @@ export const REVIEW_POWERED_PLANS: ReviewPoweredPlan[] = [
   },
   {
     id: "business",
-    publicName: "Business",
-    internalName: "Managed Website Business",
-    price: "$99/month",
+    publicName: "Website Growth",
+    internalName: "Website Growth",
+    price: "US$249/month",
     hostingType: "managed",
     pageLimit: 3,
     regenerationLimit: 20,
     monthlyEditLimit: 1,
     locationPageLimit: 1,
     canPublish: true,
-    bestFor: "Recommended default for service businesses that need Home, Services, Contact, proof, and monthly improvement support.",
-    cta: "Start With Business",
+    bestFor: "Businesses that need ongoing conversion optimisation, local SEO expansion, and landing-page development.",
+    cta: "Choose Website Growth",
     features: [
       "Up to 3 managed-hosted pages",
       "Review-powered homepage and service copy",
       "Local SEO structure",
       "FAQ and lead capture form",
       "1 consolidated update request each month",
-      "More AI regenerations",
+      "Ongoing growth improvements",
     ],
   },
   {
     id: "growth",
-    publicName: "Scale",
-    internalName: "Managed Website Scale",
-    price: "$199/month",
+    publicName: "Growth Partner",
+    internalName: "Growth Partner",
+    price: "US$799/month",
     hostingType: "managed",
     pageLimit: 5,
     regenerationLimit: 50,
     monthlyEditLimit: 2,
     locationPageLimit: 3,
     canPublish: true,
-    bestFor: "Upgrade plan for businesses that want landing pages, local expansion, and priority conversion support.",
-    cta: "Choose Scale",
+    bestFor: "Companies wanting consultant-led positioning, conversion strategy, SEO direction, and funnel strategy.",
+    cta: "Discuss Growth Partner",
     features: [
       "Up to 5 managed-hosted pages",
       "Review refresh engine",
       "Landing page support",
       "Local SEO recommendations",
       "Conversion recommendations",
-      "2 managed update requests each month",
+      "Consultant-led growth direction",
     ],
   },
   {
     id: "wordpress_custom",
     publicName: "Custom Website",
-    internalName: "Premium Website Quote",
+    internalName: "Custom Website Quote",
     price: "Custom quote",
-    hostingType: "wordpress",
+    hostingType: "managed",
     pageLimit: 999,
     regenerationLimit: 0,
     monthlyEditLimit: 0,
@@ -142,7 +143,7 @@ export const HOSTING_COMPARISON = [
   ["Launch speed", "Fast launch", "Longer custom build"],
   ["Maintenance", "Included while subscribed", "Optional care plan"],
   ["Editing", "WAAS/admin workflow", "CMS or custom editor"],
-  ["Blog support", "Limited or add-on", "Full blog support"],
+  ["Blog support", "Not included", "Quoted separately"],
   ["SEO expansion", "Plan-based SEO expansion", "Advanced SEO expansion"],
   ["Custom integrations", "Limited integrations", "Advanced integrations"],
   ["Ownership/control", "Managed platform license", "Higher ownership and CMS control"],

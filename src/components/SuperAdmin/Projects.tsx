@@ -38,7 +38,7 @@ const blankProject = {
   business_id: "",
   title: "",
   type: "waas",
-  package_name: "starter",
+  package_name: "managed-website",
   status: "new_customer",
   priority: "medium",
   assigned_to: "",

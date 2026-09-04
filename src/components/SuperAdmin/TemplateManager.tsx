@@ -67,6 +67,7 @@ import {
   WAAS_TEMPLATE_PACKS,
   getTemplateCommercialMetadata,
   getTemplatePlanStructure,
+  getTemplateReadiness,
 } from "../../constants/nicheTemplates";
 import {
   FONT_PAIRINGS,
@@ -76,6 +77,7 @@ import {
   TEMPLATE_INDUSTRIES,
   TEMPLATE_PAGE_TYPES,
   TEMPLATE_PLAN_ACCESS,
+  normalizeTemplatePlanLabel,
 } from "../../constants/templateTaxonomy";
 
 interface TemplateManagerProps {
@@ -135,11 +137,18 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this template?"))
-      return;
-
     setDeleting(id);
     try {
+      const { count, error: usageError } = await supabase
+        .from("websites")
+        .select("id", { count: "exact", head: true })
+        .eq("template_id", id);
+      if (usageError && !String(usageError.message || "").includes("template_id")) throw usageError;
+      if ((count || 0) > 0) {
+        toast.error("This template is assigned to a customer website and cannot be deleted. Hide or archive it instead.");
+        return;
+      }
+      if (!window.confirm("Delete this unassigned template? This cannot be undone.")) return;
       const { error } = await supabase.from("templates").delete().eq("id", id);
 
       if (error) throw error;
@@ -231,7 +240,8 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
     const matchesQuery = !query || searchable.includes(query);
     const matchesPack = packFilter === "all" || meta.templatePack === packFilter;
     const matchesGoal = goalFilter === "all" || meta.conversionGoal === goalFilter;
-    const matchesPlan = planFilter === "all" || meta.recommendedPlan === planFilter || meta.planAccess?.includes(planFilter);
+    const normalizedAccess = (meta.planAccess || []).map(normalizeTemplatePlanLabel);
+    const matchesPlan = planFilter === "all" || normalizeTemplatePlanLabel(meta.recommendedPlan) === planFilter || normalizedAccess.includes(planFilter);
     const matchesPages = pageFilter === "all" || meta.supportedPageCounts?.includes(Number(pageFilter));
     const matchesSeo = seoFilter === "all" || (seoFilter === "yes" ? meta.localSeoReadiness : !meta.localSeoReadiness);
     const matchesCategory = categoryFilter === "all" || meta.templateCategory === categoryFilter || t.category === categoryFilter;
@@ -307,7 +317,7 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
       best_fit_customer_profile: template.best_fit_customer_profile || meta.bestFitCustomerProfile,
       template_category: template.template_category || meta.templateCategory,
       page_type: template.page_type || meta.pageType,
-      plan_access: template.plan_access || meta.planAccess || [],
+      plan_access: (template.plan_access || meta.planAccess || []).map(normalizeTemplatePlanLabel),
       premium_status: template.premium_status || meta.premiumStatus,
       preview_image: template.preview_image || meta.previewImage || template.thumbnail,
       recommended_use_case: template.recommended_use_case || meta.recommendedUseCase,
@@ -320,6 +330,11 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
 
   const assignTemplateToBusiness = async () => {
     if (!assigningTemplate || !selectedBusinessId) return;
+    const readiness = getTemplateReadiness({ ...assigningTemplate, ...getDbTemplateMetadata(assigningTemplate) } as any);
+    if (!readiness.ready) {
+      toast.error(`Complete template readiness before assignment: ${readiness.missing.join(", ")}`);
+      return;
+    }
     setAssigning(true);
     try {
       const selectedBusiness = businesses.find((business) => business.id === selectedBusinessId);
@@ -679,6 +694,7 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredTemplates.map((template) => {
           const meta = getDbTemplateMetadata(template);
+          const readiness = getTemplateReadiness({ ...template, ...meta } as any);
           return (
           <Card key={template.id} className="rounded-3xl overflow-hidden border-slate-200 dark:border-slate-800 shadow-sm relative group">
             <div className="aspect-video relative overflow-hidden bg-slate-100">
@@ -786,9 +802,10 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
                         setAssigningTemplate(template);
                         setAssignmentPlan((meta.recommendedPlan as any) || "Business");
                       }}
+                      disabled={!readiness.ready}
                       className="gap-2"
                     >
-                      <UserPlus className="h-4 w-4" /> Assign to Customer
+                      <UserPlus className="h-4 w-4" /> {readiness.ready ? "Assign to Customer" : "Complete readiness first"}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="gap-2 text-red-600 focus:text-red-600"
@@ -804,12 +821,12 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
               </p>
               <div className="mt-5 grid grid-cols-2 gap-2">
                 <div className="rounded-2xl bg-slate-50 p-3">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Best Plan</p>
-                  <p className="text-sm font-black text-slate-900">{meta.recommendedPlan || "Business"}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Default structure</p>
+                  <p className="text-sm font-black text-slate-900">{meta.recommendedPlan === "Starter" ? "Compact" : meta.recommendedPlan === "Growth" ? "Expanded" : "Standard"}</p>
                 </div>
                 <div className="rounded-2xl bg-slate-50 p-3">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Access</p>
-                  <p className="truncate text-sm font-black text-slate-900">{meta.planAccess?.join(" / ") || "Starter / Business"}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Service availability</p>
+                  <p className="truncate text-sm font-black text-slate-900">{(meta.planAccess || [meta.recommendedPlan || "Business"]).map(normalizeTemplatePlanLabel).filter((value: string, index: number, values: string[]) => values.indexOf(value) === index).join(" / ")}</p>
                 </div>
                 <div className="rounded-2xl bg-slate-50 p-3">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">CTA</p>
@@ -819,6 +836,9 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Sections</p>
                   <p className="text-sm font-black text-slate-900">{meta.includedSections?.length || meta.sectionPreset?.length || "Core"}</p>
                 </div>
+              </div>
+              <div className={`mt-3 rounded-xl px-3 py-2 text-xs font-bold ${readiness.ready ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
+                {readiness.ready ? "Production ready" : `${readiness.percent}% ready · Missing ${readiness.missing.join(", ")}`}
               </div>
             </CardHeader>
             <CardFooter className="px-6 py-4 border-t bg-slate-50/50 flex justify-between items-center">
@@ -1086,7 +1106,7 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Recommended Plan
+                    Default Page Structure
                   </label>
                   <Select
                     value={editingTemplate?.recommended_plan || "Business"}
@@ -1094,9 +1114,9 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
                   >
                     <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent className="rounded-xl">
-                      <SelectItem value="Starter">Starter</SelectItem>
-                      <SelectItem value="Business">Business</SelectItem>
-                      <SelectItem value="Growth">Growth</SelectItem>
+                      <SelectItem value="Starter">Compact · 1 page</SelectItem>
+                      <SelectItem value="Business">Standard · 3 pages</SelectItem>
+                      <SelectItem value="Growth">Expanded · 5 pages</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1196,7 +1216,7 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
                 </div>
                 <div className="space-y-3 md:col-span-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Plan Access
+                    Service Availability
                   </label>
                   <div className="grid gap-2 rounded-2xl border border-slate-100 bg-white p-3 sm:grid-cols-2 lg:grid-cols-3">
                     {TEMPLATE_PLAN_ACCESS.map((item) => {
@@ -1437,7 +1457,7 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
           <DialogHeader>
             <DialogTitle>Assign Template to Customer</DialogTitle>
             <DialogDescription>
-              Create an editable website draft using the selected niche blueprint and plan limit.
+              Create an editable website draft using the selected production-ready blueprint and page scope.
             </DialogDescription>
           </DialogHeader>
           {assigningTemplate && (
@@ -1470,14 +1490,14 @@ export const TemplateManager = ({ onEdit }: TemplateManagerProps) => {
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Plan Version
+                  Page Scope
                 </label>
                 <Select value={assignmentPlan} onValueChange={(value) => setAssignmentPlan(value as any)}>
                   <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value="Starter">Starter · 1-page</SelectItem>
-                    <SelectItem value="Business">Business · 3-page</SelectItem>
-                    <SelectItem value="Growth">Growth · 5-page</SelectItem>
+                    <SelectItem value="Starter">Compact · 1 page</SelectItem>
+                    <SelectItem value="Business">Standard · 3 pages</SelectItem>
+                    <SelectItem value="Growth">Expanded · 5 pages</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

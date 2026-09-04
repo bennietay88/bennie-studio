@@ -75,20 +75,15 @@ const scoreSeoPage = (page: Omit<OwnSalesSeoPage, "quality" | "status">): OwnSal
 const sanitizePublicCommercialCopy = <T,>(value: T): T => {
   if (typeof value === "string") {
     return value
-      .replace(/Growth Partner/g, "__GROWTH_PARTNER__")
-      .replace(/Website Growth/g, "__WEBSITE_GROWTH__")
       .replace(/14[- ]day(?: free)? trial/gi, "free website preview")
       .replace(/card[- ]required trial/gi, "free website preview")
       .replace(/free trial/gi, "free website preview")
       .replace(/RM199(?:\/month)?/g, "RM299/month")
       .replace(/\$49(?:\/month)?/g, "US$99/month")
-      .replace(/\bStarter\b/g, "Managed Website")
-      .replace(/\bBusiness\b/g, "Managed Website")
-      .replace(/\bAuthority\b/g, "Growth Partner")
-      .replace(/\bScale\b/g, "Website Growth")
-      .replace(/\bGrowth\b/g, "Website Growth")
-      .replace(/__GROWTH_PARTNER__/g, "Growth Partner")
-      .replace(/__WEBSITE_GROWTH__/g, "Website Growth") as T;
+      .replace(/\bStarter plan\b/gi, "Managed Website")
+      .replace(/\bBusiness plan\b/gi, "Managed Website")
+      .replace(/\bScale plan\b/gi, "Website Growth")
+      .replace(/\bAuthority plan\b/gi, "Growth Partner") as T;
   }
   if (Array.isArray(value)) return value.map((item) => sanitizePublicCommercialCopy(item)) as T;
   if (value && typeof value === "object") {
@@ -253,15 +248,15 @@ const generatedOwnSalesSeoPages = [
     { country: "UK" as const, city: "Glasgow", nearby: ["Paisley", "East Kilbride", "Clydebank", "Hamilton", "Motherwell"], currencyNote: "UK pricing is shown from £99/month plus setup.", pricing: "Managed Website is £99/month plus £199 setup. Website Growth is £249/month. Growth Partner and custom work are quoted separately.", buyerSignals: ["Glasgow businesses need clear enquiry flow and service-area language", "Useful for companies wanting a professional site without a large upfront build"], industries: ["Local services", "Clinics", "Professional firms"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
     { country: "Malaysia" as const, city: "Petaling Jaya", nearby: ["Damansara", "Subang Jaya", "Shah Alam", "Kelana Jaya", "Puchong"], currencyNote: "Malaysia pricing is shown in MYR when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available when the business needs deeper ongoing support.", buyerSignals: ["PJ businesses often rely on WhatsApp enquiries and fast mobile contact", "Good fit for Klang Valley service-area coverage"], industries: ["Clinics", "Salons", "Consultants"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
     { country: "Malaysia" as const, city: "Shah Alam", nearby: ["Klang", "Subang Jaya", "Petaling Jaya", "Setia Alam", "Puchong"], currencyNote: "Malaysia pricing is shown in MYR when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available when the business needs deeper ongoing support.", buyerSignals: ["Shah Alam businesses need SME-friendly pricing and WhatsApp-first CTAs", "Useful for renovation companies, clinics, wellness providers, beauty salons, and home services"], industries: ["Renovation companies", "Clinics", "Home services"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
-    { country: "Malaysia" as const, city: "Subang Jaya", nearby: ["USJ", "Sunway", "Petaling Jaya", "Puchong", "Shah Alam"], currencyNote: "Malaysia pricing can be displayed in RM when enabled.", pricing: "Malaysia-ready managed plans can use local pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["Subang Jaya buyers often compare convenience, trust, and quick response", "Strong fit for education, clinics, lifestyle, and service brands"], industries: ["Tuition centres", "Clinics", "Lifestyle services"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
-    { country: "Malaysia" as const, city: "Johor Bahru", nearby: ["Iskandar Puteri", "Skudai", "Pasir Gudang", "Kulai", "Tebrau"], currencyNote: "Malaysia pricing can be displayed in RM when enabled.", pricing: "Malaysia-ready managed plans can use local pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["JB businesses may target both local and cross-border buyers", "Useful for service providers, clinics, property, and local shops"], industries: ["Property services", "Clinics", "Local shops"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
-    { country: "Malaysia" as const, city: "Penang", nearby: ["George Town", "Bayan Lepas", "Bukit Mertajam", "Butterworth", "Tanjung Bungah"], currencyNote: "Malaysia pricing can be displayed in RM when enabled.", pricing: "Malaysia-ready managed plans can use local pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["Penang businesses benefit from local proof, service-area content, and mobile-first enquiries", "Good fit for clinics, hospitality, SMEs, and service providers"], industries: ["Clinics", "Hospitality", "SMEs"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
-    { country: "Malaysia" as const, city: "Kuching", nearby: ["Samarahan", "Batu Kawa", "Padawan", "Matang", "Santubong"], currencyNote: "Malaysia pricing can be displayed in RM when enabled.", pricing: "Malaysia-ready managed plans can use local pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["Kuching businesses need clear local credibility and direct enquiry paths", "Useful for local service providers and growing SMEs in Sarawak"], industries: ["Local services", "Consultants", "Clinics"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
-    { country: "Singapore" as const, city: "Orchard", nearby: ["Somerset", "Dhoby Ghaut", "Tanglin", "Newton", "River Valley"], currencyNote: "Singapore pricing can be displayed in SGD when enabled.", pricing: "Singapore-ready managed plans can use SGD pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["Orchard buyers expect premium presentation and high-trust service copy", "Useful for wellness, aesthetic, consultant, and lifestyle brands"], industries: ["Aesthetic clinics", "Consultants", "Lifestyle brands"], wording: { enquiry: "enquiry", quote: "consultation", local: "local" } },
-    { country: "Singapore" as const, city: "Tampines", nearby: ["Bedok", "Pasir Ris", "Simei", "Changi", "Paya Lebar"], currencyNote: "Singapore pricing can be displayed in SGD when enabled.", pricing: "Singapore-ready managed plans can use SGD pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["Tampines businesses need clear services, appointment paths, and fast response CTAs", "Good fit for neighbourhood service providers and clinics"], industries: ["Clinics", "Local services", "Tuition centres"], wording: { enquiry: "enquiry", quote: "consultation", local: "local" } },
-    { country: "Singapore" as const, city: "Jurong", nearby: ["Jurong East", "Jurong West", "Clementi", "Bukit Batok", "Boon Lay"], currencyNote: "Singapore pricing can be displayed in SGD when enabled.", pricing: "Singapore-ready managed plans can use SGD pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["Jurong businesses benefit from area-specific positioning and practical service pages", "Useful for education, local services, clinics, and B2B firms"], industries: ["Education providers", "Local services", "B2B services"], wording: { enquiry: "enquiry", quote: "consultation", local: "local" } },
-    { country: "Singapore" as const, city: "Woodlands", nearby: ["Marsiling", "Admiralty", "Sembawang", "Yishun", "Kranji"], currencyNote: "Singapore pricing can be displayed in SGD when enabled.", pricing: "Singapore-ready managed plans can use SGD pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["Woodlands service providers need mobile-first contact and neighbourhood trust", "Useful for local businesses wanting clear enquiries and appointment flow"], industries: ["Local services", "Clinics", "Home services"], wording: { enquiry: "enquiry", quote: "consultation", local: "local" } },
-    { country: "Singapore" as const, city: "Toa Payoh", nearby: ["Novena", "Balestier", "Bishan", "Serangoon", "Kallang"], currencyNote: "Singapore pricing can be displayed in SGD when enabled.", pricing: "Singapore-ready managed plans can use SGD pricing display, with Starter, Growth, and Authority tiers configured in admin.", buyerSignals: ["Toa Payoh businesses can benefit from local trust copy and fast booking paths", "Good fit for clinics, wellness, tuition, and professional services"], industries: ["Clinics", "Wellness providers", "Tuition centres"], wording: { enquiry: "enquiry", quote: "consultation", local: "local" } },
+    { country: "Malaysia" as const, city: "Subang Jaya", nearby: ["USJ", "Sunway", "Petaling Jaya", "Puchong", "Shah Alam"], currencyNote: "Malaysia pricing is shown in MYR when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available for deeper ongoing support.", buyerSignals: ["Subang Jaya buyers often compare convenience, trust, and quick response", "Strong fit for education, clinics, lifestyle, and service brands"], industries: ["Tuition centres", "Clinics", "Lifestyle services"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
+    { country: "Malaysia" as const, city: "Johor Bahru", nearby: ["Iskandar Puteri", "Skudai", "Pasir Gudang", "Kulai", "Tebrau"], currencyNote: "Malaysia pricing is shown in MYR when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available for deeper ongoing support.", buyerSignals: ["JB businesses may target both local and cross-border buyers", "Useful for service providers, clinics, property, and local shops"], industries: ["Property services", "Clinics", "Local shops"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
+    { country: "Malaysia" as const, city: "Penang", nearby: ["George Town", "Bayan Lepas", "Bukit Mertajam", "Butterworth", "Tanjung Bungah"], currencyNote: "Malaysia pricing is shown in MYR when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available for deeper ongoing support.", buyerSignals: ["Penang businesses benefit from local proof, service-area content, and mobile-first enquiries", "Good fit for clinics, hospitality, SMEs, and service providers"], industries: ["Clinics", "Hospitality", "SMEs"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
+    { country: "Malaysia" as const, city: "Kuching", nearby: ["Samarahan", "Batu Kawa", "Padawan", "Matang", "Santubong"], currencyNote: "Malaysia pricing is shown in MYR when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available for deeper ongoing support.", buyerSignals: ["Kuching businesses need clear local credibility and direct enquiry paths", "Useful for local service providers and growing SMEs in Sarawak"], industries: ["Local services", "Consultants", "Clinics"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
+    { country: "Singapore" as const, city: "Orchard", nearby: ["Somerset", "Dhoby Ghaut", "Tanglin", "Newton", "River Valley"], currencyNote: "Singapore pricing is shown in SGD when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available for deeper ongoing support.", buyerSignals: ["Orchard buyers expect premium presentation and high-trust service copy", "Useful for wellness, aesthetic, consultant, and lifestyle brands"], industries: ["Aesthetic clinics", "Consultants", "Lifestyle brands"], wording: { enquiry: "enquiry", quote: "consultation", local: "local" } },
+    { country: "Singapore" as const, city: "Tampines", nearby: ["Bedok", "Pasir Ris", "Simei", "Changi", "Paya Lebar"], currencyNote: "Singapore pricing is shown in SGD when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available for deeper ongoing support.", buyerSignals: ["Tampines businesses need clear services, appointment paths, and fast response CTAs", "Good fit for neighbourhood service providers and clinics"], industries: ["Clinics", "Local services", "Tuition centres"], wording: { enquiry: "enquiry", quote: "consultation", local: "local" } },
+    { country: "Singapore" as const, city: "Jurong", nearby: ["Jurong East", "Jurong West", "Clementi", "Bukit Batok", "Boon Lay"], currencyNote: "Singapore pricing is shown in SGD when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available for deeper ongoing support.", buyerSignals: ["Jurong businesses benefit from area-specific positioning and practical service pages", "Useful for education, local services, clinics, and B2B firms"], industries: ["Education providers", "Local services", "B2B services"], wording: { enquiry: "enquiry", quote: "consultation", local: "local" } },
+    { country: "Singapore" as const, city: "Woodlands", nearby: ["Marsiling", "Admiralty", "Sembawang", "Yishun", "Kranji"], currencyNote: "Singapore pricing is shown in SGD when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available for deeper ongoing support.", buyerSignals: ["Woodlands service providers need mobile-first contact and neighbourhood trust", "Useful for local businesses wanting clear enquiries and appointment flow"], industries: ["Local services", "Clinics", "Home services"], wording: { enquiry: "enquiry", quote: "consultation", local: "local" } },
+    { country: "Singapore" as const, city: "Toa Payoh", nearby: ["Novena", "Balestier", "Bishan", "Serangoon", "Kallang"], currencyNote: "Singapore pricing is shown in SGD when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available for deeper ongoing support.", buyerSignals: ["Toa Payoh businesses can benefit from local trust copy and fast booking paths", "Good fit for clinics, wellness, tuition, and professional services"], industries: ["Clinics", "Wellness providers", "Tuition centres"], wording: { enquiry: "enquiry", quote: "consultation", local: "local" } },
   ].map(makeWebsiteDesignCityPage),
 ];
 
@@ -372,10 +367,10 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
       "GDPR-friendly form consent, cookie banner support, privacy/cookie policy structure, and secure lead capture",
     ],
     examples: [
-      { industry: "Trades business", plan: "Growth", pages: "Home, Services, Areas Covered, FAQ, Contact", localSeo: "Quote CTAs, town/service-area copy, local FAQs, and phone enquiry path" },
-      { industry: "Consultant", plan: "Authority", pages: "Home, About, Services, Case Studies, Book a Call", localSeo: "UK enquiry wording, proof sections, service pages, and consultation CTAs" },
-      { industry: "Clinic or wellness provider", plan: "Growth", pages: "Home, Treatments, About, FAQ, Appointment", localSeo: "Treatment FAQs, appointment CTAs, trust sections, and local area content" },
-      { industry: "Small agency", plan: "Authority", pages: "Home, Services, Portfolio, Insights, Contact", localSeo: "Portfolio proof, service-location copy, internal links, and lead capture" },
+      { industry: "Trades business", plan: "Website Growth", pages: "Home, Services, Areas Covered, FAQ, Contact", localSeo: "Quote CTAs, town/service-area copy, local FAQs, and phone enquiry path" },
+      { industry: "Consultant", plan: "Growth Partner", pages: "Home, About, Services, Case Studies, Book a Call", localSeo: "UK enquiry wording, proof sections, service pages, and consultation CTAs" },
+      { industry: "Clinic or wellness provider", plan: "Website Growth", pages: "Home, Treatments, About, FAQ, Appointment", localSeo: "Treatment FAQs, appointment CTAs, trust sections, and local area content" },
+      { industry: "Small agency", plan: "Growth Partner", pages: "Home, Services, Portfolio, Insights, Contact", localSeo: "Portfolio proof, service-location copy, internal links, and lead capture" },
     ],
     faqs: [
       { question: "How much does a pay monthly website cost in the UK?", answer: "Managed Website is £99/month plus a £199 setup fee. Website Growth is £249/month for ongoing conversion, local SEO, and landing-page improvements. Custom work is quoted separately." },
@@ -409,12 +404,12 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     pricingNote: "International pricing is shown in USD from the central catalogue. Start with a free website preview.",
     localInputs: ["Use get a quote wording", "Sydney, Melbourne, Brisbane, Perth, and Adelaide expansion potential", "Service-area business support", "Local business and mobile-first expectations"],
     examples: [
-      { industry: "Fitness coach", plan: "Business", pages: "Home, Programs, Results, Contact", localSeo: "City and training-area copy" },
-      { industry: "Local service", plan: "Growth", pages: "Home, Services, Areas, FAQ, Quote", localSeo: "Nearby suburbs and FAQs" },
-      { industry: "Consultant", plan: "Business", pages: "Home, Services, About, Contact", localSeo: "Australia buyer questions and trust sections" },
+      { industry: "Fitness coach", plan: "Managed Website", pages: "Home, Programs, Results, Contact", localSeo: "City and training-area copy" },
+      { industry: "Local service", plan: "Website Growth", pages: "Home, Services, Areas, FAQ, Quote", localSeo: "Nearby suburbs and FAQs" },
+      { industry: "Consultant", plan: "Managed Website", pages: "Home, Services, About, Contact", localSeo: "Australia buyer questions and trust sections" },
     ],
     faqs: [
-      { question: "Can Australian businesses target suburbs or service areas?", answer: "Yes. Business and Growth plans can add location content and location pages within plan limits." },
+      { question: "Can Australian businesses target suburbs or service areas?", answer: "Yes. Website Growth can add location content and location pages within the agreed scope." },
       { question: "Can I add a get a quote CTA?", answer: "Yes. Quote CTAs, contact forms, and WhatsApp buttons can be included." },
       { question: "Is hosting included?", answer: "Yes. Hosting and SSL are included while your subscription is active." },
       { question: "Can I upgrade later?", answer: "Yes. You can start with a smaller plan and upgrade when you need more pages or local SEO coverage." },
@@ -436,15 +431,15 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     pricingNote: "Monthly website plans start from RM199/month plus setup. Custom KL website projects are quoted separately in MYR.",
     localInputs: ["KL service buyer competition", "WhatsApp-first enquiry behaviour", "Landing page design demand", "Nearby Selangor and Klang Valley coverage"],
     examples: [
-      { industry: "Beauty clinic", plan: "Growth", pages: "Home, Treatments, FAQ, Booking, Contact", localSeo: "KL treatment page and FAQs" },
-      { industry: "Renovation service", plan: "Business", pages: "Home, Services, Projects, Quote", localSeo: "Klang Valley service areas" },
-      { industry: "Consultant", plan: "Business", pages: "Home, Services, About, Contact", localSeo: "KL business audience copy" },
+      { industry: "Beauty clinic", plan: "Website Growth", pages: "Home, Treatments, FAQ, Booking, Contact", localSeo: "KL treatment page and FAQs" },
+      { industry: "Renovation service", plan: "Managed Website", pages: "Home, Services, Projects, Quote", localSeo: "Klang Valley service areas" },
+      { industry: "Consultant", plan: "Managed Website", pages: "Home, Services, About, Contact", localSeo: "KL business audience copy" },
     ],
     faqs: [
       { question: "Do you build websites for Kuala Lumpur businesses?", answer: "Yes. The website plans can be prepared for KL businesses and expanded with location content where appropriate." },
       { question: "Can I target Klang Valley areas?", answer: "Yes. Nearby areas can be added as service-area content or dedicated location pages based on your plan." },
       { question: "Can I use WhatsApp as the main CTA?", answer: "Yes. WhatsApp enquiry buttons can be made prominent for Malaysian visitors." },
-      { question: "Can I request landing page design?", answer: "Yes. Business and Growth plans support stronger page structures, while bespoke landing pages can be quoted as custom work." },
+      { question: "Can I request landing page design?", answer: "Yes. Website Growth includes ongoing landing-page development, while bespoke functionality can be quoted as custom work." },
     ],
     links: standardLinks,
     primaryCta: "Build My KL Website",
@@ -463,9 +458,9 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     pricingNote: "Managed Website and Website Growth pricing is shown from the central catalogue. Custom websites are quoted separately.",
     localInputs: ["Premium trust expectations", "High-value professional service buyers", "Singapore neighbourhood targeting", "Fast mobile enquiry path"],
     examples: [
-      { industry: "Consultant", plan: "Business", pages: "Home, Services, Results, Contact", localSeo: "Singapore service positioning" },
-      { industry: "Clinic", plan: "Growth", pages: "Home, Treatments, Practitioners, FAQ, Booking", localSeo: "Treatment FAQs and trust copy" },
-      { industry: "Local service", plan: "Business", pages: "Home, Services, Areas, Contact", localSeo: "Singapore service-area content" },
+      { industry: "Consultant", plan: "Managed Website", pages: "Home, Services, Results, Contact", localSeo: "Singapore service positioning" },
+      { industry: "Clinic", plan: "Website Growth", pages: "Home, Treatments, Practitioners, FAQ, Booking", localSeo: "Treatment FAQs and trust copy" },
+      { industry: "Local service", plan: "Managed Website", pages: "Home, Services, Areas, Contact", localSeo: "Singapore service-area content" },
     ],
     faqs: [
       { question: "Is this suitable for Singapore small businesses?", answer: "Yes. The plans are built for businesses that need a professional website, clear positioning, and simple lead capture." },
@@ -490,14 +485,14 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     pricingNote: "Managed Website is the starting point; Website Growth is recommended when you need ongoing SEO, landing pages or conversion improvements.",
     localInputs: ["Consultation-led buyer journey", "High-trust Singapore professional market", "Proof and results sections matter", "Book a call CTA over generic contact copy"],
     examples: [
-      { industry: "B2B consultant", plan: "Business", pages: "Home, Services, About, Book a Call", localSeo: "Singapore consultant keywords" },
-      { industry: "Coach", plan: "Growth", pages: "Home, Programs, Results, FAQ, Contact", localSeo: "Program and local FAQ content" },
-      { industry: "Advisor", plan: "Growth", pages: "Home, About, Services, Insights, Contact", localSeo: "Authority and internal linking" },
+      { industry: "B2B consultant", plan: "Managed Website", pages: "Home, Services, About, Book a Call", localSeo: "Singapore consultant keywords" },
+      { industry: "Coach", plan: "Website Growth", pages: "Home, Programs, Results, FAQ, Contact", localSeo: "Program and local FAQ content" },
+      { industry: "Advisor", plan: "Website Growth", pages: "Home, About, Services, Insights, Contact", localSeo: "Expert positioning and internal linking" },
     ],
     faqs: [
       { question: "What should a consultant website include?", answer: "It should include a clear offer, services, proof, FAQs, and a direct book-a-call or enquiry CTA." },
       { question: "Can you write my consultant website copy?", answer: "The system can help prepare professional copy from your inputs. It will not invent fake results or testimonials." },
-      { question: "Can I add case studies?", answer: "Yes. Growth is recommended if case studies, results pages, or multiple service pages are important." },
+      { question: "Can I add case studies?", answer: "Yes. Website Growth is recommended if case studies, results pages, or multiple service pages are important." },
       { question: "Can the website target Singapore searches?", answer: "Yes. Local SEO fields, Singapore-specific copy, and relevant FAQs can be included." },
     ],
     links: standardLinks,
@@ -517,13 +512,13 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     pricingNote: "Managed Website starts at RM299/month plus setup. Website Growth is RM699/month when you need ongoing growth work.",
     localInputs: ["Affordable SME website demand", "WhatsApp-driven enquiries", "Malaysia city and state targeting", "Start small and upgrade later positioning"],
     examples: [
-      { industry: "Salon", plan: "Starter", pages: "One-page website", localSeo: "Primary location and WhatsApp CTA" },
-      { industry: "Contractor", plan: "Business", pages: "Home, Services, Projects, Quote", localSeo: "State and city targeting" },
-      { industry: "Clinic", plan: "Growth", pages: "Home, Treatments, FAQ, Booking, Contact", localSeo: "Treatment pages and FAQs" },
+      { industry: "Salon", plan: "Managed Website", pages: "One-page website", localSeo: "Primary location and WhatsApp CTA" },
+      { industry: "Contractor", plan: "Managed Website", pages: "Home, Services, Projects, Quote", localSeo: "State and city targeting" },
+      { industry: "Clinic", plan: "Website Growth", pages: "Home, Treatments, FAQ, Booking, Contact", localSeo: "Treatment pages and FAQs" },
     ],
     faqs: [
-      { question: "Is Starter enough for a Malaysian small business?", answer: "Starter is suitable for a simple one-page website. Business is better if you need separate service and contact pages." },
-      { question: "Can I add more Malaysian cities later?", answer: "Yes. Business and Growth plans support dedicated location pages within plan limits." },
+      { question: "Is Managed Website enough for a Malaysian small business?", answer: "Managed Website is suitable for a focused enquiry-generating site. Website Growth is better when you need ongoing landing pages, local SEO expansion, and conversion work." },
+      { question: "Can I add more Malaysian cities later?", answer: "Yes. Website Growth supports dedicated location pages within the agreed scope and quality controls." },
       { question: "Can I use my own domain?", answer: "Yes. Domain connection can be supported depending on your plan and setup." },
       { question: "Do you support WhatsApp enquiries?", answer: "Yes. WhatsApp CTA is a key part of the website setup for Malaysian businesses." },
     ],
@@ -544,15 +539,15 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     pricingNote: "Managed Website and Website Growth pricing is shown from the central catalogue. Custom website projects are quoted separately.",
     localInputs: ["Managed monthly support", "Hosting and SSL included", "Upgrade path for more pages and cities", "Clear difference from bespoke custom projects"],
     examples: [
-      { industry: "Local service", plan: "Starter", pages: "One-page website", localSeo: "Primary location fields" },
-      { industry: "Professional service", plan: "Business", pages: "Home, Services, Contact", localSeo: "Up to 1 location page" },
-      { industry: "Growth business", plan: "Scale", pages: "Home, Services, About, Landing Page, Contact", localSeo: "Up to 3 location pages" },
+      { industry: "Local service", plan: "Managed Website", pages: "Focused website", localSeo: "Primary location fields" },
+      { industry: "Professional service", plan: "Managed Website", pages: "Home, Services, Contact", localSeo: "Primary market positioning" },
+      { industry: "Growing business", plan: "Website Growth", pages: "Home, Services, About, Landing Page, Contact", localSeo: "Ongoing location expansion" },
     ],
     faqs: [
       { question: "What is included in a website subscription service?", answer: "The monthly plan includes website setup, hosting, SSL, lead capture, basic SEO fields, and support based on your plan." },
       { question: "Is there a minimum term?", answer: "Managed website subscriptions are positioned around a minimum 12-month term so setup and support can be delivered properly." },
       { question: "What happens if I need a custom website?", answer: "Custom design, ecommerce, dashboards, and integrations are quoted separately as custom website projects." },
-      { question: "Can local SEO be added?", answer: "Yes. Business and Growth plans support location content and dedicated location pages within plan limits." },
+      { question: "Can local SEO be added?", answer: "Yes. Website Growth includes ongoing location content and dedicated location pages within the agreed scope." },
     ],
     links: standardLinks,
     primaryCta: "Start My Website Subscription",

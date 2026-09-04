@@ -92,9 +92,6 @@ const WebsiteEditor = lazy(() =>
     default: m.WebsiteEditor,
   })),
 );
-const BlogCMS = lazy(() =>
-  import("./components/BlogCMS").then((m) => ({ default: m.BlogCMS })),
-);
 const PoliciesCMS = lazy(() =>
   import("./components/PoliciesCMS").then((m) => ({ default: m.PoliciesCMS })),
 );
@@ -112,16 +109,6 @@ const Profile = lazy(() =>
 const Support = lazy(() =>
   import("./components/Support").then((m) => ({ default: m.Support })),
 );
-const ChatbotSettings = lazy(() =>
-  import("./components/ChatbotSettings").then((m) => ({
-    default: m.ChatbotSettings,
-  })),
-);
-const ProductManagement = lazy(() =>
-  import("./components/ProductManagement").then((m) => ({
-    default: m.ProductManagement,
-  })),
-);
 const IndustryContentManager = lazy(() =>
   import("./components/IndustryContentManager").then((m) => ({
     default: m.IndustryContentManager,
@@ -130,11 +117,6 @@ const IndustryContentManager = lazy(() =>
 const ReviewManagement = lazy(() =>
   import("./components/ReviewManagement").then((m) => ({
     default: m.ReviewManagement,
-  })),
-);
-const MarketingHub = lazy(() =>
-  import("./components/MarketingHub").then((m) => ({
-    default: m.MarketingHub,
   })),
 );
 const LocalSeoDashboard = lazy(() => import("./components/LocalSeoDashboard"));
@@ -562,14 +544,7 @@ export default function App() {
                                 </FeatureGate>
                               }
                             />
-                            <Route
-                              path="products"
-                              element={
-                                <FeatureGate featureId="ecommerce">
-                                  <ProductManagement />
-                                </FeatureGate>
-                              }
-                            />
+                            <Route path="products" element={<Navigate to="/dashboard" replace />} />
                             <Route
                               path="industry-content"
                               element={
@@ -578,14 +553,7 @@ export default function App() {
                                 </FeatureGate>
                               }
                             />
-                            <Route
-                              path="chatbot"
-                              element={
-                                <FeatureGate featureId="ai_chatbot">
-                                  <ChatbotSettings />
-                                </FeatureGate>
-                              }
-                            />
+                            <Route path="chatbot" element={<Navigate to="/dashboard" replace />} />
                             <Route
                               path="ai-usage"
                               element={<Navigate to="/dashboard" replace />}
@@ -634,7 +602,7 @@ export default function App() {
                               path="update-requests"
                               element={
                                 <ProtectedRoute
-                                  allowedRoles={["business_admin"]}
+                                  allowedRoles={["business_admin", "staff", "client"]}
                                 >
                                   <MonthlyUpdateRequests />
                                 </ProtectedRoute>
@@ -696,22 +664,8 @@ export default function App() {
                               path="affiliate/dashboard"
                               element={<AffiliateDashboard />}
                             />
-                            <Route
-                              path="automations"
-                              element={
-                                <FeatureGate featureId="automation">
-                                  <MarketingHub />
-                                </FeatureGate>
-                              }
-                            />
-                            <Route
-                              path="marketing-hub"
-                              element={
-                                <FeatureGate featureId="automation">
-                                  <MarketingHub />
-                                </FeatureGate>
-                              }
-                            />
+                            <Route path="automations" element={<Navigate to="/dashboard" replace />} />
+                            <Route path="marketing-hub" element={<Navigate to="/dashboard" replace />} />
                             <Route
                               path="analytics"
                               element={
@@ -751,16 +705,7 @@ export default function App() {
                               path="templates"
                               element={<Navigate to="/dashboard/marketplace" replace />}
                             />
-                            <Route
-                              path="blog"
-                              element={
-                                <ProtectedRoute
-                                  allowedRoles={["business_admin"]}
-                                >
-                                  <BlogCMS />
-                                </ProtectedRoute>
-                              }
-                            />
+                            <Route path="blog" element={<Navigate to="/dashboard" replace />} />
                             <Route
                               path="policies"
                               element={

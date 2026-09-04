@@ -23,6 +23,7 @@ type AdminLead = {
   nextAction?: string;
   nextFollowUpAt?: string;
   lastFollowUpAt?: string;
+  lossReason?: string;
   createdAt: string;
 };
 
@@ -42,6 +43,7 @@ const mapLead = (lead: any): AdminLead => ({
   nextAction: lead.automation_next_action || "",
   nextFollowUpAt: lead.next_follow_up_at || "",
   lastFollowUpAt: lead.last_follow_up_at || "",
+  lossReason: lead.raw_fields?.lossReason || "",
   createdAt: lead.created_at || new Date().toISOString(),
 });
 
@@ -143,6 +145,19 @@ export function AdminLeadInbox() {
       note: draft.nextAction ? `Next action set: ${draft.nextAction}` : "Follow-up plan updated",
     });
     if (saved) toast.success("Next action saved");
+  };
+
+  const changeStatus = async (lead: AdminLead, nextStatus: string) => {
+    if (nextStatus !== "lost") {
+      await updateLead(lead.id, { status: nextStatus });
+      return;
+    }
+    const lossReason = window.prompt("Why was this lead lost? Record the actual reason before closing it.", lead.lossReason || "")?.trim() || "";
+    if (!lossReason) {
+      toast.error("A lost reason is required before closing a lead as lost.");
+      return;
+    }
+    await updateLead(lead.id, { status: "lost", lossReason, note: `Lead closed as lost: ${lossReason}` });
   };
 
   const logContact = (lead: AdminLead, channel: "email" | "phone" | "whatsapp") => {
@@ -250,7 +265,7 @@ export function AdminLeadInbox() {
                       {lead.phone && <a onClick={() => logContact(lead, "phone")} aria-label={`Call ${lead.name}`} href={`tel:${lead.phone}`} className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:border-indigo-200 hover:text-indigo-600"><Phone className="h-4 w-4" /></a>}
                       {whatsapp && <a onClick={() => logContact(lead, "whatsapp")} aria-label={`WhatsApp ${lead.name}`} href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:border-emerald-200 hover:text-emerald-600"><MessageSquare className="h-4 w-4" /></a>}
                       <Button type="button" size="icon" variant="outline" disabled={deletingLeadId === lead.id} onClick={() => void deleteLead(lead)} className="h-10 w-10 rounded-xl border-rose-200 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700" aria-label={`Delete enquiry from ${lead.name}`} title="Delete enquiry">{deletingLeadId === lead.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button>
-                      <select aria-label={`Status for ${lead.name}`} value={lead.status} onChange={(event) => void updateLead(lead.id, { status: event.target.value })} className="h-10 min-w-32 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold capitalize text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                      <select aria-label={`Status for ${lead.name}`} value={lead.status} onChange={(event) => void changeStatus(lead, event.target.value)} className="h-10 min-w-32 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold capitalize text-slate-700 dark:bg-slate-900 dark:text-slate-200">
                         {LEAD_STATUSES.map((item) => <option key={item} value={item}>{item}</option>)}
                       </select>
                       </div>

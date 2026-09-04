@@ -150,45 +150,7 @@ export default function DashboardOverview() {
   const [savingGrowthAction, setSavingGrowthAction] = React.useState<string | null>(null);
 
   const [analyticsData, setAnalyticsData] = React.useState<any[]>([]);
-  const dashboardModeKey = React.useMemo(
-    () => `bts_customer_dashboard_mode_${profile?.uid || profile?.email || "default"}`,
-    [profile?.uid, profile?.email],
-  );
-  const [dashboardMode, setDashboardMode] = React.useState<"simple" | "development">(() => {
-    try {
-      return localStorage.getItem("bts_customer_dashboard_mode_default") === "development"
-        ? "development"
-        : "simple";
-    } catch {
-      return "simple";
-    }
-  });
-  const isDevelopmentMode = profile?.role === "business_admin" && dashboardMode === "development";
-
-  React.useEffect(() => {
-    const readMode = () => {
-      try {
-        setDashboardMode(
-          localStorage.getItem(dashboardModeKey) === "development" ? "development" : "simple",
-        );
-      } catch {
-        setDashboardMode("simple");
-      }
-    };
-    readMode();
-    const onModeChange = (event: Event) => {
-      const customEvent = event as CustomEvent<{ mode?: "simple" | "development"; key?: string }>;
-      if (!customEvent.detail?.key || customEvent.detail.key === dashboardModeKey) {
-        setDashboardMode(customEvent.detail?.mode === "development" ? "development" : "simple");
-      }
-    };
-    window.addEventListener("bts:dashboard-mode-change", onModeChange as EventListener);
-    window.addEventListener("storage", readMode);
-    return () => {
-      window.removeEventListener("bts:dashboard-mode-change", onModeChange as EventListener);
-      window.removeEventListener("storage", readMode);
-    };
-  }, [dashboardModeKey]);
+  const isDevelopmentMode = false;
 
   const handleViewLive = () => {
     if (!profile?.businessId) {
@@ -209,21 +171,6 @@ export default function DashboardOverview() {
       return;
     }
     toast.success("Live site opened in a new tab.");
-  };
-
-  const switchToDevelopmentMode = () => {
-    try {
-      localStorage.setItem(dashboardModeKey, "development");
-      window.dispatchEvent(
-        new CustomEvent("bts:dashboard-mode-change", {
-          detail: { mode: "development", key: dashboardModeKey },
-        }),
-      );
-    } catch {
-      setDashboardMode("development");
-    }
-    setDashboardMode("development");
-    toast.success("Development Mode enabled. Website editing tools are now visible.");
   };
 
   React.useEffect(() => {
@@ -1105,7 +1052,7 @@ export default function DashboardOverview() {
               </h1>
               <p className="mt-4 text-base font-semibold leading-7 text-slate-600 md:text-lg">
                 {profile?.role === "business_admin"
-                  ? "View enquiries, appointments and website performance, manage your service, and request support. Advanced website tools remain available in Development Mode."
+                  ? "View enquiries, appointments and website performance, manage your service, and request changes or support from one focused workspace."
                   : "View enquiries and appointments, request website updates, and contact support from one focused workspace."}
               </p>
             </div>
@@ -1232,9 +1179,6 @@ export default function DashboardOverview() {
               >
                 Contact Support
               </Button>
-              {profile?.role === "business_admin" && (
-                <Button variant="ghost" onClick={switchToDevelopmentMode} className="h-10 w-full text-xs font-black uppercase tracking-widest text-slate-500">Open Development Mode</Button>
-              )}
             </CardContent>
           </Card>
         </section>
@@ -2388,21 +2332,21 @@ export default function DashboardOverview() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold text-indigo-900 dark:text-indigo-100 text-lg">
-                          Free Trial Active
+                          Legacy Access Active
                         </h3>
                         <p className="text-indigo-700 dark:text-indigo-300">
-                          Your 14-day free trial ends in{" "}
+                          Your existing access period ends in{" "}
                           <span className="font-bold">
                             {trialDaysLeft} days
                           </span>
-                          . Upgrade now to keep your site live after the trial.
+                          . Choose a current service to keep your site live afterward.
                         </p>
                       </div>
                       <Button
                         className="w-full sm:w-auto bg-white dark:bg-indigo-900 text-indigo-600 dark:text-indigo-100 hover:bg-indigo-100 dark:hover:bg-indigo-800 border border-indigo-200 dark:border-indigo-800 px-6 py-6 rounded-2xl font-bold"
                         onClick={() => navigate("/dashboard/billing")}
                       >
-                        Upgrade Plan
+                        View Current Services
                       </Button>
                     </div>
                   );
@@ -2414,10 +2358,10 @@ export default function DashboardOverview() {
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold text-red-900 dark:text-red-100 text-lg">
-                          Trial Expired
+                          Legacy Access Ended
                         </h3>
                         <p className="text-red-700 dark:text-red-300">
-                          Your free trial has ended. Please upgrade your plan to
+                          Your existing access period has ended. Choose a current service to
                           continue using Bennie Studio.
                         </p>
                       </div>
@@ -2425,7 +2369,7 @@ export default function DashboardOverview() {
                         className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-6 py-6 rounded-2xl font-bold shadow-lg shadow-red-200 dark:shadow-none"
                         onClick={() => navigate("/dashboard/billing")}
                       >
-                        Upgrade Now
+                        View Current Services
                       </Button>
                     </div>
                   );

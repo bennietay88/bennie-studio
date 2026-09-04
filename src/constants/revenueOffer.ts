@@ -1,3 +1,5 @@
+import { COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, type CommercialMarket } from "../lib/commercialPricing";
+
 export type RevenueMarket = "MY" | "SG" | "GB" | "US";
 
 export type RevenueOfferPrice = {
@@ -10,7 +12,7 @@ export type RevenueOfferPrice = {
 export const PRIMARY_REVENUE_OFFER = {
   id: "website_growth_partner",
   planId: "website_growth_partner",
-  name: "Website Growth Partner",
+  name: "Growth Partner",
   commitmentMonths: 6,
   description:
     "A consultant-led managed website service for service businesses that need a clearer enquiry journey and ongoing improvement after launch.",
@@ -22,12 +24,19 @@ export const PRIMARY_REVENUE_OFFER = {
     "Enquiry tracking and a concise monthly results summary",
     "One accountable website growth partner",
   ],
-  prices: {
-    US: { monthly: 799, setup: 1800, currency: "USD", locale: "en-US" },
-    GB: { monthly: 750, setup: 0, currency: "GBP", locale: "en-GB" },
-    SG: { monthly: 1250, setup: 0, currency: "SGD", locale: "en-SG" },
-    MY: { monthly: 2500, setup: 3000, currency: "MYR", locale: "en-MY" },
-  } satisfies Record<RevenueMarket, RevenueOfferPrice>,
+  prices: Object.fromEntries(
+    (["US", "GB", "SG", "MY"] as RevenueMarket[]).map((market) => {
+      const commercialMarket: CommercialMarket = market === "US" ? "INTL" : market;
+      const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "growth-partner")!;
+      const price = getCommercialPrice(product, commercialMarket)!;
+      return [market, {
+        monthly: Number(price.monthlyPrice || 0),
+        setup: Number(price.setupFee || 0),
+        currency: price.currency,
+        locale: price.currency === "MYR" ? "en-MY" : price.currency === "SGD" ? "en-SG" : price.currency === "GBP" ? "en-GB" : "en-US",
+      }];
+    }),
+  ) as Record<RevenueMarket, RevenueOfferPrice>,
 } as const;
 
 export const REVENUE_MARKETS: Record<RevenueMarket, { label: string; shortLabel: string }> = {

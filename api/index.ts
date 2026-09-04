@@ -585,7 +585,7 @@ function buildWebsiteHtmlSnapshot(website: any, business: any) {
     <nav>${nav}</nav>
   </header>
   ${pageMarkup}
-  <footer>Exported from Bennie Studio as part of a paid service termination package.</footer>
+  <footer>Portable website handover exported from Bennie Studio.</footer>
 </body>
 </html>`;
 }
@@ -896,6 +896,7 @@ async function startServer() {
       if (appointmentsError) throw appointmentsError;
 
       const publishedWebsites = websites || [];
+      const exportedAt = new Date().toISOString();
       const files: Array<{ name: string; content: string }> = [];
       publishedWebsites.forEach((website: any, index: number) => {
         const filename = index === 0 ? "index.html" : `pages/${sanitizeFileName(website.slug || website.id)}.html`;
@@ -904,58 +905,41 @@ async function startServer() {
       if (files.length === 0) files.push({ name: "index.html", content: buildWebsiteHtmlSnapshot({ pages: [] }, business) });
       files.push({
         name: "bennie-studio-export.json",
-        content: JSON.stringify({ exportVersion: "1.1", exportedAt: new Date().toISOString(), business, websites: publishedWebsites, crm: { leads: leads || [], appointments: appointments || [] } }, null, 2),
+        content: JSON.stringify({ exportVersion: "1.2", exportedAt, business, websites: publishedWebsites, crm: { leads: leads || [], appointments: appointments || [] } }, null, 2),
       });
       files.push({ name: "crm/leads.json", content: JSON.stringify(leads || [], null, 2) });
       files.push({ name: "crm/appointments.json", content: JSON.stringify(appointments || [], null, 2) });
       files.push({
         name: "README.md",
-        content: `# ${business.name || "Website"}\n\nThis is a static handover export from Bennie Studio. Upload index.html and the pages/ folder to any static host (for example Netlify, Vercel, GitHub Pages, or your own server).\n\nCRM data is included in crm/leads.json and crm/appointments.json for your records or migration. The exported pages do not include Bennie Studio-hosted CRM submission endpoints, private credentials, billing data, or API keys. Replace contact forms and hosted integrations with services you control before launch.\n`,
+        content: `# ${business.name || "Website"}\n\nThis is a static handover export from Bennie Studio. Upload index.html and the pages/ folder to any static host (for example Netlify, Vercel, GitHub Pages, or your own server).\n\n## Before going live\n\n1. Connect forms and booking actions to services you control.\n2. Confirm WhatsApp, phone, email, map, image, and external links.\n3. Reconnect analytics and consent tooling.\n4. Point your domain only after the independent host is verified.\n5. Keep the original archive as a dated backup.\n\nCRM data is included in crm/leads.json and crm/appointments.json for your records or migration. The exported pages do not include Bennie Studio-hosted CRM submission endpoints, private credentials, billing data, API keys, or third-party service configuration.\n`,
+      });
+      files.push({
+        name: "manifest.json",
+        content: JSON.stringify({
+          exportVersion: "1.2",
+          exportedAt,
+          businessId: business.id,
+          websiteCount: publishedWebsites.length,
+          leadCount: (leads || []).length,
+          appointmentCount: (appointments || []).length,
+          files: [...files.map((file) => file.name), "manifest.json"],
+          reconnectRequired: ["forms", "bookings", "analytics", "consent tooling", "hosted integrations"],
+        }, null, 2),
       });
 
       const archive = buildTarGz(files);
       const filename = `${sanitizeFileName(business.name || "website")}-website-export.tar.gz`;
       res.setHeader("Content-Type", "application/gzip");
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.setHeader("Cache-Control", "private, no-store, max-age=0");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("X-Content-Type-Options", "nosniff");
       return res.status(200).send(archive);
     } catch (error: any) {
       console.error("[Website Export] Failed:", error);
       return res.status(500).json({ error: "Unable to prepare website export" });
     }
   });
-
-  app.post(
-    "/api/admin/prospects/:prospectId/convert",
-    authenticate,
-    superAdminOnly,
-    async (req: any, res: any) => {
-      const { plan, subdomain } = req.body || {};
-      if (!plan || !subdomain) {
-        return res.status(400).json({ error: "Plan and subdomain are required" });
-      }
-      const { data, error } = await supabaseAdmin.rpc("convert_prospect_to_customer", {
-        p_prospect_id: req.params.prospectId,
-        p_plan: plan,
-        p_subdomain: subdomain,
-      });
-      if (error) return res.status(400).json({ error: error.message });
-      const { error: auditError } = await supabaseAdmin
-        .from("admin_action_audit_logs")
-        .update({ actor_user_id: req.user.id })
-        .eq("action_type", "prospect.converted")
-        .eq("target_type", "business")
-        .eq("target_id", String(data))
-        .is("actor_user_id", null);
-      if (auditError) {
-        structuredLog("warn", "prospect_conversion_actor_attribution_failed", {
-          businessId: data,
-          actorUserId: req.user.id,
-          error: auditError.message,
-        });
-      }
-      return res.json({ businessId: data });
-    },
-  );
 
   app.patch(
     "/api/admin/businesses/:businessId/platform-type",
@@ -3960,7 +3944,10 @@ async function startServer() {
           nextFollowUpAt: z.string().datetime().optional().nullable(),
           channel: z.enum(["email", "whatsapp", "phone", "manual"]).optional(),
           note: z.string().trim().max(1000).optional().nullable(),
-        }).refine((value) => Object.values(value).some((item) => item !== undefined), { message: "At least one lead update is required" }),
+          lossReason: z.string().trim().min(2).max(500).optional(),
+        })
+          .refine((value) => Object.values(value).some((item) => item !== undefined), { message: "At least one lead update is required" })
+          .refine((value) => value.status !== "lost" || Boolean(value.lossReason), { message: "A lost reason is required", path: ["lossReason"] }),
         req,
         res,
       );
@@ -3972,14 +3959,15 @@ async function startServer() {
           return res.status(403).json({ error: "Forbidden: sales access required" });
         }
 
-        const { data: existingLead, error: existingLeadError } = body.channel
-          ? await supabaseAdmin.from("leads").select("first_response_at").eq("id", req.params.leadId).maybeSingle()
+        const { data: existingLead, error: existingLeadError } = body.channel || body.lossReason
+          ? await supabaseAdmin.from("leads").select("first_response_at,raw_fields").eq("id", req.params.leadId).maybeSingle()
           : { data: null, error: null };
         if (existingLeadError) throw existingLeadError;
         const updatePayload: Record<string, any> = {};
         if (body.status !== undefined) updatePayload.status = body.status;
         if (body.nextAction !== undefined) updatePayload.automation_next_action = body.nextAction;
         if (body.nextFollowUpAt !== undefined) updatePayload.next_follow_up_at = body.nextFollowUpAt;
+        if (body.lossReason) updatePayload.raw_fields = { ...(existingLead?.raw_fields || {}), lossReason: body.lossReason };
         if (body.channel) {
           const respondedAt = new Date().toISOString();
           updatePayload.last_follow_up_at = respondedAt;
@@ -4027,6 +4015,7 @@ async function startServer() {
               nextAction: body.nextAction || null,
               nextFollowUpAt: body.nextFollowUpAt || null,
               actorId: req.user.id,
+              lossReason: body.lossReason || null,
             },
           }).then(({ error: trackingError }) => {
             if (trackingError) console.warn("Sales activity tracking skipped:", trackingError.message);

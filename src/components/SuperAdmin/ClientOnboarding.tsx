@@ -19,7 +19,7 @@ const handoverChecklist = [
   "Domain, SSL, cookie banner, privacy, and footer legal links checked",
   "Lead capture dashboard and enquiry notifications confirmed",
   "Launch support notes, monthly update process, and support channel explained",
-  "Optional paid export or service termination handover terms recorded",
+  "Self-service website and CRM export explained before service termination",
 ];
 
 export function ClientOnboarding() {

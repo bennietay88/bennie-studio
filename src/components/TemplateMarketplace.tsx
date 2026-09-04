@@ -5,6 +5,7 @@ import {
   CONVERSION_GOALS,
   NICHE_TEMPLATES,
   getTemplateCommercialMetadata,
+  getTemplateReadiness,
 } from "../constants/nicheTemplates";
 import {
   TEMPLATE_CATEGORIES,
@@ -32,6 +33,7 @@ export function TemplateMarketplace() {
     return Object.values(NICHE_TEMPLATES).filter((template) => {
       const templateRecord = template as any;
       const meta = getTemplateCommercialMetadata(template);
+      if (!getTemplateReadiness(template).ready) return false;
       const searchable = [
         meta.customerName,
         meta.adminName,
@@ -101,31 +103,32 @@ export function TemplateMarketplace() {
           <label className="relative md:col-span-2 xl:col-span-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
+              aria-label="Search website templates"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search niche, CTA, service, or template..."
               className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold outline-none focus:border-indigo-500"
             />
           </label>
-          <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold">
+          <select aria-label="Filter templates by category" value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold">
             <option value={allOption}>Category</option>
             {TEMPLATE_CATEGORIES.map((item) => (
               <option key={item} value={item}>{item}</option>
             ))}
           </select>
-          <select value={industry} onChange={(event) => setIndustry(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold">
+          <select aria-label="Filter templates by industry" value={industry} onChange={(event) => setIndustry(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold">
             <option value={allOption}>Industry</option>
             {TEMPLATE_INDUSTRIES.map((item) => (
               <option key={item} value={item}>{item}</option>
             ))}
           </select>
-          <select value={plan} onChange={(event) => setPlan(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold">
+          <select aria-label="Filter templates by service" value={plan} onChange={(event) => setPlan(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold">
             <option value={allOption}>Plan</option>
             {TEMPLATE_PLAN_ACCESS.map((item) => (
               <option key={item} value={item}>{item}</option>
             ))}
           </select>
-          <select value={goal} onChange={(event) => setGoal(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold">
+          <select aria-label="Filter templates by conversion goal" value={goal} onChange={(event) => setGoal(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold">
             <option value={allOption}>Goal</option>
             {CONVERSION_GOALS.map((item) => (
               <option key={item} value={item}>{item}</option>

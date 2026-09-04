@@ -72,17 +72,9 @@ export function Sidebar({
   const { isFeatureEnabled, isFeatureVisible } = useFeatures();
   const location = useLocation();
   const navigate = useNavigate();
-  const [isAffiliate, setIsAffiliate] = React.useState(false);
   const [adminModuleVisibility, setAdminModuleVisibility] = React.useState<Record<string, boolean>>(
     DEFAULT_ADMIN_MODULE_VISIBILITY,
   );
-  const dashboardModeKey = React.useMemo(
-    () => `bts_customer_dashboard_mode_${profile?.uid || profile?.email || "default"}`,
-    [profile?.uid, profile?.email],
-  );
-  const [customerDashboardMode, setCustomerDashboardMode] = React.useState<
-    "simple" | "development"
-  >("simple");
   const [expandedSections, setExpandedSections] = React.useState<Record<string, boolean>>({
     "Sales & Leads": true,
     "Customers & Delivery": true,
@@ -103,18 +95,6 @@ export function Sidebar({
   const toggleSection = (label: string) => {
     setExpandedSections(prev => ({ ...prev, [label]: !prev[label] }));
   };
-
-  React.useEffect(() => {
-    const checkAffiliate = async () => {
-      const { data } = await supabase
-        .from("affiliates")
-        .select("id")
-        .eq("uid", profile?.uid)
-        .maybeSingle();
-      if (data) setIsAffiliate(true);
-    };
-    if (profile?.uid) checkAffiliate();
-  }, [profile?.uid]);
 
   React.useEffect(() => {
     if (role !== "super_admin") return;
@@ -149,29 +129,6 @@ export function Sidebar({
       void supabase.removeChannel(channel);
     };
   }, [role]);
-
-  React.useEffect(() => {
-    try {
-      const savedMode = localStorage.getItem(dashboardModeKey);
-      setCustomerDashboardMode(savedMode === "development" ? "development" : "simple");
-    } catch {
-      setCustomerDashboardMode("simple");
-    }
-  }, [dashboardModeKey]);
-
-  const updateCustomerDashboardMode = (mode: "simple" | "development") => {
-    setCustomerDashboardMode(mode);
-    try {
-      localStorage.setItem(dashboardModeKey, mode);
-      window.dispatchEvent(
-        new CustomEvent("bts:dashboard-mode-change", {
-          detail: { mode, key: dashboardModeKey },
-        }),
-      );
-    } catch {
-      // Local persistence is a convenience only.
-    }
-  };
 
   const navGroups = React.useMemo(() => {
     if (role === "super_admin") {
@@ -260,7 +217,7 @@ export function Sidebar({
       ];
     }
 
-    if ((role === "staff" || role === "client") && customerDashboardMode === "simple") {
+    if (role === "staff" || role === "client") {
       return [
         { label: "Daily", items: [
           { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
@@ -272,7 +229,7 @@ export function Sidebar({
       ];
     }
 
-    if (role === "business_admin" && customerDashboardMode === "simple") {
+    if (role === "business_admin") {
       return [
         { label: "Website", items: [
           { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
@@ -295,49 +252,12 @@ export function Sidebar({
       ];
     }
 
-    if (role === "business_admin" || role === "staff" || role === "client") {
-      return [
-        {
-          label: "Website",
-          items: [
-            { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-            { to: "/dashboard/website/regenerate", icon: Sparkles, label: "Web Generator", featureId: "ai_synthesis", devOnly: true, roles: ["business_admin"] },
-            { to: "/dashboard/website", icon: Globe, label: "Website Editor", featureId: "ai_synthesis", devOnly: true, roles: ["business_admin"] },
-            { to: "/dashboard/marketplace", icon: Layout, label: "Template Library", devOnly: true, roles: ["business_admin"] },
-          ]
-        },
-        {
-          label: "Enquiries",
-          items: [
-            { to: "/dashboard/leads", icon: Users, label: "Leads & CRM", featureId: "lead_crm" },
-            { to: "/dashboard/chatbot", icon: MessageSquare, label: "AI Sales Chat", featureId: "ai_chatbot", devOnly: true },
-          ]
-        },
-        {
-          label: "Business",
-          items: [
-            { to: "/dashboard/appointments", icon: CalendarIcon, label: "Booking Calendar", featureId: "booking" },
-            { to: "/dashboard/update-requests", icon: FileText, label: "Update Requests", devOnly: true, roles: ["business_admin"] },
-            { to: "/dashboard/seo-domain", icon: Globe, label: "Domain & SEO", devOnly: true, roles: ["business_admin"] },
-            { to: "/dashboard/local-seo", icon: MapPin, label: "Local SEO", devOnly: true, roles: ["business_admin"] },
-            { to: "/dashboard/seo/overview", icon: Search, label: "SEO Growth" },
-            { to: "/dashboard/industry-content", icon: Briefcase, label: "Listings & Content", featureId: "industry_content" },
-            { to: "/dashboard/reviews", icon: Star, label: "Reviews & Reputation", featureId: "review_management" },
-            { to: "/dashboard/team", icon: Users, label: "Staff Accounts", roles: ["business_admin"] },
-            { to: "/dashboard/approvals", icon: ShieldCheck, label: "Website Approvals" },
-          ]
-        },
-        {
-          label: "Account",
-          items: [
-            { to: "/dashboard/status", icon: Shield, label: "System Status" },
-            { to: "/dashboard/billing", icon: CreditCard, label: "Billing & Plans", roles: ["business_admin"] },
-            { to: "/dashboard/support", icon: Headphones, label: "Support" },
-            isAffiliate && { to: "/dashboard/affiliate/dashboard", icon: Gift, label: "Affiliate Center" },
-            { to: "/dashboard/settings", icon: Settings, label: "System Settings", devOnly: true, roles: ["business_admin"] },
-          ]
-        }
-      ];
+    if (role === "affiliate") {
+      return [{ label: "Affiliate", items: [
+        { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
+        { to: "/dashboard/profile", icon: User, label: "Profile" },
+        { to: "/dashboard/support", icon: Headphones, label: "Support" },
+      ] }];
     }
 
     return [{
@@ -347,7 +267,7 @@ export function Sidebar({
          { to: "/dashboard/leads", icon: Users, label: "My Leads" },
        ]
     }];
-  }, [role, isFeatureEnabled, isFeatureVisible, isAffiliate, customerDashboardMode]);
+  }, [role, isFeatureEnabled, isFeatureVisible]);
 
   const isCustomerRole = role === "business_admin" || role === "staff" || role === "client";
   const visibleNavGroups = React.useMemo(
@@ -382,8 +302,7 @@ export function Sidebar({
               return false;
             }
             if (link.devOnly && isCustomerRole) {
-              if (role !== "business_admin") return false;
-              if (customerDashboardMode !== "development") return false;
+              return false;
             }
             if (isCustomerRole && link.featureId && (!isFeatureEnabled(link.featureId) || !isFeatureVisible(link.featureId))) {
               return false;
@@ -392,7 +311,7 @@ export function Sidebar({
           }),
         }))
         .filter((group) => group.items.length > 0),
-    [adminModuleVisibility, customerDashboardMode, isCustomerRole, isFeatureEnabled, isFeatureVisible, navGroups, profile?.staffPermissions, role],
+    [adminModuleVisibility, isCustomerRole, isFeatureEnabled, isFeatureVisible, navGroups, profile?.staffPermissions, role],
   );
   const mainWebsiteLink = getEcosystemLink("main");
   const portfolioLink = getEcosystemLink("portfolio");
@@ -428,37 +347,6 @@ export function Sidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-hide">
-        {role === "business_admin" && !isCollapsed && (
-          <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-800/50">
-            <div className="grid grid-cols-2 gap-1">
-              {[
-                { id: "simple", label: "Daily" },
-                { id: "development", label: "Development" },
-              ].map((mode) => (
-                <button
-                  key={mode.id}
-                  type="button"
-                  onClick={() =>
-                    updateCustomerDashboardMode(mode.id as "simple" | "development")
-                  }
-                  className={cn(
-                    "rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-wide transition-all",
-                    customerDashboardMode === mode.id
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "text-slate-500 hover:bg-white hover:text-slate-900 dark:hover:bg-slate-900 dark:hover:text-white",
-                  )}
-                >
-                  {mode.label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 px-2 text-[10px] font-semibold leading-relaxed text-slate-500">
-              {customerDashboardMode === "development"
-                ? "Website editing and build tools are visible."
-                : "Showing the normal customer dashboard only."}
-            </p>
-          </div>
-        )}
         <nav className="space-y-6">
           {visibleNavGroups.map((group) => {
             const isExpanded = expandedSections[group.label];

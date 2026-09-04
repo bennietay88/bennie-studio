@@ -118,16 +118,12 @@ import { Joyride, type Step } from "react-joyride";
 import { AdminSupport } from "./AdminSupport";
 import { MonthlyUpdateQueue } from "./SuperAdmin/MonthlyUpdateQueue";
 import { TemplateGallery } from "./TemplateGallery";
-import { BlogCMS } from "./BlogCMS";
 import { PoliciesCMS } from "./PoliciesCMS";
 import LandingPageEditor from "./LandingPageEditor";
 import PlanEditor from "./PlanEditor";
 import { RevenueDashboard } from "./RevenueDashboard";
 import { TemplateManager } from "./SuperAdmin/TemplateManager";
 import { WebsiteEditor } from "./WebsiteEditor";
-import {
-  DEFAULT_MODEL_CONFIG,
-} from "../constants/aiModels";
 import { ArrowLeft } from "lucide-react";
 import { SuperAdminAffiliates } from "./SuperAdminAffiliates";
 import { SuperAdminAffiliatePartners } from "./SuperAdminAffiliatePartners";
@@ -138,14 +134,9 @@ import { SalesHome } from "./SuperAdmin/SalesHome";
 import { ProspectExplorer } from "./SuperAdmin/ProspectExplorer";
 import { NeuralAuditor } from "./SuperAdmin/NeuralAuditor";
 import { OutreachLab } from "./SuperAdmin/OutreachLab";
-import { WebinarEngine } from "./SuperAdmin/WebinarEngine";
-import { MassCampaigns } from "./SuperAdmin/MassCampaigns";
 import { ProposalsDeals } from "./SuperAdmin/ProposalsDeals";
-import { SalesAutomation } from "./SuperAdmin/SalesAutomation";
 import { ClientOnboarding } from "./SuperAdmin/ClientOnboarding";
 import { Projects } from "./SuperAdmin/Projects";
-import { OperationsControlCenter } from "./SuperAdmin/OperationsControlCenter";
-import { GrowthOperationsCenter } from "./SuperAdmin/GrowthOperationsCenter";
 import { AdminLeadInbox } from "./SuperAdmin/AdminLeadInbox";
 import { DailyOperations } from "./SuperAdmin/DailyOperations";
 import CommercialCatalogue from "./SuperAdmin/CommercialCatalogue";
@@ -168,10 +159,6 @@ const CUSTOMER_DASHBOARD_FEATURES = [
   { id: "review_management", label: "Reviews & Reputation" },
   { id: "industry_content", label: "Listings & Content" },
   { id: "analytics", label: "Business Insights" },
-  { id: "blog", label: "Blog & Content" },
-  { id: "automation", label: "Email & SMS Growth" },
-  { id: "ai_chatbot", label: "AI Sales Chat" },
-  { id: "campaign_landing_pages", label: "Campaign Pages" },
   { id: "whatsapp_enquiry_kit", label: "WhatsApp Enquiry Kit" },
   { id: "monthly_improvement_engine", label: "Monthly Improvement Engine" },
 ];
@@ -223,33 +210,35 @@ export default function SuperAdminDashboard() {
     if (last === "growth_os_config") return "growth_os_config";
     if (last === "settings") return "settings";
     if (last === "revenue") return "revenue";
-    if (last === "geo_pricing") return "geo_pricing";
+    if (last === "geo_pricing") return "plans";
     if (last === "prospect_explorer") return "prospect_explorer";
     if (last === "neural_auditor") return "neural_auditor";
     if (last === "outreach_lab") return "outreach_lab";
-    if (last === "mass_campaigns") return "mass_campaigns";
-    if (last === "webinar_engine") return "webinar_engine";
+    if (last === "mass_campaigns") return "sales_home";
+    if (last === "webinar_engine") return "sales_home";
     if (last === "proposals_deals") return "proposals_deals";
-    if (last === "sales_automation") return "sales_automation";
+    if (last === "sales_automation") return "sales_home";
     if (last === "projects") return "projects";
-    if (last === "launch_audit") return "operations";
+    if (last === "launch_audit") return "daily_operations";
     if (last === "client_onboarding") return "client_onboarding";
-    if (last === "operations") return "operations";
-    if (last === "growth_operations") return "growth_operations";
+    if (last === "operations") return "daily_operations";
+    if (last === "growth_operations") return "daily_operations";
+    if (last === "custom-applications") return "projects";
     if (last === "seo_management") return "seo_management";
     if (last === "local_seo") return "seo_management";
     if (last === "templates") return "templates";
     if (last === "plans") return "plans";
     if (last === "compliance_market") return "plans";
-    if (last === "ai_credits") return "ai_credits";
+    if (last === "ai_credits") return "growth_os_config";
     if (last === "status") return "status";
-    if (last === "intelligence_lab") return "intelligence_lab";
+    if (last === "intelligence_lab") return "growth_os_config";
     if (last === "traffic") return "traffic";
     if (last === "support") return "support";
     if (last === "update_requests") return "update_requests";
-    if (last === "blog") return "blog";
+    if (last === "blog") return "templates";
     if (last === "policies") return "policies";
     if (last === "revenue_command") return "revenue_command";
+    if (last === "ecosystem_architect") return "status";
     
     return last || "overview";
   };
@@ -310,11 +299,6 @@ export default function SuperAdminDashboard() {
     if (activeTab === "daily_operations") {
       return ["sales", "customer_health"].some((permission) => profile?.staffPermissions?.includes(permission));
     }
-    if (activeTab === "operations") {
-      return ["customer_health", "approvals", "billing", "activity_logs"].some(
-        (permission) => profile?.staffPermissions?.includes(permission),
-      );
-    }
     const requiredPermission = ADMIN_TAB_PERMISSIONS[activeTab];
     return Boolean(requiredPermission && profile?.staffPermissions?.includes(requiredPermission));
   }, [activeTab, isPlatformStaff, isSuperAdmin, profile?.staffPermissions]);
@@ -334,20 +318,10 @@ export default function SuperAdminDashboard() {
     maintenanceMessage:
       "We're currently performing some scheduled maintenance to bring you an even better experience. We'll be back shortly!",
     estimatedDowntime: "Approximately 2 hours",
-    defaultTrialDays: 14,
-    maxMonthlyAiBudget: 100,
-    stripeSecretKey: "",
-    stripePublishableKey: "",
-    stripeWebhookSecret: "",
-    stripeConnectClientId: "",
-    geminiApiKey: "",
-    deepseekApiKey: "",
-    openaiApiKey: "",
     gaMeasurementId: "",
     metaPixelId: "",
     trackingScriptsHeader: "",
     trackingScriptsFooter: "",
-    aiModelConfig: DEFAULT_MODEL_CONFIG,
     marketingFeatures: {
       seoAudit: "coming_soon" as "enabled" | "disabled" | "coming_soon",
       adGenerator: "coming_soon" as "enabled" | "disabled" | "coming_soon",
@@ -356,7 +330,6 @@ export default function SuperAdminDashboard() {
     adminModules: DEFAULT_ADMIN_MODULE_VISIBILITY,
   });
   const [savingSettings, setSavingSettings] = useState(false);
-  const [testingStripe, setTestingStripe] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [savingBusiness, setSavingBusiness] = useState(false);
@@ -953,9 +926,7 @@ export default function SuperAdminDashboard() {
   const handleSaveSettings = async () => {
     setSavingSettings(true);
     try {
-      console.log("Saving Platform Settings:", platformSettings);
-
-      // 1. Save full platform settings (including sensitive ones)
+      // Save operational settings without printing configuration values to the browser console.
       const platformPromise = supabase.from("settings").upsert({
         id: "platform",
         content: platformSettings,
@@ -990,37 +961,6 @@ export default function SuperAdminDashboard() {
       toast.error("Failed to update settings");
     } finally {
       setSavingSettings(false);
-    }
-  };
-
-  const handleTestStripe = async () => {
-    setTestingStripe(true);
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token;
-
-      const response = await fetch("/api/platform/test-stripe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          secretKey: platformSettings.stripeSecretKey,
-        }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        toast.success("Stripe connection successful!");
-      } else {
-        toast.error(data.error || "Stripe connection failed");
-      }
-    } catch (error: any) {
-      toast.error("Failed to test Stripe connection");
-    } finally {
-      setTestingStripe(false);
     }
   };
 
@@ -1138,8 +1078,6 @@ export default function SuperAdminDashboard() {
     setSavingBusiness(true);
     const updateWarnings: string[] = [];
     try {
-      const isTrialExtension = editingBusiness.status === "extend_trial";
-
       // Map UI status selection to database-compatible fields
       // businesses.status check constraint: ('active', 'inactive', 'suspended')
       let dbStatus = "active";
@@ -1155,7 +1093,7 @@ export default function SuperAdminDashboard() {
       }
 
       // Map specific payment/trial states to subscription_status
-      if (uiStatus === "trial" || uiStatus === "extend_trial") {
+      if (uiStatus === "trial") {
         dbSubscriptionStatus = "trialing";
       } else if (uiStatus === "unpaid") {
         dbSubscriptionStatus = "past_due";
@@ -1235,36 +1173,19 @@ export default function SuperAdminDashboard() {
         { required: true },
       );
 
-      // 2. Save subscription/trial fields separately so missing optional columns do not break core updates.
-      let trialExtended = false;
-      if (isTrialExtension) {
-        const newTrialEnd = new Date();
-        newTrialEnd.setDate(newTrialEnd.getDate() + 14);
-        const trialResult = await updateBusinessStep("Trial extension", {
-          subscription_status: "trialing",
-          trial_ends_at: newTrialEnd.toISOString(),
-        });
-        trialExtended = trialResult.ok && !trialResult.removedColumns.includes("trial_ends_at");
-        if (!trialExtended) {
-          updateWarnings.push(
-            "Trial status was saved where possible, but the trial end date needs the businesses.trial_ends_at column. Apply the Supabase migration, then extend the trial again.",
-          );
-        }
-      } else {
-        const subscriptionResult = await updateBusinessStep("Subscription status", {
-          subscription_status: dbSubscriptionStatus,
-        });
-        if (subscriptionResult.removedColumns.includes("subscription_status")) {
-          updateWarnings.push(
-            "Subscription status was skipped because businesses.subscription_status is missing.",
-          );
-        }
+      // 2. Preserve existing subscription state without offering new or extended trials.
+      const subscriptionResult = await updateBusinessStep("Subscription status", {
+        subscription_status: dbSubscriptionStatus,
+      });
+      if (subscriptionResult.removedColumns.includes("subscription_status")) {
+        updateWarnings.push(
+          "Subscription status was skipped because businesses.subscription_status is missing.",
+        );
       }
 
-      // 3. Save admin/AI fields independently.
+      // 3. Save internal notes independently. Historical AI-credit data is left untouched.
       const adminResult = await updateBusinessStep("Admin fields", {
         admin_notes: editingBusiness.admin_notes,
-        ai_credits: editingBusiness.ai_credits,
       });
       if (adminResult.removedColumns.length > 0) {
         updateWarnings.push(
@@ -1292,41 +1213,6 @@ export default function SuperAdminDashboard() {
         );
       }
 
-      // 5. Sync with ai_credit_balances for the owner. Failure here should not block the business save.
-      if (editingBusiness.owner_id) {
-        try {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-          const token = session?.access_token;
-          if (!token) throw new Error("Missing admin session");
-
-          const response = await fetch("/api/admin/ai-credit-balances/sync", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              businessId: editingBusiness.id,
-              userId: editingBusiness.owner_id,
-              monthlyCreditLimit: Number(editingBusiness.ai_credits || 0),
-              creditsUsed: Number(editingBusiness.ai_credits_used || 0),
-            }),
-          });
-
-          if (!response.ok) {
-            const payload = await response.json().catch(() => ({}));
-            throw new Error(payload.error || `Server returned ${response.status}`);
-          }
-        } catch (syncErr) {
-          console.warn("Failed to sync ai_credit_balances:", syncErr);
-          updateWarnings.push(
-            "AI credit balance sync failed. Business settings were saved, but check the admin AI credits page.",
-          );
-        }
-      }
-
       // Fetch fresh data to ensure we have the correct subscription_status and trial dates
       const { data: freshBiz } = await supabase
         .from("businesses")
@@ -1348,20 +1234,13 @@ export default function SuperAdminDashboard() {
           plan: editingBusiness.plan,
           status: dbStatus,
           subscriptionStatus: dbSubscriptionStatus,
-          trialExtended,
           skippedWarnings: updateWarnings,
         },
       );
       if (updateWarnings.length > 0) {
         toast.warning(updateWarnings[0]);
       } else {
-        toast.success(
-          isTrialExtension
-            ? trialExtended
-              ? "Trial extended for 14 days"
-              : "Business updated"
-            : "Business updated successfully",
-        );
+        toast.success("Business updated successfully");
       }
     } catch (err: any) {
       console.error("Update failed:", err);
@@ -1411,23 +1290,6 @@ export default function SuperAdminDashboard() {
     );
   }
 
-  if (["geo_pricing", "ai_credits", "intelligence_lab"].includes(activeTab)) {
-    return (
-      <div className="mx-auto flex min-h-[60vh] max-w-2xl items-center justify-center p-8">
-        <Card className="rounded-[2rem] border-slate-100 p-10 text-center shadow-sm">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-            <Shield className="h-7 w-7" />
-          </div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-950">Module paused</h1>
-          <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-500">
-            This legacy module is paused while Bennie Studio focuses on the active sales, delivery, and customer operations workflow.
-          </p>
-          <Button className="mt-6 rounded-xl bg-indigo-600" onClick={() => navigate("/admin")}>Return to overview</Button>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-7xl mx-auto space-y-12">
       {/* Active Component Mapping */}
@@ -1446,18 +1308,12 @@ export default function SuperAdminDashboard() {
       {activeTab === "daily_operations" && <DailyOperations />}
 
       {activeTab === "inbound_leads" && <AdminLeadInbox />}
-      {activeTab === "growth_operations" && <GrowthOperationsCenter />}
-
       {activeTab === "prospect_explorer" && <ProspectExplorer />}
       {activeTab === "neural_auditor" && <NeuralAuditor />}
       {activeTab === "outreach_lab" && <OutreachLab />}
-      {activeTab === "webinar_engine" && <WebinarEngine />}
-      {activeTab === "mass_campaigns" && <MassCampaigns />}
       {activeTab === "proposals_deals" && <ProposalsDeals />}
-      {activeTab === "sales_automation" && <SalesAutomation />}
       {activeTab === "projects" && <Projects />}
       {activeTab === "client_onboarding" && <ClientOnboarding />}
-      {activeTab === "operations" && <OperationsControlCenter />}
       {activeTab === "seo_management" && <SeoAdmin />}
       
       {(activeTab === "businesses" || activeTab === "admin") && (
@@ -1788,7 +1644,7 @@ export default function SuperAdminDashboard() {
                          <div>
                             <h3 className="font-black italic uppercase tracking-tight text-slate-900">Superadmin Modules</h3>
                             <p className="mt-1 max-w-2xl text-xs font-medium leading-5 text-slate-500">
-                              All modules are enabled by default. Turn off modules you do not want in the everyday sidebar; they remain available here and can be restored at any time.
+                              Active sales and delivery modules are enabled by default. Paused or legacy modules remain off unless deliberately restored for historical operations.
                             </p>
                          </div>
                          <Badge className="w-fit border-0 bg-indigo-50 text-indigo-700">
@@ -1832,51 +1688,6 @@ export default function SuperAdminDashboard() {
                       </div>
                    </Card>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                   <Card className="rounded-[2rem] p-8 space-y-6">
-                      <div className="flex items-center justify-between">
-                         <div>
-                            <h3 className="font-black italic uppercase tracking-tight text-slate-900">Marketing Intelligence</h3>
-                            <p className="text-xs text-slate-400 font-medium">Enable or disable core Growth OS modules</p>
-                         </div>
-                         <Zap className="h-5 w-5 text-indigo-600" />
-                      </div>
-                      
-                      <Separator className="bg-slate-100" />
-
-                      <div className="space-y-6">
-                         {[
-                         ].map(feature => (
-                           <div key={feature.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                              <div className="space-y-1">
-                                 <p className="text-sm font-bold text-slate-900">{feature.label}</p>
-                                 <p className="text-[10px] text-slate-400 font-medium">{feature.description}</p>
-                              </div>
-                              <Select 
-                                value={platformSettings.marketingFeatures[feature.id as keyof typeof platformSettings.marketingFeatures]} 
-                                onValueChange={(val) => setPlatformSettings({
-                                  ...platformSettings,
-                                  marketingFeatures: {
-                                    ...platformSettings.marketingFeatures,
-                                    [feature.id]: val as any
-                                  }
-                                })}
-                              >
-                                 <SelectTrigger className="w-32 rounded-xl bg-white text-[10px] font-black uppercase tracking-widest">
-                                    <SelectValue />
-                                 </SelectTrigger>
-                                 <SelectContent className="rounded-xl">
-                                    <SelectItem value="enabled">Enabled</SelectItem>
-                                    <SelectItem value="disabled">Disabled</SelectItem>
-                                    <SelectItem value="coming_soon">Coming Soon</SelectItem>
-                                 </SelectContent>
-                              </Select>
-                           </div>
-                         ))}
-                      </div>
-                   </Card>
-
-                </div>
                 </div>
                 )}
 
@@ -2269,13 +2080,12 @@ export default function SuperAdminDashboard() {
             </div>
           )}
 
-          {activeTab === "blog" && <BlogCMS />}
           {activeTab === "policies" && <PoliciesCMS />}
           {activeTab === "support" && <AdminSupport />}
           {activeTab === "update_requests" && <MonthlyUpdateQueue />}
 
           {/* Catch-all for tabs that might not have specialized rendering yet or are in development */}
-          {!['overview', 'revenue_command', 'sales_home', 'daily_operations', 'inbound_leads', 'growth_operations', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'sales_automation', 'mass_campaigns', 'webinar_engine', 'proposals_deals', 'projects', 'client_onboarding', 'operations', 'seo_management', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'geo_pricing', 'templates', 'plans', 'ai_credits', 'status', 'intelligence_lab', 'traffic', 'settings', 'support', 'update_requests', 'blog', 'policies', 'ecosystem_architect', 'admin'].includes(activeTab) && (
+          {!['overview', 'revenue_command', 'sales_home', 'daily_operations', 'inbound_leads', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'proposals_deals', 'projects', 'client_onboarding', 'seo_management', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'templates', 'plans', 'status', 'traffic', 'settings', 'support', 'update_requests', 'policies', 'admin'].includes(activeTab) && (
             <div className="h-full flex items-center justify-center p-12">
                <Card className="p-24 flex flex-col items-center justify-center text-center rounded-[3rem] border-slate-100 bg-slate-50/50 max-w-2xl">
                   <div className="h-20 w-20 rounded-[2rem] bg-white shadow-xl shadow-slate-200 flex items-center justify-center text-indigo-600 mb-6">
@@ -2328,7 +2138,7 @@ export default function SuperAdminDashboard() {
               <div className="space-y-2">
                 <Label>Plan</Label>
                 <Select
-                  value={editingBusiness?.plan || "starter"}
+                  value={editingBusiness?.plan || "managed-website"}
                   onValueChange={(value) =>
                     setEditingBusiness({ ...editingBusiness, plan: value })
                   }
@@ -2358,10 +2168,9 @@ export default function SuperAdminDashboard() {
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
                     <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="trial">Trialing</SelectItem>
-                    <SelectItem value="extend_trial">
-                      Extend Trial (+14 Days)
-                    </SelectItem>
+                    {(editingBusiness?.status === "trial" || editingBusiness?.subscription_status === "trialing") && (
+                      <SelectItem value="trial">Legacy trial (existing account)</SelectItem>
+                    )}
                     <SelectItem value="unpaid">Unpaid</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                     <SelectItem value="suspended">Suspended</SelectItem>

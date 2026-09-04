@@ -1101,7 +1101,7 @@ const buildNicheTemplate = ({
             items: [
               { question: `Do you provide ${name.toLowerCase()} services in [City]?`, answer: "Yes. Update this answer with your actual service area and availability." },
               { question: "How do customers make an enquiry?", answer: `Customers can use ${leadCapture.toLowerCase()}, WhatsApp, phone, or the contact form.` },
-              { question: "Can this website support more pages?", answer: "Yes. Starter uses one page, Business supports three pages, and Growth supports five pages." },
+              { question: "Can this website support more pages?", answer: "Yes. The page structure can expand as the business and content requirements grow." },
             ],
           }),
           createSection("contact", {
@@ -1986,6 +1986,29 @@ export const getTemplateCustomerName = (template: Partial<NicheTemplate> | strin
 
 export const getTemplateAdminName = (template: Partial<NicheTemplate> | string) =>
   getTemplateCommercialMetadata(template).adminName || (typeof template === "string" ? template : template.premiumName || template.name || "Template");
+
+export const getTemplateReadiness = (template: Partial<NicheTemplate> | string) => {
+  const metadata = getTemplateCommercialMetadata(template);
+  const record = typeof template === "string" ? metadata : (template as any);
+  const pages = record.pages || record.config?.pages || [];
+  const checks = [
+    { label: "page content", passed: pages.length > 0 && pages.some((page: any) => (page.sections || []).length > 0) },
+    { label: "primary CTA", passed: Boolean(metadata.ctaStrategy?.length || metadata.ctaType) },
+    { label: "lead capture", passed: Boolean(metadata.leadCaptureType || metadata.leadCapture) },
+    { label: "best-fit customer", passed: Boolean(metadata.bestFitCustomerProfile || metadata.bestFor) },
+    { label: "SEO structure", passed: Boolean(metadata.seoPreset || metadata.localSeoReadiness || record.seo_readiness || record.config?.commercial?.seoReadiness) },
+    { label: "preview image", passed: Boolean(record.thumbnail || record.preview_image || record.config?.commercial?.previewImage) },
+    { label: "active status", passed: (metadata.templateStatus || "active") === "active" },
+  ];
+  const completed = checks.filter((check) => check.passed).length;
+  return {
+    ready: completed === checks.length,
+    completed,
+    total: checks.length,
+    percent: Math.round((completed / checks.length) * 100),
+    missing: checks.filter((check) => !check.passed).map((check) => check.label),
+  };
+};
 
 export const getRecommendedNicheTemplate = ({
   industry,

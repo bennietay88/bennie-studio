@@ -746,13 +746,13 @@ add_action('wp_ajax_bts_lead_sync_test', function () {
             <Clock className="h-6 w-6 text-white" />
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-indigo-900">Free Trial Active</h3>
+            <h3 className="font-bold text-indigo-900">Legacy Access Active</h3>
             <p className="text-indigo-700 text-sm">
-              Your 14-day free trial ends in{" "}
+              Your existing access period ends in{" "}
               <span className="font-bold font-mono">
                 {timeLeft || `${trialDaysLeft} days`}
               </span>
-              . Billing will start automatically after the trial ends.
+              . Review the current service options before this date.
             </p>
           </div>
           <Button
@@ -760,7 +760,7 @@ add_action('wp_ajax_bts_lead_sync_test', function () {
             className="border-indigo-200 text-indigo-600 hover:bg-indigo-100"
             onClick={() => navigate("/dashboard/billing")}
           >
-            Upgrade Now
+            View Current Services
           </Button>
         </div>
       )}
@@ -773,17 +773,17 @@ add_action('wp_ajax_bts_lead_sync_test', function () {
               <AlertCircle className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-red-900">Trial Expired</h3>
+              <h3 className="font-bold text-red-900">Legacy Access Ended</h3>
               <p className="text-red-700 text-sm">
-                Your free trial has ended. Please upgrade your plan to continue
-                using all features.
+                Your existing access period has ended. Choose a current service to continue
+                using Bennie Studio.
               </p>
             </div>
             <Button
               className="bg-red-600 hover:bg-red-700 text-white"
               onClick={() => navigate("/dashboard/billing")}
             >
-              Upgrade Plan
+              View Current Services
             </Button>
           </div>
         )}

@@ -20,7 +20,7 @@ export function ProposalsDeals() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [open, setOpen] = React.useState(false);
-  const [form, setForm] = React.useState({ target: typeof window !== "undefined" && sessionStorage.getItem("bts_proposal_lead_id") ? `lead:${sessionStorage.getItem("bts_proposal_lead_id")}` : "", title: "Website Growth Partner proposal", market: "MY" as RevenueMarket, expiresAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), checkoutUrl: "" });
+  const [form, setForm] = React.useState({ target: typeof window !== "undefined" && sessionStorage.getItem("bts_proposal_lead_id") ? `lead:${sessionStorage.getItem("bts_proposal_lead_id")}` : "", title: "Growth Partner proposal", market: "MY" as RevenueMarket, expiresAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), checkoutUrl: "" });
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);
@@ -83,7 +83,19 @@ export function ProposalsDeals() {
   };
 
   const updateStatus = async (proposal: any, status: string) => {
-    const updates: Record<string, any> = { status, updated_at: new Date().toISOString() };
+    let lossReason = "";
+    if (status === "Declined") {
+      lossReason = window.prompt("Why was this proposal lost? Record the actual reason before closing it.", proposal.config?.lossReason || "")?.trim() || "";
+      if (!lossReason) {
+        toast.error("A lost reason is required before declining a proposal.");
+        return;
+      }
+    }
+    const updates: Record<string, any> = {
+      status,
+      updated_at: new Date().toISOString(),
+      ...(lossReason ? { config: { ...(proposal.config || {}), lossReason } } : {}),
+    };
     if (status === "Accepted") updates.accepted_at = new Date().toISOString();
     const { data, error } = await supabase.from("proposals").update(updates).eq("id", proposal.id).select("*, businesses(name), leads(name,email)").single();
     if (error) return toast.error(error.message);

@@ -275,12 +275,12 @@ export const Billing = () => {
                   <CardTitle className="text-xl">
                     {hasStripeSubscription
                       ? "Subscription Confirmed"
-                      : "Trial Period"}
+                      : "Legacy Access Period"}
                   </CardTitle>
                   <CardDescription>
                     {hasStripeSubscription
                       ? `Your paid subscription starts on ${new Date(business.trialEndsAt).toLocaleDateString()}`
-                      : `Your trial ends on ${new Date(business.trialEndsAt).toLocaleDateString()}`}
+                      : `Your existing access period ends on ${new Date(business.trialEndsAt).toLocaleDateString()}`}
                   </CardDescription>
                 </div>
               </div>
@@ -293,15 +293,15 @@ export const Billing = () => {
                     : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800",
                 )}
               >
-                {hasStripeSubscription ? "COMMITTED" : "TRIALING"}
+                {hasStripeSubscription ? "COMMITTED" : "LEGACY ACCESS"}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-slate-600 dark:text-slate-400">
               {hasStripeSubscription
-                ? "You've successfully set up your subscription. You will not be charged until your trial period concludes. Enjoy full access to all features!"
-                : "You are currently in your free trial period. Select a plan below to commit to a subscription. Your billing cycle will only begin after your trial expires."}
+                ? "Your subscription is confirmed and will follow the billing schedule already shown for this account."
+                : "This account has an existing legacy access period. Choose a current service below if you want access to continue afterward."}
             </p>
             {!hasStripeSubscription && (
               <Button
@@ -312,7 +312,7 @@ export const Billing = () => {
                 }}
                 className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white"
               >
-                Select a Plan to Commit
+                View Current Services
               </Button>
             )}
           </CardContent>
