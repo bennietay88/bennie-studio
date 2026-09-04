@@ -54,6 +54,19 @@ export const ProtectedRoute = ({
     );
   }
 
+  // Resolve authorization before billing/subscription presentation. This
+  // prevents users without the required role from learning or seeing the
+  // protected route's subscription state (and avoids masking the redirect
+  // with a billing gate).
+  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
+    return (
+      <Navigate
+        to={profile.role === "super_admin" || profile.role === "platform_staff" ? "/admin" : "/dashboard"}
+        replace
+      />
+    );
+  }
+
   // Trial Expiration Gate
   const isTrialExpired =
     ["starter", "business", "growth", "scale"].includes(String(business?.plan || "").toLowerCase()) &&
@@ -97,15 +110,6 @@ export const ProtectedRoute = ({
           </Button>
         </div>
       </div>
-    );
-  }
-
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
-    return (
-      <Navigate
-        to={profile.role === "super_admin" || profile.role === "platform_staff" ? "/admin" : "/dashboard"}
-        replace
-      />
     );
   }
 
