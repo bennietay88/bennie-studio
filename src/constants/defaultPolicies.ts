@@ -159,9 +159,9 @@ Bennie Studio retains ownership of its platform, codebase, templates, design sys
 
 During an active subscription, you receive a limited, revocable, non-exclusive licence to use the website prepared for your business through our platform.
 
-Source code export, template export, standalone hosting, ownership transfer, WordPress migration, domain handover assistance, or full customer data/website export is not included by default. These may be offered as a separate paid service where technically possible and legally permitted.
+You may download the self-service website handover package available in your account. It includes portable static website pages, relevant business details, and your customer relationship records such as leads and appointments. It does not include Bennie Studio's platform source code, proprietary templates, internal systems, credentials, billing data, or third-party services.
 
-On cancellation or termination, your website may be paused, unpublished, deleted, or retained for a limited period at our discretion unless a paid export/migration service is agreed.
+The exported website can be hosted independently, but dynamic forms, integrations, analytics, bookings, and other hosted features must be reconnected to services you control. Domain or complex migration assistance may require a separate quote. On cancellation or termination, the Bennie Studio-hosted website may be paused or unpublished, so you should download your export before the service ends.
 
 ## 11. Custom Websites
 Custom website projects are separate premium projects and may be governed by a separate quote, proposal, invoice, or statement of work. Custom projects can include CMS access, blog publishing, advanced SEO pages, ecommerce, booking, integrations, custom design, and ownership terms agreed separately.

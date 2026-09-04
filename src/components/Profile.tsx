@@ -349,7 +349,7 @@ export function Profile() {
                       Data Portability
                     </div>
                     <div className="text-[10px] text-slate-500">
-                      Download a full JSON archive of your business data.
+                      Download a portable website package with pages, business details, leads, and appointments.
                     </div>
                   </div>
                 </div>
@@ -358,7 +358,7 @@ export function Profile() {
                   className="rounded-xl h-10 px-6 border-slate-200 hover:bg-slate-50"
                   onClick={exportUserData}
                 >
-                  Export Data
+                  Export Website & CRM
                 </Button>
               </div>
 

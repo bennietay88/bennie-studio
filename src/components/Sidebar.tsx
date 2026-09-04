@@ -15,6 +15,7 @@ import {
   Layout,
   Globe,
   Users,
+  User,
   FileText,
   Settings,
   BarChart3,
@@ -39,13 +40,11 @@ import {
   Briefcase,
   Shield,
   ShieldCheck,
-  Activity,
   MapPin,
   ExternalLink,
   BriefcaseBusiness,
   Inbox,
   Search,
-  Target,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -183,11 +182,9 @@ export function Sidebar({
             { to: "/admin", icon: LayoutDashboard, label: "Sales Command Center", className: "tour-dashboard" },
             { to: "/admin/daily_operations", icon: CalendarIcon, label: "Daily Operations" },
             { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox" },
-            { to: "/admin/growth_operations", icon: Target, label: "Growth Operations", moduleId: "growth_operations" },
             { to: "/admin/prospect_explorer", icon: Users, label: "Prospects", moduleId: "prospects" },
             { to: "/admin/neural_auditor", icon: Globe, label: "Website Reviews", moduleId: "website_reviews" },
             { to: "/admin/outreach_lab", icon: MessageSquare, label: "Outreach", moduleId: "outreach" },
-            { to: "/admin/sales_automation", icon: Activity, label: "Sales Automation", moduleId: "outreach" },
             { to: "/admin/proposals_deals", icon: FileText, label: "Sales Pipeline", moduleId: "sales_pipeline" },
           ]
         },
@@ -198,8 +195,7 @@ export function Sidebar({
             { to: "/admin/users", icon: Users, label: "Users & Access" },
             { to: "/admin/projects", icon: Briefcase, label: "Service Projects", moduleId: "service_projects" },
             { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover", moduleId: "client_handover" },
-            { to: "/admin/operations", icon: Activity, label: "Operations Control", moduleId: "operations_control" },
-            { to: "/admin/seo_management", icon: Search, label: "SEO Management", moduleId: "seo_management" },
+            { to: "/admin/seo_management", icon: Search, label: "SEO Operations", moduleId: "seo_management" },
             { to: "/admin/update_requests", icon: FileText, label: "Update Queue", moduleId: "update_queue" },
             { to: "/admin/support", icon: Headphones, label: "Support", moduleId: "support" },
           ]
@@ -208,7 +204,6 @@ export function Sidebar({
           label: "Content & CMS",
           items: [
             { to: "/admin/templates", icon: Layout, label: "Website Templates", moduleId: "website_templates" },
-            { to: "/admin/blog", icon: FileText, label: "Blog CMS", moduleId: "blog_cms" },
             { to: "/admin/policies", icon: FileText, label: "Policies CMS", moduleId: "policies_cms" },
           ]
         },
@@ -248,7 +243,6 @@ export function Sidebar({
             { to: "/admin/prospect_explorer", icon: Users, label: "Prospecting", permission: "prospects" },
             { to: "/admin/neural_auditor", icon: Globe, label: "Website Audits", permission: "prospects" },
             { to: "/admin/outreach_lab", icon: MessageSquare, label: "Outreach Hub", permission: "prospects" },
-            { to: "/admin/sales_automation", icon: Activity, label: "Sales Automation", permission: "sales" },
             { to: "/admin/proposals_deals", icon: FileText, label: "Sales Pipeline", permission: "sales" },
           ],
         },
@@ -257,7 +251,7 @@ export function Sidebar({
           items: [
             { to: "/admin/projects", icon: Briefcase, label: "Service Projects", permission: "delivery" },
             { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover", permission: "delivery" },
-            { to: "/admin/operations", icon: Activity, label: "Operations Control", permissions: ["customer_health", "approvals", "billing", "activity_logs"] },
+            { to: "/admin/seo_management", icon: Search, label: "SEO Operations", permission: "delivery" },
             { to: "/admin/support", icon: Headphones, label: "Support Desk", permission: "support" },
             { to: "/admin/update_requests", icon: FileText, label: "Update Queue", permission: "support" },
             { to: "/admin/status", icon: Shield, label: "System Status", permission: "customer_health" },
@@ -266,20 +260,37 @@ export function Sidebar({
       ];
     }
 
-    if ((role === "business_admin" || role === "staff" || role === "client") && customerDashboardMode === "simple") {
+    if ((role === "staff" || role === "client") && customerDashboardMode === "simple") {
+      return [
+        { label: "Daily", items: [
+          { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
+          { to: "/dashboard/leads", icon: Users, label: "Leads", featureId: "lead_crm" },
+          { to: "/dashboard/appointments", icon: CalendarIcon, label: "Appointments", featureId: "booking" },
+          { to: "/dashboard/update-requests", icon: FileText, label: "Update Requests" },
+          { to: "/dashboard/support", icon: Headphones, label: "Support" },
+        ]},
+      ];
+    }
+
+    if (role === "business_admin" && customerDashboardMode === "simple") {
       return [
         { label: "Website", items: [
           { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
           { to: "/dashboard/my-website", icon: Globe, label: "My Website" },
-          { to: "/dashboard/leads", icon: Users, label: "Leads", featureId: "lead_crm" },
+          { to: "/dashboard/approvals", icon: ShieldCheck, label: "Review & Approvals" },
           { to: "/dashboard/analytics", icon: BarChart3, label: "Performance", featureId: "analytics" },
-          { to: "/dashboard/seo/overview", icon: Search, label: "SEO Growth" },
-          { to: "/dashboard/industry-content", icon: Briefcase, label: "Content & Marketing", featureId: "industry_content" },
+        ]},
+        { label: "Enquiries", items: [
+          { to: "/dashboard/leads", icon: Users, label: "Leads", featureId: "lead_crm" },
+          { to: "/dashboard/appointments", icon: CalendarIcon, label: "Appointments", featureId: "booking" },
+        ]},
+        { label: "Service", items: [
+          { to: "/dashboard/update-requests", icon: FileText, label: "Update Requests" },
+          { to: "/dashboard/support", icon: Headphones, label: "Support" },
         ]},
         { label: "Account", items: [
-          role === "business_admin" && { to: "/dashboard/billing", icon: CreditCard, label: "Billing" },
-          { to: "/dashboard/support", icon: Headphones, label: "Support" },
-          role === "business_admin" && { to: "/dashboard/settings", icon: Settings, label: "Settings" },
+          { to: "/dashboard/billing", icon: CreditCard, label: "Billing" },
+          { to: "/dashboard/profile", icon: User, label: "Account & Export" },
         ]},
       ];
     }
@@ -370,12 +381,9 @@ export function Sidebar({
             ) {
               return false;
             }
-            if (
-              link.devOnly &&
-              isCustomerRole &&
-              customerDashboardMode !== "development"
-            ) {
-              return false;
+            if (link.devOnly && isCustomerRole) {
+              if (role !== "business_admin") return false;
+              if (customerDashboardMode !== "development") return false;
             }
             if (isCustomerRole && link.featureId && (!isFeatureEnabled(link.featureId) || !isFeatureVisible(link.featureId))) {
               return false;
@@ -420,7 +428,7 @@ export function Sidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-hide">
-        {isCustomerRole && !isCollapsed && (
+        {role === "business_admin" && !isCollapsed && (
           <div className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-800/50">
             <div className="grid grid-cols-2 gap-1">
               {[

@@ -163,7 +163,7 @@ export default function DashboardOverview() {
       return "simple";
     }
   });
-  const isDevelopmentMode = dashboardMode === "development";
+  const isDevelopmentMode = profile?.role === "business_admin" && dashboardMode === "development";
 
   React.useEffect(() => {
     const readMode = () => {
@@ -1075,10 +1075,14 @@ export default function DashboardOverview() {
         hidden: !isFeatureEnabled("booking" as any),
       },
       {
-        label: "Billing & Plan",
-        description: "See your current website plan and billing details.",
+        label: profile?.role === "business_admin" ? "Billing & Plan" : "Update Requests",
+        description: profile?.role === "business_admin"
+          ? "See your current website plan and billing details."
+          : "Request and track changes to the website.",
         icon: FileText,
-        action: () => navigate(profile?.role === "staff" ? "/dashboard/support" : "/dashboard/billing"),
+        action: () => navigate(
+          profile?.role === "business_admin" ? "/dashboard/billing" : "/dashboard/update-requests",
+        ),
       },
       {
         label: "Support",
@@ -1100,9 +1104,9 @@ export default function DashboardOverview() {
                 Manage your website without the clutter.
               </h1>
               <p className="mt-4 text-base font-semibold leading-7 text-slate-600 md:text-lg">
-                View enquiries, check your website status, manage billing, and ask
-                for support. Website editing tools stay hidden until you switch to
-                Development Mode.
+                {profile?.role === "business_admin"
+                  ? "View enquiries, appointments and website performance, manage your service, and request support. Advanced website tools remain available in Development Mode."
+                  : "View enquiries and appointments, request website updates, and contact support from one focused workspace."}
               </p>
             </div>
             <div className="w-full rounded-3xl bg-slate-950 p-5 text-white lg:max-w-sm">
@@ -1228,7 +1232,9 @@ export default function DashboardOverview() {
               >
                 Contact Support
               </Button>
-              <Button variant="ghost" onClick={switchToDevelopmentMode} className="h-10 w-full text-xs font-black uppercase tracking-widest text-slate-500">Open Development Mode</Button>
+              {profile?.role === "business_admin" && (
+                <Button variant="ghost" onClick={switchToDevelopmentMode} className="h-10 w-full text-xs font-black uppercase tracking-widest text-slate-500">Open Development Mode</Button>
+              )}
             </CardContent>
           </Card>
         </section>
