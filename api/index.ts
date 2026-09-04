@@ -879,12 +879,21 @@ async function startServer() {
       if (!profile.business_id) return res.status(404).json({ error: "No business found for this account" });
       await assertBusinessAccess(req.user.id, profile.business_id);
 
-      const [{ data: business, error: businessError }, { data: websites, error: websitesError }] = await Promise.all([
+      const [
+        { data: business, error: businessError },
+        { data: websites, error: websitesError },
+        { data: leads, error: leadsError },
+        { data: appointments, error: appointmentsError },
+      ] = await Promise.all([
         supabaseAdmin.from("businesses").select("id,name,subdomain,custom_domain,custom_domain_status,site_url,seo_settings").eq("id", profile.business_id).single(),
         supabaseAdmin.from("websites").select("id,slug,status,pages,theme,seo,updated_at").eq("business_id", profile.business_id).eq("status", "published"),
+        supabaseAdmin.from("leads").select("id,name,email,phone,message,status,source,score,notes,raw_fields,automation_score,automation_next_action,automation_temperature,last_follow_up_at,next_follow_up_at,first_response_at,response_channel,last_active_at,created_at").eq("business_id", profile.business_id).order("created_at", { ascending: true }),
+        supabaseAdmin.from("appointments").select("id,customer_name,customer_email,service,date,time,status,created_at,updated_at").eq("business_id", profile.business_id).order("date", { ascending: true }).order("time", { ascending: true }),
       ]);
       if (businessError || !business) return res.status(404).json({ error: "Business not found" });
       if (websitesError) throw websitesError;
+      if (leadsError) throw leadsError;
+      if (appointmentsError) throw appointmentsError;
 
       const publishedWebsites = websites || [];
       const files: Array<{ name: string; content: string }> = [];
@@ -895,11 +904,13 @@ async function startServer() {
       if (files.length === 0) files.push({ name: "index.html", content: buildWebsiteHtmlSnapshot({ pages: [] }, business) });
       files.push({
         name: "bennie-studio-export.json",
-        content: JSON.stringify({ exportVersion: "1.0", exportedAt: new Date().toISOString(), business, websites: publishedWebsites }, null, 2),
+        content: JSON.stringify({ exportVersion: "1.1", exportedAt: new Date().toISOString(), business, websites: publishedWebsites, crm: { leads: leads || [], appointments: appointments || [] } }, null, 2),
       });
+      files.push({ name: "crm/leads.json", content: JSON.stringify(leads || [], null, 2) });
+      files.push({ name: "crm/appointments.json", content: JSON.stringify(appointments || [], null, 2) });
       files.push({
         name: "README.md",
-        content: `# ${business.name || "Website"}\n\nThis is a static handover export from Bennie Studio. Upload index.html and the pages/ folder to any static host (for example Netlify, Vercel, GitHub Pages, or your own server).\n\nThe exported pages do not include Bennie Studio-hosted CRM submission endpoints, private credentials, billing data, or API keys. Replace contact forms and hosted integrations with services you control before launch.\n`,
+        content: `# ${business.name || "Website"}\n\nThis is a static handover export from Bennie Studio. Upload index.html and the pages/ folder to any static host (for example Netlify, Vercel, GitHub Pages, or your own server).\n\nCRM data is included in crm/leads.json and crm/appointments.json for your records or migration. The exported pages do not include Bennie Studio-hosted CRM submission endpoints, private credentials, billing data, or API keys. Replace contact forms and hosted integrations with services you control before launch.\n`,
       });
 
       const archive = buildTarGz(files);
