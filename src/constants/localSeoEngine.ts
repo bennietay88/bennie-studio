@@ -107,7 +107,7 @@ export interface LocalSeoPageDraft {
 
 export const DEFAULT_LOCAL_SEO_LIMITS: Record<string, LocalSeoLimits> = {
   starter: {
-    planName: "Starter",
+    planName: "Managed Website",
     standardPages: 1,
     locationPages: 0,
     monthlyUpdates: "Limited monthly update request",
