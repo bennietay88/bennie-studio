@@ -1438,7 +1438,10 @@ const EXTENDED_TEMPLATE_VARIANTS: Record<string, NicheTemplate> = Object.fromEnt
     services: ["Wedding photography", "Brand photography", "Family sessions", "Event photography"],
   },
 ].map((variant) => {
-  const source = ALL_BASE_NICHE_TEMPLATES[variant.source];
+  // Base templates are keyed by their human-facing catalogue key, while
+  // variants refer to the stable template id. Resolve by id so extending the
+  // catalogue cannot break module initialisation when keys and ids differ.
+  const source = Object.values(ALL_BASE_NICHE_TEMPLATES).find((item) => item.id === variant.source);
   if (!source) throw new Error(`Missing base template for ${variant.id}: ${variant.source}`);
   const { source: _source, ...metadata } = variant;
   return [variant.id, {
