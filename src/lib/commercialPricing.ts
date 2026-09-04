@@ -68,7 +68,7 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
     productType: "website_growth",
     salesMotion: "self_serve",
     includesProductSlug: "managed-website",
-    prices: [["MY", 699, 499], ["SG", 349, 249], ["GB", 249, 199], ["INTL", 249, 199]].map(([market, monthlyPrice, setupFee]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: setupFee as number, annualPrice: null })),
+    prices: [["MY", 699], ["SG", 349], ["GB", 249], ["INTL", 249]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: 0, annualPrice: null })),
   },
   {
     slug: "growth-partner",

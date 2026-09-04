@@ -24,6 +24,14 @@ test("growth partner is consultation-led, not a self-serve subscription", () => 
   assert.equal(getCommercialPrice(product!, "SG")?.monthlyPrice, 1250);
 });
 
+test("website growth is a monthly total with no duplicate setup fee", () => {
+  const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "website-growth");
+  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 699);
+  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 0);
+  assert.equal(getCommercialPrice(product!, "INTL")?.monthlyPrice, 249);
+  assert.equal(getCommercialPrice(product!, "INTL")?.setupFee, 0);
+});
+
 test("public SEO catalogue contains no retired plan or trial language", () => {
   const copy = JSON.stringify(OWN_SALES_SEO_PAGES);
   const planLabels = OWN_SALES_SEO_PAGES.flatMap((page) => page.examples.map((example) => example.plan));
