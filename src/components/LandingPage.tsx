@@ -46,6 +46,7 @@ import {
 } from "./ui/accordion";
 import { Helmet } from "react-helmet-async";
 import { cn } from "@/src/lib/utils";
+import { FocusIndustries } from "./FocusIndustries";
 import { Pricing } from "./Pricing";
 import { DEFAULT_LANDING_CONTENT } from "../constants/landingPageContent";
 import { SafeImage } from "./SafeImage";
@@ -590,6 +591,7 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </section>
+      <FocusIndustries />
 
       {/* Trust & Social Proof Section */}
       {c.trust && (

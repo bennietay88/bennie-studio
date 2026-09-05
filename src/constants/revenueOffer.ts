@@ -76,8 +76,8 @@ export const countryToRevenueMarket = (countryCode?: string): RevenueMarket => {
 };
 
 export const REVENUE_NICHES = {
-  MY: ["Renovation & interior design", "Home services", "Aesthetic & wellness", "Professional services"],
-  SG: ["Renovation & interior design", "Aesthetic & wellness", "Professional services", "Education & enrichment"],
-  GB: ["Trades & home services", "Clinics & wellness", "Professional services", "Property services"],
-  US: ["Home services", "Professional services", "Clinics & wellness"],
+  MY: ["Cleaning companies", "Tuition & education centres", "Accounting & bookkeeping firms"],
+  SG: ["Cleaning companies", "Tuition & education centres", "Accounting & bookkeeping firms"],
+  GB: ["Cleaning companies", "Tutoring & education centres", "Accounting & bookkeeping firms"],
+  US: ["Cleaning companies", "Tutoring & education centres", "Accounting & bookkeeping firms"],
 } satisfies Record<RevenueMarket, readonly string[]>;

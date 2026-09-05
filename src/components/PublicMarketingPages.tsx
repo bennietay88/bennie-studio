@@ -1,3 +1,4 @@
+import { recommendCommercialProduct } from "../lib/recommendCommercialProduct";
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -27,6 +28,7 @@ import {
   buildReviewWebsiteStrategy,
   assessManualReviewInput,
 } from "../constants/reviewPoweredWaas";
+import { FocusIndustries } from "./FocusIndustries";
 import { Pricing as CommercialPricing } from "./Pricing";
 import { trackPinterestLead } from "../lib/pinterestTracking";
 import { trackPublicEvent } from "../lib/publicTracking";
@@ -74,7 +76,7 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
   "case-studies": {
     title: "Website Examples by Industry | Bennie Studio",
     description:
-      "Explore working website examples showing the challenge, strategy, enquiry path, and page structure for six service industries.",
+      "Explore working website examples showing the challenge, strategy, enquiry path, and page structure for cleaning, education, and accounting businesses.",
   },
   "website-audit": {
     title: "Free Website Growth Audit | Bennie Studio",
@@ -189,76 +191,25 @@ const deliveryStages = [
 
 const caseStudies = [
   {
-    title: "SmileHaus Dental Clinic",
-    templateId: "dental-clinic-v1",
-    industry: "Dental clinic",
-    type: "Appointment conversion",
-    image: "/brand-template-preview.svg",
-    challenge: "Patients need treatment clarity and reassurance before they are ready to book.",
-    strategy: "Lead with understandable treatment pages, dentist trust, location proof, FAQs, and a persistent WhatsApp booking path.",
-    outcome: "A clinic-ready journey designed to turn treatment research into appointment enquiries.",
-    delivered: ["Treatment pages", "Dentist profile", "Patient FAQ", "WhatsApp booking"],
-    href: "/portfolio/sample/dental",
+    title: "Cleaning quote website", templateId: "cleaning-company-v1", industryId: "cleaning", industry: "Cleaning companies", type: "Quote requests", image: "/brand-template-preview.svg",
+    challenge: "Customers need to know whether you cover their area and type of cleaning before requesting a quote.",
+    strategy: "Explain service scope, show real reviews, and ask for property type, location, frequency and preferred date.",
+    outcome: "An illustrative enquiry journey designed to help the team assess a cleaning request.",
+    delivered: ["Service scope", "Areas served", "Review sections", "Quote enquiry"], href: "/preview/template/cleaning-company-v1",
   },
   {
-    title: "PrimeBuild Renovation",
-    templateId: "renovation-contractor-v1",
-    industry: "Renovation contractor",
-    type: "Qualified quote flow",
-    image: "/brand-template-preview.svg",
-    challenge: "Generic contact forms produce weak enquiries without project type, budget, location, or timing.",
-    strategy: "Show project capability first, then guide prospects through service areas, process, trust points, and a structured quote request.",
-    outcome: "A proof-led website direction designed to generate better-qualified renovation enquiries.",
-    delivered: ["Project highlights", "Service pages", "Areas served", "Quote request"],
-    href: "/portfolio/sample/contractor",
+    title: "Tuition and education website", templateId: "tuition-centre-v1", industryId: "education", industry: "Education", type: "Trial-class enquiries", image: "/brand-template-preview.svg",
+    challenge: "Parents need clear programmes, age groups, schedules and teacher information before making contact.",
+    strategy: "Make programmes easy to compare and guide parents to an enquiry about a suitable class.",
+    outcome: "An illustrative parent journey designed to support trial-class conversations.",
+    delivered: ["Programme sections", "Teacher profiles", "Parent FAQ", "Trial-class CTA"], href: "/preview/template/tuition-centre-v1",
   },
   {
-    title: "NorthStar Growth Advisory",
-    templateId: "law-firm-v1",
-    industry: "Consulting",
-    type: "Authority and call booking",
-    image: "/brand-template-preview.svg",
-    challenge: "Prospects cannot assess expertise when services, outcomes, and the engagement model are vague.",
-    strategy: "Clarify the advisory offer, connect services to buyer problems, add proof prompts, and create one direct strategy-call path.",
-    outcome: "An authority-first sales journey designed to convert interest into qualified consultation calls.",
-    delivered: ["Offer positioning", "Service outcomes", "Proof sections", "Call booking"],
-    href: "/portfolio/sample/consultant",
-  },
-  {
-    title: "Lumi Beauty Studio",
-    templateId: "salon-spa-v1",
-    industry: "Beauty salon",
-    type: "Treatment booking",
-    image: "/brand-template-preview.svg",
-    challenge: "Visitors need to compare treatments, packages, quality, and availability quickly on mobile.",
-    strategy: "Organise the service menu, visual proof, packages, promotions, and FAQs around a simple WhatsApp booking action.",
-    outcome: "A polished mobile-first direction designed to move treatment browsers toward booking.",
-    delivered: ["Service menu", "Package blocks", "Gallery sections", "Booking CTA"],
-    href: "/portfolio/sample/beauty",
-  },
-  {
-    title: "Kopi Yard Cafe",
-    templateId: "restaurant-v1",
-    industry: "Restaurant and cafe",
-    type: "Local discovery",
-    image: "/brand-template-preview.svg",
-    challenge: "Diners want menu, photos, location, opening hours, and reservation options without searching across several platforms.",
-    strategy: "Put the most-requested information near the top and connect menu discovery to reservations, WhatsApp, maps, and promotions.",
-    outcome: "A local-discovery website direction designed to support visits, reservations, and direct orders.",
-    delivered: ["Menu showcase", "Food gallery", "Maps and hours", "Reservation CTA"],
-    href: "/portfolio/sample/restaurant",
-  },
-  {
-    title: "BrightPath Tuition Centre",
-    templateId: "tuition-centre-v1",
-    industry: "Education",
-    type: "Trial-class enquiries",
-    image: "/brand-template-preview.svg",
-    challenge: "Parents need clear programmes, levels, teachers, schedules, and outcomes before making contact.",
-    strategy: "Structure programmes for comparison, build teacher trust, answer parent questions, and centre the journey on a trial-class enquiry.",
-    outcome: "A parent-friendly website direction designed to generate enrolment and trial-class leads.",
-    delivered: ["Programme pages", "Teacher profiles", "Parent FAQ", "Trial-class CTA"],
-    href: "/portfolio/sample/education",
+    title: "Accounting and bookkeeping website", templateId: "accounting-firm-v1", industryId: "accounting", industry: "Accounting and bookkeeping", type: "Consultation enquiries", image: "/brand-template-preview.svg",
+    challenge: "Business owners need to understand whether the firm handles their business type and required services.",
+    strategy: "Explain client fit and service scope, show verified credentials, and offer an initial consultation.",
+    outcome: "An illustrative business enquiry journey designed to start relevant client conversations.",
+    delivered: ["Who we help", "Service scope", "Team credentials", "Consultation CTA"], href: "/preview/template/accounting-firm-v1",
   },
 ];
 
@@ -501,7 +452,7 @@ function Hero({
         <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl">
           <div className="rounded-[1.5rem] bg-slate-950 p-7 text-white">
             <Icon className="mb-12 h-10 w-10 rounded-2xl bg-indigo-600 p-2" />
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">Built to sell faster</p>
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">Review before you commit</p>
             <p className="mt-4 text-2xl font-black leading-tight text-white">
               See a tailored direction, review the recommendation, and choose the managed service when you are ready.
             </p>
@@ -888,12 +839,13 @@ function CaseStudiesPage() {
   return (
     <>
       <Hero
-        title="Website examples built around real buyer journeys"
+        title="Website demonstrations built around buyer journeys"
         copy="Explore working examples that show the business challenge, website strategy, enquiry path, and page structure for service-led businesses."
         icon={Sparkles}
         primaryLabel="See My Website Direction"
         primaryHref="/generate-preview"
       />
+      <FocusIndustries />
       <section className="mx-auto max-w-7xl px-5 py-14">
         {verifiedProof.length ? <div className="mb-10 rounded-[2rem] bg-slate-950 p-6 text-white sm:p-8">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Customer outcomes</p>
@@ -903,11 +855,11 @@ function CaseStudiesPage() {
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Working website examples</p>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-700">
-              Each example demonstrates how Bennie Studio structures an offer, proof, services and enquiry path for a specific type of business.
+              These are demonstration websites, not client projects or measured customer results. They show how services, proof and enquiry paths can fit together.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 md:justify-end">
-            {["6 complete studies", "6 working demos", "No placeholder links"].map((item) => (
+            {["3 design examples", "3 working demos", "Illustrative outcomes"].map((item) => (
               <span key={item} className="rounded-full bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-indigo-700 shadow-sm">
                 {item}
               </span>
@@ -954,10 +906,10 @@ function CaseStudiesPage() {
                     onClick={() => trackPublicEvent({ eventType: "click_view_case_study", label: item.title, target: item.href, metadata: { industry: item.industry, type: item.type } })}
                     className={secondaryCtaClass}
                   >
-                    Read Case Study <ArrowRight className="ml-2 h-4 w-4" />
+                    Explore Demonstration <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                   <Link
-                    to="/generate-preview"
+                    to={`/generate-preview?industry=${item.industryId}&template=${item.templateId}`}
                     onClick={() => trackPublicEvent({ eventType: "click_generate_similar_preview", label: item.title, target: "/generate-preview", metadata: { industry: item.industry, type: item.type } })}
                     className={primaryCtaClass}
                   >
@@ -969,7 +921,7 @@ function CaseStudiesPage() {
           ))}
         </div>
         <div className="mt-10 rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
-          <h2 className="text-3xl font-black text-slate-950">What every case study now explains</h2>
+          <h2 className="text-3xl font-black text-slate-950">What each demonstration explains</h2>
           <p className="mt-3 max-w-3xl text-base font-semibold leading-7 text-slate-600">
             A useful case study should connect the business problem to the website decision—not stop at a decorative screenshot.
           </p>
@@ -988,6 +940,18 @@ function CaseStudiesPage() {
 }
 
 const previewIndustries = [
+  {
+    id: "cleaning", label: "Cleaning Company", template: "Cleaning Quote Website", recommendedPlan: "Managed Website",
+    pages: ["Home", "Services", "Areas Served", "Reviews", "Contact"],
+    sections: ["Cleaning services and coverage", "One-off and recurring options", "Customer reviews", "Pricing factors", "Quote request with property type and preferred date"],
+    cta: "Request a Cleaning Quote", proof: "Genuine customer reviews, team photos, service scope and insurance details where applicable.",
+  },
+  {
+    id: "accounting", label: "Accounting / Bookkeeping Firm", template: "Consultation Website", recommendedPlan: "Managed Website",
+    pages: ["Home", "Services", "Who We Help", "About", "Contact"],
+    sections: ["Clients you serve", "Bookkeeping and accounting scope", "Genuine credentials", "How consultations work", "Consultation request"],
+    cta: "Request a Consultation", proof: "Verified qualifications, team profiles, client-approved testimonials and clear service boundaries.",
+  },
   {
     id: "clinic",
     label: "Clinic / Healthcare",
@@ -1059,16 +1023,6 @@ const previewGoals = [
   "Build more trust before sales calls",
 ];
 
-function recommendCommercialProduct(input: { goal: string; notes: string; industry: string; requestedPages?: number }) {
-  const text = `${input.goal} ${input.notes} ${input.industry}`.toLowerCase();
-  if (/ecommerce|e-commerce|membership|wordpress|woocommerce|integration|multilingual|custom software/.test(text)) {
-    return { slug: "website-growth", label: "Website Growth", reason: "Your brief needs a more involved managed website and growth plan." };
-  }
-  if (/seo|search|location|locations|traffic|growth|landing page|multiple services|scale/.test(text) || (input.requestedPages || 0) > 4) {
-    return { slug: "website-growth", label: "Website Growth", reason: "Your goals point to ongoing optimisation, local search expansion and new landing pages." };
-  }
-  return { slug: "managed-website", label: "Managed Website", reason: "A managed website is the clearest starting point for your enquiry journey." };
-}
 
 function GeneratePreviewPage() {
   const navigate = useNavigate();
@@ -1079,7 +1033,7 @@ function GeneratePreviewPage() {
   const [industryId, setIndustryId] = React.useState(previewIndustries.some((item) => item.id === initialIndustry) ? initialIndustry : previewIndustries[0].id);
   const selectedTemplateId = explicitTemplateId && industryId === initialIndustry
     ? explicitTemplateId
-    : ({ clinic: "dental-clinic-v1", contractor: "renovation-contractor-v1", consultant: "law-firm-v1", education: "tuition-centre-v1", beauty: "salon-spa-v1" } as Record<string, string>)[industryId] || "dental-clinic-v1";
+    : ({ cleaning: "cleaning-company-v1", accounting: "accounting-firm-v1", "local-service": "cleaning-company-v1", clinic: "dental-clinic-v1", contractor: "renovation-contractor-v1", consultant: "law-firm-v1", education: "tuition-centre-v1", beauty: "salon-spa-v1" } as Record<string, string>)[industryId] || "dental-clinic-v1";
   const [goal, setGoal] = React.useState(previewGoals[0]);
   const [generated, setGenerated] = React.useState(false);
   const [generating, setGenerating] = React.useState(false);
@@ -1125,7 +1079,7 @@ function GeneratePreviewPage() {
     googleBusinessUrl: form.socialUrl,
     reviews: form.reviews,
   });
-  const commercialRecommendation = recommendCommercialProduct({ goal, notes: `${form.mainService} ${form.websiteUrl}`, industry: industry.label, requestedPages: industry.pages.length });
+  const commercialRecommendation = recommendCommercialProduct({ goal, notes: form.mainService, industry: industry.label });
 
   React.useEffect(() => {
     trackPublicEvent({ eventType: "start_preview_flow", label: "Generate Preview Page Loaded", target: "/generate-preview" });
@@ -1221,6 +1175,8 @@ function GeneratePreviewPage() {
     <>
       <Hero
         title="See a website direction built around your business"
+        secondaryLabel="Talk to Bennie first"
+        secondaryHref="/book-demo"
         copy={`${PUBLIC_PROMISE} Share a short business brief and see the recommended structure before deciding whether to work with us.`}
         icon={Sparkles}
         primaryLabel="Start My Preview"
@@ -1231,7 +1187,7 @@ function GeneratePreviewPage() {
           <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-600">Step 1</p>
           <h2 className="mt-3 text-3xl font-black text-slate-950">Choose the business type</h2>
           <div className="mt-6 grid gap-3">
-            {previewIndustries.map((item) => (
+            {[...previewIndustries.filter((item) => ["cleaning", "education", "accounting"].includes(item.id)), ...previewIndustries.filter((item) => !["cleaning", "education", "accounting", "contractor"].includes(item.id))].map((item) => (
               <button
                 key={item.id}
                 type="button"

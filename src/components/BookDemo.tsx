@@ -289,7 +289,7 @@ export default function BookDemo() {
                         {Object.entries(REVENUE_MARKETS).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}
                       </select>
                     </Field>
-                    <Field icon={Building2} label="Industry" id="call-industry"><Input id="call-industry" required value={form.industry} onChange={(e) => update("industry", e.target.value)} placeholder="e.g. renovation" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                    <Field icon={Building2} label="Industry" id="call-industry"><Input id="call-industry" required value={form.industry} onChange={(e) => update("industry", e.target.value)} placeholder="Cleaning, education, accounting / bookkeeping" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
                   </div>
                   <Field icon={Globe2} label="Current website" id="call-website"><Input id="call-website" value={form.websiteUrl} onChange={(e) => update("websiteUrl", e.target.value)} placeholder="https://... (optional)" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
                   <Field icon={CalendarDays} label={`Available 30-minute times · ${timezone}`} id="call-slot">
@@ -299,7 +299,7 @@ export default function BookDemo() {
                     </select>
                     {availabilityError && <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold text-amber-200"><span>{availabilityError}</span><button type="button" onClick={loadAvailability} className="rounded-lg border border-white/20 px-3 py-1.5 font-black text-white hover:bg-white/10">Retry</button></div>}
                   </Field>
-                  <Field icon={MessageSquare} label="What needs to improve?" id="call-message"><Textarea id="call-message" value={form.message} onChange={(e) => update("message", e.target.value)} placeholder="Tell us what is happening now and what a good result would look like." className="min-h-28 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                  <Field icon={MessageSquare} label="What needs to improve?" id="call-message"><Textarea id="call-message" value={form.message} onChange={(e) => update("message", e.target.value)} placeholder="Where do enquiries come from today? What makes them unsuitable? What would you like to improve, and when?" className="min-h-28 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
                   <Button type="submit" disabled={loading} className="h-auto min-h-13 w-full whitespace-normal rounded-2xl bg-indigo-500 px-6 py-3 text-center font-black text-white shadow-xl shadow-indigo-950/30 hover:bg-indigo-400">
                     {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Confirming time</> : <>{isGrowthPartner ? "Confirm Growth Consultation" : "Confirm Website Review"} <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>

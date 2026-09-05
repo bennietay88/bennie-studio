@@ -92,6 +92,9 @@ export const getCommercialPrice = (product: CommercialProduct, market: Commercia
 
 export const getStoredMarket = (): CommercialMarket => {
   try {
+    // A selected billing market passed from the main site takes precedence.
+    const requested = typeof window !== "undefined" ? new URLSearchParams(window.location?.search || "").get("market")?.toUpperCase() : null;
+    if (requested && ["MY", "SG", "GB", "UK", "INTL"].includes(requested)) return normalizeCommercialMarket(requested);
     const stored = localStorage.getItem("bt_commercial_market");
     if (stored) return normalizeCommercialMarket(stored);
 
@@ -105,4 +108,11 @@ export const getStoredMarket = (): CommercialMarket => {
 
 export const persistCommercialMarket = (market: CommercialMarket) => {
   try { localStorage.setItem("bt_commercial_market", market); } catch { /* storage is optional */ }
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("market")) {
+      url.searchParams.set("market", market);
+      window.history.replaceState(window.history.state, "", url);
+    }
+  } catch { /* URL synchronization is optional outside a browser. */ }
 };

@@ -1,27 +1,9 @@
 export const PRIMARY_MANAGED_PLAN_ID = "business";
 
 export const CORE_VERTICALS = [
-  {
-    id: "clinics",
-    label: "Clinics and wellness providers",
-    offer: "Appointment-focused website with treatment pages, doctor/team trust, reviews, FAQs, and WhatsApp or booking CTAs.",
-    proofNeeded: ["Real reviews", "Practitioner/team information", "Treatment/service list", "Clinic photos", "Location and opening hours"],
-    primaryCta: "Book Appointment",
-  },
-  {
-    id: "home-services",
-    label: "Renovation and home services",
-    offer: "Quote-request website with service areas, project proof, before/after sections, FAQs, and WhatsApp quotation prompts.",
-    proofNeeded: ["Project photos", "Service areas", "Warranty or process reassurance", "Real customer reviews", "Quote requirements"],
-    primaryCta: "Request Quote",
-  },
-  {
-    id: "beauty-salons",
-    label: "Beauty salons and aesthetic services",
-    offer: "Booking-focused website with service menus, treatment proof, review-powered trust, gallery sections, and WhatsApp booking flow.",
-    proofNeeded: ["Service menu", "Approved customer images", "Real reviews", "Treatment photos", "Promotion or package details"],
-    primaryCta: "Book by WhatsApp",
-  },
+  { id: "cleaning", label: "Cleaning companies", offer: "Cleaning quote website with service scope, coverage, real reviews and a structured enquiry path.", proofNeeded: ["Service list", "Areas served", "Real reviews", "Team photos"], primaryCta: "Request a Cleaning Quote" },
+  { id: "education", label: "Tuition and education centres", offer: "Programme and trial-class website with teacher profiles, schedules and parent enquiries.", proofNeeded: ["Programmes", "Teacher profiles", "Schedules", "Approved parent reviews"], primaryCta: "Ask About a Trial Class" },
+  { id: "accounting", label: "Accounting and bookkeeping firms", offer: "Consultation website with client fit, service scope, verified credentials and an initial enquiry path.", proofNeeded: ["Services", "Client types", "Verified credentials", "Approved testimonials"], primaryCta: "Request a Consultation" },
 ] as const;
 
 export const MONTHLY_MANAGED_SERVICE_RITUAL = [

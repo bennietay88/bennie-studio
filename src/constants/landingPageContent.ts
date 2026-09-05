@@ -8,11 +8,11 @@ export const DEFAULT_LANDING_CONTENT = {
     badge: "Professionally Managed Websites for Local Service Businesses",
     headline: "Turn Reviews and Business Information Into More Enquiries",
     subheadline:
-      "Turn your reviews and business information into a professionally managed website that generates more WhatsApp, call, booking and quotation enquiries.",
+      "Turn your reviews and business information into a professionally managed website designed to help visitors WhatsApp, call, book or request a quote.",
     ctaPrimary: "See My Website Direction",
     ctaSecondary: "Book 30-Minute Review",
     socialProof: {
-      text: "Focused first on clinics and wellness providers, renovation and home services, and beauty salons or aesthetic services.",
+      text: "For cleaning companies, tuition and education centres, and accounting or bookkeeping firms in Malaysia, Singapore and the UK.",
       avatars: [],
     },
     valueProp: "A done-for-you website service with hosting, maintenance, portal tracking, and updates included. No website builder to learn.",

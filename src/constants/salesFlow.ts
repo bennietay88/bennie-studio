@@ -1,5 +1,5 @@
 export const PUBLIC_PROMISE =
-  "Turn your reviews and business information into a professionally managed website that generates more WhatsApp, call, booking and quotation enquiries.";
+  "Turn your reviews and business information into a professionally managed website designed to help visitors WhatsApp, call, book or request a quote.";
 
 export const SUPPORTING_POSITIONING = [
   "Done-for-you website service",
