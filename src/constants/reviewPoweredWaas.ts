@@ -202,7 +202,7 @@ export const assessManualReviewInput = (reviews?: string) => {
 };
 
 export const analyzeReviewSignals = (input: ReviewIntelligenceInput) => {
-  const text = `${input.reviews || ""} ${input.mainServices || ""} ${input.industry || ""}`.toLowerCase();
+  const text = (input.reviews || "").toLowerCase();
   const countMatches = (words: string[]) => words.reduce((sum, word) => sum + (text.includes(word) ? 1 : 0), 0);
   const praiseMatches = countMatches(keywordGroups.praise);
   const speedMatches = countMatches(keywordGroups.speed);
@@ -228,9 +228,9 @@ export const analyzeReviewSignals = (input: ReviewIntelligenceInput) => {
     hasReviews,
     googleBusinessUrl: input.googleBusinessUrl || "",
     topPraises: [
-      praiseMatches ? "Professional, helpful service" : "Clear service explanation needed",
-      teamMatches ? "Team trust and expertise" : "Founder/team credibility opportunity",
-      speedMatches ? "Fast response and reliable delivery" : "Response speed proof opportunity",
+      praiseMatches ? "Provided review text mentions service quality — verify before publishing" : "Clear service explanation needed",
+      teamMatches ? "Provided review text mentions the team — verify before publishing" : "Founder/team credibility opportunity",
+      speedMatches ? "Provided review text mentions response speed — verify before publishing" : "Response speed proof opportunity",
     ],
     buyingReasons: [
       valueMatches ? "Customers compare value and pricing before enquiring" : "Visitors need clear reasons to choose the business",
@@ -257,7 +257,7 @@ export const analyzeReviewSignals = (input: ReviewIntelligenceInput) => {
     ],
     risks: riskMatches
       ? ["Review risk detected: add expectation-setting copy, process clarity, and service guarantees only if true."]
-      : ["No obvious negative pattern from provided review text."],
+      : [hasReviews ? "No obvious negative pattern detected; manually review the supplied text before publishing." : "No reviews supplied. Add genuine, approved customer evidence before making proof claims."],
   };
 };
 
@@ -276,8 +276,8 @@ export const buildReviewWebsiteStrategy = (input: ReviewIntelligenceInput) => {
     intelligence,
     recommendedPlan,
     positioningAngle: `Use real customer language to position ${businessName} as a trusted choice for ${target} looking for ${service} in ${city}.`,
-    heroHeadline: `Trusted ${service} in ${city}, backed by real customer feedback.`,
-    subheadline: `${businessName} turns customer trust into a clear website experience with service details, proof, FAQs, and a direct ${cta} enquiry path.`,
+    heroHeadline: `${service} in ${city}.`,
+    subheadline: `Explore ${businessName} services, find answers to common questions, and contact the team by ${cta}.`,
     coreOffer: service,
     primaryCta: cta === "call" ? "Call Now" : cta === "booking" ? "Book Appointment" : cta === "form" ? "Request Quote" : "WhatsApp Us",
     secondaryCta: "View Services",

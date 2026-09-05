@@ -1381,7 +1381,8 @@ function GeneratePreviewPage() {
                 </div>
               </div>
               <div className="min-w-0 rounded-[1.5rem] bg-slate-950 p-6 text-white">
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-200">Recommended structure</p>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-200">Suggested content sections</p>
+                <p className="mt-3 text-sm leading-6 text-slate-300">These can be sections on one page. The final page count and features are confirmed in your written scope.</p>
                 <div className="mt-5 grid gap-3">
                   {industry.pages.map((page, index) => (
                     <div key={page} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
@@ -1404,9 +1405,9 @@ function GeneratePreviewPage() {
 	                  <p className="mt-2 text-sm font-bold leading-6">{industry.proof}</p>
 	                </div>
 	                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-	                  <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-200">After plan selection</p>
+	                  <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-200">Confirm scope before payment</p>
 	                  <div className="mt-3 space-y-2">
-	                    {SUBSCRIPTION_DELIVERY_FLOW.slice(2, 8).map((step) => (
+	                    {["Review the proposed content and enquiry path with Bennie", "Agree page count, updates, delivery schedule and commercial terms in writing", "Complete the agreed payment before production work begins", "Provide approved business content, reviews and domain details", "Review and approve the finished website before launch"].map((step) => (
 	                      <p key={step} className="text-xs font-semibold leading-5 text-slate-300">{step}</p>
 	                    ))}
 	                  </div>
