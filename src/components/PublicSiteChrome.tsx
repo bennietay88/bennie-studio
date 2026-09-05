@@ -19,6 +19,8 @@ function MarketSwitcher({ compact = false }: { compact?: boolean }) {
     return () => window.removeEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
   }, []);
 
+  React.useEffect(() => { persistCommercialMarket(market); }, [market]);
+
   const changeMarket = (value: string) => {
     const next = normalizeCommercialMarket(value);
     setMarket(next);
