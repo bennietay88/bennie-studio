@@ -33,6 +33,12 @@ type CallForm = {
   industry: string;
   selectedSlot: string;
   message: string;
+  monthlyEnquiries: string;
+  marketingSpend: string;
+  businessSize: string;
+  objective: string;
+  timing: string;
+  investment: string;
 };
 
 type SavedCallContext = Partial<CallForm> & {
@@ -107,6 +113,12 @@ export default function BookDemo() {
     industry: saved.industry || "",
     selectedSlot: "",
     message: "",
+    monthlyEnquiries: "",
+    marketingSpend: "",
+    businessSize: "",
+    objective: "",
+    timing: "",
+    investment: "",
   });
 
   const loadAvailability = React.useCallback(() => {
@@ -186,6 +198,7 @@ export default function BookDemo() {
             saved.service ? `Primary service: ${saved.service}` : null,
             saved.goal ? `Preview goal: ${saved.goal}` : null,
             form.message ? `Goals: ${form.message}` : null,
+            `Qualification — enquiries: ${form.monthlyEnquiries || "not specified"}; marketing spend: ${form.marketingSpend || "not specified"}; team size: ${form.businessSize || "not specified"}; objective: ${form.objective || "not specified"}; timing: ${form.timing || "not specified"}; investment: ${form.investment || "not specified"}`,
           ].filter(Boolean).join("\n"),
         }),
       });
@@ -292,6 +305,9 @@ export default function BookDemo() {
                     <Field icon={Building2} label="Industry" id="call-industry"><Input id="call-industry" required value={form.industry} onChange={(e) => update("industry", e.target.value)} placeholder="Cleaning, education, accounting / bookkeeping" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
                   </div>
                   <Field icon={Globe2} label="Current website" id="call-website"><Input id="call-website" value={form.websiteUrl} onChange={(e) => update("websiteUrl", e.target.value)} placeholder="https://... (optional)" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {([ ["monthlyEnquiries", "Current monthly enquiries", ["0–10", "11–30", "31–100", "100+"]], ["marketingSpend", "Approx. monthly marketing spend", ["None", "<RM3k", "RM3k–10k", "RM10k–30k", "RM30k+"]], ["businessSize", "Business size", ["Solo", "2–5", "6–20", "21–50", "50+"]], ["objective", "Main website objective", ["More enquiries", "Better-quality enquiries", "More bookings", "More quotation requests", "Local SEO", "Conversion improvement", "New website", "Other"]], ["timing", "Target timing", ["Immediately", "Within 30 days", "1–3 months", "Researching"]], ["investment", "Investment level", ["RM3k–5k/month", "RM5k–10k/month", "RM10k+/month", "Not sure"]] ] as const).map(([key, label, options]) => <Field key={key} icon={Building2} label={label} id={`call-${key}`}><select id={`call-${key}`} value={form[key]} onChange={(e) => update(key, e.target.value)} className="h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-semibold text-slate-950"><option value="">Select (optional)</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></Field>)}
+                  </div>
                   <Field icon={CalendarDays} label={`Available 30-minute times · ${timezone}`} id="call-slot">
                     <select id="call-slot" required value={form.selectedSlot} onChange={(event) => update("selectedSlot", event.target.value)} className="h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-semibold text-slate-950">
                       <option value="">Choose a confirmed time</option>
