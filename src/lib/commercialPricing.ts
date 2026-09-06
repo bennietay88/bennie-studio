@@ -53,22 +53,22 @@ export const formatCommercialMoney = (amount: number | null | undefined, currenc
 export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
   {
     slug: "managed-website",
-    name: "Managed Website",
-    description: "Your business website built, hosted, maintained and continuously managed to turn more visitors into enquiries.",
+    name: "Website Growth System",
+    description: "A premium managed website built, hosted and continuously improved around conversion, trust, local visibility and qualified enquiries.",
     productType: "managed_website",
     salesMotion: "self_serve",
     prices: [
-      ["MY", 299, 499, 2990], ["SG", 149, 249, null], ["GB", 99, 199, null], ["INTL", 99, 199, null],
+      ["MY", 4900, 5000, null], ["SG", 2490, 2500, null], ["GB", 1990, 2000, null], ["INTL", 2490, 2500, null],
     ].map(([market, monthlyPrice, setupFee, annualPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: setupFee as number, annualPrice: annualPrice as number | null })),
   },
   {
     slug: "website-growth",
-    name: "Website Growth",
-    description: "Ongoing website growth, conversion optimisation, local SEO expansion and performance improvement.",
+    name: "Website Growth Partner",
+    description: "A consultant-led engagement for deeper conversion strategy, landing pages, expanded local SEO and ongoing growth direction.",
     productType: "website_growth",
-    salesMotion: "self_serve",
+    salesMotion: "proposal",
     includesProductSlug: "managed-website",
-    prices: [["MY", 699], ["SG", 349], ["GB", 249], ["INTL", 249]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: 0, annualPrice: null })),
+    prices: [["MY", 7500], ["SG", 4500], ["GB", 4000], ["INTL", 4500]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: 0, annualPrice: null })),
   },
   {
     slug: "growth-partner",

@@ -64,9 +64,9 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
       "Browse focused website templates for clinics, wellness providers, renovation companies, home service businesses, beauty salons, and aesthetic services.",
   },
   pricing: {
-    title: "Managed Website Pricing | Bennie Studio",
+    title: "Website Growth Pricing | Bennie Studio",
     description:
-      "Clear Managed Website and Website Growth pricing for Malaysia, Singapore, the United Kingdom, and international customers.",
+      "Premium Website Growth System and Website Growth Partner engagements for service businesses in Malaysia, Singapore, the United Kingdom, and internationally.",
   },
   "how-it-works": {
     title: "How It Works | Bennie Studio",
@@ -533,7 +533,7 @@ function TemplatesPage() {
 }
 
 function PricingPage() {
-  return <><h1 className="sr-only">Managed Website pricing</h1><CommercialPricing /></>;
+  return <><h1 className="sr-only">Website Growth pricing</h1><CommercialPricing /></>;
   /* Legacy implementation retained in git history; current pricing is rendered by CommercialPricing. */
   /*
   const [selectedMarket, setSelectedMarket] = React.useState<PricingMarket>("US");

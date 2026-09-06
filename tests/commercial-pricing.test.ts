@@ -13,9 +13,9 @@ test("market detection uses fixed commercial markets", () => {
 
 test("managed website price book is fixed by market", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "managed-website");
-  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 299);
-  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 499);
-  assert.equal(getCommercialPrice(product!, "MY")?.annualPrice, 2990);
+  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 4900);
+  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 5000);
+  assert.equal(getCommercialPrice(product!, "MY")?.annualPrice, null);
 });
 
 test("growth partner is consultation-led, not a self-serve subscription", () => {
@@ -26,9 +26,9 @@ test("growth partner is consultation-led, not a self-serve subscription", () => 
 
 test("website growth is a monthly total with no duplicate setup fee", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "website-growth");
-  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 699);
+  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 7500);
   assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 0);
-  assert.equal(getCommercialPrice(product!, "INTL")?.monthlyPrice, 249);
+  assert.equal(getCommercialPrice(product!, "INTL")?.monthlyPrice, 4500);
   assert.equal(getCommercialPrice(product!, "INTL")?.setupFee, 0);
 });
 

@@ -78,8 +78,8 @@ const sanitizePublicCommercialCopy = <T,>(value: T): T => {
       .replace(/14[- ]day(?: free)? trial/gi, "free website preview")
       .replace(/card[- ]required trial/gi, "free website preview")
       .replace(/free trial/gi, "free website preview")
-      .replace(/RM199(?:\/month)?/g, "RM299/month")
-      .replace(/\$49(?:\/month)?/g, "US$99/month")
+      .replace(/RM199(?:\/month)?/g, "RM4,900/month")
+      .replace(/\$49(?:\/month)?/g, "premium scope pricing")
       .replace(/\bStarter plan\b/gi, "Managed Website")
       .replace(/\bBusiness plan\b/gi, "Managed Website")
       .replace(/\bScale plan\b/gi, "Website Growth")
@@ -177,23 +177,23 @@ const makeSubscriptionMarketPage = (market: "UK" | "Malaysia" | "Singapore") => 
   const config = {
     UK: {
       path: "/website-subscription-service/uk",
-      title: "Website Subscription Service UK",
-      price: "Managed Website from £99/month with a £199 setup fee. Website Growth is £249/month; custom work is quoted separately.",
+      title: "managed website growth service UK",
+      price: "Website Growth System is scoped from £1,990/month with onboarding; Growth Partner is consultation-led.",
       wording: "enquiries, quote requests, GDPR-friendly form consent, cookie banner support, and UK service-area content",
       cities: "London, Manchester, Birmingham, Leeds, Bristol, Glasgow, Liverpool, Sheffield, and Edinburgh",
       buyers: ["UK trades and local service businesses", "consultants and small firms", "clinics, agencies, coaches, and professional services"],
     },
     Malaysia: {
       path: "/website-subscription-service/malaysia",
-      title: "Website Subscription Service Malaysia",
-      price: "Malaysia pricing is shown from the central catalogue: Managed Website RM299/month plus setup, and Website Growth RM699/month.",
+      title: "managed website growth service Malaysia",
+      price: "Malaysia pricing is shown from the premium Website Growth System catalogue; Growth Partner is consultation-led.",
       wording: "WhatsApp enquiries, service-area copy, SME-friendly pricing, local proof prompts, and mobile-first CTAs",
       cities: "Kuala Lumpur, Petaling Jaya, Shah Alam, Subang Jaya, Johor Bahru, Penang, Kuching, and Kota Kinabalu",
       buyers: ["Malaysian SMEs", "contractors and clinics", "salons, consultants, local shops, and service providers"],
     },
     Singapore: {
       path: "/website-subscription-service/singapore",
-      title: "Website Subscription Service Singapore",
+      title: "managed website growth service Singapore",
       price: "Singapore pricing is shown from the central catalogue: Managed Website S$149/month plus setup, and Website Growth S$349/month.",
       wording: "premium service positioning, fast response CTAs, high-trust copy, appointment paths, and Singapore neighbourhood targeting",
       cities: "Singapore, Orchard, Tampines, Jurong, Woodlands, Toa Payoh, Bugis, Paya Lebar, and Ang Mo Kio",
@@ -224,7 +224,7 @@ const makeSubscriptionMarketPage = (market: "UK" | "Malaysia" | "Singapore") => 
       { industry: "Established brand", plan: "Growth Partner", pages: "Home, Services, Proof, FAQ, Contact", localSeo: "Location pages, internal links, and conversion sections" },
     ],
     faqs: [
-      { question: `What is a website subscription service in ${market}?`, answer: "It is a managed monthly website plan that combines website setup, hosting, SSL, lead capture, basic SEO structure, and ongoing support." },
+      { question: `What is a managed website growth service in ${market}?`, answer: "It is a managed monthly website plan that combines website setup, hosting, SSL, lead capture, basic SEO structure, and ongoing support." },
       { question: "Is this cheaper than a custom website?", answer: "It usually lowers upfront cost because the managed plans use approved structures. Fully custom websites are quoted separately when you need deeper control." },
       { question: "Can I add local SEO pages?", answer: "Yes. Location pages and service-area content depend on the selected plan and must pass quality checks to avoid thin duplicate pages." },
       { question: "Can I upgrade later?", answer: "Yes. You can start with a managed plan and upgrade when you need more pages, locations, landing pages, or a custom website build." },
@@ -240,12 +240,12 @@ const generatedOwnSalesSeoPages = [
   makeSubscriptionMarketPage("Malaysia"),
   makeSubscriptionMarketPage("Singapore"),
   ...[
-    { country: "UK" as const, city: "London", nearby: ["Camden", "Islington", "Westminster", "Croydon", "Richmond"], currencyNote: "UK pricing is shown from £99/month plus setup.", pricing: "Managed Website is £99/month plus £199 setup. Website Growth is £249/month. Growth Partner and custom work are quoted separately.", buyerSignals: ["London buyers expect strong credibility, fast response, and clear proof before enquiring", "Useful for consultants, clinics, trades, agencies, and premium local services"], industries: ["Consultants", "Clinics", "Trades businesses"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
-    { country: "UK" as const, city: "Manchester", nearby: ["Salford", "Stockport", "Bolton", "Oldham", "Trafford"], currencyNote: "UK pricing is shown from £99/month plus setup.", pricing: "Managed Website is £99/month plus £199 setup. Website Growth is £249/month. Growth Partner and custom work are quoted separately.", buyerSignals: ["Manchester service businesses need clear quote paths and area coverage", "Useful for SMEs comparing agency quotes and pay monthly website options"], industries: ["Local services", "Consultants", "Small agencies"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
-    { country: "UK" as const, city: "Birmingham", nearby: ["Solihull", "Wolverhampton", "Dudley", "Walsall", "Coventry"], currencyNote: "UK pricing is shown from £99/month plus setup.", pricing: "Managed Website is £99/month plus £199 setup. Website Growth is £249/month. Growth Partner and custom work are quoted separately.", buyerSignals: ["Birmingham businesses often need practical quote-focused pages", "Service-area sections help cover West Midlands demand"], industries: ["Trades businesses", "Clinics", "Professional services"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
-    { country: "UK" as const, city: "Leeds", nearby: ["Bradford", "Wakefield", "York", "Huddersfield", "Harrogate"], currencyNote: "UK pricing is shown from £99/month plus setup.", pricing: "Managed Website is £99/month plus £199 setup. Website Growth is £249/month. Growth Partner and custom work are quoted separately.", buyerSignals: ["Leeds SMEs need professional service positioning and local trust", "Good fit for service-area pages across West Yorkshire"], industries: ["Professional services", "Local services", "Consultants"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
-    { country: "UK" as const, city: "Bristol", nearby: ["Bath", "Filton", "Keynsham", "Weston-super-Mare", "South Gloucestershire"], currencyNote: "UK pricing is shown from £99/month plus setup.", pricing: "Managed Website is £99/month plus £199 setup. Website Growth is £249/month. Growth Partner and custom work are quoted separately.", buyerSignals: ["Bristol local businesses benefit from clear service pages and proof sections", "Strong fit for consultants, wellness, trades, and creative service firms"], industries: ["Consultants", "Wellness providers", "Trades businesses"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
-    { country: "UK" as const, city: "Glasgow", nearby: ["Paisley", "East Kilbride", "Clydebank", "Hamilton", "Motherwell"], currencyNote: "UK pricing is shown from £99/month plus setup.", pricing: "Managed Website is £99/month plus £199 setup. Website Growth is £249/month. Growth Partner and custom work are quoted separately.", buyerSignals: ["Glasgow businesses need clear enquiry flow and service-area language", "Useful for companies wanting a professional site without a large upfront build"], industries: ["Local services", "Clinics", "Professional firms"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
+    { country: "UK" as const, city: "London", nearby: ["Camden", "Islington", "Westminster", "Croydon", "Richmond"], currencyNote: "UK premium pricing is confirmed during your growth consultation.", pricing: "Website Growth System is scoped from £1,990/month with onboarding; Growth Partner and custom work are consultation-led.", buyerSignals: ["London buyers expect strong credibility, fast response, and clear proof before enquiring", "Useful for consultants, clinics, trades, agencies, and premium local services"], industries: ["Consultants", "Clinics", "Trades businesses"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
+    { country: "UK" as const, city: "Manchester", nearby: ["Salford", "Stockport", "Bolton", "Oldham", "Trafford"], currencyNote: "UK premium pricing is confirmed during your growth consultation.", pricing: "Website Growth System is scoped from £1,990/month with onboarding; Growth Partner and custom work are consultation-led.", buyerSignals: ["Manchester service businesses need clear quote paths and area coverage", "Useful for SMEs comparing agency quotes and pay monthly website options"], industries: ["Local services", "Consultants", "Small agencies"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
+    { country: "UK" as const, city: "Birmingham", nearby: ["Solihull", "Wolverhampton", "Dudley", "Walsall", "Coventry"], currencyNote: "UK premium pricing is confirmed during your growth consultation.", pricing: "Website Growth System is scoped from £1,990/month with onboarding; Growth Partner and custom work are consultation-led.", buyerSignals: ["Birmingham businesses often need practical quote-focused pages", "Service-area sections help cover West Midlands demand"], industries: ["Trades businesses", "Clinics", "Professional services"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
+    { country: "UK" as const, city: "Leeds", nearby: ["Bradford", "Wakefield", "York", "Huddersfield", "Harrogate"], currencyNote: "UK premium pricing is confirmed during your growth consultation.", pricing: "Website Growth System is scoped from £1,990/month with onboarding; Growth Partner and custom work are consultation-led.", buyerSignals: ["Leeds SMEs need professional service positioning and local trust", "Good fit for service-area pages across West Yorkshire"], industries: ["Professional services", "Local services", "Consultants"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
+    { country: "UK" as const, city: "Bristol", nearby: ["Bath", "Filton", "Keynsham", "Weston-super-Mare", "South Gloucestershire"], currencyNote: "UK premium pricing is confirmed during your growth consultation.", pricing: "Website Growth System is scoped from £1,990/month with onboarding; Growth Partner and custom work are consultation-led.", buyerSignals: ["Bristol local businesses benefit from clear service pages and proof sections", "Strong fit for consultants, wellness, trades, and creative service firms"], industries: ["Consultants", "Wellness providers", "Trades businesses"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
+    { country: "UK" as const, city: "Glasgow", nearby: ["Paisley", "East Kilbride", "Clydebank", "Hamilton", "Motherwell"], currencyNote: "UK premium pricing is confirmed during your growth consultation.", pricing: "Website Growth System is scoped from £1,990/month with onboarding; Growth Partner and custom work are consultation-led.", buyerSignals: ["Glasgow businesses need clear enquiry flow and service-area language", "Useful for companies wanting a professional site without a large upfront build"], industries: ["Local services", "Clinics", "Professional firms"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
     { country: "Malaysia" as const, city: "Petaling Jaya", nearby: ["Damansara", "Subang Jaya", "Shah Alam", "Kelana Jaya", "Puchong"], currencyNote: "Malaysia pricing is shown in MYR when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available when the business needs deeper ongoing support.", buyerSignals: ["PJ businesses often rely on WhatsApp enquiries and fast mobile contact", "Good fit for Klang Valley service-area coverage"], industries: ["Clinics", "Salons", "Consultants"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
     { country: "Malaysia" as const, city: "Shah Alam", nearby: ["Klang", "Subang Jaya", "Petaling Jaya", "Setia Alam", "Puchong"], currencyNote: "Malaysia pricing is shown in MYR when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available when the business needs deeper ongoing support.", buyerSignals: ["Shah Alam businesses need SME-friendly pricing and WhatsApp-first CTAs", "Useful for renovation companies, clinics, wellness providers, beauty salons, and home services"], industries: ["Renovation companies", "Clinics", "Home services"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
     { country: "Malaysia" as const, city: "Subang Jaya", nearby: ["USJ", "Sunway", "Petaling Jaya", "Puchong", "Shah Alam"], currencyNote: "Malaysia pricing is shown in MYR when selected.", pricing: "Managed Website is the starting offer; Website Growth and Growth Partner are available for deeper ongoing support.", buyerSignals: ["Subang Jaya buyers often compare convenience, trust, and quick response", "Strong fit for education, clinics, lifestyle, and service brands"], industries: ["Tuition centres", "Clinics", "Lifestyle services"], wording: { enquiry: "enquiry", quote: "quote", local: "local" } },
@@ -263,11 +263,11 @@ const generatedOwnSalesSeoPages = [
 export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
   publish({
     path: "/pay-monthly-websites",
-    seoTitle: "Pay Monthly Websites for Small Businesses | Bennie Studio",
+    seoTitle: "Premium Website Growth for Service Businesses | Bennie Studio",
     metaDescription: "Start a managed lead-generation website with hosting, enquiry paths, WhatsApp CTAs, local search structure and ongoing support.",
-    h1: "Pay Monthly Websites for Small Businesses",
+    h1: "Premium Website Growth for Service Businesses",
     eyebrow: "Managed lead-generation websites",
-    heroCopy: "Get a professional website without a large upfront agency cost. Choose a monthly plan, submit your business details, review your pages, and launch with hosting, SSL, lead capture, and support included.",
+    heroCopy: "Get a professional website with a clear premium scope and onboarding. Choose a monthly plan, submit your business details, review your pages, and launch with hosting, SSL, lead capture, and support included.",
     offer: "Bennie Studio prepares your website from approved templates, sets up the key sections, and gives you simple editing tools for ongoing updates.",
     whoFor: ["Small businesses that need a clean website fast", "Service providers that want enquiries", "Consultants, clinics, salons, contractors, coaches, and local companies"],
     marketWhy: "Pay monthly websites work well when you want a professional launch, predictable cost, and ongoing support instead of managing a one-off web project alone.",
@@ -279,26 +279,26 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
       { industry: "Contractor", plan: "Managed Website", pages: "Home, Services, Projects, Quote", localSeo: "Areas served and quote CTA" },
     ],
     faqs: [
-      { question: "What is a pay monthly website?", answer: "It is a managed website plan where setup, hosting, SSL, templates, lead capture, and support are bundled into a monthly fee." },
+      { question: "What is a managed website growth system?", answer: "It is a managed website plan where setup, hosting, SSL, templates, lead capture, and support are bundled into a monthly fee." },
       { question: "Is this a custom website?", answer: "The monthly plans use approved templates for speed and reliability. Fully bespoke Custom Websites are quoted separately from the published market starting price." },
       { question: "Can I edit the website myself?", answer: "Yes. You can update key sections, services, FAQs, contact details, and SEO fields from your dashboard." },
       { question: "Can I add more pages later?", answer: "Yes. You can upgrade your plan when you need more pages, locations, landing pages, or advanced features." },
     ],
     links: standardLinks,
     primaryCta: "Generate Free Website Preview",
-    whatsappCta: "Ask About Pay Monthly Websites",
+    whatsappCta: "Ask About Website Growth",
   }),
   publish({
     path: "/pay-monthly-websites/malaysia",
-    seoTitle: "Pay Monthly Websites Malaysia | Managed Website Plans",
+    seoTitle: "Premium Website Growth Malaysia | Managed Website Plans",
     metaDescription: "Managed websites for Malaysian small businesses with hosting, WhatsApp enquiry paths, local search structure and ongoing support.",
-    h1: "Pay Monthly Websites Malaysia",
+    h1: "Premium Website Growth Malaysia",
     eyebrow: "Website subscription plans for Malaysian businesses",
     heroCopy: "For Malaysian SMEs, clinics, contractors, consultants, salons, and service businesses that need a professional website without paying a large upfront build fee.",
     offer: "Your website can include clear service sections, WhatsApp enquiry buttons, local SEO fields, and city targeting options for Kuala Lumpur, Selangor, Johor, Penang, and other service areas.",
     whoFor: ["Malaysian SMEs that rely on WhatsApp enquiries", "Local service businesses targeting cities or states", "Businesses that want predictable monthly website costs"],
     marketWhy: "Malaysia buyers often compare trust, speed, WhatsApp response, and affordability. A managed monthly website helps you look professional while keeping launch cost predictable.",
-    pricingNote: "Malaysia Managed Website is RM299/month plus RM499 setup. Website Growth is RM699/month, shown from the central catalogue.",
+    pricingNote: "Website Growth System starts at RM4,900/month plus RM5,000 onboarding with a six-month initial commitment; Growth Partner is from RM7,500/month.",
     localInputs: ["WhatsApp CTA should be prominent", "Kuala Lumpur and Selangor service-area targeting", "SME-friendly pricing expectations", "Local proof can include project areas, Google reviews, and screenshots"],
     examples: [
       { industry: "Renovation contractor", plan: "Managed Website", pages: "Home, Services, Projects, Quote", localSeo: "KL and Selangor service areas" },
@@ -317,10 +317,10 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
   }),
   publish({
     path: "/pay-monthly-websites/singapore",
-    seoTitle: "Pay Monthly Websites Singapore | Premium Website Subscription",
-    metaDescription: "Managed pay monthly websites for Singapore small businesses, consultants, clinics, and service brands that need credibility, speed, and lead capture.",
-    h1: "Pay Monthly Websites Singapore",
-    eyebrow: "Premium website subscription service for Singapore businesses",
+    seoTitle: "Premium Website Growth Singapore | Premium Website Subscription",
+    metaDescription: " Premium managed website growth for Singapore service businesses, consultants, clinics, and service brands that need credibility, speed, and lead capture.",
+    h1: "Premium Website Growth Singapore",
+    eyebrow: "Premium managed website growth service for Singapore businesses",
     heroCopy: "Launch a polished business website for the Singapore market with clear positioning, trust sections, service pages, contact forms, and WhatsApp enquiry paths.",
     offer: "We use structured templates and guided setup so your website can go live faster while still looking credible for a high-trust market.",
     whoFor: ["Singapore consultants and professional services", "Clinics, wellness brands, salons, and local service companies", "Businesses that want a premium website without a slow agency process"],
@@ -344,11 +344,11 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
   }),
   publish({
     path: "/pay-monthly-websites/uk",
-    seoTitle: "Pay Monthly Websites UK | Managed Website Plans From £99/month",
-    metaDescription: "Pay monthly websites for UK small businesses from £99/month. Managed website plans with hosting, SSL, enquiry forms, SEO setup, local pages, and support.",
-    h1: "Pay Monthly Websites UK",
-    eyebrow: "UK-ready managed website plans from £99/month",
-    heroCopy: "Launch a professional small business website without paying agency-level fees upfront. Bennie Studio helps UK service businesses get online with clear pages, enquiry-focused CTAs, managed hosting, SSL, basic SEO setup, and monthly support.",
+    seoTitle: "Premium Website Growth UK | Bennie Studio",
+    metaDescription: "Pay monthly websites for UK small businesses from £1,990/month. Managed website plans with hosting, SSL, enquiry forms, SEO setup, local pages, and support.",
+    h1: "Premium Website Growth UK",
+    eyebrow: "Premium UK website growth engagements",
+    heroCopy: "Launch a professional small business website with a clear premium scope and onboarding. Bennie Studio helps UK service businesses get online with clear pages, enquiry-focused CTAs, managed hosting, SSL, basic SEO setup, and monthly support.",
     offer: "Choose a managed website subscription, submit your business details, preview your site, request refinements, and launch with a website structured for UK enquiries, quotes, service areas, and local credibility.",
     whoFor: [
       "UK trades, clinics, consultants, agencies, coaches, and local service firms that need enquiries",
@@ -356,8 +356,8 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
       "Companies that need a professional website, contact forms, quote CTAs, and location-ready SEO structure",
       "Businesses that are not ready for a full custom website build but still want a managed, polished website",
     ],
-    marketWhy: "UK small businesses often compare high agency quotes, DIY website builders, WordPress maintenance, and pay monthly website plans. This page is built around the UK buyer journey: clear pricing, quote-ready wording, enquiry forms, local service-area visibility, and a managed setup that feels lower-risk than a traditional project.",
-    pricingNote: "UK Managed Website is £99/month plus £199 setup. Website Growth is £249/month; premium custom websites are quoted separately from £1,500+.",
+    marketWhy: "UK small businesses often compare high agency quotes, DIY website builders, legacy website maintenance, and premium managed website growth. This page is built around the UK buyer journey: clear pricing, quote-ready wording, enquiry forms, local service-area visibility, and a managed setup that feels lower-risk than a traditional project.",
+    pricingNote: "UK Website Growth System and Growth Partner pricing are scoped around your commercial goals; premium custom work is quoted separately.",
     localInputs: [
       "UK spelling and buyer language: enquiries, optimised, quote, local businesses, service areas",
       "City expansion potential for London, Manchester, Birmingham, Leeds, Bristol, Glasgow, Liverpool, Sheffield, and Edinburgh",
@@ -373,7 +373,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
       { industry: "Small agency", plan: "Growth Partner", pages: "Home, Services, Portfolio, Insights, Contact", localSeo: "Portfolio proof, service-location copy, internal links, and lead capture" },
     ],
     faqs: [
-      { question: "How much does a pay monthly website cost in the UK?", answer: "Managed Website is £99/month plus a £199 setup fee. Website Growth is £249/month for ongoing conversion, local SEO, and landing-page improvements. Custom work is quoted separately." },
+      { question: "How much does a premium managed website growth system cost in the UK?", answer: "Website Growth System is scoped from £1,990/month with onboarding; Growth Partner and custom work are consultation-led." },
       { question: "Is this a custom website?", answer: "No. The monthly plans use managed, approved website structures so you can launch faster with less complexity. If you need full CMS control, blog publishing, ecommerce, integrations, or bespoke design, you can request a custom website quote from £1,500+." },
       { question: "Can UK businesses use enquiry forms and quote buttons?", answer: "Yes. Pages can include contact forms, quote request buttons, phone links, email links, booking links, and WhatsApp where suitable. The copy is written around UK-style enquiries and quote requests." },
       { question: "Can the website target UK towns, cities, or service areas?", answer: "Yes. Depending on the plan, your website can include service-area sections, local FAQs, and dedicated location pages for cities or towns such as London, Manchester, Birmingham, Leeds, Bristol, Glasgow, Liverpool, Sheffield, and Edinburgh." },
@@ -393,9 +393,9 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
   }),
   publish({
     path: "/pay-monthly-websites/australia",
-    seoTitle: "Pay Monthly Websites Australia | Website Subscription Service",
-    metaDescription: "Managed pay monthly websites for Australian small businesses with hosting, SSL, lead capture, local service-area content, and ongoing support.",
-    h1: "Pay Monthly Websites Australia",
+    seoTitle: "Website Growth Australia | managed website growth service",
+    metaDescription: " Premium managed website growth for Australian service businesses with hosting, SSL, lead capture, local service-area content, and ongoing support.",
+    h1: "Website Growth Australia",
     eyebrow: "Website subscription plans for Australian local businesses",
     heroCopy: "A managed website option for Australian small businesses that want a clean site, get-a-quote CTAs, local business credibility, and support after launch.",
     offer: "Start with a template-based website plan and expand into service pages, location pages, and content updates as your business grows.",
@@ -428,7 +428,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     offer: "We prepare your website from proven templates and adapt the content for your services, contact flow, and KL business audience.",
     whoFor: ["KL service businesses that need enquiries", "Consultants, clinics, salons, agencies, and contractors", "Businesses that want landing page design and monthly support"],
     marketWhy: "Kuala Lumpur is competitive. Buyers compare trust, speed, proof, and ease of contact. Your website should explain your offer quickly and guide visitors to enquire.",
-    pricingNote: "Monthly website plans start from RM199/month plus setup. Custom KL website projects are quoted separately in MYR.",
+    pricingNote: "Premium website growth engagements are scoped in MYR during consultation.",
     localInputs: ["KL service buyer competition", "WhatsApp-first enquiry behaviour", "Landing page design demand", "Nearby Selangor and Klang Valley coverage"],
     examples: [
       { industry: "Beauty clinic", plan: "Website Growth", pages: "Home, Treatments, FAQ, Booking, Contact", localSeo: "KL treatment page and FAQs" },
@@ -509,7 +509,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     offer: "Start with a clear template-based site, then upgrade when you need more pages, service areas, or local SEO content.",
     whoFor: ["Malaysian SMEs starting their first proper website", "Local companies that rely on WhatsApp and referrals", "Service providers that need trust and enquiries"],
     marketWhy: "Many Malaysian businesses need a better website but do not want a large upfront bill. A monthly plan helps launch sooner and improve over time.",
-    pricingNote: "Managed Website starts at RM299/month plus setup. Website Growth is RM699/month when you need ongoing growth work.",
+    pricingNote: "Website Growth System and Growth Partner are scoped in MYR around your growth goals.",
     localInputs: ["Affordable SME website demand", "WhatsApp-driven enquiries", "Malaysia city and state targeting", "Start small and upgrade later positioning"],
     examples: [
       { industry: "Salon", plan: "Managed Website", pages: "One-page website", localSeo: "Primary location and WhatsApp CTA" },
@@ -528,9 +528,9 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
   }),
   publish({
     path: "/website-subscription-service",
-    seoTitle: "Website Subscription Service for Small Businesses",
-    metaDescription: "A managed website subscription service with website setup, hosting, SSL, SEO fields, lead capture, updates, and monthly support.",
-    h1: "Website Subscription Service",
+    seoTitle: "managed website growth service for Small Businesses",
+    metaDescription: "A managed managed website growth service with website setup, hosting, SSL, SEO fields, lead capture, updates, and monthly support.",
+    h1: "managed website growth service",
     eyebrow: "Managed monthly website service",
     heroCopy: "A website subscription gives your business a professional site, hosting, SSL, lead capture, and support in one monthly plan.",
     offer: "Bennie Studio uses approved website templates, guided setup, and section-by-section editing so your website stays manageable after launch.",
@@ -544,7 +544,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
       { industry: "Growing business", plan: "Website Growth", pages: "Home, Services, About, Landing Page, Contact", localSeo: "Ongoing location expansion" },
     ],
     faqs: [
-      { question: "What is included in a website subscription service?", answer: "The monthly plan includes website setup, hosting, SSL, lead capture, basic SEO fields, and support based on your plan." },
+      { question: "What is included in a managed website growth service?", answer: "The monthly plan includes website setup, hosting, SSL, lead capture, basic SEO fields, and support based on your plan." },
       { question: "Is there a minimum term?", answer: "Managed website subscriptions are positioned around a minimum 12-month term so setup and support can be delivered properly." },
       { question: "What happens if I need a custom website?", answer: "Custom design, ecommerce, dashboards, and integrations are quoted separately as custom website projects." },
       { question: "Can local SEO be added?", answer: "Yes. Website Growth includes ongoing location content and dedicated location pages within the agreed scope." },

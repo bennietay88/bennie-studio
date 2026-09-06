@@ -5,17 +5,17 @@
 
 export const DEFAULT_LANDING_CONTENT = {
   hero: {
-    badge: "Professionally Managed Websites for Local Service Businesses",
-    headline: "Turn Reviews and Business Information Into More Enquiries",
+    badge: "Premium managed website growth",
+    headline: "A Managed Website Built to Generate More Enquiries",
     subheadline:
-      "Turn your reviews and business information into a professionally managed website designed to help visitors WhatsApp, call, book or request a quote.",
-    ctaPrimary: "See My Website Direction",
-    ctaSecondary: "Book 30-Minute Review",
+      "We plan, build, manage and continuously improve your website around conversion, trust, local visibility and lead generation.",
+      ctaPrimary: "Get My Website Growth Plan",
+      ctaSecondary: "View Our Work",
     socialProof: {
-      text: "For cleaning companies, tuition and education centres, and accounting or bookkeeping firms in Malaysia, Singapore and the UK.",
+      text: "Strategy + Design + Hosting + Conversion + SEO + Ongoing Improvements",
       avatars: [],
     },
-    valueProp: "A done-for-you website service with hosting, maintenance, portal tracking, and updates included. No website builder to learn.",
+    valueProp: "A hands-on website growth system for established service businesses. No website builder to learn.",
   },
   reviewEngine: {
     title: "Review-Powered Website Planning",
@@ -59,13 +59,22 @@ export const DEFAULT_LANDING_CONTENT = {
     subtitle: "Bennie Studio plans, builds, hosts and maintains the website so you can focus on the business rather than managing website software.",
     items: [
       {
-        title: "Managed Website",
-        badge: "Main Offer",
-        description: "A managed website built around your reviews, services, trust proof, WhatsApp CTA, quote forms, and local search-ready structure.",
-        bestFor: "Best for clinics, home service businesses, and beauty or aesthetic providers that want clearer WhatsApp, booking, call, or quote enquiries.",
-        cta: "See My Website Direction",
-        href: "/generate-preview",
-        features: ["Review-powered copy", "WhatsApp/contact flow", "Managed hosting", "Monthly updates", "Local SEO-ready pages"],
+        title: "Website Growth System",
+        badge: "Primary premium offer",
+        description: "A premium managed website built around conversion, trust, local visibility and qualified enquiries.",
+        bestFor: "Best for established service businesses wanting their website professionally managed and improved.",
+        cta: "Get My Website Growth Plan",
+        href: "/website-audit",
+        features: ["Website strategy and build", "Lead capture and attribution", "Managed hosting", "Monthly improvements", "Local SEO foundation"],
+      },
+      {
+        title: "Website Growth Partner",
+        badge: "Consultant-led",
+        description: "A deeper engagement for landing pages, conversion experiments, expanded SEO and strategic growth direction.",
+        bestFor: "Best for businesses investing seriously in traffic, multiple services or locations, and continuous optimisation.",
+        cta: "Book Growth Consultation",
+        href: "/book-demo?product=growth-partner",
+        features: ["Monthly strategy session", "Landing pages and experiments", "Expanded local SEO", "Priority implementation", "Quarterly growth roadmap"],
       },
     ],
   },

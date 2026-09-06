@@ -398,7 +398,7 @@ export default function App() {
             <title>{defaultSiteTitle}</title>
             <meta
               name="description"
-              content="Bennie Studio builds managed lead-generation websites for small businesses that need more WhatsApp enquiries, quote requests, bookings, and local search visibility."
+              content="Bennie Studio plans, builds and continuously improves premium managed websites for service businesses that want more qualified enquiries."
             />
             <meta
               name="keywords"
@@ -411,7 +411,7 @@ export default function App() {
             />
             <meta
               property="og:description"
-              content="Managed lead-generation websites for small businesses that need clearer offers, better CTAs, enquiry forms, WhatsApp flow, and local SEO-ready structure."
+              content="Premium managed website growth for service businesses: clearer offers, stronger CTAs, lead capture, local SEO foundations and continuous improvement."
             />
             <meta property="og:type" content="website" />
             <meta name="twitter:card" content="summary_large_image" />
@@ -422,7 +422,7 @@ export default function App() {
                 "@type": "Organization",
                 "name": "Bennie Studio",
                 "url": "https://app.bennietay.com/",
-                "description": "Managed lead-generation websites and custom website projects for small businesses.",
+                "description": "Premium managed website growth systems for service businesses.",
                 "sameAs": []
               }
             `}
