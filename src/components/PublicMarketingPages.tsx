@@ -567,7 +567,7 @@ function PricingPage() {
   const market = pricingMarkets[selectedMarket];
   const offer = getOfferForMarket(selectedMarket);
   const basicOffers = getBasicWebsiteOffers(selectedMarket);
-  const entryPrice = basicOffers[0]?.price || "US$99/month";
+  const entryPrice = basicOffers[0]?.price || "US$2,490/month";
   const customWebsiteQuote = formatUsdRangeForCountry(1500, 3500, selectedMarket, {
     from: true,
     plus: true,

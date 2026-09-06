@@ -451,7 +451,7 @@ export function AffiliateDashboard() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-slate-600">
               {[
-                "Promote a professionally managed website from US$99/month.",
+                "Promote a professionally managed website from US$2,490/month.",
                 "Managed website subscription for small businesses.",
                 "Hosting, maintenance, and enquiry paths are managed for the customer.",
                 "Custom Website quotes are available for bespoke requirements.",

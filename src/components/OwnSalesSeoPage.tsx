@@ -10,12 +10,9 @@ import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 
 const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
   if (typeof value === "string") {
-    return value
+    return (value
       .replace(/Growth Partner/g, "__GROWTH_PARTNER__")
       .replace(/Website Growth/g, "__WEBSITE_GROWTH__")
-      // Preserve already-localized current prices while translating stale copy.
-      .replace(/US\$99\/month/g, "__CURRENT_US_99__")
-      .replace(/US\$199\/month/g, "__CURRENT_US_199__")
       .replace(/\$49(?:\/month)?/g, "premium scope pricing")
       .replace(/\$99(?:\/month)?/g, "premium scope pricing")
       .replace(/\$199(?:\/month)?/g, "premium scope pricing")
@@ -35,8 +32,7 @@ const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
       .replace(/\bGrowth\b/g, "Website Growth")
       .replace(/__GROWTH_PARTNER__/g, "Growth Partner")
       .replace(/__WEBSITE_GROWTH__/g, "Website Growth")
-      .replace(/__CURRENT_US_99__/g, "US$99/month")
-      .replace(/__CURRENT_US_199__/g, "US$199/month") as T;
+      ) as T;
   }
   if (Array.isArray(value)) return value.map((item) => sanitizeLegacyCommercialCopy(item)) as T;
   if (value && typeof value === "object") {
