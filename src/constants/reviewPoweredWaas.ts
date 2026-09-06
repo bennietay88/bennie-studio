@@ -41,9 +41,9 @@ export const REVIEW_POWERED_PLANS: ReviewPoweredPlan[] = [
   },
   {
     id: "starter",
-    publicName: "Managed Website",
+    publicName: "Website Growth System",
     internalName: "Managed Website",
-    price: "US$99/month",
+    price: "From US$2,490/month",
     hostingType: "managed",
     pageLimit: 1,
     regenerationLimit: 5,
@@ -51,7 +51,7 @@ export const REVIEW_POWERED_PLANS: ReviewPoweredPlan[] = [
     locationPageLimit: 0,
     canPublish: true,
     bestFor: "Businesses that need a focused, enquiry-generating website with managed hosting and support.",
-    cta: "Choose Managed Website",
+    cta: "Get My Growth Plan",
     features: [
       "Managed-hosted 1-page website",
       "Basic review-powered copy",
@@ -63,9 +63,9 @@ export const REVIEW_POWERED_PLANS: ReviewPoweredPlan[] = [
   },
   {
     id: "business",
-    publicName: "Website Growth",
+    publicName: "Website Growth Partner",
     internalName: "Website Growth",
-    price: "US$249/month",
+    price: "From US$4,500/month",
     hostingType: "managed",
     pageLimit: 3,
     regenerationLimit: 20,
@@ -73,7 +73,7 @@ export const REVIEW_POWERED_PLANS: ReviewPoweredPlan[] = [
     locationPageLimit: 1,
     canPublish: true,
     bestFor: "Businesses that need ongoing conversion optimisation, local SEO expansion, and landing-page development.",
-    cta: "Choose Website Growth",
+    cta: "Book Growth Consultation",
     features: [
       "Up to 3 managed-hosted pages",
       "Review-powered homepage and service copy",

@@ -66,10 +66,10 @@ test("review-powered public offers use the current product language", () => {
   const managed = REVIEW_POWERED_PLANS.find((plan) => plan.id === "starter");
   const growth = REVIEW_POWERED_PLANS.find((plan) => plan.id === "business");
   const partner = REVIEW_POWERED_PLANS.find((plan) => plan.id === "growth");
-  assert.equal(managed?.publicName, "Managed Website");
-  assert.equal(managed?.price, "US$99/month");
-  assert.equal(growth?.publicName, "Website Growth");
-  assert.equal(growth?.price, "US$249/month");
+  assert.equal(managed?.publicName, "Website Growth System");
+  assert.equal(managed?.price, "From US$2,490/month");
+  assert.equal(growth?.publicName, "Website Growth Partner");
+  assert.equal(growth?.price, "From US$4,500/month");
   assert.equal(partner?.publicName, "Growth Partner");
   assert.equal(partner?.price, "US$799/month");
   assert.doesNotMatch(JSON.stringify(REVIEW_POWERED_PLANS), /\$49|\bLaunch\b|\bScale\b|\bBusiness\b/);
