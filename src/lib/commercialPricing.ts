@@ -2,6 +2,8 @@ export type CommercialMarket = "MY" | "SG" | "GB" | "INTL";
 export type CommercialCurrency = "MYR" | "SGD" | "GBP" | "USD";
 export type CommercialProductSlug = "managed-website" | "website-growth" | "growth-partner" | "custom-website";
 export const COMMERCIAL_MARKET_CHANGED_EVENT = "bt-commercial-market-changed";
+/** Launch offer commitment used by public checkout and customer records. */
+export const COMMERCIAL_DEFAULT_COMMITMENT_MONTHS = 6;
 
 export type CommercialPrice = {
   market: CommercialMarket;
@@ -58,7 +60,7 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
     productType: "managed_website",
     salesMotion: "self_serve",
     prices: [
-      ["MY", 4900, 5000, null], ["SG", 2490, 2500, null], ["GB", 1990, 2000, null], ["INTL", 2490, 2500, null],
+      ["MY", 3500, 5000, null], ["SG", 2490, 2500, null], ["GB", 1990, 2000, null], ["INTL", 2490, 2500, null],
     ].map(([market, monthlyPrice, setupFee, annualPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: setupFee as number, annualPrice: annualPrice as number | null })),
   },
   {

@@ -1,3 +1,5 @@
+import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, type CommercialMarket } from "../lib/commercialPricing";
+
 export interface Plan {
   id: string;
   name: string;
@@ -51,7 +53,7 @@ export const PLANS: Plan[] = [
     maxLocationPages: 0,
     monthlyUpdates: "Limited monthly update request",
     monthlyUpdateLimit: 1,
-    commitmentMonths: 12,
+    commitmentMonths: COMMERCIAL_DEFAULT_COMMITMENT_MONTHS,
     setupFee: 2500,
     marketPrices: marketPricesFor("managed-website"),
     marketPriceIds: {},
@@ -98,7 +100,7 @@ export const PLANS: Plan[] = [
     maxLocationPages: 1,
     monthlyUpdates: "1 consolidated update request each month",
     monthlyUpdateLimit: 1,
-    commitmentMonths: 12,
+    commitmentMonths: COMMERCIAL_DEFAULT_COMMITMENT_MONTHS,
     setupFee: 0,
     marketPrices: marketPricesFor("website-growth"),
     marketPriceIds: {},
@@ -292,4 +294,3 @@ export const findPlan = (plans: Array<Partial<Plan> & { id?: string }> | undefin
   const id = String(planId || "starter").toLowerCase();
   return normalized.find((plan) => plan.id === id) || normalized[0];
 };
-import { COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, type CommercialMarket } from "../lib/commercialPricing";

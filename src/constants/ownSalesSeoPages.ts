@@ -78,7 +78,7 @@ const sanitizePublicCommercialCopy = <T,>(value: T): T => {
       .replace(/14[- ]day(?: free)? trial/gi, "free website preview")
       .replace(/card[- ]required trial/gi, "free website preview")
       .replace(/free trial/gi, "free website preview")
-      .replace(/RM199(?:\/month)?/g, "RM4,900/month")
+      .replace(/RM199(?:\/month)?/g, "RM3,500/month")
       .replace(/\$49(?:\/month)?/g, "premium scope pricing")
       .replace(/\bStarter plan\b/gi, "Managed Website")
       .replace(/\bBusiness plan\b/gi, "Managed Website")
@@ -298,7 +298,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     offer: "Your website can include clear service sections, WhatsApp enquiry buttons, local SEO fields, and city targeting options for Kuala Lumpur, Selangor, Johor, Penang, and other service areas.",
     whoFor: ["Malaysian SMEs that rely on WhatsApp enquiries", "Local service businesses targeting cities or states", "Businesses that want predictable monthly website costs"],
     marketWhy: "Malaysia buyers often compare trust, speed, WhatsApp response, and affordability. A managed monthly website helps you look professional while keeping launch cost predictable.",
-    pricingNote: "Website Growth System starts at RM4,900/month plus RM5,000 onboarding with a six-month initial commitment; Growth Partner is from RM7,500/month.",
+    pricingNote: "Website Growth System starts at RM3,500/month plus RM5,000 onboarding with a six-month initial commitment; Growth Partner is from RM7,500/month.",
     localInputs: ["WhatsApp CTA should be prominent", "Kuala Lumpur and Selangor service-area targeting", "SME-friendly pricing expectations", "Local proof can include project areas, Google reviews, and screenshots"],
     examples: [
       { industry: "Renovation contractor", plan: "Managed Website", pages: "Home, Services, Projects, Quote", localSeo: "KL and Selangor service areas" },
@@ -545,7 +545,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     ],
     faqs: [
       { question: "What is included in a managed website growth service?", answer: "The monthly plan includes website setup, hosting, SSL, lead capture, basic SEO fields, and support based on your plan." },
-      { question: "Is there a minimum term?", answer: "Managed website subscriptions are positioned around a minimum 12-month term so setup and support can be delivered properly." },
+      { question: "Is there a minimum term?", answer: "Managed website subscriptions start with a six-month initial commitment so setup and support can be delivered properly." },
       { question: "What happens if I need more functionality?", answer: "Share the requirement during a review so Bennie Studio can confirm the supported managed scope and next implementation step." },
       { question: "Can local SEO be added?", answer: "Yes. Website Growth includes ongoing location content and dedicated location pages within the agreed scope." },
     ],

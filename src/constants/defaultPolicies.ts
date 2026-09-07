@@ -108,7 +108,7 @@ Plans may include limits for pages, location pages, templates, support, update r
 If you need more pages, more locations, ecommerce, booking systems, portals, dashboards, integrations, custom code, advanced SEO architecture, migration, or bespoke design, a higher plan or separate quote may be required.
 
 ## 3. Minimum Term, Billing, and Refunds
-Managed website subscriptions are generally structured around a minimum 12-month service term unless we agree otherwise in writing. Fees are billed in advance for the selected period.
+Managed website subscriptions are generally structured around a minimum six-month initial service term unless we agree otherwise in writing. Fees are billed in advance for the selected period.
 
 Setup fees, custom work, domains, paid assets, third-party tools, premium plugins, ad spend, external subscriptions, migration, export, and custom integrations are separate unless clearly included in writing.
 

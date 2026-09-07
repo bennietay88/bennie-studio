@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, normalizeCommercialMarket } from "../src/lib/commercialPricing.ts";
+import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, normalizeCommercialMarket } from "../src/lib/commercialPricing.ts";
 import { OWN_SALES_SEO_PAGES } from "../src/constants/ownSalesSeoPages.ts";
 import { getTemplateReadiness, NICHE_TEMPLATES } from "../src/constants/nicheTemplates.ts";
 import { REVIEW_POWERED_PLANS } from "../src/constants/reviewPoweredWaas.ts";
@@ -13,9 +13,10 @@ test("market detection uses fixed commercial markets", () => {
 
 test("managed website price book is fixed by market", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "managed-website");
-  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 4900);
+  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 3500);
   assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 5000);
   assert.equal(getCommercialPrice(product!, "MY")?.annualPrice, null);
+  assert.equal(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, 6);
 });
 
 test("growth partner is consultation-led, not a self-serve subscription", () => {

@@ -52,7 +52,7 @@ import { DEFAULT_LANDING_CONTENT } from "../constants/landingPageContent";
 import { SafeImage } from "./SafeImage";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
-import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKET_CHANGED_EVENT, formatCommercialMoney, getCommercialPrice, getStoredMarket } from "../lib/commercialPricing";
+import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKET_CHANGED_EVENT, formatCommercialMoney, getCommercialPrice, getStoredMarket } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 
 const fadeInUp = {
@@ -478,7 +478,7 @@ export default function LandingPage() {
                 className="mx-auto mb-8 flex w-full max-w-[21rem] items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-3 text-left sm:max-w-3xl lg:mx-0 lg:w-fit"
               >
                 <div className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse" />
-                <span className="text-sm font-bold text-slate-900 tracking-tight">{managedSetupLabel} setup · 12-month initial commitment · Hosting and maintenance included</span>
+                <span className="text-sm font-bold text-slate-900 tracking-tight">{managedSetupLabel} setup · {COMMERCIAL_DEFAULT_COMMITMENT_MONTHS}-month initial commitment · Hosting and maintenance included</span>
               </motion.div>
             )}
 

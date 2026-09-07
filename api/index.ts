@@ -64,6 +64,7 @@ import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, suppressSalesRecipient } from "../server/salesOperations.js";
 import { parseProspectCsv } from "../src/lib/prospectImport.js";
+import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS } from "../src/lib/commercialPricing.js";
 
 dotenv.config();
 initServerObservability();
@@ -5713,7 +5714,7 @@ async function startServer() {
           billingCycle,
           market,
           currency: commercialCurrencyForMarket(market),
-          termMonths: resolvedProductSlug ? "12" : "",
+          termMonths: resolvedProductSlug ? String(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS) : "",
           promotionId: resolvedPromotionId || "",
           type:
             priceId.includes("credits") || checkoutBody.type === "credits"
