@@ -113,18 +113,18 @@ export const DEFAULT_LANDING_CONTENT = {
     ],
   },
   customServices: {
-    title: "Need More Control? Choose a Custom Website",
-    subtitle: "For businesses that need full CMS control, blog publishing, advanced SEO pages, custom integrations, or long-term content expansion.",
-    quoteMinUsd: 1500,
-    quoteMaxUsd: 3500,
-    priceCaption: "Fully Done-For-You Strategy & Build",
-    pricingNote: "Custom Website Builds From $1,500-$3,500+",
+    title: "Need a scope outside the managed platform?",
+    subtitle: "Supported platform changes are reviewed separately before we confirm scope, timing and pricing.",
+    quoteMinUsd: 0,
+    quoteMaxUsd: 0,
+    priceCaption: "Scope confirmed after review",
+    pricingNote: "No public custom-build pricing",
     items: [
       {
         id: "premium-custom",
-        name: "Custom Website Build",
-        price: "$1,500+",
-        description: "A premium website project where we plan, write, design, build, and prepare a website with CMS control and room for SEO expansion.",
+        name: "Scoped platform exception",
+        price: "Quote",
+        description: "Requests outside the standard managed platform are reviewed before any commitment.",
         features: [
           "Custom website design",
           "CMS editing setup",

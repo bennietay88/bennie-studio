@@ -107,8 +107,8 @@ export const REVIEW_POWERED_PLANS: ReviewPoweredPlan[] = [
   },
   {
     id: "wordpress_custom",
-    publicName: "Custom Website",
-    internalName: "Custom Website Quote",
+    publicName: "Scoped Platform Exception",
+    internalName: "Scoped Platform Exception",
     price: "Custom quote",
     hostingType: "managed",
     pageLimit: 999,
@@ -116,7 +116,7 @@ export const REVIEW_POWERED_PLANS: ReviewPoweredPlan[] = [
     monthlyEditLimit: 0,
     locationPageLimit: 999,
     canPublish: false,
-    bestFor: "Clients who need full CMS control, blog publishing, advanced SEO, many pages, integrations, or ownership transfer.",
+    bestFor: "Requirements outside the standardized managed website platform.",
     cta: "Request Website Quote",
     features: [
       "Full CMS control",
@@ -130,10 +130,10 @@ export const REVIEW_POWERED_PLANS: ReviewPoweredPlan[] = [
 ];
 
 export const CUSTOM_WEBSITE_QUOTE_RANGES = [
-  { label: "Custom Landing Page", minUsd: 1500, maxUsd: 3500 },
-  { label: "5-Page Custom Website", minUsd: 2500, maxUsd: 5500 },
-  { label: "Premium SEO Website", minUsd: 5000, maxUsd: 10000 },
-  { label: "Website + Funnel + Automation", minUsd: 7000, maxUsd: 15000 },
+  { label: "Scoped landing page", minUsd: 0, maxUsd: 0 },
+  { label: "Scoped platform extension", minUsd: 0, maxUsd: 0 },
+  { label: "Scoped SEO extension", minUsd: 0, maxUsd: 0 },
+  { label: "Scoped growth extension", minUsd: 0, maxUsd: 0 },
 ];
 
 export const HOSTING_COMPARISON = [

@@ -83,10 +83,10 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
   {
     slug: "custom-website",
     name: "Custom Website",
-    description: "A bespoke website for ecommerce, complex integrations, multilingual content or custom functionality.",
+    description: "A separately scoped exception for requirements outside the standardized managed platform.",
     productType: "custom_website",
     salesMotion: "quote",
-    prices: [["MY", 5000], ["SG", 2500], ["GB", 1500], ["INTL", 1800]].map(([market, fromPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: null, setupFee: fromPrice as number, annualPrice: null })),
+    prices: (["MY", "SG", "GB", "INTL"] as CommercialMarket[]).map((market) => ({ market, currency: COMMERCIAL_MARKETS[market].currency, monthlyPrice: null, setupFee: 0, annualPrice: null })),
   },
 ];
 

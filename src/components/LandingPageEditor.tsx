@@ -975,9 +975,9 @@ export const LandingPageEditor = () => {
 
           <Card className="rounded-3xl border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <CardHeader className="bg-slate-50/50 border-b border-slate-100">
-              <CardTitle>Custom Website Quote Block</CardTitle>
+              <CardTitle>Scoped Platform Exception Block</CardTitle>
               <CardDescription>
-                Controls the premium custom website section on the public sales page. Values are stored in USD and displayed in the visitor's local currency.
+                Controls the internal scope-review section. The managed platform has no public custom-build price.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
@@ -991,12 +991,12 @@ export const LandingPageEditor = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Price Caption</Label>
+                    <Label>Scope Caption</Label>
                   <Input
                     value={content?.customServices?.priceCaption || ""}
                     onChange={(e) => updateNested("customServices.priceCaption", e.target.value)}
                     className="rounded-xl"
-                    placeholder="Fully Done-For-You Strategy & Build"
+                    placeholder="Scope confirmed after review"
                   />
                 </div>
                 <div className="col-span-full space-y-1.5">
@@ -1005,28 +1005,6 @@ export const LandingPageEditor = () => {
                     value={content?.customServices?.subtitle || ""}
                     onChange={(e) => updateNested("customServices.subtitle", e.target.value)}
                     className="rounded-xl min-h-[90px]"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Minimum Quote USD</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="50"
-                    value={content?.customServices?.quoteMinUsd ?? 1500}
-                    onChange={(e) => updateNested("customServices.quoteMinUsd", Number(e.target.value || 0))}
-                    className="rounded-xl"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Maximum Quote USD</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="50"
-                    value={content?.customServices?.quoteMaxUsd ?? 3500}
-                    onChange={(e) => updateNested("customServices.quoteMaxUsd", Number(e.target.value || 0))}
-                    className="rounded-xl"
                   />
                 </div>
               </div>
