@@ -17,6 +17,7 @@ import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/src/lib/supabase";
 import ReactMarkdown from "react-markdown";
+import { Helmet } from "react-helmet-async";
 import { DEFAULT_POLICIES } from "../constants/defaultPolicies";
 
 interface PolicyPageProps {
@@ -130,6 +131,17 @@ export function PolicyPage({ type }: PolicyPageProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 py-20 px-4">
+      <Helmet>
+        <title>{policy.title} | Bennie Studio</title>
+        <meta
+          name="description"
+          content={`${policy.title} for Bennie Studio managed website customers and visitors.`}
+        />
+        <link
+          rel="canonical"
+          href={`${window.location.origin}${window.location.pathname}`}
+        />
+      </Helmet>
       <div className="max-w-4xl mx-auto">
         <Button
           variant="ghost"
