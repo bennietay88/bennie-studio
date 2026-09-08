@@ -1423,7 +1423,7 @@ export default function LandingPage() {
 
       {/* FAQ Section */}
       <section id="faq" className="py-16 lg:py-24 px-8 bg-white relative">
-        <div className="max-w-4xl mx-auto">
+        <div className="mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-5xl font-bold text-slate-900 mb-4 tracking-tight flex items-center justify-center gap-4">
               <HelpCircle className="h-10 w-10 text-indigo-600" />
@@ -1433,7 +1433,7 @@ export default function LandingPage() {
               {c.faq?.subtitle}
             </p>
           </div>
-          <Accordion className="space-y-4">
+          <Accordion className="grid gap-4 md:grid-cols-2">
             {(c.faq?.items || []).map((faq: any, i: number) => (
               <AccordionItem
                 key={i}
