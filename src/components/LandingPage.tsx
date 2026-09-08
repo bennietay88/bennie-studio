@@ -52,7 +52,7 @@ import { DEFAULT_LANDING_CONTENT } from "../constants/landingPageContent";
 import { SafeImage } from "./SafeImage";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
-import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKET_CHANGED_EVENT, formatCommercialMoney, getCommercialPrice, getStoredMarket } from "../lib/commercialPricing";
+import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKET_CHANGED_EVENT, formatCommercialMoney, getCommercialPrice, getStoredMarket } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 
 const fadeInUp = {
@@ -323,12 +323,10 @@ export default function LandingPage() {
   );
   const managedWebsite = commercialProducts.find((product) => product.slug === "managed-website") || COMMERCIAL_FALLBACK_PRODUCTS[0];
   const managedWebsitePrice = getCommercialPrice(managedWebsite, commercialMarket);
-  const managedMonthlyLabel = formatCommercialMoney(managedWebsitePrice?.monthlyPrice, managedWebsitePrice?.currency || "USD");
-  const managedSetupLabel = formatCommercialMoney(managedWebsitePrice?.setupFee, managedWebsitePrice?.currency || "USD");
+  const managedBuildLabel = formatCommercialMoney(managedWebsitePrice?.monthlyPrice, managedWebsitePrice?.currency || "MYR");
   const growthPartner = commercialProducts.find((product) => product.slug === "growth-partner") || COMMERCIAL_FALLBACK_PRODUCTS[2];
   const growthPartnerPrice = getCommercialPrice(growthPartner, commercialMarket);
-  const growthPartnerMonthlyLabel = formatCommercialMoney(growthPartnerPrice?.monthlyPrice, growthPartnerPrice?.currency || "USD");
-  const growthPartnerSetupLabel = formatCommercialMoney(growthPartnerPrice?.setupFee, growthPartnerPrice?.currency || "USD");
+  const growthPartnerBuildLabel = formatCommercialMoney(growthPartnerPrice?.monthlyPrice, growthPartnerPrice?.currency || "MYR");
   const salesPageTitle =
     typeof platformSettings?.salesPageTitle === "string" &&
     platformSettings.salesPageTitle.trim()
@@ -372,7 +370,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       <Helmet>
-        <title>{`Managed Website from ${managedMonthlyLabel}/month | ${salesPageTitle}`}</title>
+        <title>{`Website build packages from ${managedBuildLabel} one-time | ${salesPageTitle}`}</title>
         <meta name="description" content="Your business website built, hosted, maintained and continuously managed to help turn more visitors into enquiries." />
         <link rel="canonical" href="https://app.bennietay.com/" />
 
@@ -461,15 +459,15 @@ export default function LandingPage() {
               variants={fadeInUp}
               className="mx-auto mb-4 max-w-[21rem] whitespace-normal break-words text-3xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:max-w-3xl sm:text-5xl lg:mx-0 lg:text-6xl"
             >
-              A professionally managed website from{" "}
-              <span className="text-indigo-600">{managedMonthlyLabel}/month</span>
+              A professional website built around your enquiries from{" "}
+              <span className="text-indigo-600">{managedBuildLabel} one-time</span>
             </motion.h1>
 
             <motion.p
               variants={fadeInUp}
               className="mx-auto mb-8 max-w-[21rem] whitespace-normal break-words text-base font-semibold leading-relaxed text-slate-700 sm:max-w-3xl sm:text-xl lg:mx-0"
             >
-              Your website built, hosted, maintained and continuously managed to help turn more visitors into WhatsApp messages, calls, bookings and quotation enquiries.
+              Choose a clear, fixed-scope website package. We plan, design, build and launch the pages, content structure and enquiry paths your service business needs.
             </motion.p>
 
             {c.hero.valueProp && (
@@ -478,7 +476,7 @@ export default function LandingPage() {
                 className="mx-auto mb-8 flex w-full max-w-[21rem] items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-3 text-left sm:max-w-3xl lg:mx-0 lg:w-fit"
               >
                 <div className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse" />
-                <span className="text-sm font-bold text-slate-900 tracking-tight">{managedSetupLabel} setup · {COMMERCIAL_DEFAULT_COMMITMENT_MONTHS}-month initial commitment · Hosting and maintenance included</span>
+                <span className="text-sm font-bold text-slate-900 tracking-tight">One-time build · Managed hosting included · Clear scope and customer approval before launch</span>
               </motion.div>
             )}
 
@@ -1201,9 +1199,9 @@ export default function LandingPage() {
           <div className="min-w-0 rounded-[2.5rem] border border-white/20 bg-slate-950 p-7 shadow-2xl sm:p-9">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Growth Partner</p>
             <p className="mt-5 break-words text-4xl font-black tracking-tight text-white sm:text-5xl">
-              {growthPartnerMonthlyLabel}<span className="text-base text-slate-400"> / month</span>
+              {growthPartnerBuildLabel}<span className="text-base text-slate-400"> one-time</span>
             </p>
-            {Number(growthPartnerPrice?.setupFee || 0) > 0 && <p className="mt-3 text-sm font-bold text-slate-300">Plus {growthPartnerSetupLabel} onboarding.</p>}
+            <p className="mt-3 text-sm font-bold text-slate-300">Fixed-scope build with consultation-led planning.</p>
             <p className="mt-5 rounded-2xl bg-white/10 p-4 text-sm font-semibold leading-6 text-slate-200">
               Premium scope and commercial fit are confirmed during a consultation. This is not the default starting option for most businesses.
             </p>
