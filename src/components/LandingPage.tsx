@@ -450,7 +450,7 @@ export default function LandingPage() {
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100 mb-8 shadow-sm">
                 <Zap className="h-4 w-4 text-indigo-600 animate-pulse" />
                 <span className="text-xs sm:text-sm font-semibold text-indigo-600 tracking-wide uppercase">
-                  {c.hero.badge}
+                  WEBSITE BUILD PACKAGES
                 </span>
               </div>
             </motion.div>
@@ -494,7 +494,7 @@ export default function LandingPage() {
                   onClick={() => trackAndNavigate("/generate-preview", "Hero Generate Free Website Preview", "click_generate_preview")}
                   className="gap-3 h-12 sm:h-14 px-10 sm:px-12 text-lg sm:text-lg shadow-2xl shadow-indigo-200 bg-indigo-600 hover:bg-indigo-700 transition-all w-full sm:w-auto rounded-2xl font-black uppercase tracking-widest"
                 >
-                  {c.hero.ctaPrimary} <ArrowRight className="h-6 w-6" />
+                  CHOOSE YOUR WEBSITE PACKAGE <ArrowRight className="h-6 w-6" />
                 </Button>
               </motion.div>
               <motion.div
