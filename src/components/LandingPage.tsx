@@ -745,7 +745,7 @@ export default function LandingPage() {
                 {c.launchModels.subtitle}
               </p>
             </div>
-            <div className="mx-auto grid max-w-3xl gap-6">
+            <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-2 lg:items-stretch">
               {(c.launchModels.items || []).map((item: any, index: number) => (
                 <motion.article
                   key={item.title}
@@ -754,7 +754,7 @@ export default function LandingPage() {
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.08 }}
                   className={cn(
-                    "rounded-[2rem] border p-6 shadow-sm sm:p-8",
+                    "flex h-full flex-col rounded-[2rem] border p-6 shadow-sm sm:p-8",
                     index === 0
                       ? "border-indigo-200 bg-indigo-50/50"
                       : "border-slate-200 bg-white",
@@ -788,7 +788,7 @@ export default function LandingPage() {
                   <Button
                     onClick={() => navigate(item.href)}
                     className={cn(
-                      "mt-8 h-14 rounded-2xl px-8 font-black uppercase tracking-widest",
+                      "mt-8 h-14 rounded-2xl px-8 font-black uppercase tracking-widest sm:w-fit",
                       index === 0 ? "bg-indigo-600 hover:bg-indigo-700" : "bg-slate-950 hover:bg-slate-800",
                     )}
                   >
