@@ -1120,6 +1120,34 @@ async function startServer() {
                     .eq("id", orderId);
                   console.log(`Order ${orderId} marked as paid`);
                 }
+              } else if (type === "one_time_package") {
+                // One-time website packages activate the customer's entitlement
+                // without attempting to retrieve a subscription that does not exist.
+                const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+                const priceId = lineItems.data[0]?.price?.id;
+                const { data: paidPrice } = await supabaseAdmin
+                  .from("commercial_market_prices")
+                  .select("product_id,market,currency,monthly_price,billing_interval,stripe_one_time_price_id")
+                  .eq("stripe_one_time_price_id", priceId)
+                  .maybeSingle();
+                const { data: paidProduct } = paidPrice?.product_id
+                  ? await supabaseAdmin.from("commercial_products").select("slug,entitlement_plan_slug").eq("id", paidPrice.product_id).maybeSingle()
+                  : { data: null };
+                const packageSlug = paidProduct?.entitlement_plan_slug || paidProduct?.slug || session.metadata?.productSlug || "managed-website";
+                await supabaseAdmin.from("businesses").update({
+                  plan: packageSlug,
+                  subscription_status: "active",
+                  stripe_customer_id: typeof session.customer === "string" ? session.customer : null,
+                  stripe_subscription_id: null,
+                }).eq("id", businessId);
+                await supabaseAdmin.from("billing_history").insert({
+                  business_id: businessId,
+                  amount: (session.amount_total || 0) / 100,
+                  currency: session.currency || "myr",
+                  description: `${paidProduct?.slug || "Website"} one-time package`,
+                  status: "paid",
+                  stripe_invoice_id: session.id,
+                });
               } else if (type === "credits") {
                 // Handle one-time credit purchase
                 const lineItems = await stripe.checkout.sessions.listLineItems(
@@ -5188,7 +5216,7 @@ async function startServer() {
     const market = normalizeCommercialMarket(req.query.market);
     const { data, error } = await supabaseAdmin
       .from("commercial_products")
-      .select("id,slug,name,description,product_type,sales_motion,includes_product_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,active,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id)")
+      .select("id,slug,name,description,product_type,sales_motion,includes_product_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,active,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id)")
       .eq("active", true)
       // Custom Website is quote-led but still belongs in the public catalogue
       // so acquisition pages can route visitors to the correct consultation path.
@@ -5213,6 +5241,8 @@ async function startServer() {
           monthlyPrice: price.monthly_price === null ? null : Number(price.monthly_price),
           setupFee: Number(price.setup_fee || 0),
           annualPrice: price.annual_price === null ? null : Number(price.annual_price),
+          billingInterval: price.billing_interval || "month",
+          oneTimeConfigured: Boolean(price.stripe_one_time_price_id),
           monthlyConfigured: Boolean(price.stripe_monthly_price_id),
           annualConfigured: Boolean(price.stripe_annual_price_id),
         } : null,
@@ -5598,6 +5628,7 @@ async function startServer() {
     try {
       await assertBusinessAccess(req.user.id, businessId);
       let configuredSetupPriceId: string | null = null;
+      let isOneTimeCheckout = false;
 
       // Current-product checkout never trusts a browser-supplied Stripe coupon.
       // A promotion is valid only when an admin activated it and mapped Stripe prices.
@@ -5607,7 +5638,7 @@ async function startServer() {
         if (productSlug) {
           const { data: currentProduct } = await supabaseAdmin
             .from("commercial_products")
-            .select("id,slug,name,sales_motion,entitlement_plan_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,active)")
+            .select("id,slug,name,sales_motion,entitlement_plan_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id,active)")
             .eq("slug", productSlug)
             .eq("active", true)
             .eq("commercial_market_prices.market", market)
@@ -5616,11 +5647,12 @@ async function startServer() {
           const currentPrice = currentProduct && (Array.isArray(currentProduct.commercial_market_prices) ? currentProduct.commercial_market_prices[0] : currentProduct.commercial_market_prices);
           if (!currentProduct || !currentPrice) return res.status(400).json({ error: "This product is unavailable in the selected market." });
           if (currentProduct.sales_motion !== "self_serve") return res.status(400).json({ error: "This product is available by consultation, not self-serve checkout." });
-          priceId = billingCycle === "yearly" ? (currentPrice.stripe_annual_price_id || "") : (currentPrice.stripe_monthly_price_id || "");
-          if (!priceId) return res.status(400).json({ error: `${billingCycle === "yearly" ? "Annual" : "Monthly"} checkout is not configured for this market yet.` });
+          isOneTimeCheckout = currentPrice.billing_interval === "one_time";
+          priceId = isOneTimeCheckout ? (currentPrice.stripe_one_time_price_id || "") : (billingCycle === "yearly" ? (currentPrice.stripe_annual_price_id || "") : (currentPrice.stripe_monthly_price_id || ""));
+          if (!priceId) return res.status(400).json({ error: isOneTimeCheckout ? "One-time package checkout is not configured for this market yet." : `${billingCycle === "yearly" ? "Annual" : "Monthly"} checkout is not configured for this market yet.` });
           // A Growth upgrade does not repeat the Managed Website setup fee.
           const isUpgrade = productSlug === "website-growth" && checkoutBody.upgradeFrom === "managed-website";
-          configuredSetupPriceId = isUpgrade ? null : (currentPrice.stripe_setup_price_id || null);
+          configuredSetupPriceId = isOneTimeCheckout || isUpgrade ? null : (currentPrice.stripe_setup_price_id || null);
           if (checkoutBody.promotionCode) {
             const now = new Date().toISOString();
             const { data: promotion } = await supabaseAdmin.from("commercial_promotions").select("id,market,product_id,promotional_monthly_price,promotional_setup_fee,starts_at,ends_at,usage_limit,usage_count,stripe_monthly_price_id,stripe_setup_price_id,active").eq("code", checkoutBody.promotionCode).eq("active", true).or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).maybeSingle();
@@ -5630,7 +5662,7 @@ async function startServer() {
             priceId = billingCycle === "yearly" ? priceId : promotion.stripe_monthly_price_id;
             configuredSetupPriceId = isUpgrade ? null : (promotion.stripe_setup_price_id || configuredSetupPriceId);
           }
-          if (Number(currentPrice.setup_fee || 0) > 0 && !configuredSetupPriceId && !isUpgrade) {
+          if (!isOneTimeCheckout && Number(currentPrice.setup_fee || 0) > 0 && !configuredSetupPriceId && !isUpgrade) {
             return res.status(400).json({ error: `${market} setup-fee checkout is not configured for this product.` });
           }
           resolvedProductSlug = currentProduct.slug;
@@ -5701,10 +5733,7 @@ async function startServer() {
           { price: priceId, quantity: 1 },
           ...(configuredSetupPriceId ? [{ price: configuredSetupPriceId, quantity: 1 }] : []),
         ],
-        mode:
-          priceId.includes("credits") || checkoutBody.type === "credits"
-            ? "payment"
-            : "subscription",
+        mode: isOneTimeCheckout || priceId.includes("credits") || checkoutBody.type === "credits" ? "payment" : "subscription",
         success_url: `${publicAppUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${publicAppUrl()}/checkout/cancel?plan=${encodeURIComponent(resolvedProductSlug || planId || "")}&billing=${billingCycle}`,
         metadata: {
@@ -5714,11 +5743,13 @@ async function startServer() {
           billingCycle,
           market,
           currency: commercialCurrencyForMarket(market),
-          termMonths: resolvedProductSlug ? String(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS) : "",
+          termMonths: resolvedProductSlug && !isOneTimeCheckout ? String(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS) : "",
           promotionId: resolvedPromotionId || "",
           type:
-            priceId.includes("credits") || checkoutBody.type === "credits"
-              ? "credits"
+            isOneTimeCheckout
+              ? "one_time_package"
+              : priceId.includes("credits") || checkoutBody.type === "credits"
+                ? "credits"
               : "subscription",
 	        },
 	      };

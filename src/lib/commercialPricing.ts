@@ -13,6 +13,8 @@ export type CommercialPrice = {
   annualPrice: number | null;
   monthlyConfigured?: boolean;
   annualConfigured?: boolean;
+  billingInterval?: "month" | "year" | "one_time";
+  oneTimeConfigured?: boolean;
 };
 
 export type CommercialProduct = {
@@ -55,30 +57,30 @@ export const formatCommercialMoney = (amount: number | null | undefined, currenc
 export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
   {
     slug: "managed-website",
-    name: "Website Growth System",
-    description: "A premium managed website built, hosted and continuously improved around conversion, trust, local visibility and qualified enquiries.",
+    name: "Starter Website",
+    description: "A focused, conversion-ready website for a business that needs a credible online presence quickly.",
     productType: "managed_website",
     salesMotion: "self_serve",
     prices: [
-      ["MY", 3500, 5000, null], ["SG", 2490, 2500, null], ["GB", 1990, 2000, null], ["INTL", 2490, 2500, null],
-    ].map(([market, monthlyPrice, setupFee, annualPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: setupFee as number, annualPrice: annualPrice as number | null })),
+      ["MY", 999], ["SG", 299], ["GB", 169], ["INTL", 219],
+    ].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: 0, annualPrice: null, billingInterval: "one_time" as const, oneTimeConfigured: false })),
   },
   {
     slug: "website-growth",
-    name: "Website Growth Partner",
-    description: "A consultant-led engagement for deeper conversion strategy, landing pages, expanded local SEO and ongoing growth direction.",
+    name: "Business Website",
+    description: "A complete service-business website with stronger lead capture, trust sections, analytics and local SEO foundations.",
     productType: "website_growth",
-    salesMotion: "proposal",
+    salesMotion: "self_serve",
     includesProductSlug: "managed-website",
-    prices: [["MY", 7500], ["SG", 4500], ["GB", 4000], ["INTL", 4500]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: 0, annualPrice: null })),
+    prices: [["MY", 2999], ["SG", 899], ["GB", 509], ["INTL", 659]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: 0, annualPrice: null, billingInterval: "one_time" as const, oneTimeConfigured: false })),
   },
   {
     slug: "growth-partner",
-    name: "Growth Partner",
-    description: "Ongoing website, conversion, SEO and digital growth strategy led personally by Bennie Studio.",
+    name: "Growth Website",
+    description: "A larger website build with deeper conversion structure, service pages, local visibility and launch support.",
     productType: "growth_partner",
-    salesMotion: "proposal",
-    prices: [["MY", 2500, 3000], ["SG", 1250, 0], ["GB", 750, 0], ["INTL", 799, 0]].map(([market, monthlyPrice, setupFee]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: setupFee as number, annualPrice: null })),
+    salesMotion: "self_serve",
+    prices: [["MY", 4999], ["SG", 1499], ["GB", 849], ["INTL", 1099]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: 0, annualPrice: null, billingInterval: "one_time" as const, oneTimeConfigured: false })),
   },
   {
     slug: "custom-website",
@@ -100,11 +102,11 @@ export const getStoredMarket = (): CommercialMarket => {
     const stored = localStorage.getItem("bt_commercial_market");
     if (stored) return normalizeCommercialMarket(stored);
 
-    // USD is the intentional first-visit default. Local pricing is opt-in via
-    // the visible market selector and is persisted after the user chooses it.
-    return "INTL";
+    // MYR is the launch market. Visitors can switch markets using the visible
+    // selector, and their choice is persisted after they make it.
+    return "MY";
   } catch {
-    return "INTL";
+    return "MY";
   }
 };
 
