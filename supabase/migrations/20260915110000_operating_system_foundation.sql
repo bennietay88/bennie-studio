@@ -113,7 +113,7 @@ alter table public.content_provenance enable row level security;
 alter table public.sales_delivery_handoff enable row level security;
 
 create policy "Platform staff view lifecycle" on public.business_lifecycle_events for select to authenticated using (private.is_super_admin() or has_platform_permission('delivery'));
-create policy "Business admins manage lifecycle" on public.business_lifecycle_events for all to authenticated using (private.is_business_admin(business_id) or private.is_super_admin()) with check (private.is_business_admin(business_id) or private.is_super_admin());
+create policy "Business admins append lifecycle" on public.business_lifecycle_events for insert to authenticated with check (private.is_business_admin(business_id) or private.is_super_admin());
 create policy "Platform staff view delivery tasks" on public.delivery_tasks for select to authenticated using (private.is_super_admin() or has_platform_permission('delivery'));
 create policy "Platform staff manage delivery tasks" on public.delivery_tasks for all to authenticated using (private.is_super_admin() or has_platform_permission('delivery')) with check (private.is_super_admin() or has_platform_permission('delivery'));
 create policy "Platform staff view readiness" on public.launch_readiness_checks for select to authenticated using (private.is_super_admin() or has_platform_permission('delivery'));
