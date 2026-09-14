@@ -182,7 +182,14 @@ const MAX_CACHE_SIZE = 500; // Keep up to 500 active merchant instances in memor
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour TTL
 
 async function getStripe(merchantBusinessId?: string) {
-  let key = process.env.STRIPE_SECRET_KEY;
+  // Preview-only checkout tests can supply an isolated Stripe test key without
+  // ever changing the production/live credential. The flag is deliberately
+  // explicit so production continues using the live key by default.
+  const configuredPlatformKey =
+    process.env.STRIPE_TEST_DYNAMIC_PRICES === "true" && process.env.STRIPE_TEST_SECRET_KEY
+      ? process.env.STRIPE_TEST_SECRET_KEY
+      : process.env.STRIPE_SECRET_KEY;
+  let key = configuredPlatformKey;
 
   if (merchantBusinessId) {
     const cached = merchantStripeCache.get(merchantBusinessId);
@@ -218,7 +225,7 @@ async function getStripe(merchantBusinessId?: string) {
 
     // Case 2: Merchant used Stripe Connect (Single Click)
     if (biz?.stripe_connected_account_id) {
-      const platformKey = process.env.STRIPE_SECRET_KEY;
+      const platformKey = configuredPlatformKey;
       if (platformKey && platformKey.startsWith("sk_")) {
         const merchantStripe = new Stripe(platformKey, {
           apiVersion: "2025-01-27.acacia" as any,
