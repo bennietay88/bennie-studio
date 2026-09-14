@@ -1095,6 +1095,10 @@ async function startServer() {
   // successfully reconciled.
   const processPendingCancellations = async () => {
     const today = new Date().toISOString().slice(0, 10);
+    const startedAt = new Date().toISOString();
+    const { data: workerRun } = await supabaseAdmin.from("billing_worker_runs").insert({
+      worker_name: "pending-cancellations", started_at: startedAt, status: "running",
+    }).select("id").single();
     const { data: pending, error } = await supabaseAdmin
       .from("user_subscriptions")
       .select("id,user_id,status,minimum_term_end_date,renewal_state,cancel_at_period_end,stripe_subscription_id")
@@ -1103,7 +1107,10 @@ async function startServer() {
       .in("status", ["active", "trialing", "past_due"])
       .not("stripe_subscription_id", "is", null)
       .limit(200);
-    if (error) throw error;
+    if (error) {
+      if (workerRun?.id) await supabaseAdmin.from("billing_worker_runs").update({ status: "failed", completed_at: new Date().toISOString(), error_summary: error.message }).eq("id", workerRun.id);
+      throw error;
+    }
 
     const results: Array<Record<string, unknown>> = [];
     for (const subscription of pending || []) {
@@ -1138,7 +1145,13 @@ async function startServer() {
         results.push({ id: subscription.id, state: "failed", error: "RETRYABLE_STRIPE_RECONCILIATION_FAILURE" });
       }
     }
-    return { processed: results.length, results };
+    const failed = results.filter((result) => result.state === "failed").length;
+    if (workerRun?.id) await supabaseAdmin.from("billing_worker_runs").update({
+      status: failed ? "failed" : "completed", completed_at: new Date().toISOString(),
+      scanned_count: pending?.length || 0, processed_count: results.length - failed, failed_count: failed,
+      error_summary: failed ? "One or more subscriptions require retry" : null,
+    }).eq("id", workerRun.id);
+    return { processed: results.length, failed, results, workerRunId: workerRun?.id || null };
   };
 
   // Stripe Webhook - MUST be before express.json()
@@ -1186,23 +1199,19 @@ async function startServer() {
       console.log(
         `[Stripe Webhook] Received event: ${event.type} (${event.id})`,
       );
-      const { data: existingWebhook } = await supabaseAdmin.from("stripe_webhook_events").select("status,attempt_count,processing_started_at").eq("stripe_event_id", event.id).maybeSingle();
-      if (existingWebhook?.status === "completed") return res.json({ received: true, duplicate: true });
-      const staleProcessing = existingWebhook?.status === "processing" && existingWebhook.processing_started_at
-        && Date.now() - new Date(existingWebhook.processing_started_at).getTime() > 10 * 60 * 1000;
-      if (existingWebhook?.status === "processing" && !staleProcessing) return res.json({ received: true, duplicate: true });
-      const attemptCount = Number(existingWebhook?.attempt_count || 0) + 1;
-      const startedAt = new Date().toISOString();
-      const { error: claimError } = existingWebhook?.status === "failed"
-        ? (await supabaseAdmin.from("stripe_webhook_events").update({ status: "processing", started_at: startedAt, processing_started_at: startedAt, last_attempt_at: startedAt, attempt_count: attemptCount, error_message: null, failed_at: null }).eq("stripe_event_id", event.id).eq("status", "failed"))
-        : staleProcessing
-          ? (await supabaseAdmin.from("stripe_webhook_events").update({ status: "processing", started_at: startedAt, processing_started_at: startedAt, last_attempt_at: startedAt, attempt_count: attemptCount, error_message: null, failed_at: null }).eq("stripe_event_id", event.id).eq("status", "processing"))
-          : (await supabaseAdmin.from("stripe_webhook_events").insert({ stripe_event_id: event.id, event_type: event.type, status: "processing", started_at: startedAt, processing_started_at: startedAt, last_attempt_at: startedAt, attempt_count: attemptCount, metadata: { source: "stripe" } }));
-      if (claimError) {
-        if ((claimError as any).code === "23505") return res.json({ received: true, duplicate: true });
+      // Ownership is claimed in one database transaction. This prevents two
+      // concurrent Stripe deliveries from both applying side effects.
+      const { data: claimRows, error: claimError } = await supabaseAdmin.rpc("claim_stripe_webhook_event", {
+        p_stripe_event_id: event.id,
+        p_event_type: event.type,
+        p_stale_after_seconds: 10 * 60,
+      });
+      const claim = Array.isArray(claimRows) ? claimRows[0] : claimRows;
+      if (claimError || !claim) {
         console.error("Stripe webhook idempotency claim failed", claimError);
         return res.status(503).json({ error: "Webhook processing temporarily unavailable" });
       }
+      if (!claim.claimed) return res.json({ received: true, duplicate: true, reason: claim.reason });
       try {
       switch (event.type) {
         case "checkout.session.completed": {
@@ -1743,13 +1752,13 @@ async function startServer() {
       }).then(({ error }) => {
         if (error) console.warn("Stripe webhook completion log skipped:", error.message);
       });
-      await supabaseAdmin.from("stripe_webhook_events").update({ status: "completed", completed_at: new Date().toISOString() }).eq("stripe_event_id", event.id);
+      await supabaseAdmin.from("stripe_webhook_events").update({ status: "completed", completed_at: new Date().toISOString(), processing_started_at: null, error_message: null, failed_at: null }).eq("stripe_event_id", event.id).eq("status", "processing");
 
       res.json({ received: true });
       } catch (processingError: any) {
         const message = String(processingError?.message || "WEBHOOK_PROCESSING_FAILED").slice(0, 500);
         await supabaseAdmin.from("stripe_webhook_events").update({
-          status: "failed", failed_at: new Date().toISOString(), error_message: message,
+          status: "failed", failed_at: new Date().toISOString(), processing_started_at: null, error_message: message,
         }).eq("stripe_event_id", event.id).eq("status", "processing");
         console.error("Stripe webhook processing failed", { eventId: event.id, type: event.type, error: message });
         return res.status(500).json({ error: "Webhook processing failed; Stripe may retry this event." });
@@ -5514,6 +5523,15 @@ async function startServer() {
       console.error("Billing cancellation worker failed", { error: error?.message || error });
       return res.status(500).json({ error: "Billing cancellation worker failed; retry scheduled." });
     }
+  });
+  app.get("/api/internal/billing/cancellation-status", async (req, res) => {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) return res.status(401).json({ error: "Unauthorized" });
+    const { data, error } = await supabaseAdmin.from("billing_worker_runs")
+      .select("id,worker_name,started_at,completed_at,status,scanned_count,processed_count,failed_count,error_summary,metadata")
+      .eq("worker_name", "pending-cancellations").order("started_at", { ascending: false }).limit(10);
+    if (error) return res.status(503).json({ error: "Worker status unavailable" });
+    return res.json({ runs: data || [] });
   });
 
   app.post("/api/admin/sales-automation/run", authenticate, async (req: any, res) => {
