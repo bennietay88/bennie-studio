@@ -4,6 +4,8 @@ export type CommercialProductSlug = "managed-website" | "website-growth" | "grow
 export const COMMERCIAL_MARKET_CHANGED_EVENT = "bt-commercial-market-changed";
 /** Launch offer commitment used by public checkout and customer records. */
 export const COMMERCIAL_DEFAULT_COMMITMENT_MONTHS = 6;
+/** Contract term for the gated recurring OTC + MRC catalogue. */
+export const COMMERCIAL_RECURRING_COMMITMENT_MONTHS = 12;
 
 export type CommercialPrice = {
   market: CommercialMarket;
@@ -15,6 +17,11 @@ export type CommercialPrice = {
   annualConfigured?: boolean;
   billingInterval?: "month" | "year" | "one_time";
   oneTimeConfigured?: boolean;
+  recurringMonthlyPrice?: number | null;
+  recurringSetupFee?: number | null;
+  recurringAnnualPrice?: number | null;
+  minimumTermMonths?: number;
+  recurringConfigured?: boolean;
 };
 
 export type CommercialProduct = {

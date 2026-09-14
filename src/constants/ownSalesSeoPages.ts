@@ -298,7 +298,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     offer: "Your website can include clear service sections, WhatsApp enquiry buttons, local SEO fields, and city targeting options for Kuala Lumpur, Selangor, Johor, Penang, and other service areas.",
     whoFor: ["Malaysian SMEs that rely on WhatsApp enquiries", "Local service businesses targeting cities or states", "Businesses that want predictable monthly website costs"],
     marketWhy: "Malaysia buyers often compare trust, speed, WhatsApp response, and affordability. A managed monthly website helps you look professional while keeping launch cost predictable.",
-    pricingNote: "Website Growth System starts at RM3,500/month plus RM5,000 onboarding with a six-month initial commitment; Growth Partner is from RM7,500/month.",
+    pricingNote: "Managed Website packages start at RM999 one-time for the initial website build. Website Growth and Growth Partner packages are available for businesses that need a larger build and ongoing improvement.",
     localInputs: ["WhatsApp CTA should be prominent", "Kuala Lumpur and Selangor service-area targeting", "SME-friendly pricing expectations", "Local proof can include project areas, Google reviews, and screenshots"],
     examples: [
       { industry: "Renovation contractor", plan: "Managed Website", pages: "Home, Services, Projects, Quote", localSeo: "KL and Selangor service areas" },

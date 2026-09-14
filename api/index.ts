@@ -65,6 +65,8 @@ import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, suppressSalesRecipient } from "../server/salesOperations.js";
 import { parseProspectCsv } from "../src/lib/prospectImport.js";
 import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS } from "../src/lib/commercialPricing.js";
+import { DEFAULT_LAUNCH_FLAGS, normalizeLaunchFlags, type LaunchFlags } from "../src/lib/launchFlags.js";
+import { buildInternalContentPrompt, INTERNAL_CONTENT_SYSTEM_PROMPT, InternalContentBriefSchema, parseInternalContentDraft } from "../src/lib/internalAiContentEngine.js";
 
 dotenv.config();
 initServerObservability();
@@ -112,6 +114,23 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 let platformSettings: any = null;
 let platformSettingsLoadedAt = 0;
 const PLATFORM_SETTINGS_TTL_MS = 60_000;
+let launchFlags: LaunchFlags = DEFAULT_LAUNCH_FLAGS;
+let launchFlagsLoadedAt = 0;
+
+async function refreshLaunchFlags(force = false): Promise<LaunchFlags> {
+  if (!force && Date.now() - launchFlagsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return launchFlags;
+  try {
+    const { data, error } = await supabaseAdmin.from("settings").select("content").eq("id", "launch_flags").maybeSingle();
+    if (error) throw error;
+    launchFlags = normalizeLaunchFlags(data?.content);
+    launchFlagsLoadedAt = Date.now();
+  } catch (error) {
+    // Fail closed: a settings outage must not expose the new catalogue or AI controls.
+    launchFlags = DEFAULT_LAUNCH_FLAGS;
+    captureServerError(error, { phase: "launch_flags_refresh" });
+  }
+  return launchFlags;
+}
 
 async function refreshPlatformSettings(force = false) {
   if (!force && Date.now() - platformSettingsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return;
@@ -986,6 +1005,13 @@ async function startServer() {
     customerId?: string | null;
     status: string;
     planId?: string | null;
+    commercialProductSlug?: string | null;
+    commercialMarket?: string | null;
+    contractStartDate?: string | null;
+    minimumTermMonths?: number | null;
+    renewalState?: string | null;
+    lastPaymentStatus?: string | null;
+    lastWebhookEventId?: string | null;
     currentPeriodStart?: string | null;
     currentPeriodEnd?: string | null;
   }) => {
@@ -999,6 +1025,20 @@ async function startServer() {
     if (input.planId !== undefined) payload.plan_id = input.planId;
     if (input.currentPeriodStart) payload.current_period_start = input.currentPeriodStart;
     if (input.currentPeriodEnd) payload.current_period_end = input.currentPeriodEnd;
+    if (input.commercialProductSlug !== undefined) payload.commercial_product_slug = input.commercialProductSlug;
+    if (input.commercialMarket !== undefined) payload.commercial_market = input.commercialMarket;
+    if (input.contractStartDate !== undefined) payload.contract_start_date = input.contractStartDate;
+    if (input.minimumTermMonths !== undefined) {
+      payload.minimum_term_months = input.minimumTermMonths;
+      if (input.contractStartDate && input.minimumTermMonths) {
+        const end = new Date(input.contractStartDate);
+        end.setUTCMonth(end.getUTCMonth() + input.minimumTermMonths);
+        payload.minimum_term_end_date = end.toISOString().slice(0, 10);
+      }
+    }
+    if (input.renewalState !== undefined) payload.renewal_state = input.renewalState;
+    if (input.lastPaymentStatus !== undefined) payload.last_payment_status = input.lastPaymentStatus;
+    if (input.lastWebhookEventId !== undefined) payload.last_webhook_event_id = input.lastWebhookEventId;
 
     const { data, error } = await supabaseAdmin
       .from("user_subscriptions")
@@ -1274,6 +1314,14 @@ async function startServer() {
                       status: subscription.status,
                       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
                       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                      commercial_product_slug: currentProduct?.slug || requestedProductSlug || null,
+                      commercial_market: currentPrice?.market || session.metadata?.market || null,
+                      contract_start_date: new Date().toISOString().slice(0, 10),
+                      minimum_term_months: Number(session.metadata?.termMonths || COMMERCIAL_DEFAULT_COMMITMENT_MONTHS),
+                      minimum_term_end_date: (() => { const d = new Date(); d.setUTCMonth(d.getUTCMonth() + Number(session.metadata?.termMonths || COMMERCIAL_DEFAULT_COMMITMENT_MONTHS)); return d.toISOString().slice(0, 10); })(),
+                      renewal_state: "active",
+                      last_payment_status: "paid",
+                      last_webhook_event_id: event.id,
                     }, { onConflict: 'user_id' });
 
                   // 3. Initialize/Reset Credit Balance
@@ -1462,6 +1510,9 @@ async function startServer() {
               planId,
               currentPeriodStart,
               currentPeriodEnd,
+              renewalState: isTerminal ? "cancelled" : isPastDue ? "past_due" : "active",
+              lastPaymentStatus: isPastDue ? "past_due" : isTerminal ? "cancelled" : "paid",
+              lastWebhookEventId: event.id,
             });
 
             if (subInfo?.user_id) {
@@ -1508,6 +1559,9 @@ async function startServer() {
               status: "canceled",
               currentPeriodStart: stripeTimestampToIso(subscription.current_period_start),
               currentPeriodEnd: stripeTimestampToIso(subscription.current_period_end),
+              renewalState: "cancelled",
+              lastPaymentStatus: "cancelled",
+              lastWebhookEventId: event.id,
             });
 
             const userId = subInfo?.user_id || cancelledBusiness?.owner_id;
@@ -1548,7 +1602,7 @@ async function startServer() {
                 subscription_grace_until: graceUntil,
               })
               .eq("id", business.id);
-            await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "past_due" });
+            await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "past_due", renewalState: "past_due", lastPaymentStatus: "failed", lastWebhookEventId: event.id });
             await insertBillingLifecycleEvent({
               business_id: business.id,
               event_type: "payment_failed",
@@ -1569,7 +1623,7 @@ async function startServer() {
           const business = await resolveBusinessForStripe({ subscriptionId, customerId });
           if (business) {
             await supabaseAdmin.from("businesses").update({ subscription_status: "active", status: "active", subscription_grace_until: null }).eq("id", business.id);
-            await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "active" });
+            await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "active", renewalState: "active", lastPaymentStatus: "paid", lastWebhookEventId: event.id });
             await supabaseAdmin.from("billing_lifecycle_events").update({ status: "resolved", resolved_at: new Date().toISOString() }).eq("business_id", business.id).eq("event_type", "payment_failed").eq("status", "open");
             await insertBillingLifecycleEvent({ business_id: business.id, event_type: "payment_recovered", status: "resolved", source: "stripe", amount: Number(invoice.amount_paid || 0) / 100, currency: invoice.currency || "usd", resolved_at: new Date().toISOString(), metadata: { stripeEventId: event.id, invoiceId: invoice.id, stripeSubscriptionId: subscriptionId } });
           }
@@ -2997,6 +3051,67 @@ async function startServer() {
       }
     };
   }
+
+  // Internal content drafting route. This is intentionally separate from the
+  // customer AI route: only platform staff can use it and every result stays a
+  // draft until a human approves it.
+  app.post(
+    "/api/admin/ai/content-draft",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 20, keyPrefix: "internal-ai-content" }),
+    async (req: any, res: any) => {
+      const profile = await getProfileForUser(req.user.id).catch(() => null);
+      if (!profile || !["super_admin", "platform_staff"].includes(profile.role)) {
+        return res.status(403).json({ error: "Internal content drafting is restricted to platform staff" });
+      }
+      const flags = await refreshLaunchFlags();
+      if (!flags.internal_ai_content_engine) {
+        return res.status(404).json({ error: "Internal content engine is not enabled" });
+      }
+      const body = validateBody(z.object({
+        brief: z.unknown(),
+        businessId: UUID_SCHEMA.optional().nullable(),
+      }), req, res);
+      if (!body) return;
+      const brief = InternalContentBriefSchema.safeParse(body.brief);
+      if (!brief.success) return res.status(400).json({ error: "A complete verified content brief is required" });
+
+      const usableKey = (value: unknown) => typeof value === "string" && value.trim().length >= 10 && !/TODO|PLACEHOLDER|YOUR_|^MY_|^GEMINI_/i.test(value.trim());
+      const providers: Array<{ name: "openai" | "google" | "deepseek"; key: string }> = [
+        { name: "openai", key: usableKey(process.env.OPENAI_API_KEY) ? String(process.env.OPENAI_API_KEY).trim() : "" },
+        { name: "google", key: usableKey(process.env.GEMINI_API_KEY) ? String(process.env.GEMINI_API_KEY).trim() : "" },
+        { name: "deepseek", key: usableKey(process.env.DEEPSEEK_API_KEY) ? String(process.env.DEEPSEEK_API_KEY).trim() : "" },
+      ].filter((item): item is { name: "openai" | "google" | "deepseek"; key: string } => Boolean(item.key));
+      if (!providers.length) return res.status(503).json({ error: "No internal AI provider is configured" });
+      const provider = providers[0];
+      const request = { prompt: buildInternalContentPrompt(brief.data), systemMessage: INTERNAL_CONTENT_SYSTEM_PROMPT, temperature: 0.2, maxTokens: 1800, isJson: true };
+      try {
+        const response = provider.name === "openai"
+          ? await callOpenAI(provider.key, request, "gpt-4o-mini")
+          : provider.name === "google"
+            ? await callGemini(provider.key, request, "gemini-1.5-flash")
+            : await callDeepSeek(provider.key, request, "deepseek-chat");
+        const draft = parseInternalContentDraft(response.text);
+        const { data: log, error: logError } = await supabaseAdmin.from("ai_generation_logs").insert({
+          user_id: req.user.id,
+          project_id: body.businessId || null,
+          feature_key: "internal_content_engine",
+          provider: provider.name,
+          model: provider.name === "openai" ? "gpt-4o-mini" : provider.name === "google" ? "gemini-1.5-flash" : "deepseek-chat",
+          prompt_tokens: response.usage.promptTokens,
+          output_tokens: response.usage.completionTokens,
+          status: "completed",
+          review_status: "draft",
+          provenance: { verifiedFacts: brief.data.verifiedFacts, businessId: body.businessId || null, generatedBy: req.user.id },
+        }).select("id,created_at,review_status").maybeSingle();
+        if (logError) console.warn("Internal AI provenance log skipped:", logError.message);
+        return res.status(201).json({ draft, generationId: log?.id || null, reviewStatus: "draft", provider: provider.name });
+      } catch (error: any) {
+        captureServerError(error, { requestId: req.requestId, phase: "internal_ai_content_draft" });
+        return res.status(502).json({ error: "Internal content draft failed. No customer content was changed." });
+      }
+    },
+  );
 
   // Unified AI Generation Route
   app.post(
@@ -5214,9 +5329,10 @@ async function startServer() {
 
   app.get("/api/public/pricing", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-pricing" }), async (req, res) => {
     const market = normalizeCommercialMarket(req.query.market);
+    const flags = await refreshLaunchFlags();
     const { data, error } = await supabaseAdmin
       .from("commercial_products")
-      .select("id,slug,name,description,product_type,sales_motion,includes_product_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,active,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id)")
+      .select("id,slug,name,description,product_type,sales_motion,includes_product_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,active,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id,recurring_monthly_price,recurring_setup_fee,recurring_annual_price,minimum_term_months,recurring_config_status,recurring_stripe_monthly_price_id,recurring_stripe_annual_price_id,recurring_stripe_setup_price_id)")
       .eq("active", true)
       // Custom Website is quote-led but still belongs in the public catalogue
       // so acquisition pages can route visitors to the correct consultation path.
@@ -5238,13 +5354,25 @@ async function startServer() {
         price: price ? {
           market,
           currency: price.currency,
-          monthlyPrice: price.monthly_price === null ? null : Number(price.monthly_price),
-          setupFee: Number(price.setup_fee || 0),
-          annualPrice: price.annual_price === null ? null : Number(price.annual_price),
-          billingInterval: price.billing_interval || "month",
+          monthlyPrice: flags.otc_mrc_catalogue && price.recurring_config_status === "live" && price.recurring_monthly_price !== null
+            ? Number(price.recurring_monthly_price)
+            : (price.monthly_price === null ? null : Number(price.monthly_price)),
+          setupFee: flags.otc_mrc_catalogue && price.recurring_config_status === "live" && price.recurring_setup_fee !== null
+            ? Number(price.recurring_setup_fee)
+            : Number(price.setup_fee || 0),
+          annualPrice: flags.otc_mrc_catalogue && price.recurring_config_status === "live" && price.recurring_annual_price !== null
+            ? Number(price.recurring_annual_price)
+            : (price.annual_price === null ? null : Number(price.annual_price)),
+          billingInterval: flags.otc_mrc_catalogue && price.recurring_config_status === "live" ? "month" : (price.billing_interval || "month"),
+          minimumTermMonths: flags.otc_mrc_catalogue && price.recurring_config_status === "live" ? Number(price.minimum_term_months || 12) : null,
+          catalogueMode: flags.otc_mrc_catalogue && price.recurring_config_status === "live" ? "otc_mrc" : "one_time_compatibility",
           oneTimeConfigured: Boolean(price.stripe_one_time_price_id),
-          monthlyConfigured: Boolean(price.stripe_monthly_price_id),
-          annualConfigured: Boolean(price.stripe_annual_price_id),
+          monthlyConfigured: flags.otc_mrc_catalogue && price.recurring_config_status === "live"
+            ? Boolean(price.recurring_stripe_monthly_price_id)
+            : Boolean(price.stripe_monthly_price_id),
+          annualConfigured: flags.otc_mrc_catalogue && price.recurring_config_status === "live"
+            ? Boolean(price.recurring_stripe_annual_price_id)
+            : Boolean(price.stripe_annual_price_id),
         } : null,
       };
     });
@@ -5263,6 +5391,33 @@ async function startServer() {
     return res.json({ products: products.data || [], prices: prices.data || [], promotions: promotions.data || [], legacyPlans: legacyPlans.data || [] });
   });
 
+  app.get("/api/admin/launch-flags", authenticate, superAdminOnly, async (_req: any, res: any) => {
+    const flags = await refreshLaunchFlags(true);
+    return res.json({ flags });
+  });
+
+  app.patch("/api/admin/launch-flags", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const body = validateBody(z.object({
+      otcMrcCatalogue: z.boolean().optional(),
+      internalAiContentEngine: z.boolean().optional(),
+      analyticsV2: z.boolean().optional(),
+      customerAiControls: z.boolean().optional(),
+    }), req, res);
+    if (!body) return;
+    const current = await refreshLaunchFlags(true);
+    const next = normalizeLaunchFlags({
+      otc_mrc_catalogue: body.otcMrcCatalogue ?? current.otc_mrc_catalogue,
+      internal_ai_content_engine: body.internalAiContentEngine ?? current.internal_ai_content_engine,
+      analytics_v2: body.analyticsV2 ?? current.analytics_v2,
+      customer_ai_controls: body.customerAiControls ?? current.customer_ai_controls,
+    });
+    const { error } = await supabaseAdmin.from("settings").upsert({ id: "launch_flags", content: next, updated_at: new Date().toISOString() });
+    if (error) return res.status(400).json({ error: "Launch flags could not be saved" });
+    launchFlags = next;
+    launchFlagsLoadedAt = Date.now();
+    return res.json({ flags: next });
+  });
+
   app.patch("/api/admin/commercial-catalogue/prices/:id", authenticate, superAdminOnly, async (req: any, res: any) => {
     const id = String(req.params.id || "");
     if (!UUID_SCHEMA.safeParse(id).success) return res.status(400).json({ error: "Invalid price record" });
@@ -5273,6 +5428,14 @@ async function startServer() {
       stripeMonthlyPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
       stripeAnnualPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
       stripeSetupPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
+      recurringMonthlyPrice: z.number().finite().min(0).nullable().optional(),
+      recurringSetupFee: z.number().finite().min(0).nullable().optional(),
+      recurringAnnualPrice: z.number().finite().min(0).nullable().optional(),
+      minimumTermMonths: z.number().int().min(1).max(120).optional(),
+      recurringStripeMonthlyPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
+      recurringStripeAnnualPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
+      recurringStripeSetupPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
+      recurringConfigStatus: z.enum(["draft", "preview", "live", "disabled"]).optional(),
       active: z.boolean().optional(),
     }), req, res);
     if (!body) return;
@@ -5283,6 +5446,14 @@ async function startServer() {
     if (body.stripeMonthlyPriceId !== undefined) patch.stripe_monthly_price_id = body.stripeMonthlyPriceId;
     if (body.stripeAnnualPriceId !== undefined) patch.stripe_annual_price_id = body.stripeAnnualPriceId;
     if (body.stripeSetupPriceId !== undefined) patch.stripe_setup_price_id = body.stripeSetupPriceId;
+    if (body.recurringMonthlyPrice !== undefined) patch.recurring_monthly_price = body.recurringMonthlyPrice;
+    if (body.recurringSetupFee !== undefined) patch.recurring_setup_fee = body.recurringSetupFee;
+    if (body.recurringAnnualPrice !== undefined) patch.recurring_annual_price = body.recurringAnnualPrice;
+    if (body.minimumTermMonths !== undefined) patch.minimum_term_months = body.minimumTermMonths;
+    if (body.recurringStripeMonthlyPriceId !== undefined) patch.recurring_stripe_monthly_price_id = body.recurringStripeMonthlyPriceId;
+    if (body.recurringStripeAnnualPriceId !== undefined) patch.recurring_stripe_annual_price_id = body.recurringStripeAnnualPriceId;
+    if (body.recurringStripeSetupPriceId !== undefined) patch.recurring_stripe_setup_price_id = body.recurringStripeSetupPriceId;
+    if (body.recurringConfigStatus !== undefined) patch.recurring_config_status = body.recurringConfigStatus;
     if (body.active !== undefined) patch.active = body.active;
     patch.updated_at = new Date().toISOString();
     const { data, error } = await supabaseAdmin.from("commercial_market_prices").update(patch).eq("id", id).select("*").single();
@@ -5627,8 +5798,10 @@ async function startServer() {
 
     try {
       await assertBusinessAccess(req.user.id, businessId);
+      const launchConfig = await refreshLaunchFlags();
       let configuredSetupPriceId: string | null = null;
       let isOneTimeCheckout = false;
+      let minimumTermMonths = COMMERCIAL_DEFAULT_COMMITMENT_MONTHS;
 
       // Current-product checkout never trusts a browser-supplied Stripe coupon.
       // A promotion is valid only when an admin activated it and mapped Stripe prices.
@@ -5638,7 +5811,7 @@ async function startServer() {
         if (productSlug) {
           const { data: currentProduct } = await supabaseAdmin
             .from("commercial_products")
-            .select("id,slug,name,sales_motion,entitlement_plan_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id,active)")
+            .select("id,slug,name,sales_motion,entitlement_plan_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id,recurring_monthly_price,recurring_setup_fee,recurring_stripe_monthly_price_id,recurring_stripe_annual_price_id,recurring_stripe_setup_price_id,minimum_term_months,recurring_config_status,active)")
             .eq("slug", productSlug)
             .eq("active", true)
             .eq("commercial_market_prices.market", market)
@@ -5647,12 +5820,16 @@ async function startServer() {
           const currentPrice = currentProduct && (Array.isArray(currentProduct.commercial_market_prices) ? currentProduct.commercial_market_prices[0] : currentProduct.commercial_market_prices);
           if (!currentProduct || !currentPrice) return res.status(400).json({ error: "This product is unavailable in the selected market." });
           if (currentProduct.sales_motion !== "self_serve") return res.status(400).json({ error: "This product is available by consultation, not self-serve checkout." });
-          isOneTimeCheckout = currentPrice.billing_interval === "one_time";
-          priceId = isOneTimeCheckout ? (currentPrice.stripe_one_time_price_id || "") : (billingCycle === "yearly" ? (currentPrice.stripe_annual_price_id || "") : (currentPrice.stripe_monthly_price_id || ""));
+          const recurringMode = launchConfig.otc_mrc_catalogue && currentPrice.recurring_config_status === "live";
+          isOneTimeCheckout = !recurringMode && currentPrice.billing_interval === "one_time";
+          minimumTermMonths = recurringMode ? Number(currentPrice.minimum_term_months || 12) : COMMERCIAL_DEFAULT_COMMITMENT_MONTHS;
+          priceId = recurringMode
+            ? (billingCycle === "yearly" ? (currentPrice.recurring_stripe_annual_price_id || "") : (currentPrice.recurring_stripe_monthly_price_id || ""))
+            : (isOneTimeCheckout ? (currentPrice.stripe_one_time_price_id || "") : (billingCycle === "yearly" ? (currentPrice.stripe_annual_price_id || "") : (currentPrice.stripe_monthly_price_id || "")));
           if (!priceId) return res.status(400).json({ error: isOneTimeCheckout ? "One-time package checkout is not configured for this market yet." : `${billingCycle === "yearly" ? "Annual" : "Monthly"} checkout is not configured for this market yet.` });
           // A Growth upgrade does not repeat the Managed Website setup fee.
           const isUpgrade = productSlug === "website-growth" && checkoutBody.upgradeFrom === "managed-website";
-          configuredSetupPriceId = isOneTimeCheckout || isUpgrade ? null : (currentPrice.stripe_setup_price_id || null);
+          configuredSetupPriceId = isOneTimeCheckout || isUpgrade ? null : (recurringMode ? (currentPrice.recurring_stripe_setup_price_id || null) : (currentPrice.stripe_setup_price_id || null));
           if (checkoutBody.promotionCode) {
             const now = new Date().toISOString();
             const { data: promotion } = await supabaseAdmin.from("commercial_promotions").select("id,market,product_id,promotional_monthly_price,promotional_setup_fee,starts_at,ends_at,usage_limit,usage_count,stripe_monthly_price_id,stripe_setup_price_id,active").eq("code", checkoutBody.promotionCode).eq("active", true).or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).maybeSingle();
@@ -5662,7 +5839,7 @@ async function startServer() {
             priceId = billingCycle === "yearly" ? priceId : promotion.stripe_monthly_price_id;
             configuredSetupPriceId = isUpgrade ? null : (promotion.stripe_setup_price_id || configuredSetupPriceId);
           }
-          if (!isOneTimeCheckout && Number(currentPrice.setup_fee || 0) > 0 && !configuredSetupPriceId && !isUpgrade) {
+          if (!isOneTimeCheckout && Number((recurringMode ? currentPrice.recurring_setup_fee : currentPrice.setup_fee) || 0) > 0 && !configuredSetupPriceId && !isUpgrade) {
             return res.status(400).json({ error: `${market} setup-fee checkout is not configured for this product.` });
           }
           resolvedProductSlug = currentProduct.slug;
@@ -5743,7 +5920,7 @@ async function startServer() {
           billingCycle,
           market,
           currency: commercialCurrencyForMarket(market),
-          termMonths: resolvedProductSlug && !isOneTimeCheckout ? String(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS) : "",
+          termMonths: resolvedProductSlug && !isOneTimeCheckout ? String(minimumTermMonths) : "",
           promotionId: resolvedPromotionId || "",
           type:
             isOneTimeCheckout
