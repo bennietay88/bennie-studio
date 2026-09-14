@@ -6185,6 +6185,7 @@ async function startServer() {
     let resolvedPromotionId: string | null = null;
     let testDynamicMonthlyAmount: number | null = null;
     let testDynamicSetupAmount: number | null = null;
+    let useDynamicCatalogPrices = false;
 
     try {
       await assertBusinessAccess(req.user.id, businessId);
@@ -6204,7 +6205,7 @@ async function startServer() {
         if (productSlug) {
           const { data: currentProduct } = await supabaseAdmin
             .from("commercial_products")
-            .select("id,slug,name,sales_motion,entitlement_plan_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id,recurring_monthly_price,recurring_setup_fee,recurring_stripe_monthly_price_id,recurring_stripe_annual_price_id,recurring_stripe_setup_price_id,minimum_term_months,recurring_config_status,active)")
+            .select("id,slug,name,sales_motion,entitlement_plan_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id,recurring_monthly_price,recurring_setup_fee,recurring_annual_price,recurring_stripe_monthly_price_id,recurring_stripe_annual_price_id,recurring_stripe_setup_price_id,minimum_term_months,recurring_config_status,active)")
             .eq("slug", productSlug)
             .eq("active", true)
             .eq("commercial_market_prices.market", market)
@@ -6218,13 +6219,21 @@ async function startServer() {
           // New public checkout is recurring-only. Legacy one-time prices are
           // retained for historical records but can never be selected here.
           const recurringMode = currentPrice.recurring_config_status === "live";
-          if (!recurringMode) return res.status(400).json({ error: "Recurring checkout is not enabled for this product and market yet." });
+          // MY uses pre-created Stripe prices. For international markets, the
+          // server may create Stripe price_data directly from the approved
+          // catalogue while recurring IDs are being staged. Browser input
+          // never controls these amounts.
+          useDynamicCatalogPrices = !recurringMode && market !== "MY";
+          if (!recurringMode && !useDynamicCatalogPrices) return res.status(400).json({ error: "Recurring checkout is not enabled for this product and market yet." });
+          if (useDynamicCatalogPrices && billingCycle === "yearly" && !currentPrice.recurring_annual_price) {
+            return res.status(400).json({ error: "Annual billing is not configured for this market yet. Choose monthly billing or book a consultation." });
+          }
           isOneTimeCheckout = false;
           minimumTermMonths = Number(currentPrice.minimum_term_months || COMMERCIAL_RECURRING_COMMITMENT_MONTHS);
-          priceId = billingCycle === "yearly"
+          priceId = useDynamicCatalogPrices ? "" : billingCycle === "yearly"
             ? (currentPrice.recurring_stripe_annual_price_id || "")
             : (currentPrice.recurring_stripe_monthly_price_id || "");
-          if (!priceId) return res.status(400).json({ error: `${billingCycle === "yearly" ? "Annual" : "Monthly"} recurring checkout is not configured for this market yet.` });
+          if (!priceId && !useDynamicCatalogPrices) return res.status(400).json({ error: `${billingCycle === "yearly" ? "Annual" : "Monthly"} recurring checkout is not configured for this market yet.` });
           // A Growth upgrade does not repeat the Managed Website setup fee.
           const isUpgrade = productSlug === "website-growth" && checkoutBody.upgradeFrom === "managed-website";
           configuredSetupPriceId = isUpgrade ? null : (currentPrice.recurring_stripe_setup_price_id || null);
@@ -6286,7 +6295,7 @@ async function startServer() {
         }
       }
 
-      if (!priceId || /price_(starter|business|growth|launch|premium|pro|elite|.*_id)$/i.test(priceId)) {
+      if ((!priceId && !useDynamicCatalogPrices) || /price_(starter|business|growth|launch|premium|pro|elite|.*_id)$/i.test(priceId)) {
         return res.status(400).json({
           error:
             "This plan still uses a placeholder Stripe Price ID. Add the real price_... value from Stripe in Super Admin > Billing Plans.",
@@ -6304,9 +6313,9 @@ async function startServer() {
 
 	      const sessionOptions: any = {
 	        payment_method_types: ["card"],
-	        line_items: process.env.STRIPE_TEST_DYNAMIC_PRICES === "true" && resolvedProductSlug && testDynamicMonthlyAmount
+	        line_items: (useDynamicCatalogPrices || process.env.STRIPE_TEST_DYNAMIC_PRICES === "true") && resolvedProductSlug && testDynamicMonthlyAmount
           ? [
-              { price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: resolvedProductSlug === "managed-website" ? "Managed Website" : "Website Growth" }, unit_amount: Math.round(testDynamicMonthlyAmount * 100), recurring: { interval: billingCycle === "yearly" ? "year" : "month" } }, quantity: 1 },
+              { price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: resolvedProductSlug === "managed-website" ? "Managed Website" : resolvedProductSlug === "growth-partner" ? "Growth Partner" : "Website Growth" }, unit_amount: Math.round(testDynamicMonthlyAmount * 100), recurring: { interval: billingCycle === "yearly" ? "year" : "month" } }, quantity: 1 },
               ...(testDynamicSetupAmount && !isOneTimeCheckout && !checkoutBody.upgradeFrom ? [{ price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: "Website setup" }, unit_amount: Math.round(testDynamicSetupAmount * 100) }, quantity: 1 }] : []),
             ]
           : [
