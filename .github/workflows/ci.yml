@@ -22,4 +22,12 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:seo
+      - run: npm run test:sales
+      - run: npm run test:sales:api
+      - run: npm run test:billing
+      - run: npm run test:design
+      - run: npm run e2e
       - run: npm audit --audit-level=high

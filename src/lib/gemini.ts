@@ -206,9 +206,7 @@ export async function generateWebsiteContent(
                "type": "Proof",
                "content": {
                  "title": "Why Trust Us",
-                 "stats": [
-                   { "label": "Happy Clients", "value": "1000+" }
-                 ]
+                 "stats": []
                }
              },
              {

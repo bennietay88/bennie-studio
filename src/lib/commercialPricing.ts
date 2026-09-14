@@ -3,7 +3,9 @@ export type CommercialCurrency = "MYR" | "SGD" | "GBP" | "USD";
 export type CommercialProductSlug = "managed-website" | "website-growth" | "growth-partner" | "custom-website";
 export const COMMERCIAL_MARKET_CHANGED_EVENT = "bt-commercial-market-changed";
 /** Launch offer commitment used by public checkout and customer records. */
-export const COMMERCIAL_DEFAULT_COMMITMENT_MONTHS = 6;
+export const COMMERCIAL_DEFAULT_COMMITMENT_MONTHS = 12;
+/** Contract term for the gated recurring OTC + MRC catalogue. */
+export const COMMERCIAL_RECURRING_COMMITMENT_MONTHS = 12;
 
 export type CommercialPrice = {
   market: CommercialMarket;
@@ -15,6 +17,12 @@ export type CommercialPrice = {
   annualConfigured?: boolean;
   billingInterval?: "month" | "year" | "one_time";
   oneTimeConfigured?: boolean;
+  recurringMonthlyPrice?: number | null;
+  recurringSetupFee?: number | null;
+  recurringAnnualPrice?: number | null;
+  minimumTermMonths?: number;
+  recurringConfigured?: boolean;
+  recurringConfigStatus?: "draft" | "preview" | "live" | "disabled";
 };
 
 export type CommercialProduct = {
@@ -57,30 +65,30 @@ export const formatCommercialMoney = (amount: number | null | undefined, currenc
 export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
   {
     slug: "managed-website",
-    name: "Starter Website",
-    description: "A focused, conversion-ready website for a business that needs a credible online presence quickly.",
+    name: "Managed Website",
+    description: "A professionally built, hosted and continuously managed website for a service business that needs more qualified enquiries.",
     productType: "managed_website",
     salesMotion: "self_serve",
     prices: [
-      ["MY", 999], ["SG", 299], ["GB", 169], ["INTL", 219],
-    ].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: 0, annualPrice: null, billingInterval: "one_time" as const, oneTimeConfigured: false })),
+      ["MY", 199], ["SG", 99], ["GB", 79], ["INTL", 89],
+    ].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 1099, SG: 399, GB: 249, INTL: 299 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 12, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
   },
   {
     slug: "website-growth",
-    name: "Business Website",
-    description: "A complete service-business website with stronger lead capture, trust sections, analytics and local SEO foundations.",
+    name: "Website Growth",
+    description: "A managed website growth system with stronger lead capture, trust sections, analytics and local SEO foundations.",
     productType: "website_growth",
     salesMotion: "self_serve",
     includesProductSlug: "managed-website",
-    prices: [["MY", 2999], ["SG", 899], ["GB", 509], ["INTL", 659]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: 0, annualPrice: null, billingInterval: "one_time" as const, oneTimeConfigured: false })),
+    prices: [["MY", 399], ["SG", 199], ["GB", 149], ["INTL", 179]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 2499, SG: 799, GB: 499, INTL: 599 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 12, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
   },
   {
     slug: "growth-partner",
-    name: "Growth Website",
-    description: "A larger website build with deeper conversion structure, service pages, local visibility and launch support.",
+    name: "Growth Partner",
+    description: "A consultant-led managed website engagement with deeper conversion strategy, landing pages, expanded SEO and growth direction.",
     productType: "growth_partner",
     salesMotion: "self_serve",
-    prices: [["MY", 4999], ["SG", 1499], ["GB", 849], ["INTL", 1099]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: 0, annualPrice: null, billingInterval: "one_time" as const, oneTimeConfigured: false })),
+    prices: [["MY", 799], ["SG", 399], ["GB", 299], ["INTL", 349]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 4999, SG: 1499, GB: 999, INTL: 1199 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 12, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
   },
   {
     slug: "custom-website",

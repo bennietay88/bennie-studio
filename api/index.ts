@@ -64,7 +64,10 @@ import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, suppressSalesRecipient } from "../server/salesOperations.js";
 import { parseProspectCsv } from "../src/lib/prospectImport.js";
-import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS } from "../src/lib/commercialPricing.js";
+import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS } from "../src/lib/commercialPricing.js";
+import { DEFAULT_LAUNCH_FLAGS, normalizeLaunchFlags, type LaunchFlags } from "../src/lib/launchFlags.js";
+import { buildInternalContentPrompt, INTERNAL_CONTENT_SYSTEM_PROMPT, InternalContentBriefSchema, parseInternalContentDraft, buildHumaniseContentPrompt, HUMANISE_CONTENT_SYSTEM_PROMPT, parseHumaniseContentDraft } from "../src/lib/internalAiContentEngine.js";
+import { buildDesignDirectionPrompt, DESIGN_DIRECTOR_SYSTEM_PROMPT, parseDesignDirection } from "../src/lib/designDirector.js";
 
 dotenv.config();
 initServerObservability();
@@ -112,8 +115,30 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 let platformSettings: any = null;
 let platformSettingsLoadedAt = 0;
 const PLATFORM_SETTINGS_TTL_MS = 60_000;
+let launchFlags: LaunchFlags = DEFAULT_LAUNCH_FLAGS;
+let launchFlagsLoadedAt = 0;
+
+async function refreshLaunchFlags(force = false): Promise<LaunchFlags> {
+  // E2E runs use deterministic local defaults; never make the test server depend
+  // on a real Supabase project or network availability.
+  if (process.env.E2E_TEST === "true") return launchFlags;
+  if (!force && Date.now() - launchFlagsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return launchFlags;
+  try {
+    const { data, error } = await supabaseAdmin.from("settings").select("content").eq("id", "launch_flags").maybeSingle();
+    if (error) throw error;
+    launchFlags = normalizeLaunchFlags(data?.content);
+    launchFlagsLoadedAt = Date.now();
+  } catch (error) {
+    // Fail closed: a settings outage must not expose the new catalogue or AI controls.
+    launchFlags = DEFAULT_LAUNCH_FLAGS;
+    captureServerError(error, { phase: "launch_flags_refresh" });
+  }
+  return launchFlags;
+}
 
 async function refreshPlatformSettings(force = false) {
+  // Keep browser tests hermetic. Production still loads settings from Supabase.
+  if (process.env.E2E_TEST === "true") return;
   if (!force && Date.now() - platformSettingsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return;
   try {
     const { data, error } = await supabaseAdmin
@@ -162,7 +187,14 @@ const MAX_CACHE_SIZE = 500; // Keep up to 500 active merchant instances in memor
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour TTL
 
 async function getStripe(merchantBusinessId?: string) {
-  let key = process.env.STRIPE_SECRET_KEY;
+  // Preview-only checkout tests can supply an isolated Stripe test key without
+  // ever changing the production/live credential. The flag is deliberately
+  // explicit so production continues using the live key by default.
+  const configuredPlatformKey =
+    process.env.STRIPE_TEST_DYNAMIC_PRICES === "true" && process.env.STRIPE_TEST_SECRET_KEY
+      ? process.env.STRIPE_TEST_SECRET_KEY
+      : process.env.STRIPE_SECRET_KEY;
+  let key = configuredPlatformKey;
 
   if (merchantBusinessId) {
     const cached = merchantStripeCache.get(merchantBusinessId);
@@ -198,7 +230,7 @@ async function getStripe(merchantBusinessId?: string) {
 
     // Case 2: Merchant used Stripe Connect (Single Click)
     if (biz?.stripe_connected_account_id) {
-      const platformKey = process.env.STRIPE_SECRET_KEY;
+      const platformKey = configuredPlatformKey;
       if (platformKey && platformKey.startsWith("sk_")) {
         const merchantStripe = new Stripe(platformKey, {
           apiVersion: "2025-01-27.acacia" as any,
@@ -861,6 +893,28 @@ async function startServer() {
     }
   };
 
+  const aiAccessGuard = async (req: any, res: any, next: any) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      const flags = await refreshLaunchFlags();
+      const isStaff = ["super_admin", "platform_staff"].includes(String(profile.role));
+      if (isStaff) {
+        if (!flags.internal_ai_content_engine) return res.status(403).json({ error: "INTERNAL_AI_DISABLED", code: "INTERNAL_AI_DISABLED" });
+        req.aiInternal = true;
+        return next();
+      }
+      if (!flags.customer_ai_controls) return res.status(403).json({ error: "CUSTOMER_AI_DISABLED", code: "CUSTOMER_AI_DISABLED" });
+      const { data: subscription } = await supabaseAdmin.from("user_subscriptions").select("plans(monthly_credit_limit,chatgpt_enabled)").eq("user_id", req.user.id).in("status", ["active", "trialing"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const plan = (subscription as any)?.plans;
+      if (!plan || Number(plan.monthly_credit_limit || 0) <= 0) return res.status(403).json({ error: "CUSTOMER_AI_DISABLED", code: "CUSTOMER_AI_DISABLED" });
+      req.aiInternal = false;
+      return next();
+    } catch (error) {
+      console.error("AI access guard failed", error);
+      return res.status(503).json({ error: "AI_ACCESS_CHECK_UNAVAILABLE" });
+    }
+  };
+
   app.get(
     "/api/admin/affiliates/unpaid-total",
     authenticate,
@@ -986,6 +1040,13 @@ async function startServer() {
     customerId?: string | null;
     status: string;
     planId?: string | null;
+    commercialProductSlug?: string | null;
+    commercialMarket?: string | null;
+    contractStartDate?: string | null;
+    minimumTermMonths?: number | null;
+    renewalState?: string | null;
+    lastPaymentStatus?: string | null;
+    lastWebhookEventId?: string | null;
     currentPeriodStart?: string | null;
     currentPeriodEnd?: string | null;
   }) => {
@@ -999,6 +1060,20 @@ async function startServer() {
     if (input.planId !== undefined) payload.plan_id = input.planId;
     if (input.currentPeriodStart) payload.current_period_start = input.currentPeriodStart;
     if (input.currentPeriodEnd) payload.current_period_end = input.currentPeriodEnd;
+    if (input.commercialProductSlug !== undefined) payload.commercial_product_slug = input.commercialProductSlug;
+    if (input.commercialMarket !== undefined) payload.commercial_market = input.commercialMarket;
+    if (input.contractStartDate !== undefined) payload.contract_start_date = input.contractStartDate;
+    if (input.minimumTermMonths !== undefined) {
+      payload.minimum_term_months = input.minimumTermMonths;
+      if (input.contractStartDate && input.minimumTermMonths) {
+        const end = new Date(input.contractStartDate);
+        end.setUTCMonth(end.getUTCMonth() + input.minimumTermMonths);
+        payload.minimum_term_end_date = end.toISOString().slice(0, 10);
+      }
+    }
+    if (input.renewalState !== undefined) payload.renewal_state = input.renewalState;
+    if (input.lastPaymentStatus !== undefined) payload.last_payment_status = input.lastPaymentStatus;
+    if (input.lastWebhookEventId !== undefined) payload.last_webhook_event_id = input.lastWebhookEventId;
 
     const { data, error } = await supabaseAdmin
       .from("user_subscriptions")
@@ -1014,11 +1089,63 @@ async function startServer() {
     if (error) console.warn("Billing lifecycle event skipped:", error.message);
   };
 
+  // Reconciles cancellation requests that were made during the minimum term.
+  // This is deliberately idempotent: every run re-reads Stripe before writing
+  // the local state and treats an already-scheduled/cancelled subscription as
+  // successfully reconciled.
+  const processPendingCancellations = async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: pending, error } = await supabaseAdmin
+      .from("user_subscriptions")
+      .select("id,user_id,status,minimum_term_end_date,renewal_state,cancel_at_period_end,stripe_subscription_id")
+      .eq("renewal_state", "cancellation_requested")
+      .lte("minimum_term_end_date", today)
+      .in("status", ["active", "trialing", "past_due"])
+      .not("stripe_subscription_id", "is", null)
+      .limit(200);
+    if (error) throw error;
+
+    const results: Array<Record<string, unknown>> = [];
+    for (const subscription of pending || []) {
+      try {
+        const stripe = await getStripe();
+        const current = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id);
+        const now = new Date().toISOString();
+        if (current.status === "canceled") {
+          await supabaseAdmin.from("user_subscriptions").update({
+            status: "canceled", renewal_state: "cancelled", cancel_at_period_end: true,
+            cancellation_effective_at: now, last_stripe_sync_at: now,
+          }).eq("id", subscription.id);
+          results.push({ id: subscription.id, state: "cancelled", reconciled: true });
+          continue;
+        }
+        const scheduled = current.cancel_at_period_end
+          ? current
+          : await stripe.subscriptions.update(subscription.stripe_subscription_id, { cancel_at_period_end: true });
+        if (!scheduled.cancel_at_period_end) throw new Error("STRIPE_CANCELLATION_NOT_CONFIRMED");
+        await supabaseAdmin.from("user_subscriptions").update({
+          renewal_state: "cancellation_scheduled", cancel_at_period_end: true,
+          cancellation_scheduled_at: now, last_stripe_sync_at: now,
+        }).eq("id", subscription.id);
+        await insertBillingLifecycleEvent({
+          business_id: null, event_type: "cancellation_scheduled", status: "resolved", source: "system",
+          metadata: { subscriptionId: subscription.id, stripeSubscriptionId: subscription.stripe_subscription_id },
+          resolved_at: now,
+        });
+        results.push({ id: subscription.id, state: "cancellation_scheduled" });
+      } catch (workerError: any) {
+        console.error("Pending cancellation reconciliation failed", { subscriptionId: subscription.id, error: workerError?.message });
+        results.push({ id: subscription.id, state: "failed", error: "RETRYABLE_STRIPE_RECONCILIATION_FAILURE" });
+      }
+    }
+    return { processed: results.length, results };
+  };
+
   // Stripe Webhook - MUST be before express.json()
   app.post(
     "/api/webhook",
     express.raw({ type: "application/json" }),
-    async (req, res) => {
+    async (req: any, res: any) => {
       await refreshPlatformSettings();
       const sig = req.headers["stripe-signature"];
       const businessIdParam = req.query.businessId as string;
@@ -1059,8 +1186,24 @@ async function startServer() {
       console.log(
         `[Stripe Webhook] Received event: ${event.type} (${event.id})`,
       );
-      const { data: processedWebhook } = await supabaseAdmin.from("tracking_events").select("id").eq("event_type", "stripe_webhook_completed").contains("metadata", { stripeEventId: event.id }).limit(1).maybeSingle();
-      if (processedWebhook) return res.json({ received: true, duplicate: true });
+      const { data: existingWebhook } = await supabaseAdmin.from("stripe_webhook_events").select("status,attempt_count,processing_started_at").eq("stripe_event_id", event.id).maybeSingle();
+      if (existingWebhook?.status === "completed") return res.json({ received: true, duplicate: true });
+      const staleProcessing = existingWebhook?.status === "processing" && existingWebhook.processing_started_at
+        && Date.now() - new Date(existingWebhook.processing_started_at).getTime() > 10 * 60 * 1000;
+      if (existingWebhook?.status === "processing" && !staleProcessing) return res.json({ received: true, duplicate: true });
+      const attemptCount = Number(existingWebhook?.attempt_count || 0) + 1;
+      const startedAt = new Date().toISOString();
+      const { error: claimError } = existingWebhook?.status === "failed"
+        ? (await supabaseAdmin.from("stripe_webhook_events").update({ status: "processing", started_at: startedAt, processing_started_at: startedAt, last_attempt_at: startedAt, attempt_count: attemptCount, error_message: null, failed_at: null }).eq("stripe_event_id", event.id).eq("status", "failed"))
+        : staleProcessing
+          ? (await supabaseAdmin.from("stripe_webhook_events").update({ status: "processing", started_at: startedAt, processing_started_at: startedAt, last_attempt_at: startedAt, attempt_count: attemptCount, error_message: null, failed_at: null }).eq("stripe_event_id", event.id).eq("status", "processing"))
+          : (await supabaseAdmin.from("stripe_webhook_events").insert({ stripe_event_id: event.id, event_type: event.type, status: "processing", started_at: startedAt, processing_started_at: startedAt, last_attempt_at: startedAt, attempt_count: attemptCount, metadata: { source: "stripe" } }));
+      if (claimError) {
+        if ((claimError as any).code === "23505") return res.json({ received: true, duplicate: true });
+        console.error("Stripe webhook idempotency claim failed", claimError);
+        return res.status(503).json({ error: "Webhook processing temporarily unavailable" });
+      }
+      try {
       switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
@@ -1274,6 +1417,14 @@ async function startServer() {
                       status: subscription.status,
                       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
                       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                      commercial_product_slug: currentProduct?.slug || requestedProductSlug || null,
+                      commercial_market: currentPrice?.market || session.metadata?.market || null,
+                      contract_start_date: new Date().toISOString().slice(0, 10),
+                      minimum_term_months: Number(session.metadata?.termMonths || COMMERCIAL_DEFAULT_COMMITMENT_MONTHS),
+                      minimum_term_end_date: (() => { const d = new Date(); d.setUTCMonth(d.getUTCMonth() + Number(session.metadata?.termMonths || COMMERCIAL_DEFAULT_COMMITMENT_MONTHS)); return d.toISOString().slice(0, 10); })(),
+                      renewal_state: "active",
+                      last_payment_status: "paid",
+                      last_webhook_event_id: event.id,
                     }, { onConflict: 'user_id' });
 
                   // 3. Initialize/Reset Credit Balance
@@ -1462,6 +1613,9 @@ async function startServer() {
               planId,
               currentPeriodStart,
               currentPeriodEnd,
+              renewalState: isTerminal ? "cancelled" : isPastDue ? "past_due" : "active",
+              lastPaymentStatus: isPastDue ? "past_due" : isTerminal ? "cancelled" : "paid",
+              lastWebhookEventId: event.id,
             });
 
             if (subInfo?.user_id) {
@@ -1508,6 +1662,9 @@ async function startServer() {
               status: "canceled",
               currentPeriodStart: stripeTimestampToIso(subscription.current_period_start),
               currentPeriodEnd: stripeTimestampToIso(subscription.current_period_end),
+              renewalState: "cancelled",
+              lastPaymentStatus: "cancelled",
+              lastWebhookEventId: event.id,
             });
 
             const userId = subInfo?.user_id || cancelledBusiness?.owner_id;
@@ -1548,7 +1705,7 @@ async function startServer() {
                 subscription_grace_until: graceUntil,
               })
               .eq("id", business.id);
-            await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "past_due" });
+            await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "past_due", renewalState: "past_due", lastPaymentStatus: "failed", lastWebhookEventId: event.id });
             await insertBillingLifecycleEvent({
               business_id: business.id,
               event_type: "payment_failed",
@@ -1569,7 +1726,7 @@ async function startServer() {
           const business = await resolveBusinessForStripe({ subscriptionId, customerId });
           if (business) {
             await supabaseAdmin.from("businesses").update({ subscription_status: "active", status: "active", subscription_grace_until: null }).eq("id", business.id);
-            await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "active" });
+            await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "active", renewalState: "active", lastPaymentStatus: "paid", lastWebhookEventId: event.id });
             await supabaseAdmin.from("billing_lifecycle_events").update({ status: "resolved", resolved_at: new Date().toISOString() }).eq("business_id", business.id).eq("event_type", "payment_failed").eq("status", "open");
             await insertBillingLifecycleEvent({ business_id: business.id, event_type: "payment_recovered", status: "resolved", source: "stripe", amount: Number(invoice.amount_paid || 0) / 100, currency: invoice.currency || "usd", resolved_at: new Date().toISOString(), metadata: { stripeEventId: event.id, invoiceId: invoice.id, stripeSubscriptionId: subscriptionId } });
           }
@@ -1586,8 +1743,17 @@ async function startServer() {
       }).then(({ error }) => {
         if (error) console.warn("Stripe webhook completion log skipped:", error.message);
       });
+      await supabaseAdmin.from("stripe_webhook_events").update({ status: "completed", completed_at: new Date().toISOString() }).eq("stripe_event_id", event.id);
 
       res.json({ received: true });
+      } catch (processingError: any) {
+        const message = String(processingError?.message || "WEBHOOK_PROCESSING_FAILED").slice(0, 500);
+        await supabaseAdmin.from("stripe_webhook_events").update({
+          status: "failed", failed_at: new Date().toISOString(), error_message: message,
+        }).eq("stripe_event_id", event.id).eq("status", "processing");
+        console.error("Stripe webhook processing failed", { eventId: event.id, type: event.type, error: message });
+        return res.status(500).json({ error: "Webhook processing failed; Stripe may retry this event." });
+      }
     },
   );
 
@@ -2998,10 +3164,281 @@ async function startServer() {
     };
   }
 
+  // Internal content drafting route. This is intentionally separate from the
+  // customer AI route: only platform staff can use it and every result stays a
+  // draft until a human approves it.
+  app.post(
+    "/api/admin/ai/content-draft",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 20, keyPrefix: "internal-ai-content" }),
+    async (req: any, res: any) => {
+      const profile = await getProfileForUser(req.user.id).catch(() => null);
+      if (!profile || !["super_admin", "platform_staff"].includes(profile.role)) {
+        return res.status(403).json({ error: "Internal content drafting is restricted to platform staff" });
+      }
+      const flags = await refreshLaunchFlags();
+      if (!flags.internal_ai_content_engine) {
+        return res.status(404).json({ error: "Internal content engine is not enabled" });
+      }
+      const body = validateBody(z.object({
+        brief: z.unknown(),
+        businessId: UUID_SCHEMA.optional().nullable(),
+      }), req, res);
+      if (!body) return;
+      const brief = InternalContentBriefSchema.safeParse(body.brief);
+      if (!brief.success) return res.status(400).json({ error: "A complete verified content brief is required" });
+
+      const usableKey = (value: unknown) => typeof value === "string" && value.trim().length >= 10 && !/TODO|PLACEHOLDER|YOUR_|^MY_|^GEMINI_/i.test(value.trim());
+      const providers: Array<{ name: "openai" | "google" | "deepseek"; key: string }> = [
+        { name: "openai", key: usableKey(process.env.OPENAI_API_KEY) ? String(process.env.OPENAI_API_KEY).trim() : "" },
+        { name: "google", key: usableKey(process.env.GEMINI_API_KEY) ? String(process.env.GEMINI_API_KEY).trim() : "" },
+        { name: "deepseek", key: usableKey(process.env.DEEPSEEK_API_KEY) ? String(process.env.DEEPSEEK_API_KEY).trim() : "" },
+      ].filter((item): item is { name: "openai" | "google" | "deepseek"; key: string } => Boolean(item.key));
+      if (!providers.length) return res.status(503).json({ error: "No internal AI provider is configured" });
+      const provider = providers[0];
+      const request = { prompt: buildInternalContentPrompt(brief.data), systemMessage: INTERNAL_CONTENT_SYSTEM_PROMPT, temperature: 0.2, maxTokens: 1800, isJson: true };
+      try {
+        const response = provider.name === "openai"
+          ? await callOpenAI(provider.key, request, "gpt-4o-mini")
+          : provider.name === "google"
+            ? await callGemini(provider.key, request, "gemini-1.5-flash")
+            : await callDeepSeek(provider.key, request, "deepseek-chat");
+        const draft = parseInternalContentDraft(response.text);
+        const { data: log, error: logError } = await supabaseAdmin.from("ai_generation_logs").insert({
+          user_id: req.user.id,
+          project_id: body.businessId || null,
+          feature_key: "internal_content_engine",
+          provider: provider.name,
+          model: provider.name === "openai" ? "gpt-4o-mini" : provider.name === "google" ? "gemini-1.5-flash" : "deepseek-chat",
+          prompt_tokens: response.usage.promptTokens,
+          output_tokens: response.usage.completionTokens,
+          status: "completed",
+          review_status: "draft",
+          provenance: { verifiedFacts: brief.data.verifiedFacts, businessId: body.businessId || null, generatedBy: req.user.id },
+        }).select("id,created_at,review_status").maybeSingle();
+        if (logError) console.warn("Internal AI provenance log skipped:", logError.message);
+        return res.status(201).json({ draft, generationId: log?.id || null, reviewStatus: "draft", provider: provider.name });
+      } catch (error: any) {
+        captureServerError(error, { requestId: req.requestId, phase: "internal_ai_content_draft" });
+        return res.status(502).json({ error: "Internal content draft failed. No customer content was changed." });
+      }
+    },
+  );
+
+  app.get("/api/admin/ai/content-drafts", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const status = String(req.query.status || "draft");
+    if (!["draft", "approved", "rejected", "published", "all"].includes(status)) {
+      return res.status(400).json({ error: "Invalid review status" });
+    }
+    let query = supabaseAdmin.from("ai_generation_logs")
+      .select("id,user_id,project_id,feature_key,provider,model,status,review_status,provenance,created_at")
+      .in("feature_key", ["internal_content_engine", "internal_humanise_content", "internal_design_direction"])
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (status !== "all") query = query.eq("review_status", status);
+    const { data, error } = await query;
+    if (error) return res.status(503).json({ error: "Content drafts are temporarily unavailable" });
+    return res.json({ drafts: data || [] });
+  });
+
+  app.post(
+    "/api/admin/ai/humanise-content",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 20, keyPrefix: "internal-ai-humanise" }),
+    async (req: any, res: any) => {
+      const profile = await getProfileForUser(req.user.id).catch(() => null);
+      if (!profile || !["super_admin", "platform_staff"].includes(profile.role)) {
+        return res.status(403).json({ error: "Humanise Content is restricted to platform staff" });
+      }
+      const flags = await refreshLaunchFlags();
+      if (!flags.internal_ai_content_engine) {
+        return res.status(404).json({ error: "Internal content engine is not enabled" });
+      }
+      const body = validateBody(z.object({
+        businessId: UUID_SCHEMA.optional().nullable(),
+        input: z.object({
+          businessName: z.string().trim().min(1).max(160),
+          industry: z.string().trim().min(1).max(120),
+          verifiedFacts: z.array(z.string().trim().min(1).max(300)).max(30).default([]),
+          headline: z.string().trim().max(180).optional(),
+          body: z.string().trim().max(4000).optional(),
+          cta: z.string().trim().max(80).optional(),
+        }),
+      }), req, res);
+      if (!body) return;
+      const usableKey = (value: unknown) => typeof value === "string" && value.trim().length >= 10 && !/TODO|PLACEHOLDER|YOUR_|^MY_|^GEMINI_/i.test(value.trim());
+      const providers: Array<{ name: "openai" | "google" | "deepseek"; key: string }> = [
+        { name: "openai", key: usableKey(process.env.OPENAI_API_KEY) ? String(process.env.OPENAI_API_KEY).trim() : "" },
+        { name: "google", key: usableKey(process.env.GEMINI_API_KEY) ? String(process.env.GEMINI_API_KEY).trim() : "" },
+        { name: "deepseek", key: usableKey(process.env.DEEPSEEK_API_KEY) ? String(process.env.DEEPSEEK_API_KEY).trim() : "" },
+      ].filter((item): item is { name: "openai" | "google" | "deepseek"; key: string } => Boolean(item.key));
+      if (!providers.length) return res.status(503).json({ error: "No internal AI provider is configured" });
+      const provider = providers[0];
+      try {
+        const request = { prompt: buildHumaniseContentPrompt(body.input), systemMessage: HUMANISE_CONTENT_SYSTEM_PROMPT, temperature: 0.15, maxTokens: 1400, isJson: true };
+        const response = provider.name === "openai"
+          ? await callOpenAI(provider.key, request, "gpt-4o-mini")
+          : provider.name === "google"
+            ? await callGemini(provider.key, request, "gemini-1.5-flash")
+            : await callDeepSeek(provider.key, request, "deepseek-chat");
+        const draft = parseHumaniseContentDraft(response.text);
+        const { data: log } = await supabaseAdmin.from("ai_generation_logs").insert({
+          user_id: req.user.id,
+          project_id: body.businessId || null,
+          feature_key: "internal_humanise_content",
+          provider: provider.name,
+          model: provider.name === "openai" ? "gpt-4o-mini" : provider.name === "google" ? "gemini-1.5-flash" : "deepseek-chat",
+          prompt_tokens: response.usage.promptTokens,
+          output_tokens: response.usage.completionTokens,
+          status: "completed",
+          review_status: "draft",
+          provenance: { verifiedFacts: body.input.verifiedFacts, businessId: body.businessId || null, generatedBy: req.user.id, action: "humanise_content" },
+        }).select("id,created_at,review_status").maybeSingle();
+        return res.status(201).json({ draft, generationId: log?.id || null, reviewStatus: "draft", provider: provider.name });
+      } catch (error: any) {
+        captureServerError(error, { requestId: req.requestId, phase: "internal_ai_humanise_content" });
+        return res.status(502).json({ error: "Humanise Content draft failed. No customer content was changed." });
+      }
+    },
+  );
+
+  app.post(
+    "/api/admin/ai/design-direction",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 20, keyPrefix: "internal-ai-design-direction" }),
+    async (req: any, res: any) => {
+      const profile = await getProfileForUser(req.user.id).catch(() => null);
+      if (!profile || !["super_admin", "platform_staff"].includes(profile.role)) {
+        return res.status(403).json({ error: "Design direction is restricted to platform staff" });
+      }
+      const flags = await refreshLaunchFlags();
+      if (!flags.internal_ai_content_engine) return res.status(404).json({ error: "Internal AI engine is not enabled" });
+      const body = validateBody(z.object({
+        businessId: UUID_SCHEMA.optional().nullable(),
+        input: z.object({
+          industry: z.string().trim().min(1).max(120),
+          businessName: z.string().trim().min(1).max(160),
+          targetCustomer: z.string().trim().max(200).optional(),
+          services: z.array(z.string().trim().min(1).max(120)).max(20).optional().default([]),
+          photographyAvailable: z.boolean().optional().default(false),
+          goal: z.string().trim().max(160).optional(),
+        }),
+      }), req, res);
+      if (!body) return;
+      const usableKey = (value: unknown) => typeof value === "string" && value.trim().length >= 10 && !/TODO|PLACEHOLDER|YOUR_|^MY_|^GEMINI_/i.test(value.trim());
+      const providers: Array<{ name: "openai" | "google" | "deepseek"; key: string }> = [
+        { name: "openai", key: usableKey(process.env.OPENAI_API_KEY) ? String(process.env.OPENAI_API_KEY).trim() : "" },
+        { name: "google", key: usableKey(process.env.GEMINI_API_KEY) ? String(process.env.GEMINI_API_KEY).trim() : "" },
+        { name: "deepseek", key: usableKey(process.env.DEEPSEEK_API_KEY) ? String(process.env.DEEPSEEK_API_KEY).trim() : "" },
+      ].filter((item): item is { name: "openai" | "google" | "deepseek"; key: string } => Boolean(item.key));
+      if (!providers.length) return res.status(503).json({ error: "No internal AI provider is configured" });
+      const provider = providers[0];
+      try {
+        const request = { prompt: buildDesignDirectionPrompt(body.input), systemMessage: DESIGN_DIRECTOR_SYSTEM_PROMPT, temperature: 0.1, maxTokens: 1200, isJson: true };
+        const response = provider.name === "openai"
+          ? await callOpenAI(provider.key, request, "gpt-4o-mini")
+          : provider.name === "google"
+            ? await callGemini(provider.key, request, "gemini-1.5-flash")
+            : await callDeepSeek(provider.key, request, "deepseek-chat");
+        const direction = parseDesignDirection(response.text);
+        const { data: log } = await supabaseAdmin.from("ai_generation_logs").insert({
+          user_id: req.user.id,
+          project_id: body.businessId || null,
+          feature_key: "internal_design_direction",
+          provider: provider.name,
+          model: provider.name === "openai" ? "gpt-4o-mini" : provider.name === "google" ? "gemini-1.5-flash" : "deepseek-chat",
+          prompt_tokens: response.usage.promptTokens,
+          output_tokens: response.usage.completionTokens,
+          status: "completed",
+          review_status: "draft",
+          provenance: { businessId: body.businessId || null, generatedBy: req.user.id, action: "design_direction" },
+        }).select("id,created_at,review_status").maybeSingle();
+        return res.status(201).json({ direction, generationId: log?.id || null, reviewStatus: "draft", provider: provider.name });
+      } catch (error: any) {
+        captureServerError(error, { requestId: req.requestId, phase: "internal_ai_design_direction" });
+        return res.status(502).json({ error: "Design direction draft failed. No website configuration was changed." });
+      }
+    },
+  );
+
+  app.patch("/api/admin/ai/content-drafts/:id", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const id = String(req.params.id || "");
+    if (!UUID_SCHEMA.safeParse(id).success) return res.status(400).json({ error: "Invalid draft" });
+    const body = validateBody(z.object({ reviewStatus: z.enum(["draft", "approved", "rejected", "published"]) }), req, res);
+    if (!body) return;
+    if (body.reviewStatus === "published") {
+      const { data: draft } = await supabaseAdmin.from("ai_generation_logs").select("provenance,review_status").eq("id", id).in("feature_key", ["internal_content_engine", "internal_humanise_content", "internal_design_direction"]).maybeSingle();
+      if (!draft || draft.review_status !== "approved") return res.status(409).json({ error: "Only an approved internal draft can be published" });
+    }
+    const { data, error } = await supabaseAdmin.from("ai_generation_logs").update({ review_status: body.reviewStatus }).eq("id", id).in("feature_key", ["internal_content_engine", "internal_humanise_content", "internal_design_direction"]).select("id,review_status,created_at").maybeSingle();
+    if (error || !data) return res.status(404).json({ error: "Draft not found" });
+    return res.json({ draft: data });
+  });
+
+  app.post("/api/subscription/cancellation-request", authenticate, async (req: any, res: any) => {
+    const body = validateBody(z.object({ businessId: UUID_SCHEMA, reason: z.string().trim().min(3).max(1000) }), req, res);
+    if (!body) return;
+    try {
+      await assertBusinessAccess(req.user.id, body.businessId);
+      const { data: businessOwner } = await supabaseAdmin.from("businesses").select("owner_id").eq("id", body.businessId).maybeSingle();
+      const subscriptionUserId = businessOwner?.owner_id || req.user.id;
+      const { data: subscription, error } = await supabaseAdmin.from("user_subscriptions")
+        .select("id,status,minimum_term_end_date,renewal_state,cancel_at_period_end,cancellation_requested_at,cancellation_reason,stripe_subscription_id")
+        .eq("user_id", subscriptionUserId)
+        .in("status", ["active", "trialing", "past_due"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error || !subscription) return res.status(404).json({ error: "Active subscription not found" });
+      const today = new Date();
+      const termEnd = subscription.minimum_term_end_date ? new Date(`${subscription.minimum_term_end_date}T00:00:00Z`) : null;
+      const beforeMinimumTerm = Boolean(termEnd && termEnd.getTime() > today.getTime());
+      const alreadyRequested = subscription.renewal_state === "cancellation_requested" || subscription.renewal_state === "cancellation_scheduled" || subscription.renewal_state === "cancelled";
+      if (alreadyRequested) {
+        return res.status(200).json({
+          request: { id: subscription.id, renewal_state: subscription.renewal_state, cancellation_requested_at: subscription.cancellation_requested_at, cancellation_reason: subscription.cancellation_reason, cancel_at_period_end: subscription.cancel_at_period_end, minimum_term_end_date: subscription.minimum_term_end_date },
+          beforeMinimumTerm: Boolean(termEnd && termEnd.getTime() > today.getTime()),
+          idempotent: true,
+          message: subscription.renewal_state === "cancellation_scheduled" || subscription.renewal_state === "cancelled" ? "Your cancellation is already scheduled." : "Your cancellation request is already recorded.",
+        });
+      }
+      if (!beforeMinimumTerm && !subscription.stripe_subscription_id && !alreadyRequested) {
+        return res.status(409).json({ error: "Subscription is missing its Stripe subscription reference", code: "STRIPE_SUBSCRIPTION_REFERENCE_MISSING" });
+      }
+      if (!beforeMinimumTerm && subscription.stripe_subscription_id && !alreadyRequested) {
+        try {
+          const stripe = await getStripe();
+          const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id);
+          if (stripeSubscription.status === "canceled") {
+            await supabaseAdmin.from("user_subscriptions").update({ status: "canceled", renewal_state: "cancelled", cancel_at_period_end: true, cancellation_requested_at: today.toISOString(), cancellation_reason: body.reason }).eq("id", subscription.id);
+            return res.status(200).json({ beforeMinimumTerm: false, message: "Your subscription is already canceled." });
+          }
+          const updatedStripe = await stripe.subscriptions.update(subscription.stripe_subscription_id, { cancel_at_period_end: true });
+          if (!updatedStripe.cancel_at_period_end) return res.status(502).json({ error: "Stripe did not confirm cancellation at period end", code: "STRIPE_CANCELLATION_NOT_CONFIRMED" });
+        } catch (stripeError: any) {
+          console.error("Stripe cancellation request failed", stripeError);
+          return res.status(502).json({ error: "Cancellation could not be confirmed with Stripe", code: "STRIPE_CANCELLATION_FAILED" });
+        }
+      }
+      const { data: updated, error: updateError } = await supabaseAdmin.from("user_subscriptions").update({
+        renewal_state: "cancellation_requested",
+        cancellation_requested_at: today.toISOString(),
+        cancel_at_period_end: !beforeMinimumTerm,
+        cancellation_reason: body.reason,
+      }).eq("id", subscription.id).select("id,renewal_state,cancellation_requested_at,cancel_at_period_end,minimum_term_end_date").single();
+      if (updateError) return res.status(503).json({ error: "Cancellation request could not be saved" });
+      await supabaseAdmin.from("billing_lifecycle_events").insert({ business_id: body.businessId, event_type: "cancellation_requested", status: "open", source: "customer", metadata: { reason: body.reason, beforeMinimumTerm } });
+      return res.status(alreadyRequested ? 200 : 202).json({ request: updated, beforeMinimumTerm, message: beforeMinimumTerm ? "Your request is recorded and will be reviewed against the minimum term." : "Your subscription will end at the current billing period." });
+    } catch (error: any) {
+      return handleAccessError(res, error);
+    }
+  });
+
   // Unified AI Generation Route
   app.post(
     "/api/ai/generate",
     authenticate,
+    aiAccessGuard,
     rateLimit({
       windowMs: 60 * 1000,
       max: 30,
@@ -3137,7 +3574,10 @@ async function startServer() {
       // Validate and deduct atomically only after a usable provider has been resolved.
       
       let deductionResult: any = null;
-      const { data: rpcResult, error: deductionError } = await supabaseAdmin.rpc("validate_and_deduct_credits", {
+      if (req.aiInternal) {
+        deductionResult = { success: true, credits_charged: 0, internal: true };
+      }
+      const { data: rpcResult, error: deductionError } = req.aiInternal ? { data: null, error: null } : await supabaseAdmin.rpc("validate_and_deduct_credits", {
         p_user_id: userId,
         p_feature_key: feature_key,
         p_is_chatgpt: isChatGPTRequired
@@ -3156,7 +3596,7 @@ async function startServer() {
         });
       }
 
-      deductionResult = rpcResult;
+      if (!req.aiInternal) deductionResult = rpcResult;
       if (!deductionResult) {
         captureServerError(new Error("AI credit deduction returned no result"), {
           requestId: req.requestId,
@@ -3169,7 +3609,7 @@ async function startServer() {
         });
       }
 
-      if (deductionResult.success === true && Number(deductionResult.credits_charged || 0) <= 0) {
+      if (!deductionResult.internal && deductionResult.success === true && Number(deductionResult.credits_charged || 0) <= 0) {
         captureServerError(new Error("AI credit deduction returned no charge"), {
           requestId: req.requestId,
           userId,
@@ -3206,6 +3646,7 @@ async function startServer() {
       }
 
       const refundDeduction = async () => {
+        if (deductionResult.internal) return true;
         const { data: refundResult, error: refundError } = await supabaseAdmin.rpc("refund_ai_credits", {
           p_user_id: userId,
           p_feature_key: feature_key,
@@ -4743,7 +5184,7 @@ async function startServer() {
   });
 
   // AI Usage Status Route
-  app.get("/api/ai/usage", authenticate, async (req: any, res: any) => {
+  app.get("/api/ai/usage", authenticate, aiAccessGuard, async (req: any, res: any) => {
     const userId = req.user.id;
     try {
       const { data: balance, error: balanceError } = await supabaseAdmin
@@ -4782,6 +5223,7 @@ async function startServer() {
         .limit(10);
 
       res.json({
+        topupsEnabled: (await refreshLaunchFlags()).ai_credit_topups_enabled,
         balance: balance || defaultBalance,
         plan: (subscription as any)?.plans || null,
         dailyUsage: daily || { request_count: 0, credits_used: 0, chatgpt_action_count: 0 },
@@ -4796,6 +5238,7 @@ async function startServer() {
   app.post(
     "/api/ai/deepseek",
     authenticate,
+    aiAccessGuard,
     rateLimit({
       windowMs: 60 * 1000,
       max: 20,
@@ -5051,6 +5494,28 @@ async function startServer() {
     }
   });
 
+  app.post("/api/internal/billing/process-cancellations", async (req, res) => {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) return res.status(401).json({ error: "Unauthorized" });
+    try {
+      return res.json({ success: true, ...(await processPendingCancellations()) });
+    } catch (error: any) {
+      console.error("Billing cancellation worker failed", { error: error?.message || error });
+      return res.status(500).json({ error: "Billing cancellation worker failed; retry scheduled." });
+    }
+  });
+  // Vercel Cron invokes GET; keep the POST variant for manual/internal runners.
+  app.get("/api/internal/billing/process-cancellations", async (req, res) => {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) return res.status(401).json({ error: "Unauthorized" });
+    try {
+      return res.json({ success: true, ...(await processPendingCancellations()) });
+    } catch (error: any) {
+      console.error("Billing cancellation worker failed", { error: error?.message || error });
+      return res.status(500).json({ error: "Billing cancellation worker failed; retry scheduled." });
+    }
+  });
+
   app.post("/api/admin/sales-automation/run", authenticate, async (req: any, res) => {
     try {
       const profile = await getProfileForUser(req.user.id);
@@ -5214,9 +5679,10 @@ async function startServer() {
 
   app.get("/api/public/pricing", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-pricing" }), async (req, res) => {
     const market = normalizeCommercialMarket(req.query.market);
+    await refreshLaunchFlags();
     const { data, error } = await supabaseAdmin
       .from("commercial_products")
-      .select("id,slug,name,description,product_type,sales_motion,includes_product_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,active,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id)")
+      .select("id,slug,name,description,product_type,sales_motion,includes_product_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,active,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id,recurring_monthly_price,recurring_setup_fee,recurring_annual_price,minimum_term_months,recurring_config_status,recurring_stripe_monthly_price_id,recurring_stripe_annual_price_id,recurring_stripe_setup_price_id)")
       .eq("active", true)
       // Custom Website is quote-led but still belongs in the public catalogue
       // so acquisition pages can route visitors to the correct consultation path.
@@ -5238,13 +5704,24 @@ async function startServer() {
         price: price ? {
           market,
           currency: price.currency,
-          monthlyPrice: price.monthly_price === null ? null : Number(price.monthly_price),
-          setupFee: Number(price.setup_fee || 0),
-          annualPrice: price.annual_price === null ? null : Number(price.annual_price),
-          billingInterval: price.billing_interval || "month",
+          // Public catalogue is recurring-only. Legacy one-time values remain in
+          // the database for historical customers, but are never rendered or
+          // selected for a new public checkout.
+          monthlyPrice: price.recurring_monthly_price === null || price.recurring_monthly_price === undefined ? null : Number(price.recurring_monthly_price),
+          setupFee: price.recurring_setup_fee === null || price.recurring_setup_fee === undefined ? 0 : Number(price.recurring_setup_fee),
+          annualPrice: price.recurring_annual_price === null || price.recurring_annual_price === undefined ? null : Number(price.recurring_annual_price),
+          billingInterval: "month",
+          minimumTermMonths: Number(price.minimum_term_months || COMMERCIAL_RECURRING_COMMITMENT_MONTHS),
+          catalogueMode: "otc_mrc",
+          recurringConfigStatus: price.recurring_config_status || "draft",
+          recurringConfigured: Boolean(
+            price.recurring_config_status === "live" &&
+            price.recurring_stripe_monthly_price_id &&
+            price.recurring_stripe_setup_price_id,
+          ),
           oneTimeConfigured: Boolean(price.stripe_one_time_price_id),
-          monthlyConfigured: Boolean(price.stripe_monthly_price_id),
-          annualConfigured: Boolean(price.stripe_annual_price_id),
+          monthlyConfigured: Boolean(price.recurring_config_status === "live" && price.recurring_stripe_monthly_price_id),
+          annualConfigured: Boolean(price.recurring_config_status === "live" && price.recurring_stripe_annual_price_id),
         } : null,
       };
     });
@@ -5263,6 +5740,48 @@ async function startServer() {
     return res.json({ products: products.data || [], prices: prices.data || [], promotions: promotions.data || [], legacyPlans: legacyPlans.data || [] });
   });
 
+  app.get("/api/admin/launch-flags", authenticate, superAdminOnly, async (_req: any, res: any) => {
+    const flags = await refreshLaunchFlags(true);
+    return res.json({ flags });
+  });
+
+  app.patch("/api/admin/launch-flags", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const body = validateBody(z.object({
+      otcMrcCatalogue: z.boolean().optional(),
+      internalAiContentEngine: z.boolean().optional(),
+      analyticsV2: z.boolean().optional(),
+      customerAiControls: z.boolean().optional(),
+      aiCreditTopupsEnabled: z.boolean().optional(),
+    }), req, res);
+    if (!body) return;
+    const current = await refreshLaunchFlags(true);
+    const next = normalizeLaunchFlags({
+      otc_mrc_catalogue: body.otcMrcCatalogue ?? current.otc_mrc_catalogue,
+      internal_ai_content_engine: body.internalAiContentEngine ?? current.internal_ai_content_engine,
+      analytics_v2: body.analyticsV2 ?? current.analytics_v2,
+      customer_ai_controls: body.customerAiControls ?? current.customer_ai_controls,
+      ai_credit_topups_enabled: body.aiCreditTopupsEnabled ?? current.ai_credit_topups_enabled,
+    });
+    const { error } = await supabaseAdmin.from("settings").upsert({ id: "launch_flags", content: next, updated_at: new Date().toISOString() });
+    if (error) return res.status(400).json({ error: "Launch flags could not be saved" });
+    launchFlags = next;
+    launchFlagsLoadedAt = Date.now();
+    return res.json({ flags: next });
+  });
+
+  app.get("/api/admin/contracts/renewals", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const horizonDays = Math.min(Math.max(Number(req.query.horizonDays || 60), 1), 365);
+    const horizon = new Date(Date.now() + horizonDays * 86400000).toISOString().slice(0, 10);
+    const { data, error } = await supabaseAdmin.from("user_subscriptions")
+      .select("id,user_id,commercial_product_slug,commercial_market,status,renewal_state,minimum_term_end_date,cancel_at_period_end,last_payment_status,payment_failure_count")
+      .lte("minimum_term_end_date", horizon)
+      .not("renewal_state", "eq", "cancelled")
+      .order("minimum_term_end_date", { ascending: true })
+      .limit(200);
+    if (error) return res.status(503).json({ error: "Contract renewals are temporarily unavailable" });
+    return res.json({ horizonDays, renewals: data || [] });
+  });
+
   app.patch("/api/admin/commercial-catalogue/prices/:id", authenticate, superAdminOnly, async (req: any, res: any) => {
     const id = String(req.params.id || "");
     if (!UUID_SCHEMA.safeParse(id).success) return res.status(400).json({ error: "Invalid price record" });
@@ -5273,6 +5792,14 @@ async function startServer() {
       stripeMonthlyPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
       stripeAnnualPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
       stripeSetupPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
+      recurringMonthlyPrice: z.number().finite().min(0).nullable().optional(),
+      recurringSetupFee: z.number().finite().min(0).nullable().optional(),
+      recurringAnnualPrice: z.number().finite().min(0).nullable().optional(),
+      minimumTermMonths: z.number().int().min(1).max(120).optional(),
+      recurringStripeMonthlyPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
+      recurringStripeAnnualPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
+      recurringStripeSetupPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
+      recurringConfigStatus: z.enum(["draft", "preview", "live", "disabled"]).optional(),
       active: z.boolean().optional(),
     }), req, res);
     if (!body) return;
@@ -5283,6 +5810,14 @@ async function startServer() {
     if (body.stripeMonthlyPriceId !== undefined) patch.stripe_monthly_price_id = body.stripeMonthlyPriceId;
     if (body.stripeAnnualPriceId !== undefined) patch.stripe_annual_price_id = body.stripeAnnualPriceId;
     if (body.stripeSetupPriceId !== undefined) patch.stripe_setup_price_id = body.stripeSetupPriceId;
+    if (body.recurringMonthlyPrice !== undefined) patch.recurring_monthly_price = body.recurringMonthlyPrice;
+    if (body.recurringSetupFee !== undefined) patch.recurring_setup_fee = body.recurringSetupFee;
+    if (body.recurringAnnualPrice !== undefined) patch.recurring_annual_price = body.recurringAnnualPrice;
+    if (body.minimumTermMonths !== undefined) patch.minimum_term_months = body.minimumTermMonths;
+    if (body.recurringStripeMonthlyPriceId !== undefined) patch.recurring_stripe_monthly_price_id = body.recurringStripeMonthlyPriceId;
+    if (body.recurringStripeAnnualPriceId !== undefined) patch.recurring_stripe_annual_price_id = body.recurringStripeAnnualPriceId;
+    if (body.recurringStripeSetupPriceId !== undefined) patch.recurring_stripe_setup_price_id = body.recurringStripeSetupPriceId;
+    if (body.recurringConfigStatus !== undefined) patch.recurring_config_status = body.recurringConfigStatus;
     if (body.active !== undefined) patch.active = body.active;
     patch.updated_at = new Date().toISOString();
     const { data, error } = await supabaseAdmin.from("commercial_market_prices").update(patch).eq("id", id).select("*").single();
@@ -5624,11 +6159,18 @@ async function startServer() {
     let priceId = checkoutBody.priceId || "";
     let resolvedProductSlug = productSlug || null;
     let resolvedPromotionId: string | null = null;
+    let testDynamicMonthlyAmount: number | null = null;
+    let testDynamicSetupAmount: number | null = null;
 
     try {
       await assertBusinessAccess(req.user.id, businessId);
+      const launchFlags = await refreshLaunchFlags();
+      if (checkoutBody.type === "credits" && !launchFlags.ai_credit_topups_enabled) {
+        return res.status(403).json({ error: "AI_CREDIT_TOPUPS_DISABLED", code: "AI_CREDIT_TOPUPS_DISABLED" });
+      }
       let configuredSetupPriceId: string | null = null;
       let isOneTimeCheckout = false;
+      let minimumTermMonths = COMMERCIAL_DEFAULT_COMMITMENT_MONTHS;
 
       // Current-product checkout never trusts a browser-supplied Stripe coupon.
       // A promotion is valid only when an admin activated it and mapped Stripe prices.
@@ -5638,7 +6180,7 @@ async function startServer() {
         if (productSlug) {
           const { data: currentProduct } = await supabaseAdmin
             .from("commercial_products")
-            .select("id,slug,name,sales_motion,entitlement_plan_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id,active)")
+            .select("id,slug,name,sales_motion,entitlement_plan_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id,recurring_monthly_price,recurring_setup_fee,recurring_stripe_monthly_price_id,recurring_stripe_annual_price_id,recurring_stripe_setup_price_id,minimum_term_months,recurring_config_status,active)")
             .eq("slug", productSlug)
             .eq("active", true)
             .eq("commercial_market_prices.market", market)
@@ -5646,13 +6188,22 @@ async function startServer() {
             .maybeSingle();
           const currentPrice = currentProduct && (Array.isArray(currentProduct.commercial_market_prices) ? currentProduct.commercial_market_prices[0] : currentProduct.commercial_market_prices);
           if (!currentProduct || !currentPrice) return res.status(400).json({ error: "This product is unavailable in the selected market." });
+          testDynamicMonthlyAmount = Number(currentPrice.recurring_monthly_price || currentPrice.monthly_price || 0);
+          testDynamicSetupAmount = Number(currentPrice.recurring_setup_fee || currentPrice.setup_fee || 0);
           if (currentProduct.sales_motion !== "self_serve") return res.status(400).json({ error: "This product is available by consultation, not self-serve checkout." });
-          isOneTimeCheckout = currentPrice.billing_interval === "one_time";
-          priceId = isOneTimeCheckout ? (currentPrice.stripe_one_time_price_id || "") : (billingCycle === "yearly" ? (currentPrice.stripe_annual_price_id || "") : (currentPrice.stripe_monthly_price_id || ""));
-          if (!priceId) return res.status(400).json({ error: isOneTimeCheckout ? "One-time package checkout is not configured for this market yet." : `${billingCycle === "yearly" ? "Annual" : "Monthly"} checkout is not configured for this market yet.` });
+          // New public checkout is recurring-only. Legacy one-time prices are
+          // retained for historical records but can never be selected here.
+          const recurringMode = currentPrice.recurring_config_status === "live";
+          if (!recurringMode) return res.status(400).json({ error: "Recurring checkout is not enabled for this product and market yet." });
+          isOneTimeCheckout = false;
+          minimumTermMonths = Number(currentPrice.minimum_term_months || COMMERCIAL_RECURRING_COMMITMENT_MONTHS);
+          priceId = billingCycle === "yearly"
+            ? (currentPrice.recurring_stripe_annual_price_id || "")
+            : (currentPrice.recurring_stripe_monthly_price_id || "");
+          if (!priceId) return res.status(400).json({ error: `${billingCycle === "yearly" ? "Annual" : "Monthly"} recurring checkout is not configured for this market yet.` });
           // A Growth upgrade does not repeat the Managed Website setup fee.
           const isUpgrade = productSlug === "website-growth" && checkoutBody.upgradeFrom === "managed-website";
-          configuredSetupPriceId = isOneTimeCheckout || isUpgrade ? null : (currentPrice.stripe_setup_price_id || null);
+          configuredSetupPriceId = isUpgrade ? null : (currentPrice.recurring_stripe_setup_price_id || null);
           if (checkoutBody.promotionCode) {
             const now = new Date().toISOString();
             const { data: promotion } = await supabaseAdmin.from("commercial_promotions").select("id,market,product_id,promotional_monthly_price,promotional_setup_fee,starts_at,ends_at,usage_limit,usage_count,stripe_monthly_price_id,stripe_setup_price_id,active").eq("code", checkoutBody.promotionCode).eq("active", true).or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).maybeSingle();
@@ -5662,7 +6213,7 @@ async function startServer() {
             priceId = billingCycle === "yearly" ? priceId : promotion.stripe_monthly_price_id;
             configuredSetupPriceId = isUpgrade ? null : (promotion.stripe_setup_price_id || configuredSetupPriceId);
           }
-          if (!isOneTimeCheckout && Number(currentPrice.setup_fee || 0) > 0 && !configuredSetupPriceId && !isUpgrade) {
+          if (Number(currentPrice.recurring_setup_fee || 0) > 0 && !configuredSetupPriceId && !isUpgrade) {
             return res.status(400).json({ error: `${market} setup-fee checkout is not configured for this product.` });
           }
           resolvedProductSlug = currentProduct.slug;
@@ -5729,10 +6280,15 @@ async function startServer() {
 
 	      const sessionOptions: any = {
 	        payment_method_types: ["card"],
-        line_items: [
-          { price: priceId, quantity: 1 },
-          ...(configuredSetupPriceId ? [{ price: configuredSetupPriceId, quantity: 1 }] : []),
-        ],
+	        line_items: process.env.STRIPE_TEST_DYNAMIC_PRICES === "true" && resolvedProductSlug && testDynamicMonthlyAmount
+          ? [
+              { price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: resolvedProductSlug === "managed-website" ? "Managed Website" : "Website Growth" }, unit_amount: Math.round(testDynamicMonthlyAmount * 100), recurring: { interval: billingCycle === "yearly" ? "year" : "month" } }, quantity: 1 },
+              ...(testDynamicSetupAmount && !isOneTimeCheckout && !checkoutBody.upgradeFrom ? [{ price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: "Website setup" }, unit_amount: Math.round(testDynamicSetupAmount * 100) }, quantity: 1 }] : []),
+            ]
+          : [
+              { price: priceId, quantity: 1 },
+              ...(configuredSetupPriceId ? [{ price: configuredSetupPriceId, quantity: 1 }] : []),
+            ],
         mode: isOneTimeCheckout || priceId.includes("credits") || checkoutBody.type === "credits" ? "payment" : "subscription",
         success_url: `${publicAppUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${publicAppUrl()}/checkout/cancel?plan=${encodeURIComponent(resolvedProductSlug || planId || "")}&billing=${billingCycle}`,
@@ -5743,7 +6299,7 @@ async function startServer() {
           billingCycle,
           market,
           currency: commercialCurrencyForMarket(market),
-          termMonths: resolvedProductSlug && !isOneTimeCheckout ? String(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS) : "",
+          termMonths: resolvedProductSlug && !isOneTimeCheckout ? String(minimumTermMonths) : "",
           promotionId: resolvedPromotionId || "",
           type:
             isOneTimeCheckout
@@ -5832,8 +6388,9 @@ async function startServer() {
 
   app.post(
     "/api/create-product-checkout",
+    authenticate,
     rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: "product-checkout" }),
-    async (req, res) => {
+    async (req: any, res: any) => {
     const productCheckoutBody = validateBody(
       z.object({
         productId: UUID_SCHEMA,
@@ -5849,6 +6406,9 @@ async function startServer() {
     const { productId, quantity, businessId, customerEmail } = productCheckoutBody;
 
     try {
+      await assertBusinessAccess(req.user.id, businessId);
+      const orderEmail = customerEmail || req.user.email;
+      if (!orderEmail) return res.status(400).json({ error: "A customer email is required" });
       // 1. Fetch product details from Supabase (to ensure valid price)
       const { data: product, error: productError } = await supabaseAdmin
         .from("products")
@@ -5878,7 +6438,7 @@ async function startServer() {
           business_id: businessId,
           total_amount: product.price * quantity,
           status: "pending",
-          customer_email: customerEmail || "guest@example.com",
+          customer_email: orderEmail,
           items: [
             {
               productId: product.id,
@@ -7141,8 +7701,11 @@ async function startServer() {
           websites: websitesCount || 0,
           appointments: appointmentsCount || 0,
           apiKeys: apiKeysCount || 0,
-          aiCredits: balance.credits_remaining || 0,
-          aiUsed: balance.credits_used || 0
+          // Customer AI credits/top-ups are paused for the launch catalogue.
+          // Keep the response shape for older clients, but never advertise a
+          // spendable balance in the customer dashboard.
+          aiCredits: 0,
+          aiUsed: 0
         },
         recentLeads: leadsData || [],
         recentAppointments: appointmentsData || [],
