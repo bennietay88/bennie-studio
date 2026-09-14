@@ -89,6 +89,7 @@ import {
 } from "../constants/sectionTemplates";
 import { DEFAULT_POLICIES } from "../constants/defaultPolicies";
 import { NICHE_TEMPLATES } from "../constants/nicheTemplates";
+import { APPROVED_VARIANTS, DESIGN_PROFILE_OPTIONS, type DesignProfileId } from "../constants/designProfiles";
 import {
   createPlanLimitUpgradeMessage,
   getPlanPageLimit,
@@ -3374,6 +3375,25 @@ export function WebsiteEditor({
                     className="space-y-10 focus-visible:outline-none"
                   >
                     <section className="space-y-8">
+                      {APPROVED_VARIANTS[section.type as keyof typeof APPROVED_VARIANTS] && (
+                        <div className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
+                          <div>
+                            <Label className="text-xs font-black uppercase tracking-widest text-indigo-700">Approved composition</Label>
+                            <p className="mt-1 text-[11px] leading-5 text-slate-500">Use a vetted section variant so the page feels art-directed without introducing arbitrary layouts.</p>
+                          </div>
+                          <Select
+                            value={section.settings?.variant || APPROVED_VARIANTS[section.type as keyof typeof APPROVED_VARIANTS]?.[0]}
+                            onValueChange={(variant) => updateSectionSettings(page.id, section.id, { variant })}
+                          >
+                            <SelectTrigger className="h-10 rounded-xl border-indigo-100 bg-white text-xs font-bold capitalize"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {APPROVED_VARIANTS[section.type as keyof typeof APPROVED_VARIANTS]?.map((variant) => (
+                                <SelectItem key={variant} value={variant} className="capitalize">{variant.replaceAll("_", " ")}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       {/* Background Settings */}
                       <div className="space-y-4">
                         <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -5163,6 +5183,52 @@ export function WebsiteEditor({
                           }
                         />
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t border-slate-100">
+                    <div>
+                      <Label className="text-sm font-bold flex items-center gap-2 text-slate-700">
+                        <Sparkles className="h-4 w-4 text-indigo-600" />
+                        Approved Design Direction
+                      </Label>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">
+                        Choose a visual direction for the shared renderer. This changes composition tokens without creating a new template.
+                      </p>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {DESIGN_PROFILE_OPTIONS.map((profile) => (
+                        <button
+                          key={profile.id}
+                          type="button"
+                          onClick={() => setWebsite({
+                            ...website,
+                            theme: {
+                              ...website.theme,
+                              designProfile: profile.id as DesignProfileId,
+                              typographyProfile: profile.typography,
+                              spacingProfile: profile.spacing,
+                              layoutDensity: profile.spacing,
+                              motionProfile: profile.motion,
+                              imageProfile: profile.imageTreatment,
+                              fontFamily: profile.bodyFont,
+                              style: profile.defaultStyle,
+                            },
+                          })}
+                          className={cn(
+                            "rounded-2xl border p-4 text-left transition-all",
+                            website.theme.designProfile === profile.id
+                              ? "border-indigo-600 bg-indigo-50 shadow-sm"
+                              : "border-slate-200 bg-white hover:border-indigo-300",
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm font-black text-slate-900">{profile.label}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{profile.motion}</span>
+                          </div>
+                          <p className="mt-2 text-xs leading-5 text-slate-500">{profile.description}</p>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </CardContent>

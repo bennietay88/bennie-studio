@@ -263,6 +263,10 @@ export interface WebsiteSection {
   content: any;
   isVisible?: boolean;
   settings?: {
+    variant?: string;
+    designProfile?: string;
+    motionProfile?: string;
+    imageTreatment?: string;
     backgroundColor?: string;
     bgColor?: string;
     textColor?: string;
@@ -379,6 +383,18 @@ export interface Website {
       | "corporate"
       | "prestige"
       | "luxury_dark";
+    /** Approved visual direction used by the shared renderer. Legacy themes fall back safely. */
+    designProfile?:
+      | "editorial_luxury"
+      | "modern_minimal"
+      | "bold_contemporary"
+      | "trust_authority"
+      | "craft_organic";
+    typographyProfile?: string;
+    spacingProfile?: "compact" | "balanced" | "editorial" | "immersive";
+    motionProfile?: "none" | "subtle" | "refined" | "expressive" | "cinematic";
+    imageProfile?: "editorial" | "clean" | "graphic" | "documentary" | "organic";
+    layoutDensity?: "compact" | "balanced" | "editorial" | "immersive";
     customSelectors?: {
       id: string;
       selector: string;

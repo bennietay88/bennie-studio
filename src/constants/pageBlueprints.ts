@@ -3,6 +3,7 @@ import { NICHE_TEMPLATES } from "./nicheTemplates";
 import { PLANS } from "./plans";
 import { generateId } from "../lib/utils";
 import { WebsitePage, WebsiteSection } from "../types";
+import { getDefaultVariant, resolveDesignProfile } from "./designProfiles";
 
 export type BlueprintPlanId = "starter" | "business" | "growth";
 export type WebsitePlanId = string;
@@ -609,12 +610,17 @@ export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsiteP
   const nicheName = input.nicheName || template?.category || template?.name || input.nicheId;
   const blueprint = getBlueprint(nicheName, input.plan, input.maxPages);
   const limit = getPlanPageLimit(input.plan, input.maxPages);
+  const profile = resolveDesignProfile(undefined, template?.category || template?.name);
 
   return blueprint.pages.slice(0, limit).map((blueprintPage) => {
     const sections = blueprintPage.sections.map((block) => {
       const sectionType = sectionTypeMap[block];
       const section = cloneSection(sectionType);
-      return buildSectionContent(section, block, blueprintPage, input);
+      const configured = buildSectionContent(section, block, blueprintPage, input);
+      const variant = getDefaultVariant(sectionType, profile.id);
+      return variant
+        ? { ...configured, settings: { ...(configured.settings || {}), variant, designProfile: profile.id, motionProfile: profile.motion } }
+        : configured;
     });
 
     return {
@@ -641,11 +647,21 @@ export const buildNavigationPreview = (input: Pick<BlueprintBusinessInput, "nich
 
 export const getBlueprintTheme = (nicheId?: string) => {
   const template = getNicheTemplateById(nicheId);
-  return template?.theme || {
+  const baseTheme = template?.theme || {
     primaryColor: "#4f46e5",
     secondaryColor: "#ffffff",
     fontFamily: "'Inter', sans-serif",
     style: "modern",
+  };
+  const profile = resolveDesignProfile(undefined, template?.category || template?.name);
+  return {
+    ...baseTheme,
+    designProfile: profile.id,
+    typographyProfile: profile.typography,
+    spacingProfile: profile.spacing,
+    layoutDensity: profile.spacing,
+    motionProfile: profile.motion,
+    imageProfile: profile.imageTreatment,
   };
 };
 

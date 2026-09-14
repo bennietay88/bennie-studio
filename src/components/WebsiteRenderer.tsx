@@ -72,6 +72,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { DESIGN_TOKENS, resolveDesignProfile } from "../constants/designProfiles";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -1080,6 +1081,12 @@ export function WebsiteRenderer({
     secondaryColor: website?.theme?.secondaryColor || "#10b981",
     fontFamily: website?.theme?.fontFamily || "Inter, sans-serif",
     style: (website?.theme?.style || "modern") as any, // Use any briefly or the full union
+    designProfile: website?.theme?.designProfile,
+    typographyProfile: website?.theme?.typographyProfile,
+    spacingProfile: website?.theme?.spacingProfile,
+    layoutDensity: website?.theme?.layoutDensity,
+    motionProfile: website?.theme?.motionProfile,
+    imageProfile: website?.theme?.imageProfile,
     logoUrl: website?.theme?.logoUrl,
     footer: {
       showMenu: website?.theme?.footer?.showMenu ?? true,
@@ -1092,6 +1099,9 @@ export function WebsiteRenderer({
       socialLinks: website?.theme?.footer?.socialLinks || [],
     },
   };
+  const designProfile = resolveDesignProfile(theme.designProfile, businessInfo?.industry || website?.seo?.businessType);
+  const spacingTokens = DESIGN_TOKENS.spacing[theme.spacingProfile || designProfile.spacing];
+  const motionTokens = DESIGN_TOKENS.motion[theme.motionProfile || designProfile.motion];
   const pages = website?.pages || [];
   const displayBusinessName = String(
     businessInfo?.name ||
@@ -1418,6 +1428,9 @@ export function WebsiteRenderer({
       <div
         ref={rendererRootRef}
         style={{ fontFamily: theme.fontFamily || "Inter, sans-serif" }}
+        data-design-profile={designProfile.id}
+        data-motion-profile={theme.motionProfile || designProfile.motion}
+        data-image-profile={theme.imageProfile || designProfile.imageTreatment}
         className={cn(
           "bt-website-renderer min-h-screen flex flex-col transition-colors duration-500",
           theme.style === "glassmorphic" || theme.style === "immersive"
@@ -1589,6 +1602,13 @@ export function WebsiteRenderer({
         :root {
           --primary: ${theme.primaryColor};
           --secondary: ${theme.secondaryColor};
+          --bt-display-font: ${designProfile.displayFont};
+          --bt-body-font: ${designProfile.bodyFont};
+          --bt-section-padding: ${spacingTokens.section};
+          --bt-grid-gap: ${spacingTokens.gap};
+          --bt-content-width: ${spacingTokens.content};
+          --bt-motion-duration: ${motionTokens.duration};
+          --bt-motion-easing: ${motionTokens.easing};
           --font-serif: 'Playfair Display', serif;
           --font-display: 'Space Grotesk', sans-serif;
           --font-romantic: 'Fraunces', serif;
@@ -1618,6 +1638,36 @@ export function WebsiteRenderer({
 
         .bt-website-renderer {
           container-type: inline-size;
+          --bt-radius: ${designProfile.radii === "sharp" ? "0.5rem" : designProfile.radii === "round" ? "1.5rem" : "1rem"};
+        }
+
+        .bt-website-renderer main > section {
+          scroll-margin-top: 6rem;
+        }
+        .bt-website-renderer main > section h1,
+        .bt-website-renderer main > section h2,
+        .bt-website-renderer main > section h3 {
+          font-family: var(--bt-display-font, inherit);
+          text-wrap: balance;
+        }
+        .bt-website-renderer main > section p {
+          max-width: 72ch;
+        }
+        .bt-website-renderer[data-motion-profile="none"] *,
+        .bt-website-renderer[data-motion-profile="subtle"] * {
+          animation-duration: var(--bt-motion-duration);
+          transition-duration: var(--bt-motion-duration);
+        }
+        .bt-website-renderer[data-motion-profile="expressive"] main > section:nth-child(even) {
+          --bt-section-shift: 0.5rem;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .bt-website-renderer *, .bt-website-renderer *::before, .bt-website-renderer *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+          }
         }
 
         .bt-website-renderer h1,

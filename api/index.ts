@@ -66,7 +66,8 @@ import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recor
 import { parseProspectCsv } from "../src/lib/prospectImport.js";
 import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS } from "../src/lib/commercialPricing.js";
 import { DEFAULT_LAUNCH_FLAGS, normalizeLaunchFlags, type LaunchFlags } from "../src/lib/launchFlags.js";
-import { buildInternalContentPrompt, INTERNAL_CONTENT_SYSTEM_PROMPT, InternalContentBriefSchema, parseInternalContentDraft } from "../src/lib/internalAiContentEngine.js";
+import { buildInternalContentPrompt, INTERNAL_CONTENT_SYSTEM_PROMPT, InternalContentBriefSchema, parseInternalContentDraft, buildHumaniseContentPrompt, HUMANISE_CONTENT_SYSTEM_PROMPT, parseHumaniseContentDraft } from "../src/lib/internalAiContentEngine.js";
+import { buildDesignDirectionPrompt, DESIGN_DIRECTOR_SYSTEM_PROMPT, parseDesignDirection } from "../src/lib/designDirector.js";
 
 dotenv.config();
 initServerObservability();
@@ -3120,7 +3121,7 @@ async function startServer() {
     }
     let query = supabaseAdmin.from("ai_generation_logs")
       .select("id,user_id,project_id,feature_key,provider,model,status,review_status,provenance,created_at")
-      .eq("feature_key", "internal_content_engine")
+      .in("feature_key", ["internal_content_engine", "internal_humanise_content", "internal_design_direction"])
       .order("created_at", { ascending: false })
       .limit(100);
     if (status !== "all") query = query.eq("review_status", status);
@@ -3129,16 +3130,136 @@ async function startServer() {
     return res.json({ drafts: data || [] });
   });
 
+  app.post(
+    "/api/admin/ai/humanise-content",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 20, keyPrefix: "internal-ai-humanise" }),
+    async (req: any, res: any) => {
+      const profile = await getProfileForUser(req.user.id).catch(() => null);
+      if (!profile || !["super_admin", "platform_staff"].includes(profile.role)) {
+        return res.status(403).json({ error: "Humanise Content is restricted to platform staff" });
+      }
+      const flags = await refreshLaunchFlags();
+      if (!flags.internal_ai_content_engine) {
+        return res.status(404).json({ error: "Internal content engine is not enabled" });
+      }
+      const body = validateBody(z.object({
+        businessId: UUID_SCHEMA.optional().nullable(),
+        input: z.object({
+          businessName: z.string().trim().min(1).max(160),
+          industry: z.string().trim().min(1).max(120),
+          verifiedFacts: z.array(z.string().trim().min(1).max(300)).max(30).default([]),
+          headline: z.string().trim().max(180).optional(),
+          body: z.string().trim().max(4000).optional(),
+          cta: z.string().trim().max(80).optional(),
+        }),
+      }), req, res);
+      if (!body) return;
+      const usableKey = (value: unknown) => typeof value === "string" && value.trim().length >= 10 && !/TODO|PLACEHOLDER|YOUR_|^MY_|^GEMINI_/i.test(value.trim());
+      const providers: Array<{ name: "openai" | "google" | "deepseek"; key: string }> = [
+        { name: "openai", key: usableKey(process.env.OPENAI_API_KEY) ? String(process.env.OPENAI_API_KEY).trim() : "" },
+        { name: "google", key: usableKey(process.env.GEMINI_API_KEY) ? String(process.env.GEMINI_API_KEY).trim() : "" },
+        { name: "deepseek", key: usableKey(process.env.DEEPSEEK_API_KEY) ? String(process.env.DEEPSEEK_API_KEY).trim() : "" },
+      ].filter((item): item is { name: "openai" | "google" | "deepseek"; key: string } => Boolean(item.key));
+      if (!providers.length) return res.status(503).json({ error: "No internal AI provider is configured" });
+      const provider = providers[0];
+      try {
+        const request = { prompt: buildHumaniseContentPrompt(body.input), systemMessage: HUMANISE_CONTENT_SYSTEM_PROMPT, temperature: 0.15, maxTokens: 1400, isJson: true };
+        const response = provider.name === "openai"
+          ? await callOpenAI(provider.key, request, "gpt-4o-mini")
+          : provider.name === "google"
+            ? await callGemini(provider.key, request, "gemini-1.5-flash")
+            : await callDeepSeek(provider.key, request, "deepseek-chat");
+        const draft = parseHumaniseContentDraft(response.text);
+        const { data: log } = await supabaseAdmin.from("ai_generation_logs").insert({
+          user_id: req.user.id,
+          project_id: body.businessId || null,
+          feature_key: "internal_humanise_content",
+          provider: provider.name,
+          model: provider.name === "openai" ? "gpt-4o-mini" : provider.name === "google" ? "gemini-1.5-flash" : "deepseek-chat",
+          prompt_tokens: response.usage.promptTokens,
+          output_tokens: response.usage.completionTokens,
+          status: "completed",
+          review_status: "draft",
+          provenance: { verifiedFacts: body.input.verifiedFacts, businessId: body.businessId || null, generatedBy: req.user.id, action: "humanise_content" },
+        }).select("id,created_at,review_status").maybeSingle();
+        return res.status(201).json({ draft, generationId: log?.id || null, reviewStatus: "draft", provider: provider.name });
+      } catch (error: any) {
+        captureServerError(error, { requestId: req.requestId, phase: "internal_ai_humanise_content" });
+        return res.status(502).json({ error: "Humanise Content draft failed. No customer content was changed." });
+      }
+    },
+  );
+
+  app.post(
+    "/api/admin/ai/design-direction",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 20, keyPrefix: "internal-ai-design-direction" }),
+    async (req: any, res: any) => {
+      const profile = await getProfileForUser(req.user.id).catch(() => null);
+      if (!profile || !["super_admin", "platform_staff"].includes(profile.role)) {
+        return res.status(403).json({ error: "Design direction is restricted to platform staff" });
+      }
+      const flags = await refreshLaunchFlags();
+      if (!flags.internal_ai_content_engine) return res.status(404).json({ error: "Internal AI engine is not enabled" });
+      const body = validateBody(z.object({
+        businessId: UUID_SCHEMA.optional().nullable(),
+        input: z.object({
+          industry: z.string().trim().min(1).max(120),
+          businessName: z.string().trim().min(1).max(160),
+          targetCustomer: z.string().trim().max(200).optional(),
+          services: z.array(z.string().trim().min(1).max(120)).max(20).optional().default([]),
+          photographyAvailable: z.boolean().optional().default(false),
+          goal: z.string().trim().max(160).optional(),
+        }),
+      }), req, res);
+      if (!body) return;
+      const usableKey = (value: unknown) => typeof value === "string" && value.trim().length >= 10 && !/TODO|PLACEHOLDER|YOUR_|^MY_|^GEMINI_/i.test(value.trim());
+      const providers: Array<{ name: "openai" | "google" | "deepseek"; key: string }> = [
+        { name: "openai", key: usableKey(process.env.OPENAI_API_KEY) ? String(process.env.OPENAI_API_KEY).trim() : "" },
+        { name: "google", key: usableKey(process.env.GEMINI_API_KEY) ? String(process.env.GEMINI_API_KEY).trim() : "" },
+        { name: "deepseek", key: usableKey(process.env.DEEPSEEK_API_KEY) ? String(process.env.DEEPSEEK_API_KEY).trim() : "" },
+      ].filter((item): item is { name: "openai" | "google" | "deepseek"; key: string } => Boolean(item.key));
+      if (!providers.length) return res.status(503).json({ error: "No internal AI provider is configured" });
+      const provider = providers[0];
+      try {
+        const request = { prompt: buildDesignDirectionPrompt(body.input), systemMessage: DESIGN_DIRECTOR_SYSTEM_PROMPT, temperature: 0.1, maxTokens: 1200, isJson: true };
+        const response = provider.name === "openai"
+          ? await callOpenAI(provider.key, request, "gpt-4o-mini")
+          : provider.name === "google"
+            ? await callGemini(provider.key, request, "gemini-1.5-flash")
+            : await callDeepSeek(provider.key, request, "deepseek-chat");
+        const direction = parseDesignDirection(response.text);
+        const { data: log } = await supabaseAdmin.from("ai_generation_logs").insert({
+          user_id: req.user.id,
+          project_id: body.businessId || null,
+          feature_key: "internal_design_direction",
+          provider: provider.name,
+          model: provider.name === "openai" ? "gpt-4o-mini" : provider.name === "google" ? "gemini-1.5-flash" : "deepseek-chat",
+          prompt_tokens: response.usage.promptTokens,
+          output_tokens: response.usage.completionTokens,
+          status: "completed",
+          review_status: "draft",
+          provenance: { businessId: body.businessId || null, generatedBy: req.user.id, action: "design_direction" },
+        }).select("id,created_at,review_status").maybeSingle();
+        return res.status(201).json({ direction, generationId: log?.id || null, reviewStatus: "draft", provider: provider.name });
+      } catch (error: any) {
+        captureServerError(error, { requestId: req.requestId, phase: "internal_ai_design_direction" });
+        return res.status(502).json({ error: "Design direction draft failed. No website configuration was changed." });
+      }
+    },
+  );
+
   app.patch("/api/admin/ai/content-drafts/:id", authenticate, superAdminOnly, async (req: any, res: any) => {
     const id = String(req.params.id || "");
     if (!UUID_SCHEMA.safeParse(id).success) return res.status(400).json({ error: "Invalid draft" });
     const body = validateBody(z.object({ reviewStatus: z.enum(["draft", "approved", "rejected", "published"]) }), req, res);
     if (!body) return;
     if (body.reviewStatus === "published") {
-      const { data: draft } = await supabaseAdmin.from("ai_generation_logs").select("provenance,review_status").eq("id", id).eq("feature_key", "internal_content_engine").maybeSingle();
+      const { data: draft } = await supabaseAdmin.from("ai_generation_logs").select("provenance,review_status").eq("id", id).in("feature_key", ["internal_content_engine", "internal_humanise_content", "internal_design_direction"]).maybeSingle();
       if (!draft || draft.review_status !== "approved") return res.status(409).json({ error: "Only an approved internal draft can be published" });
     }
-    const { data, error } = await supabaseAdmin.from("ai_generation_logs").update({ review_status: body.reviewStatus }).eq("id", id).eq("feature_key", "internal_content_engine").select("id,review_status,created_at").maybeSingle();
+    const { data, error } = await supabaseAdmin.from("ai_generation_logs").update({ review_status: body.reviewStatus }).eq("id", id).in("feature_key", ["internal_content_engine", "internal_humanise_content", "internal_design_direction"]).select("id,review_status,created_at").maybeSingle();
     if (error || !data) return res.status(404).json({ error: "Draft not found" });
     return res.json({ draft: data });
   });

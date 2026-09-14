@@ -20,10 +20,21 @@ export const InternalContentDraftSchema = z.object({
   claimsToVerify: z.array(z.string().trim().max(300)).max(30),
 });
 
+export const HumaniseContentDraftSchema = z.object({
+  headline: z.string().trim().max(180),
+  body: z.string().trim().max(4000),
+  cta: z.string().trim().max(80),
+  edits: z.array(z.string().trim().max(240)).max(30),
+  claimsToVerify: z.array(z.string().trim().max(300)).max(30),
+});
+
 export type InternalContentBrief = z.infer<typeof InternalContentBriefSchema>;
 export type InternalContentDraft = z.infer<typeof InternalContentDraftSchema>;
+export type HumaniseContentDraft = z.infer<typeof HumaniseContentDraftSchema>;
 
 export const INTERNAL_CONTENT_SYSTEM_PROMPT = `You are Bennie Studio's internal content drafting assistant. Produce a concise first draft for a real service business. Use only the supplied verified facts. Never invent reviews, awards, certifications, years in business, staff, locations, customer counts, rankings, guarantees, or performance results. If a useful claim is not verified, put it in claimsToVerify and do not state it as fact. Output JSON only with headline, subheadline, body, cta, seoTitle, seoDescription, claimsToVerify.`;
+
+export const HUMANISE_CONTENT_SYSTEM_PROMPT = `You are Bennie Studio's internal copy editor. Rewrite the supplied draft so it sounds natural, specific and professional for the stated industry. Remove clichés, vague adjectives, inflated claims, repetitive structure and AI fingerprints. Preserve verified facts and meaning. Never invent proof, pricing, awards, locations, reviews or outcomes. Return JSON only with headline, body, cta, edits, claimsToVerify. This is a DRAFT for human review and must never be published automatically.`;
 
 export function buildInternalContentPrompt(brief: InternalContentBrief) {
   return JSON.stringify({ task: "draft service-business homepage copy", brief }, null, 2);
@@ -32,4 +43,20 @@ export function buildInternalContentPrompt(brief: InternalContentBrief) {
 export function parseInternalContentDraft(value: unknown): InternalContentDraft {
   const raw = typeof value === "string" ? JSON.parse(value) : value;
   return InternalContentDraftSchema.parse(raw);
+}
+
+export function buildHumaniseContentPrompt(input: {
+  businessName: string;
+  industry: string;
+  verifiedFacts: string[];
+  headline?: string;
+  body?: string;
+  cta?: string;
+}) {
+  return JSON.stringify({ task: "humanise website copy", input }, null, 2);
+}
+
+export function parseHumaniseContentDraft(value: unknown): HumaniseContentDraft {
+  const raw = typeof value === "string" ? JSON.parse(value) : value;
+  return HumaniseContentDraftSchema.parse(raw);
 }
