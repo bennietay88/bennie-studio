@@ -50,6 +50,14 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   };
 
   const handleSelect = async (product: CommercialProduct) => {
+    const price = getCommercialPrice(product, market);
+    // Markets without live recurring Stripe IDs stay consultation-led. This
+    // prevents a public button from sending a customer into a checkout that
+    // the selected market cannot complete yet.
+    if (product.salesMotion === "self_serve" && !price?.monthlyConfigured) {
+      navigate(`/book-demo?product=${product.slug}&market=${market}`);
+      return;
+    }
     if (onSelectPlan || product.salesMotion !== "self_serve" || (product.slug === "managed-website" && !profile)) return startCheckout(product);
     setPendingProduct(product);
   };
