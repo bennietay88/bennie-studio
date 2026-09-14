@@ -1988,7 +1988,7 @@ export function WebsiteEditor({
     // 2. Page Specific Sections
     if (type === "about") {
       const story = createSectionFromTemplate("about");
-      story.content.text = `## Our Story\n\nFounded with a vision to redefine ${business?.industry || "our industry"}, we've grown from a small team to a leading provider of innovative solutions. Our journey is defined by a commitment to quality, integrity, and our clients' success.`;
+      story.content.text = `## Our Story\n\nAdd the verified story, experience, and differentiators for this business here. Replace this draft with customer-approved facts before publishing.`;
 
       const vision = createSectionFromTemplate("vision");
       const team = createSectionFromTemplate("team");
@@ -2312,19 +2312,19 @@ export function WebsiteEditor({
           title: "Why Choose Us?",
           items: [
             {
-              title: "Expert Team",
+              title: "Team experience",
               description:
-                "Our professionals are highly trained and experienced in delivering excellence.",
+                "Add verified team experience and qualifications here.",
             },
             {
-              title: "Quality Service",
+              title: "Service standard",
               description:
-                "We provide top-notch solutions tailored specifically to your business needs.",
+                "Describe the specific service standard this business can substantiate.",
             },
             {
-              title: "24/7 Support",
+              title: "Responsive support",
               description:
-                "Our dedicated support team is always available to help you succeed.",
+                "Add the verified support hours and response expectations here.",
             },
           ],
         },

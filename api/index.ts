@@ -881,6 +881,28 @@ async function startServer() {
     }
   };
 
+  const aiAccessGuard = async (req: any, res: any, next: any) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      const flags = await refreshLaunchFlags();
+      const isStaff = ["super_admin", "platform_staff"].includes(String(profile.role));
+      if (isStaff) {
+        if (!flags.internal_ai_content_engine) return res.status(403).json({ error: "INTERNAL_AI_DISABLED", code: "INTERNAL_AI_DISABLED" });
+        req.aiInternal = true;
+        return next();
+      }
+      if (!flags.customer_ai_controls) return res.status(403).json({ error: "CUSTOMER_AI_DISABLED", code: "CUSTOMER_AI_DISABLED" });
+      const { data: subscription } = await supabaseAdmin.from("user_subscriptions").select("plans(monthly_credit_limit,chatgpt_enabled)").eq("user_id", req.user.id).in("status", ["active", "trialing"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const plan = (subscription as any)?.plans;
+      if (!plan || Number(plan.monthly_credit_limit || 0) <= 0) return res.status(403).json({ error: "CUSTOMER_AI_DISABLED", code: "CUSTOMER_AI_DISABLED" });
+      req.aiInternal = false;
+      return next();
+    } catch (error) {
+      console.error("AI access guard failed", error);
+      return res.status(503).json({ error: "AI_ACCESS_CHECK_UNAVAILABLE" });
+    }
+  };
+
   app.get(
     "/api/admin/affiliates/unpaid-total",
     authenticate,
@@ -1059,7 +1081,7 @@ async function startServer() {
   app.post(
     "/api/webhook",
     express.raw({ type: "application/json" }),
-    async (req, res) => {
+    async (req: any, res: any) => {
       await refreshPlatformSettings();
       const sig = req.headers["stripe-signature"];
       const businessIdParam = req.query.businessId as string;
@@ -1100,8 +1122,16 @@ async function startServer() {
       console.log(
         `[Stripe Webhook] Received event: ${event.type} (${event.id})`,
       );
-      const { data: processedWebhook } = await supabaseAdmin.from("tracking_events").select("id").eq("event_type", "stripe_webhook_completed").contains("metadata", { stripeEventId: event.id }).limit(1).maybeSingle();
-      if (processedWebhook) return res.json({ received: true, duplicate: true });
+      const { data: existingWebhook } = await supabaseAdmin.from("stripe_webhook_events").select("status").eq("stripe_event_id", event.id).maybeSingle();
+      if (existingWebhook?.status === "completed" || existingWebhook?.status === "processing") return res.json({ received: true, duplicate: true });
+      const { error: claimError } = existingWebhook?.status === "failed"
+        ? (await supabaseAdmin.from("stripe_webhook_events").update({ status: "processing", started_at: new Date().toISOString(), error_message: null }).eq("stripe_event_id", event.id).eq("status", "failed"))
+        : (await supabaseAdmin.from("stripe_webhook_events").insert({ stripe_event_id: event.id, event_type: event.type, status: "processing", metadata: { source: "stripe" } }));
+      if (claimError) {
+        if ((claimError as any).code === "23505") return res.json({ received: true, duplicate: true });
+        console.error("Stripe webhook idempotency claim failed", claimError);
+        return res.status(503).json({ error: "Webhook processing temporarily unavailable" });
+      }
       switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
@@ -1641,6 +1671,7 @@ async function startServer() {
       }).then(({ error }) => {
         if (error) console.warn("Stripe webhook completion log skipped:", error.message);
       });
+      await supabaseAdmin.from("stripe_webhook_events").update({ status: "completed", completed_at: new Date().toISOString() }).eq("stripe_event_id", event.id);
 
       res.json({ received: true });
     },
@@ -3272,7 +3303,7 @@ async function startServer() {
       const { data: businessOwner } = await supabaseAdmin.from("businesses").select("owner_id").eq("id", body.businessId).maybeSingle();
       const subscriptionUserId = businessOwner?.owner_id || req.user.id;
       const { data: subscription, error } = await supabaseAdmin.from("user_subscriptions")
-        .select("id,status,minimum_term_end_date,renewal_state,stripe_subscription_id")
+        .select("id,status,minimum_term_end_date,renewal_state,cancel_at_period_end,stripe_subscription_id")
         .eq("user_id", subscriptionUserId)
         .in("status", ["active", "trialing", "past_due"])
         .order("created_at", { ascending: false })
@@ -3282,15 +3313,34 @@ async function startServer() {
       const today = new Date();
       const termEnd = subscription.minimum_term_end_date ? new Date(`${subscription.minimum_term_end_date}T00:00:00Z`) : null;
       const beforeMinimumTerm = Boolean(termEnd && termEnd.getTime() > today.getTime());
+      const alreadyRequested = subscription.renewal_state === "cancellation_requested" && subscription.cancel_at_period_end === true;
+      if (!beforeMinimumTerm && !subscription.stripe_subscription_id && !alreadyRequested) {
+        return res.status(409).json({ error: "Subscription is missing its Stripe subscription reference", code: "STRIPE_SUBSCRIPTION_REFERENCE_MISSING" });
+      }
+      if (!beforeMinimumTerm && subscription.stripe_subscription_id && !alreadyRequested) {
+        try {
+          const stripe = await getStripe();
+          const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id);
+          if (stripeSubscription.status === "canceled") {
+            await supabaseAdmin.from("user_subscriptions").update({ status: "canceled", renewal_state: "cancelled", cancel_at_period_end: true, cancellation_requested_at: today.toISOString(), cancellation_reason: body.reason }).eq("id", subscription.id);
+            return res.status(200).json({ beforeMinimumTerm: false, message: "Your subscription is already canceled." });
+          }
+          const updatedStripe = await stripe.subscriptions.update(subscription.stripe_subscription_id, { cancel_at_period_end: true });
+          if (!updatedStripe.cancel_at_period_end) return res.status(502).json({ error: "Stripe did not confirm cancellation at period end", code: "STRIPE_CANCELLATION_NOT_CONFIRMED" });
+        } catch (stripeError: any) {
+          console.error("Stripe cancellation request failed", stripeError);
+          return res.status(502).json({ error: "Cancellation could not be confirmed with Stripe", code: "STRIPE_CANCELLATION_FAILED" });
+        }
+      }
       const { data: updated, error: updateError } = await supabaseAdmin.from("user_subscriptions").update({
         renewal_state: "cancellation_requested",
         cancellation_requested_at: today.toISOString(),
-        cancel_at_period_end: true,
+        cancel_at_period_end: !beforeMinimumTerm,
         cancellation_reason: body.reason,
       }).eq("id", subscription.id).select("id,renewal_state,cancellation_requested_at,cancel_at_period_end,minimum_term_end_date").single();
       if (updateError) return res.status(503).json({ error: "Cancellation request could not be saved" });
       await supabaseAdmin.from("billing_lifecycle_events").insert({ business_id: body.businessId, event_type: "cancellation_requested", status: "open", source: "customer", metadata: { reason: body.reason, beforeMinimumTerm } });
-      return res.status(202).json({ request: updated, beforeMinimumTerm, message: beforeMinimumTerm ? "Your request is recorded and will be reviewed against the minimum term." : "Your subscription will end at the current billing period." });
+      return res.status(alreadyRequested ? 200 : 202).json({ request: updated, beforeMinimumTerm, message: beforeMinimumTerm ? "Your request is recorded and will be reviewed against the minimum term." : "Your subscription will end at the current billing period." });
     } catch (error: any) {
       return handleAccessError(res, error);
     }
@@ -3300,6 +3350,7 @@ async function startServer() {
   app.post(
     "/api/ai/generate",
     authenticate,
+    aiAccessGuard,
     rateLimit({
       windowMs: 60 * 1000,
       max: 30,
@@ -3435,7 +3486,10 @@ async function startServer() {
       // Validate and deduct atomically only after a usable provider has been resolved.
       
       let deductionResult: any = null;
-      const { data: rpcResult, error: deductionError } = await supabaseAdmin.rpc("validate_and_deduct_credits", {
+      if (req.aiInternal) {
+        deductionResult = { success: true, credits_charged: 0, internal: true };
+      }
+      const { data: rpcResult, error: deductionError } = req.aiInternal ? { data: null, error: null } : await supabaseAdmin.rpc("validate_and_deduct_credits", {
         p_user_id: userId,
         p_feature_key: feature_key,
         p_is_chatgpt: isChatGPTRequired
@@ -3454,7 +3508,7 @@ async function startServer() {
         });
       }
 
-      deductionResult = rpcResult;
+      if (!req.aiInternal) deductionResult = rpcResult;
       if (!deductionResult) {
         captureServerError(new Error("AI credit deduction returned no result"), {
           requestId: req.requestId,
@@ -3467,7 +3521,7 @@ async function startServer() {
         });
       }
 
-      if (deductionResult.success === true && Number(deductionResult.credits_charged || 0) <= 0) {
+      if (!deductionResult.internal && deductionResult.success === true && Number(deductionResult.credits_charged || 0) <= 0) {
         captureServerError(new Error("AI credit deduction returned no charge"), {
           requestId: req.requestId,
           userId,
@@ -3504,6 +3558,7 @@ async function startServer() {
       }
 
       const refundDeduction = async () => {
+        if (deductionResult.internal) return true;
         const { data: refundResult, error: refundError } = await supabaseAdmin.rpc("refund_ai_credits", {
           p_user_id: userId,
           p_feature_key: feature_key,
@@ -5041,7 +5096,7 @@ async function startServer() {
   });
 
   // AI Usage Status Route
-  app.get("/api/ai/usage", authenticate, async (req: any, res: any) => {
+  app.get("/api/ai/usage", authenticate, aiAccessGuard, async (req: any, res: any) => {
     const userId = req.user.id;
     try {
       const { data: balance, error: balanceError } = await supabaseAdmin
@@ -5080,6 +5135,7 @@ async function startServer() {
         .limit(10);
 
       res.json({
+        topupsEnabled: (await refreshLaunchFlags()).ai_credit_topups_enabled,
         balance: balance || defaultBalance,
         plan: (subscription as any)?.plans || null,
         dailyUsage: daily || { request_count: 0, credits_used: 0, chatgpt_action_count: 0 },
@@ -5094,6 +5150,7 @@ async function startServer() {
   app.post(
     "/api/ai/deepseek",
     authenticate,
+    aiAccessGuard,
     rateLimit({
       windowMs: 60 * 1000,
       max: 20,
@@ -5584,6 +5641,7 @@ async function startServer() {
       internalAiContentEngine: z.boolean().optional(),
       analyticsV2: z.boolean().optional(),
       customerAiControls: z.boolean().optional(),
+      aiCreditTopupsEnabled: z.boolean().optional(),
     }), req, res);
     if (!body) return;
     const current = await refreshLaunchFlags(true);
@@ -5592,6 +5650,7 @@ async function startServer() {
       internal_ai_content_engine: body.internalAiContentEngine ?? current.internal_ai_content_engine,
       analytics_v2: body.analyticsV2 ?? current.analytics_v2,
       customer_ai_controls: body.customerAiControls ?? current.customer_ai_controls,
+      ai_credit_topups_enabled: body.aiCreditTopupsEnabled ?? current.ai_credit_topups_enabled,
     });
     const { error } = await supabaseAdmin.from("settings").upsert({ id: "launch_flags", content: next, updated_at: new Date().toISOString() });
     if (error) return res.status(400).json({ error: "Launch flags could not be saved" });
@@ -5993,7 +6052,10 @@ async function startServer() {
 
     try {
       await assertBusinessAccess(req.user.id, businessId);
-      await refreshLaunchFlags();
+      const launchFlags = await refreshLaunchFlags();
+      if (checkoutBody.type === "credits" && !launchFlags.ai_credit_topups_enabled) {
+        return res.status(403).json({ error: "AI_CREDIT_TOPUPS_DISABLED", code: "AI_CREDIT_TOPUPS_DISABLED" });
+      }
       let configuredSetupPriceId: string | null = null;
       let isOneTimeCheckout = false;
       let minimumTermMonths = COMMERCIAL_DEFAULT_COMMITMENT_MONTHS;
@@ -6207,8 +6269,9 @@ async function startServer() {
 
   app.post(
     "/api/create-product-checkout",
+    authenticate,
     rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: "product-checkout" }),
-    async (req, res) => {
+    async (req: any, res: any) => {
     const productCheckoutBody = validateBody(
       z.object({
         productId: UUID_SCHEMA,
@@ -6224,6 +6287,9 @@ async function startServer() {
     const { productId, quantity, businessId, customerEmail } = productCheckoutBody;
 
     try {
+      await assertBusinessAccess(req.user.id, businessId);
+      const orderEmail = customerEmail || req.user.email;
+      if (!orderEmail) return res.status(400).json({ error: "A customer email is required" });
       // 1. Fetch product details from Supabase (to ensure valid price)
       const { data: product, error: productError } = await supabaseAdmin
         .from("products")
@@ -6253,7 +6319,7 @@ async function startServer() {
           business_id: businessId,
           total_amount: product.price * quantity,
           status: "pending",
-          customer_email: customerEmail || "guest@example.com",
+          customer_email: orderEmail,
           items: [
             {
               productId: product.id,

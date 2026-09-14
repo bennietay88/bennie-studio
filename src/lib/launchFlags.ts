@@ -11,6 +11,7 @@ export type LaunchFlags = {
   internal_ai_content_engine: boolean;
   analytics_v2: boolean;
   customer_ai_controls: boolean;
+  ai_credit_topups_enabled: boolean;
 };
 
 export const DEFAULT_LAUNCH_FLAGS: LaunchFlags = {
@@ -18,6 +19,7 @@ export const DEFAULT_LAUNCH_FLAGS: LaunchFlags = {
   internal_ai_content_engine: false,
   analytics_v2: false,
   customer_ai_controls: false,
+  ai_credit_topups_enabled: false,
 };
 
 export function normalizeLaunchFlags(value: unknown): LaunchFlags {
@@ -28,6 +30,7 @@ export function normalizeLaunchFlags(value: unknown): LaunchFlags {
     analytics_v2: input.analytics_v2 === true,
     // Kept false unless explicitly introduced in a future customer-facing release.
     customer_ai_controls: input.customer_ai_controls === true,
+    ai_credit_topups_enabled: input.ai_credit_topups_enabled === true,
   };
 }
 
