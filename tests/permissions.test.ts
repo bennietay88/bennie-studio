@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { hasCustomerCapability, hasSubscriptionAccess } from "../src/lib/permissions.ts";
+import { can, hasCustomerCapability, hasSubscriptionAccess } from "../src/lib/permissions.ts";
 
 test("customer capability matrix keeps staff away from billing/team administration", () => {
   assert.equal(hasCustomerCapability("business_admin", "manage_billing"), true);
@@ -16,4 +16,13 @@ test("subscription access is evaluated at the business level for every customer 
   assert.equal(hasSubscriptionAccess({ role: "client" }, trial), true);
   assert.equal(hasSubscriptionAccess({ role: "staff" }, { ...trial, trialEndsAt: Date.now() - 1 }), false);
   assert.equal(hasSubscriptionAccess({ role: "super_admin" }, null), true);
+});
+
+test("central can helper enforces role, tenant and feature gates", () => {
+  const business = { id: "b1", status: "active" as const, subscriptionStatus: "active" as const, trialEndsAt: 0 };
+  assert.equal(can("billing.manage", { profile: { role: "business_admin", businessId: "b1" }, business, businessId: "b1" }), true);
+  assert.equal(can("billing.manage", { profile: { role: "staff", businessId: "b1" }, business, businessId: "b1" }), false);
+  assert.equal(can("website.view", { profile: { role: "staff", businessId: "b2" }, business, businessId: "b1" }), false);
+  assert.equal(can("website.view", { profile: { role: "client", businessId: "b1" }, business, businessId: "b1", featureEnabled: false }), false);
+  assert.equal(can("commercial.manage", { profile: { role: "super_admin" }, business: null }), true);
 });

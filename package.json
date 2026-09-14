@@ -24,6 +24,7 @@
     "test:billing": "node --import tsx --test tests/billing-hardening.test.ts",
     "test:design": "node --import tsx --test tests/design-system.test.ts",
     "test:permissions": "node --import tsx --test tests/permissions.test.ts",
+    "test:operating-system": "node --import tsx --test tests/operating-system.test.ts",
     "smoke:live": "SMOKE_BASE_URL=https://app.bennietay.com node scripts/smoke.mjs",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
