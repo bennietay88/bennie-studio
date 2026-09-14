@@ -5714,6 +5714,7 @@ async function startServer() {
     if (error) return res.status(503).json({ error: "Commercial pricing is temporarily unavailable" });
     const products = (data || []).map((product: any) => {
       const price = Array.isArray(product.commercial_market_prices) ? product.commercial_market_prices[0] : product.commercial_market_prices;
+      const dynamicCheckoutAvailable = market !== "MY" && product.sales_motion === "self_serve" && price && Number(price.recurring_monthly_price || 0) > 0;
       return {
         id: product.id,
         slug: product.slug,
@@ -5735,13 +5736,14 @@ async function startServer() {
           minimumTermMonths: Number(price.minimum_term_months || COMMERCIAL_RECURRING_COMMITMENT_MONTHS),
           catalogueMode: "otc_mrc",
           recurringConfigStatus: price.recurring_config_status || "draft",
-          recurringConfigured: Boolean(
+          recurringConfigured: Boolean(dynamicCheckoutAvailable || (
             price.recurring_config_status === "live" &&
             price.recurring_stripe_monthly_price_id &&
-            price.recurring_stripe_setup_price_id,
-          ),
+            price.recurring_stripe_setup_price_id
+          )),
           oneTimeConfigured: Boolean(price.stripe_one_time_price_id),
-          monthlyConfigured: Boolean(price.recurring_config_status === "live" && price.recurring_stripe_monthly_price_id),
+          monthlyConfigured: Boolean(dynamicCheckoutAvailable || (price.recurring_config_status === "live" && price.recurring_stripe_monthly_price_id)),
+          dynamicCheckoutAvailable: Boolean(dynamicCheckoutAvailable),
           annualConfigured: Boolean(price.recurring_config_status === "live" && price.recurring_stripe_annual_price_id),
         } : null,
       };
