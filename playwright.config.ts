@@ -22,13 +22,19 @@ export default defineConfig({
   webServer: {
     command: `env VITE_SUPABASE_URL=https://e2e.supabase.co VITE_SUPABASE_ANON_KEY=e2e-anon-key npm run build && env E2E_TEST=true VITE_SUPABASE_URL=https://e2e.supabase.co VITE_SUPABASE_ANON_KEY=e2e-anon-key SUPABASE_SERVICE_ROLE_KEY=e2e-service-role-key STRIPE_SECRET_KEY=sk_test_e2e STRIPE_WEBHOOK_SECRET=whsec_e2e NODE_ENV=production HOST=127.0.0.1 PORT=${port} npm start`,
     url: `http://127.0.0.1:${port}`,
-    reuseExistingServer: !process.env.CI,
+    // Never reuse a server from a prior run: its environment variables may
+    // omit E2E_TEST and silently turn public fixture routes into DB calls.
+    reuseExistingServer: false,
     timeout: 120_000,
   },
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      // Prefer the installed Chrome channel on macOS. The bundled headless
+      // shell can be blocked by macOS Mach-port permissions, while the system
+      // browser is already approved for local automation and CI still falls
+      // back to the Chromium project browser.
+      use: { ...devices["Desktop Chrome"], channel: process.platform === "darwin" ? "chrome" : undefined },
     },
   ],
 });

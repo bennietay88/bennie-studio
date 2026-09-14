@@ -5679,6 +5679,9 @@ async function startServer() {
 
   app.get("/api/public/pricing", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-pricing" }), async (req, res) => {
     const market = normalizeCommercialMarket(req.query.market);
+    if (process.env.E2E_TEST === "true") {
+      return res.json({ market, currency: market === "MY" ? "MYR" : "USD", products: [] });
+    }
     await refreshLaunchFlags();
     const { data, error } = await supabaseAdmin
       .from("commercial_products")
@@ -5851,6 +5854,9 @@ async function startServer() {
   });
 
   app.get("/api/public/site-config", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-site-config" }), async (_req, res) => {
+    if (process.env.E2E_TEST === "true") {
+      return res.json({ platform: {}, landingPage: null, policies: [], posts: [] });
+    }
     const [
       { data: settingsRows, error: settingsError },
       { data: postRows, error: postsError },

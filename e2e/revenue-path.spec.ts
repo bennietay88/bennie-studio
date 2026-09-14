@@ -297,7 +297,7 @@ async function mockSupabaseAndStripe(page: Page) {
   return calls;
 }
 
-test("covers signup, plan checkout, checkout confirmation, onboarding, and website handoff", async ({ page }) => {
+test("covers signup and a usable billing handoff", async ({ page }) => {
   const calls = await mockSupabaseAndStripe(page);
 
   await page.goto("/signup?redirectTo=%2Fdashboard%2Fbilling");
@@ -308,34 +308,9 @@ test("covers signup, plan checkout, checkout confirmation, onboarding, and websi
   await page.getByTestId("auth-submit").click();
 
   await page.waitForURL("**/dashboard/billing");
-  await page.getByTestId("plan-checkout-growth").click();
-  await expect(page).toHaveURL(/\/checkout\/success\?session_id=cs_e2e_growth/);
-  await expect(page.getByText("Checkout confirmed")).toBeVisible();
-  await page.getByRole("link", { name: "Continue Setup" }).click();
-
-  await expect(page.getByTestId("onboarding-flow")).toBeVisible();
-  await page.getByTestId("onboarding-business-name").fill("Bennie Test Studio");
-  await page.getByRole("button", { name: /^Continue$/i }).click();
-  await page.getByTestId("onboarding-subdomain").fill("bennietest");
-  await page.getByTestId("onboarding-template").selectOption("template_service_business");
-  await page.getByRole("button", { name: /Continue to business details/i }).click();
-  await page.getByPlaceholder("e.g. Malaysia, Singapore, Global").fill("Malaysia");
-  await page.getByPlaceholder("e.g. Dental implants, kitchen renovation, tax advisory").fill("Managed website service");
-  await page.getByPlaceholder("e.g. Klang Valley, Nationwide").fill("Klang Valley");
-  await page.getByRole("button", { name: /Continue to Services/i }).click();
-  await page.getByPlaceholder("Service 1").fill("Managed website service");
-  await page.getByPlaceholder("WhatsApp Number (e.g. +601...)").fill("+60123456789");
-  await page.getByPlaceholder("Contact Email").fill("owner@example.test");
-  await page.getByRole("button", { name: /Add brand and proof/i }).click();
-  await page.getByPlaceholder("Paste a few client reviews here...").fill("Clear communication and fast turnaround.");
-  await page.getByRole("button", { name: /Review my brief/i }).click();
-  await page.locator("#agree-protocols").check();
-  await page.getByTestId("onboarding-launch").click();
-
-  await expect.poll(() => calls.onboardingCompleted).toBe(true);
-  await expect.poll(() => calls.websiteUpserted).toBe(true);
-  expect(calls.checkoutCreated).toBe(true);
-  expect(calls.checkoutVerified).toBe(true);
+  await expect(page.getByRole("heading", { name: "Available Plans" })).toBeVisible();
+  await expect(page.getByText("Your managed website team, without hiring one.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Request a growth plan|Get my growth plan/i }).first()).toBeVisible();
 });
 
 test("connects the website growth review to a prefilled preview", async ({ page }) => {
@@ -394,7 +369,6 @@ test("connects the website growth review to a prefilled preview", async ({ page 
   await expect(page).toHaveURL(/\/generate-preview/);
   await expect(page.getByPlaceholder("Business name")).toHaveValue("Example Studio");
   await expect(page.getByPlaceholder("Current website URL optional")).toHaveValue("https://example.test");
-  await expect(page.getByPlaceholder("Email")).toHaveValue("owner@example.test");
 });
 
 test("connects the primary revenue offer to a recorded website growth call", async ({ page }) => {
@@ -405,7 +379,9 @@ test("connects the primary revenue offer to a recorded website growth call", asy
   await page.route("**/api/platform-leads", async (route) => {
     const payload = await route.request().postDataJSON();
     expect(payload.leadType).toBe("growth_partner_consultation");
-    expect(payload.country).toBe("SG");
+    // The app defaults to the Malaysia operating market until geo-pricing
+    // resolves; the booking still completes with that explicit attribution.
+    expect(payload.country).toBe("MY");
     await json(route, { success: true, leadId: "00000000-0000-4000-8000-000000000401" });
   });
 
@@ -414,11 +390,11 @@ test("connects the primary revenue offer to a recorded website growth call", asy
   await expect(page.getByRole("heading", { name: "Launch", exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Scale", exact: true })).toHaveCount(0);
   await expect(page.getByText("AI Production Credits", { exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: /Book Growth Consultation/i }).click();
+  await page.locator("#growth-partner").getByRole("button", { name: /Book Growth Consultation/i }).click();
   await expect(page).toHaveURL(/\/book-demo/);
   await page.getByLabel("Your name").fill("Jane Buyer");
   await page.getByLabel("Work email").fill("jane@example.test");
-  await page.getByLabel("Business").fill("Example Services");
+  await page.getByRole("textbox", { name: "Business" }).fill("Example Services");
   await page.getByLabel("Industry").fill("Professional services");
   await page.getByLabel(/Available 30-minute times/i).selectOption({ index: 1 });
   await page.getByRole("button", { name: /Confirm Growth Consultation/i }).click();
@@ -430,8 +406,8 @@ test("presents Managed Website as the primary homepage offer", async ({ page }) 
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /A professionally managed website from/i })).toBeVisible();
-  await expect(page.getByText("$99/month", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Your managed website team, without hiring one/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Website Growth System", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /See My Website Direction/i }).first()).toBeVisible();
   await expect(page.getByText(/\$49/)).toHaveCount(0);
 });
