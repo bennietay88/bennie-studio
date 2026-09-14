@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DESIGN_PROFILES, APPROVED_VARIANTS, type DesignProfileId, type MotionProfileId, type TypographyProfileId, type SpacingProfileId } from "../constants/designProfiles";
+import { DESIGN_PROFILES, APPROVED_VARIANTS, type DesignProfileId, type MotionProfileId, type TypographyProfileId, type SpacingProfileId } from "../constants/designProfiles.js";
 
 export const DesignDirectionSchema = z.object({
   designProfile: z.enum(["editorial_luxury", "modern_minimal", "bold_contemporary", "trust_authority", "craft_organic"]),
