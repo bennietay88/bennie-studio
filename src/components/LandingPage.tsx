@@ -370,7 +370,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       <Helmet>
-        <title>{`Website build packages from ${managedBuildLabel} one-time | ${salesPageTitle}`}</title>
+        <title>{`Managed website growth from ${managedWebsitePrice?.currency || "MYR"} ${managedBuildLabel}/month | ${salesPageTitle}`}</title>
         <meta name="description" content="Your business website built, hosted, maintained and continuously managed to help turn more visitors into enquiries." />
         <link rel="canonical" href="https://app.bennietay.com/" />
 
@@ -450,7 +450,7 @@ export default function LandingPage() {
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100 mb-8 shadow-sm">
                 <Zap className="h-4 w-4 text-indigo-600 animate-pulse" />
                 <span className="text-xs sm:text-sm font-semibold text-indigo-600 tracking-wide uppercase">
-                  WEBSITE BUILD PACKAGES
+                  MANAGED WEBSITE GROWTH
                 </span>
               </div>
             </motion.div>
@@ -459,15 +459,15 @@ export default function LandingPage() {
               variants={fadeInUp}
               className="mx-auto mb-4 max-w-[21rem] whitespace-normal break-words text-3xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:max-w-3xl sm:text-5xl lg:mx-0 lg:text-6xl"
             >
-              A professional website built around your enquiries from{" "}
-              <span className="text-indigo-600">{managedBuildLabel} one-time</span>
+              Your managed website team, without hiring one. Starting at{" "}
+              <span className="text-indigo-600">{managedBuildLabel}/month</span>
             </motion.h1>
 
             <motion.p
               variants={fadeInUp}
               className="mx-auto mb-8 max-w-[21rem] whitespace-normal break-words text-base font-semibold leading-relaxed text-slate-700 sm:max-w-3xl sm:text-xl lg:mx-0"
             >
-              Choose a clear, fixed-scope website package. We plan, design, build and launch the pages, content structure and enquiry paths your service business needs.
+              We plan, build, host, manage and improve a conversion-focused website around your offer and the enquiries you want.
             </motion.p>
 
             {c.hero.valueProp && (
@@ -476,7 +476,7 @@ export default function LandingPage() {
                 className="mx-auto mb-8 flex w-full max-w-[21rem] items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-3 text-left sm:max-w-3xl lg:mx-0 lg:w-fit"
               >
                 <div className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse" />
-                <span className="text-sm font-bold text-slate-900 tracking-tight">One-time build · Managed hosting included · Clear scope and customer approval before launch</span>
+                <span className="text-sm font-bold text-slate-900 tracking-tight">Setup + monthly managed service · 12-month initial commitment · managed hosting included</span>
               </motion.div>
             )}
 
@@ -1167,7 +1167,7 @@ export default function LandingPage() {
               Start with the managed website your business needs now.
             </h2>
             <p className="mx-auto max-w-3xl text-lg font-semibold leading-8 text-slate-300">
-              Begin with Managed Website, then add Website Growth when ongoing conversion work and local SEO expansion become useful.
+              Every plan includes managed hosting, support and continuous improvement. Choose the level of website scope and growth direction your business needs.
             </p>
             <p className="mt-5 inline-flex max-w-4xl rounded-full border border-indigo-400/30 bg-indigo-500/10 px-5 py-2 text-xs font-black uppercase leading-5 tracking-[0.14em] text-indigo-100 sm:text-sm">
                 {c.pricing?.trialNote || "Start with a free, limited website preview before choosing a managed service."}
@@ -1178,7 +1178,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Premium engagement follows the lower-entry Managed Website offer. */}
+      {/* Premium engagement for businesses ready for deeper growth direction. */}
       <section id="growth-partner" className="relative overflow-hidden bg-indigo-600 px-5 py-16 text-white lg:py-24">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(255,255,255,0.18),transparent_30%),radial-gradient(circle_at_90%_80%,rgba(15,23,42,0.28),transparent_35%)]" />
         <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.12fr_0.88fr] lg:items-center">
@@ -1199,11 +1199,11 @@ export default function LandingPage() {
           <div className="min-w-0 rounded-[2.5rem] border border-white/20 bg-slate-950 p-7 shadow-2xl sm:p-9">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Growth Partner</p>
             <p className="mt-5 break-words text-4xl font-black tracking-tight text-white sm:text-5xl">
-              {growthPartnerBuildLabel}<span className="text-base text-slate-400"> one-time</span>
+              {growthPartnerBuildLabel}<span className="text-base text-slate-400">/month</span>
             </p>
-            <p className="mt-3 text-sm font-bold text-slate-300">Fixed-scope build with consultation-led planning.</p>
+            <p className="mt-3 text-sm font-bold text-slate-300">Setup fee + monthly recurring service · 12-month minimum.</p>
             <p className="mt-5 rounded-2xl bg-white/10 p-4 text-sm font-semibold leading-6 text-slate-200">
-              Premium scope and commercial fit are confirmed during a consultation. This is not the default starting option for most businesses.
+              Premium scope and commercial fit are confirmed during a consultation. We keep the platform standardized so ongoing servicing remains efficient.
             </p>
             <Button
               onClick={() => {

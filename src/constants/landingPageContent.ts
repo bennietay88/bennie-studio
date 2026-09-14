@@ -56,7 +56,7 @@ export const DEFAULT_LANDING_CONTENT = {
   },
   launchModels: {
     title: "One Managed Website Service, Built Around Enquiries",
-    subtitle: "Bennie Studio plans, builds, hosts and maintains the website so you can focus on the business rather than managing website software.",
+    subtitle: "Bennie Studio plans, builds, hosts, manages and continuously improves the website so you can focus on the business rather than website software.",
     items: [
       {
         title: "Website Growth System",
@@ -199,7 +199,7 @@ export const DEFAULT_LANDING_CONTENT = {
     title: "Managed websites built around enquiries",
     subtitle:
       "Start with Managed Website, then add Website Growth when you need ongoing conversion and local SEO expansion.",
-    trialNote: "Start with a free, limited website preview. Production work begins after payment or an approved commercial commitment.",
+    trialNote: "Setup fee + monthly managed service · 12-month initial commitment · scope confirmed before payment",
   },
   dashboard: {
     title: "Track Website Progress and Enquiries From Your Portal",

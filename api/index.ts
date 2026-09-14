@@ -64,7 +64,7 @@ import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, suppressSalesRecipient } from "../server/salesOperations.js";
 import { parseProspectCsv } from "../src/lib/prospectImport.js";
-import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS } from "../src/lib/commercialPricing.js";
+import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS } from "../src/lib/commercialPricing.js";
 import { DEFAULT_LAUNCH_FLAGS, normalizeLaunchFlags, type LaunchFlags } from "../src/lib/launchFlags.js";
 import { buildInternalContentPrompt, INTERNAL_CONTENT_SYSTEM_PROMPT, InternalContentBriefSchema, parseInternalContentDraft, buildHumaniseContentPrompt, HUMANISE_CONTENT_SYSTEM_PROMPT, parseHumaniseContentDraft } from "../src/lib/internalAiContentEngine.js";
 import { buildDesignDirectionPrompt, DESIGN_DIRECTOR_SYSTEM_PROMPT, parseDesignDirection } from "../src/lib/designDirector.js";
@@ -5512,7 +5512,7 @@ async function startServer() {
 
   app.get("/api/public/pricing", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-pricing" }), async (req, res) => {
     const market = normalizeCommercialMarket(req.query.market);
-    const flags = await refreshLaunchFlags();
+    await refreshLaunchFlags();
     const { data, error } = await supabaseAdmin
       .from("commercial_products")
       .select("id,slug,name,description,product_type,sales_motion,includes_product_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,active,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id,recurring_monthly_price,recurring_setup_fee,recurring_annual_price,minimum_term_months,recurring_config_status,recurring_stripe_monthly_price_id,recurring_stripe_annual_price_id,recurring_stripe_setup_price_id)")
@@ -5537,25 +5537,24 @@ async function startServer() {
         price: price ? {
           market,
           currency: price.currency,
-          monthlyPrice: flags.otc_mrc_catalogue && price.recurring_config_status === "live" && price.recurring_monthly_price !== null
-            ? Number(price.recurring_monthly_price)
-            : (price.monthly_price === null ? null : Number(price.monthly_price)),
-          setupFee: flags.otc_mrc_catalogue && price.recurring_config_status === "live" && price.recurring_setup_fee !== null
-            ? Number(price.recurring_setup_fee)
-            : Number(price.setup_fee || 0),
-          annualPrice: flags.otc_mrc_catalogue && price.recurring_config_status === "live" && price.recurring_annual_price !== null
-            ? Number(price.recurring_annual_price)
-            : (price.annual_price === null ? null : Number(price.annual_price)),
-          billingInterval: flags.otc_mrc_catalogue && price.recurring_config_status === "live" ? "month" : (price.billing_interval || "month"),
-          minimumTermMonths: flags.otc_mrc_catalogue && price.recurring_config_status === "live" ? Number(price.minimum_term_months || 12) : null,
-          catalogueMode: flags.otc_mrc_catalogue && price.recurring_config_status === "live" ? "otc_mrc" : "one_time_compatibility",
+          // Public catalogue is recurring-only. Legacy one-time values remain in
+          // the database for historical customers, but are never rendered or
+          // selected for a new public checkout.
+          monthlyPrice: price.recurring_monthly_price === null || price.recurring_monthly_price === undefined ? null : Number(price.recurring_monthly_price),
+          setupFee: price.recurring_setup_fee === null || price.recurring_setup_fee === undefined ? 0 : Number(price.recurring_setup_fee),
+          annualPrice: price.recurring_annual_price === null || price.recurring_annual_price === undefined ? null : Number(price.recurring_annual_price),
+          billingInterval: "month",
+          minimumTermMonths: Number(price.minimum_term_months || COMMERCIAL_RECURRING_COMMITMENT_MONTHS),
+          catalogueMode: "otc_mrc",
+          recurringConfigStatus: price.recurring_config_status || "draft",
+          recurringConfigured: Boolean(
+            price.recurring_config_status === "live" &&
+            price.recurring_stripe_monthly_price_id &&
+            price.recurring_stripe_setup_price_id,
+          ),
           oneTimeConfigured: Boolean(price.stripe_one_time_price_id),
-          monthlyConfigured: flags.otc_mrc_catalogue && price.recurring_config_status === "live"
-            ? Boolean(price.recurring_stripe_monthly_price_id)
-            : Boolean(price.stripe_monthly_price_id),
-          annualConfigured: flags.otc_mrc_catalogue && price.recurring_config_status === "live"
-            ? Boolean(price.recurring_stripe_annual_price_id)
-            : Boolean(price.stripe_annual_price_id),
+          monthlyConfigured: Boolean(price.recurring_config_status === "live" && price.recurring_stripe_monthly_price_id),
+          annualConfigured: Boolean(price.recurring_config_status === "live" && price.recurring_stripe_annual_price_id),
         } : null,
       };
     });
@@ -5994,7 +5993,7 @@ async function startServer() {
 
     try {
       await assertBusinessAccess(req.user.id, businessId);
-      const launchConfig = await refreshLaunchFlags();
+      await refreshLaunchFlags();
       let configuredSetupPriceId: string | null = null;
       let isOneTimeCheckout = false;
       let minimumTermMonths = COMMERCIAL_DEFAULT_COMMITMENT_MONTHS;
@@ -6016,16 +6015,19 @@ async function startServer() {
           const currentPrice = currentProduct && (Array.isArray(currentProduct.commercial_market_prices) ? currentProduct.commercial_market_prices[0] : currentProduct.commercial_market_prices);
           if (!currentProduct || !currentPrice) return res.status(400).json({ error: "This product is unavailable in the selected market." });
           if (currentProduct.sales_motion !== "self_serve") return res.status(400).json({ error: "This product is available by consultation, not self-serve checkout." });
-          const recurringMode = launchConfig.otc_mrc_catalogue && currentPrice.recurring_config_status === "live";
-          isOneTimeCheckout = !recurringMode && currentPrice.billing_interval === "one_time";
-          minimumTermMonths = recurringMode ? Number(currentPrice.minimum_term_months || 12) : COMMERCIAL_DEFAULT_COMMITMENT_MONTHS;
-          priceId = recurringMode
-            ? (billingCycle === "yearly" ? (currentPrice.recurring_stripe_annual_price_id || "") : (currentPrice.recurring_stripe_monthly_price_id || ""))
-            : (isOneTimeCheckout ? (currentPrice.stripe_one_time_price_id || "") : (billingCycle === "yearly" ? (currentPrice.stripe_annual_price_id || "") : (currentPrice.stripe_monthly_price_id || "")));
-          if (!priceId) return res.status(400).json({ error: isOneTimeCheckout ? "One-time package checkout is not configured for this market yet." : `${billingCycle === "yearly" ? "Annual" : "Monthly"} checkout is not configured for this market yet.` });
+          // New public checkout is recurring-only. Legacy one-time prices are
+          // retained for historical records but can never be selected here.
+          const recurringMode = currentPrice.recurring_config_status === "live";
+          if (!recurringMode) return res.status(400).json({ error: "Recurring checkout is not enabled for this product and market yet." });
+          isOneTimeCheckout = false;
+          minimumTermMonths = Number(currentPrice.minimum_term_months || COMMERCIAL_RECURRING_COMMITMENT_MONTHS);
+          priceId = billingCycle === "yearly"
+            ? (currentPrice.recurring_stripe_annual_price_id || "")
+            : (currentPrice.recurring_stripe_monthly_price_id || "");
+          if (!priceId) return res.status(400).json({ error: `${billingCycle === "yearly" ? "Annual" : "Monthly"} recurring checkout is not configured for this market yet.` });
           // A Growth upgrade does not repeat the Managed Website setup fee.
           const isUpgrade = productSlug === "website-growth" && checkoutBody.upgradeFrom === "managed-website";
-          configuredSetupPriceId = isOneTimeCheckout || isUpgrade ? null : (recurringMode ? (currentPrice.recurring_stripe_setup_price_id || null) : (currentPrice.stripe_setup_price_id || null));
+          configuredSetupPriceId = isUpgrade ? null : (currentPrice.recurring_stripe_setup_price_id || null);
           if (checkoutBody.promotionCode) {
             const now = new Date().toISOString();
             const { data: promotion } = await supabaseAdmin.from("commercial_promotions").select("id,market,product_id,promotional_monthly_price,promotional_setup_fee,starts_at,ends_at,usage_limit,usage_count,stripe_monthly_price_id,stripe_setup_price_id,active").eq("code", checkoutBody.promotionCode).eq("active", true).or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).maybeSingle();
@@ -6035,7 +6037,7 @@ async function startServer() {
             priceId = billingCycle === "yearly" ? priceId : promotion.stripe_monthly_price_id;
             configuredSetupPriceId = isUpgrade ? null : (promotion.stripe_setup_price_id || configuredSetupPriceId);
           }
-          if (!isOneTimeCheckout && Number((recurringMode ? currentPrice.recurring_setup_fee : currentPrice.setup_fee) || 0) > 0 && !configuredSetupPriceId && !isUpgrade) {
+          if (Number(currentPrice.recurring_setup_fee || 0) > 0 && !configuredSetupPriceId && !isUpgrade) {
             return res.status(400).json({ error: `${market} setup-fee checkout is not configured for this product.` });
           }
           resolvedProductSlug = currentProduct.slug;

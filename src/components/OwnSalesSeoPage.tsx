@@ -22,6 +22,7 @@ const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
       .replace(/£49(?:\/month)?/g, "current package pricing")
       .replace(/£99(?:\/month)?/g, "current package pricing")
       .replace(/£199(?:\/month)?/g, "current package pricing")
+      .replace(/£1,990(?:\/month)?/g, "current GBP catalogue pricing")
       .replace(/14[- ]day(?: free)? trial/gi, "free website preview")
       .replace(/card[- ]required trial/gi, "free website preview")
       .replace(/free trial/gi, "free website preview")

@@ -11,29 +11,31 @@ test("market detection uses fixed commercial markets", () => {
   assert.equal(normalizeCommercialMarket("CA"), "INTL");
 });
 
-test("starter website package price book is fixed by market", () => {
+test("managed website recurring price book is fixed by market", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "managed-website");
-  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 999);
-  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 0);
+  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 199);
+  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 1099);
   assert.equal(getCommercialPrice(product!, "MY")?.annualPrice, null);
-  assert.equal(getCommercialPrice(product!, "MY")?.billingInterval, "one_time");
-  assert.equal(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, 6);
+  assert.equal(getCommercialPrice(product!, "MY")?.billingInterval, "month");
+  assert.equal(getCommercialPrice(product!, "MY")?.minimumTermMonths, 12);
+  assert.equal(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, 12);
 });
 
-test("growth website is a self-serve one-time package", () => {
+test("growth partner is a self-serve recurring service", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "growth-partner");
   assert.equal(product?.salesMotion, "self_serve");
-  assert.equal(getCommercialPrice(product!, "SG")?.monthlyPrice, 1499);
-  assert.equal(getCommercialPrice(product!, "SG")?.billingInterval, "one_time");
+  assert.equal(getCommercialPrice(product!, "SG")?.monthlyPrice, 399);
+  assert.equal(getCommercialPrice(product!, "SG")?.setupFee, 1499);
+  assert.equal(getCommercialPrice(product!, "SG")?.billingInterval, "month");
 });
 
-test("business website is a one-time total with no duplicate setup fee", () => {
+test("website growth is recurring with a separate setup fee", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "website-growth");
-  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 2999);
-  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 0);
-  assert.equal(getCommercialPrice(product!, "INTL")?.monthlyPrice, 659);
-  assert.equal(getCommercialPrice(product!, "INTL")?.setupFee, 0);
-  assert.equal(getCommercialPrice(product!, "INTL")?.billingInterval, "one_time");
+  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 399);
+  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 2499);
+  assert.equal(getCommercialPrice(product!, "INTL")?.monthlyPrice, 179);
+  assert.equal(getCommercialPrice(product!, "INTL")?.setupFee, 599);
+  assert.equal(getCommercialPrice(product!, "INTL")?.billingInterval, "month");
 });
 
 test("public SEO catalogue contains no retired plan or trial language", () => {
