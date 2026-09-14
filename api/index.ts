@@ -3113,6 +3113,68 @@ async function startServer() {
     },
   );
 
+  app.get("/api/admin/ai/content-drafts", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const status = String(req.query.status || "draft");
+    if (!["draft", "approved", "rejected", "published", "all"].includes(status)) {
+      return res.status(400).json({ error: "Invalid review status" });
+    }
+    let query = supabaseAdmin.from("ai_generation_logs")
+      .select("id,user_id,project_id,feature_key,provider,model,status,review_status,provenance,created_at")
+      .eq("feature_key", "internal_content_engine")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (status !== "all") query = query.eq("review_status", status);
+    const { data, error } = await query;
+    if (error) return res.status(503).json({ error: "Content drafts are temporarily unavailable" });
+    return res.json({ drafts: data || [] });
+  });
+
+  app.patch("/api/admin/ai/content-drafts/:id", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const id = String(req.params.id || "");
+    if (!UUID_SCHEMA.safeParse(id).success) return res.status(400).json({ error: "Invalid draft" });
+    const body = validateBody(z.object({ reviewStatus: z.enum(["draft", "approved", "rejected", "published"]) }), req, res);
+    if (!body) return;
+    if (body.reviewStatus === "published") {
+      const { data: draft } = await supabaseAdmin.from("ai_generation_logs").select("provenance,review_status").eq("id", id).eq("feature_key", "internal_content_engine").maybeSingle();
+      if (!draft || draft.review_status !== "approved") return res.status(409).json({ error: "Only an approved internal draft can be published" });
+    }
+    const { data, error } = await supabaseAdmin.from("ai_generation_logs").update({ review_status: body.reviewStatus }).eq("id", id).eq("feature_key", "internal_content_engine").select("id,review_status,created_at").maybeSingle();
+    if (error || !data) return res.status(404).json({ error: "Draft not found" });
+    return res.json({ draft: data });
+  });
+
+  app.post("/api/subscription/cancellation-request", authenticate, async (req: any, res: any) => {
+    const body = validateBody(z.object({ businessId: UUID_SCHEMA, reason: z.string().trim().min(3).max(1000) }), req, res);
+    if (!body) return;
+    try {
+      await assertBusinessAccess(req.user.id, body.businessId);
+      const { data: businessOwner } = await supabaseAdmin.from("businesses").select("owner_id").eq("id", body.businessId).maybeSingle();
+      const subscriptionUserId = businessOwner?.owner_id || req.user.id;
+      const { data: subscription, error } = await supabaseAdmin.from("user_subscriptions")
+        .select("id,status,minimum_term_end_date,renewal_state,stripe_subscription_id")
+        .eq("user_id", subscriptionUserId)
+        .in("status", ["active", "trialing", "past_due"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error || !subscription) return res.status(404).json({ error: "Active subscription not found" });
+      const today = new Date();
+      const termEnd = subscription.minimum_term_end_date ? new Date(`${subscription.minimum_term_end_date}T00:00:00Z`) : null;
+      const beforeMinimumTerm = Boolean(termEnd && termEnd.getTime() > today.getTime());
+      const { data: updated, error: updateError } = await supabaseAdmin.from("user_subscriptions").update({
+        renewal_state: "cancellation_requested",
+        cancellation_requested_at: today.toISOString(),
+        cancel_at_period_end: true,
+        cancellation_reason: body.reason,
+      }).eq("id", subscription.id).select("id,renewal_state,cancellation_requested_at,cancel_at_period_end,minimum_term_end_date").single();
+      if (updateError) return res.status(503).json({ error: "Cancellation request could not be saved" });
+      await supabaseAdmin.from("billing_lifecycle_events").insert({ business_id: body.businessId, event_type: "cancellation_requested", status: "open", source: "customer", metadata: { reason: body.reason, beforeMinimumTerm } });
+      return res.status(202).json({ request: updated, beforeMinimumTerm, message: beforeMinimumTerm ? "Your request is recorded and will be reviewed against the minimum term." : "Your subscription will end at the current billing period." });
+    } catch (error: any) {
+      return handleAccessError(res, error);
+    }
+  });
+
   // Unified AI Generation Route
   app.post(
     "/api/ai/generate",
@@ -5416,6 +5478,19 @@ async function startServer() {
     launchFlags = next;
     launchFlagsLoadedAt = Date.now();
     return res.json({ flags: next });
+  });
+
+  app.get("/api/admin/contracts/renewals", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const horizonDays = Math.min(Math.max(Number(req.query.horizonDays || 60), 1), 365);
+    const horizon = new Date(Date.now() + horizonDays * 86400000).toISOString().slice(0, 10);
+    const { data, error } = await supabaseAdmin.from("user_subscriptions")
+      .select("id,user_id,commercial_product_slug,commercial_market,status,renewal_state,minimum_term_end_date,cancel_at_period_end,last_payment_status,payment_failure_count")
+      .lte("minimum_term_end_date", horizon)
+      .not("renewal_state", "eq", "cancelled")
+      .order("minimum_term_end_date", { ascending: true })
+      .limit(200);
+    if (error) return res.status(503).json({ error: "Contract renewals are temporarily unavailable" });
+    return res.json({ horizonDays, renewals: data || [] });
   });
 
   app.patch("/api/admin/commercial-catalogue/prices/:id", authenticate, superAdminOnly, async (req: any, res: any) => {
