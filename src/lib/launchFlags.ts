@@ -28,9 +28,11 @@ export function normalizeLaunchFlags(value: unknown): LaunchFlags {
     otc_mrc_catalogue: input.otc_mrc_catalogue === true,
     internal_ai_content_engine: input.internal_ai_content_engine === true,
     analytics_v2: input.analytics_v2 === true,
-    // Kept false unless explicitly introduced in a future customer-facing release.
-    customer_ai_controls: input.customer_ai_controls === true,
-    ai_credit_topups_enabled: input.ai_credit_topups_enabled === true,
+    // Customer AI and paid credit top-ups are paused commercially. Treat any
+    // stale database value as disabled until a future release explicitly
+    // changes this policy in code.
+    customer_ai_controls: false,
+    ai_credit_topups_enabled: false,
   };
 }
 

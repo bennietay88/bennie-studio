@@ -119,6 +119,9 @@ let launchFlags: LaunchFlags = DEFAULT_LAUNCH_FLAGS;
 let launchFlagsLoadedAt = 0;
 
 async function refreshLaunchFlags(force = false): Promise<LaunchFlags> {
+  // E2E runs use deterministic local defaults; never make the test server depend
+  // on a real Supabase project or network availability.
+  if (process.env.E2E_TEST === "true") return launchFlags;
   if (!force && Date.now() - launchFlagsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return launchFlags;
   try {
     const { data, error } = await supabaseAdmin.from("settings").select("content").eq("id", "launch_flags").maybeSingle();
@@ -134,6 +137,8 @@ async function refreshLaunchFlags(force = false): Promise<LaunchFlags> {
 }
 
 async function refreshPlatformSettings(force = false) {
+  // Keep browser tests hermetic. Production still loads settings from Supabase.
+  if (process.env.E2E_TEST === "true") return;
   if (!force && Date.now() - platformSettingsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return;
   try {
     const { data, error } = await supabaseAdmin
@@ -1084,6 +1089,58 @@ async function startServer() {
     if (error) console.warn("Billing lifecycle event skipped:", error.message);
   };
 
+  // Reconciles cancellation requests that were made during the minimum term.
+  // This is deliberately idempotent: every run re-reads Stripe before writing
+  // the local state and treats an already-scheduled/cancelled subscription as
+  // successfully reconciled.
+  const processPendingCancellations = async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: pending, error } = await supabaseAdmin
+      .from("user_subscriptions")
+      .select("id,user_id,status,minimum_term_end_date,renewal_state,cancel_at_period_end,stripe_subscription_id")
+      .eq("renewal_state", "cancellation_requested")
+      .lte("minimum_term_end_date", today)
+      .in("status", ["active", "trialing", "past_due"])
+      .not("stripe_subscription_id", "is", null)
+      .limit(200);
+    if (error) throw error;
+
+    const results: Array<Record<string, unknown>> = [];
+    for (const subscription of pending || []) {
+      try {
+        const stripe = await getStripe();
+        const current = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id);
+        const now = new Date().toISOString();
+        if (current.status === "canceled") {
+          await supabaseAdmin.from("user_subscriptions").update({
+            status: "canceled", renewal_state: "cancelled", cancel_at_period_end: true,
+            cancellation_effective_at: now, last_stripe_sync_at: now,
+          }).eq("id", subscription.id);
+          results.push({ id: subscription.id, state: "cancelled", reconciled: true });
+          continue;
+        }
+        const scheduled = current.cancel_at_period_end
+          ? current
+          : await stripe.subscriptions.update(subscription.stripe_subscription_id, { cancel_at_period_end: true });
+        if (!scheduled.cancel_at_period_end) throw new Error("STRIPE_CANCELLATION_NOT_CONFIRMED");
+        await supabaseAdmin.from("user_subscriptions").update({
+          renewal_state: "cancellation_scheduled", cancel_at_period_end: true,
+          cancellation_scheduled_at: now, last_stripe_sync_at: now,
+        }).eq("id", subscription.id);
+        await insertBillingLifecycleEvent({
+          business_id: null, event_type: "cancellation_scheduled", status: "resolved", source: "system",
+          metadata: { subscriptionId: subscription.id, stripeSubscriptionId: subscription.stripe_subscription_id },
+          resolved_at: now,
+        });
+        results.push({ id: subscription.id, state: "cancellation_scheduled" });
+      } catch (workerError: any) {
+        console.error("Pending cancellation reconciliation failed", { subscriptionId: subscription.id, error: workerError?.message });
+        results.push({ id: subscription.id, state: "failed", error: "RETRYABLE_STRIPE_RECONCILIATION_FAILURE" });
+      }
+    }
+    return { processed: results.length, results };
+  };
+
   // Stripe Webhook - MUST be before express.json()
   app.post(
     "/api/webhook",
@@ -1129,16 +1186,24 @@ async function startServer() {
       console.log(
         `[Stripe Webhook] Received event: ${event.type} (${event.id})`,
       );
-      const { data: existingWebhook } = await supabaseAdmin.from("stripe_webhook_events").select("status").eq("stripe_event_id", event.id).maybeSingle();
-      if (existingWebhook?.status === "completed" || existingWebhook?.status === "processing") return res.json({ received: true, duplicate: true });
+      const { data: existingWebhook } = await supabaseAdmin.from("stripe_webhook_events").select("status,attempt_count,processing_started_at").eq("stripe_event_id", event.id).maybeSingle();
+      if (existingWebhook?.status === "completed") return res.json({ received: true, duplicate: true });
+      const staleProcessing = existingWebhook?.status === "processing" && existingWebhook.processing_started_at
+        && Date.now() - new Date(existingWebhook.processing_started_at).getTime() > 10 * 60 * 1000;
+      if (existingWebhook?.status === "processing" && !staleProcessing) return res.json({ received: true, duplicate: true });
+      const attemptCount = Number(existingWebhook?.attempt_count || 0) + 1;
+      const startedAt = new Date().toISOString();
       const { error: claimError } = existingWebhook?.status === "failed"
-        ? (await supabaseAdmin.from("stripe_webhook_events").update({ status: "processing", started_at: new Date().toISOString(), error_message: null }).eq("stripe_event_id", event.id).eq("status", "failed"))
-        : (await supabaseAdmin.from("stripe_webhook_events").insert({ stripe_event_id: event.id, event_type: event.type, status: "processing", metadata: { source: "stripe" } }));
+        ? (await supabaseAdmin.from("stripe_webhook_events").update({ status: "processing", started_at: startedAt, processing_started_at: startedAt, last_attempt_at: startedAt, attempt_count: attemptCount, error_message: null, failed_at: null }).eq("stripe_event_id", event.id).eq("status", "failed"))
+        : staleProcessing
+          ? (await supabaseAdmin.from("stripe_webhook_events").update({ status: "processing", started_at: startedAt, processing_started_at: startedAt, last_attempt_at: startedAt, attempt_count: attemptCount, error_message: null, failed_at: null }).eq("stripe_event_id", event.id).eq("status", "processing"))
+          : (await supabaseAdmin.from("stripe_webhook_events").insert({ stripe_event_id: event.id, event_type: event.type, status: "processing", started_at: startedAt, processing_started_at: startedAt, last_attempt_at: startedAt, attempt_count: attemptCount, metadata: { source: "stripe" } }));
       if (claimError) {
         if ((claimError as any).code === "23505") return res.json({ received: true, duplicate: true });
         console.error("Stripe webhook idempotency claim failed", claimError);
         return res.status(503).json({ error: "Webhook processing temporarily unavailable" });
       }
+      try {
       switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
@@ -1681,6 +1746,14 @@ async function startServer() {
       await supabaseAdmin.from("stripe_webhook_events").update({ status: "completed", completed_at: new Date().toISOString() }).eq("stripe_event_id", event.id);
 
       res.json({ received: true });
+      } catch (processingError: any) {
+        const message = String(processingError?.message || "WEBHOOK_PROCESSING_FAILED").slice(0, 500);
+        await supabaseAdmin.from("stripe_webhook_events").update({
+          status: "failed", failed_at: new Date().toISOString(), error_message: message,
+        }).eq("stripe_event_id", event.id).eq("status", "processing");
+        console.error("Stripe webhook processing failed", { eventId: event.id, type: event.type, error: message });
+        return res.status(500).json({ error: "Webhook processing failed; Stripe may retry this event." });
+      }
     },
   );
 
@@ -3310,7 +3383,7 @@ async function startServer() {
       const { data: businessOwner } = await supabaseAdmin.from("businesses").select("owner_id").eq("id", body.businessId).maybeSingle();
       const subscriptionUserId = businessOwner?.owner_id || req.user.id;
       const { data: subscription, error } = await supabaseAdmin.from("user_subscriptions")
-        .select("id,status,minimum_term_end_date,renewal_state,cancel_at_period_end,stripe_subscription_id")
+        .select("id,status,minimum_term_end_date,renewal_state,cancel_at_period_end,cancellation_requested_at,cancellation_reason,stripe_subscription_id")
         .eq("user_id", subscriptionUserId)
         .in("status", ["active", "trialing", "past_due"])
         .order("created_at", { ascending: false })
@@ -3320,7 +3393,15 @@ async function startServer() {
       const today = new Date();
       const termEnd = subscription.minimum_term_end_date ? new Date(`${subscription.minimum_term_end_date}T00:00:00Z`) : null;
       const beforeMinimumTerm = Boolean(termEnd && termEnd.getTime() > today.getTime());
-      const alreadyRequested = subscription.renewal_state === "cancellation_requested" && subscription.cancel_at_period_end === true;
+      const alreadyRequested = subscription.renewal_state === "cancellation_requested" || subscription.renewal_state === "cancellation_scheduled" || subscription.renewal_state === "cancelled";
+      if (alreadyRequested) {
+        return res.status(200).json({
+          request: { id: subscription.id, renewal_state: subscription.renewal_state, cancellation_requested_at: subscription.cancellation_requested_at, cancellation_reason: subscription.cancellation_reason, cancel_at_period_end: subscription.cancel_at_period_end, minimum_term_end_date: subscription.minimum_term_end_date },
+          beforeMinimumTerm: Boolean(termEnd && termEnd.getTime() > today.getTime()),
+          idempotent: true,
+          message: subscription.renewal_state === "cancellation_scheduled" || subscription.renewal_state === "cancelled" ? "Your cancellation is already scheduled." : "Your cancellation request is already recorded.",
+        });
+      }
       if (!beforeMinimumTerm && !subscription.stripe_subscription_id && !alreadyRequested) {
         return res.status(409).json({ error: "Subscription is missing its Stripe subscription reference", code: "STRIPE_SUBSCRIPTION_REFERENCE_MISSING" });
       }
@@ -5410,6 +5491,28 @@ async function startServer() {
     } catch (error) {
       console.error("Sales automation cron failed:", error);
       return res.status(500).json({ error: "Sales automation run failed" });
+    }
+  });
+
+  app.post("/api/internal/billing/process-cancellations", async (req, res) => {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) return res.status(401).json({ error: "Unauthorized" });
+    try {
+      return res.json({ success: true, ...(await processPendingCancellations()) });
+    } catch (error: any) {
+      console.error("Billing cancellation worker failed", { error: error?.message || error });
+      return res.status(500).json({ error: "Billing cancellation worker failed; retry scheduled." });
+    }
+  });
+  // Vercel Cron invokes GET; keep the POST variant for manual/internal runners.
+  app.get("/api/internal/billing/process-cancellations", async (req, res) => {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) return res.status(401).json({ error: "Unauthorized" });
+    try {
+      return res.json({ success: true, ...(await processPendingCancellations()) });
+    } catch (error: any) {
+      console.error("Billing cancellation worker failed", { error: error?.message || error });
+      return res.status(500).json({ error: "Billing cancellation worker failed; retry scheduled." });
     }
   });
 
@@ -7598,8 +7701,11 @@ async function startServer() {
           websites: websitesCount || 0,
           appointments: appointmentsCount || 0,
           apiKeys: apiKeysCount || 0,
-          aiCredits: balance.credits_remaining || 0,
-          aiUsed: balance.credits_used || 0
+          // Customer AI credits/top-ups are paused for the launch catalogue.
+          // Keep the response shape for older clients, but never advertise a
+          // spendable balance in the customer dashboard.
+          aiCredits: 0,
+          aiUsed: 0
         },
         recentLeads: leadsData || [],
         recentAppointments: appointmentsData || [],
