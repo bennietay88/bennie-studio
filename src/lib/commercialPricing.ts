@@ -102,6 +102,10 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
 
 export const getCommercialPrice = (product: CommercialProduct, market: CommercialMarket) => product.prices.find((price) => price.market === market) || product.prices.find((price) => price.market === "INTL");
 
+/** Customer checkout is enabled only after an operator activates recurring Stripe prices. */
+export const isRecurringCheckoutEnabled = (price: Pick<CommercialPrice, "recurringConfigStatus" | "monthlyConfigured"> | null | undefined) =>
+  price?.recurringConfigStatus === "live" && price.monthlyConfigured === true;
+
 export const getStoredMarket = (): CommercialMarket => {
   try {
     // A selected billing market passed from the main site takes precedence.

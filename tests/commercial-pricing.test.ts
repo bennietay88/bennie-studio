@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, normalizeCommercialMarket } from "../src/lib/commercialPricing.ts";
+import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, isRecurringCheckoutEnabled, normalizeCommercialMarket } from "../src/lib/commercialPricing.ts";
 import { OWN_SALES_SEO_PAGES } from "../src/constants/ownSalesSeoPages.ts";
 import { getTemplateReadiness, NICHE_TEMPLATES } from "../src/constants/nicheTemplates.ts";
 import { REVIEW_POWERED_PLANS } from "../src/constants/reviewPoweredWaas.ts";
@@ -9,6 +9,11 @@ test("market detection uses fixed commercial markets", () => {
   assert.equal(normalizeCommercialMarket("MY"), "MY");
   assert.equal(normalizeCommercialMarket("UK"), "GB");
   assert.equal(normalizeCommercialMarket("CA"), "INTL");
+});
+
+test("checkout stays closed for draft international markets", () => {
+  assert.equal(isRecurringCheckoutEnabled({ recurringConfigStatus: "draft", monthlyConfigured: false }), false);
+  assert.equal(isRecurringCheckoutEnabled({ recurringConfigStatus: "live", monthlyConfigured: true }), true);
 });
 
 test("managed website recurring price book is fixed by market", () => {

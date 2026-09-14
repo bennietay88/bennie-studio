@@ -147,12 +147,10 @@ export default function TeamManagement() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ business_id: null, role: "client" }) // Reset to client role and no business
-        .eq("id", memberId);
-
-      if (error) throw error;
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`/api/admin/team-members/${memberId}`, { method: "DELETE", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ businessId: profile?.businessId }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to remove member");
       toast.success("Member removed from team");
       setShowDeleteModal(null);
       fetchMembers();
@@ -166,12 +164,10 @@ export default function TeamManagement() {
 
   const handleUpdateRole = async (memberId: string, newRole: string) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role: newRole })
-        .eq("id", memberId);
-
-      if (error) throw error;
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`/api/admin/team-members/${memberId}`, { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ businessId: profile?.businessId, role: newRole }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Failed to update role");
       toast.success("Role updated");
       fetchMembers();
     } catch (err: any) {

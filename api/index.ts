@@ -5714,7 +5714,7 @@ async function startServer() {
     if (error) return res.status(503).json({ error: "Commercial pricing is temporarily unavailable" });
     const products = (data || []).map((product: any) => {
       const price = Array.isArray(product.commercial_market_prices) ? product.commercial_market_prices[0] : product.commercial_market_prices;
-      const dynamicCheckoutAvailable = market !== "MY" && product.sales_motion === "self_serve" && price && Number(price.recurring_monthly_price || 0) > 0;
+      const dynamicCheckoutAvailable = false;
       return {
         id: product.id,
         slug: product.slug,
@@ -6072,7 +6072,14 @@ async function startServer() {
 
   // Admin Member Routes
   app.post("/api/admin/create-member", authenticate, async (req, res) => {
-    const { email, password, role, businessId } = req.body;
+    const body = validateBody(z.object({
+      email: EMAIL_SCHEMA,
+      password: z.string().min(12).max(200),
+      role: z.enum(["business_admin", "staff"]),
+      businessId: UUID_SCHEMA,
+    }), req, res);
+    if (!body) return;
+    const { email, password, role, businessId } = body;
     const userId = (req as any).user.id;
 
     try {
@@ -6150,6 +6157,54 @@ async function startServer() {
     }
   });
 
+  app.patch("/api/admin/team-members/:memberId", authenticate, async (req: any, res) => {
+    const memberId = String(req.params.memberId || "");
+    const body = validateBody(z.object({ role: z.enum(["business_admin", "staff"]), businessId: UUID_SCHEMA }), req, res);
+    if (!body || !UUID_SCHEMA.safeParse(memberId).success) return;
+    try {
+      const caller = await assertBusinessAccess(req.user.id, body.businessId);
+      if (!caller || !["business_admin", "super_admin"].includes(caller.role) || (caller.role !== "super_admin" && caller.business_id !== body.businessId)) return res.status(403).json({ error: "Team management access required" });
+      if (memberId === req.user.id) return res.status(400).json({ error: "You cannot change your own role" });
+      const { data: member } = await supabaseAdmin.from("profiles").select("id,business_id,role").eq("id", memberId).maybeSingle();
+      if (!member || member.business_id !== body.businessId) return res.status(404).json({ error: "Team member not found" });
+      const { error } = await supabaseAdmin.from("profiles").update({ role: body.role }).eq("id", memberId).eq("business_id", body.businessId);
+      if (error) throw error;
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error("Team role update failed", error?.message || error);
+      return res.status(503).json({ error: "Team role could not be updated" });
+    }
+  });
+
+  app.delete("/api/admin/team-members/:memberId", authenticate, async (req: any, res) => {
+    const memberId = String(req.params.memberId || "");
+    const businessId = String(req.body?.businessId || req.query.businessId || "");
+    if (!UUID_SCHEMA.safeParse(memberId).success || !UUID_SCHEMA.safeParse(businessId).success) return res.status(400).json({ error: "Valid member and business IDs are required" });
+    try {
+      const caller = await assertBusinessAccess(req.user.id, businessId);
+      if (!caller || !["business_admin", "super_admin"].includes(caller.role) || (caller.role !== "super_admin" && caller.business_id !== businessId)) return res.status(403).json({ error: "Team management access required" });
+      if (memberId === req.user.id) return res.status(400).json({ error: "You cannot remove yourself" });
+      const { error } = await supabaseAdmin.from("profiles").update({ business_id: null, role: "client" }).eq("id", memberId).eq("business_id", businessId);
+      if (error) throw error;
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error("Team member removal failed", error?.message || error);
+      return res.status(503).json({ error: "Team member could not be removed" });
+    }
+  });
+  app.patch("/api/admin/platform-staff/:memberId/permissions", authenticate, async (req: any, res) => {
+    const memberId = String(req.params.memberId || "");
+    const body = validateBody(z.object({ permissions: z.array(z.string().trim().min(1).max(80)).max(50) }), req, res);
+    if (!body || !UUID_SCHEMA.safeParse(memberId).success) return;
+    const caller = await getProfileForUser(req.user.id);
+    if (caller?.role !== "super_admin") return res.status(403).json({ error: "Super admin access required" });
+    const { data: member } = await supabaseAdmin.from("profiles").select("id,role").eq("id", memberId).maybeSingle();
+    if (!member || member.role !== "platform_staff") return res.status(404).json({ error: "Platform staff member not found" });
+    const { error } = await supabaseAdmin.from("profiles").update({ staff_permissions: body.permissions }).eq("id", memberId);
+    if (error) return res.status(503).json({ error: "Staff permissions could not be updated" });
+    return res.json({ success: true, permissions: body.permissions });
+  });
+
   app.post(
     "/api/create-checkout-session",
     authenticate,
@@ -6221,11 +6276,10 @@ async function startServer() {
           // New public checkout is recurring-only. Legacy one-time prices are
           // retained for historical records but can never be selected here.
           const recurringMode = currentPrice.recurring_config_status === "live";
-          // MY uses pre-created Stripe prices. For international markets, the
-          // server may create Stripe price_data directly from the approved
-          // catalogue while recurring IDs are being staged. Browser input
-          // never controls these amounts.
-          useDynamicCatalogPrices = !recurringMode && market !== "MY";
+          // Customer checkout is available only for markets with an activated
+          // recurring Stripe configuration. Draft international markets are
+          // consultation-only until an operator activates their price IDs.
+          useDynamicCatalogPrices = false;
           if (!recurringMode && !useDynamicCatalogPrices) return res.status(400).json({ error: "Recurring checkout is not enabled for this product and market yet." });
           if (useDynamicCatalogPrices && billingCycle === "yearly" && !currentPrice.recurring_annual_price) {
             return res.status(400).json({ error: "Annual billing is not configured for this market yet. Choose monthly billing or book a consultation." });

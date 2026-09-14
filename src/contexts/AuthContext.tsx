@@ -86,29 +86,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profileError && profileError.code === "PGRST116") {
         // Profile doesn't exist, create it
         const { data: userData } = await supabase.auth.getUser();
-        const userMetadata = userData.user?.user_metadata || {};
         const email = userData.user?.email || "";
-
-        let initialRole: UserRole = "business_admin";
-        if (
-          userMetadata.initial_role &&
-          userMetadata.initial_role !== "super_admin"
-        ) {
-          initialRole = userMetadata.initial_role;
-        }
-
-        const newProfile: any = {
-          id: uid,
-          email: email,
-          role: initialRole,
-          created_at: new Date().toISOString(),
-        };
-
+        // Role assignment is server-controlled. Never trust auth metadata
+        // supplied by a public signup form.
         const { data: createdProfile, error: createError } = await supabase
-          .from("profiles")
-          .insert([newProfile])
-          .select()
-          .single();
+          .rpc("create_customer_profile");
 
         if (createError) throw createError;
         if (createdProfile) {
@@ -182,15 +164,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     setIsSigningIn(true);
     try {
-      // New signups default to business_admin
-      const defaultRole = role || "business_admin";
+      // Public signups always become customer business admins. The optional
+      // role argument is retained for API compatibility but is ignored.
+      void role;
       const { error } = await supabase.auth.signUp({
         email,
         password: pass,
         options: {
-          data: {
-            initial_role: defaultRole,
-          },
+          data: {},
         },
       });
       if (error) {

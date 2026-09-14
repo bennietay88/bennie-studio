@@ -274,8 +274,10 @@ export function OperationsControlCenter() {
     if (!isSuperAdmin) return toast.error("Only Super Admins can change staff permissions");
     const current = Array.isArray(member.staff_permissions) ? member.staff_permissions : [];
     const next = current.includes(permission) ? current.filter((item: string) => item !== permission) : [...current, permission];
-    const { error } = await supabase.from("profiles").update({ staff_permissions: next }).eq("id", member.id);
-    if (error) return toast.error(error.message);
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch(`/api/admin/platform-staff/${member.id}/permissions`, { method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` }, body: JSON.stringify({ permissions: next }) });
+    const result = await response.json();
+    if (!response.ok) return toast.error(result.error || "Permissions could not be updated");
     if (approvalDraft.project_id) {
       await supabase.from("projects").update({ status: "customer_review", updated_at: new Date().toISOString() }).eq("id", approvalDraft.project_id);
     }

@@ -12,11 +12,18 @@ as $$
 declare
   v_now timestamptz := now();
   v_row public.stripe_webhook_events%rowtype;
+  v_inserted public.stripe_webhook_events%rowtype;
   v_attempt integer;
 begin
   insert into public.stripe_webhook_events (stripe_event_id, event_type, status, started_at, processing_started_at, last_attempt_at, attempt_count, metadata)
   values (p_stripe_event_id, p_event_type, 'processing', v_now, v_now, v_now, 1, jsonb_build_object('source', 'stripe'))
-  on conflict (stripe_event_id) do nothing;
+  on conflict (stripe_event_id) do nothing
+  returning * into v_inserted;
+
+  if v_inserted.id is not null then
+    return query select true, 'processing'::text, 1, 'claimed'::text;
+    return;
+  end if;
 
   select * into v_row
   from public.stripe_webhook_events

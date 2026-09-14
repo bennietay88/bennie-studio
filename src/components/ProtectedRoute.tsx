@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Shield, Zap } from "lucide-react";
 import { Button } from "./ui/button";
+import { hasSubscriptionAccess } from "../lib/permissions";
 
 export const ProtectedRoute = ({
   children,
@@ -68,19 +69,15 @@ export const ProtectedRoute = ({
   }
 
   // Trial Expiration Gate
-  const isTrialExpired =
-    ["starter", "business", "growth", "scale"].includes(String(business?.plan || "").toLowerCase()) &&
-    business?.trial_ends_at &&
-    new Date(business.trial_ends_at) < new Date() &&
-    business?.subscription_status !== "active" &&
-    profile?.role !== "super_admin";
+  const hasActiveSubscription = hasSubscriptionAccess(profile, business);
+  const isTrialExpired = !!business && !hasActiveSubscription;
 
   const isBillingPage = location.pathname.includes("/billing");
 
   if (
     isTrialExpired &&
     !isBillingPage &&
-    (profile?.role === "business_admin" || profile?.role === "client")
+    ["business_admin", "staff", "client"].includes(profile?.role || "")
   ) {
     return (
       <div className="flex h-screen flex-col items-center justify-center p-6 text-center bg-slate-50 dark:bg-slate-950">
