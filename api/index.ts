@@ -6049,6 +6049,8 @@ async function startServer() {
     let priceId = checkoutBody.priceId || "";
     let resolvedProductSlug = productSlug || null;
     let resolvedPromotionId: string | null = null;
+    let testDynamicMonthlyAmount: number | null = null;
+    let testDynamicSetupAmount: number | null = null;
 
     try {
       await assertBusinessAccess(req.user.id, businessId);
@@ -6076,6 +6078,8 @@ async function startServer() {
             .maybeSingle();
           const currentPrice = currentProduct && (Array.isArray(currentProduct.commercial_market_prices) ? currentProduct.commercial_market_prices[0] : currentProduct.commercial_market_prices);
           if (!currentProduct || !currentPrice) return res.status(400).json({ error: "This product is unavailable in the selected market." });
+          testDynamicMonthlyAmount = Number(currentPrice.recurring_monthly_price || currentPrice.monthly_price || 0);
+          testDynamicSetupAmount = Number(currentPrice.recurring_setup_fee || currentPrice.setup_fee || 0);
           if (currentProduct.sales_motion !== "self_serve") return res.status(400).json({ error: "This product is available by consultation, not self-serve checkout." });
           // New public checkout is recurring-only. Legacy one-time prices are
           // retained for historical records but can never be selected here.
@@ -6166,10 +6170,15 @@ async function startServer() {
 
 	      const sessionOptions: any = {
 	        payment_method_types: ["card"],
-        line_items: [
-          { price: priceId, quantity: 1 },
-          ...(configuredSetupPriceId ? [{ price: configuredSetupPriceId, quantity: 1 }] : []),
-        ],
+	        line_items: process.env.STRIPE_TEST_DYNAMIC_PRICES === "true" && resolvedProductSlug && testDynamicMonthlyAmount
+          ? [
+              { price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: resolvedProductSlug === "managed-website" ? "Managed Website" : "Website Growth" }, unit_amount: Math.round(testDynamicMonthlyAmount * 100), recurring: { interval: billingCycle === "yearly" ? "year" : "month" } }, quantity: 1 },
+              ...(testDynamicSetupAmount && !isOneTimeCheckout && !checkoutBody.upgradeFrom ? [{ price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: "Website setup" }, unit_amount: Math.round(testDynamicSetupAmount * 100) }, quantity: 1 }] : []),
+            ]
+          : [
+              { price: priceId, quantity: 1 },
+              ...(configuredSetupPriceId ? [{ price: configuredSetupPriceId, quantity: 1 }] : []),
+            ],
         mode: isOneTimeCheckout || priceId.includes("credits") || checkoutBody.type === "credits" ? "payment" : "subscription",
         success_url: `${publicAppUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${publicAppUrl()}/checkout/cancel?plan=${encodeURIComponent(resolvedProductSlug || planId || "")}&billing=${billingCycle}`,
