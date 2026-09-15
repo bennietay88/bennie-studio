@@ -8514,7 +8514,7 @@ async function startServer() {
       return res.status(404).json({ error: "Marketing route not found" });
     }
     res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
-    return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript()));
+    return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript(), String(req.query.market || "")));
   });
 
   // Vercel mounts this single function at /api. Public marketing rewrites
@@ -8524,7 +8524,7 @@ async function startServer() {
     const requestedPath = String(req.query.path || "").split("?")[0];
     if (!isMarketingRoute(requestedPath)) return next();
     res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
-    return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript()));
+    return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript(), String(req.query.market || "")));
   });
 
   // API 404 Catch-all (to prevent HTML responses for API errors)

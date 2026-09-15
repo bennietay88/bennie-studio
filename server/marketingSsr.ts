@@ -1,5 +1,13 @@
 type MarketingRoute = "/" | "/pricing" | "/generate-preview";
 
+import {
+  COMMERCIAL_FALLBACK_PRODUCTS,
+  formatCommercialMoney,
+  getCommercialPrice,
+  normalizeCommercialMarket,
+  type CommercialMarket,
+} from "../src/lib/commercialPricing.js";
+
 const routeData: Record<MarketingRoute, { title: string; description: string; image: string; body: string }> = {
   "/": {
     title: "Managed Websites That Generate Enquiries | Bennie Studio",
@@ -55,8 +63,22 @@ export function isMarketingRoute(pathname: string): pathname is MarketingRoute {
   return pathname === "/" || pathname === "/pricing" || pathname === "/generate-preview";
 }
 
-export function renderMarketingDocument(pathname: MarketingRoute, clientScript = "/src/main.tsx") {
+function renderPricingBody(market: CommercialMarket) {
+  const body = routeData["/pricing"].body;
+  const prices = COMMERCIAL_FALLBACK_PRODUCTS.slice(0, 3).map((product) => {
+    const price = getCommercialPrice(product, market);
+    return `From ${formatCommercialMoney(price?.setupFee, price?.currency || "USD")} setup · ${formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD")}/month`;
+  });
+  return body
+    .replace("From RM 1,099 setup · RM 199/month", prices[0])
+    .replace("From RM 2,499 setup · RM 399/month", prices[1])
+    .replace("From RM 4,999 setup · RM 799/month", prices[2]);
+}
+
+export function renderMarketingDocument(pathname: MarketingRoute, clientScript = "/src/main.tsx", requestedMarket?: string | null) {
   const data = routeData[pathname];
+  const market = normalizeCommercialMarket(requestedMarket);
+  const body = pathname === "/pricing" ? renderPricingBody(market) : data.body;
   const origin = "https://app.bennietay.com";
-  return `<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>${escapeAttr(data.title)}</title><meta name="description" content="${escapeAttr(data.description)}"/><meta name="robots" content="index,follow"/><link rel="canonical" href="${origin}${pathname}"/><meta property="og:type" content="website"/><meta property="og:title" content="${escapeAttr(data.title)}"/><meta property="og:description" content="${escapeAttr(data.description)}"/><meta property="og:url" content="${origin}${pathname}"/><meta property="og:image" content="${origin}${data.image}"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="${escapeAttr(data.title)}"/><meta name="twitter:description" content="${escapeAttr(data.description)}"/><meta name="twitter:image" content="${origin}${data.image}"/><style>body{margin:0;background:#f8fafc;color:#0f172a;font:16px/1.6 system-ui,-apple-system,sans-serif}.marketing-shell{max-width:960px;margin:0 auto;padding:72px 24px}.marketing-shell.wide{max-width:1180px}.eyebrow{color:#4f46e5;font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.marketing-shell h1{max-width:820px;font-size:clamp(2.5rem,6vw,5rem);line-height:1.03;letter-spacing:-.05em;margin:16px 0}.marketing-shell h2{font-size:clamp(1.5rem,3vw,2.3rem);line-height:1.1;margin:0 0 12px}.lede{max-width:720px;color:#475569;font-size:1.2rem}.actions{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 56px}.primary,.secondary{display:inline-flex;align-items:center;justify-content:center;border-radius:14px;padding:13px 18px;font-weight:800;text-decoration:none}.primary{background:#4f46e5;color:#fff}.secondary{border:1px solid #cbd5e1;background:#fff;color:#0f172a}.marketing-shell section{margin-top:34px;border-radius:24px;background:#fff;border:1px solid #e2e8f0;padding:28px}.marketing-shell li{margin:8px 0}.plan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:34px}.plan{border:1px solid #cbd5e1;border-radius:24px;background:#fff;padding:24px;display:flex;flex-direction:column}.plan.featured{background:#4f46e5;color:#fff;border-color:#4f46e5}.plan.featured .eyebrow,.plan.featured .terms{color:#e0e7ff}.plan .price{font-size:1.25rem;font-weight:900}.plan .terms{font-size:.9rem;color:#475569;min-height:100px}.plan .primary,.plan .secondary{margin-top:auto}.preview-form{display:grid;gap:16px;max-width:560px;margin:32px 0}.preview-form label{display:grid;gap:6px;font-weight:800}.preview-form input{height:46px;border:1px solid #cbd5e1;border-radius:12px;padding:0 12px;font-size:1rem}@media(max-width:800px){.plan-grid{grid-template-columns:1fr}.marketing-shell{padding:48px 18px}}</style></head><body><div id="root">${data.body}</div><script type="module" src="${clientScript}"></script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>${escapeAttr(data.title)}</title><meta name="description" content="${escapeAttr(data.description)}"/><meta name="robots" content="index,follow"/><link rel="canonical" href="${origin}${pathname}"/><meta property="og:type" content="website"/><meta property="og:title" content="${escapeAttr(data.title)}"/><meta property="og:description" content="${escapeAttr(data.description)}"/><meta property="og:url" content="${origin}${pathname}"/><meta property="og:image" content="${origin}${data.image}"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="${escapeAttr(data.title)}"/><meta name="twitter:description" content="${escapeAttr(data.description)}"/><meta name="twitter:image" content="${origin}${data.image}"/><style>body{margin:0;background:#f8fafc;color:#0f172a;font:16px/1.6 system-ui,-apple-system,sans-serif}.marketing-shell{max-width:960px;margin:0 auto;padding:72px 24px}.marketing-shell.wide{max-width:1180px}.eyebrow{color:#4f46e5;font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.marketing-shell h1{max-width:820px;font-size:clamp(2.5rem,6vw,5rem);line-height:1.03;letter-spacing:-.05em;margin:16px 0}.marketing-shell h2{font-size:clamp(1.5rem,3vw,2.3rem);line-height:1.1;margin:0 0 12px}.lede{max-width:720px;color:#475569;font-size:1.2rem}.actions{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 56px}.primary,.secondary{display:inline-flex;align-items:center;justify-content:center;border-radius:14px;padding:13px 18px;font-weight:800;text-decoration:none}.primary{background:#4f46e5;color:#fff}.secondary{border:1px solid #cbd5e1;background:#fff;color:#0f172a}.marketing-shell section{margin-top:34px;border-radius:24px;background:#fff;border:1px solid #e2e8f0;padding:28px}.marketing-shell li{margin:8px 0}.plan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:34px}.plan{border:1px solid #cbd5e1;border-radius:24px;background:#fff;padding:24px;display:flex;flex-direction:column}.plan.featured{background:#4f46e5;color:#fff;border-color:#4f46e5}.plan.featured .eyebrow,.plan.featured .terms{color:#e0e7ff}.plan .price{font-size:1.25rem;font-weight:900}.plan .terms{font-size:.9rem;color:#475569;min-height:100px}.plan .primary,.plan .secondary{margin-top:auto}.preview-form{display:grid;gap:16px;max-width:560px;margin:32px 0}.preview-form label{display:grid;gap:6px;font-weight:800}.preview-form input{height:46px;border:1px solid #cbd5e1;border-radius:12px;padding:0 12px;font-size:1rem}@media(max-width:800px){.plan-grid{grid-template-columns:1fr}.marketing-shell{padding:48px 18px}}</style></head><body><div id="root">${body}</div><script type="module" src="${clientScript}"></script></body></html>`;
 }
