@@ -25,4 +25,5 @@ create table if not exists public.fulfilment_events (
 );
 create index if not exists idx_fulfilment_events_business_time on public.fulfilment_events (business_id, occurred_at desc);
 alter table public.fulfilment_events enable row level security;
+drop policy if exists "Platform staff manage fulfilment events" on public.fulfilment_events;
 create policy "Platform staff manage fulfilment events" on public.fulfilment_events for all to authenticated using (private.is_super_admin() or has_platform_permission('delivery')) with check (private.is_super_admin() or has_platform_permission('delivery'));
