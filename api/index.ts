@@ -1214,9 +1214,15 @@ async function startServer() {
       const sig = req.headers["stripe-signature"];
       const businessIdParam = req.query.businessId as string;
 
-      let webhookSecret =
-        platformSettings?.stripeWebhookSecret ||
-        process.env.STRIPE_WEBHOOK_SECRET;
+      // Keep live and sandbox signing secrets separate. The live/platform
+      // secret remains the default; an explicitly configured test secret is
+      // only tried as a fallback so sandbox events can be verified in an
+      // isolated environment without weakening live webhook verification.
+      const webhookSecrets = [
+        platformSettings?.stripeWebhookSecret,
+        process.env.STRIPE_WEBHOOK_SECRET,
+        process.env.STRIPE_TEST_WEBHOOK_SECRET,
+      ].filter((secret): secret is string => Boolean(secret));
 
       if (businessIdParam) {
         const { data: biz } = await supabaseAdmin
@@ -1225,26 +1231,36 @@ async function startServer() {
           .eq("id", businessIdParam)
           .single();
         if (biz?.stripe_webhook_secret) {
-          webhookSecret = biz.stripe_webhook_secret;
+          webhookSecrets.unshift(biz.stripe_webhook_secret);
         }
       }
 
-      if (!sig || !webhookSecret) {
+      if (!sig || webhookSecrets.length === 0) {
         return res
           .status(400)
           .send("Webhook Error: Missing signature or secret");
       }
 
       let event;
+      let verificationError: unknown = null;
 
-      try {
-        const stripe = await getStripe(businessIdParam);
-        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-      } catch (err: any) {
-        console.error(`[Stripe Webhook] Verification Failed: ${err.message}`);
+      const stripe = await getStripe(businessIdParam);
+      for (const secret of webhookSecrets) {
+        try {
+          event = stripe.webhooks.constructEvent(req.body, sig, secret);
+          verificationError = null;
+          break;
+        } catch (err: any) {
+          verificationError = err;
+        }
+      }
+
+      if (!event) {
+        const message = verificationError instanceof Error ? verificationError.message : "Invalid webhook signature";
+        console.error(`[Stripe Webhook] Verification Failed: ${message}`);
         return res
           .status(400)
-          .send(`Webhook Verification Error: ${err.message}`);
+          .send(`Webhook Verification Error: ${message}`);
       }
 
       console.log(
