@@ -1,5 +1,5 @@
 import { next, rewrite } from "@vercel/functions";
-import { classifyTenantHost, getPlatformHosts, normalizeDomainInput } from "./src/lib/tenantDomains";
+import { classifyTenantHost, getPlatformHosts, normalizeDomainInput } from "./src/lib/tenantDomains.js";
 
 type TenantResolveResult =
   | { ok: true; businessId: string; websiteId: string; kind: string }
