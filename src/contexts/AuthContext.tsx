@@ -84,17 +84,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (profileError && profileError.code === "PGRST116") {
-        // Profile doesn't exist, create it
-        const { data: userData } = await supabase.auth.getUser();
-        const email = userData.user?.email || "";
-        // Role assignment is server-controlled. Never trust auth metadata
-        // supplied by a public signup form.
-        const { data: createdProfile, error: createError } = await supabase
-          .rpc("create_customer_profile");
-
-        if (createError) throw createError;
-        if (createdProfile) {
-          setProfile(mapProfile(createdProfile));
+        // Profile provisioning is server-controlled. The browser never calls
+        // the SECURITY DEFINER RPC or chooses role/business fields.
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (!accessToken) throw new Error("AUTH_SESSION_REQUIRED");
+        const response = await fetch("/api/auth/ensure-profile", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.profile) {
+          throw new Error(payload.error || "PROFILE_PROVISIONING_FAILED");
+        }
+        setProfile(mapProfile(payload.profile));
+        if (payload.profile.business_id) {
+          const { data: bizData } = await supabase
+            .from("businesses")
+            .select("*")
+            .eq("id", payload.profile.business_id)
+            .maybeSingle();
+          if (bizData) setBusiness(bizData);
         }
       } else if (profileError) {
         throw profileError;

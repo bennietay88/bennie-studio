@@ -826,6 +826,41 @@ async function startServer() {
     }
   };
 
+  // Customer profile bootstrap is intentionally server-owned. This endpoint
+  // ignores mutable signup metadata and only creates the least-privileged
+  // customer role when a profile is genuinely absent.
+  app.post("/api/auth/ensure-profile", authenticate, async (req: any, res: any) => {
+    const userId = String(req.user?.id || "");
+    const email = String(req.user?.email || "").trim().toLowerCase();
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    try {
+      const { data: existing, error: existingError } = await supabaseAdmin
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (existing) return res.json({ profile: existing, created: false });
+
+      const { data: created, error: createError } = await supabaseAdmin
+        .from("profiles")
+        .insert({ id: userId, email, role: "business_admin" })
+        .select("*")
+        .single();
+      if (createError) {
+        // A concurrent auth callback may have won the insert race. Re-read
+        // rather than retrying a second write or changing the existing role.
+        const { data: raced } = await supabaseAdmin.from("profiles").select("*").eq("id", userId).maybeSingle();
+        if (raced) return res.json({ profile: raced, created: false });
+        throw createError;
+      }
+      return res.status(201).json({ profile: created, created: true });
+    } catch (error) {
+      console.error("Profile provisioning failed", error);
+      return res.status(503).json({ error: "PROFILE_PROVISIONING_FAILED" });
+    }
+  });
+
   const getProfileForUser = async (userId: string) => {
     const { data, error } = await supabaseAdmin
       .from("profiles")
@@ -6198,8 +6233,25 @@ async function startServer() {
       if (memberId === req.user.id) return res.status(400).json({ error: "You cannot change your own role" });
       const { data: member } = await supabaseAdmin.from("profiles").select("id,business_id,role").eq("id", memberId).maybeSingle();
       if (!member || member.business_id !== body.businessId) return res.status(404).json({ error: "Team member not found" });
+      if (member.role === "business_admin" && body.role !== "business_admin") {
+        const { count, error: countError } = await supabaseAdmin
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("business_id", body.businessId)
+          .eq("role", "business_admin");
+        if (countError) throw countError;
+        if ((count || 0) <= 1) return res.status(409).json({ error: "The final business admin cannot be demoted" });
+      }
       const { error } = await supabaseAdmin.from("profiles").update({ role: body.role }).eq("id", memberId).eq("business_id", body.businessId);
       if (error) throw error;
+      await supabaseAdmin.from("admin_action_audit_logs").insert({
+        actor_user_id: req.user.id,
+        actor_email: req.user.email || null,
+        action_type: "team_member_role_changed",
+        target_type: "profile",
+        target_id: memberId,
+        metadata: { businessId: body.businessId, fromRole: member.role, toRole: body.role },
+      });
       return res.json({ success: true });
     } catch (error: any) {
       console.error("Team role update failed", error?.message || error);
@@ -6215,8 +6267,27 @@ async function startServer() {
       const caller = await assertBusinessAccess(req.user.id, businessId);
       if (!caller || !["business_admin", "super_admin"].includes(caller.role) || (caller.role !== "super_admin" && caller.business_id !== businessId)) return res.status(403).json({ error: "Team management access required" });
       if (memberId === req.user.id) return res.status(400).json({ error: "You cannot remove yourself" });
+      const { data: member } = await supabaseAdmin.from("profiles").select("id,role").eq("id", memberId).eq("business_id", businessId).maybeSingle();
+      if (!member) return res.status(404).json({ error: "Team member not found" });
+      if (member.role === "business_admin") {
+        const { count, error: countError } = await supabaseAdmin
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("business_id", businessId)
+          .eq("role", "business_admin");
+        if (countError) throw countError;
+        if ((count || 0) <= 1) return res.status(409).json({ error: "The final business admin cannot be removed" });
+      }
       const { error } = await supabaseAdmin.from("profiles").update({ business_id: null, role: "client" }).eq("id", memberId).eq("business_id", businessId);
       if (error) throw error;
+      await supabaseAdmin.from("admin_action_audit_logs").insert({
+        actor_user_id: req.user.id,
+        actor_email: req.user.email || null,
+        action_type: "team_member_removed",
+        target_type: "profile",
+        target_id: memberId,
+        metadata: { businessId, previousRole: member.role },
+      });
       return res.json({ success: true });
     } catch (error: any) {
       console.error("Team member removal failed", error?.message || error);
