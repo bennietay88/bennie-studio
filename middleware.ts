@@ -122,5 +122,6 @@ export default async function middleware(request: Request) {
 }
 
 export const config = {
+  runtime: "nodejs",
   matcher: ["/((?!api/|assets/|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)"],
 };
