@@ -30,7 +30,8 @@ jobs:
         with:
           version: latest
 
-      - name: Check Supabase secrets
+      - name: Check Supabase deployment configuration
+        id: supabase-config
         shell: bash
         run: |
           missing=()
@@ -39,12 +40,16 @@ jobs:
           test -n "$SUPABASE_DB_PASSWORD" || missing+=("SUPABASE_DB_PASSWORD")
 
           if [ "${#missing[@]}" -gt 0 ]; then
-            echo "::error::Cannot deploy database migrations. Missing GitHub secrets: ${missing[*]}"
-            exit 1
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Automated database migration deployment skipped. Missing GitHub secrets: ${missing[*]}. Apply migrations through an authorized Supabase deployment path and reconcile the migration ledger."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Link Supabase project
+        if: steps.supabase-config.outputs.configured == 'true'
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
       - name: Push migrations
+        if: steps.supabase-config.outputs.configured == 'true'
         run: supabase db push --password "$SUPABASE_DB_PASSWORD"
