@@ -8,7 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
-import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, CommercialMarket, CommercialProduct, formatCommercialMoney, getCommercialPrice, getStoredMarket, persistCommercialMarket } from "../lib/commercialPricing";
+import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, CommercialMarket, CommercialProduct, formatCommercialMoney, getCommercialPrice, getStoredMarket, normalizeCommercialMarket, persistCommercialMarket } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
 
@@ -23,6 +23,10 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   const { products, loading } = usePublicCommercialPricing(market);
   const [billingCycle, setBillingCycle] = React.useState<"monthly" | "yearly">("monthly");
   const [pendingProduct, setPendingProduct] = React.useState<CommercialProduct | null>(null);
+  React.useEffect(() => {
+    const requestedMarket = new URLSearchParams(location.search).get("market");
+    if (requestedMarket) setMarket(normalizeCommercialMarket(requestedMarket));
+  }, [location.search]);
   React.useEffect(() => {
     const onMarketChanged = () => setMarket(getStoredMarket());
     window.addEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);

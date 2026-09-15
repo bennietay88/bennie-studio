@@ -1,6 +1,6 @@
 import React from "react";
 import { ExternalLink, Globe, Menu, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
 import { trackPublicEvent } from "../lib/publicTracking";
@@ -8,7 +8,13 @@ import { Button } from "./ui/button";
 import { COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, CommercialMarket, getStoredMarket, normalizeCommercialMarket, persistCommercialMarket } from "../lib/commercialPricing";
 
 function MarketSwitcher({ compact = false }: { compact?: boolean }) {
+  const location = useLocation();
   const [market, setMarket] = React.useState<CommercialMarket>(getStoredMarket());
+
+  React.useEffect(() => {
+    const requestedMarket = new URLSearchParams(location.search).get("market");
+    if (requestedMarket) setMarket(normalizeCommercialMarket(requestedMarket));
+  }, [location.search]);
 
   React.useEffect(() => {
     const onMarketChanged = (event: Event) => {
