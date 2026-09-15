@@ -40,9 +40,9 @@
   ],
   "routes": [
     { "src": "^/api(?:/(.*))?$", "dest": "/api/index.ts" },
-    { "src": "^/$", "dest": "/api?path=/" },
-    { "src": "^/pricing/?$", "dest": "/api?path=/pricing" },
-    { "src": "^/generate-preview/?$", "dest": "/api?path=/generate-preview" },
+    { "src": "/pricing(?:/)?", "dest": "/api?path=/pricing" },
+    { "src": "/generate-preview(?:/)?", "dest": "/api?path=/generate-preview" },
+    { "src": "/", "dest": "/api?path=/" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
