@@ -38,11 +38,11 @@
       ]
     }
   ],
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.ts" },
-    { "source": "/", "destination": "/api?path=/" },
-    { "source": "/pricing", "destination": "/api?path=/pricing" },
-    { "source": "/generate-preview", "destination": "/api?path=/generate-preview" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  "routes": [
+    { "src": "^/$", "dest": "/api?path=/" },
+    { "src": "^/pricing/?$", "dest": "/api?path=/pricing" },
+    { "src": "^/generate-preview/?$", "dest": "/api?path=/generate-preview" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
