@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { cn } from "../lib/utils";
 import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, CommercialMarket, CommercialProduct, formatCommercialMoney, getCommercialPrice, getStoredMarket, persistCommercialMarket } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
+import { trackPublicEvent } from "../lib/publicTracking";
 
 interface PricingProps { currentPlan?: string; onSelectPlan?: (plan: any) => void; isDashboard?: boolean; onDark?: boolean; hideIntro?: boolean; }
 const outcomes = ["Website planned and built around your offer", "Managed hosting, updates and launch support", "WhatsApp, call, booking and quotation enquiry paths", "Trust proof, local SEO foundation and analytics"];
@@ -17,6 +18,7 @@ const outcomes = ["Website planned and built around your offer", "Managed hostin
 export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onDark = false, hideIntro = false }) => {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [market, setMarket] = React.useState<CommercialMarket>(getStoredMarket());
   const { products, loading } = usePublicCommercialPricing(market);
   const [billingCycle, setBillingCycle] = React.useState<"monthly" | "yearly">("monthly");
@@ -31,6 +33,9 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   }, [market]);
 
   const startCheckout = async (product: CommercialProduct) => {
+    let previewId: string | null = null;
+    try { previewId = JSON.parse(localStorage.getItem("bt_preview_intent") || "{}").previewId || null; } catch { /* ignore malformed preview state */ }
+    trackPublicEvent({ eventType: "checkout_started", label: product.name, target: "/pricing", metadata: { product: product.slug, market, billingCycle, previewId } });
     const price = getCommercialPrice(product, market);
     if (onSelectPlan) return onSelectPlan({ ...product, price });
     if (product.slug === "custom-website") { navigate(`/apply-custom?product=${product.slug}&market=${market}`); return; }
@@ -66,6 +71,17 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   const growth = products.find((product) => product.slug === "website-growth") || COMMERCIAL_FALLBACK_PRODUCTS[1];
   const premium = products.find((product) => product.slug === "growth-partner") || COMMERCIAL_FALLBACK_PRODUCTS[2];
   const managedPrice = getCommercialPrice(managed, market); const growthPrice = getCommercialPrice(growth, market); const premiumPrice = getCommercialPrice(premium, market);
+  React.useEffect(() => {
+    if (!loading) {
+      trackPublicEvent({ eventType: "plan_viewed", label: "Managed website plan comparison", target: "/pricing", metadata: { market, products: products.map((product) => product.slug) } });
+    }
+  }, [loading, market, products]);
+  React.useEffect(() => {
+    if (loading || !profile?.businessId || pendingProduct) return;
+    const requested = new URLSearchParams(location.search).get("product");
+    const product = products.find((item) => item.slug === requested);
+    if (product && product.salesMotion === "self_serve") setPendingProduct(product);
+  }, [loading, location.search, pendingProduct, products, profile?.businessId]);
   const annualAvailable = false;
   React.useEffect(() => { if (!annualAvailable && billingCycle === "yearly") setBillingCycle("monthly"); }, [annualAvailable, billingCycle]);
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
@@ -75,7 +91,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   return <div className={cn("mx-auto max-w-6xl space-y-10 px-4", hideIntro ? "pb-10 pt-2 sm:pb-14" : "py-10 sm:py-14")}>
     {!hideIntro && <div className="flex flex-col items-center gap-5 text-center"><Badge className="rounded-full bg-indigo-50 px-4 py-1 text-indigo-700 hover:bg-indigo-50">Managed website growth</Badge><h2 className={cn("max-w-3xl text-4xl font-black tracking-tight sm:text-6xl", onDark ? "text-white" : "text-slate-950")}>Your managed website team, without hiring one.</h2><p className={cn("max-w-2xl text-lg leading-8", onDark ? "text-slate-300" : "text-slate-600")}>We plan, build, host, manage and improve a conversion-focused website so your team can focus on serving customers.</p><div className="flex flex-wrap items-center justify-center gap-3"><p className="text-sm font-bold text-slate-500">Setup + monthly recurring service in {COMMERCIAL_MARKETS[market].currency} · {COMMERCIAL_MARKETS[market].label} · 12-month minimum term</p>{annualAvailable && <div className="flex rounded-xl border border-slate-200 bg-white p-1 text-xs font-black"><button onClick={() => setBillingCycle("monthly")} className={cn("rounded-lg px-3 py-2", billingCycle === "monthly" ? "bg-slate-950 text-white" : "text-slate-500")}>Monthly</button><button onClick={() => setBillingCycle("yearly")} className={cn("rounded-lg px-3 py-2", billingCycle === "yearly" ? "bg-slate-950 text-white" : "text-slate-500")}>Annual</button></div>}</div></div>}
     <div className="grid min-w-0 gap-6 lg:grid-cols-3 lg:items-stretch">
-      {[[managed, managedPrice, "Best starting point"], [growth, growthPrice, "Most popular"], [premium, premiumPrice, "For larger teams"]].map(([product, price, label]: any, index) => <motion.section key={product.slug} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className={cn("relative flex min-w-0 flex-col overflow-hidden rounded-[2rem] p-7 shadow-xl sm:p-8", index === 1 ? "bg-indigo-600 text-white" : "border border-slate-200 bg-white text-slate-950")}><Badge className={cn("mb-5 w-fit", index === 1 ? "bg-white text-indigo-700 hover:bg-white" : "bg-slate-100 text-slate-700 hover:bg-slate-100")}>{label}</Badge><h3 className={cn("text-3xl font-black", index === 1 ? "text-white" : "text-slate-950")}>{product.name}</h3><p className={cn("mt-4 min-h-24 text-sm leading-6", index === 1 ? "text-indigo-100" : "text-slate-600")}>{product.description}</p><ul className="mt-5 space-y-3">{outcomes.slice(0, index === 0 ? 3 : 4).map((item) => <li key={item} className={cn("flex gap-2 text-sm font-semibold", index === 1 ? "text-white" : "text-slate-700")}><Check className={cn("h-4 w-4 shrink-0", index === 1 ? "text-indigo-200" : "text-indigo-600")} />{item}</li>)}</ul><div className={cn("mt-8 rounded-2xl p-5", index === 1 ? "bg-indigo-700" : "bg-slate-50")}><p className={cn("text-xs font-black uppercase tracking-[0.16em]", index === 1 ? "text-indigo-200" : "text-slate-400")}>Setup fee</p><p className={cn("mt-2 text-2xl font-black", index === 1 ? "text-white" : "text-slate-950")}>{formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} <span className="text-sm font-semibold opacity-70">setup</span></p><p className={cn("mt-1 text-4xl font-black", index === 1 ? "text-white" : "text-slate-950")}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-semibold opacity-70">/month</span></p><p className={cn("mt-2 text-xs font-semibold", index === 1 ? "text-indigo-100" : "text-slate-500")}>12-month initial commitment</p><Button onClick={() => handleSelect(product)} variant={index === 1 ? "secondary" : "default"} className={cn("mt-5 h-auto min-h-12 w-full rounded-xl py-3 text-xs font-black uppercase tracking-wide", index === 1 ? "bg-white text-indigo-700 hover:bg-indigo-50" : "bg-slate-950 text-white hover:bg-slate-800")}>{price?.monthlyConfigured ? "Get my growth plan" : "Request a growth plan"}<ArrowRight className="ml-2 h-4 w-4" /></Button></div></motion.section>)}
+      {[[managed, managedPrice, "Best starting point"], [growth, growthPrice, "Most popular"], [premium, premiumPrice, "For larger teams"]].map(([product, price, label]: any, index) => <motion.section key={product.slug} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className={cn("relative flex min-w-0 flex-col overflow-hidden rounded-[2rem] p-7 shadow-xl sm:p-8", index === 1 ? "bg-indigo-600 text-white" : "border border-slate-200 bg-white text-slate-950")}><Badge className={cn("mb-5 w-fit", index === 1 ? "bg-white text-indigo-700 hover:bg-white" : "bg-slate-100 text-slate-700 hover:bg-slate-100")}>{label}</Badge><h3 className={cn("text-3xl font-black", index === 1 ? "text-white" : "text-slate-950")}>{product.name}</h3><p className={cn("mt-4 min-h-24 text-sm leading-6", index === 1 ? "text-indigo-100" : "text-slate-600")}>{product.description}</p><ul className="mt-5 space-y-3">{outcomes.slice(0, index === 0 ? 3 : 4).map((item) => <li key={item} className={cn("flex gap-2 text-sm font-semibold", index === 1 ? "text-white" : "text-slate-700")}><Check className={cn("h-4 w-4 shrink-0", index === 1 ? "text-indigo-200" : "text-indigo-600")} />{item}</li>)}</ul><div className={cn("mt-8 rounded-2xl p-5", index === 1 ? "bg-indigo-700" : "bg-slate-50")}><p className={cn("text-xs font-black uppercase tracking-[0.16em]", index === 1 ? "text-indigo-200" : "text-slate-400")}>Setup fee</p><p className={cn("mt-2 text-2xl font-black", index === 1 ? "text-white" : "text-slate-950")}>{formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} <span className="text-sm font-semibold opacity-70">setup</span></p><p className={cn("mt-1 text-4xl font-black", index === 1 ? "text-white" : "text-slate-950")}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-semibold opacity-70">/month</span></p><p className={cn("mt-2 text-xs font-semibold", index === 1 ? "text-indigo-100" : "text-slate-500")}>12-month initial commitment</p><p className={cn("mt-3 text-xs leading-5", index === 1 ? "text-indigo-100" : "text-slate-600")}><strong>Trial:</strong> No 14-day paid trial; free preview has no card. <strong>Billing:</strong> setup fee + first month due at checkout. <strong>Cancel:</strong> follow the written service terms.</p><Button onClick={() => handleSelect(product)} variant={index === 1 ? "secondary" : "default"} className={cn("mt-5 h-auto min-h-12 w-full rounded-xl py-3 text-xs font-black uppercase tracking-wide", index === 1 ? "bg-white text-indigo-700 hover:bg-indigo-50" : "bg-slate-950 text-white hover:bg-slate-800")}>{price?.monthlyConfigured ? "Get my growth plan" : "Request a growth plan"}<ArrowRight className="ml-2 h-4 w-4" /></Button></div></motion.section>)}
     </div>
     <section className="rounded-3xl border border-slate-200 bg-white p-7 text-slate-700" aria-label="Before you choose">
       <h3 className="text-2xl font-bold text-slate-950">Know what you are buying</h3>

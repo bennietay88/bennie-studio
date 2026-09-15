@@ -1166,6 +1166,16 @@ function GeneratePreviewPage() {
                   </div>
                 </div>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    onClick={() => {
+                      const target = `/pricing?product=${encodeURIComponent(commercialRecommendation.slug)}&preview=1`;
+                      trackPublicEvent({ eventType: "preview_plan_cta_clicked", label: commercialRecommendation.label, target, metadata: { previewId: (() => { try { return JSON.parse(localStorage.getItem("bt_preview_intent") || "{}").previewId || null; } catch { return null; } })(), industry: industry.label } });
+                      navigate(target);
+                    }}
+                    className="h-auto min-h-10 whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-black uppercase tracking-widest hover:bg-indigo-500"
+                  >
+                    Start with {commercialRecommendation.label} <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                   <Button onClick={() => action("click_book_call_after_preview", "Book Website Review", "/book-demo")} className="h-auto min-h-10 whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-black uppercase tracking-widest hover:bg-indigo-500">
                     Book My 30-Minute Review <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>

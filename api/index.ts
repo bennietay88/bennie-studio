@@ -2,6 +2,7 @@ import express from "express";
 import compression from "compression";
 import cors from "cors";
 import path from "path";
+import { existsSync, readFileSync } from "node:fs";
 import dns from "node:dns";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
@@ -68,6 +69,7 @@ import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_M
 import { DEFAULT_LAUNCH_FLAGS, normalizeLaunchFlags, type LaunchFlags } from "../src/lib/launchFlags.js";
 import { buildInternalContentPrompt, INTERNAL_CONTENT_SYSTEM_PROMPT, InternalContentBriefSchema, parseInternalContentDraft, buildHumaniseContentPrompt, HUMANISE_CONTENT_SYSTEM_PROMPT, parseHumaniseContentDraft } from "../src/lib/internalAiContentEngine.js";
 import { buildDesignDirectionPrompt, DESIGN_DIRECTOR_SYSTEM_PROMPT, parseDesignDirection } from "../src/lib/designDirector.js";
+import { isMarketingRoute, renderMarketingDocument } from "../server/marketingSsr.js";
 
 dotenv.config();
 initServerObservability();
@@ -164,6 +166,20 @@ refreshPlatformSettings().catch((error) => captureServerError(error, { phase: "p
 
 // Dist folder resolution
 const distPath = path.resolve(process.cwd(), "dist");
+
+function resolveMarketingClientScript() {
+  try {
+    const builtIndex = path.join(distPath, "index.html");
+    if (existsSync(builtIndex)) {
+      const html = readFileSync(builtIndex, "utf8");
+      const match = html.match(/<script[^>]+type="module"[^>]+src="([^"]+)"/i);
+      if (match?.[1]) return match[1];
+    }
+  } catch {
+    // Fall back to the Vite entry during local development.
+  }
+  return "/src/main.tsx";
+}
 
 let stripeInstance: Stripe | null = null;
 const merchantStripeCache = new Map<
@@ -1381,6 +1397,21 @@ async function startServer() {
                 const subscription = (await stripe.subscriptions.retrieve(
                   session.subscription as string,
                 )) as any;
+
+                // Keep the commercial funnel observable from the server-side
+                // confirmation point. New products are paid from day one;
+                // legacy trial subscriptions are still recorded accurately.
+                await supabaseAdmin.from("tracking_events").insert({
+                  event_type: subscription.status === "trialing" ? "trial_started" : "paid",
+                  source_platform: "stripe",
+                  source_page: "/checkout/success",
+                  metadata: {
+                    businessId,
+                    productSlug: currentProduct?.slug || requestedProductSlug || null,
+                    subscriptionStatus: subscription.status,
+                    stripeSessionId: session.id,
+                  },
+                });
 
                 // 1. Update Legacy Business Table
                 await supabaseAdmin
@@ -8393,6 +8424,18 @@ async function startServer() {
       }
       res.status(500).json({ error: safeErrorMessage(error) });
     }
+  });
+
+  // Server-render the three public marketing entry points so crawlers and
+  // link unfurlers receive meaningful copy without executing JavaScript.
+  // Authenticated dashboards intentionally remain client-side rendered.
+  app.get("/api/marketing", (req, res) => {
+    const requestedPath = String(req.query.path || "/").split("?")[0];
+    if (!isMarketingRoute(requestedPath)) {
+      return res.status(404).json({ error: "Marketing route not found" });
+    }
+    res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+    return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript()));
   });
 
   // API 404 Catch-all (to prevent HTML responses for API errors)

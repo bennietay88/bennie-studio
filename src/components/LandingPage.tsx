@@ -514,6 +514,16 @@ export default function LandingPage() {
             </motion.div>
 
             <motion.div variants={fadeInUp} className="mb-12">
+              <button
+                type="button"
+                onClick={() => {
+                  trackPublicEvent({ eventType: "plan_comparison_viewed", label: "Hero compare all plans", target: "/pricing" });
+                  navigate("/pricing");
+                }}
+                className="mb-5 inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100"
+              >
+                Compare all plans before you decide <ArrowRight className="ml-2 h-4 w-4" />
+              </button>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-4">No complicated setup. No developer needed. Launch support included.</p>
               <div className="flex flex-wrap justify-center lg:justify-start gap-4">
                 {["Preview Before You Decide", "Managed Build", "Lead Capture Ready", "SEO + Mobile Optimised"].map((badge) => (
