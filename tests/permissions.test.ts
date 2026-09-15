@@ -18,6 +18,30 @@ test("subscription access is evaluated at the business level for every customer 
   assert.equal(hasSubscriptionAccess({ role: "super_admin" }, null), true);
 });
 
+test("subscription access accepts raw Supabase snake_case rows", () => {
+  assert.equal(
+    hasSubscriptionAccess(
+      { role: "business_admin" },
+      { subscription_status: "active", trial_ends_at: null },
+    ),
+    true,
+  );
+  assert.equal(
+    hasSubscriptionAccess(
+      { role: "staff" },
+      { subscription_status: "trialing", trial_ends_at: new Date(Date.now() + 60_000).toISOString() },
+    ),
+    true,
+  );
+  assert.equal(
+    hasSubscriptionAccess(
+      { role: "staff" },
+      { subscription_status: "trialing", trial_ends_at: new Date(Date.now() - 60_000).toISOString() },
+    ),
+    false,
+  );
+});
+
 test("central can helper enforces role, tenant and feature gates", () => {
   const business = { id: "b1", status: "active" as const, subscriptionStatus: "active" as const, trialEndsAt: 0 };
   assert.equal(can("billing.manage", { profile: { role: "business_admin", businessId: "b1" }, business, businessId: "b1" }), true);
