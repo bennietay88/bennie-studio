@@ -8509,6 +8509,16 @@ async function startServer() {
     return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript()));
   });
 
+  // Vercel mounts this single function at /api. Public marketing rewrites
+  // target that mount directly, so keep the route explicit instead of
+  // allowing the SPA fallback to serve the generic shell.
+  app.get("/api", (req, res, next) => {
+    const requestedPath = String(req.query.path || "").split("?")[0];
+    if (!isMarketingRoute(requestedPath)) return next();
+    res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+    return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript()));
+  });
+
   // API 404 Catch-all (to prevent HTML responses for API errors)
   app.all("/api/*", (req, res, next) => {
     // If we've reached here, no other /api route matched
