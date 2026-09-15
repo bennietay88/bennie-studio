@@ -24,7 +24,9 @@ export function hasCustomerCapability(role: UserRole | undefined, capability: Cu
   return !!role && (CUSTOMER_ROLE_CAPABILITIES[role as CustomerRole] || []).includes(capability as never);
 }
 
-type SubscriptionBusiness = Pick<Business, "subscriptionStatus" | "trialEndsAt"> & {
+type SubscriptionBusiness = {
+  subscriptionStatus?: string | null;
+  trialEndsAt?: number | string | null;
   subscription_status?: string | null;
   trial_ends_at?: number | string | null;
 };
