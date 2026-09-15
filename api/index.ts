@@ -5781,13 +5781,21 @@ async function startServer() {
     const products = (data || []).map((product: any) => {
       const price = Array.isArray(product.commercial_market_prices) ? product.commercial_market_prices[0] : product.commercial_market_prices;
       const dynamicCheckoutAvailable = false;
+      // Keep draft markets consultation-led even though the catalogue stores
+      // one product-level sales motion. Malaysia is the only market currently
+      // allowed to expose a self-service recurring checkout.
+      const publicSalesMotion = product.sales_motion === "quote"
+        ? "quote"
+        : price?.recurring_config_status === "live" && price?.recurring_stripe_monthly_price_id
+          ? product.sales_motion
+          : "proposal";
       return {
         id: product.id,
         slug: product.slug,
         name: product.name,
         description: product.description,
         productType: product.product_type,
-        salesMotion: product.sales_motion,
+        salesMotion: publicSalesMotion,
         includesProductSlug: product.includes_product_slug,
         price: price ? {
           market,
