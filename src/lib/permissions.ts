@@ -24,12 +24,41 @@ export function hasCustomerCapability(role: UserRole | undefined, capability: Cu
   return !!role && (CUSTOMER_ROLE_CAPABILITIES[role as CustomerRole] || []).includes(capability as never);
 }
 
-export function hasSubscriptionAccess(profile: Pick<UserProfile, "role"> | null | undefined, business: Pick<Business, "subscriptionStatus" | "trialEndsAt"> | null | undefined, now = Date.now()): boolean {
+type SubscriptionBusiness = Pick<Business, "subscriptionStatus" | "trialEndsAt"> & {
+  subscription_status?: string | null;
+  trial_ends_at?: number | string | null;
+};
+
+function normalizeTrialEndsAt(value: unknown): number {
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && value) {
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+export function hasSubscriptionAccess(
+  profile: Pick<UserProfile, "role"> | null | undefined,
+  business: SubscriptionBusiness | null | undefined,
+  now = Date.now(),
+): boolean {
   if (!profile) return false;
   if (profile.role === "super_admin" || profile.role === "platform_staff") return true;
   if (!business) return false;
-  if (business.subscriptionStatus === "active") return true;
-  return business.subscriptionStatus === "trialing" && business.trialEndsAt > now;
+
+  // AuthContext receives business rows directly from Supabase, which use
+  // snake_case, while internal TypeScript models use camelCase. Normalize both
+  // shapes here so route authorization cannot accidentally pause valid accounts.
+  const status = String(
+    business.subscriptionStatus ?? business.subscription_status ?? "",
+  ).toLowerCase();
+  const trialEndsAt = normalizeTrialEndsAt(
+    business.trialEndsAt ?? business.trial_ends_at,
+  );
+
+  if (status === "active") return true;
+  return status === "trialing" && trialEndsAt > now;
 }
 
 export function can(capability: Capability, context: CapabilityContext, now = Date.now()): boolean {
