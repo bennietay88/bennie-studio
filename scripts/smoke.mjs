@@ -30,6 +30,11 @@ if (baseUrl) {
     "/privacy",
     "/terms",
   ];
+  const marketingMetadata = {
+    "/": "Managed Websites That Generate Enquiries",
+    "/pricing": "Managed Website Plans and Pricing",
+    "/generate-preview": "Free Website Preview Generator",
+  };
 
   const response = await fetch(new URL("/api/health-check", baseUrl));
   if (!response.ok) {
@@ -48,6 +53,18 @@ if (baseUrl) {
     const html = await page.text();
     if (!html.includes("<div id=\"root\"")) {
       throw new Error(`Public route did not return the app shell: ${route}`);
+    }
+  }
+
+  for (const [route, expectedTitle] of Object.entries(marketingMetadata)) {
+    const page = await fetch(new URL(route, baseUrl));
+    if (!page.ok) throw new Error(`Marketing route failed: ${route} returned HTTP ${page.status}`);
+    const html = await page.text();
+    if (!html.includes(expectedTitle)) {
+      throw new Error(`Marketing route did not return route-specific metadata: ${route}`);
+    }
+    if (!html.includes('property="og:image"')) {
+      throw new Error(`Marketing route is missing an Open Graph image: ${route}`);
     }
   }
 }
