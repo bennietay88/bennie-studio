@@ -29,5 +29,8 @@ jobs:
       - run: npm run test:sales:api
       - run: npm run test:billing
       - run: npm run test:design
+      - run: npm run test:permissions
+      - run: npm run test:operating-system
+      - run: npm run test:fulfilment
       - run: npm run e2e
       - run: npm audit --audit-level=high

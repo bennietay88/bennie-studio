@@ -30,11 +30,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      // Prefer the installed Chrome channel on macOS. The bundled headless
-      // shell can be blocked by macOS Mach-port permissions, while the system
-      // browser is already approved for local automation and CI still falls
-      // back to the Chromium project browser.
-      use: { ...devices["Desktop Chrome"], channel: process.platform === "darwin" ? "chrome" : undefined },
+      // Use Playwright's pinned browser in every environment. The system
+      // Chrome channel can abort in headless macOS sessions and makes the
+      // same fixtures behave differently locally versus CI.
+      use: { ...devices["Desktop Chrome"] },
     },
   ],
 });
