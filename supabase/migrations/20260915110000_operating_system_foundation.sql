@@ -112,6 +112,26 @@ alter table public.website_health_checks enable row level security;
 alter table public.content_provenance enable row level security;
 alter table public.sales_delivery_handoff enable row level security;
 
+-- The schema may already have been provisioned by an operator-run deployment.
+-- Recreate policies idempotently so a later migration replay cannot fail on
+-- duplicate policy names.
+drop policy if exists "Platform staff view lifecycle" on public.business_lifecycle_events;
+drop policy if exists "Business admins append lifecycle" on public.business_lifecycle_events;
+drop policy if exists "Platform staff view delivery tasks" on public.delivery_tasks;
+drop policy if exists "Platform staff manage delivery tasks" on public.delivery_tasks;
+drop policy if exists "Platform staff view readiness" on public.launch_readiness_checks;
+drop policy if exists "Platform staff manage readiness" on public.launch_readiness_checks;
+drop policy if exists "Customers view published reports" on public.monthly_reports;
+drop policy if exists "Platform staff manage reports" on public.monthly_reports;
+drop policy if exists "Platform staff view health" on public.website_health_checks;
+drop policy if exists "Platform staff manage health" on public.website_health_checks;
+drop policy if exists "Platform staff view handoff" on public.sales_delivery_handoff;
+drop policy if exists "Platform staff manage handoff" on public.sales_delivery_handoff;
+drop policy if exists "Platform staff manage internal service data" on public.managed_service_cycles;
+drop policy if exists "Platform staff manage usage" on public.service_usage;
+drop policy if exists "Platform staff manage costs" on public.account_cost_entries;
+drop policy if exists "Platform staff manage provenance" on public.content_provenance;
+
 create policy "Platform staff view lifecycle" on public.business_lifecycle_events for select to authenticated using (private.is_super_admin() or has_platform_permission('delivery'));
 create policy "Business admins append lifecycle" on public.business_lifecycle_events for insert to authenticated with check (private.is_business_admin(business_id) or private.is_super_admin());
 create policy "Platform staff view delivery tasks" on public.delivery_tasks for select to authenticated using (private.is_super_admin() or has_platform_permission('delivery'));
