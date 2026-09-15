@@ -40,9 +40,9 @@
   ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.ts" },
-    { "source": "/", "destination": "/api/marketing?path=/" },
-    { "source": "/pricing", "destination": "/api/marketing?path=/pricing" },
-    { "source": "/generate-preview", "destination": "/api/marketing?path=/generate-preview" },
+    { "source": "/", "destination": "/api/index.ts?path=/" },
+    { "source": "/pricing", "destination": "/api/index.ts?path=/pricing" },
+    { "source": "/generate-preview", "destination": "/api/index.ts?path=/generate-preview" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
