@@ -6369,6 +6369,7 @@ async function startServer() {
     let testDynamicMonthlyAmount: number | null = null;
     let testDynamicSetupAmount: number | null = null;
     let useDynamicCatalogPrices = false;
+    let commercialPriceExpectation: { currency: string; monthlyAmount: number; setupAmount: number; minimumTermMonths: number } | null = null;
 
     try {
       await assertBusinessAccess(req.user.id, businessId);
@@ -6399,6 +6400,7 @@ async function startServer() {
           testDynamicMonthlyAmount = Number(currentPrice.recurring_monthly_price || currentPrice.monthly_price || 0);
           testDynamicSetupAmount = Number(currentPrice.recurring_setup_fee || currentPrice.setup_fee || 0);
           if (currentProduct.sales_motion !== "self_serve") return res.status(400).json({ error: "This product is available by consultation, not self-serve checkout." });
+          if (String(billingCycle) === "yearly") return res.status(400).json({ error: "Annual billing is not enabled for launch products. Choose monthly billing." });
           // New public checkout is recurring-only. Legacy one-time prices are
           // retained for historical records but can never be selected here.
           const recurringMode = currentPrice.recurring_config_status === "live";
@@ -6412,6 +6414,15 @@ async function startServer() {
           }
           isOneTimeCheckout = false;
           minimumTermMonths = Number(currentPrice.minimum_term_months || COMMERCIAL_RECURRING_COMMITMENT_MONTHS);
+          if (minimumTermMonths !== COMMERCIAL_RECURRING_COMMITMENT_MONTHS) {
+            return res.status(400).json({ error: "This product is missing the required 12-month commitment configuration." });
+          }
+          commercialPriceExpectation = {
+            currency: commercialCurrencyForMarket(market),
+            monthlyAmount: Number(testDynamicMonthlyAmount || 0),
+            setupAmount: Number(testDynamicSetupAmount || 0),
+            minimumTermMonths,
+          };
           priceId = useDynamicCatalogPrices ? "" : billingCycle === "yearly"
             ? (currentPrice.recurring_stripe_annual_price_id || "")
             : (currentPrice.recurring_stripe_monthly_price_id || "");
@@ -6485,6 +6496,32 @@ async function startServer() {
       }
 
       const stripe = await getStripe();
+
+      // Fail closed if the configured catalogue no longer matches the live
+      // Stripe objects. This prevents a stale/mis-currency price from being
+      // exposed by checkout after an admin or Stripe-side catalogue change.
+      if (resolvedProductSlug && commercialPriceExpectation && !useDynamicCatalogPrices && !resolvedPromotionId) {
+        const assertStripePrice = async (configuredId: string, expected: { amount: number; recurring: boolean }) => {
+          const livePrice: any = await stripe.prices.retrieve(configuredId, { expand: ["product"] });
+          const expectedCurrency = commercialPriceExpectation!.currency.toLowerCase();
+          if (!livePrice.active || livePrice.currency !== expectedCurrency || livePrice.unit_amount !== Math.round(expected.amount * 100)) {
+            throw new Error("STRIPE_CATALOG_MISMATCH");
+          }
+          if (expected.recurring) {
+            if (!livePrice.recurring || livePrice.recurring.interval !== "month" || livePrice.recurring.interval_count !== 1) {
+              throw new Error("STRIPE_CATALOG_MISMATCH");
+            }
+          } else if (livePrice.recurring) {
+            throw new Error("STRIPE_CATALOG_MISMATCH");
+          }
+          const product = livePrice.product && typeof livePrice.product === "object" ? livePrice.product : null;
+          if (!product || product.active === false) throw new Error("STRIPE_CATALOG_MISMATCH");
+        };
+        await assertStripePrice(priceId, { amount: commercialPriceExpectation.monthlyAmount, recurring: true });
+        if (configuredSetupPriceId && commercialPriceExpectation.setupAmount > 0) {
+          await assertStripePrice(configuredSetupPriceId, { amount: commercialPriceExpectation.setupAmount, recurring: false });
+        }
+      }
 
       // Check if business already has a stripe_customer_id and trial info
       const { data: business } = await supabase
@@ -6596,6 +6633,9 @@ async function startServer() {
             'Invalid Stripe Secret Key format. Your key should start with "sk_" or "rk_". Please check your settings.',
           code: "STRIPE_INVALID_KEY",
         });
+      }
+      if (error.message === "STRIPE_CATALOG_MISMATCH") {
+        return res.status(503).json({ error: "The selected market pricing is temporarily unavailable. Please try again later or book a consultation.", code: "STRIPE_CATALOG_MISMATCH" });
       }
       res.status(500).json({ error: safeErrorMessage(error) });
     }
