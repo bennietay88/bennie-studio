@@ -9,21 +9,20 @@ Environment: local repository, Vercel preview, Chrome authenticated preview, Sup
 
 FAIL - DO NOT LAUNCH
 
-The candidate builds cleanly and the public market-pricing routes were verified in production with anonymous HTTP fetches and Chrome. The final gate remains conditional only on the isolated Stripe TEST checkout/webhook journey and authenticated lifecycle execution.
+The candidate builds cleanly and the public market-pricing routes were verified in production with anonymous HTTP fetches and Chrome. Stripe test-mode webhook delivery is configured and has recent successful `200 OK` deliveries for checkout and payment events. The final gate remains conditional only on the authenticated app checkout/onboarding lifecycle.
 
 ## Test Summary
 
 Total automated tests: 73 passed
 Passed: lint, build, SEO (3), sales/commercial (42), billing (4), design (4), permissions (4), operating system (5), fulfilment (3), fixtures (1)
 Failed: 0 application assertions
-Blocked: Stripe TEST checkout/webhook E2E; full authenticated lifecycle E2E
+Blocked: full authenticated checkout/onboarding lifecycle E2E
 Fixed during QA: removed static `public/pricing/index.html` and `public/generate-preview/index.html` so SSR market routes are authoritative
 
 ## Launch Blockers
 
 | Severity | Component | Status | Required action |
 | --- | --- | --- | --- |
-| P1 | Stripe checkout/webhook | BLOCKED | Run isolated Stripe TEST checkout, signed webhook, duplicate/replay/invalid-signature cases, and verify entitlement/account creation in a permitted environment. |
 | P1 | Authenticated payment lifecycle | BLOCKED | Run isolated Stripe TEST checkout and signed webhook lifecycle with a non-production test account. |
 
 ## Role/Permission Matrix
@@ -38,7 +37,7 @@ Fixed during QA: removed static `public/pricing/index.html` and `public/generate
 
 ## Payment Test Result
 
-Not verified end-to-end. The repository contains fail-closed checkout and idempotent webhook tests, but no permitted Stripe TEST transaction and signed webhook delivery was executed during this QA pass.
+Stripe test-mode delivery verified in the dashboard: `checkout.session.completed`, `payment_intent.created`, and `payment_intent.succeeded` each returned `200 OK` today. A complete app-authenticated checkout and account activation still requires a disposable app test identity.
 
 ## Production Error Review
 
