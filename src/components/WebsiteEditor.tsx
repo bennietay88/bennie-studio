@@ -823,7 +823,20 @@ export function WebsiteEditor({
       
       Return ONLY a JSON object representing the UPDATED Home Page sections only. Do not change IDs. Maintain structure. Focus on extreme premium quality.`;
 
-      const aiResponse = await generateSectionContent("Home Page Strategy Improvement", website.seo.title, website.seo.keywords[0], website.theme.style, prompt);
+      // Keep the refinement prompt in the dedicated final argument. The
+      // generator signature includes location, tone and business context
+      // before customPrompt; passing it as the fourth/fifth argument caused
+      // the main AI Improve action to silently discard the user's direction.
+      const aiResponse = await generateSectionContent(
+        "Home Page Strategy Improvement",
+        website.seo.title,
+        website.seo.keywords[0] || "Services",
+        website.seo.placename || "Online",
+        website.theme.style || "Professional",
+        website.seo.description || "",
+        business.id,
+        prompt,
+      );
       
       if (aiResponse && aiResponse.sections) {
         const newPages = website.pages.map(p => {

@@ -66,10 +66,16 @@ export function SystemStatusPage() {
       const response = await fetch("/api/ai/usage", {
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
       });
+      const aiPayload = await response.json().catch(() => null);
+      const aiPaused = aiPayload?.code === "INTERNAL_AI_DISABLED" || aiPayload?.code === "CUSTOMER_AI_DISABLED";
       next.push({
         name: "AI-assisted editing",
-        status: response.ok ? "ok" : "warn",
-        detail: response.ok ? "Content service responding" : `Needs login/configuration: HTTP ${response.status}`,
+        status: response.ok ? "ok" : aiPaused ? "warn" : "error",
+        detail: response.ok
+          ? "Content service responding"
+          : aiPaused
+            ? "AI-assisted editing is paused by the current release controls"
+            : `Content service unavailable: HTTP ${response.status}`,
         icon: Shield,
       });
     } catch (error: any) {
