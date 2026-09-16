@@ -49,7 +49,14 @@ export const Billing = () => {
   }, []);
 
   useEffect(() => {
-    if (!profile?.businessId) return;
+    // New accounts can reach billing before a business record exists. Keep
+    // the page usable so they can select a plan and start checkout instead of
+    // leaving the screen in an infinite loading state.
+    if (!profile?.businessId) {
+      setBusiness(null);
+      setLoading(false);
+      return;
+    }
 
     const fetchBusiness = async () => {
       try {
