@@ -32,10 +32,10 @@ export const AIControl: React.FC = () => {
   const [platformSettings, setPlatformSettings] = useState<any>(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [newRoute, setNewRoute] = useState({
-    plan_id: "starter",
-    feature_id: "",
-    provider_override: "google",
-    model_override: "gemini-1.5-pro",
+    plan_slug: "starter",
+    feature_key: "",
+    provider: "deepseek",
+    model: "deepseek-chat",
   });
 
   const fetchData = async () => {
@@ -79,7 +79,7 @@ export const AIControl: React.FC = () => {
   };
 
   const createRoute = async () => {
-    if (!newRoute.feature_id) {
+    if (!newRoute.feature_key) {
       toast.error("Please select a feature");
       return;
     }
@@ -87,8 +87,8 @@ export const AIControl: React.FC = () => {
     try {
       const existingRoute = routes.find(
         (route) =>
-          route.feature_id === newRoute.feature_id &&
-          route.plan_id === newRoute.plan_id &&
+          route.feature_key === newRoute.feature_key &&
+          route.plan_slug === newRoute.plan_slug &&
           (!editingRouteId || route.id === editingRouteId),
       );
       const targetRouteId = editingRouteId || existingRoute?.id;
@@ -117,16 +117,16 @@ export const AIControl: React.FC = () => {
       route ||
       routes.find(
         (item) =>
-          item.feature_id === feature.id &&
-          item.plan_id === "starter",
+          item.feature_key === feature.feature_key &&
+          item.plan_slug === "starter",
       ) ||
-      routes.find((item) => item.feature_id === feature.id);
+      routes.find((item) => item.feature_key === feature.feature_key);
 
     setNewRoute({
-      plan_id: existingRoute?.plan_id || "starter",
-      feature_id: feature.id,
-      provider_override: existingRoute?.provider_override || feature.default_provider || "google",
-      model_override: existingRoute?.model_override || feature.default_model || "gemini-1.5-pro",
+      plan_slug: existingRoute?.plan_slug || "starter",
+      feature_key: feature.feature_key,
+      provider: existingRoute?.provider === "openai" ? "openai" : "deepseek",
+      model: existingRoute?.model || (feature.default_provider === "openai" ? "gpt-4o-mini" : "deepseek-chat"),
     });
     setEditingRouteId(existingRoute?.id || null);
     setActiveTab("routes");
@@ -278,19 +278,19 @@ export const AIControl: React.FC = () => {
                     {editingRouteId ? "Editing Feature Route" : "Feature Scope"}
                   </label>
                    <select 
-                      value={newRoute.feature_id}
-                      onChange={(e) => setNewRoute({...newRoute, feature_id: e.target.value})}
+                      value={newRoute.feature_key}
+                      onChange={(e) => setNewRoute({...newRoute, feature_key: e.target.value})}
                       className="w-full h-10 rounded-xl font-black text-slate-900 bg-white border-slate-200 text-xs px-3"
                    >
                       <option value="">Select Feature...</option>
-                      {features.map(f => <option key={f.id} value={f.id}>{f.feature_name}</option>)}
+                      {features.map(f => <option key={f.feature_key} value={f.feature_key}>{f.feature_name}</option>)}
                    </select>
                 </div>
                 <div className="w-48 space-y-2">
                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">User Plan</label>
                    <select 
-                      value={newRoute.plan_id}
-                      onChange={(e) => setNewRoute({...newRoute, plan_id: e.target.value})}
+                      value={newRoute.plan_slug}
+                      onChange={(e) => setNewRoute({...newRoute, plan_slug: e.target.value})}
                       className="w-full h-10 rounded-xl font-black text-slate-900 bg-white border-slate-200 text-xs px-3"
                    >
                       <option value="starter">Launch</option>
@@ -302,18 +302,17 @@ export const AIControl: React.FC = () => {
                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">Engine Override</label>
                    <div className="flex gap-2">
                       <select 
-                         value={newRoute.provider_override}
-                         onChange={(e) => setNewRoute({...newRoute, provider_override: e.target.value})}
+                         value={newRoute.provider}
+                         onChange={(e) => setNewRoute({...newRoute, provider: e.target.value})}
                          className="w-1/3 h-10 rounded-xl font-black text-slate-900 bg-white border-slate-200 text-xs px-3"
                       >
-                         <option value="google">Google</option>
                          <option value="openai">OpenAI</option>
-                         <option value="anthropic">Anthropic</option>
+                         <option value="deepseek">DeepSeek</option>
                       </select>
                       <Input 
                         placeholder="Model ID..." 
-                        value={newRoute.model_override}
-                        onChange={(e) => setNewRoute({...newRoute, model_override: e.target.value})}
+                        value={newRoute.model}
+                        onChange={(e) => setNewRoute({...newRoute, model: e.target.value})}
                         className="flex-1 h-10 rounded-xl bg-white"
                       />
                    </div>
@@ -332,10 +331,10 @@ export const AIControl: React.FC = () => {
                     onClick={() => {
                       setEditingRouteId(null);
                       setNewRoute({
-                        plan_id: "starter",
-                        feature_id: "",
-                        provider_override: "google",
-                        model_override: "gemini-1.5-pro",
+                        plan_slug: "starter",
+                        feature_key: "",
+                        provider: "deepseek",
+                        model: "deepseek-chat",
                       });
                     }}
                     className="h-10 rounded-xl px-5"
@@ -350,12 +349,12 @@ export const AIControl: React.FC = () => {
                 {routes.length > 0 ? (
                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {routes.map(route => {
-                         const feature = features.find(f => f.id === route.feature_id);
+                         const feature = features.find(f => f.feature_key === route.feature_key);
                          return (
                            <div key={route.id} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
                               <div className="flex justify-between items-start mb-4">
                                  <div>
-                                   <Badge className="bg-slate-900 text-[8px] font-black mb-1">{route.plan_id.toUpperCase()}</Badge>
+                                   <Badge className="bg-slate-900 text-[8px] font-black mb-1">{route.plan_slug.toUpperCase()}</Badge>
                                    <h4 className="text-sm font-black italic uppercase italic tracking-tighter text-slate-800">{feature?.feature_name || "Unknown Feature"}</h4>
                                  </div>
                                  <Button 
@@ -370,7 +369,7 @@ export const AIControl: React.FC = () => {
                               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
                                  <div className="flex justify-between items-center text-[10px]">
                                     <span className="text-slate-400 font-bold uppercase tracking-tighter">Override Engine</span>
-                                    <span className="text-indigo-600 font-black">{route.provider_override} / {route.model_override}</span>
+                                    <span className="text-indigo-600 font-black">{route.provider} / {route.model}</span>
                                  </div>
                                  <Button
                                   variant="ghost"
@@ -441,17 +440,6 @@ export const AIControl: React.FC = () => {
               <CardContent className="p-8 space-y-8">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
-                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Gemini (Google) API Key</label>
-                       <Input 
-                          type="password"
-                          placeholder="AIza..."
-                          value={platformSettings?.geminiApiKey || ""}
-                          onChange={(e) => setPlatformSettings({...platformSettings, geminiApiKey: e.target.value})}
-                          className="h-12 rounded-2xl border-slate-100 bg-slate-50/50 font-mono text-xs focus:ring-indigo-600"
-                       />
-                       <p className="text-[9px] text-slate-400 font-medium leading-relaxed italic">Used for high-speed synthesis and vision tasks across the Growth OS.</p>
-                    </div>
-                    <div className="space-y-3">
                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">DeepSeek API Key</label>
                        <Input 
                           type="password"
@@ -460,20 +448,10 @@ export const AIControl: React.FC = () => {
                           onChange={(e) => setPlatformSettings({...platformSettings, deepseekApiKey: e.target.value})}
                           className="h-12 rounded-2xl border-slate-100 bg-slate-50/50 font-mono text-xs focus:ring-indigo-600"
                        />
-                       <p className="text-[9px] text-slate-400 font-medium leading-relaxed italic">The chosen engine for logic-heavy technical reasoners and coding synthesis.</p>
+                       <p className="text-[9px] text-slate-400 font-medium leading-relaxed italic">Cost-efficient default for routine editing, drafts and SEO work.</p>
                     </div>
                     <div className="space-y-3">
-                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Anthropic/Claude Key (Optional)</label>
-                       <Input 
-                          type="password"
-                          placeholder="sk-ant-..."
-                          value={platformSettings?.anthropicApiKey || ""}
-                          onChange={(e) => setPlatformSettings({...platformSettings, anthropicApiKey: e.target.value})}
-                          className="h-12 rounded-2xl border-slate-100 bg-slate-50/50 font-mono text-xs focus:ring-indigo-600"
-                       />
-                    </div>
-                    <div className="space-y-3">
-                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">OpenAI Key (Cloud-Scale)</label>
+                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">OpenAI / ChatGPT API Key</label>
                        <Input 
                           type="password"
                           placeholder="sk-..."

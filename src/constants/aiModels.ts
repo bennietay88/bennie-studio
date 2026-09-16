@@ -1,10 +1,10 @@
 /**
  * AI Model Constants and Configuration
- * Provides centralized management for Gemini model versions and use-case optimization.
+ * Provides centralized management for the supported OpenAI and DeepSeek models.
  */
 
 export type AIUseCase = "synthesis" | "seo" | "chatbot" | "blog" | "marketing" | "copy";
-export type AIProvider = "deepseek" | "openai" | "google";
+export type AIProvider = "deepseek" | "openai";
 
 export interface AIModelOption {
   id: string;
@@ -18,50 +18,50 @@ export interface AIModelOption {
 
 export const AI_MODELS: AIModelOption[] = [
   {
-    id: "gemini-1.5-flash",
-    provider: "google",
-    name: "Neural Flash",
-    description: "Ultra-fast, efficient model for website drafts and standard copy.",
-    tier: "standard",
-    creditCost: 1,
-    recommendedFor: ["synthesis", "blog", "marketing"],
-  },
-  {
-    id: "gemini-1.5-pro",
-    provider: "google",
-    name: "Neural Pro",
-    description: "Advanced intelligence for agency-grade copy and complex reasoning.",
-    tier: "premium",
-    creditCost: 5,
-    recommendedFor: ["synthesis", "seo", "copy"],
-  },
-  {
     id: "deepseek-chat",
     provider: "deepseek",
-    name: "Standard AI",
-    description: "Efficient AI for everyday business tasks and content generation.",
+    name: "DeepSeek Chat",
+    description: "Cost-efficient model for everyday website drafts and editing.",
     tier: "standard",
     creditCost: 1,
-    recommendedFor: ["chatbot", "blog", "marketing"],
+    recommendedFor: ["synthesis", "blog", "marketing", "chatbot"],
+  },
+  {
+    id: "deepseek-reasoner",
+    provider: "deepseek",
+    name: "DeepSeek Reasoner",
+    description: "Stronger reasoning for SEO and complex content decisions.",
+    tier: "premium",
+    creditCost: 5,
+    recommendedFor: ["seo", "copy"],
+  },
+  {
+    id: "gpt-4o-mini",
+    provider: "openai",
+    name: "ChatGPT Mini",
+    description: "Reliable low-cost OpenAI model for polished customer-facing copy.",
+    tier: "standard",
+    creditCost: 2,
+    recommendedFor: ["synthesis", "blog", "marketing", "chatbot"],
   },
   {
     id: "gpt-4o",
     provider: "openai",
-    name: "Premium AI",
-    description: "Advanced AI for agency-grade copy and complex reasoning.",
+    name: "ChatGPT 4o",
+    description: "Premium OpenAI model for high-stakes copy and complex reasoning.",
     tier: "premium",
     creditCost: 5,
-    recommendedFor: ["synthesis", "seo", "copy"],
+    recommendedFor: ["seo", "copy"],
   }
 ];
 
 export const DEFAULT_MODEL_CONFIG: Record<AIUseCase, string> = {
-  synthesis: "gemini-1.5-flash",
-  seo: "gemini-1.5-pro",
-  chatbot: "gemini-1.5-flash",
-  blog: "gemini-1.5-flash",
-  marketing: "gemini-1.5-flash",
-  copy: "gemini-1.5-pro",
+  synthesis: "deepseek-chat",
+  seo: "deepseek-reasoner",
+  chatbot: "deepseek-chat",
+  blog: "deepseek-chat",
+  marketing: "deepseek-chat",
+  copy: "gpt-4o-mini",
 };
 
 export const USE_CASE_LABELS: Record<AIUseCase, string> = {

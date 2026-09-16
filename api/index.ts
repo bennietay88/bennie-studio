@@ -14,7 +14,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
-import { callDeepSeek, callOpenAI, callGemini } from "../src/lib/ai-providers.js";
+import { callDeepSeek, callOpenAI } from "../src/lib/ai-providers.js";
 import { analyzeWebsiteHtml, normalizeWebsiteAuditResult } from "../src/lib/websiteAudit.js";
 import {
   classifyTenantHost,
@@ -430,7 +430,7 @@ app.use((req, res, next) => {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
-      `connect-src 'self'${localDevelopment ? " ws://127.0.0.1:* ws://localhost:*" : ""} https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.deepseek.com https://generativelanguage.googleapis.com https://api.openai.com https://api.resend.com https://ct.pinterest.com https://*.sentry.io https://*.ingest.sentry.io`,
+      `connect-src 'self'${localDevelopment ? " ws://127.0.0.1:* ws://localhost:*" : ""} https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.deepseek.com https://api.openai.com https://api.resend.com https://ct.pinterest.com https://*.sentry.io https://*.ingest.sentry.io`,
       "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://ct.pinterest.com",
       "object-src 'none'",
       "base-uri 'self'",
@@ -3489,27 +3489,24 @@ async function startServer() {
       if (!brief.success) return res.status(400).json({ error: "A complete verified content brief is required" });
 
       const usableKey = (value: unknown) => typeof value === "string" && value.trim().length >= 10 && !/TODO|PLACEHOLDER|YOUR_|^MY_|^GEMINI_/i.test(value.trim());
-      const providers: Array<{ name: "openai" | "google" | "deepseek"; key: string }> = [
+      const providers: Array<{ name: "openai" | "deepseek"; key: string }> = [
         { name: "openai", key: usableKey(process.env.OPENAI_API_KEY) ? String(process.env.OPENAI_API_KEY).trim() : "" },
-        { name: "google", key: usableKey(process.env.GEMINI_API_KEY) ? String(process.env.GEMINI_API_KEY).trim() : "" },
         { name: "deepseek", key: usableKey(process.env.DEEPSEEK_API_KEY) ? String(process.env.DEEPSEEK_API_KEY).trim() : "" },
-      ].filter((item): item is { name: "openai" | "google" | "deepseek"; key: string } => Boolean(item.key));
+      ].filter((item): item is { name: "openai" | "deepseek"; key: string } => Boolean(item.key));
       if (!providers.length) return res.status(503).json({ error: "No internal AI provider is configured" });
       const provider = providers[0];
       const request = { prompt: buildInternalContentPrompt(brief.data), systemMessage: INTERNAL_CONTENT_SYSTEM_PROMPT, temperature: 0.2, maxTokens: 1800, isJson: true };
       try {
         const response = provider.name === "openai"
           ? await callOpenAI(provider.key, request, "gpt-4o-mini")
-          : provider.name === "google"
-            ? await callGemini(provider.key, request, "gemini-1.5-flash")
-            : await callDeepSeek(provider.key, request, "deepseek-chat");
+          : await callDeepSeek(provider.key, request, "deepseek-chat");
         const draft = parseInternalContentDraft(response.text);
         const { data: log, error: logError } = await supabaseAdmin.from("ai_generation_logs").insert({
           user_id: req.user.id,
           project_id: body.businessId || null,
           feature_key: "internal_content_engine",
           provider: provider.name,
-          model: provider.name === "openai" ? "gpt-4o-mini" : provider.name === "google" ? "gemini-1.5-flash" : "deepseek-chat",
+          model: provider.name === "openai" ? "gpt-4o-mini" : "deepseek-chat",
           prompt_tokens: response.usage.promptTokens,
           output_tokens: response.usage.completionTokens,
           status: "completed",
@@ -3567,27 +3564,24 @@ async function startServer() {
       }), req, res);
       if (!body) return;
       const usableKey = (value: unknown) => typeof value === "string" && value.trim().length >= 10 && !/TODO|PLACEHOLDER|YOUR_|^MY_|^GEMINI_/i.test(value.trim());
-      const providers: Array<{ name: "openai" | "google" | "deepseek"; key: string }> = [
+      const providers: Array<{ name: "openai" | "deepseek"; key: string }> = [
         { name: "openai", key: usableKey(process.env.OPENAI_API_KEY) ? String(process.env.OPENAI_API_KEY).trim() : "" },
-        { name: "google", key: usableKey(process.env.GEMINI_API_KEY) ? String(process.env.GEMINI_API_KEY).trim() : "" },
         { name: "deepseek", key: usableKey(process.env.DEEPSEEK_API_KEY) ? String(process.env.DEEPSEEK_API_KEY).trim() : "" },
-      ].filter((item): item is { name: "openai" | "google" | "deepseek"; key: string } => Boolean(item.key));
+      ].filter((item): item is { name: "openai" | "deepseek"; key: string } => Boolean(item.key));
       if (!providers.length) return res.status(503).json({ error: "No internal AI provider is configured" });
       const provider = providers[0];
       try {
         const request = { prompt: buildHumaniseContentPrompt(body.input), systemMessage: HUMANISE_CONTENT_SYSTEM_PROMPT, temperature: 0.15, maxTokens: 1400, isJson: true };
         const response = provider.name === "openai"
           ? await callOpenAI(provider.key, request, "gpt-4o-mini")
-          : provider.name === "google"
-            ? await callGemini(provider.key, request, "gemini-1.5-flash")
-            : await callDeepSeek(provider.key, request, "deepseek-chat");
+          : await callDeepSeek(provider.key, request, "deepseek-chat");
         const draft = parseHumaniseContentDraft(response.text);
         const { data: log } = await supabaseAdmin.from("ai_generation_logs").insert({
           user_id: req.user.id,
           project_id: body.businessId || null,
           feature_key: "internal_humanise_content",
           provider: provider.name,
-          model: provider.name === "openai" ? "gpt-4o-mini" : provider.name === "google" ? "gemini-1.5-flash" : "deepseek-chat",
+          model: provider.name === "openai" ? "gpt-4o-mini" : "deepseek-chat",
           prompt_tokens: response.usage.promptTokens,
           output_tokens: response.usage.completionTokens,
           status: "completed",
@@ -3626,27 +3620,24 @@ async function startServer() {
       }), req, res);
       if (!body) return;
       const usableKey = (value: unknown) => typeof value === "string" && value.trim().length >= 10 && !/TODO|PLACEHOLDER|YOUR_|^MY_|^GEMINI_/i.test(value.trim());
-      const providers: Array<{ name: "openai" | "google" | "deepseek"; key: string }> = [
+      const providers: Array<{ name: "openai" | "deepseek"; key: string }> = [
         { name: "openai", key: usableKey(process.env.OPENAI_API_KEY) ? String(process.env.OPENAI_API_KEY).trim() : "" },
-        { name: "google", key: usableKey(process.env.GEMINI_API_KEY) ? String(process.env.GEMINI_API_KEY).trim() : "" },
         { name: "deepseek", key: usableKey(process.env.DEEPSEEK_API_KEY) ? String(process.env.DEEPSEEK_API_KEY).trim() : "" },
-      ].filter((item): item is { name: "openai" | "google" | "deepseek"; key: string } => Boolean(item.key));
+      ].filter((item): item is { name: "openai" | "deepseek"; key: string } => Boolean(item.key));
       if (!providers.length) return res.status(503).json({ error: "No internal AI provider is configured" });
       const provider = providers[0];
       try {
         const request = { prompt: buildDesignDirectionPrompt(body.input), systemMessage: DESIGN_DIRECTOR_SYSTEM_PROMPT, temperature: 0.1, maxTokens: 1200, isJson: true };
         const response = provider.name === "openai"
           ? await callOpenAI(provider.key, request, "gpt-4o-mini")
-          : provider.name === "google"
-            ? await callGemini(provider.key, request, "gemini-1.5-flash")
-            : await callDeepSeek(provider.key, request, "deepseek-chat");
+          : await callDeepSeek(provider.key, request, "deepseek-chat");
         const direction = parseDesignDirection(response.text);
         const { data: log } = await supabaseAdmin.from("ai_generation_logs").insert({
           user_id: req.user.id,
           project_id: body.businessId || null,
           feature_key: "internal_design_direction",
           provider: provider.name,
-          model: provider.name === "openai" ? "gpt-4o-mini" : provider.name === "google" ? "gemini-1.5-flash" : "deepseek-chat",
+          model: provider.name === "openai" ? "gpt-4o-mini" : "deepseek-chat",
           prompt_tokens: response.usage.promptTokens,
           output_tokens: response.usage.completionTokens,
           status: "completed",
@@ -3829,22 +3820,21 @@ async function startServer() {
         values.find(isUsableKey)?.toString().trim() || "";
 
       const providerKeys: Record<string, string> = {
-        google: firstUsableKey(process.env.GEMINI_API_KEY),
         openai: firstUsableKey(process.env.OPENAI_API_KEY),
         deepseek: firstUsableKey(process.env.DEEPSEEK_API_KEY),
       };
       const fallbackModels: Record<string, string> = {
-        google: "gemini-1.5-flash",
         openai: "gpt-4o-mini",
         deepseek: "deepseek-chat",
       };
 
-      let selectedProvider = String(route?.provider || feature.default_provider || "google").toLowerCase();
+      let selectedProvider = String(route?.provider || feature.default_provider || "deepseek").toLowerCase();
+      if (!["openai", "deepseek"].includes(selectedProvider)) selectedProvider = "deepseek";
       let selectedModel = route?.model || feature.default_model || fallbackModels[selectedProvider];
       let apiKey = providerKeys[selectedProvider] || "";
 
       if (!apiKey) {
-        const availableProvider = ["google", "openai", "deepseek"].find((name) => providerKeys[name]);
+        const availableProvider = ["deepseek", "openai"].find((name) => providerKeys[name]);
         if (availableProvider) {
           selectedProvider = availableProvider;
           selectedModel = fallbackModels[availableProvider];
@@ -3978,8 +3968,6 @@ async function startServer() {
 
         if (selectedProvider === "openai") {
           aiResponse = await callOpenAI(apiKey, aiRequest, selectedModel);
-        } else if (selectedProvider === "google") {
-          aiResponse = await callGemini(apiKey, aiRequest, selectedModel);
         } else {
           aiResponse = await callDeepSeek(apiKey, aiRequest, selectedModel);
         }
@@ -8001,7 +7989,7 @@ async function startServer() {
         supabaseUrl: Boolean(process.env.VITE_SUPABASE_URL),
         supabaseServiceRole: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
         stripe: Boolean(process.env.STRIPE_SECRET_KEY),
-        gemini: Boolean(process.env.GEMINI_API_KEY),
+        deepseek: Boolean(process.env.DEEPSEEK_API_KEY),
         openai: Boolean(process.env.OPENAI_API_KEY),
         upstash: Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN),
       };
