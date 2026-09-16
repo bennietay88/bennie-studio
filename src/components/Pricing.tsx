@@ -12,10 +12,10 @@ import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHA
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
 
-interface PricingProps { currentPlan?: string; onSelectPlan?: (plan: any) => void; isDashboard?: boolean; onDark?: boolean; hideIntro?: boolean; }
+interface PricingProps { currentPlan?: string; onSelectPlan?: (plan: any) => void; isDashboard?: boolean; onDark?: boolean; hideIntro?: boolean; marketOverride?: CommercialMarket; }
 const outcomes = ["Website planned and built around your offer", "Managed hosting, updates and launch support", "WhatsApp, call, booking and quotation enquiry paths", "Trust proof, local SEO foundation and analytics"];
 
-export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onDark = false, hideIntro = false }) => {
+export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onDark = false, hideIntro = false, marketOverride }) => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,7 +24,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   // explicit market). Use the browser URL as the final source of truth so a
   // previously persisted local market cannot override a shared campaign link.
   const urlMarket = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("market") : null;
-  const activeMarket = urlMarket ? normalizeCommercialMarket(urlMarket) : market;
+  const activeMarket = marketOverride || (urlMarket ? normalizeCommercialMarket(urlMarket) : market);
   const { products, loading } = usePublicCommercialPricing(activeMarket);
   const [billingCycle, setBillingCycle] = React.useState<"monthly" | "yearly">("monthly");
   const [pendingProduct, setPendingProduct] = React.useState<CommercialProduct | null>(null);

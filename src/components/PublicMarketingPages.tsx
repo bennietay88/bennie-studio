@@ -34,6 +34,7 @@ import { trackPinterestLead } from "../lib/pinterestTracking";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { FREE_PREVIEW_LIMITS, PUBLIC_PROMISE, SUBSCRIPTION_DELIVERY_FLOW } from "../constants/salesFlow";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
+import { normalizeCommercialMarket } from "../lib/commercialPricing";
 import { FlagshipTemplateGallery } from "./FlagshipTemplateGallery";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { supabase } from "../lib/supabase";
@@ -533,7 +534,12 @@ function TemplatesPage() {
 }
 
 function PricingPage() {
-  return <><h1 className="sr-only">Website Growth pricing</h1><CommercialPricing /></>;
+  const location = useLocation();
+  const requestedMarket = new URLSearchParams(location.search).get("market");
+  // Keep shared/campaign pricing links authoritative even when a visitor has
+  // previously persisted a different market in localStorage.
+  const marketOverride = requestedMarket ? normalizeCommercialMarket(requestedMarket) : undefined;
+  return <><h1 className="sr-only">Website Growth pricing</h1><CommercialPricing marketOverride={marketOverride} /></>;
 }
 
 function HowItWorksPage() {
