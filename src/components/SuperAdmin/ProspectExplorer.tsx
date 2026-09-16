@@ -28,6 +28,7 @@ import { supabase } from "../../lib/supabase";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { normalizeWebsiteAuditResult } from "../../lib/websiteAudit";
+import { scoreProspect } from "../../lib/prospectScoring";
 import {
   Dialog,
   DialogContent,
@@ -106,7 +107,7 @@ export function ProspectExplorer() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setProspects(data || []);
+      setProspects((data || []).map((prospect) => ({ ...prospect, _score: scoreProspect(prospect) })));
     } catch (error: any) {
       console.error("Error fetching prospects:", error);
       toast.error("Failed to load prospects. Apply the prospecting migration if this is the first run.");
@@ -159,7 +160,7 @@ export function ProspectExplorer() {
 
       if (error) throw error;
 
-      setProspects([data, ...prospects]);
+      setProspects([{ ...data, _score: scoreProspect(data) }, ...prospects]);
       setIsAddModalOpen(false);
       resetNewProspect();
       toast.success("Prospect added");
@@ -173,7 +174,7 @@ export function ProspectExplorer() {
 
   const updateProspect = async (id: string, patch: Record<string, any>) => {
     const previous = prospects;
-    setProspects((current) => current.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+    setProspects((current) => current.map((p) => (p.id === id ? { ...p, ...patch, _score: scoreProspect({ ...p, ...patch }) } : p)));
     const { error } = await supabase.from("prospects").update(patch).eq("id", id);
     if (error) {
       setProspects(previous);
@@ -447,6 +448,7 @@ export function ProspectExplorer() {
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Contact</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Website</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Opportunity</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Score / next action</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Outreach</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Next Step</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
@@ -454,9 +456,9 @@ export function ProspectExplorer() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr><td colSpan={7} className="py-20 text-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" /><p className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading prospects...</p></td></tr>
+                  <tr><td colSpan={8} className="py-20 text-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" /><p className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading prospects...</p></td></tr>
                 ) : filteredProspects.length === 0 ? (
-                  <tr><td colSpan={7} className="py-20 text-center"><p className="text-slate-400 font-bold text-sm">No prospects found.</p></td></tr>
+                  <tr><td colSpan={8} className="py-20 text-center"><p className="text-slate-400 font-bold text-sm">No prospects found.</p></td></tr>
                 ) : (
                   filteredProspects.map((prospect) => (
                     <tr key={prospect.id} className="hover:bg-slate-50/50 transition-colors align-top">
@@ -484,6 +486,9 @@ export function ProspectExplorer() {
                           <SelectTrigger className="h-9 w-32 rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>{OPPORTUNITY_LEVELS.map((level) => <SelectItem key={level} value={level}>{toTitle(level)}</SelectItem>)}</SelectContent>
                         </Select>
+                      </td>
+                      <td className="px-6 py-6">
+                        {(() => { const scored = prospect._score || scoreProspect(prospect); return <><div className="flex items-center gap-2"><span className="text-lg font-black text-slate-900">{prospect.qualification_score ?? scored.score}</span><Badge className="rounded-full border-none bg-indigo-50 text-[8px] font-black uppercase text-indigo-700">{prospect.qualification_category || scored.category.replace("_", " ")}</Badge></div><p className="mt-1 text-[10px] font-black uppercase tracking-widest text-indigo-600">{prospect.recommended_next_action || scored.recommendedNextAction}</p><p className="mt-1 text-[10px] font-semibold text-slate-400">{scored.factors.slice(0, 2).map((factor) => `+${factor.points} ${factor.label}`).join(" · ") || "Needs more evidence"}</p></>; })()}
                       </td>
                       <td className="px-6 py-6">
                         <Select value={prospect.outreach_status || "not_started"} onValueChange={(value) => updateProspect(prospect.id, { outreach_status: value })}>
