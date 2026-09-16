@@ -181,6 +181,24 @@ function resolveMarketingClientScript() {
   return "/src/main.tsx";
 }
 
+function requestedMarketingMarket(req: any) {
+  const direct = String(req?.query?.market || "").toUpperCase();
+  if (["MY", "SG", "GB", "INTL"].includes(direct)) return direct;
+  // Vercel rewrites can move the original query string into the raw request
+  // URL even when Express' parsed query only contains the rewrite parameters.
+  const rawCandidates = [
+    String(req?.originalUrl || ""),
+    String(req?.url || ""),
+    String(req?.headers?.["x-forwarded-uri"] || ""),
+    String(req?.headers?.referer || ""),
+  ];
+  for (const raw of rawCandidates) {
+    const match = raw.match(/[?&]market=(MY|SG|GB|INTL)(?:&|$)/i);
+    if (match) return match[1].toUpperCase();
+  }
+  return "";
+}
+
 let stripeInstance: Stripe | null = null;
 const merchantStripeCache = new Map<
   string,
@@ -8606,7 +8624,7 @@ async function startServer() {
       return res.status(404).json({ error: "Marketing route not found" });
     }
     res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
-    return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript(), String(req.query.market || "")));
+    return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript(), requestedMarketingMarket(req)));
   });
 
   // Vercel mounts this single function at /api. Public marketing rewrites
@@ -8616,7 +8634,7 @@ async function startServer() {
     const requestedPath = String(req.query.path || "").split("?")[0];
     if (!isMarketingRoute(requestedPath)) return next();
     res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
-    return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript(), String(req.query.market || "")));
+    return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript(), requestedMarketingMarket(req)));
   });
 
   // API 404 Catch-all (to prevent HTML responses for API errors)
