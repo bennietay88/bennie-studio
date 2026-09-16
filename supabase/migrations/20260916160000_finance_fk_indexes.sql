@@ -10,6 +10,8 @@ create index if not exists finance_invoices_business_idx
   on public.finance_invoices(business_id, issue_date desc);
 create index if not exists finance_needs_attention_resolved_by_idx
   on public.finance_needs_attention(resolved_by);
+create index if not exists finance_needs_attention_business_idx
+  on public.finance_needs_attention(business_id, created_at desc);
 create index if not exists finance_needs_attention_transaction_idx
   on public.finance_needs_attention(transaction_id);
 create index if not exists finance_reconciliation_reviewed_by_idx
