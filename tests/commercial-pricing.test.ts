@@ -26,6 +26,32 @@ test("managed website recurring price book is fixed by market", () => {
   assert.equal(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, 12);
 });
 
+test("all four launch markets keep the approved recurring catalogue", () => {
+  const expected = {
+    MY: [199, 1099, "MYR"],
+    SG: [99, 399, "SGD"],
+    GB: [79, 249, "GBP"],
+    INTL: [89, 299, "USD"],
+  } as const;
+  const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "managed-website")!;
+  for (const [market, [monthly, setup, currency]] of Object.entries(expected)) {
+    const price = getCommercialPrice(product, market as keyof typeof expected);
+    assert.equal(price?.monthlyPrice, monthly);
+    assert.equal(price?.setupFee, setup);
+    assert.equal(price?.currency, currency);
+    assert.equal(price?.minimumTermMonths, 12);
+    assert.equal(price?.billingInterval, "month");
+  }
+});
+
+test("recurring checkout remains fail-closed until the market row is live and complete", () => {
+  assert.equal(isRecurringCheckoutEnabled({ recurringConfigStatus: "live", monthlyConfigured: true }), true);
+  assert.equal(isRecurringCheckoutEnabled({ recurringConfigStatus: "live", monthlyConfigured: false }), false);
+  assert.equal(isRecurringCheckoutEnabled({ recurringConfigStatus: "draft", monthlyConfigured: true }), false);
+  assert.equal(isRecurringCheckoutEnabled({ recurringConfigStatus: "disabled", monthlyConfigured: true }), false);
+  assert.equal(isRecurringCheckoutEnabled(null), false);
+});
+
 test("growth partner is a self-serve recurring service", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "growth-partner");
   assert.equal(product?.salesMotion, "self_serve");
