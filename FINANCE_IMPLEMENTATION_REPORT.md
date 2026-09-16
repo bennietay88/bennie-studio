@@ -10,6 +10,10 @@
 - Finance needs-attention records for unresolved classification, reconciliation, documents, FX, and accountant review.
 - Expense entry API with validation and audit logging.
 - Stripe webhook synchronization for successful checkout payments. Refund and processor-fee event mapping is modeled in the ledger but remains a follow-up implementation slice.
+- Stripe refund and recurring invoice journal mapping.
+- Bank CSV preview/commit endpoints with duplicate-safe source keys.
+- Accountant CSV and structured JSON package exports.
+- Review workflow tables for documents, reconciliation matches, invoices, vendor bills, recurring costs, and month-end periods.
 
 ## Verification
 
@@ -17,4 +21,4 @@ Run typecheck, unit tests, production build, and a Supabase schema query after m
 
 ## Deliberate limitations
 
-This is operational finance preparation, not tax filing or accounting advice. Bank feeds, OCR, statutory invoicing, tax calculation, and accountant exports are follow-up slices.
+This is operational finance preparation, not tax filing or accounting advice. OCR, secure object-storage uploads, statutory tax calculation, and automatic bank feeds remain follow-up slices.

@@ -8,10 +8,10 @@
 
 ## P1
 
-- Receipt/document storage and review.
-- Reconciliation against Stripe payouts and CSV bank imports.
-- Customer invoices, AR, vendor bills, recurring expenses.
-- Accountant period export with manifest.
+- Secure receipt/document storage and review UI.
+- Reconciliation against Stripe payouts and imported bank rows.
+- Customer invoice and vendor-bill editing UI.
+- Accountant period export with attached-document manifest.
 
 ## P2
 

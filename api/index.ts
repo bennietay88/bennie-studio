@@ -986,6 +986,45 @@ async function startServer() {
     return res.send(csv);
   });
 
+  app.post("/api/admin/finance/bank-import/preview", authenticate, financeAccess, async (req: any, res: any) => {
+    const csv = String(req.body?.csv || "");
+    if (!csv || csv.length > 500000) return res.status(400).json({ error: "CSV is required and must be under 500KB" });
+    const lines = csv.split(/\r?\n/).filter(Boolean);
+    if (lines.length < 2) return res.status(400).json({ error: "CSV must include a header and at least one row" });
+    const split = (line: string) => line.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map((value) => value.trim().replace(/^\"|\"$/g, "").replace(/\"\"/g, '\"'));
+    const headers = split(lines[0]).map((header) => header.toLowerCase().replace(/[^a-z0-9]+/g, "_"));
+    const find = (names: string[]) => headers.findIndex((header) => names.some((name) => header.includes(name)));
+    const dateIndex = find(["date", "posted"]); const descriptionIndex = find(["description", "memo", "narrative", "payee"]); const amountIndex = find(["amount", "value", "total"]); const currencyIndex = find(["currency", "ccy"]); const referenceIndex = find(["reference", "ref", "id"]);
+    if (dateIndex < 0 || descriptionIndex < 0 || amountIndex < 0) return res.status(400).json({ error: "CSV needs date, description, and amount columns" });
+    const rows = lines.slice(1).map((line, index) => { const values = split(line); const amount = Number(String(values[amountIndex]).replace(/[^0-9.-]/g, "")); return { rowNumber: index + 2, date: values[dateIndex], description: values[descriptionIndex], amount, currency: (currencyIndex >= 0 ? values[currencyIndex] : "USD").toUpperCase(), reference: referenceIndex >= 0 ? values[referenceIndex] : null, valid: Boolean(values[dateIndex] && values[descriptionIndex] && Number.isFinite(amount)) }; });
+    return res.json({ headers, rows, validRows: rows.filter((row) => row.valid).length, invalidRows: rows.filter((row) => !row.valid).length });
+  });
+
+  app.post("/api/admin/finance/bank-import/commit", authenticate, financeAccess, async (req: any, res: any) => {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    if (!rows.length || rows.length > 2000) return res.status(400).json({ error: "Provide between 1 and 2,000 validated rows" });
+    const payload = rows.filter((row: any) => row.valid !== false && row.date && !Number.isNaN(new Date(row.date).getTime()) && row.description && Number.isFinite(Number(row.amount))).map((row: any) => ({ source_type: "BANK_TRANSACTION", source_id: String(row.reference || `${row.date}:${row.description}:${row.amount}:${row.currency}`), transaction_type: Number(row.amount) >= 0 ? "income" : "expense", transaction_date: new Date(row.date).toISOString(), posted_date: new Date(row.date).toISOString(), description: String(row.description).slice(0, 500), currency: String(row.currency || "USD").toUpperCase(), amount: Math.abs(Number(row.amount)), status: "posted", reconciliation_status: "UNRECONCILED", document_status: "MISSING", review_status: "NOT_REVIEWED", category: Number(row.amount) >= 0 ? "Other business income" : null, metadata: { importedBy: req.user.id, importType: "bank_csv" } }));
+    const { data, error } = await supabaseAdmin.from("finance_transactions").upsert(payload, { onConflict: "source_type,source_id", ignoreDuplicates: true }).select("id");
+    if (error) return res.status(400).json({ error: "Bank transactions could not be imported" });
+    return res.json({ imported: data?.length || 0, skippedDuplicates: payload.length - (data?.length || 0) });
+  });
+
+  app.get("/api/admin/finance/accountant-pack", authenticate, financeAccess, async (req: any, res: any) => {
+    const from = req.query.from ? new Date(String(req.query.from)) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const to = req.query.to ? new Date(String(req.query.to)) : new Date();
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return res.status(400).json({ error: "Invalid date range" });
+    const [transactions, attention, invoices, bills, close] = await Promise.all([
+      supabaseAdmin.from("finance_transactions").select("*").gte("transaction_date", from.toISOString()).lte("transaction_date", to.toISOString()).order("transaction_date", { ascending: true }),
+      supabaseAdmin.from("finance_needs_attention").select("*").eq("status", "OPEN"),
+      supabaseAdmin.from("finance_invoices").select("*").gte("issue_date", from.toISOString().slice(0, 10)).lte("issue_date", to.toISOString().slice(0, 10)),
+      supabaseAdmin.from("finance_vendor_bills").select("*").gte("invoice_date", from.toISOString().slice(0, 10)).lte("invoice_date", to.toISOString().slice(0, 10)),
+      supabaseAdmin.from("finance_close_periods").select("*").eq("period_start", from.toISOString().slice(0, 10)).eq("period_end", to.toISOString().slice(0, 10)).maybeSingle(),
+    ]);
+    if (transactions.error || attention.error || invoices.error || bills.error) return res.status(503).json({ error: "Accountant package unavailable" });
+    const rows = transactions.data || []; const income = rows.filter((row: any) => row.transaction_type === "income").reduce((sum: number, row: any) => sum + Number(row.base_currency_amount ?? row.amount), 0); const refunds = rows.filter((row: any) => row.transaction_type === "refund").reduce((sum: number, row: any) => sum + Number(row.base_currency_amount ?? row.amount), 0); const expenses = rows.filter((row: any) => ["expense", "fee"].includes(row.transaction_type)).reduce((sum: number, row: any) => sum + Number(row.base_currency_amount ?? row.amount), 0);
+    return res.json({ packageVersion: "1.0", period: { from: from.toISOString(), to: to.toISOString() }, disclaimer: "Management records prepared for accountant review; not tax advice or a statutory filing.", summary: { income, refunds, expenses, operatingProfitEstimate: income - refunds - expenses, transactionCount: rows.length }, transactions: rows, invoices: invoices.data || [], vendorBills: bills.data || [], unresolvedItems: attention.data || [], closePeriod: close.data || null, questionsForAccountant: (attention.data || []).map((item: any) => item.title || item.issue_code) });
+  });
+
   const aiAccessGuard = async (req: any, res: any, next: any) => {
     try {
       const profile = await getProfileForUser(req.user.id);
