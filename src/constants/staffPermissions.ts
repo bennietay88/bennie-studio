@@ -6,6 +6,7 @@ export const STAFF_PERMISSIONS = [
   { id: "support", label: "Customer Support", description: "Manage support tickets and update requests." },
   { id: "customer_health", label: "Customer Health", description: "Review retention risks and customer activity." },
   { id: "billing", label: "Billing Operations", description: "Review payment and subscription lifecycle events." },
+  { id: "finance", label: "Finance Records", description: "Review operational finance records and accountant exceptions." },
   { id: "activity_logs", label: "Activity History", description: "Review operational audit history." },
 ] as const;
 
@@ -18,6 +19,7 @@ export const DEFAULT_PLATFORM_STAFF_PERMISSIONS: StaffPermissionId[] = [
   "approvals",
   "support",
   "customer_health",
+  "finance",
 ];
 
 export const ADMIN_TAB_PERMISSIONS: Record<string, StaffPermissionId> = {
@@ -34,4 +36,5 @@ export const ADMIN_TAB_PERMISSIONS: Record<string, StaffPermissionId> = {
   support: "support",
   update_requests: "support",
   operations: "customer_health",
+  finance: "finance",
 };

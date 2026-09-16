@@ -130,6 +130,7 @@ import { SuperAdminAffiliatePartners } from "./SuperAdminAffiliatePartners";
 import { StyleThemeManager } from "./SuperAdmin/StyleThemeManager";
 
 import { RevenueCommand } from "./SuperAdmin/RevenueCommand";
+import { FinanceDashboard } from "./SuperAdmin/FinanceDashboard";
 import { SalesHome } from "./SuperAdmin/SalesHome";
 import { ProspectExplorer } from "./SuperAdmin/ProspectExplorer";
 import { NeuralAuditor } from "./SuperAdmin/NeuralAuditor";
@@ -210,6 +211,7 @@ export default function SuperAdminDashboard() {
     if (last === "growth_os_config") return "growth_os_config";
     if (last === "settings") return "settings";
     if (last === "revenue") return "revenue";
+    if (last === "finance") return "finance";
     if (last === "geo_pricing") return "plans";
     if (last === "prospect_explorer") return "prospect_explorer";
     if (last === "neural_auditor") return "neural_auditor";
@@ -1302,6 +1304,8 @@ export default function SuperAdminDashboard() {
       )}
 
       {activeTab === "revenue_command" && <RevenueCommand />}
+
+      {activeTab === "finance" && <FinanceDashboard />}
 
       {activeTab === "sales_home" && <SalesHome />}
 

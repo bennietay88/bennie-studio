@@ -1158,6 +1158,23 @@ async function startServer() {
     if (error) console.warn("Billing lifecycle event skipped:", error.message);
   };
 
+  const insertFinanceTransaction = async (payload: Record<string, any>) => {
+    const { data: settings } = await supabaseAdmin.from("finance_settings").select("base_currency").eq("id", "platform").maybeSingle();
+    const currency = String(payload.currency || "USD").toUpperCase();
+    const baseCurrency = String(settings?.base_currency || "USD").toUpperCase();
+    const sameCurrency = currency === baseCurrency;
+    const { error } = await supabaseAdmin.from("finance_transactions").upsert({
+      ...payload,
+      currency,
+      base_currency: sameCurrency ? baseCurrency : null,
+      base_currency_amount: sameCurrency ? payload.amount : null,
+      reconciliation_status: sameCurrency ? "UNRECONCILED" : "REVIEW_REQUIRED",
+      review_status: sameCurrency ? "NOT_REVIEWED" : "REVIEW_REQUIRED",
+      document_status: "MISSING",
+    }, { onConflict: "source_type,source_id", ignoreDuplicates: true });
+    if (error) console.warn("Finance transaction skipped:", error.message);
+  };
+
   // Reconciles cancellation requests that were made during the minimum term.
   // This is deliberately idempotent: every run re-reads Stripe before writing
   // the local state and treats an already-scheduled/cancelled subscription as
@@ -1338,6 +1355,26 @@ async function startServer() {
             console.log(
               `Processing successful checkout for business: ${businessId} (Type: ${type || "subscription"})`,
             );
+
+            await insertFinanceTransaction({
+              business_id: businessId,
+              source_type: "STRIPE_PAYMENT",
+              source_id: session.id,
+              transaction_type: "income",
+              transaction_date: new Date((session.created || Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+              posted_date: new Date().toISOString(),
+              description: `Stripe checkout ${type || "subscription"}`,
+              counterparty: session.customer_details?.email || session.customer_email || null,
+              country: session.customer_details?.address?.country || null,
+              currency: session.currency || "USD",
+              amount: Number(session.amount_total || 0) / 100,
+              payment_method: "stripe_checkout",
+              payment_processor: "stripe",
+              net_amount: Number(session.amount_total || 0) / 100,
+              status: "posted",
+              category: type === "one_time_package" ? "Website services" : "Subscription revenue",
+              metadata: { stripeSessionId: session.id, checkoutType: type || "subscription" },
+            });
 
             try {
               const stripe = type === "product_sale" ? await getStripe(businessId) : await getStripe();

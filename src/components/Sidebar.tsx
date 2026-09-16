@@ -45,6 +45,7 @@ import {
   BriefcaseBusiness,
   Inbox,
   Search,
+  CircleDollarSign,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -169,6 +170,7 @@ export function Sidebar({
           items: [
             { to: "/admin/plans", icon: CreditCard, label: "Plans & Pricing", moduleId: "plans_pricing" },
             { to: "/admin/revenue", icon: CreditCard, label: "Revenue", moduleId: "revenue" },
+            { to: "/admin/finance", icon: CircleDollarSign, label: "Finance", permission: "finance" },
           ]
         },
         {
