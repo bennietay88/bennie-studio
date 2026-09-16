@@ -20,11 +20,16 @@ import {
   ExternalLink,
   Globe,
   BriefcaseBusiness,
+  LayoutDashboard,
+  CalendarDays,
+  Inbox,
+  Users,
+  MoreHorizontal,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { cn } from "../lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { TrialReminder } from "./TrialReminder";
 import { Business } from "../types";
@@ -44,6 +49,7 @@ export function DashboardLayout({
   onLogout,
 }: DashboardLayoutProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -177,6 +183,20 @@ export function DashboardLayout({
 
   const mainWebsiteLink = getEcosystemLink("main");
   const portfolioLink = getEcosystemLink("portfolio");
+  const isAdminRole = role === "super_admin" || role === "platform_staff";
+  const mobileAdminLinks = role === "super_admin"
+    ? [
+        { label: "Overview", path: "/admin", icon: LayoutDashboard },
+        { label: "Today", path: "/admin/daily_operations", icon: CalendarDays },
+        { label: "Leads", path: "/admin/inbound_leads", icon: Inbox },
+        { label: "Customers", path: "/admin/businesses", icon: Users },
+      ]
+    : [
+        { label: "Overview", path: "/admin", icon: LayoutDashboard },
+        { label: "Today", path: "/admin/daily_operations", icon: CalendarDays },
+        { label: "Leads", path: "/admin/inbound_leads", icon: Inbox },
+        { label: "Projects", path: "/admin/projects", icon: BriefcaseBusiness },
+      ];
 
   if (!role) {
     return (
@@ -261,9 +281,9 @@ export function DashboardLayout({
           />
         </div>
 
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {/* Header */}
-          <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-6 sm:px-10 transition-colors duration-300">
+          <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-3 backdrop-blur-md transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900/95 sm:h-20 sm:px-10">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
@@ -274,12 +294,12 @@ export function DashboardLayout({
               >
                 <Menu className="h-6 w-6 text-slate-600 dark:text-slate-400" />
               </Button>
-              <div className="hidden xl:flex flex-col">
-                <h2 className="text-sm font-bold text-slate-900 dark:text-white capitalize">
-                  {(role || "").replace("_", " ")} Panel
+              <div className="flex min-w-0 flex-col">
+                <h2 className="truncate text-sm font-bold capitalize text-slate-900 dark:text-white">
+                  {isAdminRole ? "Admin Operations" : `${(role || "").replace("_", " ")} Panel`}
                 </h2>
-                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                  Enterprise Management
+                <p className="hidden text-[10px] font-medium uppercase tracking-widest text-slate-500 dark:text-slate-400 sm:block">
+                  {isAdminRole ? "Run the business from anywhere" : "Enterprise Management"}
                 </p>
               </div>
               {maintenanceMode && role === "super_admin" && (
@@ -391,13 +411,32 @@ export function DashboardLayout({
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto p-6 sm:p-10 transition-colors duration-300">
-            <div className="mx-auto max-w-7xl">
+          <main className={cn("flex-1 overflow-x-hidden overflow-y-auto p-3 pb-24 transition-colors duration-300 sm:p-10 sm:pb-10", isAdminRole && "bg-slate-50/70 dark:bg-slate-950/40")}>
+            <div className="mx-auto min-w-0 max-w-7xl">
               <Breadcrumbs />
               {children}
             </div>
           </main>
         </div>
+        {isAdminRole && (
+          <nav aria-label="Mobile admin navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 xl:hidden">
+            <div className="mx-auto grid max-w-lg grid-cols-5 gap-1">
+              {mobileAdminLinks.map(({ label, path, icon: Icon }) => {
+                const active = path === "/admin" ? location.pathname === "/admin" : location.pathname.startsWith(path);
+                return (
+                  <button key={path} type="button" onClick={() => { setIsSidebarOpen(false); navigate(path); }} className={cn("flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold transition-colors", active ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300" : "text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800")}>
+                    <Icon className="h-4 w-4" />
+                    <span>{label}</span>
+                  </button>
+                );
+              })}
+              <button type="button" onClick={() => setIsSidebarOpen(true)} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold text-slate-500 transition-colors hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
+                <MoreHorizontal className="h-4 w-4" />
+                <span>More</span>
+              </button>
+            </div>
+          </nav>
+        )}
         {platformSettings?.trackingScriptsFooter && (
           <div
             dangerouslySetInnerHTML={{
