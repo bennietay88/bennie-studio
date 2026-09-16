@@ -9,7 +9,7 @@
 - Deterministic category and review fields.
 - Finance needs-attention records for unresolved classification, reconciliation, documents, FX, and accountant review.
 - Expense entry API with validation and audit logging.
-- Stripe webhook synchronization for successful payments, refunds, and payment fees where Stripe supplies them.
+- Stripe webhook synchronization for successful checkout payments. Refund and processor-fee event mapping is modeled in the ledger but remains a follow-up implementation slice.
 
 ## Verification
 
