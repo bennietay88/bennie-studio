@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Switch } from "../ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Textarea } from "../ui/textarea";
+import { calculateCustomerHealth } from "../../lib/automationPolicy";
 
 const eventLabel = (value: string) => value?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -118,7 +119,8 @@ export function OperationsControlCenter() {
         if (openTickets.length) risks.push(`${openTickets.length} open support item(s)`);
         if (!businessLeads.length) risks.push("No recorded enquiries yet");
         if (business.trial_ends_at && new Date(business.trial_ends_at).getTime() - Date.now() < 3 * 86400000) risks.push("Trial ending soon");
-        return { business, risks, leads: businessLeads.length, tickets: openTickets.length };
+        const health = calculateCustomerHealth({ onboardingComplete: Boolean(business.onboarding_completed), websiteLive: ["live", "published"].includes(String(website?.status || "")), paymentHealthy: !["unpaid", "past_due"].includes(String(business.subscription_status || "")) && business.status !== "unpaid", recentEngagement: businessLeads.length > 0, openIssues: openTickets.length, overdueApproval: false });
+        return { business, risks, health, leads: businessLeads.length, tickets: openTickets.length };
       }).sort((a, b) => b.risks.length - a.risks.length),
     [businesses, leads, tickets, websites],
 	  );
@@ -400,9 +402,9 @@ export function OperationsControlCenter() {
         </TabsList>
 
         <TabsContent value="health" className="space-y-3 pt-4">
-          {healthRows.map(({ business, risks, leads: leadCount, tickets: ticketCount }) => (
+          {healthRows.map(({ business, risks, health, leads: leadCount, tickets: ticketCount }) => (
             <Card key={business.id} className="rounded-2xl border-slate-200"><CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center">
-              <div className="min-w-0 flex-1"><p className="font-black text-slate-950">{business.name}</p><p className="text-xs font-semibold text-slate-500">{business.plan} · {business.status} · {leadCount} enquiries · {ticketCount} support items</p></div>
+              <div className="min-w-0 flex-1"><p className="font-black text-slate-950">{business.name}</p><p className="text-xs font-semibold text-slate-500">{business.plan} · {business.status} · {leadCount} enquiries · {ticketCount} support items</p><p className="mt-1 text-[10px] font-black uppercase tracking-widest text-indigo-600">Health {health.score} · {health.status.replace("_", " ")}</p></div>
               {isSuperAdmin && <div className="flex items-center gap-2"><Label htmlFor={`term-${business.id}`} className="whitespace-nowrap text-xs font-bold text-slate-500">Initial term</Label><Select value={String(business.commercial_term_months || "catalogue")} onValueChange={(value) => void updateContractTerm(business.id, value)} disabled={savingTermId === business.id}><SelectTrigger id={`term-${business.id}`} className="h-9 w-32 rounded-xl text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="catalogue">12 months (default)</SelectItem><SelectItem value="3">3 months</SelectItem><SelectItem value="6">6 months</SelectItem><SelectItem value="9">9 months</SelectItem><SelectItem value="12">12 months (override)</SelectItem></SelectContent></Select></div>}
               <div className="flex flex-wrap gap-2">{risks.length ? risks.map((risk) => <Badge key={risk} variant="outline" className="rounded-full">{risk}</Badge>) : <Badge className="bg-emerald-100 text-emerald-700">No attention signal</Badge>}</div>
             </CardContent></Card>
