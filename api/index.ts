@@ -5895,6 +5895,30 @@ async function startServer() {
     return res.json({ horizonDays, renewals: data || [] });
   });
 
+  // Founding-customer commitment override. The public catalogue remains
+  // 12 months; only a super admin can explicitly set a customer's term to
+  // one of the approved launch exceptions. Null restores the catalogue term.
+  app.patch("/api/admin/businesses/:businessId/contract-term", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const businessId = String(req.params.businessId || "");
+    if (!UUID_SCHEMA.safeParse(businessId).success) return res.status(400).json({ error: "Invalid business ID" });
+    const body = validateBody(z.object({ termMonths: z.union([z.literal(3), z.literal(6), z.literal(9), z.literal(12)]).nullable() }).strict(), req, res);
+    if (!body) return;
+    const { data: current, error: readError } = await supabaseAdmin.from("businesses").select("id,name,commercial_term_months").eq("id", businessId).maybeSingle();
+    if (readError) return res.status(503).json({ error: "Business could not be loaded" });
+    if (!current) return res.status(404).json({ error: "Business not found" });
+    const { data, error } = await supabaseAdmin.from("businesses").update({ commercial_term_months: body.termMonths }).eq("id", businessId).select("id,name,commercial_term_months").single();
+    if (error) return res.status(400).json({ error: "Contract term could not be updated" });
+    await supabaseAdmin.from("admin_action_audit_logs").insert({
+      actor_user_id: req.user.id,
+      action_type: "business.contract_term_updated",
+      target_type: "business",
+      target_id: businessId,
+      target_label: current.name || businessId,
+      metadata: { previousTermMonths: current.commercial_term_months, termMonths: body.termMonths },
+    });
+    return res.json({ business: data, effectiveTermMonths: body.termMonths || COMMERCIAL_DEFAULT_COMMITMENT_MONTHS });
+  });
+
   app.patch("/api/admin/commercial-catalogue/prices/:id", authenticate, superAdminOnly, async (req: any, res: any) => {
     const id = String(req.params.id || "");
     if (!UUID_SCHEMA.safeParse(id).success) return res.status(400).json({ error: "Invalid price record" });
@@ -6373,6 +6397,15 @@ async function startServer() {
 
     try {
       await assertBusinessAccess(req.user.id, businessId);
+      const { data: checkoutBusiness } = await supabaseAdmin
+        .from("businesses")
+        .select("id,commercial_term_months")
+        .eq("id", businessId)
+        .maybeSingle();
+      const customerTermOverride = checkoutBusiness?.commercial_term_months == null ? null : Number(checkoutBusiness.commercial_term_months);
+      if (customerTermOverride !== null && ![3, 6, 9, 12].includes(customerTermOverride)) {
+        return res.status(409).json({ error: "This customer's contract term is invalid. Clear the override before checkout." });
+      }
       const launchFlags = await refreshLaunchFlags();
       if (checkoutBody.type === "credits" && !launchFlags.ai_credit_topups_enabled) {
         return res.status(403).json({ error: "AI_CREDIT_TOPUPS_DISABLED", code: "AI_CREDIT_TOPUPS_DISABLED" });
@@ -6417,6 +6450,9 @@ async function startServer() {
           if (minimumTermMonths !== COMMERCIAL_RECURRING_COMMITMENT_MONTHS) {
             return res.status(400).json({ error: "This product is missing the required 12-month commitment configuration." });
           }
+          // Founding-customer terms are an internal, server-side override;
+          // the browser cannot choose a shorter commitment.
+          minimumTermMonths = customerTermOverride || minimumTermMonths;
           commercialPriceExpectation = {
             currency: commercialCurrencyForMarket(market),
             monthlyAmount: Number(testDynamicMonthlyAmount || 0),
@@ -6526,7 +6562,7 @@ async function startServer() {
       // Check if business already has a stripe_customer_id and trial info
       const { data: business } = await supabase
         .from("businesses")
-        .select("stripe_customer_id, stripe_subscription_id, trial_ends_at")
+        .select("stripe_customer_id, stripe_subscription_id, trial_ends_at, commercial_term_months")
         .eq("id", businessId)
         .single();
 

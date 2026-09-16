@@ -44,6 +44,7 @@ export function OperationsControlCenter() {
   const [wordpressLeads, setWordpressLeads] = useState<any[]>([]);
   const [isApprovalOpen, setIsApprovalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingTermId, setSavingTermId] = useState<string | null>(null);
   const [approvalDraft, setApprovalDraft] = useState({
     business_id: "",
     project_id: "",
@@ -317,6 +318,22 @@ export function OperationsControlCenter() {
     toast.success("Billing event resolved");
   };
 
+  const updateContractTerm = async (businessId: string, value: string) => {
+    if (!isSuperAdmin) return;
+    setSavingTermId(businessId);
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch(`/api/admin/businesses/${businessId}/contract-term`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+      body: JSON.stringify({ termMonths: value === "catalogue" ? null : Number(value) }),
+    });
+    const result = await response.json().catch(() => ({}));
+    setSavingTermId(null);
+    if (!response.ok) return toast.error(result.error || "Contract term could not be updated");
+    setBusinesses((rows) => rows.map((row) => row.id === businessId ? { ...row, commercial_term_months: result.business?.commercial_term_months ?? null } : row));
+    toast.success(value === "catalogue" ? "Customer restored to the 12-month catalogue term" : `Customer term set to ${value} months`);
+  };
+
   if (loading) return <div className="flex min-h-72 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
 
   return (
@@ -386,6 +403,7 @@ export function OperationsControlCenter() {
           {healthRows.map(({ business, risks, leads: leadCount, tickets: ticketCount }) => (
             <Card key={business.id} className="rounded-2xl border-slate-200"><CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center">
               <div className="min-w-0 flex-1"><p className="font-black text-slate-950">{business.name}</p><p className="text-xs font-semibold text-slate-500">{business.plan} · {business.status} · {leadCount} enquiries · {ticketCount} support items</p></div>
+              {isSuperAdmin && <div className="flex items-center gap-2"><Label htmlFor={`term-${business.id}`} className="whitespace-nowrap text-xs font-bold text-slate-500">Initial term</Label><Select value={String(business.commercial_term_months || "catalogue")} onValueChange={(value) => void updateContractTerm(business.id, value)} disabled={savingTermId === business.id}><SelectTrigger id={`term-${business.id}`} className="h-9 w-32 rounded-xl text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="catalogue">12 months (default)</SelectItem><SelectItem value="3">3 months</SelectItem><SelectItem value="6">6 months</SelectItem><SelectItem value="9">9 months</SelectItem><SelectItem value="12">12 months (override)</SelectItem></SelectContent></Select></div>}
               <div className="flex flex-wrap gap-2">{risks.length ? risks.map((risk) => <Badge key={risk} variant="outline" className="rounded-full">{risk}</Badge>) : <Badge className="bg-emerald-100 text-emerald-700">No attention signal</Badge>}</div>
             </CardContent></Card>
           ))}
