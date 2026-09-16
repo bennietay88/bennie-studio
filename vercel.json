@@ -40,9 +40,9 @@
   ],
   "routes": [
     { "src": "^/api(?:/(.*))?$", "dest": "/api/index.ts" },
-    { "src": "^/pricing/?$", "has": [{ "type": "query", "key": "market", "value": "(?<market>MY|SG|GB|INTL)" }], "dest": "/api?path=/pricing&market=:market" },
+    { "src": "^/pricing/?$", "has": [{ "type": "query", "key": "market", "value": "(?<market>MY|SG|GB|INTL)" }], "dest": "/api?path=/pricing&market=$market" },
     { "src": "^/pricing/?$", "dest": "/api?path=/pricing" },
-    { "src": "^/generate-preview/?$", "has": [{ "type": "query", "key": "market", "value": "(?<market>MY|SG|GB|INTL)" }], "dest": "/api?path=/generate-preview&market=:market" },
+    { "src": "^/generate-preview/?$", "has": [{ "type": "query", "key": "market", "value": "(?<market>MY|SG|GB|INTL)" }], "dest": "/api?path=/generate-preview&market=$market" },
     { "src": "^/generate-preview/?$", "dest": "/api?path=/generate-preview" },
     { "src": "^/$", "dest": "/api?path=/" },
     { "handle": "filesystem" },
