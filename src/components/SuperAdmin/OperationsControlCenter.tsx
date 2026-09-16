@@ -46,6 +46,7 @@ export function OperationsControlCenter() {
   const [isApprovalOpen, setIsApprovalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingTermId, setSavingTermId] = useState<string | null>(null);
+  const [savingModeId, setSavingModeId] = useState<string | null>(null);
   const [approvalDraft, setApprovalDraft] = useState({
     business_id: "",
     project_id: "",
@@ -336,6 +337,16 @@ export function OperationsControlCenter() {
     toast.success(value === "catalogue" ? "Customer restored to the 12-month catalogue term" : `Customer term set to ${value} months`);
   };
 
+  const updateAutomationMode = async (businessId: string, mode: "off" | "assisted" | "full") => {
+    if (!isSuperAdmin) return;
+    setSavingModeId(businessId);
+    const { error } = await supabase.from("businesses").update({ automation_mode: mode }).eq("id", businessId);
+    setSavingModeId(null);
+    if (error) return toast.error(error.message);
+    setBusinesses((rows) => rows.map((row) => row.id === businessId ? { ...row, automation_mode: mode } : row));
+    toast.success(`Automation mode set to ${mode}`);
+  };
+
   if (loading) return <div className="flex min-h-72 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
 
   return (
@@ -405,7 +416,7 @@ export function OperationsControlCenter() {
           {healthRows.map(({ business, risks, health, leads: leadCount, tickets: ticketCount }) => (
             <Card key={business.id} className="rounded-2xl border-slate-200"><CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center">
               <div className="min-w-0 flex-1"><p className="font-black text-slate-950">{business.name}</p><p className="text-xs font-semibold text-slate-500">{business.plan} · {business.status} · {leadCount} enquiries · {ticketCount} support items</p><p className="mt-1 text-[10px] font-black uppercase tracking-widest text-indigo-600">Health {health.score} · {health.status.replace("_", " ")}</p></div>
-              {isSuperAdmin && <div className="flex items-center gap-2"><Label htmlFor={`term-${business.id}`} className="whitespace-nowrap text-xs font-bold text-slate-500">Initial term</Label><Select value={String(business.commercial_term_months || "catalogue")} onValueChange={(value) => void updateContractTerm(business.id, value)} disabled={savingTermId === business.id}><SelectTrigger id={`term-${business.id}`} className="h-9 w-32 rounded-xl text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="catalogue">12 months (default)</SelectItem><SelectItem value="3">3 months</SelectItem><SelectItem value="6">6 months</SelectItem><SelectItem value="9">9 months</SelectItem><SelectItem value="12">12 months (override)</SelectItem></SelectContent></Select></div>}
+              {isSuperAdmin && <div className="flex flex-wrap items-center gap-2"><Label htmlFor={`term-${business.id}`} className="whitespace-nowrap text-xs font-bold text-slate-500">Initial term</Label><Select value={String(business.commercial_term_months || "catalogue")} onValueChange={(value) => void updateContractTerm(business.id, value)} disabled={savingTermId === business.id}><SelectTrigger id={`term-${business.id}`} className="h-9 w-32 rounded-xl text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="catalogue">12 months (default)</SelectItem><SelectItem value="3">3 months</SelectItem><SelectItem value="6">6 months</SelectItem><SelectItem value="9">9 months</SelectItem><SelectItem value="12">12 months (override)</SelectItem></SelectContent></Select><Label htmlFor={`mode-${business.id}`} className="whitespace-nowrap text-xs font-bold text-slate-500">Automation</Label><Select value={business.automation_mode || "assisted"} onValueChange={(value) => void updateAutomationMode(business.id, value as "off" | "assisted" | "full")} disabled={savingModeId === business.id}><SelectTrigger id={`mode-${business.id}`} className="h-9 w-28 rounded-xl text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="off">Off</SelectItem><SelectItem value="assisted">Assisted</SelectItem><SelectItem value="full">Full (safe tasks)</SelectItem></SelectContent></Select></div>}
               <div className="flex flex-wrap gap-2">{risks.length ? risks.map((risk) => <Badge key={risk} variant="outline" className="rounded-full">{risk}</Badge>) : <Badge className="bg-emerald-100 text-emerald-700">No attention signal</Badge>}</div>
             </CardContent></Card>
           ))}
