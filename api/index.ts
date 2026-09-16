@@ -1500,6 +1500,44 @@ async function startServer() {
                   })
                   .eq("id", businessId);
 
+                // Payment is the handoff boundary: create the first delivery
+                // project exactly once so fulfilment can begin without a
+                // manual database edit. The creation key makes webhook
+                // retries safe even when Stripe delivers the event twice.
+                const creationKey = `paid:${businessId}:${session.id}`;
+                const { data: existingDeliveryProject } = await supabaseAdmin
+                  .from("projects")
+                  .select("id")
+                  .eq("creation_key", creationKey)
+                  .maybeSingle();
+                if (!existingDeliveryProject) {
+                  const { error: projectError } = await supabaseAdmin.from("projects").insert({
+                    business_id: businessId,
+                    type: "waas",
+                    title: `${currentProduct?.slug || requestedProductSlug || "Managed Website"} delivery`,
+                    package_name: planSlug,
+                    status: "pending",
+                    priority: "high",
+                    creation_key: creationKey,
+                    admin_notes: "Created automatically after confirmed Stripe checkout. Complete onboarding before build.",
+                  });
+                  if (projectError && projectError.code !== "23505") throw projectError;
+                }
+                await supabaseAdmin.from("businesses").update({
+                  lifecycle_stage: "onboarding",
+                  lifecycle_stage_changed_at: new Date().toISOString(),
+                  onboarding_started_at: new Date().toISOString(),
+                }).eq("id", businessId).is("onboarding_started_at", null);
+                await supabaseAdmin.from("business_lifecycle_events").insert({
+                  business_id: businessId,
+                  to_stage: "onboarding",
+                  from_stage: "checkout",
+                  reason: "Stripe checkout confirmed",
+                  metadata: { stripeSessionId: session.id, productSlug: currentProduct?.slug || requestedProductSlug || null },
+                }).then(({ error: lifecycleError }) => {
+                  if (lifecycleError) console.warn("Lifecycle event skipped:", lifecycleError.message);
+                });
+
                 if (session.metadata?.promotionId) {
                   const { data: promotionUsage } = await supabaseAdmin.from("commercial_promotions").select("usage_count").eq("id", session.metadata.promotionId).maybeSingle();
                   if (promotionUsage) await supabaseAdmin.from("commercial_promotions").update({ usage_count: Number(promotionUsage.usage_count || 0) + 1, updated_at: new Date().toISOString() }).eq("id", session.metadata.promotionId);
