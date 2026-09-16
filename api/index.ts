@@ -962,6 +962,30 @@ async function startServer() {
     }
   };
 
+  const financeAccess = async (req: any, res: any, next: any) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (profile.role === "super_admin" || (profile.role === "platform_staff" && (profile.staff_permissions || []).includes("finance"))) return next();
+      return res.status(403).json({ error: "Forbidden: Finance access required" });
+    } catch (error) {
+      return res.status(500).json({ error: "Unable to verify finance access" });
+    }
+  };
+
+  app.get("/api/admin/finance/export.csv", authenticate, financeAccess, async (req: any, res: any) => {
+    const from = req.query.from ? new Date(String(req.query.from)) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const to = req.query.to ? new Date(String(req.query.to)) : new Date();
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return res.status(400).json({ error: "Invalid date range" });
+    const { data, error } = await supabaseAdmin.from("finance_transactions").select("id,business_id,source_type,source_id,transaction_type,transaction_date,posted_date,description,counterparty,country,currency,amount,base_currency,base_currency_amount,exchange_rate,category,subcategory,tax_category,tax_amount,tax_jurisdiction,payment_processor,processor_fee,net_amount,status,reconciliation_status,document_status,review_status,notes").gte("transaction_date", from.toISOString()).lte("transaction_date", to.toISOString()).order("transaction_date", { ascending: true });
+    if (error) return res.status(503).json({ error: "Finance export unavailable" });
+    const columns = ["id","business_id","source_type","source_id","transaction_type","transaction_date","posted_date","description","counterparty","country","currency","amount","base_currency","base_currency_amount","exchange_rate","category","subcategory","tax_category","tax_amount","tax_jurisdiction","payment_processor","processor_fee","net_amount","status","reconciliation_status","document_status","review_status","notes"];
+    const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const csv = [columns.join(","), ...(data || []).map((row: any) => columns.map((column) => escape(row[column])).join(","))].join("\n");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="finance-${from.toISOString().slice(0, 10)}-to-${to.toISOString().slice(0, 10)}.csv"`);
+    return res.send(csv);
+  });
+
   const aiAccessGuard = async (req: any, res: any, next: any) => {
     try {
       const profile = await getProfileForUser(req.user.id);
@@ -1873,6 +1897,32 @@ async function startServer() {
           }
           break;
         }
+        case "charge.refunded": {
+          const charge = event.data.object as any;
+          const customerId = typeof charge.customer === "string" ? charge.customer : charge.customer?.id;
+          const business = await resolveBusinessForStripe({ customerId });
+          if (business && Number(charge.amount_refunded || 0) > 0) {
+            await insertFinanceTransaction({
+              business_id: business.id,
+              source_type: "STRIPE_REFUND",
+              source_id: charge.id,
+              transaction_type: "refund",
+              transaction_date: stripeTimestampToIso(charge.created) || new Date().toISOString(),
+              posted_date: new Date().toISOString(),
+              description: `Stripe refund ${charge.id}`,
+              counterparty: customerId,
+              currency: charge.currency || "USD",
+              amount: Number(charge.amount_refunded || 0) / 100,
+              payment_method: "stripe",
+              payment_processor: "stripe",
+              net_amount: -Number(charge.amount_refunded || 0) / 100,
+              status: "posted",
+              category: "Refunds",
+              metadata: { stripeEventId: event.id, chargeId: charge.id, paymentIntentId: charge.payment_intent || null },
+            });
+          }
+          break;
+        }
         case "invoice.payment_failed": {
           const invoice = event.data.object as any;
           const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
@@ -1913,6 +1963,26 @@ async function startServer() {
             await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "active", renewalState: "active", lastPaymentStatus: "paid", lastWebhookEventId: event.id });
             await supabaseAdmin.from("billing_lifecycle_events").update({ status: "resolved", resolved_at: new Date().toISOString() }).eq("business_id", business.id).eq("event_type", "payment_failed").eq("status", "open");
             await insertBillingLifecycleEvent({ business_id: business.id, event_type: "payment_recovered", status: "resolved", source: "stripe", amount: Number(invoice.amount_paid || 0) / 100, currency: invoice.currency || "usd", resolved_at: new Date().toISOString(), metadata: { stripeEventId: event.id, invoiceId: invoice.id, stripeSubscriptionId: subscriptionId } });
+            if (invoice.billing_reason !== "subscription_create") {
+              await insertFinanceTransaction({
+                business_id: business.id,
+                source_type: "SUBSCRIPTION",
+                source_id: invoice.id,
+                transaction_type: "income",
+                transaction_date: stripeTimestampToIso(invoice.status_transitions?.paid_at || invoice.created) || new Date().toISOString(),
+                posted_date: new Date().toISOString(),
+                description: `Stripe invoice ${invoice.number || invoice.id}`,
+                counterparty: customerId,
+                currency: invoice.currency || "USD",
+                amount: Number(invoice.amount_paid || 0) / 100,
+                payment_method: "stripe_invoice",
+                payment_processor: "stripe",
+                net_amount: Number(invoice.amount_paid || 0) / 100,
+                status: "posted",
+                category: "Subscription revenue",
+                metadata: { stripeEventId: event.id, invoiceId: invoice.id, billingReason: invoice.billing_reason || null },
+              });
+            }
           }
           break;
         }
