@@ -225,7 +225,9 @@ async function getStripe(merchantBusinessId?: string) {
   // ever changing the production/live credential. The flag is deliberately
   // explicit so production continues using the live key by default.
   const configuredPlatformKey =
-    process.env.STRIPE_TEST_DYNAMIC_PRICES === "true" && process.env.STRIPE_TEST_SECRET_KEY
+    process.env.NODE_ENV !== "production" &&
+    process.env.STRIPE_TEST_DYNAMIC_PRICES === "true" &&
+    process.env.STRIPE_TEST_SECRET_KEY
       ? process.env.STRIPE_TEST_SECRET_KEY
       : process.env.STRIPE_SECRET_KEY;
   let key = configuredPlatformKey;
@@ -557,6 +559,11 @@ function safeErrorMessage(error: any) {
     return "Server configuration error";
   }
   return error.message;
+}
+
+function isTestAccountEmail(email: unknown) {
+  const normalized = String(email || "").trim().toLowerCase();
+  return normalized.endsWith("@example.test") || normalized.includes("+e2e@");
 }
 
 function sanitizeFileName(value: string) {
@@ -6587,6 +6594,14 @@ async function startServer() {
     if (!checkoutBody) return;
 
     const { businessId, customerEmail, couponId, planId, productSlug, billingCycle } = checkoutBody;
+    // Never allow an isolated test fixture to create a live Stripe Checkout
+    // session. Production must use a Preview/test deployment for payment QA.
+    if (process.env.NODE_ENV === "production" && isTestAccountEmail(customerEmail || req.user?.email)) {
+      return res.status(409).json({
+        error: "TEST_CHECKOUT_REQUIRES_PREVIEW",
+        message: "Test accounts cannot start checkout on production. Use the Preview environment with Stripe test keys.",
+      });
+    }
     const market = normalizeCommercialMarket(checkoutBody.market);
     const legacyMarket = checkoutBody.market === "US" ? "US" : market;
     let priceId = checkoutBody.priceId || "";
@@ -6601,9 +6616,19 @@ async function startServer() {
       await assertBusinessAccess(req.user.id, businessId);
       const { data: checkoutBusiness } = await supabaseAdmin
         .from("businesses")
-        .select("id,commercial_term_months")
+        .select("id,commercial_term_months,commercial_market")
         .eq("id", businessId)
         .maybeSingle();
+      const businessMarket = checkoutBusiness?.commercial_market
+        ? normalizeCommercialMarket(checkoutBusiness.commercial_market)
+        : null;
+      if (businessMarket && businessMarket !== market) {
+        return res.status(409).json({
+          error: "CHECKOUT_MARKET_MISMATCH",
+          message: `This account is configured for ${businessMarket}. Refresh pricing for that market before checkout.`,
+          market: businessMarket,
+        });
+      }
       const customerTermOverride = checkoutBusiness?.commercial_term_months == null ? null : Number(checkoutBusiness.commercial_term_months);
       if (customerTermOverride !== null && ![3, 6, 9, 12].includes(customerTermOverride)) {
         return res.status(409).json({ error: "This customer's contract term is invalid. Clear the override before checkout." });
@@ -6770,7 +6795,7 @@ async function startServer() {
 
 	      const sessionOptions: any = {
 	        payment_method_types: ["card"],
-	        line_items: (useDynamicCatalogPrices || process.env.STRIPE_TEST_DYNAMIC_PRICES === "true") && resolvedProductSlug && testDynamicMonthlyAmount
+        line_items: (useDynamicCatalogPrices || (process.env.NODE_ENV !== "production" && process.env.STRIPE_TEST_DYNAMIC_PRICES === "true")) && resolvedProductSlug && testDynamicMonthlyAmount
           ? [
               { price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: resolvedProductSlug === "managed-website" ? "Managed Website" : resolvedProductSlug === "growth-partner" ? "Growth Partner" : "Website Growth" }, unit_amount: Math.round(testDynamicMonthlyAmount * 100), recurring: { interval: billingCycle === "yearly" ? "year" : "month" } }, quantity: 1 },
               ...(testDynamicSetupAmount && !isOneTimeCheckout && !checkoutBody.upgradeFrom ? [{ price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: "Website setup" }, unit_amount: Math.round(testDynamicSetupAmount * 100) }, quantity: 1 }] : []),
