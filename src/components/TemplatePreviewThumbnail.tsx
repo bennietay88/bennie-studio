@@ -30,12 +30,12 @@ async function resolveTemplatePreview(templateId: string) {
   const cached = previewCache.get(templateId);
   if (cached) return cached;
 
-  // Select the whole row rather than optional preview columns explicitly.
-  // Some older deployments do not have preview_image yet; `select('*')`
-  // remains compatible and lets us fall back to config/thumbnail safely.
+  // Keep thumbnail requests tiny and compatible with legacy schemas. Preview
+  // metadata is persisted inside config.commercial, while thumbnail is part of
+  // the original templates schema, so optional database columns are unnecessary.
   const { data, error } = await supabase
     .from("templates")
-    .select("*")
+    .select("thumbnail,config")
     .eq("id", templateId)
     .maybeSingle();
 
@@ -49,7 +49,6 @@ async function resolveTemplatePreview(templateId: string) {
     row.config?.metadata?.preview_image;
 
   const resolved =
-    normalizePreviewSource(row.preview_image) ||
     normalizePreviewSource(configPreview) ||
     normalizePreviewSource(row.thumbnail) ||
     FALLBACK_PREVIEW;
