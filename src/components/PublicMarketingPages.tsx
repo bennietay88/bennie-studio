@@ -383,6 +383,8 @@ async function submitPlatformLead(input: {
   landingPage?: string;
   service?: string;
   selectedProduct?: string;
+  previewId?: string;
+  market?: string;
 }) {
   const response = await fetch("/api/platform-leads", {
     method: "POST",
@@ -853,12 +855,12 @@ function GeneratePreviewPage() {
       auditContext = {};
     }
     return {
-      businessName: String(auditContext.businessName || ""),
-      location: "",
-      mainService: "",
+      businessName: String(auditContext.businessName || initialParams.get("business") || ""),
+      location: String(initialParams.get("city") || ""),
+      mainService: String(initialParams.get("service") || ""),
       websiteUrl: String(auditContext.website || ""),
       phone: "",
-      email: String(auditContext.email || ""),
+      email: String(auditContext.email || initialParams.get("email") || ""),
       brandStyle: "Modern professional",
       socialUrl: "",
       reviews: "",
@@ -953,6 +955,29 @@ function GeneratePreviewPage() {
         },
         createdAt: new Date().toISOString(),
       }));
+      // Capture the prospect before revealing the full recommendation. The
+      // preview id makes retries idempotent, while attribution is carried into
+      // the CRM record for follow-up and checkout continuity.
+      const leadResult = await submitPlatformLead({
+        name: form.businessName,
+        email: form.email,
+        phone: form.phone,
+        businessName: form.businessName,
+        industry: industry.label,
+        websiteUrl: form.websiteUrl,
+        service: form.mainService,
+        selectedProduct: commercialRecommendation.slug,
+        message: `Preview brief: ${form.mainService} in ${form.location}. Goal: ${goal}. Brand style: ${form.brandStyle}.`,
+        formName: "Personalized website preview",
+        leadType: "free_website_preview",
+        previewId,
+        market: initialParams.get("market") || "INTL",
+      });
+      localStorage.setItem("bt_preview_intent", JSON.stringify({
+        ...JSON.parse(localStorage.getItem("bt_preview_intent") || "{}"),
+        leadId: leadResult?.leadId || null,
+      }));
+      trackPublicEvent({ eventType: "preview_lead_captured", label: previewTitle, target: "/generate-preview", metadata: { previewId, leadId: leadResult?.leadId || null } });
       setGenerated(true);
       trackPublicEvent({
         eventType: "preview_generated",
@@ -1022,6 +1047,15 @@ function GeneratePreviewPage() {
               placeholder="Business name"
               value={form.businessName}
               onChange={(e) => setForm({ ...form, businessName: e.target.value })}
+              className="h-12 rounded-2xl"
+            />
+            <Input
+              aria-label="Email"
+              required
+              type="email"
+              placeholder="Email for your preview"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="h-12 rounded-2xl"
             />
             <Input
@@ -1236,7 +1270,7 @@ function GeneratePreviewPage() {
               <ClipboardCheck className="mx-auto mb-4 h-12 w-12 rounded-2xl bg-white p-3 text-indigo-600 shadow-sm" />
               <h2 className="text-2xl font-black text-slate-950">Your preview recommendation will appear here.</h2>
               <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
-                No account or contact details are required. See the direction first, then book a short review if it looks useful.
+                Enter your email to unlock the tailored direction. We’ll use it only to send the preview and relevant next steps.
               </p>
             </div>
           )}

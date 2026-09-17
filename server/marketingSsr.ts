@@ -49,7 +49,7 @@ const routeData: Record<MarketingRoute, { title: string; description: string; im
         <p class="eyebrow">Free website preview</p>
         <h1>See a website direction built around your business.</h1>
         <p class="lede">Tell us your business type, location, service and enquiry goal. We’ll show the structure, proof and next action your website should lead with.</p>
-        <form class="preview-form" action="/generate-preview" method="get"><label>Business name<input name="business" required /></label><label>City or area served<input name="city" required /></label><label>Main service<input name="service" required /></label><button class="primary" type="submit">Generate my free preview</button></form>
+        <form class="preview-form" action="/generate-preview" method="get"><label>Business name<input name="business" required /></label><label>Email for your preview<input name="email" type="email" required /></label><label>City or area served<input name="city" required /></label><label>Main service<input name="service" required /></label><button class="primary" type="submit">Generate my free preview</button></form>
         <section><h2>What happens next</h2><ol><li>Generate a tailored preview direction.</li><li>Review the recommended managed website package.</li><li>Carry the preview brief into checkout or book a scope review.</li></ol><p>No card is required for the preview.</p></section>
       </main>`,
   },
