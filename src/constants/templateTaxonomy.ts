@@ -63,12 +63,14 @@ export const normalizeTemplatePlanLabel = (value?: string | null) => {
   return value || "Managed Website";
 };
 
+// Curated website pairings only. Avoid mono fonts in customer-facing templates;
+// they read like developer tooling rather than a premium service business site.
 export const FONT_PAIRINGS = [
-  "Geist Sans / Geist Mono",
-  "Inter / Merriweather",
-  "Poppins / Inter",
-  "DM Sans / Playfair Display",
-  "Montserrat / Source Sans 3",
+  "Space Grotesk / Plus Jakarta Sans",
+  "Fraunces / Plus Jakarta Sans",
+  "Playfair Display / Plus Jakarta Sans",
+  "Outfit / Plus Jakarta Sans",
+  "Lora / Plus Jakarta Sans",
 ] as const;
 
 export const SECTION_LIBRARY = [
