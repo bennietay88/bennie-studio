@@ -1,12 +1,32 @@
 import { useEffect } from "react";
 
-const PUBLIC_PATHS = new Set([
+const PUBLIC_PATHS = [
   "/",
-  "/pricing",
-  "/generate-preview",
-  "/book-demo",
+  "/pay-monthly-websites",
+  "/website-subscription-service",
+  "/website-design",
   "/portfolio",
-]);
+  "/templates",
+  "/pricing",
+  "/how-it-works",
+  "/case-studies",
+  "/website-audit",
+  "/generate-preview",
+  "/blog",
+  "/clinic-website-design-malaysia",
+  "/renovation-contractor-website-design",
+  "/beauty-salon-website-design",
+  "/tuition-centre-website-design",
+  "/consultant-website-design",
+  "/demo",
+  "/book-demo",
+  "/proposal",
+];
+
+const isPublicMarketingPath = (pathname: string) =>
+  PUBLIC_PATHS.some(
+    (path) => pathname === path || (path !== "/" && pathname.startsWith(`${path}/`)),
+  );
 
 const isReducedMotion = () =>
   typeof window !== "undefined" &&
@@ -35,9 +55,12 @@ export function AgencyMotionDirector() {
       cleanupCurrent?.();
 
       const renderer = document.querySelector<HTMLElement>(".bt-website-renderer");
-      const isPublicPage = PUBLIC_PATHS.has(window.location.pathname);
+      const isPublicPage = isPublicMarketingPath(window.location.pathname);
       const root = renderer || (isPublicPage ? document.body : null);
-      if (!root) return;
+      if (!root) {
+        cleanupCurrent = undefined;
+        return;
+      }
 
       const cleanups: Array<() => void> = [];
       const motionProfile = renderer?.dataset.motionProfile || "refined";
@@ -60,7 +83,7 @@ export function AgencyMotionDirector() {
           ? "linear-gradient(90deg, var(--primary), var(--secondary))"
           : "linear-gradient(90deg, #4f46e5, #8b5cf6)",
         pointerEvents: "none",
-      } as CSSStyleDeclaration);
+      });
       document.body.appendChild(progress);
       cleanups.push(() => progress.remove());
 
@@ -87,7 +110,7 @@ export function AgencyMotionDirector() {
           background:
             "radial-gradient(520px circle at var(--agency-pointer-x) var(--agency-pointer-y), color-mix(in srgb, var(--primary) 13%, transparent), transparent 70%)",
           transition: "opacity 240ms ease",
-        } as CSSStyleDeclaration);
+        });
         renderer.prepend(spotlight);
         cleanups.push(() => spotlight.remove());
 
@@ -107,7 +130,7 @@ export function AgencyMotionDirector() {
         );
         heroWords.forEach((word, index) => {
           word.style.display = "inline-block";
-          word.animate(
+          const animation = word.animate(
             [
               { opacity: 0, transform: "translate3d(0, 0.72em, 0)", filter: "blur(10px)" },
               { opacity: 1, transform: "translate3d(0, 0, 0)", filter: "blur(0px)" },
@@ -119,6 +142,7 @@ export function AgencyMotionDirector() {
               fill: "both",
             },
           );
+          cleanups.push(() => animation.cancel());
         });
 
         // Decorative parallax only. Content and CTAs remain stable.
