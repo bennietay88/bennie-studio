@@ -368,7 +368,7 @@ test("connects the website growth review to a prefilled preview", async ({ page 
   await page.getByRole("link", { name: "See My Website Preview" }).click();
   await expect(page).toHaveURL(/\/generate-preview/);
   await expect(page.getByPlaceholder("Business name")).toHaveValue("Example Studio");
-  await expect(page.getByPlaceholder("Current website URL optional")).toHaveValue("https://example.test");
+  await expect(page.getByLabel("Current website URL")).toHaveValue("https://example.test");
 });
 
 test("connects the primary revenue offer to a recorded website growth call", async ({ page }) => {
