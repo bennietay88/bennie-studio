@@ -38,14 +38,11 @@
       ]
     }
   ],
-  "routes": [
-    { "src": "^/api(?:/(.*))?$", "dest": "/api/index.ts" },
-    { "src": "^/pricing/?$", "has": [{ "type": "query", "key": "market", "value": "(?<market>MY|SG|GB|INTL)" }], "dest": "/api?path=/pricing&market=$market" },
-    { "src": "^/pricing/?$", "dest": "/api?path=/pricing" },
-    { "src": "^/generate-preview/?$", "has": [{ "type": "query", "key": "market", "value": "(?<market>MY|SG|GB|INTL)" }], "dest": "/api?path=/generate-preview&market=$market" },
-    { "src": "^/generate-preview/?$", "dest": "/api?path=/generate-preview" },
-    { "src": "^/$", "dest": "/api?path=/" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/pricing", "destination": "/api/index.ts?path=/pricing" },
+    { "source": "/generate-preview", "destination": "/api/index.ts?path=/generate-preview" },
+    { "source": "/", "destination": "/api/index.ts?path=/" },
+    { "source": "/api/:path*", "destination": "/api/index.ts" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
