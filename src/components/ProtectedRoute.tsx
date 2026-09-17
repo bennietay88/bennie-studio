@@ -1,7 +1,7 @@
 import React from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { Shield, Zap } from "lucide-react";
+import { Loader2, Shield, Zap } from "lucide-react";
 import { Button } from "./ui/button";
 import { hasSubscriptionAccess } from "../lib/permissions";
 
@@ -16,12 +16,20 @@ export const ProtectedRoute = ({
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        Loading...
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex min-h-40 items-center justify-center rounded-3xl border border-slate-100 bg-white/80 p-8 text-slate-500 shadow-sm"
+      >
+        <div className="flex items-center gap-3 text-sm font-semibold">
+          <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+          Checking access…
+        </div>
       </div>
     );
+  }
   if (!user) {
     const redirectTo = `${location.pathname}${location.search}${location.hash}`;
     return (
@@ -55,10 +63,6 @@ export const ProtectedRoute = ({
     );
   }
 
-  // Resolve authorization before billing/subscription presentation. This
-  // prevents users without the required role from learning or seeing the
-  // protected route's subscription state (and avoids masking the redirect
-  // with a billing gate).
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
     return (
       <Navigate
@@ -68,10 +72,8 @@ export const ProtectedRoute = ({
     );
   }
 
-  // Trial Expiration Gate
   const hasActiveSubscription = hasSubscriptionAccess(profile, business);
   const isTrialExpired = !!business && !hasActiveSubscription;
-
   const isBillingPage = location.pathname.includes("/billing");
 
   if (
