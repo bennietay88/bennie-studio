@@ -7,6 +7,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AgencyCopyDirector } from "./components/AgencyCopyDirector";
 import { AgencyMotionDirector } from "./components/AgencyMotionDirector";
 import { AgencyVisualDirector } from "./components/AgencyVisualDirector";
+import { RouteWarmup } from "./components/RouteWarmup";
 import { initClientObservability } from "./lib/observability";
 import { MotionConfig } from "motion/react";
 
@@ -20,6 +21,7 @@ createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <AuthProvider>
         <MotionConfig reducedMotion="user">
+          <RouteWarmup />
           <AgencyVisualDirector />
           <AgencyCopyDirector />
           <AgencyMotionDirector />
