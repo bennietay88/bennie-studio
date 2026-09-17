@@ -6,6 +6,8 @@ type CopyRule = {
   hideContainer?: boolean;
 };
 
+// Runtime cleanup is deliberately limited to exact renderer-owned fallback
+// strings. Customer-supplied copy is never rewritten here.
 const COPY_RULES: CopyRule[] = [
   { match: "Business Website Ready", hideContainer: true },
   { match: "Execution Strategy", replacement: "Services" },
@@ -24,14 +26,6 @@ const COPY_RULES: CopyRule[] = [
     match: "We deliver specialized solutions tailored to your unique market challenges.",
     replacement: "Clear services built around the needs of the customers you want to reach.",
   },
-];
-
-const AI_CLICHES = [
-  /unlock the power/gi,
-  /elevate your (business|brand|experience)/gi,
-  /take (your|the) (business|brand|experience) to the next level/gi,
-  /tailored solutions for your unique needs/gi,
-  /transform your business/gi,
 ];
 
 function normalizeText(value: string) {
@@ -53,25 +47,19 @@ function cleanRendererCopy(renderer: HTMLElement) {
     if (!normalized) return;
 
     const rule = COPY_RULES.find((candidate) => normalized === candidate.match);
-    if (rule) {
-      const parent = node.parentElement;
-      if (rule.hideContainer && parent) {
-        const container = parent.closest("div, span, p") as HTMLElement | null;
-        if (container) {
-          container.dataset.agencyTemplateLabel = "suppressed";
-          container.style.display = "none";
-          return;
-        }
+    if (!rule) return;
+
+    const parent = node.parentElement;
+    if (rule.hideContainer && parent) {
+      const container = parent.closest("div, span, p") as HTMLElement | null;
+      if (container) {
+        container.dataset.agencyTemplateLabel = "suppressed";
+        container.style.display = "none";
+        return;
       }
-      if (rule.replacement) node.nodeValue = original.replace(normalized, rule.replacement);
-      return;
     }
 
-    let cleaned = original;
-    AI_CLICHES.forEach((pattern) => {
-      cleaned = cleaned.replace(pattern, "clear, practical service information");
-    });
-    if (cleaned !== original) node.nodeValue = cleaned;
+    if (rule.replacement) node.nodeValue = original.replace(normalized, rule.replacement);
   });
 
   renderer.dataset.agencyCopyClean = "true";
