@@ -414,27 +414,12 @@ const getFaqItems = (input: BlueprintBusinessInput) => {
 };
 
 const getTestimonials = (input: BlueprintBusinessInput) => {
-  const custom = (input.testimonials || []).filter(Boolean);
-  if (custom.length > 0) {
-    return custom.slice(0, 3).map((text, index) => ({
-      name: ["Verified Client", "Happy Customer", "Repeat Customer"][index] || "Verified Client",
-      role: input.targetCustomer || "Customer",
-      text,
-    }));
-  }
-
-  return [
-    {
-      name: "Verified Client",
-      role: input.targetCustomer || "Customer",
-      text: `${input.businessName} made the process clear, professional, and easy to trust from the first conversation.`,
-    },
-    {
-      name: "Local Customer",
-      role: input.location || "Local Area",
-      text: `The team explained every step and helped us choose the right solution without pressure.`,
-    },
-  ];
+  const custom = (input.testimonials || []).map((text) => text.trim()).filter(Boolean);
+  return custom.slice(0, 3).map((text, index) => ({
+    name: `Customer feedback ${index + 1}`,
+    role: "Review supplied by the business",
+    text,
+  }));
 };
 
 const buildSectionContent = (
@@ -469,7 +454,7 @@ const buildSectionContent = (
       ...section.content,
       title:
         block === "pricing"
-          ? "Packages & Options"
+          ? "Services & Options"
           : pageBlueprint.name.includes("Menu")
             ? "Menu Highlights"
             : pageBlueprint.name.includes("Practice")
@@ -485,11 +470,13 @@ const buildSectionContent = (
   if (section.type === "proof") {
     section.content = {
       ...section.content,
-      title: "Why Customers Trust Us",
-      stats: [
-        { label: "Local Focus", value: location.split(",")[0] || "Local" },
-        { label: "Core Service", value: service.split(" ")[0] || "Expert" },
-        { label: "Enquiry Path", value: cta.split(" ")[0] || "Fast" },
+      title: input.localProof ? "Local Proof & What to Expect" : "What You Can Expect",
+      description: input.localProof || `A clear, practical experience built around ${service} in ${location}.`,
+      stats: [],
+      items: [
+        { title: "Local relevance", description: `Service information is focused on customers in ${location}.` },
+        { title: "Clear next step", description: `Visitors can quickly understand how to ${cta.toLowerCase()}.` },
+        { title: "Service clarity", description: `${service} is explained around the needs of ${target}.` },
       ],
     };
   }
@@ -498,7 +485,7 @@ const buildSectionContent = (
     section.content = {
       ...section.content,
       title: `About ${businessName}`,
-      text: `${businessName} helps ${target} in ${location} with ${service}. The approach is clear, practical, and focused on helping every customer understand their options before taking action.\n\nThe website structure is designed to build trust quickly, answer common questions, and make it easy to enquire.`,
+      text: `${businessName} helps ${target} in ${location} with ${service}. The approach is clear, practical, and focused on helping every customer understand their options before taking action.\n\nThe website structure is designed to answer common questions and make it easy to enquire without inventing claims the business has not supplied.`,
     };
   }
 
@@ -516,7 +503,7 @@ const buildSectionContent = (
         block === "process"
           ? ["Understand your needs", "Recommend the right option", "Confirm the next step", "Follow up clearly"]
           : block === "portfolio"
-            ? ["Featured work", "Customer proof", "Before and after", "Recent highlights"]
+            ? ["Selected work", "Real business photography", "Verified project details", "Recent highlights"]
             : ["Clear service information", "Trust-focused page flow", "Fast enquiry path", "Mobile-first experience"],
     };
   }
@@ -524,20 +511,23 @@ const buildSectionContent = (
   if (section.type === "benefits") {
     section.content = {
       ...section.content,
-      title: `Why ${target} Choose ${businessName}`,
+      title: `Designed for ${target}`,
       items: [
         { title: "Clear next step", description: `Visitors always know how to ${cta.toLowerCase()}.` },
-        { title: "Trust first", description: "Proof, FAQs, and service details reduce hesitation." },
+        { title: "Less uncertainty", description: "Service details and FAQs help people understand what happens next." },
         { title: "Local relevance", description: `Content is shaped around ${location} and the customers you want.` },
       ],
     };
   }
 
   if (section.type === "testimonials") {
+    const items = getTestimonials(input);
     section.content = {
       ...section.content,
-      items: getTestimonials(input),
+      title: items.length ? "Customer Feedback" : "Customer Feedback",
+      items,
     };
+    section.isVisible = items.length > 0;
   }
 
   if (section.type === "faq") {
@@ -551,14 +541,13 @@ const buildSectionContent = (
   if (section.type === "pricing") {
     section.content = {
       ...section.content,
-      title: "Simple Packages",
-      description: `Choose the right option for ${service}.`,
-      plans: [
-        { name: "Essential", price: "Enquire", isPopular: false, features: ["Initial consultation", "Core service guidance", "Clear next step"] },
-        { name: "Recommended", price: "Custom", isPopular: true, features: ["Personalized recommendation", "Priority response", "Follow-up support"] },
-        { name: "Complete", price: "Custom", isPopular: false, features: ["Full service support", "Dedicated guidance", "Ongoing care"] },
-      ],
+      title: "Services & Options",
+      description: `Pricing depends on the scope of ${service}. Contact ${businessName} for the options that fit your needs.`,
+      plans: [],
+      items: getServiceItems(input).map(({ title, description }) => ({ title, description })),
+      ctaText: cta,
     };
+    section.isVisible = false;
   }
 
   if (section.type === "contact") {
@@ -596,8 +585,8 @@ const buildSectionContent = (
       title:
         block === "whatsapp_cta"
           ? "Prefer WhatsApp?"
-          : `Ready to start with ${businessName}?`,
-      description: `Take the next step for ${service} in ${location}.`,
+          : `Ready to talk about ${service}?`,
+      description: `Take the next step with ${businessName} in ${location}.`,
       buttonText: cta,
     };
   }
