@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - fix/template-preview-and-fonts
 
 permissions:
   contents: read
