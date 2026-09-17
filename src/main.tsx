@@ -5,6 +5,7 @@ import "./index.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AgencyMotionDirector } from "./components/AgencyMotionDirector";
+import { AgencyVisualDirector } from "./components/AgencyVisualDirector";
 import { initClientObservability } from "./lib/observability";
 import { MotionConfig } from "motion/react";
 
@@ -18,6 +19,7 @@ createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <AuthProvider>
         <MotionConfig reducedMotion="user">
+          <AgencyVisualDirector />
           <AgencyMotionDirector />
           <App />
         </MotionConfig>
