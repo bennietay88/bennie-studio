@@ -40,11 +40,11 @@
   ],
   "routes": [
     { "src": "^/api(?:/(.*))?$", "dest": "/api/index.ts" },
-    { "src": "^/pricing/?$", "has": [{ "type": "query", "key": "market", "value": "(?<market>MY|SG|GB|INTL)" }], "dest": "/api/index.ts?path=/pricing&market=$market" },
-    { "src": "^/pricing/?$", "dest": "/api/index.ts?path=/pricing" },
-    { "src": "^/generate-preview/?$", "has": [{ "type": "query", "key": "market", "value": "(?<market>MY|SG|GB|INTL)" }], "dest": "/api/index.ts?path=/generate-preview&market=$market" },
-    { "src": "^/generate-preview/?$", "dest": "/api/index.ts?path=/generate-preview" },
-    { "src": "^/$", "dest": "/api/index.ts?path=/" },
+    { "src": "^/pricing/?$", "has": [{ "type": "query", "key": "market", "value": "(?<market>MY|SG|GB|INTL)" }], "dest": "/api?path=/pricing&market=$market" },
+    { "src": "^/pricing/?$", "dest": "/api?path=/pricing" },
+    { "src": "^/generate-preview/?$", "has": [{ "type": "query", "key": "market", "value": "(?<market>MY|SG|GB|INTL)" }], "dest": "/api?path=/generate-preview&market=$market" },
+    { "src": "^/generate-preview/?$", "dest": "/api?path=/generate-preview" },
+    { "src": "^/$", "dest": "/api?path=/" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
