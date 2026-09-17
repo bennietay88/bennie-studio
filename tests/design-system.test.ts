@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DESIGN_PROFILES, resolveDesignProfile } from "../src/constants/designProfiles.ts";
+import { buildPagesFromBlueprint } from "../src/constants/pageBlueprints.ts";
 import { parseDesignDirection } from "../src/lib/designDirector.ts";
 import { assessWebsiteDesign } from "../src/lib/designQa.ts";
 
@@ -79,4 +80,27 @@ test("design QA blocks placeholder client proof", () => {
 
   assert.equal(result.checks.find((check) => check.key === "proof_integrity")?.pass, false);
   assert.equal(result.productionReady, false);
+});
+
+test("blueprints do not fabricate testimonials or prices when proof is absent", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Example Dental",
+    nicheId: "dental-clinic",
+    nicheName: "Clinic / Healthcare",
+    plan: "business",
+    maxPages: 3,
+    mainService: "Family dentistry",
+    targetCustomer: "local families",
+    location: "Kuala Lumpur",
+    ctaPreference: "Book Appointment",
+  });
+
+  const sections = pages.flatMap((page) => page.sections);
+  const testimonialSections = sections.filter((section) => section.type === "testimonials");
+  const pricingSections = sections.filter((section) => section.type === "pricing");
+
+  assert.ok(testimonialSections.every((section) => section.isVisible === false || (section.content?.items || []).length === 0));
+  assert.ok(pricingSections.every((section) => section.isVisible === false));
+  assert.doesNotMatch(JSON.stringify(sections), /Verified Client|Happy Customer|Repeat Customer|Local Customer/);
+  assert.doesNotMatch(JSON.stringify(sections), /"name":"Essential"|"name":"Recommended"|"name":"Complete"/);
 });
