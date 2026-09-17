@@ -31,7 +31,6 @@ const adminImports = [
 ];
 
 function runImports(importers: Array<() => Promise<unknown>>) {
-  // Warm chunks without allowing a failed optional prefetch to affect the app.
   importers.forEach((load) => {
     void load().catch(() => undefined);
   });
@@ -46,24 +45,26 @@ export function RouteWarmup() {
         ? accountImports
         : publicImports;
 
-    let idleId: number | undefined;
-    let timeoutId: number | undefined;
-
     const warm = () => runImports(importers);
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
 
-    if ("requestIdleCallback" in window) {
-      idleId = (window as Window & {
-        requestIdleCallback: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
-      }).requestIdleCallback(warm, { timeout: 1200 });
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof globalThis.setTimeout> | undefined;
+
+    if (typeof idleWindow.requestIdleCallback === "function") {
+      idleId = idleWindow.requestIdleCallback(warm, { timeout: 1200 });
     } else {
-      timeoutId = window.setTimeout(warm, 250);
+      timeoutId = globalThis.setTimeout(warm, 250);
     }
 
     return () => {
-      if (idleId !== undefined && "cancelIdleCallback" in window) {
-        (window as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(idleId);
+      if (idleId !== undefined && typeof idleWindow.cancelIdleCallback === "function") {
+        idleWindow.cancelIdleCallback(idleId);
       }
-      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      if (timeoutId !== undefined) globalThis.clearTimeout(timeoutId);
     };
   }, []);
 
