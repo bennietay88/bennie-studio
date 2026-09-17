@@ -832,6 +832,12 @@ const previewGoals = [
   "Build more trust before sales calls",
 ];
 
+const previewProblems = [
+  "No website", "Outdated design", "Not generating enquiries", "Hard to update",
+  "Poor mobile experience", "Slow website", "Services are unclear", "Low local visibility",
+  "No clear CTA", "Other",
+];
+
 
 function GeneratePreviewPage() {
   const navigate = useNavigate();
@@ -843,7 +849,8 @@ function GeneratePreviewPage() {
   const selectedTemplateId = explicitTemplateId && industryId === initialIndustry
     ? explicitTemplateId
     : ({ cleaning: "cleaning-company-v1", accounting: "accounting-firm-v1", "local-service": "cleaning-company-v1", clinic: "dental-clinic-v1", contractor: "renovation-contractor-v1", consultant: "law-firm-v1", education: "tuition-centre-v1", beauty: "salon-spa-v1" } as Record<string, string>)[industryId] || "dental-clinic-v1";
-  const [goal, setGoal] = React.useState(previewGoals[0]);
+  const initialGoal = initialParams.get("goal") || previewGoals[0];
+  const [goal, setGoal] = React.useState(previewGoals.includes(initialGoal) ? initialGoal : previewGoals[0]);
   const [generated, setGenerated] = React.useState(false);
   const [generating, setGenerating] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -855,15 +862,18 @@ function GeneratePreviewPage() {
       auditContext = {};
     }
     return {
+      contactName: String(auditContext.contactName || initialParams.get("name") || ""),
       businessName: String(auditContext.businessName || initialParams.get("business") || ""),
       location: String(initialParams.get("city") || ""),
       mainService: String(initialParams.get("service") || ""),
-      websiteUrl: String(auditContext.website || ""),
+      websiteUrl: String(auditContext.website || initialParams.get("website") || ""),
+      websiteStatus: String(initialParams.get("websiteStatus") || (auditContext.website ? "yes" : "no")),
       phone: "",
       email: String(auditContext.email || initialParams.get("email") || ""),
       brandStyle: "Modern professional",
       socialUrl: "",
       reviews: "",
+      biggestProblem: String(initialParams.get("problem") || ""),
     };
   });
 
@@ -959,7 +969,7 @@ function GeneratePreviewPage() {
       // preview id makes retries idempotent, while attribution is carried into
       // the CRM record for follow-up and checkout continuity.
       const leadResult = await submitPlatformLead({
-        name: form.businessName,
+        name: form.contactName || form.businessName,
         email: form.email,
         phone: form.phone,
         businessName: form.businessName,
@@ -967,7 +977,7 @@ function GeneratePreviewPage() {
         websiteUrl: form.websiteUrl,
         service: form.mainService,
         selectedProduct: commercialRecommendation.slug,
-        message: `Preview brief: ${form.mainService} in ${form.location}. Goal: ${goal}. Brand style: ${form.brandStyle}.`,
+        message: `Preview brief: ${form.mainService} in ${form.location}. Goal: ${goal}. Biggest problem: ${form.biggestProblem || "Not specified"}. Website status: ${form.websiteStatus}. Brand style: ${form.brandStyle}.`,
         formName: "Personalized website preview",
         leadType: "free_website_preview",
         previewId,
@@ -1042,6 +1052,14 @@ function GeneratePreviewPage() {
           <h2 className="mt-3 text-3xl font-black text-slate-950">Add the basic brief</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <Input
+              aria-label="Your name"
+              required
+              placeholder="Your name"
+              value={form.contactName}
+              onChange={(e) => setForm({ ...form, contactName: e.target.value })}
+              className="h-12 rounded-2xl"
+            />
+            <Input
               aria-label="Business name"
               required
               placeholder="Business name"
@@ -1076,11 +1094,31 @@ function GeneratePreviewPage() {
             />
             <Input
               aria-label="Current website URL"
-              placeholder="Current website URL optional"
+              required={form.websiteStatus === "yes"}
+              placeholder={form.websiteStatus === "yes" ? "Current website URL" : "Current website URL (optional)"}
               value={form.websiteUrl}
               onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })}
               className="h-12 rounded-2xl"
             />
+            <select
+              aria-label="Do you currently have a website?"
+              value={form.websiteStatus}
+              onChange={(e) => setForm({ ...form, websiteStatus: e.target.value, websiteUrl: e.target.value === "no" ? "" : form.websiteUrl })}
+              className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700"
+            >
+              <option value="yes">I have a website</option>
+              <option value="no">I do not have a website yet</option>
+            </select>
+            <select
+              aria-label="Biggest website problem"
+              required
+              value={form.biggestProblem}
+              onChange={(e) => setForm({ ...form, biggestProblem: e.target.value })}
+              className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700"
+            >
+              <option value="">Biggest website problem</option>
+              {previewProblems.map((problem) => <option key={problem} value={problem}>{problem}</option>)}
+            </select>
           </div>
           <details className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-5">
             <summary className="cursor-pointer text-sm font-black text-slate-800">Add brand details and customer reviews <span className="font-semibold text-slate-500">(optional)</span></summary>
@@ -1147,6 +1185,7 @@ function GeneratePreviewPage() {
                 </div>
 	                <div className="mt-6 grid gap-3 sm:grid-cols-2">
                   {[
+                    ["Business diagnosis", form.biggestProblem ? `Your main opportunity is ${form.biggestProblem.toLowerCase()}.` : "Clarify the highest-priority enquiry opportunity."],
                     ["Recommended product", commercialRecommendation.label],
                     ["Primary CTA", reviewStrategy.primaryCta],
                     ["Template direction", industry.template],
