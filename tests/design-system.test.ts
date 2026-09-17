@@ -48,3 +48,35 @@ test("design QA flags sites with no conversion path", () => {
   assert.equal(result.productionReady, false);
   assert.equal(result.checks.find((check) => check.key === "cta")?.pass, false);
 });
+
+test("design QA blocks placeholder client proof", () => {
+  const result = assessWebsiteDesign({
+    id: "preview",
+    businessId: "business",
+    theme: {
+      primaryColor: "#111",
+      secondaryColor: "#fff",
+      fontFamily: "Inter",
+      designProfile: "trust_authority",
+      typographyProfile: "authority",
+      motionProfile: "subtle",
+    },
+    pages: [{
+      id: "home",
+      title: "Home",
+      slug: "",
+      sections: [
+        { id: "hero", type: "hero", content: { headline: "Dental care designed around your family" }, settings: { variant: "minimal_statement" } },
+        { id: "proof", type: "proof", content: { title: "Why patients choose us" }, settings: { variant: "minimal" } },
+        { id: "testimonials", type: "testimonials", content: { items: [{ name: "Verified Client", text: "The process was clear and professional." }] }, settings: { variant: "review_grid" } },
+        { id: "cta", type: "cta", content: { title: "Book an appointment" }, settings: { variant: "consultation" } },
+      ],
+    }],
+    seo: { title: "Example Dental", description: "Dental care for local families", keywords: [] },
+    status: "draft",
+    updatedAt: Date.now(),
+  });
+
+  assert.equal(result.checks.find((check) => check.key === "proof_integrity")?.pass, false);
+  assert.equal(result.productionReady, false);
+});
