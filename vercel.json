@@ -38,11 +38,30 @@
       ]
     }
   ],
-  "rewrites": [
-    { "source": "/pricing", "destination": "/api/index.ts?path=/pricing" },
-    { "source": "/generate-preview", "destination": "/api/index.ts?path=/generate-preview" },
-    { "source": "/", "destination": "/api/index.ts?path=/" },
-    { "source": "/api/:path*", "destination": "/api/index.ts" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  "routes": [
+    {
+      "src": "^/pricing/?$",
+      "dest": "/api/index.ts",
+      "transforms": [
+        { "type": "request.query", "op": "set", "target": { "key": "path" }, "args": "/pricing" }
+      ]
+    },
+    {
+      "src": "^/generate-preview/?$",
+      "dest": "/api/index.ts",
+      "transforms": [
+        { "type": "request.query", "op": "set", "target": { "key": "path" }, "args": "/generate-preview" }
+      ]
+    },
+    {
+      "src": "^/$",
+      "dest": "/api/index.ts",
+      "transforms": [
+        { "type": "request.query", "op": "set", "target": { "key": "path" }, "args": "/" }
+      ]
+    },
+    { "src": "^/api(?:/(.*))?$", "dest": "/api/index.ts" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
