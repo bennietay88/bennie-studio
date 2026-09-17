@@ -171,10 +171,20 @@
   }
 }
 
-/* Generated customer websites must not inherit Bennie Studio's UI font.
-   The renderer supplies these variables from each template's design profile. */
+/* Customer websites have their own typography system. Do not let the Bennie
+   Studio dashboard's Outfit/Geist UI typography leak into rendered templates. */
 .bt-website-renderer {
-  font-family: var(--bt-body-font, "Plus Jakarta Sans", sans-serif);
+  font-family: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.bt-website-renderer p,
+.bt-website-renderer li,
+.bt-website-renderer label,
+.bt-website-renderer button,
+.bt-website-renderer input,
+.bt-website-renderer textarea,
+.bt-website-renderer select {
+  font-family: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 .bt-website-renderer h1,
@@ -183,15 +193,67 @@
 .bt-website-renderer h4,
 .bt-website-renderer h5,
 .bt-website-renderer h6 {
-  font-family: var(--bt-display-font, "Space Grotesk", sans-serif);
+  font-family: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
+  letter-spacing: -0.04em;
+}
+
+.bt-website-renderer.style-authority h1,
+.bt-website-renderer.style-authority h2,
+.bt-website-renderer.style-authority h3,
+.bt-website-renderer.style-authority h4,
+.bt-website-renderer.style-authority h5,
+.bt-website-renderer.style-authority h6,
+.bt-website-renderer.style-corporate h1,
+.bt-website-renderer.style-corporate h2,
+.bt-website-renderer.style-corporate h3,
+.bt-website-renderer.style-corporate h4,
+.bt-website-renderer.style-corporate h5,
+.bt-website-renderer.style-corporate h6 {
+  font-family: "Plus Jakarta Sans", sans-serif;
   letter-spacing: -0.035em;
 }
 
-.bt-website-renderer button,
-.bt-website-renderer input,
-.bt-website-renderer textarea,
-.bt-website-renderer select {
-  font-family: inherit;
+.bt-website-renderer.style-editorial h1,
+.bt-website-renderer.style-editorial h2,
+.bt-website-renderer.style-editorial h3,
+.bt-website-renderer.style-editorial h4,
+.bt-website-renderer.style-editorial h5,
+.bt-website-renderer.style-editorial h6,
+.bt-website-renderer.style-prestige h1,
+.bt-website-renderer.style-prestige h2,
+.bt-website-renderer.style-prestige h3,
+.bt-website-renderer.style-prestige h4,
+.bt-website-renderer.style-prestige h5,
+.bt-website-renderer.style-prestige h6,
+.bt-website-renderer.style-immersive h1,
+.bt-website-renderer.style-immersive h2,
+.bt-website-renderer.style-immersive h3,
+.bt-website-renderer.style-immersive h4,
+.bt-website-renderer.style-immersive h5,
+.bt-website-renderer.style-immersive h6,
+.bt-website-renderer.style-luxury_dark h1,
+.bt-website-renderer.style-luxury_dark h2,
+.bt-website-renderer.style-luxury_dark h3,
+.bt-website-renderer.style-luxury_dark h4,
+.bt-website-renderer.style-luxury_dark h5,
+.bt-website-renderer.style-luxury_dark h6 {
+  font-family: "Fraunces", "Playfair Display", serif;
+  letter-spacing: -0.035em;
+}
+
+.bt-website-renderer.style-action h1,
+.bt-website-renderer.style-action h2,
+.bt-website-renderer.style-action h3,
+.bt-website-renderer.style-action h4,
+.bt-website-renderer.style-action h5,
+.bt-website-renderer.style-action h6,
+.bt-website-renderer.style-glassmorphic h1,
+.bt-website-renderer.style-glassmorphic h2,
+.bt-website-renderer.style-glassmorphic h3,
+.bt-website-renderer.style-glassmorphic h4,
+.bt-website-renderer.style-glassmorphic h5,
+.bt-website-renderer.style-glassmorphic h6 {
+  font-family: "Outfit", "Plus Jakarta Sans", sans-serif;
 }
 
 @theme inline {
