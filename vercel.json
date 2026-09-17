@@ -39,27 +39,6 @@
     }
   ],
   "routes": [
-    {
-      "src": "^/pricing/?$",
-      "dest": "/api/index.ts",
-      "transforms": [
-        { "type": "request.query", "op": "set", "target": { "key": "path" }, "args": "/pricing" }
-      ]
-    },
-    {
-      "src": "^/generate-preview/?$",
-      "dest": "/api/index.ts",
-      "transforms": [
-        { "type": "request.query", "op": "set", "target": { "key": "path" }, "args": "/generate-preview" }
-      ]
-    },
-    {
-      "src": "^/$",
-      "dest": "/api/index.ts",
-      "transforms": [
-        { "type": "request.query", "op": "set", "target": { "key": "path" }, "args": "/" }
-      ]
-    },
     { "src": "^/api(?:/(.*))?$", "dest": "/api/index.ts" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
