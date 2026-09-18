@@ -43,14 +43,14 @@ function MarketSwitcher({ compact = false }: { compact?: boolean }) {
 }
 
 const publicNavItems = [
+  { label: "Work", href: "/case-studies" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "How It Works", href: "/how-it-works" },
   {
-    label: "Main Site",
+    label: "Insights",
     href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com",
     external: true,
   },
-  { label: "Website Examples", href: "/case-studies" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "How It Works", href: "/how-it-works" },
 ];
 
 const footerGroups = [
@@ -81,34 +81,32 @@ export function PublicSiteHeader() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4" aria-label="Main navigation">
-        <Link to="/" className="flex shrink-0 items-center gap-2 text-slate-950">
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-600 text-white">
-            <Globe className="h-5 w-5" />
-          </span>
-          <span className="text-lg font-black tracking-tight">Bennie Studio</span>
+    <header className="sticky top-0 z-50 border-b border-[#dedbd3] bg-[#f7f6f2]/95 backdrop-blur-xl">
+      <nav className="mx-auto flex h-20 max-w-[90rem] items-center justify-between gap-5 px-6 sm:px-10 lg:px-16" aria-label="Main navigation">
+        <Link to="/" className="flex shrink-0 items-center gap-3 text-[#10131c]">
+          <span className="grid h-9 w-9 place-items-center bg-[#5b4bff] text-sm font-black text-white">B.</span>
+          <span className="text-lg font-semibold tracking-[-0.035em]">Bennie Studio</span>
         </Link>
 
-        <div className="hidden items-center gap-6 lg:flex">
+        <div className="hidden items-center gap-8 lg:flex">
           {publicNavItems.map((item) => item.external ? (
-            <a key={item.href} href={item.href} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Header ${item.label}`, target: item.href })} className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 transition hover:text-indigo-600">
+            <a key={item.href} href={item.href} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Header ${item.label}`, target: item.href })} className="text-sm font-semibold text-black/50 transition hover:text-[#5b4bff]">
               {item.label}
             </a>
           ) : (
-            <Link key={item.href} to={item.href} className="text-xs font-black uppercase tracking-[0.18em] text-slate-500 transition hover:text-indigo-600">
+            <Link key={item.href} to={item.href} className="text-sm font-semibold text-black/50 transition hover:text-[#5b4bff]">
               {item.label}
             </Link>
           ))}
         </div>
 
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center gap-4 lg:flex">
           <MarketSwitcher compact />
-          <Link to={user ? "/dashboard" : "/login"} className="px-2 text-sm font-bold text-slate-600 transition hover:text-indigo-600">
-            {user ? "Dashboard" : "Sign In"}
+          <Link to={user ? "/dashboard" : "/login"} className="text-sm font-semibold text-black/50 transition hover:text-[#5b4bff]">
+            {user ? "Dashboard" : "Sign in"}
           </Link>
-          <Link to={user ? "/dashboard" : "/book-demo"} onClick={() => !user && trackPublicEvent({ eventType: "click_book_call", label: "Header 30-Minute Review", target: "/book-demo" })} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-[0_10px_24px_-14px_rgba(15,23,42,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-600 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20">
-            {user ? "Open Studio" : "Book 30-Minute Review"}
+          <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => !user && trackPublicEvent({ eventType: "click_generate_preview", label: "Header Preview", target: "/generate-preview" })} className="inline-flex min-h-11 items-center justify-center bg-[#10131c] px-5 py-3 text-sm font-black text-white transition hover:bg-[#5b4bff]">
+            {user ? "Open Studio" : "Get free preview"}
           </Link>
         </div>
 
@@ -117,61 +115,64 @@ export function PublicSiteHeader() {
         </Button>
       </nav>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-[100] bg-slate-950/40 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
-          <div className="absolute right-0 top-0 flex h-dvh w-[min(88vw,340px)] flex-col bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-slate-100 pb-5">
-              <span className="font-black text-slate-950">Bennie Studio</span>
+      {mobileOpen ? (
+        <div className="fixed inset-0 z-[100] bg-[#0c1224]/50 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
+          <div className="absolute right-0 top-0 flex h-dvh w-[min(90vw,360px)] flex-col bg-[#f7f6f2] p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[#dedbd3] pb-5">
+              <span className="text-lg font-semibold tracking-[-0.03em] text-[#10131c]">Bennie Studio</span>
               <Button type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Close navigation menu"><X className="h-5 w-5" /></Button>
             </div>
-            <div className="flex flex-col gap-1 py-5">
+            <div className="flex flex-col py-5">
               {publicNavItems.map((item) => item.external ? (
-                <a key={item.href} href={item.href} target="_blank" rel="noreferrer" onClick={() => setMobileOpen(false)} className="rounded-xl px-3 py-3 text-base font-bold text-slate-800 hover:bg-slate-50 hover:text-indigo-600">{item.label}</a>
+                <a key={item.href} href={item.href} target="_blank" rel="noreferrer" onClick={() => setMobileOpen(false)} className="border-b border-[#dedbd3] py-4 text-lg font-semibold text-[#10131c]">{item.label}</a>
               ) : (
-                <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="rounded-xl px-3 py-3 text-base font-bold text-slate-800 hover:bg-slate-50 hover:text-indigo-600">{item.label}</Link>
+                <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="border-b border-[#dedbd3] py-4 text-lg font-semibold text-[#10131c]">{item.label}</Link>
               ))}
             </div>
-            <div className="mt-auto grid gap-3 border-t border-slate-100 pt-5">
+            <div className="mt-auto grid gap-3 border-t border-[#dedbd3] pt-5">
               <MarketSwitcher />
-              <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-900 shadow-sm hover:bg-slate-50">{user ? "Dashboard" : "Sign In"}</Link>
-              <Link to={user ? "/dashboard" : "/book-demo"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-lg hover:bg-indigo-600">{user ? "Open Studio" : "Book 30-Minute Review"}</Link>
+              <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center border border-[#10131c] px-5 text-sm font-bold text-[#10131c]">{user ? "Dashboard" : "Sign in"}</Link>
+              <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-12 items-center justify-center bg-[#10131c] px-5 text-sm font-black text-white">{user ? "Open Studio" : "Get free preview"}</Link>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </header>
   );
 }
 
 export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?: string; email?: string; onManageCookies?: () => void }) {
   return (
-    <footer className="border-t border-slate-200 bg-white text-slate-600">
-      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-12 md:grid-cols-2 lg:grid-cols-6">
-        <div>
-          <div className="mb-3 flex items-center gap-2 font-black text-slate-950"><Globe className="h-5 w-5 text-indigo-600" />Bennie Studio</div>
-          <p className="text-sm font-semibold leading-6 text-slate-600">{tagline || "Managed lead-generation websites for small businesses that need clearer enquiries, stronger trust, and better local visibility."}</p>
-          {email && <a href={`mailto:${email}`} className="mt-4 inline-flex text-sm font-black text-indigo-600 hover:text-indigo-700">Contact us</a>}
+    <footer className="bg-[#0c1224] text-white">
+      <div className="mx-auto grid max-w-[90rem] gap-10 px-6 py-16 sm:px-10 md:grid-cols-2 lg:grid-cols-6 lg:px-16 lg:py-20">
+        <div className="lg:col-span-2">
+          <div className="mb-5 flex items-center gap-3">
+            <span className="grid h-9 w-9 place-items-center bg-[#5b4bff] text-sm font-black">B.</span>
+            <span className="text-xl font-semibold tracking-[-0.035em]">Bennie Studio</span>
+          </div>
+          <p className="max-w-sm text-sm font-medium leading-7 text-white/55">{tagline || "Managed lead-generation websites for service businesses that need clearer enquiries, stronger trust, and better local visibility."}</p>
+          {email ? <a href={`mailto:${email}`} className="mt-5 inline-flex text-sm font-black text-[#aaa0ff] hover:text-white">Contact us</a> : null}
         </div>
         {footerGroups.map(([title, links]) => (
           <div key={title}>
-            <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">{title}</p>
-            <div className="space-y-2">
+            <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/35">{title}</p>
+            <div className="space-y-3">
               {links.map((link) => "external" in link && link.external ? (
-                <a key={link.href} href={link.href} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Footer ${link.label}`, target: link.href })} className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600">{link.label}<ExternalLink className="h-3 w-3" /></a>
+                <a key={link.href} href={link.href} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Footer ${link.label}`, target: link.href })} className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white">{link.label}<ExternalLink className="h-3 w-3" /></a>
               ) : (
-                <Link key={link.href} to={link.href} className="block text-sm font-bold text-slate-600 hover:text-indigo-600">{link.label}</Link>
+                <Link key={link.href} to={link.href} className="block text-sm font-semibold text-white/60 hover:text-white">{link.label}</Link>
               ))}
-              {title === "Legal" && onManageCookies && <button type="button" onClick={onManageCookies} className="block text-left text-sm font-bold text-slate-600 hover:text-indigo-600">Manage Cookies</button>}
+              {title === "Legal" && onManageCookies ? <button type="button" onClick={onManageCookies} className="block text-left text-sm font-semibold text-white/60 hover:text-white">Manage Cookies</button> : null}
             </div>
           </div>
         ))}
         <div>
-          <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">Pricing</p>
-          <p className="mb-3 text-sm font-semibold leading-6 text-slate-500">Choose your billing market to view the matching local price.</p>
+          <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/35">Pricing market</p>
+          <p className="mb-4 text-sm font-medium leading-6 text-white/45">Switch market to view matching local pricing.</p>
           <MarketSwitcher />
         </div>
       </div>
-      <div className="border-t border-slate-100 px-5 py-5 text-center text-xs font-bold text-slate-500">© {new Date().getFullYear()} Bennie Studio. All rights reserved.</div>
+      <div className="border-t border-white/10 px-6 py-6 text-center text-xs font-semibold text-white/35">© {new Date().getFullYear()} Bennie Studio. All rights reserved.</div>
     </footer>
   );
 }
