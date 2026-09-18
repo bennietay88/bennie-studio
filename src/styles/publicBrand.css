@@ -155,3 +155,18 @@
     font-size: clamp(1.8rem, 8vw, 2.35rem) !important;
   }
 }
+
+
+.brand-public [class*="text-[9px]"],
+.brand-public [class*="text-[10px]"] {
+  font-size: .72rem !important;
+}
+
+.brand-public .shadow-sm,
+.brand-public .shadow-lg {
+  box-shadow: none !important;
+}
+
+.brand-public .uppercase {
+  letter-spacing: .06em;
+}

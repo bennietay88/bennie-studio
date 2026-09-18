@@ -498,64 +498,66 @@ function TemplatesPage() {
   return (
     <>
       <Hero
-        title="Website templates organised by industry"
-        copy="Choose a niche-ready website structure instead of starting from a blank page. Each template is built around the business type, conversion goal, contact method, page count, and local SEO structure."
+        title="Website directions organised around the business, not a theme gallery."
+        copy="Start with the buyer journey, the evidence available, the main enquiry action and the business category. The design direction follows those decisions."
         icon={LayoutTemplate}
       />
-      <section className="mx-auto max-w-7xl px-5 py-14">
-        <div className="mb-8 max-w-3xl">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">Five flagship directions</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Preview the real website—not a generic wireframe.</h2>
-          <p className="mt-4 text-base font-semibold leading-7 text-slate-600">Each family uses a distinct visual direction, enquiry path, proof structure and launch checklist. Open the live build, then personalise it with your business details.</p>
-        </div>
-        <FlagshipTemplateGallery />
-
-        <div className="mt-14 border-t border-slate-200 pt-12">
-          <div className="max-w-3xl">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">More niche starting points</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">The same managed system, organised around your market.</h2>
-            <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">These packs help us choose the right CTA, page structure and evidence requirements. They are not separate low-quality themes.</p>
+      <section className="brand-shell brand-section">
+        <div className="grid gap-10 lg:grid-cols-12">
+          <div className="lg:col-span-4">
+            <p className="brand-kicker">Flagship directions</p>
+            <h2 className="mt-4">Inspect working design families.</h2>
+            <p className="brand-copy mt-5">These examples are for composition and enquiry strategy. They are starting directions, not rigid skins that every customer inherits.</p>
+          </div>
+          <div className="lg:col-span-8">
+            <FlagshipTemplateGallery />
           </div>
         </div>
-        <div className="mt-7 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {WAAS_TEMPLATE_PACKS.map((pack) => (
-            <div key={pack.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">{pack.name}</p>
-              <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{pack.description}</p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {pack.niches.map((niche) => (
-                  <span key={niche} className="rounded-full border border-slate-200 px-3 py-1 text-xs font-bold text-slate-700">
-                    {niche}
-                  </span>
+      </section>
+
+      <section className="border-y border-[#d9d7d0] bg-white">
+        <div className="brand-shell brand-section">
+          <div className="grid gap-10 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <p className="brand-kicker">Niche planning</p>
+              <h2 className="mt-4">The same design system adapts to different buying behaviour.</h2>
+            </div>
+            <div className="lg:col-span-8">
+              <div className="brand-rule-list">
+                {WAAS_TEMPLATE_PACKS.map((pack) => (
+                  <div key={pack.id} className="brand-rule-row">
+                    <div>
+                      <h3>{pack.name}</h3>
+                      <p className="mt-2 text-sm text-[#5f6673]">{pack.description}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-2">
+                      {pack.niches.map((niche) => <span key={niche} className="text-sm font-semibold text-[#5f6673]">{niche}</span>)}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
-          ))}
-        </div>
-        <div className="mt-10 rounded-xl border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
-          <div className="max-w-3xl">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">Industry sales paths</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">
-              Start from the business type, then choose the right template.
-            </h2>
-            <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
-              These quick starts keep the customer conversation simple: niche, goal, pages, CTA, and local SEO direction.
-            </p>
           </div>
-          <div className="mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {industrySalesStarts.map((item) => (
-              <Link
-                key={item.industry}
-                to={item.path}
-                className="rounded-3xl border border-white/10 bg-white/5 p-5 transition hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-white/10"
-              >
-                <p className="text-lg font-bold text-white">{item.industry}</p>
-                <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{item.promise}</p>
-                <span className="mt-4 inline-flex items-center text-xs font-bold uppercase tracking-[0.18em] text-indigo-200">
-                  View the industry path <ArrowRight className="ml-2 h-4 w-4" />
-                </span>
-              </Link>
-            ))}
+        </div>
+      </section>
+
+      <section className="bg-[#0f1726] text-white">
+        <div className="brand-shell brand-section">
+          <div className="grid gap-10 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#aaa0ff]">Industry paths</p>
+              <h2 className="mt-4 text-white">Start with the business type, then choose the right direction.</h2>
+              <p className="mt-5 text-base leading-7 text-white/60">Each route explains the offer, evidence and enquiry structure that matters for that market.</p>
+            </div>
+            <div className="border-t border-white/15 lg:col-span-8">
+              {industrySalesStarts.map((item) => (
+                <Link key={item.industry} to={item.path} className="grid gap-3 border-b border-white/15 py-6 transition hover:bg-white/[0.03] sm:grid-cols-[1fr_1.5fr_auto] sm:items-center sm:px-3">
+                  <h3 className="text-white">{item.industry}</h3>
+                  <p className="text-sm leading-6 text-white/60">{item.promise}</p>
+                  <ArrowRight className="h-4 w-4 text-[#aaa0ff]" />
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -577,50 +579,55 @@ function HowItWorksPage() {
     <>
       <Hero
         title="You run the business. We manage the website."
-        copy="See exactly what you provide, what Bennie Studio handles, when you approve the work, and what continues after launch."
+        copy="The working model is deliberately simple: you provide accurate business information and approvals; Bennie Studio handles strategy, production, hosting, maintenance and plan-based improvement."
         icon={Rocket}
       />
-      <section className="mx-auto max-w-7xl px-5 py-14">
-        <div className="mb-8 rounded-xl border border-indigo-100 bg-indigo-50 p-6 md:flex md:items-center md:justify-between md:gap-8">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">The working agreement</p>
-            <h2 className="mt-2 text-2xl font-bold text-slate-950">One clear owner on each side.</h2>
+      <section className="brand-shell brand-section">
+        <div className="grid gap-10 lg:grid-cols-12">
+          <div className="lg:col-span-4">
+            <p className="brand-kicker">Working agreement</p>
+            <h2 className="mt-4">One clear owner on each side.</h2>
+            <p className="brand-copy mt-5">No mystery workflow. Each stage has an input, a studio responsibility and a clear outcome.</p>
           </div>
-          <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-slate-700 md:mt-0">
-            You provide accurate business information and timely approval. Bennie Studio handles website strategy, production, hosting, maintenance, tracking, and plan-based improvements.
-          </p>
-        </div>
-        <div className="space-y-5">
-          {deliveryStages.map((stage, index) => (
-            <article key={stage.title} className="grid gap-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:grid-cols-[0.55fr_1fr_1fr] lg:items-start">
-              <div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-sm font-bold text-indigo-600">{index + 1}</span>
-                <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">{stage.timing}</p>
-                <h2 className="mt-2 text-2xl font-bold text-slate-950">{stage.title}</h2>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-5">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">What you do</p>
-                <p className="mt-2 text-sm font-bold leading-6 text-slate-700">{stage.customer}</p>
-              </div>
-              <div>
-                <div className="rounded-2xl bg-indigo-50 p-5">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">What Bennie Studio does</p>
-                  <p className="mt-2 text-sm font-bold leading-6 text-slate-700">{stage.studio}</p>
+          <div className="brand-rule-list lg:col-span-8">
+            {deliveryStages.map((stage, index) => (
+              <article key={stage.title} className="border-b border-[#d9d7d0] py-7">
+                <div className="grid gap-5 md:grid-cols-[5rem_1fr]">
+                  <div>
+                    <p className="text-xs font-bold text-[#5b4bff]">0{index + 1}</p>
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.06em] text-[#777d87]">{stage.timing}</p>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl">{stage.title}</h2>
+                    <div className="mt-5 grid gap-5 md:grid-cols-2">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.06em] text-[#777d87]">You provide</p>
+                        <p className="mt-2 text-sm leading-6 text-[#5f6673]">{stage.customer}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.06em] text-[#5b4bff]">Bennie Studio handles</p>
+                        <p className="mt-2 text-sm leading-6 text-[#5f6673]">{stage.studio}</p>
+                      </div>
+                    </div>
+                    <p className="mt-5 flex gap-2 text-sm font-semibold text-emerald-700"><Check className="mt-0.5 h-4 w-4 shrink-0" />{stage.outcome}</p>
+                  </div>
                 </div>
-                <p className="mt-3 flex gap-2 text-sm font-bold text-emerald-700"><Check className="mt-0.5 h-4 w-4 shrink-0" /> {stage.outcome}</p>
-              </div>
-            </article>
-          ))}
+              </article>
+            ))}
+          </div>
         </div>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+      </section>
+
+      <section className="border-y border-[#d9d7d0] bg-white">
+        <div className="brand-shell grid gap-8 py-12 md:grid-cols-3">
           {[
-            ["Before launch", "You review the prepared website and approve it before it goes live."],
-            ["After launch", "Hosting, SSL, maintenance, tracking, and included updates remain managed."],
-            ["When needs change", "Upgrade the plan or request a custom quote for CMS, ecommerce, or integrations."],
+            ["Before launch", "You review the prepared website and approve the final direction before it goes live."],
+            ["After launch", "Hosting, SSL, maintenance, tracking and the included update allowance remain managed."],
+            ["When needs change", "Upgrade the plan or scope CMS, ecommerce, integrations or deeper growth work separately."],
           ].map(([title, copy]) => (
-            <div key={title} className="rounded-3xl border border-slate-200 bg-white p-5">
-              <p className="font-bold text-slate-950">{title}</p>
-              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{copy}</p>
+            <div key={title} className="border-t border-[#d9d7d0] pt-4">
+              <h3>{title}</h3>
+              <p className="mt-3 text-sm leading-6 text-[#5f6673]">{copy}</p>
             </div>
           ))}
         </div>
@@ -676,107 +683,71 @@ function CaseStudiesPage() {
   return (
     <>
       <Hero
-        title="Website demonstrations built around buyer journeys"
-        copy="Explore working examples that show the business challenge, website strategy, enquiry path, and page structure for service-led businesses."
+        title="See how the website system is applied to different buyer journeys."
+        copy="Verified customer proof is shown separately from demonstration builds so you can tell the difference between measured evidence and a design example."
         icon={Sparkles}
-        primaryLabel="Get My Free Website Preview"
-        primaryHref="/generate-preview"
       />
-      <FocusIndustries />
-      <section className="mx-auto max-w-7xl px-5 pt-8">
-        <div className="flex flex-col gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Live portfolio</p>
-            <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-emerald-950">Want to inspect real work rather than demonstration concepts? Open Bennie Studio’s portfolio in a new tab.</p>
-          </div>
-          <a href="https://portfolio.bennietay.com" target="_blank" rel="noreferrer" className={secondaryCtaClass}>View Live Portfolio <ExternalLink className="ml-2 h-4 w-4" /></a>
-        </div>
-      </section>
-      <section className="mx-auto max-w-7xl px-5 py-14">
-        {verifiedProof.length ? <div className="mb-10 rounded-xl bg-slate-950 p-6 text-white sm:p-8">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">Customer outcomes</p>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">{verifiedProof.map((proof) => <article key={proof.id} className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">{(proof.before_image_url || proof.after_image_url) && <div className="grid grid-cols-2">{proof.before_image_url && <img src={proof.before_image_url} alt={`Before improvements for ${proof.company || proof.customer_name}`} className="h-40 w-full object-cover" />}{proof.after_image_url && <img src={proof.after_image_url} alt={`After improvements for ${proof.company || proof.customer_name}`} className="h-40 w-full object-cover" />}</div>}<div className="p-5"><p className="text-lg font-bold">{proof.title || proof.result_summary || "Customer outcome"}</p>{proof.before_summary && <div className="mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Before</p><p className="mt-1 text-sm font-semibold text-slate-300">{proof.before_summary}</p></div>}{Array.isArray(proof.changes) && proof.changes.length > 0 && <div className="mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">What changed</p><ul className="mt-2 space-y-1 text-sm font-semibold text-slate-300">{proof.changes.map((change: string) => <li key={change}>• {change}</li>)}</ul></div>}{Array.isArray(proof.result_metrics) && proof.result_metrics.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{proof.result_metrics.map((metric: any) => <span key={`${metric.metric}-${metric.value}`} className="rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-bold text-emerald-300">{metric.metric}: {metric.value}</span>)}</div>}<p className="mt-4 text-sm font-semibold leading-6 text-slate-300">“{proof.testimonial}”</p><p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-indigo-200">{proof.customer_name}{proof.company ? ` · ${proof.company}` : ""}</p>{proof.evidence_reference && <a href={proof.evidence_reference} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-bold text-emerald-300 hover:text-emerald-200">View supporting reference <ExternalLink className="ml-1 h-3.5 w-3.5" /></a>}</div></article>)}</div>
-        </div> : null}
-        <div className="mb-10 grid gap-4 rounded-xl border border-indigo-100 bg-indigo-50 p-6 md:grid-cols-[1fr_auto] md:items-center">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">Working website examples</p>
-            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-700">
-              These are demonstration websites, not client projects or measured customer results. They show how services, proof and enquiry paths can fit together.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 md:justify-end">
-            {["3 design examples", "3 working demos", "Illustrative outcomes"].map((item) => (
-              <span key={item} className="rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-indigo-700 shadow-sm">
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          {caseStudies.map((item) => (
-            <article key={item.title} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-              <div className="relative min-h-64 overflow-hidden border-b border-slate-200 bg-slate-100">
-                <TemplatePreviewThumbnail templateId={item.templateId} templateName={item.title} className="min-h-64" />
-                <Badge className="absolute right-4 top-4 border-0 bg-white/90 text-slate-900 shadow-sm backdrop-blur">Working demonstration</Badge>
+
+      {verifiedProof.length ? (
+        <section className="bg-[#0f1726] text-white">
+          <div className="brand-shell brand-section">
+            <div className="grid gap-10 lg:grid-cols-12">
+              <div className="lg:col-span-4">
+                <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#aaa0ff]">Verified customer proof</p>
+                <h2 className="mt-4 text-white">Published only with customer approval.</h2>
+                <p className="mt-5 text-base leading-7 text-white/60">Testimonials and evidence references in this section come from approved customer records.</p>
               </div>
-              <div className="p-6">
-                <div className="mb-4 flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="text-indigo-600">{item.industry}</Badge>
-                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{item.type}</span>
-                </div>
-                <h2 className="text-2xl font-bold text-slate-950">{item.title}</h2>
-                <div className="mt-5 grid gap-4 text-sm leading-6">
-                  <div>
-                    <p className="font-bold uppercase tracking-[0.14em] text-rose-500">Challenge</p>
-                    <p className="mt-1 font-semibold text-slate-600">{item.challenge}</p>
-                  </div>
-                  <div>
-                    <p className="font-bold uppercase tracking-[0.14em] text-indigo-600">Website strategy</p>
-                    <p className="mt-1 font-semibold text-slate-600">{item.strategy}</p>
-                  </div>
-                  <div className="rounded-2xl bg-emerald-50 p-4">
-                    <p className="font-bold uppercase tracking-[0.14em] text-emerald-700">Intended outcome</p>
-                    <p className="mt-1 font-semibold text-emerald-950">{item.outcome}</p>
-                  </div>
-                </div>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {item.delivered.map((deliverable) => (
-                    <span key={deliverable} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700">
-                      {deliverable}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  <Link
-                    to={item.href}
-                    onClick={() => trackPublicEvent({ eventType: "click_view_case_study", label: item.title, target: item.href, metadata: { industry: item.industry, type: item.type } })}
-                    className={secondaryCtaClass}
-                  >
-                    Explore Demonstration <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                  <Link
-                    to={`/generate-preview?industry=${item.industryId}&template=${item.templateId}`}
-                    onClick={() => trackPublicEvent({ eventType: "click_generate_similar_preview", label: item.title, target: "/generate-preview", metadata: { industry: item.industry, type: item.type } })}
-                    className={primaryCtaClass}
-                  >
-                    Generate Similar
-                  </Link>
-                </div>
+              <div className="border-t border-white/15 lg:col-span-8">
+                {verifiedProof.map((proof) => (
+                  <article key={proof.id} className="border-b border-white/15 py-7">
+                    <div className="grid gap-6 md:grid-cols-[1fr_1.4fr]">
+                      <div>
+                        <h3 className="text-white">{proof.title || proof.result_summary || "Customer outcome"}</h3>
+                        <p className="mt-2 text-sm font-semibold text-[#aaa0ff]">{proof.customer_name}{proof.company ? ` · ${proof.company}` : ""}</p>
+                        {proof.evidence_reference ? <a href={proof.evidence_reference} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center text-sm font-semibold text-white/70 hover:text-white">Supporting reference <ExternalLink className="ml-2 h-4 w-4" /></a> : null}
+                      </div>
+                      <div>
+                        {proof.before_summary ? <p className="text-sm leading-6 text-white/55">{proof.before_summary}</p> : null}
+                        <p className="mt-4 text-base leading-7 text-white/80">“{proof.testimonial}”</p>
+                        {Array.isArray(proof.result_metrics) && proof.result_metrics.length ? (
+                          <div className="mt-5 flex flex-wrap gap-4">
+                            {proof.result_metrics.map((metric: any) => <span key={`${metric.metric}-${metric.value}`} className="text-sm font-bold text-emerald-300">{metric.metric}: {metric.value}</span>)}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </article>
+                ))}
               </div>
-            </article>
-          ))}
-        </div>
-        <div className="mt-10 rounded-xl border border-slate-200 bg-white p-7 shadow-sm">
-          <h2 className="text-3xl font-bold text-slate-950">What each demonstration explains</h2>
-          <p className="mt-3 max-w-3xl text-base font-semibold leading-7 text-slate-600">
-            A useful case study should connect the business problem to the website decision—not stop at a decorative screenshot.
-          </p>
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
-            {["Business challenge", "Buyer journey", "Website strategy", "Conversion CTA", "Delivered sections", "Working demonstration"].map((item) => (
-              <div key={item} className="flex gap-2 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                {item}
-              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="brand-shell brand-section">
+        <div className="grid gap-10 lg:grid-cols-12">
+          <div className="lg:col-span-4">
+            <p className="brand-kicker">Working demonstrations</p>
+            <h2 className="mt-4">Examples of structure and conversion strategy.</h2>
+            <p className="brand-copy mt-5">These are demonstrations, not claimed customer results. Use them to inspect hierarchy, service presentation, proof placement and enquiry flow.</p>
+            <a href="https://portfolio.bennietay.com" target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center text-sm font-bold text-[#141821]">Open live portfolio <ExternalLink className="ml-2 h-4 w-4" /></a>
+          </div>
+          <div className="border-t border-[#d9d7d0] lg:col-span-8">
+            {caseStudies.map((item) => (
+              <article key={item.title} className="grid gap-6 border-b border-[#d9d7d0] py-7 md:grid-cols-[1.05fr_1fr]">
+                <TemplatePreviewThumbnail templateId={item.templateId} templateName={item.title} className="min-h-56" />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.06em] text-[#5b4bff]">{item.industry} · demonstration</p>
+                  <h3 className="mt-3">{item.title}</h3>
+                  <p className="mt-4 text-sm leading-6 text-[#5f6673]"><strong className="text-[#141821]">Challenge:</strong> {item.challenge}</p>
+                  <p className="mt-3 text-sm leading-6 text-[#5f6673]"><strong className="text-[#141821]">Strategy:</strong> {item.strategy}</p>
+                  <p className="mt-3 text-sm leading-6 text-[#5f6673]"><strong className="text-[#141821]">Intended outcome:</strong> {item.outcome}</p>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <Link to={item.href} className={secondaryCtaClass}>Explore demo</Link>
+                    <Link to={`/generate-preview?industry=${item.industryId}&template=${item.templateId}`} className={primaryCtaClass}>Generate similar</Link>
+                  </div>
+                </div>
+              </article>
             ))}
           </div>
         </div>
@@ -784,6 +755,8 @@ function CaseStudiesPage() {
     </>
   );
 }
+
+const previewIndustries = [
 
 const previewIndustries = [
   {
