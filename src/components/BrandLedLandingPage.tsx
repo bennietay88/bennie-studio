@@ -74,7 +74,7 @@ const designDirections = {
   },
 } as const;
 
-const industries = [const industries = [
+const industries = [
   "Professional services",
   "Clinics & healthcare",
   "Consultants",
