@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { LayoutTemplate } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { NICHE_TEMPLATES } from "../constants/nicheTemplates";
 
 interface TemplatePreviewThumbnailProps {
   templateId: string;
@@ -88,6 +89,16 @@ async function resolveTemplateConfig(templateId: string) {
   const cached = configCache.get(templateId);
   if (cached) return cached;
 
+  const builtIn = Object.values(NICHE_TEMPLATES).find((template: any) => template?.id === templateId) as any;
+  if (builtIn) {
+    const localConfig: TemplateConfig = {
+      theme: builtIn.theme || {},
+      pages: Array.isArray(builtIn.pages) ? builtIn.pages : [],
+    };
+    configCache.set(templateId, localConfig);
+    return localConfig;
+  }
+
   const { data, error } = await supabase
     .from("templates")
     .select("config")
@@ -97,6 +108,7 @@ async function resolveTemplateConfig(templateId: string) {
   if (error) throw error;
 
   const config = ((data as any)?.config || {}) as TemplateConfig;
+  if (!config.pages?.length) throw new Error("Template configuration unavailable");
   configCache.set(templateId, config);
   return config;
 }

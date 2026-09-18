@@ -328,14 +328,17 @@ export default function BrandLedLandingPage() {
             </div>
             <div className="mt-14 grid gap-0 lg:grid-cols-3">
               {designDirections.map((item, index) => (
-                <div key={item.label} className={`min-h-[31rem] p-8 sm:p-10 ${item.className} ${index === 1 ? "lg:-translate-y-8" : ""}`}>
-                  <p className="text-[9px] font-black uppercase tracking-[0.24em] opacity-55">{item.label}</p>
+                <div
+                  key={item.label}
+                  className={`min-h-[31rem] p-8 sm:p-10 ${item.className} ${index === 0 ? "brand-on-light" : "brand-on-dark"} ${index === 1 ? "lg:-translate-y-8" : ""}`}
+                >
+                  <p className="text-current text-xs font-semibold uppercase tracking-[0.08em] opacity-60">{item.label}</p>
                   <div className="mt-24">
-                    <p className="max-w-[10ch] text-4xl font-semibold leading-[0.95] tracking-[-0.045em]">{item.title}</p>
-                    <p className="mt-6 max-w-sm text-sm font-medium leading-6 opacity-65">{item.body}</p>
+                    <h3 className="max-w-[11ch] text-current text-3xl font-semibold leading-[1.12] tracking-[-0.02em]">{item.title}</h3>
+                    <p className="mt-6 max-w-sm text-current text-base font-normal leading-7 opacity-75">{item.body}</p>
                   </div>
                   <div className="mt-10 h-px w-full bg-current opacity-20" />
-                  <p className="mt-5 text-[9px] font-black uppercase tracking-[0.2em] opacity-45">Layout direction 0{index + 1}</p>
+                  <p className="mt-5 text-current text-xs font-semibold uppercase tracking-[0.08em] opacity-55">Layout direction 0{index + 1}</p>
                 </div>
               ))}
             </div>
