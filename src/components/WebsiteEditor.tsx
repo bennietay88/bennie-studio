@@ -103,6 +103,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { generateId, cn } from "../lib/utils";
 import { auditWebsiteButtons, normalizeWebsiteForPreview } from "../lib/websiteButtons";
+import { assessWebsiteDesign } from "../lib/designQa";
 import { 
   generatePageContent, 
   generateSectionContent, 
@@ -610,6 +611,13 @@ export function WebsiteEditor({
   const buttonAudit = useMemo(() => (website ? auditWebsiteButtons(website) : []), [website]);
   const brokenButtons = buttonAudit.filter((button) => button.status !== "working");
   const criticalBrokenButtons = brokenButtons.filter((button) => button.critical);
+  const designAudit = useMemo(() => (website ? assessWebsiteDesign(website) : null), [website]);
+  const generationMode = website?.theme?.generationMode || "fast";
+  const designPublishBlocked =
+    generationMode !== "fast" &&
+    Boolean(designAudit && !designAudit.productionReady);
+  const designBlockingChecks =
+    designAudit?.checks.filter((check) => !check.pass && (check.severity === "high" || generationMode === "brand_led")) || [];
 
   const previewUrl = useMemo(() => {
     return isTemplateMode && templateIdOverride
@@ -1496,6 +1504,12 @@ export function WebsiteEditor({
       setShowPublishConfirm(false);
       return;
     }
+    if (designPublishBlocked) {
+      const firstIssue = designBlockingChecks[0]?.note || "Resolve the premium design-quality checks before publishing.";
+      toast.error(firstIssue);
+      setShowPublishConfirm(false);
+      return;
+    }
     setSaving(true);
     setShowPublishConfirm(false);
     try {
@@ -1528,6 +1542,11 @@ export function WebsiteEditor({
       toast.error("Fix critical website buttons before publishing.");
       return;
     }
+    if (newStatus === "published" && designPublishBlocked) {
+      const firstIssue = designBlockingChecks[0]?.note || "Resolve the premium design-quality checks before publishing.";
+      toast.error(firstIssue);
+      return;
+    }
     setSaving(true);
     try {
       const nextWorkflowStatus = newStatus === "published" ? "live" : "draft";
@@ -1558,6 +1577,11 @@ export function WebsiteEditor({
     if (!website) return;
     if (newStatus === "live" && criticalBrokenButtons.length > 0) {
       toast.error("Fix critical website buttons before moving this site live.");
+      return;
+    }
+    if (newStatus === "live" && designPublishBlocked) {
+      const firstIssue = designBlockingChecks[0]?.note || "Resolve the premium design-quality checks before moving this site live.";
+      toast.error(firstIssue);
       return;
     }
     setSaving(true);
@@ -4178,6 +4202,8 @@ export function WebsiteEditor({
                     )
                   }
                   isLoading={saving}
+                  disabled={website.status !== "published" && designPublishBlocked}
+                  title={designPublishBlocked ? "Resolve Premium Design QA before publishing" : undefined}
                 >
                   {website.status === "published" ? (
                     <EyeOff className="h-4 w-4" />
@@ -4622,6 +4648,57 @@ export function WebsiteEditor({
               </CardFooter>
             </Card>
           </div>
+        )}
+
+        {!isTemplateMode && designAudit && generationMode !== "fast" && (
+          <Card className="rounded-3xl border-slate-200 shadow-sm overflow-hidden">
+            <CardContent className="p-5 md:p-6">
+              <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                <div className="flex items-start gap-4">
+                  <div className={cn(
+                    "h-11 w-11 rounded-2xl flex items-center justify-center shrink-0",
+                    designPublishBlocked ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600",
+                  )}>
+                    {designPublishBlocked ? <AlertTriangle className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-base md:text-lg font-black text-slate-950">Premium Design QA</h2>
+                      <Badge className={cn("border-none", designPublishBlocked ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700")}>
+                        {designPublishBlocked ? "Needs refinement" : "Ready"}
+                      </Badge>
+                      <Badge variant="outline" className="uppercase">{generationMode.replace("_", " ")}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-500 max-w-2xl">
+                      Brand-led and Premium sites must pass composition, proof, media, conversion and anti-template checks before launch.
+                    </p>
+                    {designBlockingChecks.length > 0 && (
+                      <div className="mt-4 grid gap-2">
+                        {designBlockingChecks.slice(0, 4).map((check) => (
+                          <div key={check.key} className="rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2 text-xs font-semibold text-amber-800">
+                            {check.note}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 min-w-full xl:min-w-[420px]">
+                  {[
+                    ["Design score", designAudit.score],
+                    ["AI-template risk", designAudit.metrics.aiTemplateRisk],
+                    ["Visual variety", designAudit.metrics.visualVariety],
+                    ["Conversion", designAudit.metrics.conversionClarity],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                      <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">{label}</div>
+                      <div className="mt-1 text-xl font-black text-slate-950">{value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {!isTemplateMode && (
