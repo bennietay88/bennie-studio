@@ -223,11 +223,11 @@ function createPreviewModel(
   };
 }
 
-function MiniBrand({ model, label }: { model: PreviewModel; label: string }) {
+function MiniBrand({ model, label, inverse = false }: { model: PreviewModel; label: string; inverse?: boolean }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: model.primary }} />
-      <span className="max-w-28 truncate text-[7px] font-bold text-slate-800">{label}</span>
+      <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: inverse ? "#ffffff" : model.primary }} />
+      <span className={`max-w-28 truncate text-[7px] font-bold ${inverse ? "text-white" : "text-slate-800"}`}>{label}</span>
     </div>
   );
 }
@@ -310,7 +310,7 @@ function LocalQuotePreview({ model, name }: { model: PreviewModel; name: string 
   return (
     <div className="absolute inset-0 flex flex-col bg-white" style={{ fontFamily: model.bodyFont }}>
       <div className="flex h-8 items-center justify-between bg-slate-950 px-4 text-white">
-        <MiniBrand model={{ ...model, primary: "#ffffff" }} label={name} />
+        <MiniBrand model={model} label={name} inverse />
         <span className="rounded-md px-2 py-1 text-[5px] font-bold text-white" style={{ backgroundColor: model.primary }}>
           Get quote
         </span>
