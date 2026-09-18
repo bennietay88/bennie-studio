@@ -628,7 +628,12 @@ export function WebsiteRenderer({
           "Business Website";
         setBusinessInfo({
           name: previewName,
-          industry: initialData?.seo?.businessType || website?.seo?.businessType || "Professional Services",
+          industry:
+            initialData?.seo?.keywords?.[3] ||
+            website?.seo?.keywords?.[3] ||
+            initialData?.seo?.brandVoice ||
+            website?.seo?.brandVoice ||
+            "Professional Services",
           business_nature: initialData?.seo?.brandVoice || website?.seo?.brandVoice || "Professional Services",
           location: initialData?.seo?.placename || website?.seo?.placename || "",
         });
