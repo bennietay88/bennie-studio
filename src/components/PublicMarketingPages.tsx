@@ -1391,7 +1391,7 @@ function GeneratePreviewPage() {
 	                    ) : null}
 	                  </div>
 	                </div>
-	                <div className="mt-6 grid gap-3 sm:grid-cols-2">	                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+	                <div className="mt-6 grid gap-3 sm:grid-cols-2">
                   {[
                     ["Business diagnosis", form.biggestProblem ? `Your main opportunity is ${form.biggestProblem.toLowerCase()}.` : "Clarify the highest-priority enquiry opportunity."],
                     ["Recommended product", commercialRecommendation.label],
