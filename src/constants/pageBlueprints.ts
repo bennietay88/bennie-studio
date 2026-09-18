@@ -457,7 +457,7 @@ const getServiceItems = (input: BlueprintBusinessInput) => {
   return services.slice(0, 6).map((service) => ({
     title: service,
     description: `${service} designed for ${input.targetCustomer || "your customers"} in ${input.location || "your area"}.`,
-    price: input.plan === "starter" ? "Enquire" : "Custom Quote",
+    imageUrl: undefined,
   }));
 };
 
@@ -488,10 +488,12 @@ const getFaqItems = (input: BlueprintBusinessInput) => {
 
 const getTestimonials = (input: BlueprintBusinessInput) => {
   const custom = (input.testimonials || []).map((text) => text.trim()).filter(Boolean);
-  return custom.slice(0, 3).map((text, index) => ({
-    name: `Customer feedback ${index + 1}`,
+  return custom.slice(0, 3).map((text) => ({
+    name: "Customer review",
     role: "Review supplied by the business",
     text,
+    verified: true,
+    sourceLabel: "Business-supplied review",
   }));
 };
 

@@ -26,6 +26,7 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
   const duplicateTypes = sections.length > 5 && new Set(sections.map((section) => section.type)).size < Math.ceil(sections.length / 2);
   const aiFingerprint = /transform your|elevate your|unlock the power|trusted partner|tailored solutions|bringing your vision|take your business to the next level|next-level/i.test(text);
   const hasHeadline = sections.some((section) => typeof section.content?.headline === "string" && section.content.headline.trim().length >= 12);
+  const generationMode = website.theme?.generationMode || "fast";
   const hasPlaceholder = /lorem ipsum|your business name|replace this|sample text|coming soon|example\.com/i.test(text);
   const hasPlaceholderMedia = /brand-template-preview\.svg/i.test(text) && generationMode !== "fast";
   const hasSeo = Boolean(website.seo?.title?.trim() && website.seo?.description?.trim());
@@ -39,7 +40,6 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
   const hasVariantDirection = variants.length >= Math.min(3, sections.length);
   const repeatedVariant = variants.length >= 4 && new Set(variants).size <= 1;
   const genericCardFingerprint = CARD_GRID_FINGERPRINT.test(text) && sections.length > 4;
-  const generationMode = website.theme?.generationMode || "fast";
   const centeredSections = sections.filter((section) => section.settings?.textAlign === "center").length;
   const centeredRatio = sections.length ? centeredSections / sections.length : 0;
   const cardHeavyVariants = variants.filter((variant) => ["cards", "review_grid", "icon_grid"].includes(String(variant))).length;

@@ -3267,6 +3267,13 @@ export function WebsiteEditor({
                                 }
                                 placeholder="Write your story using markdown..."
                               />
+                              <ImageUpload
+                                label="Story / Founder Image"
+                                description="Use a real founder, team, office, project or service image supplied by the customer."
+                                bucket="website-assets"
+                                value={section.content.imageUrl || ""}
+                                onUpload={(url) => updateSectionContent(page.id, section.id, { imageUrl: url })}
+                              />
                             </div>
                           </div>
                         )}
@@ -6418,21 +6425,13 @@ export function WebsiteEditor({
                                             <label className="text-sm font-medium text-slate-700">
                                               Image Preview
                                             </label>
-                                            <div className="aspect-video rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center relative group">
-                                              <img
-                                                src={
-                                                  section.content.imageUrl ||
-                                                  `/brand-template-preview.svg`
-                                                }
-                                                alt="Hero Preview"
-                                                className="w-full h-full object-cover"
-                                                referrerPolicy="no-referrer"
-                                              />
-                                              {!section.content.imageUrl && (
-                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                  <span className="text-white text-xs font-medium">
-                                                    Using Placeholder Image
-                                                  </span>
+                                            <div className="aspect-video overflow-hidden border border-slate-200 bg-slate-950">
+                                              {section.content.imageUrl ? (
+                                                <img src={section.content.imageUrl} alt="Hero Preview" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                                              ) : (
+                                                <div className="flex h-full flex-col justify-end p-6 text-white">
+                                                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-white/50">Customer media slot</p>
+                                                  <p className="mt-2 max-w-xs text-sm font-semibold leading-6">Upload real business photography, product UI, project work or brand artwork.</p>
                                                 </div>
                                               )}
                                             </div>
@@ -6507,6 +6506,13 @@ export function WebsiteEditor({
                                               About text is required
                                             </p>
                                           )}
+                                          <ImageUpload
+                                            label="Story / Founder Image"
+                                            description="Use customer-supplied founder, team, office, project or service photography."
+                                            bucket="website-assets"
+                                            value={section.content.imageUrl || ""}
+                                            onUpload={(url) => updateSectionContent(page.id, section.id, { imageUrl: url })}
+                                          />
                                         </div>
                                         <div className="space-y-2">
                                           <label className="text-sm font-medium text-slate-700">
@@ -6826,12 +6832,16 @@ export function WebsiteEditor({
                                                 </Button>
                                                 <div className="flex gap-3">
                                                   <div className="h-16 w-16 rounded-xl bg-slate-200 overflow-hidden shrink-0">
-                                                    <img
-                                                      src={member.imageUrl}
-                                                      alt={member.name}
-                                                      className="w-full h-full object-cover"
-                                                      referrerPolicy="no-referrer"
-                                                    />
+                                                    {member.imageUrl ? (
+                                                      <img
+                                                        src={member.imageUrl}
+                                                        alt={member.name || "Team member"}
+                                                        className="w-full h-full object-cover"
+                                                        referrerPolicy="no-referrer"
+                                                      />
+                                                    ) : (
+                                                      <div className="flex h-full w-full items-center justify-center text-[8px] font-black uppercase tracking-wider text-slate-400">Photo</div>
+                                                    )}
                                                   </div>
                                                   <div className="flex-1 space-y-2">
                                                     <Input
@@ -6929,11 +6939,10 @@ export function WebsiteEditor({
                                                   ...(section.content.members ||
                                                     []),
                                                   {
-                                                    name: "New Member",
-                                                    role: "Specialist",
-                                                    bio: "Expert bio...",
-                                                    imageUrl:
-                                                      "/brand-template-preview.svg",
+                                                    name: "",
+                                                    role: "",
+                                                    bio: "",
+                                                    imageUrl: "",
                                                   },
                                                 ];
                                                 updateSectionContent(
@@ -7002,6 +7011,17 @@ export function WebsiteEditor({
                                                   }}
                                                 />
                                               </div>
+                                              <ImageUpload
+                                                label="Service Image (optional)"
+                                                description="Use a customer-supplied service, project or product image."
+                                                bucket="website-assets"
+                                                value={item.imageUrl || ""}
+                                                onUpload={(url) => {
+                                                  const newItems = [...section.content.items];
+                                                  newItems[si] = { ...item, imageUrl: url, imageAlt: item.title || "Service" };
+                                                  updateSectionContent(page.id, section.id, { items: newItems });
+                                                }}
+                                              />
                                             </div>
                                           ),
                                         )}
@@ -7103,9 +7123,11 @@ export function WebsiteEditor({
                                             const newItems = [
                                               ...(section.content.items || []),
                                               {
-                                                name: "New Person",
-                                                role: "Role",
-                                                text: "Testimonial",
+                                                name: "",
+                                                role: "Review supplied by the business",
+                                                text: "",
+                                                verified: true,
+                                                sourceLabel: "Business-supplied review",
                                               },
                                             ];
                                             updateSectionContent(
@@ -7654,14 +7676,16 @@ export function WebsiteEditor({
                                                   ...(section.content.stats ||
                                                     []),
                                                   {
-                                                    label: "New Stat",
-                                                    value: "100+",
+                                                    label: "",
+                                                    value: "",
+                                                    verified: true,
+                                                    sourceLabel: "Business-supplied metric",
                                                   },
                                                 ];
                                                 updateSectionContent(
                                                   page.id,
                                                   section.id,
-                                                  { stats: newStats },
+                                                  { stats: newStats, providedByBusiness: true, sourceLabel: "Business-supplied metrics" },
                                                 );
                                               }}
                                               className="p-4 border-2 border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-indigo-600 hover:text-indigo-600 transition-all"
@@ -7675,7 +7699,7 @@ export function WebsiteEditor({
                                         </div>
                                         <div className="space-y-3">
                                           <Label>
-                                            Partner Logos (Moving Carousel)
+                                            Customer-supplied Logos
                                           </Label>
                                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                             {(section.content.logos || []).map(
@@ -7711,31 +7735,18 @@ export function WebsiteEditor({
                                                 </div>
                                               ),
                                             )}
-                                            <button
-                                              onClick={() => {
-                                                const url = prompt(
-                                                  "Enter Logo Image URL:",
-                                                );
-                                                if (url) {
-                                                  const newLogos = [
-                                                    ...(section.content.logos ||
-                                                      []),
-                                                    url,
-                                                  ];
-                                                  updateSectionContent(
-                                                    page.id,
-                                                    section.id,
-                                                    { logos: newLogos },
-                                                  );
-                                                }
-                                              }}
-                                              className="aspect-video border-2 border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center gap-1 text-slate-400 hover:border-indigo-600 hover:text-indigo-600 transition-all"
-                                            >
-                                              <Plus className="h-5 w-5" />
-                                              <span className="text-xs font-bold">
-                                                Add Logo
-                                              </span>
-                                            </button>
+                                            <div className="col-span-2 sm:col-span-4">
+                                              <ImageUpload
+                                                label="Add Client / Partner Logo"
+                                                description="Upload only logos the customer is entitled to display."
+                                                bucket="website-assets"
+                                                value=""
+                                                onUpload={(url) => {
+                                                  const newLogos = [...(section.content.logos || []), url];
+                                                  updateSectionContent(page.id, section.id, { logos: newLogos, providedByBusiness: true, sourceLabel: "Business-supplied logos" });
+                                                }}
+                                              />
+                                            </div>
                                           </div>
                                         </div>
                                       </div>

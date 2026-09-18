@@ -2664,9 +2664,17 @@ export function WebsiteRenderer({
                                 <div className="text-xs font-black tracking-[0.22em] text-primary lg:col-span-1">{String(itemIndex + 1).padStart(2, "0")}</div>
                                 <h3 className="text-2xl font-semibold tracking-tight text-slate-950 lg:col-span-4 sm:text-3xl">{item.title}</h3>
                                 <p className="text-base leading-7 text-slate-600 lg:col-span-5">{item.description}</p>
-                                <button onClick={() => trackInteraction("service_click", item.title || "Service", { target: section.id || "services" })} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-950 lg:col-span-2 lg:justify-self-end">
-                                  Learn more <ArrowRight className="h-4 w-4 text-primary" />
-                                </button>
+                                <div className="lg:col-span-2 lg:justify-self-end">
+                                  {item.imageUrl ? (
+                                    <div className="aspect-[4/3] w-full max-w-[10rem] overflow-hidden bg-slate-100">
+                                      <img src={item.imageUrl} alt={item.imageAlt || item.title || "Service"} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+                                    </div>
+                                  ) : (
+                                    <button onClick={() => trackInteraction("service_click", item.title || "Service", { target: section.id || "services" })} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-950">
+                                      Learn more <ArrowRight className="h-4 w-4 text-primary" />
+                                    </button>
+                                  )}
+                                </div>
                               </motion.div>
                             ))}
                           </div>
@@ -3316,72 +3324,99 @@ export function WebsiteRenderer({
                       </div>
                     </motion.section>
                   );
-                case "testimonials":
+                case "testimonials": {
+                  const testimonialItems = (section.content.items || []).filter((item: any) => item?.text);
+                  if (testimonialItems.length === 0) return null;
+                  const editorialTestimonials = ["editorial_quote", "featured", "proof_wall"].includes(section.settings?.variant || "");
+                  if (editorialTestimonials) {
+                    const [featured, ...supporting] = testimonialItems;
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `testimonials-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="bg-slate-950 py-20 text-white sm:py-28"
+                      >
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="grid gap-8 border-b border-white/10 pb-10 lg:grid-cols-12 lg:items-end">
+                            <div className="lg:col-span-5">
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/45">Customer perspective</p>
+                              <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.title || "What customers say"}
+                              </h2>
+                            </div>
+                            <p className="max-w-xl text-sm leading-7 text-slate-400 lg:col-span-7 lg:justify-self-end">
+                              Only customer-supplied feedback is shown here.
+                            </p>
+                          </motion.div>
+
+                          <motion.article variants={fadeInUp} className="grid gap-8 border-b border-white/10 py-12 lg:grid-cols-12">
+                            <Quote className="h-10 w-10 text-primary lg:col-span-1" />
+                            <div className="lg:col-span-8">
+                              <blockquote className="text-2xl font-medium leading-[1.35] tracking-[-0.02em] text-white sm:text-4xl">
+                                “{featured.text}”
+                              </blockquote>
+                            </div>
+                            <div className="lg:col-span-3 lg:text-right">
+                              <p className="text-sm font-semibold text-white">{featured.name || "Customer review"}</p>
+                              {featured.role && <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{featured.role}</p>}
+                            </div>
+                          </motion.article>
+
+                          {supporting.length > 0 && (
+                            <div className="grid gap-px bg-white/10 md:grid-cols-2">
+                              {supporting.slice(0, 4).map((item: any, itemIndex: number) => (
+                                <motion.article key={item.id || itemIndex} variants={fadeInUp} className="bg-slate-950 p-7 sm:p-9">
+                                  <p className="text-lg font-medium leading-8 text-slate-200">“{item.text}”</p>
+                                  <p className="mt-6 text-xs font-semibold text-white">{item.name || "Customer review"}</p>
+                                  {item.role && <p className="mt-1 text-[9px] font-black uppercase tracking-widest text-slate-500">{item.role}</p>}
+                                </motion.article>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
                   return (
                     <motion.section
                       id={sectionId}
                       key={section.id || `testimonials-${idx}`}
                       initial="initial"
                       whileInView="whileInView"
-                      viewport={{ once: true, margin: "-100px" }}
+                      viewport={{ once: true, margin: "-80px" }}
                       variants={staggerContainer}
-                      className="py-24 sm:py-32 relative section-container dark:bg-slate-950"
+                      className="section-container py-20 sm:py-28"
                     >
-                      <div className="max-w-7xl mx-auto px-6">
-                        <motion.div variants={fadeInUp} className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-12">
-                          <div className="space-y-6">
-                            <span className="text-xs font-black uppercase tracking-[0.4em] text-primary">
-                              Voices of Success
-                            </span>
-                            <h2 className="text-5xl sm:text-7xl font-bold tracking-tight leading-[0.9] dark:text-white">
-                              Global Impact.
-                            </h2>
-                          </div>
-                          <div className="max-w-md">
-                            <p className="text-xl text-slate-500 dark:text-slate-400 leading-relaxed italic font-serif">
-                              "The difference between mediocrity and excellence
-                              is found in the details of the partnership."
-                            </p>
-                          </div>
+                      <div className="mx-auto max-w-7xl px-6">
+                        <motion.div variants={fadeInUp} className="mb-12 max-w-3xl">
+                          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Customer feedback</p>
+                          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                            {section.content.title || "What customers say"}
+                          </h2>
                         </motion.div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                          {(section.content.items || []).map(
-                            (item: any, tIdx: number) => (
-                              <motion.div
-                                key={item.id || `testi-${tIdx}`}
-                                variants={fadeInUp}
-                                whileHover={{ y: -10 }}
-                                className={cn(
-                                  "bg-white dark:bg-slate-900 p-8 sm:p-10 lg:p-12 rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-2xl transition-all duration-700 group",
-                                  tIdx === 2 && (section.content.items.length === 3) && "md:col-span-2 lg:col-span-1"
-                                )}
-                              >
-                                <Quote className="h-10 w-10 text-primary/20 mb-8 group-hover:text-primary transition-colors" />
-                                <p className="text-xl text-slate-900 dark:text-slate-200 font-medium leading-relaxed mb-10">
-                                  {item.text}
-                                </p>
-                                <div className="flex items-center gap-5 pt-8 border-t border-slate-50 dark:border-white/5">
-                                  <div className="h-14 w-14 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center font-black text-primary text-xl">
-                                    {item.name.charAt(0)}
-                                  </div>
-                                  <div>
-                                    <p className="font-black text-slate-900 dark:text-white uppercase tracking-widest text-xs">
-                                      {item.name}
-                                    </p>
-                                    <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                                      {item.role}
-                                    </p>
-                                  </div>
-                                </div>
-                              </motion.div>
-                            ),
-                          )}
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                          {testimonialItems.map((item: any, itemIndex: number) => (
+                            <motion.article key={item.id || itemIndex} variants={fadeInUp} className="border border-slate-200 bg-white p-7 sm:p-9">
+                              <Quote className="h-7 w-7 text-primary/30" />
+                              <p className="mt-7 text-lg font-medium leading-8 text-slate-800">“{item.text}”</p>
+                              <div className="mt-8 border-t border-slate-100 pt-5">
+                                <p className="text-sm font-semibold text-slate-950">{item.name || "Customer review"}</p>
+                                {item.role && <p className="mt-1 text-[9px] font-black uppercase tracking-widest text-slate-400">{item.role}</p>}
+                              </div>
+                            </motion.article>
+                          ))}
                         </div>
                       </div>
                     </motion.section>
                   );
+                }
                 case "cta":
-                  if (section.settings?.variant === "brand_band") {
+                  if (["brand_band", "consultation", "editorial", "full_bleed"].includes(section.settings?.variant || "")) {
                     return (
                       <motion.section key={section.id || `cta-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true }} variants={staggerContainer} className="text-white" style={{ backgroundColor: theme.primaryColor }}>
                         <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:py-20 lg:grid-cols-12 lg:items-center">
@@ -4374,7 +4409,7 @@ export function WebsiteRenderer({
         {generationMode === "brand_led" ? (
           <footer className="bg-slate-950 text-white">
             <div className="mx-auto max-w-[90rem] px-6 sm:px-8">
-              <div className="grid gap-10 border-b border-white/10 py-14 sm:py-18 lg:grid-cols-12 lg:items-end">
+              <div className="grid gap-10 border-b border-white/10 py-14 sm:py-20 lg:grid-cols-12 lg:items-end">
                 <div className="lg:col-span-8">
                   <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/45">Next step</p>
                   <h2 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>Start a conversation with {displayBusinessName}.</h2>

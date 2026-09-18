@@ -190,3 +190,57 @@ test("reusable section defaults do not fabricate people, prices or performance m
   assert.equal(SECTION_TEMPLATES.market_stats.isVisible, false);
   assert.equal(SECTION_TEMPLATES.products.isVisible, false);
 });
+
+
+test("design QA can evaluate brand-led customer asset slots", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Northstar Advisory",
+    nicheName: "Corporate",
+    plan: "business",
+    maxPages: 3,
+    mainService: "Growth advisory",
+    targetCustomer: "UK business owners",
+    location: "London",
+    ctaPreference: "Book Call",
+    generationMode: "brand_led",
+    assetReadiness: "pending",
+  });
+  const website: any = {
+    id: "qa",
+    businessId: "qa",
+    theme: {
+      primaryColor: "#111827",
+      secondaryColor: "#ffffff",
+      fontFamily: "Inter, sans-serif",
+      style: "corporate",
+      designProfile: "brand_corporate",
+      typographyProfile: "premium_corporate",
+      motionProfile: "refined",
+      generationMode: "brand_led",
+    },
+    pages,
+    seo: { title: "Northstar Advisory", description: "Growth advisory in London" },
+    status: "draft",
+    updatedAt: Date.now(),
+  };
+  const result = assessWebsiteDesign(website);
+  assert.ok(result.checks.some((check) => check.key === "customer_asset_plan"));
+  assert.equal(typeof result.metrics.aiTemplateRisk, "number");
+});
+
+test("generated services do not invent prices", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Northstar Advisory",
+    nicheName: "Corporate",
+    plan: "business",
+    maxPages: 3,
+    mainService: "Growth advisory",
+    targetCustomer: "UK business owners",
+    location: "London",
+    ctaPreference: "Book Call",
+    generationMode: "premium",
+  });
+  const services = pages.flatMap((page) => page.sections).find((section) => section.type === "services");
+  assert.ok(services);
+  assert.doesNotMatch(JSON.stringify(services?.content || {}), /Custom Quote|Enquire|"price"/i);
+});
