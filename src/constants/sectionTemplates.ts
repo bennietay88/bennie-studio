@@ -275,82 +275,37 @@ export const SECTION_TEMPLATES: Record<string, SectionTemplate> = {
     type: "product_list",
     featureId: "ecommerce",
     content: {
-      title: "Our Boutique",
-      description:
-        "Discover our exclusive range of premium products and services.",
-      items: [
-        {
-          name: "Signature Offering",
-          description:
-            "The peak of professional performance and strategic leverage.",
-          price: "$2,499",
-        },
-        {
-          name: "Elite Package",
-          description:
-            "Comprehensive growth acceleration with dedicated concierge support.",
-          price: "$4,999",
-        },
-        {
-          name: "Precision Suite",
-          description:
-            "Deep-dive analytics and optimization for enterprise-scale operations.",
-          price: "$1,299",
-        },
-      ],
+      title: "Products & Services",
+      description: "Add verified products, services and pricing supplied by the business.",
+      items: [],
     },
-    isVisible: true,
+    isVisible: false,
   },
   team: {
     type: "team",
     featureId: "ai_synthesis",
     content: {
       title: "Meet Our Team",
-      description: "The experts behind our success.",
-      members: [
-        {
-          name: "Dr. John Smith",
-          role: "Senior Specialist",
-          bio: "Over 20 years of experience in the field.",
-          imageUrl: "/brand-template-preview.svg",
-        },
-        {
-          name: "Dr. Sarah Johnson",
-          role: "Lead Consultant",
-          bio: "Expert in modern techniques and patient care.",
-          imageUrl: "/brand-template-preview.svg",
-        },
-      ],
+      description: "Add real staff profiles and customer-supplied portraits.",
+      members: [],
     },
-    isVisible: true,
+    isVisible: false,
   },
   vision: {
     type: "about",
     content: {
-      text: "### Our Vision\nTo revolutionize the industry through innovation and sustainable practices. We believe in a future where technology empowers every individual.\n\n### Our Mission\nDelivering high-quality solutions that create lasting value for our clients and the communities we serve.",
+      title: "Vision & Mission",
+      text: "Add the business's verified vision, mission and story before publishing.",
     },
-    isVisible: true,
+    isVisible: false,
   },
   comparison: {
     type: "benefits",
     content: {
       title: "How We Compare",
-      items: [
-        {
-          title: "vs Traditional",
-          description: "5x faster implementation and 50% lower cost.",
-        },
-        {
-          title: "vs Competitor A",
-          description: "Integrated analytics and better user interface.",
-        },
-        {
-          title: "vs Competitor B",
-          description: "24/7 priority support and custom branding.",
-        },
-      ],
+      items: [],
     },
-    isVisible: true,
+    isVisible: false,
   },
   how_it_works: {
     type: "features",
@@ -368,37 +323,20 @@ export const SECTION_TEMPLATES: Record<string, SectionTemplate> = {
   market_stats: {
     type: "proof",
     content: {
-      title: "Measurable Impact",
-      stats: [
-        { label: "Market ROI", value: "340%" },
-        { label: "Time Saved", value: "25h/mo" },
-        { label: "Cost Reduction", value: "45%" },
-      ],
+      title: "Verified Results",
+      stats: [],
       logos: [],
     },
-    isVisible: true,
+    isVisible: false,
   },
   executive_team: {
     type: "team",
     content: {
       title: "Executive Leadership",
-      description: "Strategic thinkers driving our long-term goals.",
-      members: [
-        {
-          name: "Michael Chen",
-          role: "CTO",
-          bio: "Former lead engineer at Tech Giant.",
-          imageUrl: "/brand-template-preview.svg",
-        },
-        {
-          name: "Elena Rodriguez",
-          role: "COO",
-          bio: "Operations expert with global experience.",
-          imageUrl: "/brand-template-preview.svg",
-        },
-      ],
+      description: "Add verified leadership profiles and customer-supplied portraits.",
+      members: [],
     },
-    isVisible: true,
+    isVisible: false,
   },
   newsletter: {
     type: "cta",

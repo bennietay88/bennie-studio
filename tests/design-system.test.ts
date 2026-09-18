@@ -4,6 +4,7 @@ import { DESIGN_PROFILES, resolveDesignProfile } from "../src/constants/designPr
 import { buildPagesFromBlueprint } from "../src/constants/pageBlueprints.ts";
 import { parseDesignDirection } from "../src/lib/designDirector.ts";
 import { assessWebsiteDesign } from "../src/lib/designQa.ts";
+import { SECTION_TEMPLATES } from "../src/constants/sectionTemplates.ts";
 
 test("all approved design profiles have complete production defaults", () => {
   for (const profile of Object.values(DESIGN_PROFILES)) {
@@ -153,4 +154,39 @@ test("fast and brand-led modes produce materially different section direction", 
 
 test("brand corporate is an approved production design profile", () => {
   assert.equal(resolveDesignProfile("brand_corporate").label, "Brand-Led Corporate");
+});
+
+
+test("premium composition seeds create distinct art directions", () => {
+  const base = {
+    businessName: "Northstar Advisory",
+    nicheName: "Corporate",
+    plan: "business",
+    maxPages: 3,
+    mainService: "Growth advisory",
+    targetCustomer: "UK business owners",
+    location: "London",
+    ctaPreference: "Book Call",
+    generationMode: "brand_led" as const,
+  };
+  const a = buildPagesFromBlueprint({ ...base, compositionSeed: 0 });
+  const b = buildPagesFromBlueprint({ ...base, compositionSeed: 1 });
+  assert.notDeepEqual(
+    a[0].sections.map((section) => `${section.type}:${section.settings?.variant || ""}`),
+    b[0].sections.map((section) => `${section.type}:${section.settings?.variant || ""}`),
+  );
+});
+
+test("reusable section defaults do not fabricate people, prices or performance metrics", () => {
+  const risky = JSON.stringify({
+    products: SECTION_TEMPLATES.products,
+    team: SECTION_TEMPLATES.team,
+    comparison: SECTION_TEMPLATES.comparison,
+    market_stats: SECTION_TEMPLATES.market_stats,
+    executive_team: SECTION_TEMPLATES.executive_team,
+  });
+  assert.doesNotMatch(risky, /Dr\. John Smith|Michael Chen|340%|25h\/mo|5x faster|\$2,499|\$4,999|24\/7 priority/i);
+  assert.equal(SECTION_TEMPLATES.team.isVisible, false);
+  assert.equal(SECTION_TEMPLATES.market_stats.isVisible, false);
+  assert.equal(SECTION_TEMPLATES.products.isVisible, false);
 });

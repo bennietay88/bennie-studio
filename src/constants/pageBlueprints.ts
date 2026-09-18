@@ -83,6 +83,7 @@ export interface BlueprintBusinessInput {
   heroImageUrl?: string;
   storyImageUrl?: string;
   teamMembers?: Array<{ name: string; role?: string; bio?: string; imageUrl?: string }>;
+  compositionSeed?: number;
 }
 
 export const PLAN_POSITIONING: Record<BlueprintPlanId, string> = {
@@ -358,14 +359,39 @@ const BRAND_LED_HOME_COMPOSITIONS: Record<string, SectionBlockType[]> = {
   portfolio: ["hero", "highlights", "brand_story", "portfolio", "services", "values", "insights", "final_cta"],
 };
 
+const createAlternateComposition = (base: SectionBlockType[]): SectionBlockType[] => {
+  if (base.length < 5) return base;
+  const first = base[0];
+  const last = base[base.length - 1];
+  const middle = [...base.slice(1, -1)];
+
+  const storyIndex = middle.indexOf("brand_story");
+  const servicesIndex = middle.indexOf("services");
+  if (storyIndex >= 0 && servicesIndex >= 0 && storyIndex < servicesIndex) {
+    [middle[storyIndex], middle[servicesIndex]] = [middle[servicesIndex], middle[storyIndex]];
+  }
+
+  const valuesIndex = middle.indexOf("values");
+  const highlightsIndex = middle.indexOf("highlights");
+  if (valuesIndex >= 0 && highlightsIndex >= 0 && valuesIndex > highlightsIndex + 1) {
+    const [values] = middle.splice(valuesIndex, 1);
+    middle.splice(highlightsIndex + 1, 0, values);
+  }
+
+  return [first, ...middle, last];
+};
+
 const resolveHomeComposition = (
   niche: string,
   mode: WebsiteGenerationMode,
   fallback: SectionBlockType[],
+  seed = 0,
 ): SectionBlockType[] => {
-  if (mode === "brand_led") return BRAND_LED_HOME_COMPOSITIONS[niche] || BRAND_LED_HOME_COMPOSITIONS.consultant;
-  if (mode === "premium") return PREMIUM_HOME_COMPOSITIONS[niche] || PREMIUM_HOME_COMPOSITIONS.consultant;
-  return fallback;
+  if (mode === "fast") return fallback;
+  const base = mode === "brand_led"
+    ? (BRAND_LED_HOME_COMPOSITIONS[niche] || BRAND_LED_HOME_COMPOSITIONS.consultant)
+    : (PREMIUM_HOME_COMPOSITIONS[niche] || PREMIUM_HOME_COMPOSITIONS.consultant);
+  return seed % 2 === 0 ? base : createAlternateComposition(base);
 };
 
 const sectionTypeMap: Record<SectionBlockType, string> = {
@@ -520,23 +546,31 @@ const buildSectionContent = (
                 : "Services Built Around Your Needs",
       description: `Clear options for ${target} looking for ${service} in ${location}.`,
       items: getServiceItems(input),
+      assetSlots: input.generationMode === "fast" ? undefined : {
+        serviceImages: {
+          source: "customer",
+          status: "needed",
+          guidance: "Optional customer-supplied service, project or product imagery. Layout remains complete without fabricated photography.",
+        },
+      },
     };
   }
 
   if (section.type === "proof") {
+    const suppliedProof = (input.localProof || "").trim();
     section.content = {
       ...section.content,
-      title: input.localProof ? "Local Proof & What to Expect" : "What You Can Expect",
-      description: input.localProof || `A clear, practical experience built around ${service} in ${location}.`,
+      title: suppliedProof ? "Proof From the Business" : "Proof",
+      description: suppliedProof || undefined,
       stats: [],
-      items: [
-        { title: "Local relevance", description: `Service information is focused on customers in ${location}.` },
-        { title: "Clear next step", description: `Visitors can quickly understand how to ${cta.toLowerCase()}.` },
-        { title: "Service clarity", description: `${service} is explained around the needs of ${target}.` },
-      ],
-      providedByBusiness: Boolean(input.localProof),
-      sourceLabel: input.localProof ? "Business-supplied proof" : undefined,
+      logos: [],
+      items: suppliedProof
+        ? [{ title: "Business-supplied evidence", description: suppliedProof }]
+        : [],
+      providedByBusiness: Boolean(suppliedProof),
+      sourceLabel: suppliedProof ? "Business-supplied proof" : undefined,
     };
+    section.isVisible = Boolean(suppliedProof);
   }
 
   if (section.type === "about") {
@@ -569,7 +603,7 @@ const buildSectionContent = (
         block === "process"
           ? ["Understand your needs", "Recommend the right option", "Confirm the next step", "Follow up clearly"]
           : block === "portfolio"
-            ? ["Selected work", "Real business photography", "Verified project details", "Recent highlights"]
+            ? ["Selected work", "Customer-supplied project photography", "Verified project details", "Recent highlights"]
             : block === "highlights"
               ? [
                   { title: "Clear proposition", description: `${service} explained around what ${target} need to know.` },
@@ -578,6 +612,13 @@ const buildSectionContent = (
                   { title: "Responsive by design", description: "Desktop and mobile use deliberate composition rather than a simple shrink-down." },
                 ]
               : ["Clear service information", "Trust-focused page flow", "Fast enquiry path", "Mobile-first experience"],
+      assetSlots: block === "portfolio" ? {
+        projectImages: {
+          source: "customer",
+          status: "needed",
+          guidance: "Customer-supplied projects, case-study images or portfolio media.",
+        },
+      } : undefined,
     };
   }
 
@@ -712,13 +753,13 @@ export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsiteP
 
   return blueprint.pages.slice(0, limit).map((blueprintPage) => {
     const blockPlan = blueprintPage.slug === ""
-      ? resolveHomeComposition(blueprint.niche, generationMode, blueprintPage.sections)
+      ? resolveHomeComposition(blueprint.niche, generationMode, blueprintPage.sections, input.compositionSeed || 0)
       : blueprintPage.sections;
     const sections = blockPlan.map((block, blockIndex) => {
       const sectionType = sectionTypeMap[block];
       const section = cloneSection(sectionType);
       const configured = buildSectionContent(section, block, blueprintPage, input);
-      const variant = getVariantForMode(sectionType, profile.id, generationMode, blockIndex);
+      const variant = getVariantForMode(sectionType, profile.id, generationMode, blockIndex + (input.compositionSeed || 0));
       return variant
         ? {
             ...configured,
@@ -774,8 +815,8 @@ export const getBlueprintTheme = (
   const profile = resolveDesignProfileForMode(generationMode, template?.category || template?.name);
   return {
     ...baseTheme,
-    style: profile.defaultStyle,
-    fontFamily: profile.bodyFont,
+    style: generationMode === "fast" ? baseTheme.style : profile.defaultStyle,
+    fontFamily: generationMode === "fast" ? baseTheme.fontFamily : profile.bodyFont,
     displayFont: profile.displayFont,
     bodyFont: profile.bodyFont,
     designProfile: profile.id,

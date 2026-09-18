@@ -35,6 +35,8 @@ import {
 import { getUpgradeRecommendation } from "../constants/localSeoEngine";
 import { GENERATION_MODE_OPTIONS } from "../constants/designProfiles";
 import { assessManualReviewInput, buildReviewWebsiteStrategy } from "../constants/reviewPoweredWaas";
+import { evaluateGeneratedDesign } from "../lib/designQa";
+import type { Website } from "../types";
 
 const generatorSchema = z.object({
   businessName: z.string().min(2, "Business name is required"),
@@ -255,7 +257,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
         requestedPages: requestedPageCount,
         requestedLocationPages: requestedLocationCount,
       });
-      const generationSummary = {
+      const generationSummary: any = {
         selectedTemplateId: data.templateId,
         selectedTemplateName: selectedNiche.name,
         selectedPlanId: data.planId,
@@ -336,8 +338,8 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
       setGeneratedBusinessId(businessId);
       setProgress(50);
 
-      // 2. Map template to website structure
-      const pagesWithIds = buildPagesFromBlueprint({
+      // 2. Generate multiple composition directions and keep the stronger result.
+      const blueprintInput = {
         businessName: data.businessName,
         nicheId: data.templateId,
         nicheName: selectedNiche.category || selectedNiche.name,
@@ -358,32 +360,53 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
         tone: data.tone,
         services: [data.mainService],
         description: selectedNiche.description,
+      };
+
+      const generatedTheme = getBlueprintTheme(data.templateId, data.generationMode, {
+        brandPersonality: data.brandPersonality,
+        businessMaturity: data.businessMaturity,
+        assetReadiness: data.assetReadiness,
       });
+      const generatedSeo = getBlueprintSeo(blueprintInput);
+      const candidateSeeds = data.generationMode === "fast" ? [0] : [0, 1];
+
+      const designCandidates = candidateSeeds.map((compositionSeed) => {
+        const pages = buildPagesFromBlueprint({ ...blueprintInput, compositionSeed });
+        const previewWebsite: Website = {
+          id: `design-candidate-${compositionSeed}`,
+          businessId: businessId || "preview",
+          theme: generatedTheme,
+          pages,
+          seo: generatedSeo,
+          status: "draft",
+          updatedAt: Date.now(),
+        };
+        const quality = evaluateGeneratedDesign(previewWebsite);
+        const rank =
+          quality.score +
+          quality.metrics.visualVariety * 0.25 +
+          quality.metrics.hierarchy * 0.15 +
+          quality.metrics.conversionClarity * 0.15 -
+          quality.metrics.aiTemplateRisk * 0.4;
+        return { compositionSeed, pages, quality, rank };
+      });
+
+      const selectedDesign = designCandidates.sort((a, b) => b.rank - a.rank)[0];
+      const pagesWithIds = selectedDesign.pages;
+      generationSummary.designSelection = {
+        compositionSeed: selectedDesign.compositionSeed,
+        score: selectedDesign.quality.score,
+        productionReady: selectedDesign.quality.productionReady,
+        metrics: selectedDesign.quality.metrics,
+        candidatesEvaluated: designCandidates.length,
+      };
 
       const websiteData = {
         business_id: businessId,
-        theme: getBlueprintTheme(data.templateId, data.generationMode, {
-          brandPersonality: data.brandPersonality,
-          businessMaturity: data.businessMaturity,
-          assetReadiness: data.assetReadiness,
-        }),
+        theme: generatedTheme,
         pages: pagesWithIds,
         seo: {
-          ...getBlueprintSeo({
-          businessName: data.businessName,
-          nicheId: data.templateId,
-          nicheName: selectedNiche.category || selectedNiche.name,
-          plan: data.planId,
-          maxPages: effectivePageCount,
-          mainService: data.mainService,
-          targetCustomer: data.targetCustomer,
-          location: data.location,
-          country: data.country,
-          state: data.state,
-          ctaPreference: data.ctaPreference,
-          tone: data.tone,
-          description: selectedNiche.description,
-          }),
+          ...generatedSeo,
           localSeoProfile: {
             country: data.country,
             state: data.state,

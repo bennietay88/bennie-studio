@@ -1902,6 +1902,56 @@ export function WebsiteRenderer({
       `}</style>
 
         {/* Navigation */}
+        {generationMode === "brand_led" ? (
+          <nav role="navigation" aria-label="Main Navigation" className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
+            <div className="mx-auto flex h-20 max-w-[90rem] items-center justify-between px-5 sm:px-8">
+              <button
+                onClick={() => {
+                  trackInteraction("nav_click", "Logo / Home", { target: "home" });
+                  setActivePageSlug("home");
+                  setSelectedPost(null);
+                  scrollPreviewToTop();
+                }}
+                className="flex min-w-0 items-center gap-4 text-left"
+              >
+                {theme.logoUrl ? (
+                  <img src={theme.logoUrl} alt={displayBusinessName} className="max-h-9 max-w-[11rem] object-contain" referrerPolicy="no-referrer" />
+                ) : (
+                  <span className="truncate text-xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-2xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{displayBusinessName}</span>
+                )}
+                <span className="hidden border-l border-slate-200 pl-4 text-[9px] font-black uppercase tracking-[0.22em] text-slate-400 xl:block">{displayBusinessDescriptor}</span>
+              </button>
+
+              <div className="hidden items-center gap-7 lg:flex">
+                {pages.map((page) => (
+                  <button key={page.id} onClick={() => { trackInteraction("nav_click", page.title, { target: page.slug || "home" }); setActivePageSlug(page.slug); setSelectedPost(null); scrollPreviewToTop(); }} className={cn("border-b py-2 text-[11px] font-semibold tracking-tight transition-colors", activePageSlug === page.slug ? "border-primary text-slate-950" : "border-transparent text-slate-500 hover:text-slate-950")}>
+                    {page.title}
+                  </button>
+                ))}
+                <Button className="h-11 rounded-none px-6 text-[10px] font-black uppercase tracking-[0.18em]" onClick={() => handleButtonAction("Contact Us")}>Get in touch</Button>
+              </div>
+
+              <Button variant="ghost" size="icon" className="h-11 w-11 rounded-none lg:hidden" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                <span className="sr-only">{isMobileMenuOpen ? "Close Menu" : "Open Menu"}</span>
+                <div className="space-y-1.5"><span className="block h-px w-6 bg-slate-950" /><span className="block h-px w-6 bg-slate-950" /><span className="block h-px w-4 bg-slate-950" /></div>
+              </Button>
+            </div>
+            <AnimatePresence>
+              {isMobileMenuOpen && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="border-t border-slate-200 bg-white lg:hidden">
+                  <div className="mx-auto max-w-[90rem] space-y-1 px-5 py-5">
+                    {pages.map((page) => (
+                      <button key={page.id} onClick={() => { trackInteraction("nav_click", page.title, { target: page.slug || "home" }); setActivePageSlug(page.slug); setSelectedPost(null); setIsMobileMenuOpen(false); scrollPreviewToTop(); }} className="flex w-full items-center justify-between border-b border-slate-100 py-4 text-left text-base font-semibold text-slate-950">
+                        {page.title}<ArrowRight className="h-4 w-4 text-primary" />
+                      </button>
+                    ))}
+                    <Button className="mt-4 h-12 w-full rounded-none text-[10px] font-black uppercase tracking-[0.18em]" onClick={() => { setIsMobileMenuOpen(false); handleButtonAction("Contact Us"); }}>Get in touch</Button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </nav>
+        ) : (
         <nav
           role="navigation"
           aria-label="Main Navigation"
@@ -2115,6 +2165,7 @@ export function WebsiteRenderer({
             )}
           </AnimatePresence>
         </nav>
+        )}
 
         {/* Main Content */}
         <main className="flex-1">
@@ -2281,6 +2332,60 @@ export function WebsiteRenderer({
                     !section.content.sourceLabel
                   ) {
                     return null;
+                  }
+                  const proofVariant = section.settings?.variant || "metrics";
+                  const proofItems = section.content.items || [];
+                  const proofLogos = section.content.logos || [];
+                  if (["logo_wall", "certification_strip", "trust_strip"].includes(proofVariant) && (proofItems.length || proofLogos.length)) {
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `proof-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="border-y border-slate-200 bg-[#f8f7f4] py-16 sm:py-20"
+                      >
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-end">
+                            <div className="lg:col-span-4">
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Evidence</p>
+                              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.title || "Proof"}
+                              </h2>
+                              {section.content.description && <p className="mt-5 text-sm leading-7 text-slate-600">{section.content.description}</p>}
+                            </div>
+                            <div className="lg:col-span-8">
+                              {proofLogos.length > 0 && (
+                                <div className="grid grid-cols-2 border-l border-t border-slate-200 sm:grid-cols-3">
+                                  {proofLogos.map((logo: any, logoIndex: number) => {
+                                    const url = typeof logo === "string" ? logo : logo?.url || logo?.imageUrl;
+                                    const name = typeof logo === "string" ? `Logo ${logoIndex + 1}` : logo?.name || logo?.label || `Logo ${logoIndex + 1}`;
+                                    return (
+                                      <div key={logoIndex} className="flex min-h-28 items-center justify-center border-b border-r border-slate-200 bg-white p-6">
+                                        {url ? <img src={url} alt={name} className="max-h-10 max-w-[9rem] object-contain grayscale" loading="lazy" referrerPolicy="no-referrer" /> : <span className="text-sm font-semibold text-slate-700">{name}</span>}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              {proofItems.length > 0 && (
+                                <div className="divide-y divide-slate-200 border-y border-slate-200">
+                                  {proofItems.map((item: any, itemIndex: number) => (
+                                    <div key={itemIndex} className="grid gap-3 py-6 sm:grid-cols-12">
+                                      <p className="text-[10px] font-black tracking-[0.22em] text-primary sm:col-span-1">{String(itemIndex + 1).padStart(2, "0")}</p>
+                                      <p className="text-lg font-semibold text-slate-950 sm:col-span-4">{typeof item === "string" ? item : item.title}</p>
+                                      {typeof item === "object" && item.description && <p className="text-sm leading-7 text-slate-600 sm:col-span-7">{item.description}</p>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        </div>
+                      </motion.section>
+                    );
                   }
                   return (
                     <motion.section
@@ -2504,15 +2609,24 @@ export function WebsiteRenderer({
                             transition={{ duration: 1.2, ease: "circOut" }}
                             className="relative z-10 aspect-[4/5] rounded-[3rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border-8 border-white group"
                           >
-                            <img
-                              src={
-                                section.content.imageUrl ||
-                                `/brand-template-preview.svg`
-                              }
-                              alt="Hero Image"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                              referrerPolicy="no-referrer"
-                            />
+                            {section.content.imageUrl ? (
+                              <img
+                                src={section.content.imageUrl}
+                                alt={section.content.imageAlt || displayBusinessName}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className="relative flex h-full w-full flex-col justify-between overflow-hidden bg-slate-950 p-8 text-white">
+                                <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full border border-white/10" />
+                                <div className="absolute -bottom-24 -left-10 h-80 w-80 rounded-full border border-primary/40" />
+                                <div className="relative h-12 w-12 border border-white/25" />
+                                <div className="relative">
+                                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/50">Customer media slot</p>
+                                  <p className="mt-3 max-w-xs text-2xl font-semibold leading-tight">Real business photography or product media goes here.</p>
+                                </div>
+                              </div>
+                            )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                           </motion.div>
 
@@ -3466,12 +3580,18 @@ export function WebsiteRenderer({
                                 className="group bg-white dark:bg-slate-900/50 p-10 rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-2xl transition-all duration-700"
                               >
                                 <div className="aspect-[4/5] rounded-[2rem] overflow-hidden mb-8 relative">
-                                  <img
-                                    src={member.imageUrl || `/brand-template-preview.svg`}
-                                    alt={member.name}
-                                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
-                                    referrerPolicy="no-referrer"
-                                  />
+                                  {member.imageUrl ? (
+                                    <img
+                                      src={member.imageUrl}
+                                      alt={member.name}
+                                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  ) : (
+                                    <div className="flex h-full w-full items-end bg-slate-100 p-5 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                      Customer portrait needed
+                                    </div>
+                                  )}
                                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </div>
                                 <div className="space-y-2">
@@ -4251,6 +4371,53 @@ export function WebsiteRenderer({
           )}
         </main>
 
+        {generationMode === "brand_led" ? (
+          <footer className="bg-slate-950 text-white">
+            <div className="mx-auto max-w-[90rem] px-6 sm:px-8">
+              <div className="grid gap-10 border-b border-white/10 py-14 sm:py-18 lg:grid-cols-12 lg:items-end">
+                <div className="lg:col-span-8">
+                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/45">Next step</p>
+                  <h2 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>Start a conversation with {displayBusinessName}.</h2>
+                </div>
+                <div className="lg:col-span-4 lg:justify-self-end">
+                  <Button className="h-14 rounded-none bg-white px-8 text-[10px] font-black uppercase tracking-[0.2em] text-slate-950 hover:bg-white/90" onClick={() => handleButtonAction("Contact Us")}>Get in touch <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                </div>
+              </div>
+
+              <div className="grid gap-12 py-14 sm:grid-cols-2 lg:grid-cols-12">
+                <div className="lg:col-span-4">
+                  {theme.logoUrl ? (
+                    <img src={theme.logoUrl} alt={displayBusinessName} className="max-h-10 max-w-[12rem] object-contain brightness-0 invert" referrerPolicy="no-referrer" />
+                  ) : (
+                    <p className="text-2xl font-semibold tracking-[-0.035em]" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{displayBusinessName}</p>
+                  )}
+                  <p className="mt-5 max-w-sm text-sm leading-7 text-slate-400">{theme.footer.customText || displayBusinessDescriptor}</p>
+                </div>
+                <div className="lg:col-span-2">
+                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-500">Pages</p>
+                  <div className="mt-5 space-y-3">{pages.map((page) => (<button key={page.id} onClick={() => { setActivePageSlug(page.slug); setSelectedPost(null); scrollPreviewToTop(); }} className="block text-sm font-medium text-slate-300 transition-colors hover:text-white">{page.title}</button>))}</div>
+                </div>
+                <div className="lg:col-span-3">
+                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-500">Contact</p>
+                  <div className="mt-5 space-y-3 text-sm">
+                    {contactEmail && <a href={`mailto:${contactEmail}`} onClick={() => trackContactAction("email_click", "Footer email", contactEmail)} className="block text-slate-300 hover:text-white">{contactEmail}</a>}
+                    {contactPhone && <a href={normalizedPhone ? `tel:${normalizedPhone}` : undefined} onClick={() => normalizedPhone && trackContactAction("call_click", "Footer phone", normalizedPhone)} className="block text-slate-300 hover:text-white">{contactPhone}</a>}
+                    {whatsappHref && <a href={whatsappHref} target="_blank" rel="noopener noreferrer" onClick={() => trackContactAction("whatsapp_click", "Footer WhatsApp", whatsappHref)} className="block text-slate-300 hover:text-white">WhatsApp enquiry</a>}
+                  </div>
+                </div>
+                <div className="lg:col-span-3">
+                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-500">Legal</p>
+                  <div className="mt-5 space-y-3">{(legalPolicyLinks || []).map((policy) => (<button key={policy.slug} onClick={() => { setActivePageSlug(policy.slug); setSelectedPost(null); scrollPreviewToTop(); }} className="block text-sm font-medium text-slate-300 hover:text-white">{policy.title}</button>))}</div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4 border-t border-white/10 py-7 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+                <span>© {new Date().getFullYear()} {displayBusinessName}</span>
+                <div className="flex flex-wrap gap-4">{(theme.footer.socialLinks || []).filter((link) => link.url && link.isVisible !== false).map((link) => (<a key={link.platform} href={link.url} target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-white">{link.platform}</a>))}</div>
+              </div>
+            </div>
+          </footer>
+        ) : (
         <footer
           className={cn(
             "py-32 px-6 border-t relative overflow-hidden",
@@ -4507,6 +4674,7 @@ export function WebsiteRenderer({
             </div>
           </div>
         </footer>
+        )}
 
         {/* Product Detail Modal */}
         <AnimatePresence>

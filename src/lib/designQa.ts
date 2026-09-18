@@ -27,6 +27,7 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
   const aiFingerprint = /transform your|elevate your|unlock the power|trusted partner|tailored solutions|bringing your vision|take your business to the next level|next-level/i.test(text);
   const hasHeadline = sections.some((section) => typeof section.content?.headline === "string" && section.content.headline.trim().length >= 12);
   const hasPlaceholder = /lorem ipsum|your business name|replace this|sample text|coming soon|example\.com/i.test(text);
+  const hasPlaceholderMedia = /brand-template-preview\.svg/i.test(text) && generationMode !== "fast";
   const hasSeo = Boolean(website.seo?.title?.trim() && website.seo?.description?.trim());
   const hasNavigation = pages.length >= 1 && pages.every((page) => Boolean(page.title?.trim() && page.slug !== undefined));
   const hasPlaceholderProof = PLACEHOLDER_PROOF.test(text);
@@ -64,6 +65,7 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
     { key: "rhythm", label: "Section rhythm", pass: !duplicateTypes && !genericCardFingerprint, severity: "medium", note: duplicateTypes || genericCardFingerprint ? "The page risks feeling template-driven. Vary section types, scale and composition." : "Section types have reasonable variation." },
     { key: "anti_ai_copy", label: "Natural copy", pass: !aiFingerprint, severity: "medium", note: aiFingerprint ? "Copy contains a common AI/agency cliché; rewrite it before launch." : "No common AI copy fingerprint detected." },
     { key: "placeholders", label: "No placeholders", pass: !hasPlaceholder, severity: "high", note: hasPlaceholder ? "Replace placeholder or sample copy before publishing." : "No obvious placeholder copy detected." },
+    { key: "media_integrity", label: "Customer media integrity", pass: !hasPlaceholderMedia, severity: generationMode === "brand_led" ? "high" : "medium", note: hasPlaceholderMedia ? "Premium output is still using a generic template image. Use a customer asset slot or supplied media instead." : "No generic template image is masquerading as customer media." },
     { key: "seo", label: "Search metadata", pass: hasSeo, severity: "medium", note: hasSeo ? "Title and description are configured." : "Add a page title and meta description." },
     { key: "navigation", label: "Page structure", pass: hasNavigation, severity: "medium", note: hasNavigation ? "Pages have usable titles and slugs." : "Give each published page a stable title and slug." },
     { key: "composition_depth", label: "Composition depth", pass: compositionDepth, severity: generationMode === "fast" ? "low" : "medium", note: compositionDepth ? "The homepage has enough compositional depth for its generation mode." : "Add more purposeful homepage rhythm for the selected generation mode." },
@@ -83,7 +85,8 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
     (repeatedVariant ? 25 : 0) +
     (duplicateTypes ? 20 : 0) +
     Math.round(cardHeavyRatio * 25) +
-    (centeredRatio > 0.6 ? 15 : 0)
+    (centeredRatio > 0.6 ? 15 : 0) +
+    (hasPlaceholderMedia ? 20 : 0)
   ));
   const metrics = { visualVariety, hierarchy, proofQuality, conversionClarity, aiTemplateRisk };
   const threshold = generationMode === "brand_led" ? 86 : generationMode === "premium" ? 83 : 80;
