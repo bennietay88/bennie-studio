@@ -103,7 +103,7 @@ export default function OwnSalesSeoPage() {
           }
         : product.slug === "website-growth"
           ? {
-              label: "For active growth",
+              label: "Most popular",
               features: ["Monthly conversion optimisation", "Local SEO expansion", "Landing and location pages", "Priority support"],
             }
           : {
@@ -259,7 +259,7 @@ export default function OwnSalesSeoPage() {
   ];
 
   return (
-    <div className="brand-public min-h-screen bg-[#f7f6f2] text-[#141821]">
+    <div className="brand-public min-h-screen overflow-x-hidden bg-[#f7f6f2] text-[#141821]">
       <Helmet>
         <title>{page.seoTitle}</title>
         <meta name="description" content={page.metaDescription} />
@@ -287,20 +287,20 @@ export default function OwnSalesSeoPage() {
               <Badge className="mb-4 border-indigo-100 bg-indigo-50 px-4 py-1.5 text-indigo-700">
                 {page.eyebrow}
               </Badge>
-              <h1 className="max-w-4xl text-4xl font-bold tracking-tight text-slate-950 sm:text-4xl lg:text-6xl leading-[0.95]">
+              <h1 className="max-w-4xl text-4xl font-bold leading-[1.03] tracking-tight text-slate-950 sm:text-4xl sm:leading-[0.98] lg:text-6xl">
                 {page.h1}
               </h1>
               <p className="mt-5 max-w-3xl text-base font-semibold leading-relaxed text-slate-600 sm:text-lg">
                 {page.heroCopy}
               </p>
               <div className="mt-7 flex flex-col gap-4 sm:flex-row">
-                <Button onClick={() => navigate("/generate-preview")} className="h-14 rounded-2xl bg-indigo-600 px-8 text-sm font-bold uppercase tracking-wide">
+                <Button onClick={() => navigate("/generate-preview")} className="h-14 w-full rounded-2xl bg-indigo-600 px-6 text-sm font-bold uppercase tracking-wide sm:w-auto sm:px-8">
                   {page.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => navigate("/book-demo")}
-                  className="h-14 rounded-2xl border-2 px-8 text-sm font-bold uppercase tracking-wide text-indigo-600"
+                  className="h-14 w-full rounded-2xl border-2 px-6 text-sm font-bold uppercase tracking-wide text-indigo-600 sm:w-auto sm:px-8"
                 >
                   <MessageSquare className="mr-2 h-4 w-4" />
                   {page.whatsappCta}
@@ -344,18 +344,21 @@ export default function OwnSalesSeoPage() {
             ))}
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {packageOptions.map((plan) => (
-              <div key={plan.name} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-indigo-600">{plan.label}</p>
-                    <p className="mt-2 text-xl font-bold text-slate-950">{plan.name}</p>
+            {packageOptions.map((plan) => {
+              const isGrowth = plan.id === "website-growth";
+              return (
+                <div key={plan.name} className={isGrowth ? "rounded-2xl border-2 border-indigo-500 bg-indigo-50 p-5 shadow-lg shadow-indigo-100/70" : "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-indigo-600">{plan.label}</p>
+                      <p className="mt-2 text-xl font-bold text-slate-950">{plan.name}</p>
+                    </div>
+                    <p className={isGrowth ? "rounded-full bg-indigo-600 px-3 py-1 text-sm font-bold text-white" : "rounded-full bg-slate-950 px-3 py-1 text-sm font-bold text-white"}>{plan.price}</p>
                   </div>
-                  <p className="rounded-full bg-slate-950 px-3 py-1 text-sm font-bold text-white">{plan.price}</p>
+                  <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-600">{plan.description}</p>
                 </div>
-                <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-600">{plan.description}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
           </div>
         </section>
@@ -477,28 +480,58 @@ export default function OwnSalesSeoPage() {
               </div>
               <p className="lg:col-span-7 lg:justify-self-end text-[#526071]">Prices are shown in {coreOffer.prices[revenueMarket].currency}. Generate a preview first, then choose the level of ongoing support.</p>
             </div>
-            <div className="mt-10 overflow-x-auto">
+            <div className="mt-10 grid gap-4 md:hidden">
+              {packageOptions.map((plan) => {
+                const isGrowth = plan.id === "website-growth";
+                return (
+                  <article key={plan.id} className={isGrowth ? "rounded-xl border-2 border-indigo-500 bg-indigo-50 p-5 shadow-lg shadow-indigo-100/70" : "rounded-xl border border-[#d8d9dc] bg-white p-5"}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]">{plan.label}</p>
+                        <h3 className="mt-1">{plan.name}</h3>
+                      </div>
+                      {isGrowth ? <Badge className="bg-indigo-600 text-white">Most popular</Badge> : null}
+                    </div>
+                    <p className="mt-5 text-3xl font-semibold text-[#141821]">{plan.price}</p>
+                    <p className="mt-1 text-sm text-[#687386]">+ {plan.setupPrice} setup</p>
+                    <div className="mt-5 space-y-3 border-t border-[#d8d9dc] pt-4">
+                      {plan.features.map((feature) => (
+                        <div key={feature} className="flex gap-2 text-sm text-[#526071]">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <Button onClick={()=>{localStorage.setItem("bt_checkout_intent",JSON.stringify({productSlug:plan.id,market:revenueMarket,currency:coreOffer.prices[revenueMarket].currency,billingCycle:"monthly",savedAt:new Date().toISOString()}));navigate("/generate-preview");}} className={isGrowth ? "mt-6 min-h-12 w-full bg-indigo-600 px-5 font-semibold text-white hover:bg-indigo-500" : "mt-6 min-h-12 w-full bg-[#141821] px-5 font-semibold text-white hover:bg-[#5746e8]"}>
+                      Generate preview
+                    </Button>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="mt-10 hidden overflow-x-auto md:block">
               <table className="w-full min-w-[760px] border-collapse text-left">
                 <thead>
                   <tr className="border-b border-[#d8d9dc]">
                     <th className="py-4 pr-5 text-sm font-semibold">Plan</th>
-                    {packageOptions.map((plan)=><th key={plan.name} className="px-5 py-4"><p className="text-sm font-semibold text-[#5746e8]">{plan.label}</p><h3 className="mt-1">{plan.name}</h3><p className="mt-2 text-xs font-medium text-[#687386]">+ {plan.setupPrice} setup</p></th>)}
+                    {packageOptions.map((plan)=><th key={plan.name} className={plan.id === "website-growth" ? "border-x border-indigo-200 bg-indigo-50 px-5 py-4" : "px-5 py-4"}><p className="text-sm font-semibold text-[#5746e8]">{plan.label}</p><h3 className="mt-1">{plan.name}</h3><p className="mt-2 text-xs font-medium text-[#687386]">+ {plan.setupPrice} setup</p></th>)}
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="border-b border-[#d8d9dc]">
                     <th className="py-5 pr-5 text-sm font-semibold text-[#526071]">Monthly</th>
-                    {packageOptions.map((plan)=><td key={plan.name} className="px-5 py-5 text-2xl font-semibold">{plan.price}</td>)}
+                    {packageOptions.map((plan)=><td key={plan.name} className={plan.id === "website-growth" ? "border-x border-indigo-200 bg-indigo-50 px-5 py-5 text-2xl font-semibold" : "px-5 py-5 text-2xl font-semibold"}>{plan.price}</td>)}
                   </tr>
                   {[0,1,2,3].map((featureIndex)=>(
                     <tr key={featureIndex} className="border-b border-[#d8d9dc]">
                       <th className="py-4 pr-5 text-sm font-semibold text-[#526071]">{featureIndex===0?"Included":""}</th>
-                      {packageOptions.map((plan)=><td key={plan.name} className="px-5 py-4 text-sm text-[#526071]">{plan.features[featureIndex] ? <span className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"/>{plan.features[featureIndex]}</span> : "—"}</td>)}
+                      {packageOptions.map((plan)=><td key={plan.name} className={plan.id === "website-growth" ? "border-x border-indigo-200 bg-indigo-50 px-5 py-4 text-sm text-[#526071]" : "px-5 py-4 text-sm text-[#526071]"}>{plan.features[featureIndex] ? <span className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"/>{plan.features[featureIndex]}</span> : "—"}</td>)}
                     </tr>
                   ))}
                   <tr>
                     <th className="py-5 pr-5"></th>
-                    {packageOptions.map((plan)=><td key={plan.name} className="px-5 py-5"><Button onClick={()=>{localStorage.setItem("bt_checkout_intent",JSON.stringify({productSlug:plan.id,market:revenueMarket,currency:coreOffer.prices[revenueMarket].currency,billingCycle:"monthly",savedAt:new Date().toISOString()}));navigate("/generate-preview");}} className="min-h-11 bg-[#141821] px-5 font-semibold text-white hover:bg-[#5746e8]">Generate preview</Button></td>)}
+                    {packageOptions.map((plan)=><td key={plan.name} className={plan.id === "website-growth" ? "border-x border-indigo-200 bg-indigo-50 px-5 py-5" : "px-5 py-5"}><Button onClick={()=>{localStorage.setItem("bt_checkout_intent",JSON.stringify({productSlug:plan.id,market:revenueMarket,currency:coreOffer.prices[revenueMarket].currency,billingCycle:"monthly",savedAt:new Date().toISOString()}));navigate("/generate-preview");}} className={plan.id === "website-growth" ? "min-h-11 bg-indigo-600 px-5 font-semibold text-white hover:bg-indigo-500" : "min-h-11 bg-[#141821] px-5 font-semibold text-white hover:bg-[#5746e8]"}>Generate preview</Button></td>)}
                   </tr>
                 </tbody>
               </table>
