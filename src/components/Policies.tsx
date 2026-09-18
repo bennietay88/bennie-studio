@@ -116,6 +116,12 @@ export function PolicyPage({ type }: PolicyPageProps) {
   }, [slug]);
 
   const Icon = type === "privacy" || type === "cookie" ? Shield : Scale;
+  const headingId = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const documentContent = policy?.content?.replace(/^#\s+[^\n]+\n+/, "") || "";
+  const policyHeadings = documentContent
+    .split("\n")
+    .filter((line) => /^##\s+/.test(line))
+    .map((line) => line.replace(/^##\s+/, "").trim());
 
   if (loading) {
     return (
@@ -157,15 +163,34 @@ export function PolicyPage({ type }: PolicyPageProps) {
           </div>
         </section>
         <section className="brand-shell py-12 sm:py-16">
-          <article className="mx-auto max-w-4xl">
-            <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:text-base prose-p:leading-8 prose-li:text-base prose-li:leading-8 prose-h2:mt-12 prose-h2:border-b prose-h2:border-[#d9d7d0] prose-h2:pb-3">
-              <ReactMarkdown>{policy.content}</ReactMarkdown>
-            </div>
-            <div className="mt-14 border-t border-[#d9d7d0] pt-6 text-sm text-[#5f6673]">
-              <p>Bennie Studio · Legal and platform compliance</p>
-              {policy.updatedAt ? <p className="mt-1">Last updated: {new Date(policy.updatedAt).toLocaleDateString()}</p> : null}
-            </div>
-          </article>
+          <div className="grid gap-10 lg:grid-cols-[220px_minmax(0,760px)] lg:justify-center">
+            <aside className="hidden lg:block">
+              <div className="sticky top-28">
+                <p className="text-sm font-semibold">On this page</p>
+                <nav className="mt-4 space-y-2">
+                  {policyHeadings.map((heading) => <a key={heading} href={"#" + headingId(heading)} className="block text-sm text-[#707b8a] hover:text-[#5746e8]">{heading}</a>)}
+                </nav>
+              </div>
+            </aside>
+            <article className="min-w-0">
+              <details className="mb-8 border-y border-[#d8d9dc] py-4 lg:hidden">
+                <summary className="cursor-pointer font-semibold">On this page</summary>
+                <nav className="mt-4 space-y-2">{policyHeadings.map((heading)=><a key={heading} href={"#" + headingId(heading)} className="block text-sm text-[#526071]">{heading}</a>)}</nav>
+              </details>
+              <div className="legal-document prose prose-slate max-w-none">
+                <ReactMarkdown components={{
+                  h2: ({children}) => {
+                    const text = React.Children.toArray(children).join("");
+                    return <h2 id={headingId(text)}>{children}</h2>;
+                  },
+                }}>{documentContent}</ReactMarkdown>
+              </div>
+              <div className="mt-14 border-t border-[#d8d9dc] pt-6 text-sm text-[#526071]">
+                <p>Bennie Studio · Legal and platform compliance</p>
+                {policy.updatedAt ? <p className="mt-1">Last updated: {new Date(policy.updatedAt).toLocaleDateString()}</p> : null}
+              </div>
+            </article>
+          </div>
         </section>
       </main>
       <PublicSiteFooter />

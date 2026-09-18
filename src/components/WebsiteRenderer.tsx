@@ -3062,63 +3062,29 @@ export function WebsiteRenderer({
                       key={section.id || `features-${idx}`}
                       initial="initial"
                       whileInView="whileInView"
-                      viewport={{ once: true, margin: "-100px" }}
+                      viewport={{ once: true, margin: "-80px" }}
                       variants={staggerContainer}
-                      className="py-24 sm:py-32 bg-slate-950 text-white overflow-hidden relative"
+                      className="border-y border-slate-200 bg-white py-16 sm:py-20"
                     >
-                      <div className="gradient-blur bg-primary -top-[20%] -right-[20%] opacity-20" />
-
-                      <div className="max-w-7xl mx-auto px-6 relative z-10">
-                        <motion.div variants={fadeInUp} className="text-center max-w-3xl mx-auto mb-20 space-y-6">
-                          <span className="text-xs font-black uppercase tracking-[0.4em] text-primary">
-                            Core Advantages
-                          </span>
-                          <h2 className="text-4xl sm:text-7xl font-bold tracking-tight leading-tight">
-                            {section.content.title || "The Advantage"}
-                          </h2>
-                          <p className="text-xl text-slate-400">
-                            {section.content.description ||
-                              "Our platform is engineered for scale, security, and absolute performance."}
-                          </p>
-                        </motion.div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[250px]">
-                          {(section.content.items || [])
-                            .slice(0, 4)
-                            .map((feature: any, fIdx: number) => (
-                              <motion.div
-                                key={fIdx}
-                                variants={fadeInUp}
-                                whileHover={{ scale: 1.02 }}
-                                className={cn(
-                                  "rounded-[2.5rem] p-10 flex flex-col justify-end group cursor-default transition-all duration-700 border backdrop-blur-xl",
-                                  fIdx === 0
-                                    ? "md:col-span-8"
-                                    : "md:col-span-4",
-                                  fIdx === 1 ? "md:col-span-4" : "",
-                                  fIdx === 2 ? "md:col-span-4" : "",
-                                  fIdx === 3 ? "md:col-span-8" : "",
-                                  "bg-slate-900/75 border-white/10 hover:bg-slate-800/90 shadow-[0_30px_80px_-40px_rgba(15,23,42,0.9)]",
-                                )}
-                              >
-                                <div className="space-y-4">
-                                  <div className="h-12 w-12 bg-primary/20 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                    <Sparkles className="h-6 w-6" />
-                                  </div>
-                                  <h3 className="text-2xl font-bold text-white">
-                                    {typeof feature === "string"
-                                      ? feature
-                                      : feature.title}
-                                  </h3>
-                                  <p className="text-slate-400 text-sm leading-relaxed max-w-md opacity-0 group-hover:opacity-100 transition-opacity">
-                                    {typeof feature === "object"
-                                      ? feature.description
-                                      : "High-intensity performance engineering combined with intuitive design paradigms."}
-                                  </p>
-                                </div>
+                      <div className="mx-auto max-w-7xl px-6">
+                        <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-end">
+                          <div className="lg:col-span-5">
+                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">Why choose us</p>
+                            <h2 className="mt-4 text-3xl font-semibold leading-tight tracking-[-0.025em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                              {section.content.title || "What makes this different"}
+                            </h2>
+                            {section.content.description && <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">{section.content.description}</p>}
+                          </div>
+                          <div className="border-t border-slate-200 lg:col-span-7">
+                            {(section.content.items || []).slice(0, 6).map((feature: any, fIdx: number) => (
+                              <motion.div key={fIdx} variants={fadeInUp} className="grid gap-3 border-b border-slate-200 py-5 sm:grid-cols-[3rem_1fr_1.3fr]">
+                                <span className="text-sm font-semibold text-primary">{String(fIdx + 1).padStart(2, "0")}</span>
+                                <h3 className="text-xl font-semibold text-slate-950">{typeof feature === "string" ? feature : feature.title}</h3>
+                                {typeof feature === "object" && feature.description ? <p className="text-sm leading-6 text-slate-600">{feature.description}</p> : <span />}
                               </motion.div>
                             ))}
-                        </div>
+                          </div>
+                        </motion.div>
                       </div>
                     </motion.section>
                   );
