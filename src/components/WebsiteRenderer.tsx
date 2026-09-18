@@ -2447,8 +2447,86 @@ export function WebsiteRenderer({
                   );
                 case "hero":
                   if (["brand_media", "editorial_split", "full_bleed_editorial", "statement_media"].includes(section.settings?.variant || "")) {
-                    const brandHero = section.settings?.variant === "brand_media" || section.settings?.variant === "full_bleed_editorial";
+                    const heroVariant = section.settings?.variant || "editorial_split";
                     const hasHeroImage = Boolean(section.content.imageUrl);
+
+                    if (heroVariant === "statement_media") {
+                      return (
+                        <motion.section
+                          id={sectionId}
+                          key={section.id || `hero-${idx}`}
+                          initial="initial"
+                          animate="animate"
+                          variants={staggerContainer}
+                          className="relative overflow-hidden border-b border-slate-200 bg-[#f4f2ed]"
+                        >
+                          <div className="pointer-events-none absolute inset-0">
+                            <div className="absolute -right-[10vw] top-[8%] h-[34vw] w-[34vw] min-h-[20rem] min-w-[20rem] rounded-full border border-primary/20" />
+                            <div className="absolute -right-[2vw] top-[16%] h-[22vw] w-[22vw] min-h-[13rem] min-w-[13rem] rounded-full bg-primary/10" />
+                          </div>
+                          <div className="relative mx-auto flex min-h-[78vh] max-w-[90rem] flex-col justify-between px-6 py-16 sm:px-10 sm:py-20 lg:px-16">
+                            <motion.div variants={fadeInUp} className="flex items-center gap-4">
+                              <span className="h-px w-12 bg-primary" />
+                              <p className="text-[10px] font-black uppercase tracking-[0.32em] text-slate-500">{displayBusinessDescriptor}</p>
+                            </motion.div>
+                            <motion.div variants={fadeInUp} className="max-w-[78rem] py-16">
+                              <h1 className="text-[clamp(3.8rem,9.5vw,9.5rem)] font-semibold leading-[0.84] tracking-[-0.065em] text-slate-950" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.headline || displayBusinessName}
+                              </h1>
+                              <div className="mt-10 grid gap-8 border-t border-slate-300 pt-8 md:grid-cols-12">
+                                <p className="max-w-2xl text-lg font-medium leading-8 text-slate-600 md:col-span-7">{section.content.subheadline}</p>
+                                <div className="md:col-span-5 md:justify-self-end">
+                                  <Button size="lg" className="h-14 rounded-none px-8 text-[11px] font-black uppercase tracking-[0.18em]" onClick={() => handleButtonAction(section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "hero_cta_clicked", sectionId: section.id })}>
+                                    {section.content.ctaText || "Contact Us"} <ArrowRight className="ml-2 h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          </div>
+                        </motion.section>
+                      );
+                    }
+
+                    if (heroVariant === "full_bleed_editorial") {
+                      return (
+                        <motion.section
+                          id={sectionId}
+                          key={section.id || `hero-${idx}`}
+                          initial="initial"
+                          animate="animate"
+                          variants={staggerContainer}
+                          className="relative min-h-[78vh] overflow-hidden bg-slate-950 text-white"
+                        >
+                          {hasHeroImage ? (
+                            <>
+                              <img src={section.content.imageUrl} alt={section.content.imageAlt || displayBusinessName} className="absolute inset-0 h-full w-full object-cover" loading="eager" referrerPolicy="no-referrer" />
+                              <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/75 to-slate-950/15" />
+                            </>
+                          ) : (
+                            <div className="absolute inset-0">
+                              <div className="absolute -right-24 -top-24 h-[32rem] w-[32rem] rounded-full border border-white/10" />
+                              <div className="absolute bottom-0 right-[15%] h-[22rem] w-[22rem] rounded-full bg-primary/20 blur-3xl" />
+                            </div>
+                          )}
+                          <div className="relative mx-auto flex min-h-[78vh] max-w-[90rem] items-end px-6 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
+                            <motion.div variants={fadeInUp} className="max-w-5xl">
+                              <p className="mb-6 text-[10px] font-black uppercase tracking-[0.34em] text-white/55">{displayBusinessDescriptor}</p>
+                              <h1 className="text-[clamp(3.5rem,8vw,8rem)] font-semibold leading-[0.88] tracking-[-0.06em]" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.headline || displayBusinessName}
+                              </h1>
+                              <div className="mt-9 flex max-w-3xl flex-col gap-8 border-t border-white/20 pt-7 sm:flex-row sm:items-end sm:justify-between">
+                                <p className="max-w-2xl text-lg font-medium leading-8 text-white/70">{section.content.subheadline}</p>
+                                <Button size="lg" className="h-14 shrink-0 rounded-none bg-white px-7 text-[10px] font-black uppercase tracking-[0.18em] text-slate-950 hover:bg-white/90" onClick={() => handleButtonAction(section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "hero_cta_clicked", sectionId: section.id })}>
+                                  {section.content.ctaText || "Contact Us"} <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                              </div>
+                            </motion.div>
+                          </div>
+                        </motion.section>
+                      );
+                    }
+
+                    const brandHero = heroVariant === "brand_media";
                     return (
                       <motion.section
                         id={sectionId}
@@ -2635,7 +2713,62 @@ export function WebsiteRenderer({
                     </motion.section>
                   );
                 case "services":
-                  if (["brand_families", "editorial_list", "alternating"].includes(section.settings?.variant || "")) {
+                  if (section.settings?.variant === "brand_families") {
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `services-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="bg-white py-20 sm:py-28"
+                      >
+                        <div className="mx-auto max-w-[90rem] px-6 sm:px-10">
+                          <motion.div variants={fadeInUp} className="grid gap-8 border-b border-slate-200 pb-12 lg:grid-cols-12 lg:items-end">
+                            <div className="lg:col-span-8">
+                              <p className="text-[10px] font-black uppercase tracking-[0.32em] text-primary">Capabilities</p>
+                              <h2 className="mt-4 max-w-5xl text-5xl font-semibold tracking-[-0.045em] text-slate-950 sm:text-7xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.title || "What we do"}
+                              </h2>
+                            </div>
+                            <p className="max-w-xl text-base leading-7 text-slate-600 lg:col-span-4 lg:justify-self-end">{section.content.description}</p>
+                          </motion.div>
+                          <div className="divide-y divide-slate-200">
+                            {(section.content.items || []).map((item: any, itemIndex: number) => (
+                              <motion.article key={item.id || itemIndex} variants={fadeInUp} className="grid min-h-[18rem] gap-8 py-10 lg:grid-cols-12 lg:items-stretch">
+                                <div className="flex flex-col justify-between lg:col-span-1">
+                                  <p className="text-[10px] font-black tracking-[0.24em] text-primary">{String(itemIndex + 1).padStart(2, "0")}</p>
+                                </div>
+                                <div className="flex flex-col justify-between lg:col-span-5">
+                                  <h3 className="text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl">{item.title}</h3>
+                                  <p className="mt-6 max-w-xl text-base leading-7 text-slate-600">{item.description}</p>
+                                </div>
+                                <div className="lg:col-span-6">
+                                  {item.imageUrl ? (
+                                    <div className="h-full min-h-[16rem] overflow-hidden bg-slate-100">
+                                      <img src={item.imageUrl} alt={item.imageAlt || item.title || "Service"} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+                                    </div>
+                                  ) : (
+                                    <div className="flex h-full min-h-[16rem] items-end border border-slate-200 bg-[#f8f7f4] p-7">
+                                      <div>
+                                        <p className="text-[9px] font-black uppercase tracking-[0.28em] text-slate-400">Optional customer media</p>
+                                        <button onClick={() => trackInteraction("service_click", item.title || "Service", { target: section.id || "services" })} className="mt-4 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-950">
+                                          Explore capability <ArrowRight className="h-4 w-4 text-primary" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.article>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
+                  if (["editorial_list", "alternating"].includes(section.settings?.variant || "")) {
                     return (
                       <motion.section
                         id={sectionId}
@@ -2860,7 +2993,39 @@ export function WebsiteRenderer({
                     </motion.section>
                   );
                 case "features":
-                  if (["editorial_strip", "capability_matrix"].includes(section.settings?.variant || "")) {
+                  if (section.settings?.variant === "capability_matrix") {
+                    return (
+                      <motion.section
+                        key={section.id || `features-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="bg-slate-950 py-20 text-white sm:py-28"
+                      >
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-end">
+                            <div className="lg:col-span-7">
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/45">Capability system</p>
+                              <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{section.content.title || "Built to work together"}</h2>
+                            </div>
+                            <p className="max-w-xl text-sm leading-7 text-slate-400 lg:col-span-5 lg:justify-self-end">{section.content.description}</p>
+                          </motion.div>
+                          <div className="mt-14 grid border-l border-t border-white/10 sm:grid-cols-2">
+                            {(section.content.items || []).slice(0, 6).map((item: any, itemIndex: number) => (
+                              <motion.div key={itemIndex} variants={fadeInUp} className="min-h-[14rem] border-b border-r border-white/10 p-7 sm:p-9">
+                                <p className="text-[9px] font-black tracking-[0.24em] text-primary">{String(itemIndex + 1).padStart(2, "0")}</p>
+                                <h3 className="mt-10 text-2xl font-semibold tracking-[-0.025em] text-white">{typeof item === "string" ? item : item.title}</h3>
+                                {typeof item === "object" && item.description && <p className="mt-4 max-w-md text-sm leading-7 text-slate-400">{item.description}</p>}
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
+                  if (section.settings?.variant === "editorial_strip") {
                     return (
                       <motion.section key={section.id || `features-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true, margin: "-80px" }} variants={staggerContainer} className="border-y border-slate-200 bg-[#f8f7f4] py-16 sm:py-20">
                         <div className="mx-auto max-w-7xl px-6">
