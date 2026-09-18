@@ -428,50 +428,55 @@ function EducationProgramPreview({ model, name }: { model: PreviewModel; name: s
 }
 
 function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: string }) {
-  const image = model.heroImage || "/template-assets/flagship-professional.jpg";
   const services = model.serviceItems.length ? model.serviceItems : ["Advisory", "Tax & compliance", "Growth planning"];
 
   return (
-    <div className="absolute inset-0 overflow-hidden bg-[#f7f3ec] text-[#111827]" style={{ fontFamily: model.bodyFont }}>
+    <div className="absolute inset-0 overflow-hidden bg-[#faf8f3] text-[#111827]" style={{ fontFamily: model.bodyFont }}>
       <div className="grid h-full grid-rows-[34px_1fr_64px]">
-        <div className="flex items-center justify-between border-b border-[#cec8bb] px-4">
+        <div className="flex items-center justify-between border-b border-[#cfc9bd] px-4">
           <MiniBrand model={model} label={name} />
           <div className="flex items-center gap-3 text-[5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-            <span>Expertise</span><span>Insights</span><span>Contact</span>
+            <span>Expertise</span><span>Journal</span><span>Contact</span>
           </div>
         </div>
 
-        <div className="grid min-h-0 grid-cols-[1.12fr_0.88fr]">
-          <div className="flex min-h-0 flex-col justify-between border-r border-[#cec8bb] px-5 py-4">
+        <div className="grid min-h-0 grid-cols-[1.18fr_0.82fr]">
+          <div className="flex min-h-0 flex-col justify-between border-r border-[#cfc9bd] px-5 py-4">
             <div>
-              <div className="text-[5px] font-semibold uppercase tracking-[0.2em]" style={{ color: model.primary }}>Perspective / expertise</div>
-              <div className="mt-3 max-w-[13ch] text-[22px] font-medium leading-[0.98] tracking-[-0.03em]" style={{ fontFamily: "'Fraunces', serif" }}>
+              <div className="text-[5px] font-semibold uppercase tracking-[0.22em]" style={{ color: model.primary }}>Independent perspective</div>
+              <div className="mt-3 max-w-[12ch] text-[24px] font-medium leading-[0.96] tracking-[-0.025em]" style={{ fontFamily: "'Fraunces', serif" }}>
                 {model.headline}
               </div>
             </div>
-            <div className="grid grid-cols-[1fr_auto] items-end gap-3">
-              <div className="max-w-[34ch] text-[6px] leading-[1.55] text-slate-600">
-                {model.subheadline || "Expert guidance, clear thinking and a website designed to make complex services easier to trust."}
+            <div className="grid grid-cols-[1fr_auto] items-end gap-4">
+              <div className="max-w-[34ch] text-[6px] leading-[1.6] text-slate-600">
+                {model.subheadline || "Long-form credibility, considered typography and a quieter visual system for complex professional services."}
               </div>
               <div className="border-b border-slate-900 pb-1 text-[6px] font-semibold">{model.cta}</div>
             </div>
           </div>
 
-          <div className="grid min-h-0 grid-rows-[1.15fr_0.85fr]">
-            <div className="relative overflow-hidden">
-              <img src={image} alt="" className="h-full w-full object-cover grayscale-[18%]" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent" />
-              <div className="absolute bottom-3 left-3 text-white">
-                <div className="text-[5px] uppercase tracking-[0.16em] text-white/65">Point of view</div>
-                <div className="mt-1 max-w-[18ch] text-[8px] font-semibold leading-tight">Clarity before complexity.</div>
+          <div className="grid min-h-0 grid-rows-[1fr_auto] bg-[#111827] text-white">
+            <div className="flex flex-col justify-between p-4">
+              <div className="flex items-start justify-between">
+                <div className="text-[5px] uppercase tracking-[0.18em] text-white/45">Issue / 01</div>
+                <div className="text-[20px] font-medium leading-none text-white/18" style={{ fontFamily: "'Fraunces', serif" }}>01</div>
+              </div>
+              <div>
+                <div className="max-w-[18ch] text-[11px] font-medium leading-[1.18]" style={{ fontFamily: "'Fraunces', serif" }}>
+                  Clarity is a commercial advantage.
+                </div>
+                <div className="mt-3 text-[5.5px] leading-[1.55] text-white/55">
+                  Insight, credibility and service depth are treated as part of the visual identity.
+                </div>
               </div>
             </div>
-            <div className="bg-[#111827] px-4 py-3 text-white">
-              <div className="text-[5px] uppercase tracking-[0.16em] text-white/45">Selected expertise</div>
+            <div className="border-t border-white/15 px-4 py-3">
+              <div className="text-[5px] uppercase tracking-[0.16em] text-white/40">Selected expertise</div>
               <div className="mt-2 grid gap-1.5">
                 {services.slice(0, 3).map((service, index) => (
-                  <div key={index} className="flex items-center justify-between border-t border-white/15 pt-1.5 text-[5.5px] font-medium">
-                    <span>{service}</span><span className="text-white/40">0{index + 1}</span>
+                  <div key={index} className="flex items-center justify-between border-t border-white/12 pt-1.5 text-[5.5px] font-medium">
+                    <span>{service}</span><span className="text-white/35">0{index + 1}</span>
                   </div>
                 ))}
               </div>
@@ -479,13 +484,15 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
           </div>
         </div>
 
-        <div className="grid grid-cols-3 border-t border-[#cec8bb] bg-white/60">
-          {["Strategy", "Proof", "Commercial clarity"].map((item, index) => (
-            <div key={item} className="border-r border-[#cec8bb] px-4 py-2 last:border-r-0">
-              <div className="text-[5px] font-semibold" style={{ color: model.primary }}>0{index + 1}</div>
-              <div className="mt-1 text-[6px] font-semibold text-slate-700">{item}</div>
-            </div>
-          ))}
+        <div className="grid grid-cols-[1.15fr_0.85fr] border-t border-[#cfc9bd] bg-[#f1ede4]">
+          <div className="flex items-center gap-4 border-r border-[#cfc9bd] px-4 py-2">
+            <div className="text-[5px] font-semibold uppercase tracking-[0.15em] text-slate-400">Editorial system</div>
+            <div className="text-[6px] font-semibold text-slate-700">Perspective · proof · expertise</div>
+          </div>
+          <div className="flex items-center justify-between px-4 py-2">
+            <span className="text-[6px] font-semibold text-slate-700">Read the point of view</span>
+            <span className="text-[8px]" style={{ color: model.primary }}>↗</span>
+          </div>
         </div>
       </div>
     </div>
