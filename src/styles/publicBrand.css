@@ -213,3 +213,56 @@
     padding-block: 4rem;
   }
 }
+
+/* Responsive safety layer for Bennie Studio public pages. */
+.brand-public {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.brand-public .grid > *,
+.brand-public .flex > * {
+  min-width: 0;
+}
+
+.brand-public img,
+.brand-public video,
+.brand-public canvas,
+.brand-public iframe {
+  max-width: 100%;
+}
+
+.brand-public iframe {
+  width: 100%;
+}
+
+.brand-public button,
+.brand-public a,
+.brand-public p,
+.brand-public li,
+.brand-public h1,
+.brand-public h2,
+.brand-public h3,
+.brand-public h4 {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  .brand-public .brand-shell {
+    width: min(calc(100% - 1.25rem), 82rem);
+  }
+
+  .brand-public [class*="min-w-["] {
+    min-width: 0 !important;
+  }
+
+  .brand-public [class*="w-["] {
+    max-width: 100%;
+  }
+
+  .brand-public button,
+  .brand-public a[class*="inline-flex"] {
+    max-width: 100%;
+    white-space: normal;
+  }
+}

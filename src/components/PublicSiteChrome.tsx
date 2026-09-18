@@ -82,10 +82,10 @@ export function PublicSiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#dedbd3] bg-[#f7f6f2]/95 backdrop-blur-xl">
-      <nav className="mx-auto flex h-20 max-w-[90rem] items-center justify-between gap-5 px-6 sm:px-10 lg:px-16" aria-label="Main navigation">
-        <Link to="/" className="flex shrink-0 items-center gap-3 text-[#10131c]">
+      <nav className="mx-auto flex h-20 max-w-[90rem] items-center justify-between gap-3 px-4 sm:gap-5 sm:px-8 lg:px-16" aria-label="Main navigation">
+        <Link to="/" className="flex min-w-0 shrink items-center gap-3 text-[#10131c]">
           <span className="grid h-9 w-9 place-items-center bg-[#5b4bff] text-sm font-black text-white">B.</span>
-          <span className="text-lg font-semibold tracking-[-0.035em]">Bennie Studio</span>
+          <span className="max-w-[10rem] truncate text-base font-semibold tracking-[-0.035em] sm:max-w-none sm:text-lg">Bennie Studio</span>
         </Link>
 
         <div className="hidden items-center gap-8 lg:flex">
@@ -110,7 +110,7 @@ export function PublicSiteHeader() {
           </Link>
         </div>
 
-        <Button type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="lg:hidden" aria-label="Open navigation menu">
+        <Button type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="shrink-0 lg:hidden" aria-label="Open navigation menu">
           <Menu className="h-5 w-5" />
         </Button>
       </nav>
