@@ -1,17 +1,19 @@
 .brand-public {
   --brand-ink: #141821;
-  --brand-muted: #4f5867;
-  --brand-line: #d9d7d0;
+  --brand-muted: #526071;
+  --brand-soft: #707b8a;
+  --brand-line: #d8d9dc;
   --brand-paper: #f7f6f2;
   --brand-white: #ffffff;
-  --brand-accent: #5b4bff;
-  --brand-dark: #0f1726;
+  --brand-accent: #5746e8;
+  --brand-accent-soft: #eeebff;
+  --brand-dark: #101827;
   background: var(--brand-paper);
   color: var(--brand-ink);
-  font-family: "Inter", "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif;
-  font-feature-settings: "kern" 1, "liga" 1, "cv11" 1;
+  font-family: Inter, "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "kern" 1, "liga" 1;
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.65;
   text-rendering: optimizeLegibility;
 }
 
@@ -21,32 +23,29 @@
 .brand-public h4,
 .brand-public h5,
 .brand-public h6 {
-  font-family: "Inter", "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif !important;
+  margin: 0;
+  color: inherit;
+  font-family: Inter, "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
   text-wrap: balance;
   overflow-wrap: anywhere;
-  color: inherit;
 }
 
 .brand-public h1 {
-  font-size: clamp(2.5rem, 5vw, 4rem) !important;
-  line-height: 1.08 !important;
-  letter-spacing: -0.028em !important;
-  font-weight: 600 !important;
   max-width: 18ch;
+  font-size: clamp(2.5rem, 5vw, 4rem) !important;
+  line-height: 1.06 !important;
 }
 
 .brand-public h2 {
-  font-size: clamp(2rem, 3.6vw, 3.25rem) !important;
-  line-height: 1.12 !important;
-  letter-spacing: -0.022em !important;
-  font-weight: 600 !important;
+  font-size: clamp(2rem, 3.5vw, 3rem) !important;
+  line-height: 1.1 !important;
 }
 
 .brand-public h3 {
-  font-size: clamp(1.2rem, 2vw, 1.6rem) !important;
-  line-height: 1.28 !important;
-  letter-spacing: -0.012em !important;
-  font-weight: 600 !important;
+  font-size: clamp(1.25rem, 2vw, 1.65rem) !important;
+  line-height: 1.25 !important;
 }
 
 .brand-public p,
@@ -57,14 +56,28 @@
 .brand-public select,
 .brand-public button,
 .brand-public a {
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
-.brand-public p {
+.brand-public p,
+.brand-public li {
   font-size: 1rem;
 }
 
-.brand-public .font-black {
+.brand-public .text-sm {
+  font-size: .925rem !important;
+}
+
+.brand-public .text-xs,
+.brand-public [class*="text-[9px]"],
+.brand-public [class*="text-[10px]"],
+.brand-public [class*="text-[11px]"] {
+  font-size: .78rem !important;
+}
+
+.brand-public .font-black,
+.brand-public .font-extrabold,
+.brand-public .font-bold {
   font-weight: 650 !important;
 }
 
@@ -72,56 +85,13 @@
   font-weight: 600 !important;
 }
 
-.brand-public .tracking-widest {
-  letter-spacing: .08em !important;
-}
-
+.brand-public .tracking-widest,
 .brand-public [class*="tracking-["] {
-  letter-spacing: .08em !important;
-}
-
-.brand-public [class*="rounded-[2rem]"],
-.brand-public [class*="rounded-[1.75rem]"],
-.brand-public [class*="rounded-[1.5rem]"],
-.brand-public .rounded-3xl {
-  border-radius: .75rem !important;
-}
-
-.brand-public .rounded-2xl {
-  border-radius: .65rem !important;
-}
-
-.brand-public button,
-.brand-public [role="button"],
-.brand-public a[class*="inline-flex"] {
-  border-radius: .5rem !important;
-}
-
-.brand-public .shadow-xl,
-.brand-public .shadow-2xl {
-  box-shadow: 0 14px 40px -28px rgba(15, 23, 42, .35) !important;
-}
-
-.brand-public section {
-  scroll-margin-top: 84px;
-}
-
-.brand-public input,
-.brand-public textarea,
-.brand-public select {
-  font-size: 1rem !important;
-}
-
-.brand-public .brand-kicker {
-  font-size: .72rem;
-  font-weight: 700;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--brand-accent);
+  letter-spacing: .06em !important;
 }
 
 .brand-public .brand-shell {
-  width: min(100% - 2rem, 86rem);
+  width: min(calc(100% - 2rem), 82rem);
   margin-inline: auto;
 }
 
@@ -129,11 +99,19 @@
   padding-block: clamp(4rem, 7vw, 6.5rem);
 }
 
+.brand-public .brand-kicker {
+  color: var(--brand-accent);
+  font-size: .78rem;
+  font-weight: 650;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
 .brand-public .brand-copy {
-  max-width: 42rem;
+  max-width: 44rem;
   color: var(--brand-muted);
-  font-size: clamp(1rem, 1.4vw, 1.125rem);
-  line-height: 1.7;
+  font-size: clamp(1rem, 1.25vw, 1.125rem);
+  line-height: 1.75;
 }
 
 .brand-public .brand-rule-list {
@@ -147,43 +125,35 @@
   border-bottom: 1px solid var(--brand-line);
 }
 
-@media (min-width: 768px) {
-  .brand-public .brand-rule-row {
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 2fr);
-    align-items: start;
-  }
+.brand-public button,
+.brand-public [role="button"],
+.brand-public a[class*="inline-flex"] {
+  border-radius: .45rem !important;
 }
 
-@media (max-width: 640px) {
-  .brand-public h1 {
-    font-size: clamp(2.25rem, 11vw, 3rem) !important;
-    line-height: 1.06 !important;
-  }
-  .brand-public h2 {
-    font-size: clamp(1.8rem, 8vw, 2.35rem) !important;
-  }
-}
-
-
-.brand-public [class*="text-[9px]"],
-.brand-public [class*="text-[10px]"] {
-  font-size: .72rem !important;
+.brand-public .rounded-3xl,
+.brand-public .rounded-2xl,
+.brand-public [class*="rounded-[2rem]"],
+.brand-public [class*="rounded-[1.75rem]"],
+.brand-public [class*="rounded-[1.5rem]"] {
+  border-radius: .65rem !important;
 }
 
 .brand-public .shadow-sm,
-.brand-public .shadow-lg {
-  box-shadow: none !important;
+.brand-public .shadow-lg,
+.brand-public .shadow-xl,
+.brand-public .shadow-2xl {
+  box-shadow: 0 12px 32px -28px rgba(15,23,42,.4) !important;
 }
 
-.brand-public .uppercase {
-  letter-spacing: .06em;
+.brand-public input,
+.brand-public textarea,
+.brand-public select {
+  font-size: 1rem !important;
 }
 
-
-/* Public-site readability guardrails. Keep enterprise-style contrast without
-   letting global dashboard typography leak into the marketing surface. */
 .brand-public .brand-on-dark {
-  color: #ffffff;
+  color: #fff;
 }
 
 .brand-public .brand-on-dark p,
@@ -194,18 +164,52 @@
   color: inherit;
 }
 
-.brand-public .brand-on-dark .brand-muted-on-dark {
-  color: rgba(255,255,255,.72);
+.brand-public .brand-muted-on-dark {
+  color: rgba(255,255,255,.72) !important;
 }
 
-.brand-public .brand-on-light {
-  color: #141821;
+.brand-public .bt-static-preview [style*="opacity: 0"] {
+  opacity: 1 !important;
+  transform: none !important;
 }
 
-.brand-public .brand-on-light p,
-.brand-public .brand-on-light h1,
-.brand-public .brand-on-light h2,
-.brand-public .brand-on-light h3,
-.brand-public .brand-on-light h4 {
-  color: inherit;
+.brand-public .legal-document p,
+.brand-public .legal-document li {
+  font-size: 1.0625rem !important;
+  line-height: 1.78 !important;
+  color: #465365;
+}
+
+.brand-public .legal-document h2 {
+  margin-top: 3rem !important;
+  padding-top: .5rem;
+  font-size: 1.9rem !important;
+  border-top: 1px solid var(--brand-line);
+}
+
+.brand-public .legal-document h3 {
+  margin-top: 2rem !important;
+  font-size: 1.35rem !important;
+}
+
+@media (min-width: 768px) {
+  .brand-public .brand-rule-row {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+
+@media (max-width: 640px) {
+  .brand-public h1 {
+    font-size: clamp(2.25rem, 10vw, 3rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  .brand-public h2 {
+    font-size: clamp(1.85rem, 8vw, 2.35rem) !important;
+  }
+
+  .brand-public .brand-section {
+    padding-block: 4rem;
+  }
 }
