@@ -19,7 +19,6 @@ import { Button } from "./components/ui/button";
 import { Toaster } from "./components/ui/sonner";
 import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { LoadingFallback } from "./components/LoadingFallback";
 import { classifyTenantHost } from "./lib/tenantDomains";
 
 const CHUNK_RETRY_KEY = "bt_chunk_retry_once";
@@ -246,7 +245,7 @@ function CustomDomainWebsiteRoute() {
     };
   }, []);
 
-  if (loading) return <LoadingFallback message="Loading website..." />;
+  if (loading) return null;
 
   if (error || !businessId) {
     return (
@@ -277,7 +276,7 @@ export default function App() {
       return null;
     }
   });
-  const [loadingSettings, setLoadingSettings] = React.useState(() => {
+  const [, setLoadingSettings] = React.useState(() => {
     try {
       return !sessionStorage.getItem("bts_platform_settings");
     } catch {
@@ -323,41 +322,13 @@ export default function App() {
     };
   }, []);
 
-  const publicPathsWithoutSplash = [
-    "/",
-    "/pay-monthly-websites",
-    "/website-subscription-service",
-    "/portfolio",
-    "/templates",
-    "/pricing",
-    "/how-it-works",
-    "/case-studies",
-    "/dental-clinics",
-    "/privacy",
-    "/terms",
-    "/website-audit",
-    "/generate-preview",
-    "/blog",
-    "/book-demo",
-    "/apply-custom",
-    "/manage-call",
-  ];
-  const currentPath = window.location.pathname;
-  const isPublicPageWithoutSplash =
-    publicPathsWithoutSplash.some(
-      (path) => currentPath === path || currentPath.startsWith(`${path}/`),
-    ) ||
-    currentPath.startsWith("/website-design/");
-
-  if (loadingSettings && !isPublicPageWithoutSplash) return <LoadingFallback />;
-
   if (isCustomerDomainHost()) {
     return (
       <HelmetProvider>
         <ErrorBoundary>
           <Router>
             <ScrollToTop />
-            <Suspense fallback={<LoadingFallback message="Loading website..." />}>
+            <Suspense fallback={null}>
               <Routes>
                 <Route path="*" element={<CustomDomainWebsiteRoute />} />
               </Routes>
@@ -376,7 +347,7 @@ export default function App() {
           <ScrollToTop />
           <RouteRobotsMeta />
           <TrafficTracker />
-          <Suspense fallback={<LoadingFallback />}>
+          <Suspense fallback={null}>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route
@@ -432,9 +403,7 @@ export default function App() {
             </script>
           </Helmet>
           <Toaster position="top-right" />
-          <Suspense
-            fallback={<LoadingFallback message="Loading core modules..." />}
-          >
+          <Suspense fallback={null}>
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/pay-monthly-websites" element={<OwnSalesSeoPage />} />
@@ -516,7 +485,7 @@ export default function App() {
                         onLogout={logout}
                       >
                         <FeatureTour />
-                        <Suspense fallback={<LoadingFallback />}>
+                        <Suspense fallback={null}>
                           <Routes>
                             <Route
                               path=""
