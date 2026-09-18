@@ -18,6 +18,7 @@ interface TemplatePreviewThumbnailProps {
   templateName: string;
   className?: string;
   layoutFamily?: PreviewLayoutFamily;
+  showFamilyLabel?: boolean;
 }
 
 type TemplateConfig = {
@@ -427,52 +428,62 @@ function EducationProgramPreview({ model, name }: { model: PreviewModel; name: s
 }
 
 function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: string }) {
-  const services = model.serviceItems.length
-    ? model.serviceItems
-    : ["Advisory", "Core services", "Consultation"];
+  const image = model.heroImage || "/template-assets/flagship-professional.jpg";
+  const services = model.serviceItems.length ? model.serviceItems : ["Advisory", "Tax & compliance", "Growth planning"];
 
   return (
-    <div className="absolute inset-0 flex flex-col bg-[#f8f7f3]" style={{ fontFamily: model.bodyFont }}>
-      <div className="grid h-9 grid-cols-[1fr_auto] items-center border-b border-slate-300 px-4">
-        <MiniBrand model={model} label={name} />
-        <div className="flex items-center gap-3 text-[5px] font-semibold text-slate-400">
-          <span>Services</span><span>Insights</span><span>Contact</span>
-        </div>
-      </div>
-
-      <div className="grid min-h-[53%] grid-cols-[1.28fr_0.72fr]">
-        <div className="flex flex-col justify-center border-r border-slate-300 px-5 py-4">
-          <div className="text-[5px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primary }}>Professional services</div>
-          <div className="mt-3 line-clamp-3 text-[18px] font-semibold leading-[1.02] tracking-[-0.04em] text-slate-950" style={{ fontFamily: model.displayFont }}>
-            {model.headline}
+    <div className="absolute inset-0 overflow-hidden bg-[#f7f3ec] text-[#111827]" style={{ fontFamily: model.bodyFont }}>
+      <div className="grid h-full grid-rows-[34px_1fr_64px]">
+        <div className="flex items-center justify-between border-b border-[#cec8bb] px-4">
+          <MiniBrand model={model} label={name} />
+          <div className="flex items-center gap-3 text-[5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+            <span>Expertise</span><span>Insights</span><span>Contact</span>
           </div>
-          {model.subheadline ? <div className="mt-2 line-clamp-2 text-[6px] leading-relaxed text-slate-500">{model.subheadline}</div> : null}
-          <div className="mt-4 inline-flex w-fit border-b border-slate-900 pb-1 text-[6px] font-bold text-slate-900">{model.cta}</div>
         </div>
 
-        <div className="flex flex-col justify-between bg-slate-950 p-4 text-white">
-          <FileText className="h-5 w-5 text-white/40" />
-          <div>
-            <div className="text-[5px] font-semibold uppercase tracking-wide text-white/40">Capability</div>
-            <div className="mt-2 space-y-2">
-              {services.slice(0, 3).map((service, index) => (
-                <div key={index} className="border-t border-white/15 pt-1.5 text-[6px] font-semibold text-white/85">{service}</div>
-              ))}
+        <div className="grid min-h-0 grid-cols-[1.12fr_0.88fr]">
+          <div className="flex min-h-0 flex-col justify-between border-r border-[#cec8bb] px-5 py-4">
+            <div>
+              <div className="text-[5px] font-semibold uppercase tracking-[0.2em]" style={{ color: model.primary }}>Perspective / expertise</div>
+              <div className="mt-3 max-w-[13ch] text-[22px] font-medium leading-[0.98] tracking-[-0.03em]" style={{ fontFamily: "'Fraunces', serif" }}>
+                {model.headline}
+              </div>
+            </div>
+            <div className="grid grid-cols-[1fr_auto] items-end gap-3">
+              <div className="max-w-[34ch] text-[6px] leading-[1.55] text-slate-600">
+                {model.subheadline || "Expert guidance, clear thinking and a website designed to make complex services easier to trust."}
+              </div>
+              <div className="border-b border-slate-900 pb-1 text-[6px] font-semibold">{model.cta}</div>
+            </div>
+          </div>
+
+          <div className="grid min-h-0 grid-rows-[1.15fr_0.85fr]">
+            <div className="relative overflow-hidden">
+              <img src={image} alt="" className="h-full w-full object-cover grayscale-[18%]" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent" />
+              <div className="absolute bottom-3 left-3 text-white">
+                <div className="text-[5px] uppercase tracking-[0.16em] text-white/65">Point of view</div>
+                <div className="mt-1 max-w-[18ch] text-[8px] font-semibold leading-tight">Clarity before complexity.</div>
+              </div>
+            </div>
+            <div className="bg-[#111827] px-4 py-3 text-white">
+              <div className="text-[5px] uppercase tracking-[0.16em] text-white/45">Selected expertise</div>
+              <div className="mt-2 grid gap-1.5">
+                {services.slice(0, 3).map((service, index) => (
+                  <div key={index} className="flex items-center justify-between border-t border-white/15 pt-1.5 text-[5.5px] font-medium">
+                    <span>{service}</span><span className="text-white/40">0{index + 1}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid flex-1 grid-cols-[0.8fr_1.2fr] border-t border-slate-300">
-        <div className="border-r border-slate-300 px-4 py-3">
-          <div className="text-[5px] font-bold uppercase tracking-wide text-slate-400">Who we help</div>
-          <div className="mt-1.5 text-[7px] font-semibold text-slate-800">Businesses that value clarity and expertise.</div>
-        </div>
-        <div className="grid grid-cols-2">
-          {(model.sectionTitles.length ? model.sectionTitles : ["Services", "Process"]).slice(0, 2).map((title, index) => (
-            <div key={index} className="border-r border-slate-300 px-3 py-3 last:border-r-0">
-              <div className="text-[5px] font-bold" style={{ color: model.primary }}>0{index + 1}</div>
-              <div className="mt-1.5 truncate text-[6px] font-semibold text-slate-700">{title}</div>
+        <div className="grid grid-cols-3 border-t border-[#cec8bb] bg-white/60">
+          {["Strategy", "Proof", "Commercial clarity"].map((item, index) => (
+            <div key={item} className="border-r border-[#cec8bb] px-4 py-2 last:border-r-0">
+              <div className="text-[5px] font-semibold" style={{ color: model.primary }}>0{index + 1}</div>
+              <div className="mt-1 text-[6px] font-semibold text-slate-700">{item}</div>
             </div>
           ))}
         </div>
@@ -482,63 +493,112 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
 }
 
 function BrandStatementPreview({ model, name }: { model: PreviewModel; name: string }) {
+  const image = model.heroImage || "/template-assets/flagship-professional.jpg";
+
   return (
-    <div className="absolute inset-0 grid grid-cols-[1.35fr_0.65fr] bg-[#f4f1ea] text-slate-950" style={{ fontFamily: model.bodyFont }}>
-      <div className="flex flex-col justify-between border-r border-slate-300 p-5">
-        <div className="flex items-center justify-between">
+    <div className="absolute inset-0 overflow-hidden bg-[#f3efe7] text-[#111827]" style={{ fontFamily: model.bodyFont }}>
+      <div className="grid h-full grid-rows-[34px_1fr_62px]">
+        <div className="flex items-center justify-between border-b border-[#cfc9bd] px-4">
           <MiniBrand model={model} label={name} />
-          <span className="text-[6px] font-semibold uppercase tracking-[0.12em] text-slate-400">Brand system</span>
+          <div className="flex gap-3 text-[5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+            <span>Capabilities</span><span>Work</span><span>Contact</span>
+          </div>
         </div>
-        <div>
-          <div className="text-[6px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primary }}>Clear positioning</div>
-          <div className="mt-3 max-w-[11ch] text-[20px] font-semibold leading-[0.98] tracking-[-0.04em] text-slate-950">{model.headline}</div>
-          <div className="mt-3 max-w-[30ch] text-[7px] leading-relaxed text-slate-500">{model.subheadline || "A distinctive message, deliberate hierarchy and one clear next action."}</div>
-          <div className="mt-4 inline-flex border-b border-slate-900 pb-1 text-[7px] font-semibold">{model.cta}</div>
+
+        <div className="grid min-h-0 grid-cols-[1.05fr_0.95fr]">
+          <div className="flex min-h-0 flex-col justify-between px-5 py-4">
+            <div>
+              <div className="text-[5px] font-semibold uppercase tracking-[0.2em]" style={{ color: model.primary }}>Brand-led / professional services</div>
+              <div className="mt-3 max-w-[12ch] text-[23px] font-semibold leading-[0.96] tracking-[-0.045em] text-slate-950">
+                {model.headline}
+              </div>
+              <div className="mt-3 max-w-[34ch] text-[6px] leading-[1.55] text-slate-600">
+                {model.subheadline || "A stronger position, clearer offer and a premium first impression built around business credibility."}
+              </div>
+            </div>
+            <div className="flex items-end justify-between gap-3">
+              <div className="inline-flex border-b border-slate-900 pb-1 text-[6px] font-semibold">{model.cta}</div>
+              <div className="text-right text-[5px] uppercase tracking-[0.14em] text-slate-400">Strategy / design / growth</div>
+            </div>
+          </div>
+
+          <div className="relative m-3 ml-0 overflow-hidden">
+            <img src={image} alt="" className="h-full w-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-slate-950/5 to-transparent" />
+            <div className="absolute left-3 top-3 bg-white/92 px-2.5 py-2 backdrop-blur">
+              <div className="text-[5px] font-semibold uppercase tracking-[0.15em] text-slate-400">Brand system</div>
+              <div className="mt-1 text-[7px] font-semibold text-slate-900">Positioning that feels established.</div>
+            </div>
+            <div className="absolute bottom-3 left-3 right-3 grid grid-cols-[1fr_auto] items-end gap-3 text-white">
+              <div>
+                <div className="text-[5px] uppercase tracking-[0.14em] text-white/55">Selected proof</div>
+                <div className="mt-1 max-w-[19ch] text-[8px] font-semibold leading-tight">Expertise, trust and a clear next action.</div>
+              </div>
+              <div className="grid h-8 w-8 place-items-center rounded-full border border-white/35 bg-white/10 text-[9px]">↗</div>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-3 border-t border-slate-300 pt-3">
-          {["Offer", "Proof", "Action"].map((item, index) => <div key={item} className="text-[6px] font-semibold text-slate-500">0{index + 1} · {item}</div>)}
+
+        <div className="grid grid-cols-3 border-t border-[#cfc9bd] bg-[#ece7dc]">
+          {["Positioning", "Credibility", "Conversion"].map((item, index) => (
+            <div key={item} className="border-r border-[#cfc9bd] px-4 py-2 last:border-r-0">
+              <div className="text-[5px] font-semibold" style={{ color: model.primary }}>0{index + 1}</div>
+              <div className="mt-1 text-[6px] font-semibold text-slate-700">{item}</div>
+            </div>
+          ))}
         </div>
-      </div>
-      <div className="flex flex-col justify-between p-4 text-white" style={{ backgroundColor: model.primary }}>
-        <div className="text-[6px] font-semibold uppercase tracking-[0.14em] text-white/60">Visual identity</div>
-        <div className="space-y-2">
-          <div className="h-12 rounded-full border border-white/25" />
-          <div className="ml-auto h-20 w-20 rounded-full border border-white/20 bg-white/10" />
-          <div className="h-px bg-white/30" />
-        </div>
-        <div className="text-[7px] font-semibold text-white/80">Brand-led composition</div>
       </div>
     </div>
   );
 }
 
 function MediaStoryPreview({ model, name }: { model: PreviewModel; name: string }) {
+  const image = model.heroImage || "/template-assets/flagship-clinic.jpg";
+
   return (
-    <div className="absolute inset-0 flex flex-col bg-white text-slate-950" style={{ fontFamily: model.bodyFont }}>
-      <div className="flex h-8 items-center justify-between border-b border-slate-200 px-4">
-        <MiniBrand model={model} label={name} />
-        <span className="text-[6px] font-semibold text-slate-400">Story · Services · Contact</span>
-      </div>
-      <div className="grid flex-1 grid-cols-[0.82fr_1.18fr]">
-        <div className="flex flex-col justify-between bg-[#f5f5f2] p-5">
-          <div>
-            <div className="text-[6px] font-bold uppercase tracking-[0.15em]" style={{ color: model.primary }}>Media-led</div>
-            <div className="mt-3 text-[17px] font-semibold leading-[1.02] tracking-[-0.035em] text-slate-950">{model.headline}</div>
+    <div className="absolute inset-0 overflow-hidden bg-slate-950 text-white" style={{ fontFamily: model.bodyFont }}>
+      <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,15,30,.86)_0%,rgba(7,15,30,.58)_44%,rgba(7,15,30,.08)_78%,rgba(7,15,30,.2)_100%)]" />
+
+      <div className="relative z-10 grid h-full grid-rows-[38px_1fr_66px]">
+        <div className="flex items-center justify-between border-b border-white/15 px-4">
+          <MiniBrand model={{ ...model, primary: "#ffffff" }} label={name} inverse />
+          <div className="flex gap-3 text-[5px] font-semibold uppercase tracking-[0.12em] text-white/65">
+            <span>Story</span><span>Services</span><span>Contact</span>
           </div>
-          <div className="text-[7px] leading-relaxed text-slate-500">{model.subheadline || "Photography, place, people or project imagery carries the story."}</div>
-          <div className="inline-flex w-fit rounded-md px-3 py-1.5 text-[6px] font-semibold text-white" style={{ backgroundColor: model.primary }}>{model.cta}</div>
         </div>
-        <div className="relative overflow-hidden bg-slate-200">
-          {model.heroImage ? <img src={model.heroImage} alt="" className="h-full w-full object-cover" /> : (
-            <div className="absolute inset-0 bg-[linear-gradient(135deg,#dbeafe_0%,#eef2ff_45%,#d1fae5_100%)]">
-              <div className="absolute left-[12%] top-[14%] h-[58%] w-[58%] rounded-[40%_60%_55%_45%] bg-white/55" />
-              <div className="absolute bottom-[10%] right-[8%] h-[38%] w-[38%] rounded-full bg-slate-900/10" />
+
+        <div className="grid min-h-0 grid-cols-[1.05fr_0.95fr]">
+          <div className="flex flex-col justify-end px-5 pb-5">
+            <div className="text-[5px] font-semibold uppercase tracking-[0.2em] text-white/65">Media-led brand story</div>
+            <div className="mt-3 max-w-[12ch] text-[24px] font-semibold leading-[0.95] tracking-[-0.045em] text-white">
+              {model.headline}
             </div>
-          )}
-          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between rounded-lg bg-white/90 p-3 backdrop-blur">
-            <div><div className="text-[5px] font-bold uppercase tracking-wide text-slate-400">Customer asset</div><div className="mt-1 text-[7px] font-semibold text-slate-800">Image-led brand story</div></div>
-            <div className="h-7 w-7 rounded-full" style={{ backgroundColor: model.primary }} />
+            <div className="mt-3 max-w-[34ch] text-[6px] leading-[1.6] text-white/72">
+              {model.subheadline || "Use customer photography, people and place to make the business feel real before explaining every detail."}
+            </div>
+            <div className="mt-4 inline-flex w-fit bg-white px-3 py-1.5 text-[6px] font-semibold text-slate-950">{model.cta}</div>
           </div>
+
+          <div className="flex items-end justify-end p-4">
+            <div className="w-[76%] border border-white/20 bg-white/12 p-3 backdrop-blur-md">
+              <div className="text-[5px] uppercase tracking-[0.15em] text-white/55">Customer story</div>
+              <div className="mt-2 text-[9px] font-semibold leading-tight">People, place and proof become part of the design.</div>
+              <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/20 pt-2">
+                <div><div className="text-[5px] text-white/50">01</div><div className="mt-1 text-[6px] font-semibold">Real imagery</div></div>
+                <div><div className="text-[5px] text-white/50">02</div><div className="mt-1 text-[6px] font-semibold">Human trust</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 border-t border-white/15 bg-slate-950/72 backdrop-blur">
+          {["People", "Place", "Experience"].map((item, index) => (
+            <div key={item} className="border-r border-white/15 px-4 py-2 last:border-r-0">
+              <div className="text-[5px] text-white/45">0{index + 1}</div>
+              <div className="mt-1 text-[6px] font-semibold text-white">{item}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -567,6 +627,7 @@ export function TemplatePreviewThumbnail({
   templateName,
   className = "",
   layoutFamily,
+  showFamilyLabel = true,
 }: TemplatePreviewThumbnailProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -641,10 +702,14 @@ export function TemplatePreviewThumbnail({
         <FamilyPreview model={model} name={config?.name || templateName} />
       )}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-slate-950/15 to-transparent" />
-      <span className="pointer-events-none absolute bottom-2 left-2 bg-white/94 px-2 py-1 text-[6px] font-bold uppercase tracking-[0.08em] text-slate-600 shadow-sm backdrop-blur">
-        {failed ? `${FAMILY_LABELS[model.family]} direction` : FAMILY_LABELS[model.family]}
-      </span>
+      {showFamilyLabel ? (
+        <>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-slate-950/15 to-transparent" />
+          <span className="pointer-events-none absolute bottom-2 left-2 bg-white/94 px-2 py-1 text-[6px] font-bold uppercase tracking-[0.08em] text-slate-600 shadow-sm backdrop-blur">
+            {failed ? `${FAMILY_LABELS[model.family]} direction` : FAMILY_LABELS[model.family]}
+          </span>
+        </>
+      ) : null}
     </div>
   );
 }

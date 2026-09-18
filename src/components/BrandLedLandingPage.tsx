@@ -233,12 +233,18 @@ export default function BrandLedLandingPage() {
               <p className="mt-4 text-sm !text-white/60">No card required · Preview before choosing a plan · Managed plans from {entryMonthly}/month</p>
             </div>
             <div className="lg:col-span-5">
-              <div className="border border-white/15 bg-white p-3">
-                <div className="mb-3 flex items-center justify-between px-1">
-                  <span className="text-sm font-semibold text-[#141821]">Example managed website direction</span>
-                  <span className="text-xs font-semibold text-[#5746e8]">Live template</span>
+              <div className="relative overflow-hidden border border-white/15 bg-[#f3efe7] shadow-[0_30px_80px_-45px_rgba(0,0,0,.65)]">
+                <TemplatePreviewThumbnail
+                  templateId="accounting-firm-v1"
+                  templateName="Professional service website"
+                  layoutFamily="brand_statement"
+                  showFamilyLabel={false}
+                  className="aspect-[16/10] min-h-0 border-0"
+                />
+                <div className="absolute right-3 top-3 bg-[#101827]/88 px-3 py-2 text-right text-white backdrop-blur">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-white/55">Example direction</p>
+                  <p className="mt-1 text-sm font-semibold !text-white">Professional services</p>
                 </div>
-                <TemplatePreviewThumbnail templateId="accounting-firm-v1" templateName="Professional service website" layoutFamily="brand_statement" className="aspect-[16/10] min-h-0 border border-[#e2e4e8]" />
               </div>
             </div>
           </div>
@@ -313,8 +319,15 @@ export default function BrandLedLandingPage() {
               </div>
             </div>
             <div className="lg:col-span-8">
-              <div className="border border-[#d8d9dc] bg-white p-4">
-                <TemplatePreviewThumbnail templateId={activeDirection.templateId} templateName={activeDirection.label} layoutFamily={activeDirection.layoutFamily} className="aspect-[16/10] min-h-0" />
+              <div className="overflow-hidden border border-[#d8d9dc] bg-white shadow-[0_24px_70px_-50px_rgba(15,23,42,.45)]">
+                <TemplatePreviewThumbnail
+                  key={designDirection}
+                  templateId={activeDirection.templateId}
+                  templateName={activeDirection.label}
+                  layoutFamily={activeDirection.layoutFamily}
+                  showFamilyLabel={false}
+                  className="aspect-[16/10] min-h-0 border-0"
+                />
               </div>
               <div className="mt-5 grid gap-4 md:grid-cols-[1fr_1.4fr]">
                 <h3>{activeDirection.title}</h3>
