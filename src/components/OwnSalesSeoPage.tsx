@@ -447,136 +447,96 @@ export default function OwnSalesSeoPage() {
           </div>
         </section>
 
-        <section className="px-5 py-10">
+        
+        <section className="border-y border-[#d8d9dc] bg-white px-5 py-14">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-10 text-center">
-              <Badge className="mb-4 bg-indigo-50 text-indigo-700">Choose your starting point</Badge>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Simple managed website options</h2>
-              <p className="mx-auto mt-4 max-w-2xl text-base font-semibold text-slate-600">
-                Start with a managed website or add ongoing growth support. Prices are shown in {coreOffer.prices[revenueMarket].currency}. Generate a preview first, then choose the right path.
-              </p>
-            </div>
-            <div className="grid gap-6 lg:grid-cols-3">
-              {packageOptions.map((plan, index) => (
-                <div
-                  key={plan.name}
-                  className={`rounded-xl border bg-white p-7 shadow-sm ${index === 1 ? "border-indigo-300 shadow-indigo-100 ring-4 ring-indigo-50" : "border-slate-200"}`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-indigo-600">{plan.label}</p>
-                      <h3 className="mt-2 text-2xl font-bold text-slate-950">{plan.name}</h3>
-                    </div>
-                    {index === 1 && <Badge className="bg-indigo-600 text-white">Popular</Badge>}
-                  </div>
-                  <p className="mt-5 text-4xl font-bold text-slate-950">{plan.price}</p>
-                  <p className="mt-4 min-h-[72px] text-sm font-semibold leading-relaxed text-slate-600">{plan.description}</p>
-                  <ul className="mt-6 space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex gap-3 text-sm font-bold text-slate-700">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    onClick={() => {
-                      localStorage.setItem("bt_checkout_intent", JSON.stringify({ productSlug: plan.id, market: revenueMarket, currency: coreOffer.prices[revenueMarket].currency, billingCycle: "monthly", savedAt: new Date().toISOString() }));
-                      navigate("/generate-preview");
-                    }}
-                    className={`mt-7 h-12 w-full rounded-xl font-bold ${index === 1 ? "bg-indigo-600 hover:bg-indigo-700" : "bg-slate-950 hover:bg-indigo-600"}`}
-                  >
-                    Generate Preview
-                  </Button>
-                </div>
-              ))}
-            </div>
-            <div className="mt-7 rounded-xl border border-indigo-200 bg-indigo-50 p-6 shadow-sm lg:flex lg:items-center lg:justify-between lg:gap-8">
-              <div>
-                <Badge className="border-0 bg-indigo-600 text-white">Core managed service</Badge>
-                <h3 className="mt-4 text-2xl font-bold text-slate-950">{coreOffer.name}</h3>
-                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-600">
-                  Bennie Studio leads the strategy, copy, build, tracking, and monthly improvements. This is for businesses that want an accountable growth partner, not another website tool.
-                </p>
+            <div className="grid gap-8 lg:grid-cols-12 lg:items-end">
+              <div className="lg:col-span-5">
+                <p className="brand-kicker">Managed plans</p>
+                <h2 className="mt-4">Simple managed website options.</h2>
+                <p className="brand-copy mt-5">Monthly service is the main price. Setup is shown underneath, with no duplicate plan blocks.</p>
               </div>
-              <div className="mt-5 shrink-0 lg:mt-0 lg:text-right">
-                <p className="text-3xl font-bold text-slate-950">{coreOffer.monthlyLabel}<span className="text-sm text-slate-500">/month</span></p>
-                <p className="mt-1 text-xs font-bold text-slate-500">plus {coreOffer.setupLabel} setup</p>
-                <Button onClick={() => navigate("/book-demo")} className="mt-4 h-12 rounded-xl bg-slate-950 px-6 font-bold hover:bg-indigo-600">
-                  Book a Growth Call
-                </Button>
-              </div>
+              <p className="lg:col-span-7 lg:justify-self-end text-[#526071]">Prices are shown in {coreOffer.prices[revenueMarket].currency}. Generate a preview first, then choose the level of ongoing support.</p>
+            </div>
+            <div className="mt-10 overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-[#d8d9dc]">
+                    <th className="py-4 pr-5 text-sm font-semibold">Plan</th>
+                    {packageOptions.map((plan)=><th key={plan.name} className="px-5 py-4"><p className="text-sm font-semibold text-[#5746e8]">{plan.label}</p><h3 className="mt-1">{plan.name}</h3></th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-[#d8d9dc]">
+                    <th className="py-5 pr-5 text-sm font-semibold text-[#526071]">Monthly</th>
+                    {packageOptions.map((plan)=><td key={plan.name} className="px-5 py-5 text-2xl font-semibold">{plan.price}</td>)}
+                  </tr>
+                  {[0,1,2,3].map((featureIndex)=>(
+                    <tr key={featureIndex} className="border-b border-[#d8d9dc]">
+                      <th className="py-4 pr-5 text-sm font-semibold text-[#526071]">{featureIndex===0?"Included":""}</th>
+                      {packageOptions.map((plan)=><td key={plan.name} className="px-5 py-4 text-sm text-[#526071]">{plan.features[featureIndex] ? <span className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"/>{plan.features[featureIndex]}</span> : "—"}</td>)}
+                    </tr>
+                  ))}
+                  <tr>
+                    <th className="py-5 pr-5"></th>
+                    {packageOptions.map((plan)=><td key={plan.name} className="px-5 py-5"><Button onClick={()=>{localStorage.setItem("bt_checkout_intent",JSON.stringify({productSlug:plan.id,market:revenueMarket,currency:coreOffer.prices[revenueMarket].currency,billingCycle:"monthly",savedAt:new Date().toISOString()}));navigate("/generate-preview");}} className="min-h-11 bg-[#141821] px-5 font-semibold text-white hover:bg-[#5746e8]">Generate preview</Button></td>)}
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
 
-        <section className="bg-white px-5 py-10">
-          <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-            <div>
-              <Badge className="mb-4 bg-indigo-50 text-indigo-700">Local relevance</Badge>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                {isCityPage ? `Built for ${cityName} enquiries` : "Built for the way this market buys"}
-              </h2>
-              <p className="mt-5 text-base font-semibold leading-relaxed text-slate-600">
-                {isCityPage
-                  ? `The page highlights the parts that matter for ${cityName} searches: services, nearby areas, trust cues, working CTAs, and clear contact options.`
-                  : "These pages are written for real local intent: nearby areas, service categories, enquiry paths, and trust signals that help small businesses look credible."}
-              </p>
+        
+        <section className="px-5 py-14">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-12">
+            <div className="lg:col-span-5">
+              <p className="brand-kicker">Local relevance</p>
+              <h2 className="mt-4">{isCityPage ? "Built for " + cityName + " enquiries" : "Built for the way this market buys"}</h2>
+              <p className="brand-copy mt-5">{isCityPage ? "The page focuses on the services, nearby areas, trust cues and contact options that matter for " + cityName + " searches." : "The page is written for real local intent: relevant services, nearby areas, trust signals and a direct enquiry path."}</p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {page.localInputs.map((input) => (
-                <div key={input} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
-                  <span className="text-sm font-bold leading-relaxed text-slate-700">{input}</span>
-                </div>
-              ))}
+            <div className="brand-rule-list lg:col-span-7">
+              {page.localInputs.map((input)=><div key={input} className="flex items-start gap-3 border-b border-[#d8d9dc] py-5"><MapPin className="mt-1 h-4 w-4 shrink-0 text-[#5746e8]"/><span className="text-[#526071]">{input}</span></div>)}
             </div>
           </div>
         </section>
 
-        <section className="bg-slate-50 px-5 py-12">
+        
+        <section className="border-y border-[#d8d9dc] bg-white px-5 py-14">
           <div className="mx-auto max-w-7xl">
-            <div className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-              <div>
-                <Badge className="mb-4 bg-white text-indigo-600">Demo examples</Badge>
-                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Website examples for this market</h2>
+            <div className="grid gap-8 lg:grid-cols-12 lg:items-end">
+              <div className="lg:col-span-7">
+                <p className="brand-kicker">Website examples</p>
+                <h2 className="mt-4">Website directions for this market.</h2>
               </div>
-              <Button onClick={() => navigate("/portfolio")} variant="outline" className="h-12 rounded-xl font-bold">
-                View Demo Library
-              </Button>
+              <Button onClick={()=>navigate("/portfolio")} variant="outline" className="min-h-11 lg:col-span-5 lg:justify-self-end">View example library</Button>
             </div>
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-              {page.examples.map((example) => (
-                <div key={example.industry} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-indigo-600">{example.industry}</p>
-                  <h3 className="mt-4 text-2xl font-bold">{example.plan}</h3>
-                  <p className="mt-3 text-sm font-semibold text-slate-600">{example.pages}</p>
-                  <p className="mt-5 rounded-2xl bg-indigo-50 p-4 text-sm font-bold text-indigo-700">{example.localSeo}</p>
+            <div className="mt-8 border-t border-[#d8d9dc]">
+              {page.examples.map((example)=>(
+                <div key={example.industry} className="grid gap-4 border-b border-[#d8d9dc] py-6 md:grid-cols-[1fr_1fr_1.4fr]">
+                  <h3>{example.industry}</h3>
+                  <p className="font-semibold">{example.plan}</p>
+                  <div><p className="text-sm text-[#526071]">{example.pages}</p><p className="mt-2 text-sm font-semibold text-[#5746e8]">{example.localSeo}</p></div>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="px-5 py-12">
-          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.75fr_1.25fr]">
-            <div>
-              <Badge className="mb-4 bg-indigo-50 text-indigo-700">Common questions</Badge>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Questions buyers ask before starting</h2>
-              <div className="mt-8 flex flex-wrap gap-3">
-                {page.links.map((link) => (
-                  <Link key={link.href} to={link.href} className="rounded-full border border-slate-200 px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-600 hover:border-indigo-200 hover:text-indigo-600">
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
+        
+        <section className="px-5 py-14">
+          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <p className="brand-kicker">Common questions</p>
+              <h2 className="mt-4">Questions buyers ask before starting.</h2>
+              <div className="mt-6 flex flex-wrap gap-2">{page.links.map((link)=><Link key={link.href} to={link.href} className="border border-[#d8d9dc] bg-white px-3 py-2 text-sm font-semibold text-[#526071]">{link.label}</Link>)}</div>
             </div>
-            <div className="space-y-5">
-              {page.faqs.map((faq) => (
-                <div key={faq.question} className="rounded-xl border border-slate-200 bg-white p-6">
-                  <h3 className="text-lg font-bold text-slate-950">{faq.question}</h3>
-                  <p className="mt-3 text-base font-medium leading-relaxed text-slate-600">{faq.answer}</p>
-                </div>
+            <div className="border-t border-[#d8d9dc] lg:col-span-8">
+              {page.faqs.map((faq)=>(
+                <details key={faq.question} className="border-b border-[#d8d9dc] py-5">
+                  <summary className="cursor-pointer text-lg font-semibold">{faq.question}</summary>
+                  <p className="mt-4 max-w-2xl text-[#526071]">{faq.answer}</p>
+                </details>
               ))}
             </div>
           </div>
