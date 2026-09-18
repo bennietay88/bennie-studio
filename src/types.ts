@@ -152,6 +152,19 @@ export interface Business {
 
 export type PremiumLevel = "Launch" | "Business" | "Growth OS" | "Agency Grade";
 
+export type WebsiteGenerationMode = "fast" | "premium" | "brand_led";
+export type BrandPersonality =
+  | "professional"
+  | "premium"
+  | "bold"
+  | "friendly"
+  | "technical"
+  | "established"
+  | "elegant"
+  | "approachable";
+export type BusinessMaturity = "new" | "growing" | "established" | "multi_location";
+export type AssetReadiness = "professional" | "some" | "pending";
+
 export type BusinessGoal = 
   | "Generate Leads" 
   | "Book Appointments" 
@@ -389,12 +402,19 @@ export interface Website {
       | "modern_minimal"
       | "bold_contemporary"
       | "trust_authority"
-      | "craft_organic";
+      | "craft_organic"
+      | "brand_corporate";
     typographyProfile?: string;
     spacingProfile?: "compact" | "balanced" | "editorial" | "immersive";
     motionProfile?: "none" | "subtle" | "refined" | "expressive" | "cinematic";
     imageProfile?: "editorial" | "clean" | "graphic" | "documentary" | "organic";
     layoutDensity?: "compact" | "balanced" | "editorial" | "immersive";
+    generationMode?: WebsiteGenerationMode;
+    brandPersonality?: BrandPersonality;
+    businessMaturity?: BusinessMaturity;
+    assetReadiness?: AssetReadiness;
+    displayFont?: string;
+    bodyFont?: string;
     customSelectors?: {
       id: string;
       selector: string;

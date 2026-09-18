@@ -1,11 +1,12 @@
-import type { IndustryCategory, Website } from "../types";
+import type { IndustryCategory, Website, WebsiteGenerationMode } from "../types";
 
 export type DesignProfileId =
   | "editorial_luxury"
   | "modern_minimal"
   | "bold_contemporary"
   | "trust_authority"
-  | "craft_organic";
+  | "craft_organic"
+  | "brand_corporate";
 
 export type TypographyProfileId =
   | "luxury_editorial"
@@ -13,7 +14,8 @@ export type TypographyProfileId =
   | "modern_professional"
   | "friendly_humanist"
   | "bold_contemporary"
-  | "authority";
+  | "authority"
+  | "premium_corporate";
 
 export type SpacingProfileId = "compact" | "balanced" | "editorial" | "immersive";
 export type MotionProfileId = "none" | "subtle" | "refined" | "expressive" | "cinematic";
@@ -98,7 +100,46 @@ export const DESIGN_PROFILES: Record<DesignProfileId, DesignProfile> = {
     radii: "soft",
     imageTreatment: "organic",
   },
+  brand_corporate: {
+    id: "brand_corporate",
+    label: "Brand-Led Corporate",
+    description: "Agency-style brand composition with strong colour, editorial media, asymmetric grids, substantial typography and restrained motion.",
+    typography: "premium_corporate",
+    spacing: "immersive",
+    motion: "refined",
+    displayFont: "Space Grotesk, sans-serif",
+    bodyFont: "Inter, sans-serif",
+    defaultStyle: "corporate",
+    radii: "sharp",
+    imageTreatment: "editorial",
+  },
 };
+
+export const GENERATION_MODE_OPTIONS: Array<{
+  id: WebsiteGenerationMode;
+  label: string;
+  description: string;
+  benchmark: string;
+}> = [
+  {
+    id: "fast",
+    label: "Fast",
+    description: "Focused conversion-first composition for straightforward local and service businesses.",
+    benchmark: "Clean managed SMB website",
+  },
+  {
+    id: "premium",
+    label: "Premium",
+    description: "Richer editorial composition, stronger hierarchy, customer imagery slots and varied section rhythm.",
+    benchmark: "Premium agency website",
+  },
+  {
+    id: "brand_led",
+    label: "Brand-led",
+    description: "Deep brand composition for established firms: bold media, asymmetric grids, story, capabilities, people and insights.",
+    benchmark: "ITS / Cognism-level design language",
+  },
+];
 
 export const DESIGN_PROFILE_OPTIONS = Object.values(DESIGN_PROFILES);
 
@@ -106,7 +147,8 @@ export const DESIGN_PROFILE_BY_INDUSTRY: Partial<Record<IndustryCategory, Design
   "Clinic / Healthcare": "trust_authority",
   Legal: "trust_authority",
   Consultant: "modern_minimal",
-  Corporate: "modern_minimal",
+  Corporate: "brand_corporate",
+  SaaS: "brand_corporate",
   "Local Services": "craft_organic",
   Fitness: "bold_contemporary",
   Wellness: "craft_organic",
@@ -127,6 +169,28 @@ export function resolveDesignProfile(
   return DESIGN_PROFILES[byIndustry || fallback];
 }
 
+export function resolveDesignProfileForMode(
+  mode: WebsiteGenerationMode = "fast",
+  industry?: string | null,
+  requestedProfile?: string | null,
+): DesignProfile {
+  if (requestedProfile && requestedProfile in DESIGN_PROFILES) {
+    return DESIGN_PROFILES[requestedProfile as DesignProfileId];
+  }
+  const base = resolveDesignProfile(undefined, industry);
+  if (mode === "fast") return base;
+  if (mode === "brand_led") {
+    if (industry === "Clinic / Healthcare" || industry === "Legal") return DESIGN_PROFILES.trust_authority;
+    if (industry === "Hospitality" || industry === "Retail / Boutique" || industry === "Portfolio" || industry === "Real Estate") {
+      return DESIGN_PROFILES.editorial_luxury;
+    }
+    return DESIGN_PROFILES.brand_corporate;
+  }
+  if (base.id === "craft_organic" || base.id === "bold_contemporary") return base;
+  if (industry === "Corporate" || industry === "SaaS") return DESIGN_PROFILES.brand_corporate;
+  return base.id === "modern_minimal" ? DESIGN_PROFILES.brand_corporate : base;
+}
+
 export const DESIGN_TOKENS = {
   spacing: {
     compact: { section: "clamp(4.5rem, 8vw, 7rem)", gap: "1.25rem", content: "72rem" },
@@ -144,11 +208,17 @@ export const DESIGN_TOKENS = {
 } as const;
 
 export const APPROVED_VARIANTS = {
-  hero: ["editorial_split", "full_bleed", "minimal_statement", "media_split", "service_conversion"],
-  services: ["editorial_list", "image_grid", "minimal", "alternating", "cards"],
+  hero: ["brand_media", "editorial_split", "full_bleed_editorial", "statement_media", "service_conversion", "full_bleed", "minimal_statement", "media_split"],
+  services: ["brand_families", "editorial_list", "image_grid", "alternating", "minimal", "cards"],
+  about: ["split_media_left", "split_media_right", "editorial_story", "founder_feature"],
+  features: ["editorial_strip", "capability_matrix", "media_cards", "bento"],
+  benefits: ["editorial_values", "icon_grid", "numbered_principles"],
+  proof: ["logo_wall", "certification_strip", "metrics", "trust_strip"],
+  team: ["founder_story", "leadership_grid", "editorial_people"],
+  blog_list: ["insights_editorial", "featured_article", "news_grid"],
   testimonials: ["editorial_quote", "review_grid", "featured", "slider", "proof_wall"],
-  cta: ["minimal", "full_bleed", "consultation", "editorial"],
-  faq: ["accordion", "two_column", "editorial"],
+  cta: ["brand_band", "minimal", "full_bleed", "consultation", "editorial"],
+  faq: ["media_accordion", "accordion", "two_column", "editorial"],
   gallery: ["masonry", "horizontal", "before_after", "case_study"],
 } as const;
 
@@ -156,13 +226,52 @@ export function getDefaultVariant(type: string, profile: DesignProfileId): strin
   const variants = APPROVED_VARIANTS[type as keyof typeof APPROVED_VARIANTS];
   if (!variants?.length) return undefined;
   const index = {
-    editorial_luxury: 0,
-    modern_minimal: 2,
-    bold_contemporary: 1,
-    trust_authority: 2,
-    craft_organic: 1,
+    editorial_luxury: 1,
+    modern_minimal: Math.min(2, variants.length - 1),
+    bold_contemporary: Math.min(2, variants.length - 1),
+    trust_authority: Math.min(1, variants.length - 1),
+    craft_organic: Math.min(1, variants.length - 1),
+    brand_corporate: 0,
   }[profile];
   return variants[Math.min(index, variants.length - 1)];
+}
+
+export function getVariantForMode(
+  type: string,
+  profile: DesignProfileId,
+  mode: WebsiteGenerationMode = "fast",
+  ordinal = 0,
+): string | undefined {
+  if (mode === "fast") return getDefaultVariant(type, profile);
+  const premium: Record<string, string[]> = {
+    hero: ["editorial_split", "statement_media"],
+    services: ["editorial_list", "alternating"],
+    about: ["split_media_left", "editorial_story"],
+    features: ["editorial_strip", "capability_matrix"],
+    benefits: ["editorial_values", "numbered_principles"],
+    proof: ["trust_strip", "logo_wall"],
+    team: ["editorial_people", "founder_story"],
+    blog_list: ["insights_editorial", "featured_article"],
+    testimonials: ["editorial_quote", "featured"],
+    cta: ["consultation", "editorial"],
+    faq: ["two_column", "media_accordion"],
+  };
+  const brand: Record<string, string[]> = {
+    hero: ["brand_media", "full_bleed_editorial"],
+    services: ["brand_families", "editorial_list"],
+    about: ["split_media_right", "editorial_story"],
+    features: ["editorial_strip", "capability_matrix"],
+    benefits: ["editorial_values", "numbered_principles"],
+    proof: ["logo_wall", "certification_strip"],
+    team: ["leadership_grid", "founder_story"],
+    blog_list: ["featured_article", "insights_editorial"],
+    testimonials: ["editorial_quote", "featured"],
+    cta: ["brand_band", "full_bleed"],
+    faq: ["media_accordion", "two_column"],
+  };
+  const options = (mode === "brand_led" ? brand : premium)[type];
+  if (!options?.length) return getDefaultVariant(type, profile);
+  return options[ordinal % options.length];
 }
 
 export const INDUSTRY_COMPOSITIONS: Record<string, string[]> = {

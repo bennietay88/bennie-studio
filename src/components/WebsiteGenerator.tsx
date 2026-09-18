@@ -33,6 +33,7 @@ import {
   WebsitePlanId,
 } from "../constants/pageBlueprints";
 import { getUpgradeRecommendation } from "../constants/localSeoEngine";
+import { GENERATION_MODE_OPTIONS } from "../constants/designProfiles";
 import { assessManualReviewInput, buildReviewWebsiteStrategy } from "../constants/reviewPoweredWaas";
 
 const generatorSchema = z.object({
@@ -57,6 +58,10 @@ const generatorSchema = z.object({
   ctaPreference: z.string().min(1, "CTA goal is required"),
   tone: z.string().optional(),
   mainGoal: z.string().min(1, "Main goal is required"),
+  generationMode: z.enum(["fast", "premium", "brand_led"]),
+  brandPersonality: z.enum(["professional", "premium", "bold", "friendly", "technical", "established", "elegant", "approachable"]),
+  businessMaturity: z.enum(["new", "growing", "established", "multi_location"]),
+  assetReadiness: z.enum(["professional", "some", "pending"]),
 });
 
 type GeneratorFormData = z.infer<typeof generatorSchema>;
@@ -105,6 +110,10 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
       ctaPreference: "Get Leads",
       tone: "Professional",
       mainGoal: "Get Leads",
+      generationMode: "premium",
+      brandPersonality: "professional",
+      businessMaturity: "growing",
+      assetReadiness: "some",
     },
   });
 
@@ -128,6 +137,10 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
   const targetCustomer = watch("targetCustomer");
   const location = watch("location");
   const ctaPreference = watch("ctaPreference");
+  const generationMode = watch("generationMode");
+  const brandPersonality = watch("brandPersonality");
+  const businessMaturity = watch("businessMaturity");
+  const assetReadiness = watch("assetReadiness");
   const googleBusinessUrl = watch("googleBusinessUrl");
   const pastedReviews = watch("pastedReviews");
   const selectedTemplate = Object.values(NICHE_TEMPLATES).find(t => t.id === selectedTemplateId);
@@ -247,6 +260,10 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
         selectedTemplateName: selectedNiche.name,
         selectedPlanId: data.planId,
         selectedPlanName: selectedPlanForSubmit?.name || data.planId,
+        generationMode: data.generationMode,
+        brandPersonality: data.brandPersonality,
+        businessMaturity: data.businessMaturity,
+        assetReadiness: data.assetReadiness,
         pageLimit,
         locationPageLimit: locationLimit,
         requestedPages: requestedPageCount,
@@ -326,6 +343,10 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
         nicheName: selectedNiche.category || selectedNiche.name,
         plan: data.planId,
         maxPages: effectivePageCount,
+        generationMode: data.generationMode,
+        brandPersonality: data.brandPersonality,
+        businessMaturity: data.businessMaturity,
+        assetReadiness: data.assetReadiness,
         mainService: data.mainService,
         targetCustomer: data.targetCustomer,
         location: data.location,
@@ -341,7 +362,11 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
 
       const websiteData = {
         business_id: businessId,
-        theme: getBlueprintTheme(data.templateId),
+        theme: getBlueprintTheme(data.templateId, data.generationMode, {
+          brandPersonality: data.brandPersonality,
+          businessMaturity: data.businessMaturity,
+          assetReadiness: data.assetReadiness,
+        }),
         pages: pagesWithIds,
         seo: {
           ...getBlueprintSeo({
@@ -378,6 +403,10 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
             reviewEvidence: manualReviewAssessment,
             strategy: reviewPoweredStrategy,
             launchModel: data.planId === "growth" ? "managed_scale" : data.planId === "business" ? "managed_growth" : "managed_launch",
+            generationMode: data.generationMode,
+            brandPersonality: data.brandPersonality,
+            businessMaturity: data.businessMaturity,
+            assetReadiness: data.assetReadiness,
             hostingType: "managed",
             siteStatus: "draft",
             publishChecklist: [
@@ -590,6 +619,61 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
                 </button>
               ))}
             </div>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Generation Model</Label>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">This controls composition depth and art direction. Customer-specific photography and brand assets stay customer-supplied.</p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                {GENERATION_MODE_OPTIONS.map((mode) => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setValue("generationMode", mode.id)}
+                    className={cn(
+                      "rounded-3xl border-2 p-5 text-left transition-all",
+                      generationMode === mode.id ? "border-indigo-600 bg-indigo-50 shadow-lg shadow-indigo-100" : "border-slate-100 bg-white hover:border-slate-200",
+                    )}
+                  >
+                    <p className="text-sm font-black text-slate-950">{mode.label}</p>
+                    <p className="mt-2 text-[11px] font-semibold leading-5 text-slate-600">{mode.description}</p>
+                    <p className="mt-3 text-[9px] font-black uppercase tracking-widest text-indigo-600">{mode.benchmark}</p>
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Brand personality</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {(["professional", "premium", "bold", "friendly", "technical", "established", "elegant", "approachable"] as const).map((value) => (
+                      <button key={value} type="button" onClick={() => setValue("brandPersonality", value)} className={cn("rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wider", brandPersonality === value ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-200 bg-white text-slate-600")}>{value}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Business maturity</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {(["new", "growing", "established", "multi_location"] as const).map((value) => (
+                      <button key={value} type="button" onClick={() => setValue("businessMaturity", value)} className={cn("rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wider", businessMaturity === value ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-200 bg-white text-slate-600")}>{value.replace("_", " ")}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Customer assets</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      ["professional", "Professional photos"],
+                      ["some", "Some assets"],
+                      ["pending", "Assets coming later"],
+                    ] as const).map(([value, label]) => (
+                      <button key={value} type="button" onClick={() => setValue("assetReadiness", value)} className={cn("rounded-full border px-3 py-2 text-[9px] font-black uppercase tracking-wider", assetReadiness === value ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-200 bg-white text-slate-600")}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="rounded-3xl bg-slate-950 p-6 text-white">
               <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Generated Structure</p>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -747,6 +831,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
                     <div>
                       <p className="text-[8px] font-black uppercase tracking-widest text-indigo-300/70">Template Selected</p>
                       <p className="font-bold text-white">{selectedTemplate?.name} / {selectedPlanId}</p>
+                      <p className="mt-1 text-[9px] font-black uppercase tracking-widest text-indigo-300">{generationMode.replace("_", " ")} / {brandPersonality}</p>
                     </div>
                   </div>
                   <div className="bg-white/5 p-4 rounded-2xl border border-white/10">

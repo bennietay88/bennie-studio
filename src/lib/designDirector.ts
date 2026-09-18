@@ -2,8 +2,8 @@ import { z } from "zod";
 import { DESIGN_PROFILES, APPROVED_VARIANTS, type DesignProfileId, type MotionProfileId, type TypographyProfileId, type SpacingProfileId } from "../constants/designProfiles.js";
 
 export const DesignDirectionSchema = z.object({
-  designProfile: z.enum(["editorial_luxury", "modern_minimal", "bold_contemporary", "trust_authority", "craft_organic"]),
-  typographyProfile: z.enum(["luxury_editorial", "architectural", "modern_professional", "friendly_humanist", "bold_contemporary", "authority"]),
+  designProfile: z.enum(["editorial_luxury", "modern_minimal", "bold_contemporary", "trust_authority", "craft_organic", "brand_corporate"]),
+  typographyProfile: z.enum(["luxury_editorial", "architectural", "modern_professional", "friendly_humanist", "bold_contemporary", "authority", "premium_corporate"]),
   spacingProfile: z.enum(["compact", "balanced", "editorial", "immersive"]),
   motionProfile: z.enum(["none", "subtle", "refined", "expressive", "cinematic"]),
   heroVariant: z.string(),
@@ -32,6 +32,8 @@ ART DIRECTION RULES
 - Avoid excessive gradients, glass cards, glowing blobs, pill overload, giant rounded cards and decorative UI chrome unless the chosen visual direction truly requires them.
 - Use premium typography with meaningful scale contrast. Keep body text readable and avoid tiny text pretending to be sophisticated.
 - Mobile is a first-class composition, not a collapsed desktop layout.
+- In brand-led mode, create page-level rhythm comparable to mature B2B agency work: strong brand bands, editorial media, asymmetric grids, service families, people/story and insights.
+- Customer-specific photography, staff images, product screenshots, client logos and case-study media must come from the customer. The system owns the layout; it must never fabricate customer assets.
 
 TRUTH AND PROOF RULES
 - Never invent clients, testimonials, ratings, review counts, awards, years in business, project counts, case-study results, before/after outcomes, certifications or pricing.
@@ -53,10 +55,19 @@ export function buildDesignDirectionPrompt(input: {
   services?: string[];
   photographyAvailable?: boolean;
   goal?: string;
+  generationMode?: "fast" | "premium" | "brand_led";
+  businessMaturity?: string;
+  brandPersonality?: string;
+  assetReadiness?: string;
 }) {
   return JSON.stringify({
     task: "recommend a distinctive, approved, agency-grade design direction",
-    benchmark: "bespoke USD 10k+ agency website with restrained art direction and conversion clarity",
+    generationMode: input.generationMode || "premium",
+    benchmark: input.generationMode === "brand_led"
+      ? "ITS / Cognism-level brand composition using customer-supplied assets"
+      : input.generationMode === "fast"
+        ? "clean conversion-first managed SMB website"
+        : "bespoke USD 10k+ agency website with restrained art direction and conversion clarity",
     approvedProfiles: Object.values(DESIGN_PROFILES).map(({ id, label, description }) => ({ id, label, description })),
     approvedVariants: APPROVED_VARIANTS,
     requirements: {

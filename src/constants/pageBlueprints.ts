@@ -2,8 +2,8 @@ import { SECTION_TEMPLATES } from "./sectionTemplates";
 import { NICHE_TEMPLATES } from "./nicheTemplates";
 import { PLANS } from "./plans";
 import { generateId } from "../lib/utils";
-import { WebsitePage, WebsiteSection } from "../types";
-import { getDefaultVariant, resolveDesignProfile } from "./designProfiles";
+import { AssetReadiness, BrandPersonality, BusinessMaturity, WebsiteGenerationMode, WebsitePage, WebsiteSection } from "../types";
+import { getVariantForMode, resolveDesignProfileForMode } from "./designProfiles";
 
 export type BlueprintPlanId = "starter" | "business" | "growth";
 export type WebsitePlanId = string;
@@ -27,6 +27,10 @@ export type SectionBlockType =
   | "booking_cta"
   | "location"
   | "team"
+  | "highlights"
+  | "values"
+  | "brand_story"
+  | "insights"
   | "final_cta";
 
 export interface BlueprintPage {
@@ -72,6 +76,13 @@ export interface BlueprintBusinessInput {
   whatsappNumber?: string;
   faqs?: string[];
   testimonials?: string[];
+  generationMode?: WebsiteGenerationMode;
+  brandPersonality?: BrandPersonality;
+  businessMaturity?: BusinessMaturity;
+  assetReadiness?: AssetReadiness;
+  heroImageUrl?: string;
+  storyImageUrl?: string;
+  teamMembers?: Array<{ name: string; role?: string; bio?: string; imageUrl?: string }>;
 }
 
 export const PLAN_POSITIONING: Record<BlueprintPlanId, string> = {
@@ -325,6 +336,38 @@ const BLUEPRINTS: Record<string, Record<BlueprintPlanId, { pages: BlueprintPageS
   },
 };
 
+const PREMIUM_HOME_COMPOSITIONS: Record<string, SectionBlockType[]> = {
+  restaurant: ["hero", "highlights", "services", "brand_story", "portfolio", "testimonials", "faq", "final_cta"],
+  clinic: ["hero", "highlights", "services", "brand_story", "trust", "testimonials", "faq", "booking_cta", "final_cta"],
+  contractor: ["hero", "trust", "services", "brand_story", "portfolio", "process", "testimonials", "faq", "final_cta"],
+  consultant: ["hero", "highlights", "brand_story", "services", "values", "trust", "insights", "faq", "final_cta"],
+  real_estate: ["hero", "highlights", "portfolio", "brand_story", "services", "testimonials", "faq", "final_cta"],
+  law: ["hero", "highlights", "services", "brand_story", "values", "trust", "insights", "faq", "final_cta"],
+  boutique: ["hero", "highlights", "portfolio", "brand_story", "services", "testimonials", "final_cta"],
+  portfolio: ["hero", "highlights", "portfolio", "brand_story", "services", "insights", "final_cta"],
+};
+
+const BRAND_LED_HOME_COMPOSITIONS: Record<string, SectionBlockType[]> = {
+  restaurant: ["hero", "highlights", "brand_story", "services", "portfolio", "values", "testimonials", "insights", "faq", "final_cta"],
+  clinic: ["hero", "highlights", "brand_story", "services", "values", "trust", "team", "insights", "faq", "booking_cta", "final_cta"],
+  contractor: ["hero", "highlights", "brand_story", "services", "values", "portfolio", "process", "testimonials", "insights", "faq", "final_cta"],
+  consultant: ["hero", "highlights", "brand_story", "services", "values", "trust", "team", "insights", "faq", "final_cta"],
+  real_estate: ["hero", "highlights", "brand_story", "portfolio", "services", "values", "team", "insights", "faq", "final_cta"],
+  law: ["hero", "highlights", "services", "brand_story", "values", "trust", "team", "insights", "faq", "final_cta"],
+  boutique: ["hero", "highlights", "brand_story", "portfolio", "services", "values", "insights", "final_cta"],
+  portfolio: ["hero", "highlights", "brand_story", "portfolio", "services", "values", "insights", "final_cta"],
+};
+
+const resolveHomeComposition = (
+  niche: string,
+  mode: WebsiteGenerationMode,
+  fallback: SectionBlockType[],
+): SectionBlockType[] => {
+  if (mode === "brand_led") return BRAND_LED_HOME_COMPOSITIONS[niche] || BRAND_LED_HOME_COMPOSITIONS.consultant;
+  if (mode === "premium") return PREMIUM_HOME_COMPOSITIONS[niche] || PREMIUM_HOME_COMPOSITIONS.consultant;
+  return fallback;
+};
+
 const sectionTypeMap: Record<SectionBlockType, string> = {
   hero: "hero",
   problem: "benefits",
@@ -344,6 +387,10 @@ const sectionTypeMap: Record<SectionBlockType, string> = {
   booking_cta: "appointment",
   location: "contact",
   team: "team",
+  highlights: "features",
+  values: "benefits",
+  brand_story: "about",
+  insights: "blog_list",
   final_cta: "cta",
 };
 
@@ -446,6 +493,15 @@ const buildSectionContent = (
         input.description ||
         `${tone} ${service} in ${location}, designed to help ${target} take the next step with confidence.`,
       ctaText: cta,
+      imageUrl: input.heroImageUrl || undefined,
+      imageAlt: input.heroImageUrl ? `${businessName} - ${service}` : undefined,
+      assetSlots: {
+        heroImage: {
+          source: "customer",
+          status: input.heroImageUrl ? "provided" : "needed",
+          guidance: "Customer-supplied hero photography, product screenshot, project image or brand artwork.",
+        },
+      },
     };
   }
 
@@ -478,6 +534,8 @@ const buildSectionContent = (
         { title: "Clear next step", description: `Visitors can quickly understand how to ${cta.toLowerCase()}.` },
         { title: "Service clarity", description: `${service} is explained around the needs of ${target}.` },
       ],
+      providedByBusiness: Boolean(input.localProof),
+      sourceLabel: input.localProof ? "Business-supplied proof" : undefined,
     };
   }
 
@@ -486,6 +544,14 @@ const buildSectionContent = (
       ...section.content,
       title: `About ${businessName}`,
       text: `${businessName} helps ${target} in ${location} with ${service}. The approach is clear, practical, and focused on helping every customer understand their options before taking action.\n\nThe website structure is designed to answer common questions and make it easy to enquire without inventing claims the business has not supplied.`,
+      imageUrl: input.storyImageUrl || undefined,
+      assetSlots: {
+        storyImage: {
+          source: "customer",
+          status: input.storyImageUrl ? "provided" : "needed",
+          guidance: "Customer-supplied founder, team, office, service, project or environment photography.",
+        },
+      },
     };
   }
 
@@ -504,7 +570,14 @@ const buildSectionContent = (
           ? ["Understand your needs", "Recommend the right option", "Confirm the next step", "Follow up clearly"]
           : block === "portfolio"
             ? ["Selected work", "Real business photography", "Verified project details", "Recent highlights"]
-            : ["Clear service information", "Trust-focused page flow", "Fast enquiry path", "Mobile-first experience"],
+            : block === "highlights"
+              ? [
+                  { title: "Clear proposition", description: `${service} explained around what ${target} need to know.` },
+                  { title: "Evidence before claims", description: input.localProof ? "Business-supplied proof is brought forward in the journey." : "Customer proof slots stay empty until real evidence is supplied." },
+                  { title: "Easy next step", description: `The page keeps ${cta.toLowerCase()} visible without turning every section into a button wall.` },
+                  { title: "Responsive by design", description: "Desktop and mobile use deliberate composition rather than a simple shrink-down." },
+                ]
+              : ["Clear service information", "Trust-focused page flow", "Fast enquiry path", "Mobile-first experience"],
     };
   }
 
@@ -512,11 +585,46 @@ const buildSectionContent = (
     section.content = {
       ...section.content,
       title: `Designed for ${target}`,
-      items: [
-        { title: "Clear next step", description: `Visitors always know how to ${cta.toLowerCase()}.` },
-        { title: "Less uncertainty", description: "Service details and FAQs help people understand what happens next." },
-        { title: "Local relevance", description: `Content is shaped around ${location} and the customers you want.` },
-      ],
+      items: block === "values"
+        ? [
+            { title: "Clarity first", description: "The offer is easy to understand before visual decoration is added." },
+            { title: "Evidence led", description: "Customer reviews, people, projects, certifications and logos appear only when supplied." },
+            { title: "Useful restraint", description: "Typography, spacing and brand colour carry the design instead of excessive effects." },
+            { title: "Action without pressure", description: `The next step stays visible while the page earns enough trust to support ${cta.toLowerCase()}.` },
+          ]
+        : [
+            { title: "Clear next step", description: `Visitors always know how to ${cta.toLowerCase()}.` },
+            { title: "Less uncertainty", description: "Service details and FAQs help people understand what happens next." },
+            { title: "Local relevance", description: `Content is shaped around ${location} and the customers you want.` },
+          ],
+    };
+  }
+
+  if (section.type === "team") {
+    const members = (input.teamMembers || []).filter((member) => member?.name);
+    section.content = {
+      ...section.content,
+      title: "People Behind the Business",
+      description: "Customer-supplied leadership and team profiles.",
+      members,
+      assetSlots: {
+        teamImages: {
+          source: "customer",
+          status: members.length ? "provided" : "needed",
+          guidance: "Add real staff names, roles, biographies and portraits before publishing this section.",
+        },
+      },
+    };
+    section.isVisible = members.length > 0;
+  }
+
+  if (section.type === "blog_list") {
+    section.content = {
+      ...section.content,
+      title: "Insights & Updates",
+      description: `Useful thinking from ${businessName} for ${target}.`,
+      showExcerpts: true,
+      postsPerPage: input.generationMode === "brand_led" ? 5 : 3,
     };
   }
 
@@ -599,16 +707,29 @@ export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsiteP
   const nicheName = input.nicheName || template?.category || template?.name || input.nicheId;
   const blueprint = getBlueprint(nicheName, input.plan, input.maxPages);
   const limit = getPlanPageLimit(input.plan, input.maxPages);
-  const profile = resolveDesignProfile(undefined, template?.category || template?.name);
+  const generationMode = input.generationMode || "fast";
+  const profile = resolveDesignProfileForMode(generationMode, template?.category || template?.name);
 
   return blueprint.pages.slice(0, limit).map((blueprintPage) => {
-    const sections = blueprintPage.sections.map((block) => {
+    const blockPlan = blueprintPage.slug === ""
+      ? resolveHomeComposition(blueprint.niche, generationMode, blueprintPage.sections)
+      : blueprintPage.sections;
+    const sections = blockPlan.map((block, blockIndex) => {
       const sectionType = sectionTypeMap[block];
       const section = cloneSection(sectionType);
       const configured = buildSectionContent(section, block, blueprintPage, input);
-      const variant = getDefaultVariant(sectionType, profile.id);
+      const variant = getVariantForMode(sectionType, profile.id, generationMode, blockIndex);
       return variant
-        ? { ...configured, settings: { ...(configured.settings || {}), variant, designProfile: profile.id, motionProfile: profile.motion } }
+        ? {
+            ...configured,
+            settings: {
+              ...(configured.settings || {}),
+              variant,
+              designProfile: profile.id,
+              motionProfile: profile.motion,
+              textAlign: generationMode === "fast" ? configured.settings?.textAlign : "left",
+            },
+          }
         : configured;
     });
 
@@ -634,7 +755,15 @@ export const buildNavigationPreview = (input: Pick<BlueprintBusinessInput, "nich
   return getBlueprint(nicheName, input.plan, input.maxPages).pages.slice(0, getPlanPageLimit(input.plan, input.maxPages));
 };
 
-export const getBlueprintTheme = (nicheId?: string) => {
+export const getBlueprintTheme = (
+  nicheId?: string,
+  generationMode: WebsiteGenerationMode = "fast",
+  intent?: {
+    brandPersonality?: BrandPersonality;
+    businessMaturity?: BusinessMaturity;
+    assetReadiness?: AssetReadiness;
+  },
+) => {
   const template = getNicheTemplateById(nicheId);
   const baseTheme = template?.theme || {
     primaryColor: "#4f46e5",
@@ -642,15 +771,23 @@ export const getBlueprintTheme = (nicheId?: string) => {
     fontFamily: "'Inter', sans-serif",
     style: "modern",
   };
-  const profile = resolveDesignProfile(undefined, template?.category || template?.name);
+  const profile = resolveDesignProfileForMode(generationMode, template?.category || template?.name);
   return {
     ...baseTheme,
+    style: profile.defaultStyle,
+    fontFamily: profile.bodyFont,
+    displayFont: profile.displayFont,
+    bodyFont: profile.bodyFont,
     designProfile: profile.id,
     typographyProfile: profile.typography,
     spacingProfile: profile.spacing,
     layoutDensity: profile.spacing,
     motionProfile: profile.motion,
     imageProfile: profile.imageTreatment,
+    generationMode,
+    brandPersonality: intent?.brandPersonality,
+    businessMaturity: intent?.businessMaturity,
+    assetReadiness: intent?.assetReadiness,
   };
 };
 

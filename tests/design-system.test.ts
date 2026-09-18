@@ -104,3 +104,53 @@ test("blueprints do not fabricate testimonials or prices when proof is absent", 
   assert.doesNotMatch(JSON.stringify(sections), /Verified Client|Happy Customer|Repeat Customer|Local Customer/);
   assert.doesNotMatch(JSON.stringify(sections), /"name":"Essential"|"name":"Recommended"|"name":"Complete"/);
 });
+
+
+test("brand-led mode creates a deeper composition without fabricated people", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Northstar Advisory",
+    nicheName: "Corporate",
+    plan: "business",
+    maxPages: 3,
+    mainService: "Growth advisory",
+    targetCustomer: "UK business owners",
+    location: "London",
+    ctaPreference: "Book Call",
+    generationMode: "brand_led",
+    brandPersonality: "established",
+    businessMaturity: "established",
+    assetReadiness: "pending",
+  });
+
+  const home = pages[0];
+  assert.ok(home.sections.length >= 7);
+  assert.equal(home.sections[0]?.settings?.variant, "brand_media");
+  assert.ok(home.sections.some((section) => section.settings?.variant === "brand_families"));
+  const team = home.sections.find((section) => section.type === "team");
+  assert.equal(team?.isVisible, false);
+  assert.doesNotMatch(JSON.stringify(home.sections), /Dr\. John Smith|Dr\. Sarah Johnson|Michael Chen|Elena Rodriguez/);
+});
+
+test("fast and brand-led modes produce materially different section direction", () => {
+  const base = {
+    businessName: "Example Consulting",
+    nicheName: "Corporate",
+    plan: "business",
+    maxPages: 3,
+    mainService: "Business consulting",
+    targetCustomer: "growing companies",
+    location: "Manchester",
+    ctaPreference: "Book Call",
+  };
+  const fast = buildPagesFromBlueprint({ ...base, generationMode: "fast" });
+  const branded = buildPagesFromBlueprint({ ...base, generationMode: "brand_led" });
+  assert.notDeepEqual(
+    fast[0].sections.map((section) => section.settings?.variant),
+    branded[0].sections.map((section) => section.settings?.variant),
+  );
+  assert.ok(branded[0].sections.length > fast[0].sections.length);
+});
+
+test("brand corporate is an approved production design profile", () => {
+  assert.equal(resolveDesignProfile("brand_corporate").label, "Brand-Led Corporate");
+});

@@ -6,7 +6,15 @@ const PLACEHOLDER_PROOF = /verified client|happy customer|repeat customer|local 
 const GENERIC_PRICING = /essential[\s\S]*recommended[\s\S]*complete/i;
 const CARD_GRID_FINGERPRINT = /cards|card grid|three cards|3 cards/i;
 
-export function assessWebsiteDesign(website: Website): { score: number; productionReady: boolean; checks: DesignQaCheck[] } {
+export interface DesignQualityMetrics {
+  visualVariety: number;
+  hierarchy: number;
+  proofQuality: number;
+  conversionClarity: number;
+  aiTemplateRisk: number;
+}
+
+export function assessWebsiteDesign(website: Website): { score: number; productionReady: boolean; checks: DesignQaCheck[]; metrics: DesignQualityMetrics } {
   const pages = website.pages || [];
   const sections = pages.flatMap((page) => page.sections || []).filter((section) => section.isVisible !== false);
   const text = JSON.stringify(sections).toLowerCase();
@@ -30,6 +38,15 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
   const hasVariantDirection = variants.length >= Math.min(3, sections.length);
   const repeatedVariant = variants.length >= 4 && new Set(variants).size <= 1;
   const genericCardFingerprint = CARD_GRID_FINGERPRINT.test(text) && sections.length > 4;
+  const generationMode = website.theme?.generationMode || "fast";
+  const centeredSections = sections.filter((section) => section.settings?.textAlign === "center").length;
+  const centeredRatio = sections.length ? centeredSections / sections.length : 0;
+  const cardHeavyVariants = variants.filter((variant) => ["cards", "review_grid", "icon_grid"].includes(String(variant))).length;
+  const cardHeavyRatio = variants.length ? cardHeavyVariants / variants.length : 0;
+  const customerAssetSlots = sections.filter((section) => section.content?.assetSlots || section.content?.imageSlot).length;
+  const premiumAssetPlan = generationMode === "fast" || customerAssetSlots >= Math.min(2, Math.max(1, sections.length));
+  const homeSections = pages[0]?.sections?.filter((section) => section.isVisible !== false) || [];
+  const compositionDepth = homeSections.length >= (generationMode === "brand_led" ? 7 : generationMode === "premium" ? 6 : 4);
 
   const checks: DesignQaCheck[] = [
     { key: "hero", label: "Clear hero", pass: hasHero, severity: "high", note: hasHero ? "Hero section is present." : "Add a clear primary hero." },
@@ -49,9 +66,30 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
     { key: "placeholders", label: "No placeholders", pass: !hasPlaceholder, severity: "high", note: hasPlaceholder ? "Replace placeholder or sample copy before publishing." : "No obvious placeholder copy detected." },
     { key: "seo", label: "Search metadata", pass: hasSeo, severity: "medium", note: hasSeo ? "Title and description are configured." : "Add a page title and meta description." },
     { key: "navigation", label: "Page structure", pass: hasNavigation, severity: "medium", note: hasNavigation ? "Pages have usable titles and slugs." : "Give each published page a stable title and slug." },
+    { key: "composition_depth", label: "Composition depth", pass: compositionDepth, severity: generationMode === "fast" ? "low" : "medium", note: compositionDepth ? "The homepage has enough compositional depth for its generation mode." : "Add more purposeful homepage rhythm for the selected generation mode." },
+    { key: "customer_asset_plan", label: "Customer asset plan", pass: premiumAssetPlan, severity: generationMode === "brand_led" ? "medium" : "low", note: premiumAssetPlan ? "Customer-specific media slots are planned without fabricated assets." : "Premium/brand-led output should reserve intentional slots for customer-supplied photography or product media." },
+    { key: "anti_card_wall", label: "Avoid card-wall layout", pass: cardHeavyRatio <= 0.45, severity: "medium", note: cardHeavyRatio <= 0.45 ? "Cards are not dominating the composition." : "Too many sections resolve to card grids; switch to editorial, split, band or list compositions." },
+    { key: "alignment_variety", label: "Alignment variety", pass: centeredRatio <= 0.6, severity: "low", note: centeredRatio <= 0.6 ? "Alignment is sufficiently varied." : "Too much of the site is centered; introduce left-led editorial composition." },
   ];
 
   const score = Math.round((checks.filter((check) => check.pass).length / checks.length) * 100);
-  const productionReady = score >= 82 && !checks.some((check) => check.severity === "high" && !check.pass);
-  return { score, productionReady, checks };
+  const highFailures = checks.filter((check) => check.severity === "high" && !check.pass).length;
+  const visualVariety = Math.max(0, Math.min(100, 100 - (repeatedVariant ? 35 : 0) - (duplicateTypes ? 25 : 0) - Math.round(cardHeavyRatio * 35)));
+  const hierarchy = Math.max(0, Math.min(100, (hasHero ? 30 : 0) + (hasHeadline ? 25 : 0) + (compositionDepth ? 25 : 0) + (centeredRatio <= 0.6 ? 20 : 5)));
+  const proofQuality = Math.max(0, Math.min(100, (hasProof ? 45 : 20) + (!hasPlaceholderProof ? 35 : 0) + (!hasGenericPricing ? 20 : 0)));
+  const conversionClarity = Math.max(0, Math.min(100, (hasCta ? 55 : 0) + (hasHero ? 20 : 0) + (hasNavigation ? 15 : 0) + (hasSeo ? 10 : 0)));
+  const aiTemplateRisk = Math.max(0, Math.min(100,
+    (aiFingerprint ? 30 : 0) +
+    (repeatedVariant ? 25 : 0) +
+    (duplicateTypes ? 20 : 0) +
+    Math.round(cardHeavyRatio * 25) +
+    (centeredRatio > 0.6 ? 15 : 0)
+  ));
+  const metrics = { visualVariety, hierarchy, proofQuality, conversionClarity, aiTemplateRisk };
+  const threshold = generationMode === "brand_led" ? 86 : generationMode === "premium" ? 83 : 80;
+  const productionReady = score >= threshold && highFailures === 0 && aiTemplateRisk <= (generationMode === "brand_led" ? 35 : 45);
+  return { score, productionReady, checks, metrics };
 }
+
+
+export const evaluateGeneratedDesign = assessWebsiteDesign;
