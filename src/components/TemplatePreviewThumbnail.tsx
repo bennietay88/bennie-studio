@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { LayoutTemplate } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { NICHE_TEMPLATES } from "../constants/nicheTemplates";
+import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
 
 interface TemplatePreviewThumbnailProps {
   templateId: string;
@@ -291,14 +292,12 @@ export function TemplatePreviewThumbnail({
       )}
 
       {failed && (
-        <div className="absolute inset-0 grid place-items-center bg-slate-50">
-          <div className="max-w-[80%] text-center">
-            <LayoutTemplate className="mx-auto h-7 w-7 text-slate-300" aria-hidden="true" />
-            <p className="mt-2 text-[8px] font-bold uppercase tracking-[0.15em] text-slate-400">
-              Template configuration unavailable
-            </p>
-          </div>
-        </div>
+        <WebsiteConceptVisual
+          title={templateName}
+          eyebrow="Website direction"
+          index={[...templateId].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 4}
+          className="absolute inset-0 h-full"
+        />
       )}
 
       {preview && (
@@ -372,7 +371,7 @@ export function TemplatePreviewThumbnail({
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-slate-950/20 to-transparent" />
       <span className="pointer-events-none absolute bottom-2.5 left-3 rounded-full border border-white/70 bg-white/92 px-2.5 py-1 text-[8px] font-extrabold uppercase tracking-[0.13em] text-slate-700 shadow-sm backdrop-blur">
-        Live template miniature
+        {failed ? "Design direction" : "Live template miniature"}
       </span>
     </div>
   );
