@@ -89,8 +89,8 @@ const industries = [
 ] as const;
 
 const process = [
-  ["01", "Direction", "We define the audience, offer, proof and strongest enquiry path."],
-  ["02", "Design", "The system chooses an art direction and builds the site architecture around the business."],
+  ["01", "Strategy", "We define the audience, offer, proof and strongest enquiry path."],
+  ["02", "Design", "The system chooses the right visual structure and builds the site architecture around the business."],
   ["03", "Review", "You add real assets and approve the final message, pages and actions."],
   ["04", "Grow", "The site stays hosted, maintained and improved as the business changes."],
 ];
@@ -99,7 +99,7 @@ const faqs = [
   ["Is this a template website?", "No. The system uses reusable design rules and components, but the composition, hierarchy, copy structure and conversion path are selected around the business brief."],
   ["Do I need professional photography before we start?", "No. Brand-led layouts can work without customer photography at first. When real imagery is supplied, it is placed into deliberate media slots rather than replaced with fake AI photos."],
   ["What happens after launch?", "Managed plans include hosting and ongoing website management. Higher tiers add deeper conversion, landing-page and growth support."],
-  ["Can I see the direction before paying?", "Yes. The free preview flow now uses the same Premium and Brand-led generator system used for customer builds."],
+  ["Can I preview the website before paying?", "Yes. The free preview flow uses the same Premium and Brand-led generator system used for customer builds."],
 ];
 
 export default function BrandLedLandingPage() {
@@ -181,7 +181,7 @@ export default function BrandLedLandingPage() {
   const activeDirection = designDirections[designDirection];
 
   return (
-    <div className="brand-public min-h-screen overflow-x-hidden bg-[#f7f6f2] text-[#10131c]">
+    <div className="brand-public min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#10131c]">
       <Helmet>
         <title>Bennie Studio | Premium Managed Websites for Service Businesses</title>
         <meta name="description" content="Brand-led, conversion-focused websites planned, built, hosted and continuously improved for service businesses that want stronger trust and more qualified enquiries." />
@@ -227,24 +227,20 @@ export default function BrandLedLandingPage() {
                   Generate my free preview <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
                 <button onClick={() => go("/case-studies", "Hero examples")} className="inline-flex min-h-12 items-center justify-center border border-white/30 px-6 font-semibold text-white">
-                  See website examples
+                  See website work
                 </button>
               </div>
               <p className="mt-4 text-sm !text-white/60">No card required · Preview before choosing a plan · Managed plans from {entryMonthly}/month</p>
             </div>
             <div className="lg:col-span-5">
-              <div className="relative overflow-hidden border border-white/15 bg-[#f3efe7] shadow-[0_30px_80px_-45px_rgba(0,0,0,.65)]">
+              <div className="relative overflow-hidden border border-white/15 bg-white shadow-[0_30px_80px_-45px_rgba(0,0,0,.65)]">
                 <TemplatePreviewThumbnail
                   templateId="accounting-firm-v1"
-                  templateName="Professional service website"
+                  templateName="Professional services"
                   layoutFamily="brand_statement"
                   showFamilyLabel={false}
                   className="aspect-[16/10] min-h-0 border-0"
                 />
-                <div className="absolute right-3 top-3 bg-[#101827]/88 px-3 py-2 text-right text-white backdrop-blur">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-white/55">Example direction</p>
-                  <p className="mt-1 text-sm font-semibold !text-white">Professional services</p>
-                </div>
               </div>
             </div>
           </div>
@@ -283,7 +279,7 @@ export default function BrandLedLandingPage() {
           <div className="brand-shell brand-section">
             <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-7">
-                <p className="brand-kicker">Website examples</p>
+                <p className="brand-kicker">Website work</p>
                 <h2 className="mt-4">Real layouts, not abstract design cards.</h2>
               </div>
               <p className="brand-copy lg:col-span-5">Inspect hierarchy, service presentation and conversion paths across different service-business categories.</p>
@@ -299,7 +295,7 @@ export default function BrandLedLandingPage() {
               ))}
             </div>
             <button onClick={() => go("/case-studies", "Homepage all examples")} className="mt-8 inline-flex items-center font-semibold">
-              View all website examples <ArrowRight className="ml-2 h-4 w-4" />
+              View all website work <ArrowRight className="ml-2 h-4 w-4" />
             </button>
           </div>
         </section>
@@ -308,8 +304,8 @@ export default function BrandLedLandingPage() {
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
               <p className="brand-kicker">Design approach</p>
-              <h2 className="mt-4">One system, different art direction.</h2>
-              <p className="brand-copy mt-5">The layout changes with the business instead of repainting the same template.</p>
+              <h2 className="mt-4">One system. Three distinct visual styles.</h2>
+              <p className="brand-copy mt-5">The layout, hierarchy and media treatment change with the business instead of repainting the same template.</p>
               <div className="mt-7 flex flex-wrap gap-2">
                 {(Object.keys(designDirections) as Array<keyof typeof designDirections>).map((key) => (
                   <button key={key} type="button" onClick={() => setDesignDirection(key)} className={designDirection === key ? "border border-[#5746e8] bg-[#5746e8] px-4 py-2 text-sm font-semibold text-white" : "border border-[#d8d9dc] bg-white px-4 py-2 text-sm font-semibold text-[#526071]"}>
@@ -477,9 +473,9 @@ export default function BrandLedLandingPage() {
         <section className="bg-[#5746e8] text-white">
           <div className="brand-shell grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
             <div>
-              <p className="text-sm font-semibold !text-white/70">See your direction first</p>
+              <p className="text-sm font-semibold !text-white/70">Preview before you choose</p>
               <h2 className="mt-2 !text-white">See what your website could become.</h2>
-              <p className="mt-3 !text-white/75">Generate a personalised website direction before choosing a plan.</p>
+              <p className="mt-3 !text-white/75">Generate a personalised website preview before choosing a plan.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <button onClick={() => go("/generate-preview", "Final free preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821]">Generate free preview</button>

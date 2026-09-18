@@ -3,7 +3,7 @@
   --brand-muted: #526071;
   --brand-soft: #707b8a;
   --brand-line: #d8d9dc;
-  --brand-paper: #f7f6f2;
+  --brand-paper: #f8fafc;
   --brand-white: #ffffff;
   --brand-accent: #5746e8;
   --brand-accent-soft: #eeebff;
@@ -278,5 +278,106 @@
   .brand-public .bt-template-preview {
     min-height: 0 !important;
     width: 100%;
+  }
+}
+
+
+/* Mobile safety layer for public pages and generated customer websites. */
+@media (max-width: 767px) {
+  .brand-public,
+  .bt-website-renderer {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .brand-public .brand-shell {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .brand-public section,
+  .bt-website-renderer section,
+  .bt-website-renderer header,
+  .bt-website-renderer footer {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .brand-public img,
+  .brand-public video,
+  .bt-website-renderer img,
+  .bt-website-renderer video,
+  .bt-website-renderer iframe {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .bt-website-renderer * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .bt-website-renderer [class*="grid-cols-["],
+  .bt-website-renderer section .grid-cols-3,
+  .bt-website-renderer section .grid-cols-4,
+  .bt-website-renderer section .grid-cols-5,
+  .bt-website-renderer section .grid-cols-6 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .bt-website-renderer [class*="min-w-["] {
+    min-width: 0 !important;
+  }
+
+  .bt-website-renderer [class*="px-8"],
+  .bt-website-renderer [class*="px-10"],
+  .bt-website-renderer [class*="px-12"],
+  .bt-website-renderer [class*="px-16"],
+  .bt-website-renderer [class*="px-20"],
+  .bt-website-renderer [class*="px-24"],
+  .bt-website-renderer [class*="px-32"],
+  .bt-website-renderer [class*="px-40"] {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .bt-website-renderer h1 {
+    max-width: 100% !important;
+    font-size: clamp(2.25rem, 10vw, 3.25rem) !important;
+    line-height: 1.06 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .bt-website-renderer h2 {
+    max-width: 100% !important;
+    font-size: clamp(1.8rem, 8vw, 2.5rem) !important;
+    line-height: 1.12 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .bt-website-renderer h3 {
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+  }
+
+  .bt-website-renderer button,
+  .bt-website-renderer a,
+  .brand-public button,
+  .brand-public a {
+    max-width: 100%;
+  }
+
+  .bt-website-renderer table,
+  .brand-public table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .bt-template-preview {
+    max-width: 100%;
   }
 }

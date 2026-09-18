@@ -61,12 +61,12 @@ const configCache = new Map<string, TemplateConfig>();
 const PREVIEW_FONT_STYLESHEET_ID = "bt-template-preview-fonts";
 
 const FAMILY_LABELS: Record<PreviewLayoutFamily, string> = {
-  clinic_trust: "Trust-led clinic",
-  local_quote: "Quote-led local service",
-  education_program: "Program-led education",
-  editorial_b2b: "Editorial B2B",
-  brand_statement: "Brand-led statement",
-  media_story: "Media-led story",
+  clinic_trust: "Clinic",
+  local_quote: "Local service",
+  education_program: "Education",
+  editorial_b2b: "Editorial",
+  brand_statement: "Brand-focused",
+  media_story: "Media-focused",
 };
 
 function ensurePreviewFonts() {
@@ -431,67 +431,57 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
   const services = model.serviceItems.length ? model.serviceItems : ["Advisory", "Tax & compliance", "Growth planning"];
 
   return (
-    <div className="absolute inset-0 overflow-hidden bg-[#faf8f3] text-[#111827]" style={{ fontFamily: model.bodyFont }}>
-      <div className="grid h-full grid-rows-[34px_1fr_64px]">
-        <div className="flex items-center justify-between border-b border-[#cfc9bd] px-4">
+    <div className="absolute inset-0 overflow-hidden bg-[#f8fafc] text-[#0f172a]" style={{ fontFamily: model.bodyFont }}>
+      <div className="grid h-full grid-rows-[34px_1fr_58px]">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4">
           <MiniBrand model={model} label={name} />
-          <div className="flex items-center gap-3 text-[5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-            <span>Expertise</span><span>Journal</span><span>Contact</span>
+          <div className="flex gap-3 text-[5px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+            <span>Insights</span><span>Services</span><span>Contact</span>
           </div>
         </div>
 
-        <div className="grid min-h-0 grid-cols-[1.18fr_0.82fr]">
-          <div className="flex min-h-0 flex-col justify-between border-r border-[#cfc9bd] px-5 py-4">
-            <div>
-              <div className="text-[5px] font-semibold uppercase tracking-[0.22em]" style={{ color: model.primary }}>Independent perspective</div>
-              <div className="mt-3 max-w-[12ch] text-[24px] font-medium leading-[0.96] tracking-[-0.025em]" style={{ fontFamily: "'Fraunces', serif" }}>
-                {model.headline}
-              </div>
-            </div>
-            <div className="grid grid-cols-[1fr_auto] items-end gap-4">
-              <div className="max-w-[34ch] text-[6px] leading-[1.6] text-slate-600">
-                {model.subheadline || "Long-form credibility, considered typography and a quieter visual system for complex professional services."}
-              </div>
-              <div className="border-b border-slate-900 pb-1 text-[6px] font-semibold">{model.cta}</div>
-            </div>
-          </div>
-
-          <div className="grid min-h-0 grid-rows-[1fr_auto] bg-[#111827] text-white">
-            <div className="flex flex-col justify-between p-4">
-              <div className="flex items-start justify-between">
-                <div className="text-[5px] uppercase tracking-[0.18em] text-white/45">Issue / 01</div>
-                <div className="text-[20px] font-medium leading-none text-white/18" style={{ fontFamily: "'Fraunces', serif" }}>01</div>
-              </div>
+        <div className="grid min-h-0 grid-rows-[1fr_auto]">
+          <div className="grid min-h-0 grid-cols-[0.72fr_1.28fr]">
+            <div className="flex flex-col justify-between bg-slate-950 p-4 text-white">
+              <div className="text-[5px] font-semibold uppercase tracking-[0.16em] text-white/45">Point of view</div>
               <div>
-                <div className="max-w-[18ch] text-[11px] font-medium leading-[1.18]" style={{ fontFamily: "'Fraunces', serif" }}>
-                  Clarity is a commercial advantage.
-                </div>
-                <div className="mt-3 text-[5.5px] leading-[1.55] text-white/55">
-                  Insight, credibility and service depth are treated as part of the visual identity.
-                </div>
+                <div className="text-[12px] font-semibold leading-[1.12]">Clarity before complexity.</div>
+                <div className="mt-2 text-[5.5px] leading-[1.55] text-white/55">A quieter editorial structure for businesses that need to explain expertise and earn trust.</div>
               </div>
+              <div className="text-[5px] font-semibold text-white/55">Issue 01 · {name}</div>
             </div>
-            <div className="border-t border-white/15 px-4 py-3">
-              <div className="text-[5px] uppercase tracking-[0.16em] text-white/40">Selected expertise</div>
-              <div className="mt-2 grid gap-1.5">
+
+            <div className="flex min-h-0 flex-col justify-between bg-white px-5 py-4">
+              <div>
+                <div className="text-[5px] font-semibold uppercase tracking-[0.16em]" style={{ color: model.primary }}>Professional services</div>
+                <div className="mt-3 max-w-[15ch] text-[20px] font-semibold leading-[1.02] tracking-[-0.035em] text-slate-950">{model.headline}</div>
+                <div className="mt-3 max-w-[38ch] text-[6px] leading-[1.6] text-slate-500">{model.subheadline || "A clear service narrative, proof and practical next steps without a wall of cards."}</div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
                 {services.slice(0, 3).map((service, index) => (
-                  <div key={index} className="flex items-center justify-between border-t border-white/12 pt-1.5 text-[5.5px] font-medium">
-                    <span>{service}</span><span className="text-white/35">0{index + 1}</span>
+                  <div key={service} className="border-t border-slate-200 pt-2">
+                    <div className="text-[5px] font-semibold" style={{ color: model.primary }}>0{index + 1}</div>
+                    <div className="mt-1 line-clamp-2 text-[6px] font-semibold text-slate-700">{service}</div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
+
+          <div className="flex items-center justify-between border-t border-slate-200 bg-[#eef2f7] px-4 py-2">
+            <span className="text-[6px] font-semibold text-slate-700">Expertise · insight · consultation</span>
+            <span className="border-b border-slate-800 pb-0.5 text-[6px] font-semibold text-slate-800">{model.cta}</span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-[1.15fr_0.85fr] border-t border-[#cfc9bd] bg-[#f1ede4]">
-          <div className="flex items-center gap-4 border-r border-[#cfc9bd] px-4 py-2">
-            <div className="text-[5px] font-semibold uppercase tracking-[0.15em] text-slate-400">Editorial system</div>
-            <div className="text-[6px] font-semibold text-slate-700">Perspective · proof · expertise</div>
+        <div className="grid grid-cols-[1fr_1fr] border-t border-slate-200 bg-white">
+          <div className="border-r border-slate-200 px-4 py-2">
+            <div className="text-[5px] uppercase tracking-[0.1em] text-slate-400">Reading path</div>
+            <div className="mt-1 text-[6px] font-semibold text-slate-700">Position → evidence → action</div>
           </div>
-          <div className="flex items-center justify-between px-4 py-2">
-            <span className="text-[6px] font-semibold text-slate-700">Read the point of view</span>
-            <span className="text-[8px]" style={{ color: model.primary }}>↗</span>
+          <div className="px-4 py-2">
+            <div className="text-[5px] uppercase tracking-[0.1em] text-slate-400">Best for</div>
+            <div className="mt-1 text-[6px] font-semibold text-slate-700">Consulting and complex services</div>
           </div>
         </div>
       </div>
@@ -500,55 +490,56 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
 }
 
 function BrandStatementPreview({ model, name }: { model: PreviewModel; name: string }) {
-  const image = model.heroImage || "/template-assets/flagship-professional.jpg";
+  const services = model.serviceItems.length ? model.serviceItems : ["Positioning", "Credibility", "Conversion"];
 
   return (
-    <div className="absolute inset-0 overflow-hidden bg-[#f3efe7] text-[#111827]" style={{ fontFamily: model.bodyFont }}>
-      <div className="grid h-full grid-rows-[34px_1fr_62px]">
-        <div className="flex items-center justify-between border-b border-[#cfc9bd] px-4">
+    <div className="absolute inset-0 overflow-hidden bg-white text-[#0f172a]" style={{ fontFamily: model.bodyFont }}>
+      <div className="grid h-full grid-rows-[34px_1fr_60px]">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4">
           <MiniBrand model={model} label={name} />
-          <div className="flex gap-3 text-[5px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-            <span>Capabilities</span><span>Work</span><span>Contact</span>
+          <div className="flex gap-3 text-[5px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+            <span>Services</span><span>Work</span><span>Contact</span>
           </div>
         </div>
 
-        <div className="grid min-h-0 grid-cols-[1.05fr_0.95fr]">
+        <div className="grid min-h-0 grid-cols-[1.02fr_0.98fr]">
           <div className="flex min-h-0 flex-col justify-between px-5 py-4">
             <div>
-              <div className="text-[5px] font-semibold uppercase tracking-[0.2em]" style={{ color: model.primary }}>Brand-led / professional services</div>
-              <div className="mt-3 max-w-[12ch] text-[23px] font-semibold leading-[0.96] tracking-[-0.045em] text-slate-950">
-                {model.headline}
-              </div>
-              <div className="mt-3 max-w-[34ch] text-[6px] leading-[1.55] text-slate-600">
-                {model.subheadline || "A stronger position, clearer offer and a premium first impression built around business credibility."}
-              </div>
+              <div className="text-[5px] font-semibold uppercase tracking-[0.16em]" style={{ color: model.primary }}>Professional services</div>
+              <div className="mt-3 max-w-[12ch] text-[23px] font-semibold leading-[0.98] tracking-[-0.04em] text-slate-950">{model.headline}</div>
+              <div className="mt-3 max-w-[34ch] text-[6px] leading-[1.6] text-slate-500">{model.subheadline || "A crisp, confident website built around a clear offer, credible proof and one useful next step."}</div>
             </div>
-            <div className="flex items-end justify-between gap-3">
-              <div className="inline-flex border-b border-slate-900 pb-1 text-[6px] font-semibold">{model.cta}</div>
-              <div className="text-right text-[5px] uppercase tracking-[0.14em] text-slate-400">Strategy / design / growth</div>
-            </div>
+            <div className="inline-flex w-fit border-b border-slate-900 pb-1 text-[6px] font-semibold">{model.cta}</div>
           </div>
 
-          <div className="relative m-3 ml-0 overflow-hidden">
-            <img src={image} alt="" className="h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-slate-950/5 to-transparent" />
-            <div className="absolute left-3 top-3 bg-white/92 px-2.5 py-2 backdrop-blur">
-              <div className="text-[5px] font-semibold uppercase tracking-[0.15em] text-slate-400">Brand system</div>
-              <div className="mt-1 text-[7px] font-semibold text-slate-900">Positioning that feels established.</div>
-            </div>
-            <div className="absolute bottom-3 left-3 right-3 grid grid-cols-[1fr_auto] items-end gap-3 text-white">
-              <div>
-                <div className="text-[5px] uppercase tracking-[0.14em] text-white/55">Selected proof</div>
-                <div className="mt-1 max-w-[19ch] text-[8px] font-semibold leading-tight">Expertise, trust and a clear next action.</div>
+          <div className="m-3 ml-0 grid min-h-0 grid-rows-[1fr_auto] overflow-hidden bg-[#1d4ed8] text-white">
+            <div className="flex flex-col justify-between p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[5px] font-semibold uppercase tracking-[0.16em] text-white/60">Core proposition</span>
+                <span className="h-2.5 w-2.5 rounded-full bg-white/90" />
               </div>
-              <div className="grid h-8 w-8 place-items-center rounded-full border border-white/35 bg-white/10 text-[9px]">↗</div>
+              <div>
+                <div className="max-w-[15ch] text-[13px] font-semibold leading-[1.08]">Clear positioning. Strong proof. Direct enquiry.</div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {services.slice(0, 2).map((service, index) => (
+                    <div key={service} className="border-t border-white/25 pt-2">
+                      <div className="text-[5px] text-white/50">0{index + 1}</div>
+                      <div className="mt-1 text-[6px] font-semibold">{service}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 border-t border-white/20 bg-[#173ea8]">
+              <div className="border-r border-white/20 px-3 py-2 text-[5.5px] font-semibold">Trust</div>
+              <div className="px-3 py-2 text-[5.5px] font-semibold">Action</div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 border-t border-[#cfc9bd] bg-[#ece7dc]">
+        <div className="grid grid-cols-3 border-t border-slate-200 bg-[#f1f5f9]">
           {["Positioning", "Credibility", "Conversion"].map((item, index) => (
-            <div key={item} className="border-r border-[#cfc9bd] px-4 py-2 last:border-r-0">
+            <div key={item} className="border-r border-slate-200 px-4 py-2 last:border-r-0">
               <div className="text-[5px] font-semibold" style={{ color: model.primary }}>0{index + 1}</div>
               <div className="mt-1 text-[6px] font-semibold text-slate-700">{item}</div>
             </div>
@@ -713,7 +704,7 @@ export function TemplatePreviewThumbnail({
         <>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-slate-950/15 to-transparent" />
           <span className="pointer-events-none absolute bottom-2 left-2 bg-white/94 px-2 py-1 text-[6px] font-bold uppercase tracking-[0.08em] text-slate-600 shadow-sm backdrop-blur">
-            {failed ? `${FAMILY_LABELS[model.family]} direction` : FAMILY_LABELS[model.family]}
+            {failed ? "Preview" : FAMILY_LABELS[model.family]}
           </span>
         </>
       ) : null}
