@@ -622,11 +622,15 @@ export function WebsiteRenderer({
   useEffect(() => {
     if (businessId) {
       if (businessId === "preview") {
+        const previewName =
+          initialData?.seo?.title?.split("|")[0]?.trim() ||
+          website?.seo?.title?.split("|")[0]?.trim() ||
+          "Business Website";
         setBusinessInfo({
-          name: "Blueprint Demo",
-          industry: "Industry Standard",
-          business_nature: "Professional Services",
-          location: "Premium Location",
+          name: previewName,
+          industry: initialData?.seo?.businessType || website?.seo?.businessType || "Professional Services",
+          business_nature: initialData?.seo?.brandVoice || website?.seo?.brandVoice || "Professional Services",
+          location: initialData?.seo?.placename || website?.seo?.placename || "",
         });
         return;
       }
@@ -656,7 +660,7 @@ export function WebsiteRenderer({
     if (refCode && businessId) {
       localStorage.setItem(`ref_${businessId}`, refCode);
     }
-  }, [businessId, location.search]);
+  }, [businessId, location.search, initialData, website?.seo?.title, website?.seo?.businessType, website?.seo?.brandVoice, website?.seo?.placename]);
 
   useEffect(() => {
     const fetchComplianceSettings = async () => {

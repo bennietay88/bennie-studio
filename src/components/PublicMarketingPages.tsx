@@ -987,6 +987,24 @@ function GeneratePreviewPage() {
     };
   });
 
+  React.useEffect(() => {
+    setGenerated(false);
+    setGeneratedWebsite(null);
+    setPreviewExpanded(false);
+  }, [
+    form.businessName,
+    form.location,
+    form.mainService,
+    form.websiteUrl,
+    form.websiteStatus,
+    form.phone,
+    form.email,
+    form.brandStyle,
+    form.socialUrl,
+    form.reviews,
+    form.biggestProblem,
+  ]);
+
   const industry = previewIndustries.find((item) => item.id === industryId) || previewIndustries[0];
   const businessLabel = form.businessName.trim() || "your business";
   const locationLabel = form.location.trim() || "your service area";
@@ -1356,7 +1374,7 @@ function GeneratePreviewPage() {
       <section className="mx-auto max-w-7xl px-5 pb-16">
         <div className={`min-w-0 overflow-hidden rounded-[2rem] border p-6 shadow-sm ${generated ? "border-indigo-200 bg-white" : "border-dashed border-slate-300 bg-slate-50"}`}>
           {generated ? (
-            <div className="grid min-w-0 gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="grid min-w-0 gap-8">
               <div className="min-w-0">
                 <div className="mb-4 flex flex-wrap gap-2">
                   <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Preview generated</Badge>
