@@ -97,60 +97,99 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   const pendingPrice = pendingProduct ? getCommercialPrice(pendingProduct, activeMarket) : null;
   const pendingMonthly = pendingPrice?.monthlyPrice || 0;
   const dueToday = pendingPrice?.billingInterval === "one_time" ? (pendingPrice?.monthlyPrice || 0) : ((pendingPrice?.setupFee || 0) + (billingCycle === "monthly" ? pendingMonthly : (pendingPrice?.annualPrice || 0)));
+  const planSet = [
+    [managed, managedPrice, "Professional presence"],
+    [growth, growthPrice, "Active acquisition"],
+    [premium, premiumPrice, "Ongoing growth"],
+  ] as const;
+
+  const comparisonRows = [
+    ["Website management", ["Included", "Included", "Included"]],
+    ["Conversion optimisation", ["Foundation", "Monthly", "Advanced"]],
+    ["Local SEO", ["Foundation", "Expansion", "Ongoing"]],
+    ["Landing pages", ["Limited", "Included", "Included"]],
+    ["Growth support", ["—", "Limited", "Ongoing"]],
+  ];
+
   return <div className={cn("mx-auto max-w-6xl px-5", hideIntro ? "pb-10 pt-2 sm:pb-14" : "py-14 sm:py-20")}>
     {!hideIntro && (
       <div className="grid gap-8 border-b border-slate-300 pb-10 lg:grid-cols-12 lg:items-end">
         <div className="lg:col-span-8">
-          <p className="text-xs font-bold uppercase tracking-[0.1em] text-indigo-600">Managed website plans</p>
-          <h2 className={cn("mt-4 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Choose the level of website management your business actually needs.</h2>
-          <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Each plan combines setup with an ongoing managed service. Pricing below follows your selected market.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">Managed website plans</p>
+          <h2 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Choose the level of website support your business needs.</h2>
+          <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Start with the website itself, then add conversion, SEO and ongoing growth support when it makes sense.</p>
         </div>
         <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">{COMMERCIAL_MARKETS[activeMarket].label} · {COMMERCIAL_MARKETS[activeMarket].currency} · 12-month initial commitment</p>
       </div>
     )}
 
-    <div className="mt-2 border-t border-slate-300">
-      {[[managed, managedPrice, "Best starting point"], [growth, growthPrice, "Most popular"], [premium, premiumPrice, "For deeper growth"]].map(([product, price, label]: any, index) => (
-        <motion.section key={product.slug} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }} className="grid gap-6 border-b border-slate-300 py-8 lg:grid-cols-[1.7fr_1fr_1fr_auto] lg:items-center">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-indigo-600">{label}</p>
-            <h3 className="mt-2 text-2xl font-bold text-slate-950">{product.name}</h3>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{product.description}</p>
-            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-              {outcomes.slice(0, index === 0 ? 3 : 4).map((item) => <li key={item} className="flex gap-2 text-sm font-semibold text-slate-700"><Check className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />{item}</li>)}
-            </ul>
-          </div>
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">Setup</p>
-            <p className="mt-2 text-xl font-bold text-slate-950">{formatCommercialMoney(price?.setupFee, price?.currency || "MYR")}</p>
-          </div>
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">Monthly</p>
-            <p className="mt-2 text-2xl font-bold text-slate-950">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-semibold text-slate-500">/month</span></p>
-            <p className="mt-2 text-xs leading-5 text-slate-500">Setup + first month due at checkout when self-serve checkout is available.</p>
-          </div>
-          <Button onClick={() => handleSelect(product)} className="min-h-12 min-w-44 bg-slate-950 px-5 font-bold text-white hover:bg-indigo-600">{price?.monthlyConfigured ? "Choose plan" : "Discuss plan"} <ArrowRight className="ml-2 h-4 w-4" /></Button>
-        </motion.section>
-      ))}
+    <div className="mt-8 overflow-x-auto">
+      <table className="w-full min-w-[820px] border-collapse text-left">
+        <thead>
+          <tr className="border-b border-slate-300">
+            <th className="py-4 pr-5 text-sm font-semibold text-slate-600">Plan</th>
+            {planSet.map(([product, price, bestFor], index) => (
+              <th key={product.slug} className={cn("px-5 py-5 align-top", index === 1 && "bg-indigo-50/60")}>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">{index === 1 ? "Most popular" : bestFor}</p>
+                <h3 className="mt-2 text-2xl font-semibold text-slate-950">{product.name}</h3>
+                <p className="mt-3 text-sm font-normal leading-6 text-slate-600">{product.description}</p>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="border-b border-slate-300">
+            <th className="py-5 pr-5 text-sm font-semibold text-slate-600">Monthly</th>
+            {planSet.map(([product, price], index) => (
+              <td key={product.slug} className={cn("px-5 py-5 align-top", index === 1 && "bg-indigo-50/60")}>
+                <p className="text-3xl font-semibold text-slate-950">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-slate-500">/month</span></p>
+                <p className="mt-1 text-sm text-slate-500">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
+              </td>
+            ))}
+          </tr>
+          <tr className="border-b border-slate-300">
+            <th className="py-4 pr-5 text-sm font-semibold text-slate-600">Best for</th>
+            {planSet.map(([product, price, bestFor], index) => <td key={product.slug} className={cn("px-5 py-4 text-sm text-slate-600", index === 1 && "bg-indigo-50/60")}>{bestFor}</td>)}
+          </tr>
+          {comparisonRows.map(([label, values]: any) => (
+            <tr key={label} className="border-b border-slate-300">
+              <th className="py-4 pr-5 text-sm font-semibold text-slate-600">{label}</th>
+              {values.map((value: string, index: number) => <td key={index} className={cn("px-5 py-4 text-sm text-slate-600", index === 1 && "bg-indigo-50/60")}>{value}</td>)}
+            </tr>
+          ))}
+          <tr>
+            <th className="py-6 pr-5"></th>
+            {planSet.map(([product, price], index) => (
+              <td key={product.slug} className={cn("px-5 py-6", index === 1 && "bg-indigo-50/60")}>
+                <Button onClick={() => handleSelect(product)} className="min-h-12 w-full bg-slate-950 px-5 font-semibold text-white hover:bg-indigo-600">{price?.monthlyConfigured ? "Choose plan" : "Discuss plan"} <ArrowRight className="ml-2 h-4 w-4" /></Button>
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <section className="mt-10 border-t border-slate-300 pt-8 text-slate-700" aria-label="Before you choose">
-      <h3 className="text-2xl font-bold text-slate-950">Know exactly what you are buying</h3>
-      <p className="mt-3 max-w-3xl leading-7">The website is designed to help visitors understand your services and contact you. Advertising, guaranteed rankings, guaranteed leads and guaranteed sales are not included unless separately scoped.</p>
-      <div className="mt-7 grid gap-6 md:grid-cols-2">
-        {[
-          ["Domain ownership", "If you already own your domain, it remains yours. Any managed registration or transfer arrangement is confirmed in writing before payment."],
-          ["Monthly service", "Managed hosting, SSL, maintenance, plan-based updates, enquiry infrastructure and the tracking or improvement work included in your plan."],
-          ["Support and turnaround", "Response targets, update allowance, revision scope and expected turnaround are confirmed in writing before payment."],
-          ["Commitment and transfer", "Managed plans have a 12-month initial commitment. Renewal, cancellation, export and transfer arrangements are confirmed in the written terms."],
-        ].map(([title, body]) => <div key={title} className="border-t border-slate-200 pt-4"><p className="font-bold text-slate-950">{title}</p><p className="mt-2 text-sm leading-6 text-slate-600">{body}</p></div>)}
+    <section className="mt-12 grid gap-8 border-t border-slate-300 pt-8 lg:grid-cols-12" aria-label="What fees cover">
+      <div className="lg:col-span-4">
+        <h3 className="text-2xl font-semibold text-slate-950">Know exactly what you are buying.</h3>
+        <p className="mt-3 leading-7 text-slate-600">Advertising, guaranteed rankings, guaranteed leads and guaranteed sales are not included unless separately scoped.</p>
       </div>
-      <Button variant="outline" className="mt-7" onClick={() => navigate(`/book-demo?market=${activeMarket}`)}>Discuss my scope first</Button>
+      <div className="grid gap-6 md:grid-cols-2 lg:col-span-8">
+        {[
+          ["Setup fee", "Strategy, content structure, design, development, tracking and launch setup."],
+          ["Monthly service", "Hosting, SSL, maintenance, updates, analytics and the optimisation included in your plan."],
+          ["Domain ownership", "If you already own your domain, it remains yours. Any managed transfer is confirmed before payment."],
+          ["Commitment and transfer", "Managed plans have a 12-month initial commitment. Renewal, cancellation and export arrangements are covered in the written terms."],
+        ].map(([title, body]) => <div key={title} className="border-t border-slate-200 pt-4"><p className="font-semibold text-slate-950">{title}</p><p className="mt-2 text-sm leading-6 text-slate-600">{body}</p></div>)}
+      </div>
+      <div className="lg:col-start-5 lg:col-span-8">
+        <Button variant="outline" onClick={() => navigate("/book-demo?market=" + activeMarket)}>Discuss my scope first</Button>
+      </div>
     </section>
 
-    {currentPlan && <p className="mt-8 text-center text-xs font-bold text-slate-500">Current account entitlement: {currentPlan}. Existing subscriptions remain on their original plan.</p>}
+    {currentPlan && <p className="mt-8 text-center text-xs font-semibold text-slate-500">Current account entitlement: {currentPlan}. Existing subscriptions remain on their original plan.</p>}
 
-    {pendingProduct && pendingPrice && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Order summary"><div className="w-full max-w-lg rounded-xl bg-white p-7 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.1em] text-indigo-600">Order summary</p><h3 className="mt-2 text-2xl font-bold text-slate-950">{pendingProduct.name}</h3></div><button onClick={() => setPendingProduct(null)} className="text-2xl leading-none text-slate-400" aria-label="Close">×</button></div><div className="mt-6 space-y-3 border-y border-slate-200 py-5 text-sm font-bold text-slate-700"><div className="flex justify-between"><span>Market / currency</span><span>{COMMERCIAL_MARKETS[activeMarket].label} · {pendingPrice.currency}</span></div><div className="flex justify-between"><span>Setup fee</span><span>{formatCommercialMoney(pendingPrice.setupFee || 0, pendingPrice.currency)}</span></div><div className="flex justify-between"><span>First month</span><span>{formatCommercialMoney(billingCycle === "monthly" ? pendingMonthly : (pendingPrice.annualPrice || 0), pendingPrice.currency)}</span></div><div className="flex justify-between border-t border-slate-200 pt-3 text-slate-950"><span>Due today</span><span>{formatCommercialMoney(dueToday, pendingPrice.currency)}</span></div></div><p className="mt-4 text-xs leading-5 text-slate-500">Your first payment includes the one-time setup fee and the first month of managed service.</p><Button onClick={() => { const product = pendingProduct; setPendingProduct(null); void startCheckout(product); }} className="mt-6 min-h-12 w-full bg-indigo-600 font-bold text-white hover:bg-indigo-500">Continue to secure checkout <ArrowRight className="ml-2 h-4 w-4" /></Button></div></div>}
+    {pendingProduct && pendingPrice && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Order summary"><div className="w-full max-w-lg rounded-xl bg-white p-7 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">Order summary</p><h3 className="mt-2 text-2xl font-semibold text-slate-950">{pendingProduct.name}</h3></div><button onClick={() => setPendingProduct(null)} className="text-2xl leading-none text-slate-400" aria-label="Close">×</button></div><div className="mt-6 space-y-3 border-y border-slate-200 py-5 text-sm font-semibold text-slate-700"><div className="flex justify-between"><span>Market / currency</span><span>{COMMERCIAL_MARKETS[activeMarket].label} · {pendingPrice.currency}</span></div><div className="flex justify-between"><span>Setup fee</span><span>{formatCommercialMoney(pendingPrice.setupFee || 0, pendingPrice.currency)}</span></div><div className="flex justify-between"><span>First month</span><span>{formatCommercialMoney(billingCycle === "monthly" ? pendingMonthly : (pendingPrice.annualPrice || 0), pendingPrice.currency)}</span></div><div className="flex justify-between border-t border-slate-200 pt-3 text-slate-950"><span>Due today</span><span>{formatCommercialMoney(dueToday, pendingPrice.currency)}</span></div></div><p className="mt-4 text-xs leading-5 text-slate-500">Your first payment includes the one-time setup fee and the first month of managed service.</p><Button onClick={() => { const product = pendingProduct; setPendingProduct(null); void startCheckout(product); }} className="mt-6 min-h-12 w-full bg-indigo-600 font-semibold text-white hover:bg-indigo-500">Continue to secure checkout <ArrowRight className="ml-2 h-4 w-4" /></Button></div></div>}
   </div>;
 };
 export default Pricing;
