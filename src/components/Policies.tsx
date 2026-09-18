@@ -19,6 +19,7 @@ import { supabase } from "@/src/lib/supabase";
 import ReactMarkdown from "react-markdown";
 import { Helmet } from "react-helmet-async";
 import { DEFAULT_POLICIES } from "../constants/defaultPolicies";
+import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 
 interface PolicyPageProps {
   type:
@@ -140,66 +141,33 @@ export function PolicyPage({ type }: PolicyPageProps) {
   }
 
   return (
-    <div className="brand-public min-h-screen bg-[#f7f6f2] py-20 px-4">
+    <div className="brand-public min-h-screen bg-[#f7f6f2] text-[#141821]">
       <Helmet>
         <title>{policy.title} | Bennie Studio</title>
-        <meta
-          name="description"
-          content={`${policy.title} for Bennie Studio managed website customers and visitors.`}
-        />
-        <link
-          rel="canonical"
-          href={`${window.location.origin}${window.location.pathname}`}
-        />
+        <meta name="description" content={`${policy.title} for Bennie Studio managed website customers and visitors.`} />
+        <link rel="canonical" href={`${window.location.origin}${window.location.pathname}`} />
       </Helmet>
-      <div className="max-w-4xl mx-auto">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-8 gap-2 text-slate-500 hover:text-indigo-600"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Home
-        </Button>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 overflow-hidden border border-slate-100"
-        >
-          <div className="bg-indigo-600 p-12 text-white text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(to_right,#ffffff10_1px,transparent_1px),linear-gradient(to_bottom,#ffffff10_1px,transparent_1px)] bg-[size:20px_20px]" />
-            <Icon className="h-16 w-16 mx-auto mb-6 relative z-10 text-white" />
-            <h1 className="text-4xl font-black mb-2 relative z-10 text-white">
-              {policy.title}
-            </h1>
-            <p className="text-white selection:bg-white/30 relative z-10 opacity-90">
-              Reliable Compliance Infrastructure Powered by Bennie Studio
-            </p>
+      <PublicSiteHeader />
+      <main>
+        <section className="border-b border-[#d9d7d0]">
+          <div className="brand-shell py-14 sm:py-18">
+            <p className="brand-kicker">Legal & policy</p>
+            <h1 className="mt-4">{policy.title}</h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-[#5f6673]">This document explains the terms, data handling or platform rules that apply to Bennie Studio visitors and managed website customers.</p>
           </div>
-
-          <div className="p-12 md:p-16">
-            <div className="prose prose-slate max-w-none prose-headings:font-black prose-headings:text-black prose-p:text-black prose-p:text-lg prose-p:leading-relaxed prose-li:text-black prose-li:text-lg prose-strong:text-black prose-strong:font-bold prose-h2:border-b prose-h2:pb-4 prose-h2:mt-12">
+        </section>
+        <section className="brand-shell py-12 sm:py-16">
+          <article className="mx-auto max-w-4xl">
+            <div className="prose prose-slate max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-p:text-base prose-p:leading-8 prose-li:text-base prose-li:leading-8 prose-h2:mt-12 prose-h2:border-b prose-h2:border-[#d9d7d0] prose-h2:pb-3">
               <ReactMarkdown>{policy.content}</ReactMarkdown>
             </div>
-
-            <div className="mt-16 pt-10 border-t border-slate-100 flex flex-col items-center gap-6">
-              <div className="flex items-center gap-2 font-bold text-indigo-600">
-                <Globe className="h-5 w-5" />
-                <span>Bennie Studio</span>
-              </div>
-              <div className="text-center space-y-2">
-                <p className="text-sm text-slate-400">
-                  Legal Department & Platform Compliance
-                </p>
-                <p className="text-xs text-slate-300">
-                  © {new Date().getFullYear()} Bennie Studio. All rights
-                  reserved.
-                </p>
-              </div>
+            <div className="mt-14 border-t border-[#d9d7d0] pt-6 text-sm text-[#5f6673]">
+              <p>Bennie Studio · Legal and platform compliance</p>
+              {policy.updatedAt ? <p className="mt-1">Last updated: {new Date(policy.updatedAt).toLocaleDateString()}</p> : null}
             </div>
-          </div>
-        </motion.div>
-      </div>
+          </article>
+        </section>
+      </main>
+      <PublicSiteFooter />
     </div>
-  );
-}
+  );}
