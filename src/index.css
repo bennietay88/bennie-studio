@@ -368,3 +368,105 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
+
+/* Generated customer websites: universal mobile guardrails.
+   Keeping these rules at the renderer boundary protects existing and future
+   customer sites from desktop-only widths, oversized type, and media overflow. */
+.bt-website-renderer {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.bt-website-renderer *,
+.bt-website-renderer *::before,
+.bt-website-renderer *::after {
+  box-sizing: border-box;
+}
+
+.bt-website-renderer .grid > *,
+.bt-website-renderer .flex > * {
+  min-width: 0;
+}
+
+.bt-website-renderer img,
+.bt-website-renderer video,
+.bt-website-renderer canvas,
+.bt-website-renderer svg {
+  max-width: 100%;
+}
+
+.bt-website-renderer iframe {
+  width: 100%;
+  max-width: 100%;
+}
+
+.bt-website-renderer h1,
+.bt-website-renderer h2,
+.bt-website-renderer h3,
+.bt-website-renderer h4,
+.bt-website-renderer p,
+.bt-website-renderer li,
+.bt-website-renderer a,
+.bt-website-renderer button {
+  overflow-wrap: anywhere;
+}
+
+.bt-website-renderer pre,
+.bt-website-renderer code {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.bt-website-renderer table {
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  .bt-website-renderer {
+    --bt-mobile-edge: 1rem;
+  }
+
+  .bt-website-renderer [class*="min-w-["] {
+    min-width: 0 !important;
+  }
+
+  .bt-website-renderer [class*="w-["] {
+    max-width: 100%;
+  }
+
+  .bt-website-renderer h1 {
+    font-size: clamp(2.1rem, 10vw, 3.35rem) !important;
+    line-height: 1.04 !important;
+    letter-spacing: -0.035em !important;
+  }
+
+  .bt-website-renderer h2 {
+    font-size: clamp(1.75rem, 8vw, 2.6rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  .bt-website-renderer h3 {
+    font-size: clamp(1.2rem, 5.5vw, 1.65rem) !important;
+    line-height: 1.18 !important;
+  }
+
+  .bt-website-renderer button,
+  .bt-website-renderer a {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .bt-website-renderer [class*="px-12"],
+  .bt-website-renderer [class*="px-16"],
+  .bt-website-renderer [class*="px-20"] {
+    padding-left: var(--bt-mobile-edge) !important;
+    padding-right: var(--bt-mobile-edge) !important;
+  }
+
+  .bt-website-renderer [class*="gap-14"],
+  .bt-website-renderer [class*="gap-16"],
+  .bt-website-renderer [class*="gap-20"] {
+    gap: 2rem !important;
+  }
+}

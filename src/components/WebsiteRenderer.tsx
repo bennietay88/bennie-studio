@@ -1443,7 +1443,7 @@ export function WebsiteRenderer({
         data-motion-profile={theme.motionProfile || designProfile.motion}
         data-image-profile={theme.imageProfile || designProfile.imageTreatment}
         className={cn(
-          "bt-website-renderer min-h-screen flex flex-col transition-colors duration-500",
+          "bt-website-renderer min-h-screen w-full max-w-full overflow-x-hidden flex flex-col transition-colors duration-500",
           theme.style === "glassmorphic" || theme.style === "immersive"
             ? "bg-slate-950 text-white"
             : "bg-white text-slate-900",
@@ -1940,7 +1940,7 @@ export function WebsiteRenderer({
                 <Button className="h-11 rounded-none px-6 text-[10px] font-black uppercase tracking-[0.18em]" onClick={() => handleButtonAction("Contact Us")}>Get in touch</Button>
               </div>
 
-              <Button variant="ghost" size="icon" className="h-11 w-11 rounded-none lg:hidden" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+              <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-none lg:hidden" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
                 <span className="sr-only">{isMobileMenuOpen ? "Close Menu" : "Open Menu"}</span>
                 <div className="space-y-1.5"><span className="block h-px w-6 bg-slate-950" /><span className="block h-px w-6 bg-slate-950" /><span className="block h-px w-4 bg-slate-950" /></div>
               </Button>
@@ -1981,7 +1981,7 @@ export function WebsiteRenderer({
                 setSelectedPost(null);
                 scrollPreviewToTop();
               }}
-              className="group flex items-center gap-3 focus:outline-none"
+              className="group flex min-w-0 items-center gap-3 focus:outline-none"
             >
               <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20 group-hover:scale-110 transition-transform">
                 {theme.logoUrl ? (
@@ -1998,7 +1998,7 @@ export function WebsiteRenderer({
               <div className="flex flex-col">
                 <span
                   className={cn(
-                    "text-xl font-bold tracking-tight group-hover:text-primary transition-colors text-slate-900",
+                    "max-w-[55vw] truncate text-xl font-bold tracking-tight group-hover:text-primary transition-colors text-slate-900 sm:max-w-none",
                     (theme.style === "luxury_dark" ||
                       theme.style === "immersive") &&
                       "text-white",
@@ -2056,7 +2056,7 @@ export function WebsiteRenderer({
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-2xl h-12 w-12 hover:bg-slate-100"
+                className="h-12 w-12 shrink-0 rounded-2xl hover:bg-slate-100"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
                 <span className="sr-only">
