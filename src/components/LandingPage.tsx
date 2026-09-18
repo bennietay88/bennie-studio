@@ -459,15 +459,14 @@ export default function LandingPage() {
               variants={fadeInUp}
               className="mx-auto mb-4 max-w-[21rem] whitespace-normal break-words text-3xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:max-w-3xl sm:text-5xl lg:mx-0 lg:text-6xl"
             >
-              Your managed website team, without hiring one. Starting at{" "}
-              <span className="text-indigo-600">{managedBuildLabel}/month</span>
+              Turn your website into a managed lead-generation system.
             </motion.h1>
 
             <motion.p
               variants={fadeInUp}
               className="mx-auto mb-8 max-w-[21rem] whitespace-normal break-words text-base font-semibold leading-relaxed text-slate-700 sm:max-w-3xl sm:text-xl lg:mx-0"
             >
-              We plan, build, host, manage and improve a conversion-focused website around your offer and the enquiries you want.
+              We plan, build, host, manage and improve a conversion-focused website to turn more visitors into calls, WhatsApp conversations and qualified enquiries. Starting at{" "}<span className="text-indigo-600">{managedBuildLabel}/month</span>.
             </motion.p>
 
             {c.hero.valueProp && (
@@ -494,7 +493,7 @@ export default function LandingPage() {
                   onClick={() => trackAndNavigate("/generate-preview", "Hero Generate Free Website Preview", "click_generate_preview")}
                   className="gap-3 h-12 sm:h-14 px-10 sm:px-12 text-lg sm:text-lg shadow-2xl shadow-indigo-200 bg-indigo-600 hover:bg-indigo-700 transition-all w-full sm:w-auto rounded-2xl font-black uppercase tracking-widest"
                 >
-                  CHOOSE YOUR WEBSITE PACKAGE <ArrowRight className="h-6 w-6" />
+                  GET MY FREE WEBSITE PREVIEW <ArrowRight className="h-6 w-6" />
                 </Button>
               </motion.div>
               <motion.div
@@ -508,7 +507,7 @@ export default function LandingPage() {
                   onClick={() => trackAndNavigate("/book-demo", "Hero 30-Minute Review", "click_book_call")}
                   className="h-12 sm:h-14 px-10 sm:px-12 text-lg sm:text-lg w-full sm:w-auto rounded-2xl border-2 hover:bg-slate-50 transition-all shadow-lg shadow-slate-200/50 bg-white font-black uppercase tracking-widest text-indigo-600"
                 >
-                  {c.hero.ctaSecondary}
+                  BOOK 30-MINUTE REVIEW
                 </Button>
               </motion.div>
             </motion.div>

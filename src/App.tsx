@@ -332,6 +332,9 @@ export default function App() {
     "/pricing",
     "/how-it-works",
     "/case-studies",
+    "/dental-clinics",
+    "/privacy",
+    "/terms",
     "/website-audit",
     "/generate-preview",
     "/blog",
@@ -444,6 +447,7 @@ export default function App() {
               <Route path="/pricing" element={<PublicMarketingPages />} />
               <Route path="/how-it-works" element={<PublicMarketingPages />} />
               <Route path="/case-studies" element={<PublicMarketingPages />} />
+              <Route path="/dental-clinics" element={<PublicMarketingPages />} />
               <Route path="/examples" element={<Navigate to="/case-studies" replace />} />
               <Route path="/examples." element={<Navigate to="/case-studies" replace />} />
               <Route path="/website-audit" element={<PublicMarketingPages />} />

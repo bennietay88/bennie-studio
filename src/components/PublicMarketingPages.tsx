@@ -51,6 +51,7 @@ type PublicPageKind =
   | "case-studies"
   | "website-audit"
   | "generate-preview"
+  | "dental-clinics"
   | "clinic-website-design-malaysia"
   | "renovation-contractor-website-design"
   | "beauty-salon-website-design"
@@ -88,6 +89,11 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
     title: "See Your Website Direction | Bennie Studio",
     description:
       "See a tailored managed website direction based on your business type, location, services, reviews, and preferred enquiry goal.",
+  },
+  "dental-clinics": {
+    title: "Dental Clinic Website Design Malaysia | More Patient Enquiries",
+    description:
+      "Dental clinic websites built around treatment pages, patient trust, Google visibility, WhatsApp enquiries, calls, and appointment requests.",
   },
   "clinic-website-design-malaysia": {
     title: "Clinic Website Design Malaysia | Appointment Enquiry Websites",
@@ -192,6 +198,13 @@ const deliveryStages = [
 
 const caseStudies = [
   {
+    title: "Dental clinic appointment website", templateId: "dental-clinic-v1", industryId: "clinic", industry: "Dental clinics", type: "Patient enquiries", image: "/brand-template-preview.svg",
+    challenge: "Patients need to compare treatments, trust, location, reviews, and the next appointment step before contacting a clinic.",
+    strategy: "Lead with treatment intent, show clinic and practitioner trust early, answer common questions, and keep WhatsApp, call, and appointment CTAs visible.",
+    outcome: "An illustrative patient journey designed to move high-intent visitors into an appointment conversation.",
+    delivered: ["Treatment structure", "Trust sections", "Local SEO direction", "Appointment CTA"], href: "/preview/template/dental-clinic-v1",
+  },
+  {
     title: "Cleaning quote website", templateId: "cleaning-company-v1", industryId: "cleaning", industry: "Cleaning companies", type: "Quote requests", image: "/brand-template-preview.svg",
     challenge: "Customers need to know whether you cover their area and type of cleaning before requesting a quote.",
     strategy: "Explain service scope, show real reviews, and ask for property type, location, frequency and preferred date.",
@@ -250,6 +263,7 @@ const industrySalesStarts = [
 const nichePages: Record<
   Extract<
     PublicPageKind,
+    | "dental-clinics"
     | "clinic-website-design-malaysia"
     | "renovation-contractor-website-design"
     | "beauty-salon-website-design"
@@ -268,6 +282,18 @@ const nichePages: Record<
     sections: string[];
   }
 > = {
+  "dental-clinics": {
+    label: "Dental clinic lead websites",
+    title: "Dental Websites Built to Turn Google Visitors Into Patient Enquiries",
+    subtitle:
+      "For dental clinics that want clearer treatment pages, stronger patient trust, local search visibility, and a faster path into WhatsApp, calls, or appointment requests.",
+    positioning: "Patient-enquiry websites for dental clinics in Malaysia.",
+    pain: "Patients compare treatments, reviews, dentist credibility, location, pricing confidence, and booking convenience before choosing a clinic.",
+    promise: "We structure your dental website around the treatments you want to grow, the proof patients need, and the shortest path from Google search to an appointment conversation.",
+    cta: "Get My Free Dental Website Preview",
+    leadCapture: "WhatsApp enquiry, appointment form, phone call, treatment-specific CTA, and local SEO landing pages.",
+    sections: ["Appointment-focused hero", "Treatment pages", "Dentist and clinic trust", "Patient reviews", "Treatment FAQs", "Location and map", "WhatsApp and appointment CTAs"],
+  },
   "clinic-website-design-malaysia": {
     label: "Clinic lead websites",
     title: "Clinic Websites Built to Increase Patient Enquiries",
@@ -412,7 +438,7 @@ function Hero({
   title,
   copy,
   icon: Icon,
-  primaryLabel = "Generate My Website Preview",
+  primaryLabel = "Get My Free Website Preview",
   primaryHref = "/generate-preview",
   secondaryLabel,
   secondaryHref,
@@ -651,10 +677,19 @@ function CaseStudiesPage() {
         title="Website demonstrations built around buyer journeys"
         copy="Explore working examples that show the business challenge, website strategy, enquiry path, and page structure for service-led businesses."
         icon={Sparkles}
-        primaryLabel="See My Website Direction"
+        primaryLabel="Get My Free Website Preview"
         primaryHref="/generate-preview"
       />
       <FocusIndustries />
+      <section className="mx-auto max-w-7xl px-5 pt-8">
+        <div className="flex flex-col gap-4 rounded-[2rem] border border-emerald-200 bg-emerald-50 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-700">Live portfolio</p>
+            <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-emerald-950">Want to inspect real work rather than demonstration concepts? Open Bennie Studio’s portfolio in a new tab.</p>
+          </div>
+          <a href="https://portfolio.bennietay.com" target="_blank" rel="noreferrer" className={secondaryCtaClass}>View Live Portfolio <ExternalLink className="ml-2 h-4 w-4" /></a>
+        </div>
+      </section>
       <section className="mx-auto max-w-7xl px-5 py-14">
         {verifiedProof.length ? <div className="mb-10 rounded-[2rem] bg-slate-950 p-6 text-white sm:p-8">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Customer outcomes</p>
@@ -1021,7 +1056,7 @@ function GeneratePreviewPage() {
         secondaryHref="/book-demo"
         copy={`${PUBLIC_PROMISE} Share a short business brief and see the recommended structure before deciding whether to work with us.`}
         icon={Sparkles}
-        primaryLabel="Start My Preview"
+        primaryLabel="Get My Free Website Preview"
         primaryHref="#preview-brief"
       />
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr]">
@@ -1074,6 +1109,14 @@ function GeneratePreviewPage() {
               placeholder="Email for your preview"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="h-12 rounded-2xl"
+            />
+            <Input
+              aria-label="WhatsApp or phone"
+              required
+              placeholder="WhatsApp / phone for follow-up"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
               className="h-12 rounded-2xl"
             />
             <Input
@@ -1772,6 +1815,7 @@ function PreviewRequestPanel() {
     email: "",
     phone: "",
     businessName: "",
+    websiteUrl: "",
     industry: "",
     message: "",
   });
@@ -1818,8 +1862,9 @@ function PreviewRequestPanel() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Input aria-label="Name" required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-12 rounded-2xl" />
             <Input aria-label="Email" required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl" />
-            <Input aria-label="WhatsApp or phone" placeholder="WhatsApp / phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl" />
+            <Input aria-label="WhatsApp or phone" required placeholder="WhatsApp / phone (required)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl" />
             <Input aria-label="Business name" placeholder="Business name" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-2xl" />
+            <Input aria-label="Current website URL" placeholder="Current website URL (optional if you do not have one)" value={form.websiteUrl} onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
             <Input aria-label="Industry" placeholder="Industry" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
           </div>
           <Textarea aria-label="Message" placeholder="Main service, city, and what the website should help them get." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="min-h-28 rounded-2xl" />
@@ -1879,7 +1924,7 @@ export default function PublicMarketingPages() {
               }}
               className="h-auto min-h-10 w-full whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-black uppercase tracking-widest sm:w-auto"
             >
-              See My Website Direction <ArrowRight className="ml-2 h-4 w-4" />
+              Get My Free Website Preview <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button
               onClick={() => {

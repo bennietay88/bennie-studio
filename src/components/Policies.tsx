@@ -95,7 +95,17 @@ export function PolicyPage({ type }: PolicyPageProps) {
         }
       } catch (err) {
         console.error("Error fetching policy:", err);
-        setError(true);
+        const defaultPolicy = DEFAULT_POLICIES.find((p) => p.slug === slug);
+        if (defaultPolicy) {
+          setPolicy({
+            title: defaultPolicy.title,
+            content: defaultPolicy.content,
+            updatedAt: new Date().toLocaleDateString(),
+          });
+          setError(false);
+        } else {
+          setError(true);
+        }
       } finally {
         setLoading(false);
       }
