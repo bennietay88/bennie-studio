@@ -902,6 +902,18 @@ const resolvePreviewCta = (goal: string) => {
   return "Request a Consultation";
 };
 
+const inferPreviewIndustryId = (service: string): string | null => {
+  const value = service.toLowerCase();
+  if (/dent|tooth|teeth|extraction|implant|orthodont|braces|clinic|medical|health|physio|chiro/.test(value)) return "clinic";
+  if (/tuition|school|class|student|education|course|lesson|learning|tutor/.test(value)) return "education";
+  if (/clean|maid|housekeep|janitor/.test(value)) return "cleaning";
+  if (/renov|contractor|roof|plumb|electric|build|construction|repair/.test(value)) return "contractor";
+  if (/account|bookkeep|tax|audit|payroll|finance/.test(value)) return "accounting";
+  if (/salon|beauty|aesthetic|spa|facial|hair|skin/.test(value)) return "beauty";
+  if (/consult|coach|advis|strategy/.test(value)) return "consultant";
+  return null;
+};
+
 
 function GeneratePreviewPage() {
   const navigate = useNavigate();
@@ -910,14 +922,12 @@ function GeneratePreviewPage() {
   const initialIndustry = initialParams.get("industry") || previewIndustries[0].id;
   const explicitTemplateId = initialParams.get("template");
   const [industryId, setIndustryId] = React.useState(previewIndustries.some((item) => item.id === initialIndustry) ? initialIndustry : previewIndustries[0].id);
-  const selectedTemplateId = explicitTemplateId && industryId === initialIndustry
-    ? explicitTemplateId
-    : previewTemplateIds[industryId] || "service-pro-v1";
   const initialGoal = initialParams.get("goal") || previewGoals[0];
   const [goal, setGoal] = React.useState(previewGoals.includes(initialGoal) ? initialGoal : previewGoals[0]);
   const [generated, setGenerated] = React.useState(false);
   const [generatedWebsite, setGeneratedWebsite] = React.useState<Website | null>(null);
   const [previewExpanded, setPreviewExpanded] = React.useState(false);
+  const [previewDevice, setPreviewDevice] = React.useState<"desktop" | "mobile">("desktop");
   const [generating, setGenerating] = React.useState(false);
   const [error, setError] = React.useState("");
   const [form, setForm] = React.useState(() => {
@@ -942,6 +952,11 @@ function GeneratePreviewPage() {
       biggestProblem: String(initialParams.get("problem") || ""),
     };
   });
+  const inferredIndustryId = inferPreviewIndustryId(form.mainService);
+  const effectiveIndustryId = inferredIndustryId || industryId;
+  const selectedTemplateId = explicitTemplateId && effectiveIndustryId === initialIndustry
+    ? explicitTemplateId
+    : previewTemplateIds[effectiveIndustryId] || "service-pro-v1";
 
   React.useEffect(() => {
     setGenerated(false);
@@ -961,7 +976,7 @@ function GeneratePreviewPage() {
     form.biggestProblem,
   ]);
 
-  const industry = previewIndustries.find((item) => item.id === industryId) || previewIndustries[0];
+  const industry = previewIndustries.find((item) => item.id === effectiveIndustryId) || previewIndustries[0];
   const businessLabel = form.businessName.trim() || "your business";
   const locationLabel = form.location.trim() || "your service area";
   const serviceLabel = form.mainService.trim() || "your main service";
@@ -983,7 +998,7 @@ function GeneratePreviewPage() {
     reviews: form.reviews,
   });
   const commercialRecommendation = recommendCommercialProduct({ goal, notes: form.mainService, industry: industry.label });
-  const previewGenerationMode = resolvePreviewGenerationMode(industryId, form.brandStyle, form.websiteStatus);
+  const previewGenerationMode = resolvePreviewGenerationMode(effectiveIndustryId, form.brandStyle, form.websiteStatus);
   const previewBrandPersonality = resolvePreviewBrandPersonality(form.brandStyle);
   const previewBusinessMaturity: BusinessMaturity = form.websiteStatus === "yes" ? "established" : "growing";
   const generatedDesignQuality = React.useMemo(
@@ -1041,7 +1056,7 @@ function GeneratePreviewPage() {
         .split(/[,/\n]+/)
         .map((service) => service.trim())
         .filter(Boolean);
-      const targetCustomer = previewTargetCustomers[industryId] || "customers";
+      const targetCustomer = previewTargetCustomers[effectiveIndustryId] || "customers";
       const previewCta = resolvePreviewCta(goal);
       const blueprintInput: BlueprintBusinessInput = {
         businessName: form.businessName.trim(),
@@ -1098,7 +1113,7 @@ function GeneratePreviewPage() {
       localStorage.setItem("bt_preview_intent", JSON.stringify({
         ...form,
         previewId,
-        industryId,
+        industryId: effectiveIndustryId,
         industry: industry.label,
         goal,
         recommendedProduct: commercialRecommendation.slug,
@@ -1179,333 +1194,151 @@ function GeneratePreviewPage() {
 
   return (
     <>
-      <Hero
-        title="See a website direction built around your business"
-        secondaryLabel="Talk to Bennie first"
-        secondaryHref="/book-demo"
-        copy={`${PUBLIC_PROMISE} Share a short business brief and see the recommended structure before deciding whether to work with us.`}
-        icon={Sparkles}
-        primaryLabel="Get My Free Website Preview"
-        primaryHref="#preview-brief"
-      />
-      <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-600">Step 1</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-950">Choose the business type</h2>
-          <div className="mt-6 grid gap-3">
-            {[...previewIndustries.filter((item) => ["cleaning", "education", "accounting"].includes(item.id)), ...previewIndustries.filter((item) => !["cleaning", "education", "accounting", "contractor"].includes(item.id))].map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => selectIndustry(item.id)}
-                className={`rounded-2xl border p-4 text-left transition ${
-                  industryId === item.id
-                    ? "border-indigo-500 bg-indigo-50 text-indigo-950"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:bg-slate-50"
-                }`}
-              >
-                <span className="block text-sm font-bold">{item.label}</span>
-                <span className="mt-1 block text-xs font-semibold text-slate-500">{item.template}</span>
-              </button>
-            ))}
-          </div>
+      <section className="border-b border-[#d8d9dc] bg-[#f7f6f2]">
+        <div className="brand-shell py-12 sm:py-16">
+          <p className="brand-kicker">Free website preview</p>
+          <h1 className="mt-4">See a website direction built around your business.</h1>
+          <p className="brand-copy mt-5">Give us the essentials. The generator will lock the site to the right business family, structure the buyer journey and render the actual website direction.</p>
         </div>
+      </section>
 
-        <form id="preview-brief" onSubmit={generatePreview} className="min-w-0 scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-600">Step 2</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-950">Add the basic brief</h2>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <Input
-              aria-label="Your name"
-              required
-              placeholder="Your name"
-              value={form.contactName}
-              onChange={(e) => setForm({ ...form, contactName: e.target.value })}
-              className="h-12 rounded-2xl"
-            />
-            <Input
-              aria-label="Business name"
-              required
-              placeholder="Business name"
-              value={form.businessName}
-              onChange={(e) => setForm({ ...form, businessName: e.target.value })}
-              className="h-12 rounded-2xl"
-            />
-            <Input
-              aria-label="Email"
-              required
-              type="email"
-              placeholder="Email for your preview"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="h-12 rounded-2xl"
-            />
-            <Input
-              aria-label="WhatsApp or phone"
-              required
-              placeholder="WhatsApp / phone for follow-up"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="h-12 rounded-2xl"
-            />
-            <Input
-              aria-label="City or area served"
-              required
-              placeholder="City / area served"
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
-              className="h-12 rounded-2xl"
-            />
-            <Input
-              aria-label="Main services"
-              required
-              placeholder="Main services"
-              value={form.mainService}
-              onChange={(e) => setForm({ ...form, mainService: e.target.value })}
-              className="h-12 rounded-2xl"
-            />
-            <Input
-              aria-label="Current website URL"
-              required={form.websiteStatus === "yes"}
-              placeholder={form.websiteStatus === "yes" ? "Current website URL" : "Current website URL (optional)"}
-              value={form.websiteUrl}
-              onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })}
-              className="h-12 rounded-2xl"
-            />
-            <select
-              aria-label="Do you currently have a website?"
-              value={form.websiteStatus}
-              onChange={(e) => setForm({ ...form, websiteStatus: e.target.value, websiteUrl: e.target.value === "no" ? "" : form.websiteUrl })}
-              className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700"
-            >
-              <option value="yes">I have a website</option>
-              <option value="no">I do not have a website yet</option>
-            </select>
-            <select
-              aria-label="Biggest website problem"
-              required
-              value={form.biggestProblem}
-              onChange={(e) => setForm({ ...form, biggestProblem: e.target.value })}
-              className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700"
-            >
-              <option value="">Biggest website problem</option>
-              {previewProblems.map((problem) => <option key={problem} value={problem}>{problem}</option>)}
-            </select>
+      <section id="preview-brief" className="brand-shell brand-section">
+        <form onSubmit={generatePreview} className="grid gap-10 lg:grid-cols-12">
+          <div className="lg:col-span-4">
+            <p className="brand-kicker">Business brief</p>
+            <h2 className="mt-4">Start with what the customer needs to understand.</h2>
+            <p className="brand-copy mt-5">Advanced brand details and reviews are optional. The first preview should not require a questionnaire marathon.</p>
           </div>
-          <details className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <summary className="cursor-pointer text-sm font-bold text-slate-800">Add brand details and customer reviews <span className="font-semibold text-slate-500">(optional)</span></summary>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <select aria-label="Preferred brand style" value={form.brandStyle} onChange={(e) => setForm({ ...form, brandStyle: e.target.value })} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 sm:col-span-2">
-                {["Modern professional", "Premium corporate", "Friendly local business", "Bold sales landing page", "Clean minimal", "Luxury premium"].map((style) => <option key={style}>{style}</option>)}
-              </select>
-              <Input aria-label="Google Business or social profile URL" placeholder="Google Business / social profile URL" value={form.socialUrl} onChange={(e) => setForm({ ...form, socialUrl: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
-              <Textarea aria-label="Customer reviews" placeholder="Paste real customer reviews, one per line." value={form.reviews} onChange={(e) => { setGenerated(false); setForm({ ...form, reviews: e.target.value }); }} className="min-h-28 rounded-2xl sm:col-span-2" />
+
+          <div className="grid gap-5 lg:col-span-8">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Business type</label>
+                <select value={industryId} onChange={(e) => selectIndustry(e.target.value)} className="h-12 w-full border border-[#d8d9dc] bg-white px-4">
+                  {previewIndustries.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Main service</label>
+                <Input required value={form.mainService} onChange={(e) => setForm({...form, mainService:e.target.value})} placeholder="e.g. Teeth extraction" className="h-12" />
+                {inferredIndustryId && inferredIndustryId !== industryId ? <p className="mt-2 text-sm text-[#5746e8]">Service detected as {previewIndustries.find((item) => item.id === inferredIndustryId)?.label}. The preview will use that website family.</p> : null}
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Business name</label>
+                <Input required value={form.businessName} onChange={(e) => setForm({...form, businessName:e.target.value})} placeholder="Business name" className="h-12" />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Location</label>
+                <Input required value={form.location} onChange={(e) => setForm({...form, location:e.target.value})} placeholder="City / area served" className="h-12" />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Primary goal</label>
+                <select value={goal} onChange={(e) => selectGoal(e.target.value)} className="h-12 w-full border border-[#d8d9dc] bg-white px-4">
+                  {previewGoals.map((item) => <option key={item}>{item}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Current website</label>
+                <select value={form.websiteStatus} onChange={(e) => setForm({...form, websiteStatus:e.target.value, websiteUrl:e.target.value==="no"?"":form.websiteUrl})} className="h-12 w-full border border-[#d8d9dc] bg-white px-4">
+                  <option value="yes">I have a website</option>
+                  <option value="no">No website yet</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Your name</label>
+                <Input required value={form.contactName} onChange={(e) => setForm({...form, contactName:e.target.value})} placeholder="Your name" className="h-12" />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold">Email</label>
+                <Input required type="email" value={form.email} onChange={(e) => setForm({...form, email:e.target.value})} placeholder="Email for your preview" className="h-12" />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold">WhatsApp / phone</label>
+                <Input required value={form.phone} onChange={(e) => setForm({...form, phone:e.target.value})} placeholder="Phone number" className="h-12" />
+              </div>
+              {form.websiteStatus === "yes" ? (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold">Website URL</label>
+                  <Input required value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://..." className="h-12" />
+                </div>
+              ) : null}
             </div>
-            {reviewQuality.suggestions.length > 0 && form.reviews.trim() ? <p className="mt-4 text-xs font-bold leading-5 text-slate-600">Tip: {reviewQuality.suggestions[0]}</p> : null}
-          </details>
-          <div className="mt-6">
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Website goal</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {previewGoals.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => selectGoal(item)}
-                  className={`rounded-2xl border px-4 py-3 text-left text-sm font-bold transition ${
-                    goal === item ? "border-indigo-500 bg-indigo-50 text-indigo-950" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
+
+            <details className="border-t border-[#d8d9dc] pt-5">
+              <summary className="cursor-pointer font-semibold">Optional: brand style, reviews and extra context</summary>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <select value={form.brandStyle} onChange={(e)=>setForm({...form,brandStyle:e.target.value})} className="h-12 border border-[#d8d9dc] bg-white px-4 sm:col-span-2">
+                  {["Modern professional","Premium corporate","Friendly local business","Bold sales landing page","Clean minimal","Luxury premium"].map((style)=><option key={style}>{style}</option>)}
+                </select>
+                <Input value={form.socialUrl} onChange={(e)=>setForm({...form,socialUrl:e.target.value})} placeholder="Google Business / social URL" className="h-12 sm:col-span-2" />
+                <Textarea value={form.reviews} onChange={(e)=>setForm({...form,reviews:e.target.value})} placeholder="Paste real customer reviews, one per line." className="min-h-28 sm:col-span-2" />
+                <select value={form.biggestProblem} onChange={(e)=>setForm({...form,biggestProblem:e.target.value})} className="h-12 border border-[#d8d9dc] bg-white px-4 sm:col-span-2">
+                  <option value="">Biggest website problem (optional)</option>
+                  {previewProblems.map((problem)=><option key={problem}>{problem}</option>)}
+                </select>
+              </div>
+            </details>
+
+            {error ? <div className="border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{error}</div> : null}
+            <Button type="submit" disabled={generating} className="min-h-12 w-full bg-[#141821] font-semibold text-white hover:bg-[#5746e8] sm:w-auto sm:px-7">
+              {generating ? "Building your website direction..." : "Generate my preview"} <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
-          {error && <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</div>}
-          <Button type="submit" disabled={generating} className="mt-7 h-auto min-h-12 w-full whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-bold uppercase tracking-widest hover:bg-indigo-500">
-            {generating ? "Preparing Preview..." : "Generate My Free Website Preview"} <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
         </form>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 pb-16">
-        <div className={`min-w-0 overflow-hidden rounded-xl border p-6 shadow-sm ${generated ? "border-indigo-200 bg-white" : "border-dashed border-slate-300 bg-slate-50"}`}>
-          {generated ? (
-            <div className="grid min-w-0 gap-8">
-              <div className="min-w-0">
-                <div className="mb-4 flex flex-wrap gap-2">
-                  <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Preview generated</Badge>
-                  <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">Website direction</Badge>
+      {generating ? (
+        <section className="border-y border-[#d8d9dc] bg-white">
+          <div className="brand-shell py-12">
+            <p className="brand-kicker">Building your website direction</p>
+            <div className="mt-6 grid gap-4 md:grid-cols-4">
+              {["Understanding the business","Selecting the layout family","Structuring the buyer journey","Preparing the preview"].map((step,index)=>(
+                <div key={step} className="border-t border-[#d8d9dc] pt-4">
+                  <span className="text-sm font-semibold text-[#5746e8]">0{index+1}</span>
+                  <p className="mt-2 font-semibold">{step}</p>
                 </div>
-                <h2 className="text-3xl font-bold text-slate-950">{previewTitle}</h2>
-                <p className="mt-4 text-base font-semibold leading-7 text-slate-600">
-                  Recommended for {serviceLabel} in {locationLabel}. The site should lead with a clear {goal.toLowerCase()} path,
-                  then support the buyer with proof, service clarity, FAQs, and local relevance.
-                </p>
-	                <div className="relative mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
-	                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-100 px-4 py-3">
-	                    <div className="flex min-w-0 items-center gap-2">
-	                      <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-rose-400"/>
-	                      <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400"/>
-	                      <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400"/>
-	                      <span className="ml-2 truncate text-xs font-bold text-slate-500">Real generated preview · {businessLabel}</span>
-	                    </div>
-	                    <div className="flex items-center gap-2">
-	                      <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">{previewGenerationMode === "brand_led" ? "Brand-led" : "Premium"}</Badge>
-	                      {generatedDesignQuality ? <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Design {generatedDesignQuality.score}/100</Badge> : null}
-	                    </div>
-	                  </div>
-	                  <div
-	                    className={`${previewExpanded ? "max-h-[88vh]" : "max-h-[760px]"} overflow-y-auto overscroll-contain bg-white transition-[max-height] duration-300`}
-	                    style={{ containerType: "inline-size" }}
-	                  >
-	                    {generatedWebsite ? (
-	                      <React.Suspense fallback={<div className="grid min-h-[36rem] place-items-center bg-white text-sm font-bold text-slate-500">Rendering your website...</div>}>
-	                        <PublicWebsiteRenderer initialData={generatedWebsite} />
-	                      </React.Suspense>
-	                    ) : null}
-	                  </div>
-	                </div>
-	                <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  {[
-                    ["Business diagnosis", form.biggestProblem ? `Your main opportunity is ${form.biggestProblem.toLowerCase()}.` : "Clarify the highest-priority enquiry opportunity."],
-                    ["Recommended product", commercialRecommendation.label],
-                    ["Primary CTA", reviewStrategy.primaryCta],
-                    ["Template direction", industry.template],
-                    ["Local SEO focus", `${serviceLabel} in ${locationLabel}`],
-	                  ].map(([label, value]) => (
-	                    <div key={label} className="rounded-2xl bg-slate-50 p-4">
-	                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
-	                      <p className="mt-2 text-sm font-bold text-slate-950">{value}</p>
-		                </div>
-	                  ))}
-	                </div>
-	                <details className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-	                  <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.18em] text-slate-600">What this preview includes</summary>
-	                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
-	                    {FREE_PREVIEW_LIMITS.map((limit) => (
-	                      <div key={limit} className="flex gap-2 text-sm font-bold text-slate-700">
-	                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
-	                        {limit}
-	                      </div>
-	                    ))}
-	                  </div>
-                    <p className="mt-4 text-xs font-bold leading-5 text-slate-600">
-	                    Full onboarding, manual production work, publishing, and custom domain setup begin only after payment or an approved commercial commitment.
-	                  </p>
-	                </details>
-                <div className="mt-6 grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-3xl bg-indigo-50 p-5">
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Trust signals to use</p>
-                    <div className="mt-4 space-y-2">
-                      {reviewStrategy.trustSignals.map((signal) => (
-                        <div key={signal} className="flex gap-2 text-sm font-bold text-slate-700">
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                          {signal}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="rounded-3xl bg-slate-50 p-5">
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Local keywords</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {reviewStrategy.intelligence.localKeywords.map((keyword) => (
-                        <span key={keyword} className="rounded-full bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm">
-                          {keyword}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-5">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">FAQs this website should answer</p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {reviewStrategy.intelligence.faqs.map((faq) => (
-                      <div key={faq} className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
-                        {faq}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                  <Button
-                    onClick={() => {
-                      const target = `/pricing?product=${encodeURIComponent(commercialRecommendation.slug)}&preview=1`;
-                      trackPublicEvent({ eventType: "preview_plan_cta_clicked", label: commercialRecommendation.label, target, metadata: { previewId: (() => { try { return JSON.parse(localStorage.getItem("bt_preview_intent") || "{}").previewId || null; } catch { return null; } })(), industry: industry.label } });
-                      navigate(target);
-                    }}
-                    className="h-auto min-h-10 whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-bold uppercase tracking-widest hover:bg-indigo-500"
-                  >
-                    Start with {commercialRecommendation.label} <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                  <Button onClick={() => action("click_book_call_after_preview", "Book Website Review", "/book-demo")} className="h-auto min-h-10 whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-bold uppercase tracking-widest hover:bg-indigo-500">
-                    Book My 30-Minute Review <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setPreviewExpanded((value) => !value);
-                      trackPublicEvent({ eventType: "real_preview_resized", label: previewExpanded ? "Compact preview" : "Expand preview", target: "/generate-preview", metadata: { generationMode: previewGenerationMode } });
-                    }}
-                    variant="outline" className="rounded-2xl font-bold uppercase tracking-widest"
-                  >
-                    {previewExpanded ? "Compact Preview" : "Expand Real Preview"}
-                  </Button>
-                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {generated && generatedWebsite ? (
+        <section className="border-y border-[#d8d9dc] bg-white">
+          <div className="brand-shell py-10">
+            <div className="flex flex-col gap-5 border-b border-[#d8d9dc] pb-5 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="brand-kicker">Generated website</p>
+                <h2 className="mt-2">{businessLabel}</h2>
+                <p className="mt-2 text-[#526071]">{industry.label} · {locationLabel} · {previewGenerationMode === "brand_led" ? "Brand-led direction" : "Premium direction"}</p>
               </div>
-              <div className="min-w-0 rounded-xl bg-slate-950 p-6 text-white">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-200">Suggested content sections</p>
-                <p className="mt-3 text-sm leading-6 text-slate-300">These can be sections on one page. The final page count and features are confirmed in your written scope.</p>
-                <div className="mt-5 grid gap-3">
-                  {(generatedWebsite?.pages.map((page) => page.title) || industry.pages).map((page, index) => (
-                    <div key={page} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold">{index + 1}</span>
-                      <span className="text-sm font-bold text-slate-100">{page}</span>
-                    </div>
-                  ))}
-                </div>
-	                <div className="mt-6 grid grid-cols-2 gap-2">
-	                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-	                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-indigo-200">Design mode</p>
-	                    <p className="mt-2 text-sm font-bold text-white">{previewGenerationMode === "brand_led" ? "Brand-led" : "Premium"}</p>
-	                  </div>
-	                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-	                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-indigo-200">QA score</p>
-	                    <p className="mt-2 text-sm font-bold text-white">{generatedDesignQuality?.score ?? "—"}/100</p>
-	                  </div>
-	                </div>
-	                <p className="mt-6 text-xs font-bold uppercase tracking-[0.22em] text-indigo-200">Trust and enquiry sections</p>
-                <div className="mt-4 grid gap-2">
-                  {industry.sections.map((section) => (
-                    <div key={section} className="flex gap-2 text-sm font-semibold text-slate-200">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
-                      {section}
-                    </div>
-                  ))}
-                </div>
-	                <div className="mt-6 rounded-2xl bg-white p-4 text-slate-950">
-	                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Proof to collect</p>
-	                  <p className="mt-2 text-sm font-bold leading-6">{industry.proof}</p>
-	                </div>
-	                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-	                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-200">Confirm scope before payment</p>
-	                  <div className="mt-3 space-y-2">
-	                    {["Review the proposed content and enquiry path with Bennie", "Agree page count, updates, delivery schedule and commercial terms in writing", "Complete the agreed payment before production work begins", "Provide approved business content, reviews and domain details", "Review and approve the finished website before launch"].map((step) => (
-	                      <p key={step} className="text-xs font-semibold leading-5 text-slate-300">{step}</p>
-	                    ))}
-	                  </div>
-	                </div>
-	              </div>
+              <div className="flex flex-wrap gap-2">
+                {(["desktop","mobile"] as const).map((device)=>(
+                  <button key={device} type="button" onClick={()=>setPreviewDevice(device)} className={previewDevice===device ? "border border-[#5746e8] bg-[#5746e8] px-4 py-2 text-sm font-semibold text-white" : "border border-[#d8d9dc] bg-white px-4 py-2 text-sm font-semibold"}>{device==="desktop"?"Desktop":"Mobile"}</button>
+                ))}
+                <button type="button" onClick={()=>setPreviewExpanded((value)=>!value)} className="border border-[#d8d9dc] bg-white px-4 py-2 text-sm font-semibold">{previewExpanded?"Compact":"Expand preview"}</button>
+              </div>
             </div>
-          ) : (
-            <div className="py-14 text-center">
-              <ClipboardCheck className="mx-auto mb-4 h-12 w-12 rounded-2xl bg-white p-3 text-indigo-600 shadow-sm" />
-              <h2 className="text-2xl font-bold text-slate-950">Your preview recommendation will appear here.</h2>
-              <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
-                Enter your email to unlock the tailored direction. We’ll use it only to send the preview and relevant next steps.
-              </p>
+
+            <div className={(previewDevice==="mobile" ? "max-w-[430px] " : "max-w-full ") + (previewExpanded ? "max-h-[90vh] " : "max-h-[850px] ") + "bt-static-preview mx-auto mt-6 overflow-y-auto border border-[#d8d9dc] bg-white transition-all"}>
+              <React.Suspense fallback={<div className="grid min-h-[40rem] place-items-center text-[#526071]">Rendering website…</div>}>
+                <PublicWebsiteRenderer initialData={generatedWebsite} />
+              </React.Suspense>
             </div>
-          )}
-        </div>
-      </section>
+
+            <div className="mt-7 flex flex-col gap-3 border-t border-[#d8d9dc] pt-6 sm:flex-row">
+              <Button onClick={() => action("click_book_call_after_preview","Book Website Review","/book-demo")} className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]">Book 30-minute review</Button>
+              <Button variant="outline" onClick={() => navigate("/pricing?product=" + encodeURIComponent(commercialRecommendation.slug) + "&preview=1")} className="min-h-12 px-6 font-semibold">View recommended plan</Button>
+            </div>
+          </div>
+        </section>
+      ) : !generating ? (
+        <section className="border-y border-[#d8d9dc] bg-white">
+          <div className="brand-shell py-10 text-center">
+            <p className="text-[#526071]">Your real website preview will appear here after you submit the brief.</p>
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }
