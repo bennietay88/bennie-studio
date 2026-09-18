@@ -520,14 +520,20 @@ const buildSectionContent = (
   const location = input.location || "your area";
   const cta = input.ctaPreference || pageBlueprint.ctaType || "Get Started";
   const tone = input.tone || "Professional";
+  const serviceLead = service.charAt(0).toUpperCase() + service.slice(1);
+  const premiumHeroHeadline = `${serviceLead} for ${target}`;
 
   if (section.type === "hero") {
     section.content = {
       ...section.content,
       headline:
         pageBlueprint.slug === ""
-          ? `${businessName} for ${target}`
-          : `${pageBlueprint.name} Built Around ${service}`,
+          ? input.generationMode === "fast"
+            ? `${businessName} for ${target}`
+            : premiumHeroHeadline
+          : input.generationMode === "fast"
+            ? `${pageBlueprint.name} Built Around ${service}`
+            : pageBlueprint.name,
       subheadline:
         input.description ||
         `${tone} ${service} in ${location}, designed to help ${target} take the next step with confidence.`,

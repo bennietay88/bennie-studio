@@ -1428,7 +1428,7 @@ export function WebsiteRenderer({
     <HelmetProvider>
       <div
         ref={rendererRootRef}
-        style={{ fontFamily: theme.fontFamily || "Inter, sans-serif" }}
+        style={{ fontFamily: theme.fontFamily || "Inter, sans-serif", containerType: "inline-size" }}
         data-design-profile={designProfile.id}
         data-generation-mode={generationMode}
         data-motion-profile={theme.motionProfile || designProfile.motion}
@@ -2470,7 +2470,7 @@ export function WebsiteRenderer({
                               <p className="text-[10px] font-black uppercase tracking-[0.32em] text-slate-500">{displayBusinessDescriptor}</p>
                             </motion.div>
                             <motion.div variants={fadeInUp} className="max-w-[78rem] py-16">
-                              <h1 className="text-[clamp(3.8rem,9.5vw,9.5rem)] font-semibold leading-[0.84] tracking-[-0.065em] text-slate-950" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                              <h1 className="max-w-full break-words text-[clamp(2.8rem,7cqw,7.2rem)] font-semibold leading-[0.92] tracking-[-0.05em] text-slate-950 [text-wrap:balance]" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
                                 {section.content.headline || displayBusinessName}
                               </h1>
                               <div className="mt-10 grid gap-8 border-t border-slate-300 pt-8 md:grid-cols-12">
@@ -2511,7 +2511,7 @@ export function WebsiteRenderer({
                           <div className="relative mx-auto flex min-h-[78vh] max-w-[90rem] items-end px-6 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
                             <motion.div variants={fadeInUp} className="max-w-5xl">
                               <p className="mb-6 text-[10px] font-black uppercase tracking-[0.34em] text-white/55">{displayBusinessDescriptor}</p>
-                              <h1 className="text-[clamp(3.5rem,8vw,8rem)] font-semibold leading-[0.88] tracking-[-0.06em]" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                              <h1 className="max-w-full break-words text-[clamp(2.8rem,6.5cqw,6.8rem)] font-semibold leading-[0.92] tracking-[-0.05em] [text-wrap:balance]" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
                                 {section.content.headline || displayBusinessName}
                               </h1>
                               <div className="mt-9 flex max-w-3xl flex-col gap-8 border-t border-white/20 pt-7 sm:flex-row sm:items-end sm:justify-between">
@@ -2548,7 +2548,7 @@ export function WebsiteRenderer({
                               {displayBusinessDescriptor}
                             </p>
                             <h1
-                              className="max-w-4xl text-[clamp(3rem,7vw,7.2rem)] font-semibold leading-[0.9] tracking-[-0.055em]"
+                              className="max-w-4xl break-words text-[clamp(2.7rem,6cqw,6.4rem)] font-semibold leading-[0.94] tracking-[-0.045em] [text-wrap:balance]"
                               style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
                             >
                               {section.content.headline || displayBusinessName}
@@ -2623,7 +2623,7 @@ export function WebsiteRenderer({
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="max-w-full break-words text-[clamp(2.35rem,9cqw,6rem)] font-bold leading-[0.95] tracking-normal"
+                            className="max-w-full break-words text-[clamp(2.35rem,7cqw,5.6rem)] font-bold leading-[1.02] tracking-[-0.02em] [text-wrap:balance]"
                           >
                             {(
                               section.content.headline ||

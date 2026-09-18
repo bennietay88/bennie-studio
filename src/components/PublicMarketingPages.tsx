@@ -28,6 +28,19 @@ import {
   buildReviewWebsiteStrategy,
   assessManualReviewInput,
 } from "../constants/reviewPoweredWaas";
+import {
+  buildPagesFromBlueprint,
+  getBlueprintSeo,
+  getBlueprintTheme,
+  type BlueprintBusinessInput,
+} from "../constants/pageBlueprints";
+import { evaluateGeneratedDesign } from "../lib/designQa";
+import type {
+  BrandPersonality,
+  BusinessMaturity,
+  Website,
+  WebsiteGenerationMode,
+} from "../types";
 import { FocusIndustries } from "./FocusIndustries";
 import { Pricing as CommercialPricing } from "./Pricing";
 import { trackPinterestLead } from "../lib/pinterestTracking";
@@ -58,6 +71,10 @@ type PublicPageKind =
   | "tuition-centre-website-design"
   | "consultant-website-design";
 type PricingMarket = "MY" | "SG" | "GB" | "US";
+
+const PublicWebsiteRenderer = React.lazy(() =>
+  import("./WebsiteRenderer").then((module) => ({ default: module.WebsiteRenderer })),
+);
 
 const pageMeta: Record<PublicPageKind, { title: string; description: string }> = {
   templates: {
@@ -873,6 +890,62 @@ const previewProblems = [
   "No clear CTA", "Other",
 ];
 
+const previewTemplateIds: Record<string, string> = {
+  cleaning: "cleaning-company-v1",
+  accounting: "accounting-firm-v1",
+  "local-service": "service-pro-v1",
+  clinic: "dental-clinic-v1",
+  contractor: "renovation-contractor-v1",
+  consultant: "corporate-v1",
+  education: "tuition-centre-v1",
+  beauty: "salon-spa-v1",
+};
+
+const previewTargetCustomers: Record<string, string> = {
+  cleaning: "homes and businesses",
+  accounting: "business owners",
+  "local-service": "local customers",
+  clinic: "patients",
+  contractor: "homeowners and property teams",
+  consultant: "businesses ready to move forward",
+  education: "parents and students",
+  beauty: "clients",
+};
+
+const resolvePreviewBrandPersonality = (brandStyle: string): BrandPersonality => {
+  const value = brandStyle.toLowerCase();
+  if (value.includes("luxury")) return "elegant";
+  if (value.includes("bold")) return "bold";
+  if (value.includes("friendly")) return "friendly";
+  if (value.includes("premium") || value.includes("corporate")) return "premium";
+  if (value.includes("minimal")) return "professional";
+  return "professional";
+};
+
+const resolvePreviewGenerationMode = (
+  industryId: string,
+  brandStyle: string,
+  websiteStatus: string,
+): WebsiteGenerationMode => {
+  if (
+    ["consultant", "accounting"].includes(industryId) ||
+    websiteStatus === "yes" ||
+    /premium|corporate|luxury|bold/i.test(brandStyle)
+  ) {
+    return "brand_led";
+  }
+  return "premium";
+};
+
+const resolvePreviewCta = (goal: string) => {
+  const value = goal.toLowerCase();
+  if (value.includes("whatsapp")) return "WhatsApp Us";
+  if (value.includes("phone")) return "Call Us";
+  if (value.includes("booking")) return "Book a Consultation";
+  if (value.includes("quote") || value.includes("local service leads")) return "Request a Quote";
+  return "Request a Consultation";
+};
+
 
 function GeneratePreviewPage() {
   const navigate = useNavigate();
@@ -883,10 +956,12 @@ function GeneratePreviewPage() {
   const [industryId, setIndustryId] = React.useState(previewIndustries.some((item) => item.id === initialIndustry) ? initialIndustry : previewIndustries[0].id);
   const selectedTemplateId = explicitTemplateId && industryId === initialIndustry
     ? explicitTemplateId
-    : ({ cleaning: "cleaning-company-v1", accounting: "accounting-firm-v1", "local-service": "cleaning-company-v1", clinic: "dental-clinic-v1", contractor: "renovation-contractor-v1", consultant: "law-firm-v1", education: "tuition-centre-v1", beauty: "salon-spa-v1" } as Record<string, string>)[industryId] || "dental-clinic-v1";
+    : previewTemplateIds[industryId] || "service-pro-v1";
   const initialGoal = initialParams.get("goal") || previewGoals[0];
   const [goal, setGoal] = React.useState(previewGoals.includes(initialGoal) ? initialGoal : previewGoals[0]);
   const [generated, setGenerated] = React.useState(false);
+  const [generatedWebsite, setGeneratedWebsite] = React.useState<Website | null>(null);
+  const [previewExpanded, setPreviewExpanded] = React.useState(false);
   const [generating, setGenerating] = React.useState(false);
   const [error, setError] = React.useState("");
   const [form, setForm] = React.useState(() => {
@@ -934,6 +1009,13 @@ function GeneratePreviewPage() {
     reviews: form.reviews,
   });
   const commercialRecommendation = recommendCommercialProduct({ goal, notes: form.mainService, industry: industry.label });
+  const previewGenerationMode = resolvePreviewGenerationMode(industryId, form.brandStyle, form.websiteStatus);
+  const previewBrandPersonality = resolvePreviewBrandPersonality(form.brandStyle);
+  const previewBusinessMaturity: BusinessMaturity = form.websiteStatus === "yes" ? "established" : "growing";
+  const generatedDesignQuality = React.useMemo(
+    () => (generatedWebsite ? evaluateGeneratedDesign(generatedWebsite) : null),
+    [generatedWebsite],
+  );
 
   React.useEffect(() => {
     trackPublicEvent({ eventType: "start_preview_flow", label: "Generate Preview Page Loaded", target: "/generate-preview" });
@@ -942,6 +1024,7 @@ function GeneratePreviewPage() {
   const selectIndustry = (id: string) => {
     setIndustryId(id);
     setGenerated(false);
+    setGeneratedWebsite(null);
     const selected = previewIndustries.find((item) => item.id === id);
     trackPublicEvent({
       eventType: "select_industry",
@@ -954,6 +1037,7 @@ function GeneratePreviewPage() {
   const selectGoal = (value: string) => {
     setGoal(value);
     setGenerated(false);
+    setGeneratedWebsite(null);
     trackPublicEvent({ eventType: "select_website_goal", label: value, target: "/generate-preview" });
   };
 
@@ -973,6 +1057,70 @@ function GeneratePreviewPage() {
       const previewId = typeof existingPreview.previewId === "string" && existingPreview.previewId
         ? existingPreview.previewId
         : `preview_${globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
+
+      const previewTestimonials = form.reviews
+        .split(/\n+/)
+        .map((review) => review.trim())
+        .filter(Boolean)
+        .slice(0, 4);
+      const previewServices = form.mainService
+        .split(/[,/\n]+/)
+        .map((service) => service.trim())
+        .filter(Boolean);
+      const targetCustomer = previewTargetCustomers[industryId] || "customers";
+      const previewCta = resolvePreviewCta(goal);
+      const blueprintInput: BlueprintBusinessInput = {
+        businessName: form.businessName.trim(),
+        nicheId: selectedTemplateId,
+        nicheName: industry.label,
+        plan: "business",
+        maxPages: 5,
+        mainService: form.mainService.trim(),
+        targetCustomer,
+        location: form.location.trim(),
+        ctaPreference: previewCta,
+        tone: form.brandStyle,
+        services: previewServices.length ? previewServices : [form.mainService.trim()],
+        description: reviewStrategy.subheadline,
+        contactEmail: form.email.trim(),
+        contactPhone: form.phone.trim(),
+        whatsappNumber: goal.toLowerCase().includes("whatsapp") ? form.phone.trim() : undefined,
+        faqs: reviewStrategy.intelligence.faqs,
+        testimonials: previewTestimonials,
+        generationMode: previewGenerationMode,
+        brandPersonality: previewBrandPersonality,
+        businessMaturity: previewBusinessMaturity,
+        assetReadiness: "pending",
+      };
+
+      const previewTheme = getBlueprintTheme(selectedTemplateId, previewGenerationMode, {
+        brandPersonality: previewBrandPersonality,
+        businessMaturity: previewBusinessMaturity,
+        assetReadiness: "pending",
+      });
+      const previewSeo = getBlueprintSeo(blueprintInput);
+      const previewCandidates = [0, 1].map((compositionSeed) => {
+        const pages = buildPagesFromBlueprint({ ...blueprintInput, compositionSeed });
+        const website: Website = {
+          id: "preview",
+          businessId: "preview",
+          theme: previewTheme,
+          pages,
+          seo: previewSeo,
+          status: "draft",
+          updatedAt: Date.now(),
+        };
+        const quality = evaluateGeneratedDesign(website);
+        const rank =
+          quality.score +
+          quality.metrics.visualVariety * 0.25 +
+          quality.metrics.hierarchy * 0.15 +
+          quality.metrics.conversionClarity * 0.15 -
+          quality.metrics.aiTemplateRisk * 0.4;
+        return { website, quality, rank };
+      });
+      const selectedPreview = previewCandidates.sort((a, b) => b.rank - a.rank)[0];
+
       localStorage.setItem("bt_preview_intent", JSON.stringify({
         ...form,
         previewId,
@@ -986,6 +1134,11 @@ function GeneratePreviewPage() {
         source: initialParams.get("source") || "",
         campaign: initialParams.get("campaign") || initialParams.get("utm_campaign") || "",
         templateId: selectedTemplateId,
+        generationMode: previewGenerationMode,
+        brandPersonality: previewBrandPersonality,
+        businessMaturity: previewBusinessMaturity,
+        designScore: selectedPreview.quality.score,
+        designMetrics: selectedPreview.quality.metrics,
         reviewSuggestions: reviewQuality.suggestions,
         reviewStrategy: {
           heroHeadline: reviewStrategy.heroHeadline,
@@ -1023,6 +1176,8 @@ function GeneratePreviewPage() {
         leadId: leadResult?.leadId || null,
       }));
       trackPublicEvent({ eventType: "preview_lead_captured", label: previewTitle, target: "/generate-preview", metadata: { previewId, leadId: leadResult?.leadId || null } });
+      setGeneratedWebsite(selectedPreview.website);
+      setPreviewExpanded(false);
       setGenerated(true);
       trackPublicEvent({
         eventType: "preview_generated",
@@ -1212,21 +1367,31 @@ function GeneratePreviewPage() {
                   Recommended for {serviceLabel} in {locationLabel}. The site should lead with a clear {goal.toLowerCase()} path,
                   then support the buyer with proof, service clarity, FAQs, and local relevance.
                 </p>
-	                <div className="relative mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
-	                  <div className="pointer-events-none absolute right-4 top-14 z-10 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
-	                    Preview only
+	                <div className="relative mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
+	                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-100 px-4 py-3">
+	                    <div className="flex min-w-0 items-center gap-2">
+	                      <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-rose-400"/>
+	                      <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400"/>
+	                      <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400"/>
+	                      <span className="ml-2 truncate text-xs font-bold text-slate-500">Real generated preview · {businessLabel}</span>
+	                    </div>
+	                    <div className="flex items-center gap-2">
+	                      <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">{previewGenerationMode === "brand_led" ? "Brand-led" : "Premium"}</Badge>
+	                      {generatedDesignQuality ? <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Design {generatedDesignQuality.score}/100</Badge> : null}
+	                    </div>
 	                  </div>
-	                  <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-100 px-4 py-3"><span className="h-2.5 w-2.5 rounded-full bg-rose-400"/><span className="h-2.5 w-2.5 rounded-full bg-amber-400"/><span className="h-2.5 w-2.5 rounded-full bg-emerald-400"/><span className="ml-3 truncate text-xs font-bold text-slate-500">Preview · {businessLabel}</span></div>
-                  <div className="bg-slate-950 p-6 text-white sm:p-8">
-                    <div className="flex items-center justify-between gap-4"><p className="text-lg font-black">{businessLabel}</p><span className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black">{industry.cta}</span></div>
-                    <p className="mt-12 text-xs font-black uppercase tracking-[0.2em] text-indigo-200">{serviceLabel} · {locationLabel}</p>
-                    <h3 className="mt-3 max-w-xl text-3xl font-black leading-tight sm:text-5xl">{reviewStrategy.heroHeadline}</h3>
-                    <p className="mt-4 max-w-xl text-sm font-semibold leading-6 text-slate-300">{reviewStrategy.subheadline}</p>
-                    <div className="mt-6 flex flex-wrap gap-3"><span className="rounded-xl bg-white px-4 py-3 text-xs font-black text-slate-950">{reviewStrategy.primaryCta}</span><span className="rounded-xl border border-white/30 px-4 py-3 text-xs font-black">{reviewStrategy.secondaryCta}</span></div>
-                  </div>
-                  <div className="grid gap-3 p-5 sm:grid-cols-3">{industry.sections.slice(0, 3).map((section) => <div key={section} className="rounded-2xl bg-slate-50 p-4 text-sm font-black text-slate-800">{section}</div>)}</div>
-                </div>
-	                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+	                  <div
+	                    className={`${previewExpanded ? "max-h-[88vh]" : "max-h-[760px]"} overflow-y-auto overscroll-contain bg-white transition-[max-height] duration-300`}
+	                    style={{ containerType: "inline-size" }}
+	                  >
+	                    {generatedWebsite ? (
+	                      <React.Suspense fallback={<div className="grid min-h-[36rem] place-items-center bg-white text-sm font-bold text-slate-500">Rendering your website...</div>}>
+	                        <PublicWebsiteRenderer initialData={generatedWebsite} />
+	                      </React.Suspense>
+	                    ) : null}
+	                  </div>
+	                </div>
+	                <div className="mt-6 grid gap-3 sm:grid-cols-2">	                <div className="mt-6 grid gap-3 sm:grid-cols-2">
                   {[
                     ["Business diagnosis", form.biggestProblem ? `Your main opportunity is ${form.biggestProblem.toLowerCase()}.` : "Clarify the highest-priority enquiry opportunity."],
                     ["Recommended product", commercialRecommendation.label],
@@ -1303,13 +1468,12 @@ function GeneratePreviewPage() {
                   </Button>
                   <Button
                     onClick={() => {
-                      const params = new URLSearchParams({ business: form.businessName, city: form.location, service: form.mainService, cta: reviewStrategy.primaryCta });
-                      trackPublicEvent({ eventType: "personalized_template_opened", label: selectedTemplateId, target: `/preview/template/${selectedTemplateId}` });
-                      window.open(`/preview/template/${selectedTemplateId}?${params.toString()}`, "_blank", "noopener,noreferrer");
+                      setPreviewExpanded((value) => !value);
+                      trackPublicEvent({ eventType: "real_preview_resized", label: previewExpanded ? "Compact preview" : "Expand preview", target: "/generate-preview", metadata: { generationMode: previewGenerationMode } });
                     }}
                     variant="outline" className="rounded-2xl font-black uppercase tracking-widest"
                   >
-                    Open Full Preview
+                    {previewExpanded ? "Compact Preview" : "Expand Real Preview"}
                   </Button>
                 </div>
               </div>
@@ -1317,13 +1481,23 @@ function GeneratePreviewPage() {
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-200">Suggested content sections</p>
                 <p className="mt-3 text-sm leading-6 text-slate-300">These can be sections on one page. The final page count and features are confirmed in your written scope.</p>
                 <div className="mt-5 grid gap-3">
-                  {industry.pages.map((page, index) => (
+                  {(generatedWebsite?.pages.map((page) => page.title) || industry.pages).map((page, index) => (
                     <div key={page} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-black">{index + 1}</span>
                       <span className="text-sm font-bold text-slate-100">{page}</span>
                     </div>
                   ))}
                 </div>
+	                <div className="mt-6 grid grid-cols-2 gap-2">
+	                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+	                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-indigo-200">Design mode</p>
+	                    <p className="mt-2 text-sm font-black text-white">{previewGenerationMode === "brand_led" ? "Brand-led" : "Premium"}</p>
+	                  </div>
+	                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+	                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-indigo-200">QA score</p>
+	                    <p className="mt-2 text-sm font-black text-white">{generatedDesignQuality?.score ?? "—"}/100</p>
+	                  </div>
+	                </div>
 	                <p className="mt-6 text-xs font-black uppercase tracking-[0.22em] text-indigo-200">Trust and enquiry sections</p>
                 <div className="mt-4 grid gap-2">
                   {industry.sections.map((section) => (
