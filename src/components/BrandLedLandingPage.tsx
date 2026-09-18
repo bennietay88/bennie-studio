@@ -163,7 +163,7 @@ export default function BrandLedLandingPage() {
   const showCookieBanner = platformSettings?.salesCookieBannerEnabled !== false && (!consent || manageCookies);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#f7f6f2] text-[#10131c]">
+    <div className="brand-public min-h-screen overflow-x-hidden bg-[#f7f6f2] text-[#10131c]">
       <Helmet>
         <title>Bennie Studio | Premium Managed Websites for Service Businesses</title>
         <meta name="description" content="Brand-led, conversion-focused websites planned, built, hosted and continuously improved for service businesses that want stronger trust and more qualified enquiries." />
@@ -208,7 +208,7 @@ export default function BrandLedLandingPage() {
                 <span className="h-px w-12 bg-[#8b7cff]" />
                 Brand-led managed websites
               </div>
-              <h1 className="max-w-[13ch] text-[clamp(3.7rem,7.6vw,8.2rem)] font-semibold leading-[0.88] tracking-[-0.06em] [text-wrap:balance]">
+              <h1 className="max-w-[13ch] text-[clamp(2.7rem,5.2vw,4rem)] font-semibold leading-[1.02] tracking-[-0.06em] [text-wrap:balance]">
                 Websites that make small businesses look impossible to ignore.
               </h1>
               <div className="mt-10 grid max-w-4xl gap-8 border-t border-white/15 pt-8 md:grid-cols-12 md:items-end">
@@ -246,7 +246,7 @@ export default function BrandLedLandingPage() {
                   </div>
                   <div className="py-10">
                     <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#5b4bff]">Clear positioning</p>
-                    <p className="mt-4 max-w-[9ch] text-5xl font-semibold leading-[0.9] tracking-[-0.055em]">A stronger first impression.</p>
+                    <p className="mt-4 max-w-[9ch] text-5xl font-semibold leading-[1.04] tracking-[-0.055em]">A stronger first impression.</p>
                     <p className="mt-5 max-w-sm text-sm font-medium leading-6 text-black/55">Real customer assets, deliberate hierarchy and one clear enquiry path.</p>
                   </div>
                   <div className="grid gap-px bg-black/10 sm:grid-cols-3">
@@ -291,7 +291,7 @@ export default function BrandLedLandingPage() {
           <div className="grid gap-16 lg:grid-cols-12">
             <div className="lg:col-span-5">
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#5b4bff]">A different website model</p>
-              <h2 className="mt-5 max-w-[11ch] text-[clamp(2.8rem,5vw,5.3rem)] font-semibold leading-[0.95] tracking-[-0.055em] [text-wrap:balance]">
+              <h2 className="mt-5 max-w-[11ch] text-[clamp(2.2rem,3.8vw,3.4rem)] font-semibold leading-[0.95] tracking-[-0.055em] [text-wrap:balance]">
                 The website is treated like a sales system, not a design file.
               </h2>
               <p className="mt-7 max-w-xl text-lg font-medium leading-8 text-black/55">
@@ -320,7 +320,7 @@ export default function BrandLedLandingPage() {
             <div className="grid gap-8 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-7">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#5b4bff]">Design directions</p>
-                <h2 className="mt-5 max-w-[12ch] text-[clamp(2.8rem,5.4vw,5.8rem)] font-semibold leading-[0.94] tracking-[-0.055em] [text-wrap:balance]">One design system. Different art direction for every business.</h2>
+                <h2 className="mt-5 max-w-[12ch] text-[clamp(2.2rem,4vw,3.5rem)] font-semibold leading-[0.94] tracking-[-0.055em] [text-wrap:balance]">One design system. Different art direction for every business.</h2>
               </div>
               <p className="max-w-xl text-base font-medium leading-7 text-black/50 lg:col-span-5 lg:justify-self-end">
                 The generator can choose a composition around business maturity, brand personality and available customer assets instead of repainting the same template.
@@ -346,7 +346,7 @@ export default function BrandLedLandingPage() {
           <div className="mx-auto grid max-w-[90rem] lg:grid-cols-12">
             <div className="border-b border-[#bdb4fa] px-6 py-20 sm:px-10 lg:col-span-5 lg:border-b-0 lg:border-r lg:px-16 lg:py-28">
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#4338ca]">Built for service businesses</p>
-              <h2 className="mt-5 max-w-[9ch] text-[clamp(3rem,5vw,5.4rem)] font-semibold leading-[0.94] tracking-[-0.055em]">Complex enough to feel premium. Clear enough to sell.</h2>
+              <h2 className="mt-5 max-w-[9ch] text-[clamp(2.2rem,4vw,3.5rem)] font-semibold leading-[0.94] tracking-[-0.055em]">Complex enough to feel premium. Clear enough to sell.</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:col-span-7">
               {industries.map((industry, index) => (
@@ -399,7 +399,7 @@ export default function BrandLedLandingPage() {
             <div className="grid gap-12 lg:grid-cols-12">
               <div className="lg:col-span-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#aaa0ff]">How it works</p>
-                <h2 className="mt-5 max-w-[9ch] text-[clamp(3rem,5vw,5.3rem)] font-semibold leading-[0.94] tracking-[-0.055em]">From brief to a website you can actually use.</h2>
+                <h2 className="mt-5 max-w-[9ch] text-[clamp(2.2rem,4vw,3.5rem)] font-semibold leading-[0.94] tracking-[-0.055em]">From brief to a website you can actually use.</h2>
               </div>
               <div className="lg:col-span-8">
                 <div className="grid sm:grid-cols-2">
@@ -440,7 +440,7 @@ export default function BrandLedLandingPage() {
           <div className="mx-auto grid max-w-[90rem] gap-10 px-6 py-20 sm:px-10 lg:grid-cols-12 lg:items-end lg:px-16 lg:py-24">
             <div className="lg:col-span-8">
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/60">See your direction first</p>
-              <h2 className="mt-5 max-w-[12ch] text-[clamp(3.3rem,6vw,6.5rem)] font-semibold leading-[0.9] tracking-[-0.06em]">Your website should feel like your business, only sharper.</h2>
+              <h2 className="mt-5 max-w-[12ch] text-[clamp(2.4rem,4.4vw,3.8rem)] font-semibold leading-[1.04] tracking-[-0.06em]">Your website should feel like your business, only sharper.</h2>
             </div>
             <div className="lg:col-span-4 lg:justify-self-end">
               <button onClick={() => go("/generate-preview", "Final free website preview")} className="inline-flex min-h-14 w-full items-center justify-center bg-white px-7 text-sm font-black text-[#10131c] transition hover:bg-[#0c1224] hover:text-white sm:w-auto">

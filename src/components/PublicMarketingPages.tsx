@@ -140,9 +140,9 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
 };
 
 const primaryCtaClass =
-  "inline-flex min-h-12 max-w-full items-center justify-center whitespace-normal rounded-2xl bg-indigo-600 px-6 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-white shadow-[0_12px_28px_-14px_rgba(79,70,229,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-500 hover:shadow-[0_18px_34px_-16px_rgba(79,70,229,0.9)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/25 active:translate-y-0";
+  "inline-flex min-h-12 max-w-full items-center justify-center whitespace-normal rounded-2xl bg-indigo-600 px-6 py-3 text-center text-sm font-bold uppercase tracking-[0.12em] text-white shadow-[0_12px_28px_-14px_rgba(79,70,229,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-500 hover:shadow-[0_18px_34px_-16px_rgba(79,70,229,0.9)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/25 active:translate-y-0";
 const secondaryCtaClass =
-  "inline-flex min-h-12 max-w-full items-center justify-center whitespace-normal rounded-2xl border border-slate-200 bg-white px-6 py-3 text-center text-sm font-black uppercase tracking-[0.12em] text-slate-950 shadow-[0_8px_22px_-14px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-[0_14px_28px_-16px_rgba(15,23,42,0.4)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20 active:translate-y-0";
+  "inline-flex min-h-12 max-w-full items-center justify-center whitespace-normal rounded-2xl border border-slate-200 bg-white px-6 py-3 text-center text-sm font-bold uppercase tracking-[0.12em] text-slate-950 shadow-[0_8px_22px_-14px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-[0_14px_28px_-16px_rgba(15,23,42,0.4)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20 active:translate-y-0";
 
 const industries = [
   ["Dental Clinic", "Appointment booking, treatment pages, local SEO, WhatsApp enquiries."],
@@ -470,39 +470,24 @@ function Hero({
 }) {
   const primaryContent = <>{primaryLabel} <ArrowRight className="ml-2 h-4 w-4" /></>;
   return (
-    <section className="bg-slate-50">
-      <div className="mx-auto grid max-w-7xl min-w-0 items-center gap-8 px-5 py-16 md:grid-cols-[1.1fr_0.9fr] lg:py-20">
-        <div className="min-w-0">
-          <Badge className="mb-5 rounded-full bg-indigo-50 px-4 py-1 text-indigo-600 hover:bg-indigo-50">
-            Lead-generation website system
-          </Badge>
-          <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-            {title}
-          </h1>
-          <p className="mt-6 max-w-2xl text-base font-semibold leading-8 text-slate-600 sm:text-lg">
-            {copy}
-          </p>
+    <section className="border-b border-[#d9d7d0] bg-[#f7f6f2]">
+      <div className="brand-shell grid gap-10 py-16 lg:grid-cols-12 lg:items-end lg:py-20">
+        <div className="lg:col-span-8">
+          <div className="brand-kicker flex items-center gap-3"><Icon className="h-4 w-4" /> Bennie Studio</div>
+          <h1 className="mt-5">{title}</h1>
+          <p className="brand-copy mt-6">{copy}</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             {primaryHref.startsWith("#") ? (
               <a href={primaryHref} onClick={() => trackPublicEvent({ eventType: "click_generate_preview", label: primaryLabel, target: primaryHref })} className={primaryCtaClass}>{primaryContent}</a>
             ) : (
               <Link to={primaryHref} onClick={() => trackPublicEvent({ eventType: "click_primary_cta", label: primaryLabel, target: primaryHref })} className={primaryCtaClass}>{primaryContent}</Link>
             )}
-            {secondaryLabel && secondaryHref ? (
-              <Link to={secondaryHref} onClick={() => trackPublicEvent({ eventType: "click_secondary_cta", label: secondaryLabel, target: secondaryHref })} className={secondaryCtaClass}>
-                {secondaryLabel}
-              </Link>
-            ) : null}
+            {secondaryLabel && secondaryHref ? <Link to={secondaryHref} className={secondaryCtaClass}>{secondaryLabel}</Link> : null}
           </div>
         </div>
-        <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl">
-          <div className="rounded-[1.5rem] bg-slate-950 p-7 text-white">
-            <Icon className="mb-12 h-10 w-10 rounded-2xl bg-indigo-600 p-2" />
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">Review before you commit</p>
-            <p className="mt-4 text-2xl font-black leading-tight text-white">
-              See a tailored direction, review the recommendation, and choose the managed service when you are ready.
-            </p>
-          </div>
+        <div className="border-t border-[#d9d7d0] pt-6 lg:col-span-4 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+          <p className="text-sm font-bold text-[#141821]">What this page helps you decide</p>
+          <p className="mt-3 text-sm leading-6 text-[#5f6673]">See the structure, scope and next action clearly before committing to a managed website plan.</p>
         </div>
       </div>
     </section>
@@ -519,23 +504,23 @@ function TemplatesPage() {
       />
       <section className="mx-auto max-w-7xl px-5 py-14">
         <div className="mb-8 max-w-3xl">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Five flagship directions</p>
-          <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Preview the real website—not a generic wireframe.</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">Five flagship directions</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Preview the real website—not a generic wireframe.</h2>
           <p className="mt-4 text-base font-semibold leading-7 text-slate-600">Each family uses a distinct visual direction, enquiry path, proof structure and launch checklist. Open the live build, then personalise it with your business details.</p>
         </div>
         <FlagshipTemplateGallery />
 
         <div className="mt-14 border-t border-slate-200 pt-12">
           <div className="max-w-3xl">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">More niche starting points</p>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">The same managed system, organised around your market.</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">More niche starting points</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">The same managed system, organised around your market.</h2>
             <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">These packs help us choose the right CTA, page structure and evidence requirements. They are not separate low-quality themes.</p>
           </div>
         </div>
         <div className="mt-7 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {WAAS_TEMPLATE_PACKS.map((pack) => (
             <div key={pack.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">{pack.name}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">{pack.name}</p>
               <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{pack.description}</p>
               <div className="mt-5 flex flex-wrap gap-2">
                 {pack.niches.map((niche) => (
@@ -547,10 +532,10 @@ function TemplatesPage() {
             </div>
           ))}
         </div>
-        <div className="mt-10 rounded-[2rem] border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
+        <div className="mt-10 rounded-xl border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
           <div className="max-w-3xl">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Industry sales paths</p>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-white">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">Industry sales paths</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">
               Start from the business type, then choose the right template.
             </h2>
             <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
@@ -564,9 +549,9 @@ function TemplatesPage() {
                 to={item.path}
                 className="rounded-3xl border border-white/10 bg-white/5 p-5 transition hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-white/10"
               >
-                <p className="text-lg font-black text-white">{item.industry}</p>
+                <p className="text-lg font-bold text-white">{item.industry}</p>
                 <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{item.promise}</p>
-                <span className="mt-4 inline-flex items-center text-xs font-black uppercase tracking-[0.18em] text-indigo-200">
+                <span className="mt-4 inline-flex items-center text-xs font-bold uppercase tracking-[0.18em] text-indigo-200">
                   View the industry path <ArrowRight className="ml-2 h-4 w-4" />
                 </span>
               </Link>
@@ -596,10 +581,10 @@ function HowItWorksPage() {
         icon={Rocket}
       />
       <section className="mx-auto max-w-7xl px-5 py-14">
-        <div className="mb-8 rounded-[2rem] border border-indigo-100 bg-indigo-50 p-6 md:flex md:items-center md:justify-between md:gap-8">
+        <div className="mb-8 rounded-xl border border-indigo-100 bg-indigo-50 p-6 md:flex md:items-center md:justify-between md:gap-8">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">The working agreement</p>
-            <h2 className="mt-2 text-2xl font-black text-slate-950">One clear owner on each side.</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">The working agreement</p>
+            <h2 className="mt-2 text-2xl font-bold text-slate-950">One clear owner on each side.</h2>
           </div>
           <p className="mt-3 max-w-2xl text-sm font-bold leading-6 text-slate-700 md:mt-0">
             You provide accurate business information and timely approval. Bennie Studio handles website strategy, production, hosting, maintenance, tracking, and plan-based improvements.
@@ -607,22 +592,22 @@ function HowItWorksPage() {
         </div>
         <div className="space-y-5">
           {deliveryStages.map((stage, index) => (
-            <article key={stage.title} className="grid gap-5 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm lg:grid-cols-[0.55fr_1fr_1fr] lg:items-start">
+            <article key={stage.title} className="grid gap-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:grid-cols-[0.55fr_1fr_1fr] lg:items-start">
               <div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-sm font-black text-indigo-600">{index + 1}</span>
-                <p className="mt-5 text-xs font-black uppercase tracking-[0.18em] text-indigo-600">{stage.timing}</p>
-                <h2 className="mt-2 text-2xl font-black text-slate-950">{stage.title}</h2>
+                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-sm font-bold text-indigo-600">{index + 1}</span>
+                <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">{stage.timing}</p>
+                <h2 className="mt-2 text-2xl font-bold text-slate-950">{stage.title}</h2>
               </div>
               <div className="rounded-2xl bg-slate-50 p-5">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">What you do</p>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">What you do</p>
                 <p className="mt-2 text-sm font-bold leading-6 text-slate-700">{stage.customer}</p>
               </div>
               <div>
                 <div className="rounded-2xl bg-indigo-50 p-5">
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-indigo-600">What Bennie Studio does</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">What Bennie Studio does</p>
                   <p className="mt-2 text-sm font-bold leading-6 text-slate-700">{stage.studio}</p>
                 </div>
-                <p className="mt-3 flex gap-2 text-sm font-black text-emerald-700"><Check className="mt-0.5 h-4 w-4 shrink-0" /> {stage.outcome}</p>
+                <p className="mt-3 flex gap-2 text-sm font-bold text-emerald-700"><Check className="mt-0.5 h-4 w-4 shrink-0" /> {stage.outcome}</p>
               </div>
             </article>
           ))}
@@ -634,7 +619,7 @@ function HowItWorksPage() {
             ["When needs change", "Upgrade the plan or request a custom quote for CMS, ecommerce, or integrations."],
           ].map(([title, copy]) => (
             <div key={title} className="rounded-3xl border border-slate-200 bg-white p-5">
-              <p className="font-black text-slate-950">{title}</p>
+              <p className="font-bold text-slate-950">{title}</p>
               <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{copy}</p>
             </div>
           ))}
@@ -647,7 +632,7 @@ function HowItWorksPage() {
 function WebsiteWireframe({ title, accent = "indigo" }: { title: string; accent?: "indigo" | "emerald" | "amber" }) {
   const accentClass = accent === "emerald" ? "bg-emerald-500" : accent === "amber" ? "bg-amber-400" : "bg-indigo-600";
   return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-100 p-4">
+    <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100 p-4">
       <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-xl">
         <div className="flex items-center gap-1.5 border-b border-slate-200 bg-slate-50 px-4 py-3">
           <span className="h-2.5 w-2.5 rounded-full bg-rose-300" /><span className="h-2.5 w-2.5 rounded-full bg-amber-300" /><span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
@@ -668,7 +653,7 @@ function WebsiteWireframe({ title, accent = "indigo" }: { title: string; accent?
         </div>
         <div className="grid grid-cols-3 gap-2 border-t border-slate-100 p-5"><div className="h-12 rounded-xl bg-slate-100" /><div className="h-12 rounded-xl bg-slate-100" /><div className="h-12 rounded-xl bg-slate-100" /></div>
       </div>
-      <div className="pointer-events-none absolute bottom-6 left-6 rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-lg">{title} · wireframe direction</div>
+      <div className="pointer-events-none absolute bottom-6 left-6 rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white shadow-lg">{title} · wireframe direction</div>
     </div>
   );
 }
@@ -699,29 +684,29 @@ function CaseStudiesPage() {
       />
       <FocusIndustries />
       <section className="mx-auto max-w-7xl px-5 pt-8">
-        <div className="flex flex-col gap-4 rounded-[2rem] border border-emerald-200 bg-emerald-50 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 rounded-xl border border-emerald-200 bg-emerald-50 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-700">Live portfolio</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Live portfolio</p>
             <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-emerald-950">Want to inspect real work rather than demonstration concepts? Open Bennie Studio’s portfolio in a new tab.</p>
           </div>
           <a href="https://portfolio.bennietay.com" target="_blank" rel="noreferrer" className={secondaryCtaClass}>View Live Portfolio <ExternalLink className="ml-2 h-4 w-4" /></a>
         </div>
       </section>
       <section className="mx-auto max-w-7xl px-5 py-14">
-        {verifiedProof.length ? <div className="mb-10 rounded-[2rem] bg-slate-950 p-6 text-white sm:p-8">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Customer outcomes</p>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">{verifiedProof.map((proof) => <article key={proof.id} className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">{(proof.before_image_url || proof.after_image_url) && <div className="grid grid-cols-2">{proof.before_image_url && <img src={proof.before_image_url} alt={`Before improvements for ${proof.company || proof.customer_name}`} className="h-40 w-full object-cover" />}{proof.after_image_url && <img src={proof.after_image_url} alt={`After improvements for ${proof.company || proof.customer_name}`} className="h-40 w-full object-cover" />}</div>}<div className="p-5"><p className="text-lg font-black">{proof.title || proof.result_summary || "Customer outcome"}</p>{proof.before_summary && <div className="mt-4"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Before</p><p className="mt-1 text-sm font-semibold text-slate-300">{proof.before_summary}</p></div>}{Array.isArray(proof.changes) && proof.changes.length > 0 && <div className="mt-4"><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">What changed</p><ul className="mt-2 space-y-1 text-sm font-semibold text-slate-300">{proof.changes.map((change: string) => <li key={change}>• {change}</li>)}</ul></div>}{Array.isArray(proof.result_metrics) && proof.result_metrics.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{proof.result_metrics.map((metric: any) => <span key={`${metric.metric}-${metric.value}`} className="rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-black text-emerald-300">{metric.metric}: {metric.value}</span>)}</div>}<p className="mt-4 text-sm font-semibold leading-6 text-slate-300">“{proof.testimonial}”</p><p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-indigo-200">{proof.customer_name}{proof.company ? ` · ${proof.company}` : ""}</p>{proof.evidence_reference && <a href={proof.evidence_reference} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-black text-emerald-300 hover:text-emerald-200">View supporting reference <ExternalLink className="ml-1 h-3.5 w-3.5" /></a>}</div></article>)}</div>
+        {verifiedProof.length ? <div className="mb-10 rounded-xl bg-slate-950 p-6 text-white sm:p-8">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">Customer outcomes</p>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">{verifiedProof.map((proof) => <article key={proof.id} className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">{(proof.before_image_url || proof.after_image_url) && <div className="grid grid-cols-2">{proof.before_image_url && <img src={proof.before_image_url} alt={`Before improvements for ${proof.company || proof.customer_name}`} className="h-40 w-full object-cover" />}{proof.after_image_url && <img src={proof.after_image_url} alt={`After improvements for ${proof.company || proof.customer_name}`} className="h-40 w-full object-cover" />}</div>}<div className="p-5"><p className="text-lg font-bold">{proof.title || proof.result_summary || "Customer outcome"}</p>{proof.before_summary && <div className="mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Before</p><p className="mt-1 text-sm font-semibold text-slate-300">{proof.before_summary}</p></div>}{Array.isArray(proof.changes) && proof.changes.length > 0 && <div className="mt-4"><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">What changed</p><ul className="mt-2 space-y-1 text-sm font-semibold text-slate-300">{proof.changes.map((change: string) => <li key={change}>• {change}</li>)}</ul></div>}{Array.isArray(proof.result_metrics) && proof.result_metrics.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{proof.result_metrics.map((metric: any) => <span key={`${metric.metric}-${metric.value}`} className="rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-bold text-emerald-300">{metric.metric}: {metric.value}</span>)}</div>}<p className="mt-4 text-sm font-semibold leading-6 text-slate-300">“{proof.testimonial}”</p><p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-indigo-200">{proof.customer_name}{proof.company ? ` · ${proof.company}` : ""}</p>{proof.evidence_reference && <a href={proof.evidence_reference} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-bold text-emerald-300 hover:text-emerald-200">View supporting reference <ExternalLink className="ml-1 h-3.5 w-3.5" /></a>}</div></article>)}</div>
         </div> : null}
-        <div className="mb-10 grid gap-4 rounded-[2rem] border border-indigo-100 bg-indigo-50 p-6 md:grid-cols-[1fr_auto] md:items-center">
+        <div className="mb-10 grid gap-4 rounded-xl border border-indigo-100 bg-indigo-50 p-6 md:grid-cols-[1fr_auto] md:items-center">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Working website examples</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">Working website examples</p>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-700">
               These are demonstration websites, not client projects or measured customer results. They show how services, proof and enquiry paths can fit together.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 md:justify-end">
             {["3 design examples", "3 working demos", "Illustrative outcomes"].map((item) => (
-              <span key={item} className="rounded-full bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-indigo-700 shadow-sm">
+              <span key={item} className="rounded-full bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-indigo-700 shadow-sm">
                 {item}
               </span>
             ))}
@@ -729,7 +714,7 @@ function CaseStudiesPage() {
         </div>
         <div className="grid gap-6 lg:grid-cols-2">
           {caseStudies.map((item) => (
-            <article key={item.title} className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+            <article key={item.title} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
               <div className="relative min-h-64 overflow-hidden border-b border-slate-200 bg-slate-100">
                 <TemplatePreviewThumbnail templateId={item.templateId} templateName={item.title} className="min-h-64" />
                 <Badge className="absolute right-4 top-4 border-0 bg-white/90 text-slate-900 shadow-sm backdrop-blur">Working demonstration</Badge>
@@ -737,20 +722,20 @@ function CaseStudiesPage() {
               <div className="p-6">
                 <div className="mb-4 flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className="text-indigo-600">{item.industry}</Badge>
-                  <span className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{item.type}</span>
+                  <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{item.type}</span>
                 </div>
-                <h2 className="text-2xl font-black text-slate-950">{item.title}</h2>
+                <h2 className="text-2xl font-bold text-slate-950">{item.title}</h2>
                 <div className="mt-5 grid gap-4 text-sm leading-6">
                   <div>
-                    <p className="font-black uppercase tracking-[0.14em] text-rose-500">Challenge</p>
+                    <p className="font-bold uppercase tracking-[0.14em] text-rose-500">Challenge</p>
                     <p className="mt-1 font-semibold text-slate-600">{item.challenge}</p>
                   </div>
                   <div>
-                    <p className="font-black uppercase tracking-[0.14em] text-indigo-600">Website strategy</p>
+                    <p className="font-bold uppercase tracking-[0.14em] text-indigo-600">Website strategy</p>
                     <p className="mt-1 font-semibold text-slate-600">{item.strategy}</p>
                   </div>
                   <div className="rounded-2xl bg-emerald-50 p-4">
-                    <p className="font-black uppercase tracking-[0.14em] text-emerald-700">Intended outcome</p>
+                    <p className="font-bold uppercase tracking-[0.14em] text-emerald-700">Intended outcome</p>
                     <p className="mt-1 font-semibold text-emerald-950">{item.outcome}</p>
                   </div>
                 </div>
@@ -781,8 +766,8 @@ function CaseStudiesPage() {
             </article>
           ))}
         </div>
-        <div className="mt-10 rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
-          <h2 className="text-3xl font-black text-slate-950">What each demonstration explains</h2>
+        <div className="mt-10 rounded-xl border border-slate-200 bg-white p-7 shadow-sm">
+          <h2 className="text-3xl font-bold text-slate-950">What each demonstration explains</h2>
           <p className="mt-3 max-w-3xl text-base font-semibold leading-7 text-slate-600">
             A useful case study should connect the business problem to the website decision—not stop at a decorative screenshot.
           </p>
@@ -1233,9 +1218,9 @@ function GeneratePreviewPage() {
         primaryHref="#preview-brief"
       />
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="min-w-0 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-600">Step 1</p>
-          <h2 className="mt-3 text-3xl font-black text-slate-950">Choose the business type</h2>
+        <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-600">Step 1</p>
+          <h2 className="mt-3 text-3xl font-bold text-slate-950">Choose the business type</h2>
           <div className="mt-6 grid gap-3">
             {[...previewIndustries.filter((item) => ["cleaning", "education", "accounting"].includes(item.id)), ...previewIndustries.filter((item) => !["cleaning", "education", "accounting", "contractor"].includes(item.id))].map((item) => (
               <button
@@ -1248,16 +1233,16 @@ function GeneratePreviewPage() {
                     : "border-slate-200 bg-white text-slate-700 hover:border-indigo-200 hover:bg-slate-50"
                 }`}
               >
-                <span className="block text-sm font-black">{item.label}</span>
+                <span className="block text-sm font-bold">{item.label}</span>
                 <span className="mt-1 block text-xs font-semibold text-slate-500">{item.template}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <form id="preview-brief" onSubmit={generatePreview} className="min-w-0 scroll-mt-28 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-600">Step 2</p>
-          <h2 className="mt-3 text-3xl font-black text-slate-950">Add the basic brief</h2>
+        <form id="preview-brief" onSubmit={generatePreview} className="min-w-0 scroll-mt-28 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-600">Step 2</p>
+          <h2 className="mt-3 text-3xl font-bold text-slate-950">Add the basic brief</h2>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <Input
               aria-label="Your name"
@@ -1337,7 +1322,7 @@ function GeneratePreviewPage() {
             </select>
           </div>
           <details className="mt-5 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <summary className="cursor-pointer text-sm font-black text-slate-800">Add brand details and customer reviews <span className="font-semibold text-slate-500">(optional)</span></summary>
+            <summary className="cursor-pointer text-sm font-bold text-slate-800">Add brand details and customer reviews <span className="font-semibold text-slate-500">(optional)</span></summary>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <select aria-label="Preferred brand style" value={form.brandStyle} onChange={(e) => setForm({ ...form, brandStyle: e.target.value })} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 sm:col-span-2">
                 {["Modern professional", "Premium corporate", "Friendly local business", "Bold sales landing page", "Clean minimal", "Luxury premium"].map((style) => <option key={style}>{style}</option>)}
@@ -1348,7 +1333,7 @@ function GeneratePreviewPage() {
             {reviewQuality.suggestions.length > 0 && form.reviews.trim() ? <p className="mt-4 text-xs font-bold leading-5 text-slate-600">Tip: {reviewQuality.suggestions[0]}</p> : null}
           </details>
           <div className="mt-6">
-            <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">Website goal</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Website goal</p>
             <div className="grid gap-2 sm:grid-cols-2">
               {previewGoals.map((item) => (
                 <button
@@ -1365,14 +1350,14 @@ function GeneratePreviewPage() {
             </div>
           </div>
           {error && <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</div>}
-          <Button type="submit" disabled={generating} className="mt-7 h-auto min-h-12 w-full whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-black uppercase tracking-widest hover:bg-indigo-500">
+          <Button type="submit" disabled={generating} className="mt-7 h-auto min-h-12 w-full whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-bold uppercase tracking-widest hover:bg-indigo-500">
             {generating ? "Preparing Preview..." : "Generate My Free Website Preview"} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </form>
       </section>
 
       <section className="mx-auto max-w-7xl px-5 pb-16">
-        <div className={`min-w-0 overflow-hidden rounded-[2rem] border p-6 shadow-sm ${generated ? "border-indigo-200 bg-white" : "border-dashed border-slate-300 bg-slate-50"}`}>
+        <div className={`min-w-0 overflow-hidden rounded-xl border p-6 shadow-sm ${generated ? "border-indigo-200 bg-white" : "border-dashed border-slate-300 bg-slate-50"}`}>
           {generated ? (
             <div className="grid min-w-0 gap-8">
               <div className="min-w-0">
@@ -1380,7 +1365,7 @@ function GeneratePreviewPage() {
                   <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Preview generated</Badge>
                   <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">Website direction</Badge>
                 </div>
-                <h2 className="text-3xl font-black text-slate-950">{previewTitle}</h2>
+                <h2 className="text-3xl font-bold text-slate-950">{previewTitle}</h2>
                 <p className="mt-4 text-base font-semibold leading-7 text-slate-600">
                   Recommended for {serviceLabel} in {locationLabel}. The site should lead with a clear {goal.toLowerCase()} path,
                   then support the buyer with proof, service clarity, FAQs, and local relevance.
@@ -1418,13 +1403,13 @@ function GeneratePreviewPage() {
                     ["Local SEO focus", `${serviceLabel} in ${locationLabel}`],
 	                  ].map(([label, value]) => (
 	                    <div key={label} className="rounded-2xl bg-slate-50 p-4">
-	                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">{label}</p>
-	                      <p className="mt-2 text-sm font-black text-slate-950">{value}</p>
+	                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+	                      <p className="mt-2 text-sm font-bold text-slate-950">{value}</p>
 		                </div>
 	                  ))}
 	                </div>
 	                <details className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-	                  <summary className="cursor-pointer text-xs font-black uppercase tracking-[0.18em] text-slate-600">What this preview includes</summary>
+	                  <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.18em] text-slate-600">What this preview includes</summary>
 	                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
 	                    {FREE_PREVIEW_LIMITS.map((limit) => (
 	                      <div key={limit} className="flex gap-2 text-sm font-bold text-slate-700">
@@ -1439,7 +1424,7 @@ function GeneratePreviewPage() {
 	                </details>
                 <div className="mt-6 grid gap-4 lg:grid-cols-2">
                   <div className="rounded-3xl bg-indigo-50 p-5">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Trust signals to use</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Trust signals to use</p>
                     <div className="mt-4 space-y-2">
                       {reviewStrategy.trustSignals.map((signal) => (
                         <div key={signal} className="flex gap-2 text-sm font-bold text-slate-700">
@@ -1450,10 +1435,10 @@ function GeneratePreviewPage() {
                     </div>
                   </div>
                   <div className="rounded-3xl bg-slate-50 p-5">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Local keywords</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Local keywords</p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       {reviewStrategy.intelligence.localKeywords.map((keyword) => (
-                        <span key={keyword} className="rounded-full bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm">
+                        <span key={keyword} className="rounded-full bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm">
                           {keyword}
                         </span>
                       ))}
@@ -1461,7 +1446,7 @@ function GeneratePreviewPage() {
                   </div>
                 </div>
                 <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-5">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">FAQs this website should answer</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">FAQs this website should answer</p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     {reviewStrategy.intelligence.faqs.map((faq) => (
                       <div key={faq} className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
@@ -1477,11 +1462,11 @@ function GeneratePreviewPage() {
                       trackPublicEvent({ eventType: "preview_plan_cta_clicked", label: commercialRecommendation.label, target, metadata: { previewId: (() => { try { return JSON.parse(localStorage.getItem("bt_preview_intent") || "{}").previewId || null; } catch { return null; } })(), industry: industry.label } });
                       navigate(target);
                     }}
-                    className="h-auto min-h-10 whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-black uppercase tracking-widest hover:bg-indigo-500"
+                    className="h-auto min-h-10 whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-bold uppercase tracking-widest hover:bg-indigo-500"
                   >
                     Start with {commercialRecommendation.label} <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <Button onClick={() => action("click_book_call_after_preview", "Book Website Review", "/book-demo")} className="h-auto min-h-10 whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-black uppercase tracking-widest hover:bg-indigo-500">
+                  <Button onClick={() => action("click_book_call_after_preview", "Book Website Review", "/book-demo")} className="h-auto min-h-10 whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-bold uppercase tracking-widest hover:bg-indigo-500">
                     Book My 30-Minute Review <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   <Button
@@ -1489,34 +1474,34 @@ function GeneratePreviewPage() {
                       setPreviewExpanded((value) => !value);
                       trackPublicEvent({ eventType: "real_preview_resized", label: previewExpanded ? "Compact preview" : "Expand preview", target: "/generate-preview", metadata: { generationMode: previewGenerationMode } });
                     }}
-                    variant="outline" className="rounded-2xl font-black uppercase tracking-widest"
+                    variant="outline" className="rounded-2xl font-bold uppercase tracking-widest"
                   >
                     {previewExpanded ? "Compact Preview" : "Expand Real Preview"}
                   </Button>
                 </div>
               </div>
-              <div className="min-w-0 rounded-[1.5rem] bg-slate-950 p-6 text-white">
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-200">Suggested content sections</p>
+              <div className="min-w-0 rounded-xl bg-slate-950 p-6 text-white">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-200">Suggested content sections</p>
                 <p className="mt-3 text-sm leading-6 text-slate-300">These can be sections on one page. The final page count and features are confirmed in your written scope.</p>
                 <div className="mt-5 grid gap-3">
                   {(generatedWebsite?.pages.map((page) => page.title) || industry.pages).map((page, index) => (
                     <div key={page} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-black">{index + 1}</span>
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold">{index + 1}</span>
                       <span className="text-sm font-bold text-slate-100">{page}</span>
                     </div>
                   ))}
                 </div>
 	                <div className="mt-6 grid grid-cols-2 gap-2">
 	                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-	                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-indigo-200">Design mode</p>
-	                    <p className="mt-2 text-sm font-black text-white">{previewGenerationMode === "brand_led" ? "Brand-led" : "Premium"}</p>
+	                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-indigo-200">Design mode</p>
+	                    <p className="mt-2 text-sm font-bold text-white">{previewGenerationMode === "brand_led" ? "Brand-led" : "Premium"}</p>
 	                  </div>
 	                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-	                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-indigo-200">QA score</p>
-	                    <p className="mt-2 text-sm font-black text-white">{generatedDesignQuality?.score ?? "—"}/100</p>
+	                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-indigo-200">QA score</p>
+	                    <p className="mt-2 text-sm font-bold text-white">{generatedDesignQuality?.score ?? "—"}/100</p>
 	                  </div>
 	                </div>
-	                <p className="mt-6 text-xs font-black uppercase tracking-[0.22em] text-indigo-200">Trust and enquiry sections</p>
+	                <p className="mt-6 text-xs font-bold uppercase tracking-[0.22em] text-indigo-200">Trust and enquiry sections</p>
                 <div className="mt-4 grid gap-2">
                   {industry.sections.map((section) => (
                     <div key={section} className="flex gap-2 text-sm font-semibold text-slate-200">
@@ -1526,11 +1511,11 @@ function GeneratePreviewPage() {
                   ))}
                 </div>
 	                <div className="mt-6 rounded-2xl bg-white p-4 text-slate-950">
-	                  <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Proof to collect</p>
+	                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Proof to collect</p>
 	                  <p className="mt-2 text-sm font-bold leading-6">{industry.proof}</p>
 	                </div>
 	                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-	                  <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-200">Confirm scope before payment</p>
+	                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-200">Confirm scope before payment</p>
 	                  <div className="mt-3 space-y-2">
 	                    {["Review the proposed content and enquiry path with Bennie", "Agree page count, updates, delivery schedule and commercial terms in writing", "Complete the agreed payment before production work begins", "Provide approved business content, reviews and domain details", "Review and approve the finished website before launch"].map((step) => (
 	                      <p key={step} className="text-xs font-semibold leading-5 text-slate-300">{step}</p>
@@ -1542,7 +1527,7 @@ function GeneratePreviewPage() {
           ) : (
             <div className="py-14 text-center">
               <ClipboardCheck className="mx-auto mb-4 h-12 w-12 rounded-2xl bg-white p-3 text-indigo-600 shadow-sm" />
-              <h2 className="text-2xl font-black text-slate-950">Your preview recommendation will appear here.</h2>
+              <h2 className="text-2xl font-bold text-slate-950">Your preview recommendation will appear here.</h2>
               <p className="mx-auto mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">
                 Enter your email to unlock the tailored direction. We’ll use it only to send the preview and relevant next steps.
               </p>
@@ -1563,11 +1548,11 @@ const priorityStyles: Record<AuditPriority, string> = {
 function EnquiryJourneyFlow({ title, steps, recommended = false }: { title: string; steps: string[]; recommended?: boolean }) {
   return (
     <div className={`rounded-3xl border p-5 ${recommended ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
-      <p className={`text-xs font-black uppercase tracking-[0.2em] ${recommended ? "text-emerald-700" : "text-slate-500"}`}>{title}</p>
+      <p className={`text-xs font-bold uppercase tracking-[0.2em] ${recommended ? "text-emerald-700" : "text-slate-500"}`}>{title}</p>
       <div className="mt-5 space-y-2">
         {steps.map((step, index) => (
           <React.Fragment key={`${step}-${index}`}>
-            <div className="rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm">{step}</div>
+            <div className="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-800 shadow-sm">{step}</div>
             {index < steps.length - 1 ? <MoveDown className={`mx-auto h-4 w-4 ${recommended ? "text-emerald-500" : "text-slate-400"}`} /> : null}
           </React.Fragment>
         ))}
@@ -1600,23 +1585,23 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
 
   return (
     <div className="space-y-6 text-slate-950">
-      <section className="rounded-[2rem] bg-white p-6 shadow-xl">
+      <section className="rounded-xl bg-white p-6 shadow-xl">
         <Badge className="bg-indigo-50 text-indigo-700 hover:bg-indigo-50">Website Growth Review</Badge>
-        <h2 className="mt-4 text-3xl font-black leading-tight">{report.summary}</h2>
+        <h2 className="mt-4 text-3xl font-bold leading-tight">{report.summary}</h2>
         <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
           This review describes observable website and enquiry-journey findings. It does not estimate traffic, rankings, revenue, or conversion performance.
         </p>
       </section>
 
-      <section className="rounded-[2rem] bg-white p-6 shadow-xl">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">What we found</p>
+      <section className="rounded-xl bg-white p-6 shadow-xl">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">What we found</p>
         <div className="mt-5 grid gap-4">
           {report.findings.length ? report.findings.map((finding) => (
             <article key={finding.id} className="rounded-3xl border border-slate-200 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-slate-400">{finding.category}</p>
-                  <h3 className="mt-2 text-xl font-black">{finding.title}</h3>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{finding.category}</p>
+                  <h3 className="mt-2 text-xl font-bold">{finding.title}</h3>
                 </div>
                 <Badge className={priorityStyles[finding.priority]}>{finding.priority} priority</Badge>
               </div>
@@ -1627,13 +1612,13 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
                   ["Recommended improvement", finding.recommendation],
                 ].map(([label, copy]) => (
                   <div key={label} className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
                     <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{copy}</p>
                   </div>
                 ))}
               </div>
               <div className="mt-3 rounded-2xl bg-indigo-50 p-4">
-                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Example direction</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">Example direction</p>
                 <p className="mt-2 text-sm font-bold leading-6 text-slate-800">{finding.exampleImprovement}</p>
               </div>
             </article>
@@ -1645,37 +1630,37 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
         </div>
       </section>
 
-      <section className="rounded-[2rem] bg-white p-6 shadow-xl">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Your enquiry journey</p>
-        <h2 className="mt-3 text-2xl font-black">Current vs recommended path</h2>
+      <section className="rounded-xl bg-white p-6 shadow-xl">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">Your enquiry journey</p>
+        <h2 className="mt-3 text-2xl font-bold">Current vs recommended path</h2>
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <EnquiryJourneyFlow title="Current journey" steps={report.enquiryJourney.current} />
           <EnquiryJourneyFlow title="Recommended journey" steps={report.enquiryJourney.recommended} recommended />
         </div>
       </section>
 
-      <section className="rounded-[2rem] bg-white p-6 shadow-xl">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">What we would change</p>
+      <section className="rounded-xl bg-white p-6 shadow-xl">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">What we would change</p>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {report.whatWeWouldChange.map((change) => (
             <div key={change.area} className="overflow-hidden rounded-3xl border border-slate-200">
-              <p className="bg-slate-950 px-5 py-3 text-sm font-black text-white">{change.area}</p>
+              <p className="bg-slate-950 px-5 py-3 text-sm font-bold text-white">{change.area}</p>
               <div className="grid gap-3 p-5 sm:grid-cols-2">
-                <div><p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Current</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{change.current}</p></div>
-                <div><p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Recommended</p><p className="mt-2 text-sm font-bold leading-6 text-slate-800">{change.recommended}</p></div>
+                <div><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Current</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{change.current}</p></div>
+                <div><p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Recommended</p><p className="mt-2 text-sm font-bold leading-6 text-slate-800">{change.recommended}</p></div>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-xl">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-200">Recommended website direction</p>
+      <section className="rounded-xl bg-slate-950 p-6 text-white shadow-xl">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-200">Recommended website direction</p>
         <div className="mt-5 rounded-3xl bg-white p-5 text-slate-950">
-          <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Hero</p>
-          <h2 className="mt-3 text-3xl font-black leading-tight">{report.recommendedWebsiteDirection.hero.headline}</h2>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">Hero</p>
+          <h2 className="mt-3 text-3xl font-bold leading-tight">{report.recommendedWebsiteDirection.hero.headline}</h2>
           <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">{report.recommendedWebsiteDirection.hero.subheadline}</p>
-          <span className="mt-4 inline-flex rounded-xl bg-indigo-600 px-4 py-3 text-xs font-black uppercase tracking-widest text-white">{report.recommendedWebsiteDirection.hero.cta}</span>
+          <span className="mt-4 inline-flex rounded-xl bg-indigo-600 px-4 py-3 text-xs font-bold uppercase tracking-widest text-white">{report.recommendedWebsiteDirection.hero.cta}</span>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {[
@@ -1685,7 +1670,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
             ["Buyer FAQs", report.recommendedWebsiteDirection.faq],
           ].map(([label, items]) => (
             <div key={label as string} className="rounded-3xl border border-white/10 bg-white/5 p-5">
-              <p className="text-xs font-black uppercase tracking-widest text-indigo-200">{label as string}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-indigo-200">{label as string}</p>
               <div className="mt-4 space-y-2">
                 {(items as string[]).map((item) => <p key={item} className="flex gap-2 text-sm font-semibold leading-6 text-slate-200"><Check className="mt-1 h-4 w-4 shrink-0 text-emerald-300" />{item}</p>)}
               </div>
@@ -1694,9 +1679,9 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
         </div>
       </section>
 
-      <section className="rounded-[2rem] bg-white p-6 shadow-xl">
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">What Bennie Studio could build</p>
-        <h2 className="mt-3 text-2xl font-black">A managed website built around the recommended enquiry journey</h2>
+      <section className="rounded-xl bg-white p-6 shadow-xl">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">What Bennie Studio could build</p>
+        <h2 className="mt-3 text-2xl font-bold">A managed website built around the recommended enquiry journey</h2>
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
           {["Clearer service positioning", "Service-focused pages", "Stronger review placement", "WhatsApp, call, booking, or quote paths", "Local SEO structure", "Enquiry tracking", "Ongoing monthly improvements"].map((item) => (
             <p key={item} className="flex gap-2 rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-700"><Check className="h-4 w-4 shrink-0 text-emerald-500" />{item}</p>
@@ -1704,8 +1689,8 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
         </div>
         <div className="mt-6 flex flex-col gap-5 rounded-3xl bg-indigo-50 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Recommended product</p>
-            <p className="mt-2 text-2xl font-black">{recommendedProduct}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">Recommended product</p>
+            <p className="mt-2 text-2xl font-bold">{recommendedProduct}</p>
             <p className="mt-1 text-sm font-bold text-slate-600">View local pricing and the exact setup fee for your market before checkout.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -1813,8 +1798,8 @@ function WebsiteAuditPage() {
         icon={FileSearch}
       />
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
-          <h2 className="text-3xl font-black text-slate-950">What the audit checks</h2>
+        <div className="rounded-xl border border-slate-200 bg-white p-7 shadow-sm">
+          <h2 className="text-3xl font-bold text-slate-950">What the audit checks</h2>
           <div className="mt-6 grid gap-3">
             {[
               ["Design clarity", "Does the page quickly explain what you offer?"],
@@ -1827,14 +1812,14 @@ function WebsiteAuditPage() {
               <div key={title} className="flex gap-3 rounded-2xl bg-slate-50 p-4">
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
                 <div>
-                  <p className="font-black text-slate-950">{title}</p>
+                  <p className="font-bold text-slate-950">{title}</p>
                   <p className="text-sm font-semibold text-slate-600">{copy}</p>
                 </div>
               </div>
             ))}
           </div>
-          <div className="mt-8 rounded-[1.5rem] bg-indigo-50 p-6">
-            <h3 className="text-2xl font-black text-slate-950">What you’ll receive</h3>
+          <div className="mt-8 rounded-xl bg-indigo-50 p-6">
+            <h3 className="text-2xl font-bold text-slate-950">What you’ll receive</h3>
             <div className="mt-5 grid gap-3">
               {[
                 "Homepage clarity review",
@@ -1852,16 +1837,16 @@ function WebsiteAuditPage() {
             </div>
           </div>
         </div>
-        <form onSubmit={submitAudit} className="rounded-[2rem] border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
-          <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">Free audit request</p>
-          <h2 className="mt-4 text-3xl font-black text-white">Send your website for review</h2>
+        <form onSubmit={submitAudit} className="rounded-xl border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-200">Free audit request</p>
+          <h2 className="mt-4 text-3xl font-bold text-white">Send your website for review</h2>
           <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
             No payment required. Start with your website, business name, and email. Industry, phone, and notes are optional.
           </p>
           {submitted ? (
             <div className="mt-8 rounded-3xl bg-emerald-500/10 p-6 text-emerald-100">
               <Check className="mb-4 h-8 w-8" />
-              <p className="text-xl font-black">{auditReport ? "Website audit complete." : "Audit request saved."}</p>
+              <p className="text-xl font-bold">{auditReport ? "Website audit complete." : "Audit request saved."}</p>
               <p className="mt-2 text-sm font-semibold leading-6">
                 {auditReport
                   ? "Your review is based on observable page evidence and practical recommendations—not a numerical rating."
@@ -1876,7 +1861,7 @@ function WebsiteAuditPage() {
                   onClick={() => {
                     trackPublicEvent({ eventType: "click_audit_thank_you_book_call", label: "Audit Thank You Book Call", target: "/book-demo" });
                   }}
-                  className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-black text-slate-950 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-100 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
+                  className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-bold text-slate-950 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-100 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
                 >
                   Book a Call
                 </Link>
@@ -1885,7 +1870,7 @@ function WebsiteAuditPage() {
                   onClick={() => {
                     trackPublicEvent({ eventType: "click_audit_thank_you_generate_preview", label: "Audit Thank You Generate Preview", target: "/generate-preview" });
                   }}
-                  className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/25 bg-white/10 px-6 py-3 text-sm font-black text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
+                  className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/25 bg-white/10 px-6 py-3 text-sm font-bold text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
                 >
                   See My Website Preview
                 </Link>
@@ -1904,7 +1889,7 @@ function WebsiteAuditPage() {
               <Input aria-label="Industry or business type" placeholder="Industry / business type (optional)" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
               <Input aria-label="WhatsApp or phone" placeholder="WhatsApp / phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
               <Textarea aria-label="Website improvement notes" placeholder="What do you want the website to improve? (optional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-28 rounded-2xl bg-white text-slate-950" />
-              <Button type="submit" disabled={submitting} className="h-13 rounded-2xl bg-indigo-600 font-black uppercase tracking-widest hover:bg-indigo-500">
+              <Button type="submit" disabled={submitting} className="h-13 rounded-2xl bg-indigo-600 font-bold uppercase tracking-widest hover:bg-indigo-500">
                 {submitting ? "Reviewing Website..." : "Start My Website Growth Review"} <Search className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -1924,72 +1909,33 @@ function NicheLandingPage({ page }: { page: (typeof nichePages)[keyof typeof nic
   return (
     <>
       <Hero title={page.title} copy={page.subtitle} icon={FileSearch} />
-      <section className="mx-auto max-w-7xl px-5 py-14">
-        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm">
-            <Badge className="mb-5 bg-indigo-50 px-4 py-1 text-indigo-700 hover:bg-indigo-50">
-              {page.label}
-            </Badge>
-            <h2 className="text-3xl font-black tracking-tight text-slate-950">
-              {page.positioning}
-            </h2>
-            <div className="mt-6 space-y-4">
-              <div className="rounded-3xl bg-rose-50 p-5">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-rose-600">
-                  Main pain point
-                </p>
-                <p className="mt-2 text-sm font-bold leading-6 text-rose-950">{page.pain}</p>
-              </div>
-              <div className="rounded-3xl bg-emerald-50 p-5">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-700">
-                  Offer promise
-                </p>
-                <p className="mt-2 text-sm font-bold leading-6 text-emerald-950">{page.promise}</p>
-              </div>
-              <div className="rounded-3xl bg-slate-50 p-5">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
-                  Lead capture method
-                </p>
-                <p className="mt-2 text-sm font-bold leading-6 text-slate-700">{page.leadCapture}</p>
-              </div>
-            </div>
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Link
-                to="/website-audit"
-                onClick={() => trackPublicEvent({ eventType: "click_request_audit", label: `${page.title} Audit CTA`, target: "/website-audit", metadata: { niche: page.label } })}
-                className={primaryCtaClass}
-              >
-                {page.cta} <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-              <Link
-                to="/case-studies"
-                className={secondaryCtaClass}
-              >
-                View Case Studies
-              </Link>
+      <section className="brand-shell brand-section">
+        <div className="grid gap-12 lg:grid-cols-12">
+          <div className="lg:col-span-5">
+            <p className="brand-kicker">{page.label}</p>
+            <h2 className="mt-4">{page.positioning}</h2>
+            <p className="brand-copy mt-6">{page.promise}</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link to="/website-audit" className={primaryCtaClass}>{page.cta} <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link to="/case-studies" className={secondaryCtaClass}>View examples</Link>
             </div>
           </div>
-
-          <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">
-              Website sections needed
-            </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {page.sections.map((section) => (
-                <div key={section} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
-                  <p className="text-sm font-bold leading-6 text-slate-100">{section}</p>
+          <div className="lg:col-span-7">
+            <div className="brand-rule-list">
+              <div className="brand-rule-row">
+                <strong>Main buyer concern</strong>
+                <span className="text-[#5f6673]">{page.pain}</span>
+              </div>
+              <div className="brand-rule-row">
+                <strong>Lead capture</strong>
+                <span className="text-[#5f6673]">{page.leadCapture}</span>
+              </div>
+              <div className="brand-rule-row">
+                <strong>Recommended sections</strong>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {page.sections.map((section) => <span key={section} className="flex items-start gap-2 text-sm text-[#5f6673]"><Check className="mt-1 h-4 w-4 shrink-0 text-[#5b4bff]" />{section}</span>)}
                 </div>
-              ))}
-            </div>
-            <div className="mt-7 rounded-3xl bg-white p-5 text-slate-950">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">
-                Recommended front-end CTA
-              </p>
-              <p className="mt-2 text-xl font-black">{page.cta}</p>
-              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-                Use the audit CTA first, then follow up through WhatsApp or a booked call with a specific website improvement plan.
-              </p>
+              </div>
             </div>
           </div>
         </div>
@@ -2032,18 +1978,18 @@ function PreviewRequestPanel() {
   };
 
   return (
-    <div className="mt-12 grid gap-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-      <div className="rounded-[1.5rem] bg-slate-950 p-7 text-white">
-        <p className="text-xs font-black uppercase tracking-[0.24em] text-indigo-200">Done-for-you preview request</p>
-        <h2 className="mt-4 text-3xl font-black leading-tight">Turn a business brief into the first website direction.</h2>
+    <div className="mt-12 grid gap-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+      <div className="rounded-xl bg-slate-950 p-7 text-white">
+        <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-200">Done-for-you preview request</p>
+        <h2 className="mt-4 text-3xl font-bold leading-tight">Turn a business brief into the first website direction.</h2>
         <p className="mt-4 text-sm font-semibold leading-6 text-slate-300">
           Use this when a prospect wants you to prepare the preview for them before selecting a plan.
         </p>
       </div>
       {submitted ? (
-        <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
           <Check className="mb-4 h-8 w-8" />
-          <p className="text-xl font-black">Preview request sent to CRM.</p>
+          <p className="text-xl font-bold">Preview request sent to CRM.</p>
           <p className="mt-2 text-sm font-semibold leading-6">
             Follow up with the prospect, confirm their plan fit, and prepare the preview direction.
           </p>
@@ -2060,7 +2006,7 @@ function PreviewRequestPanel() {
             <Input aria-label="Industry" placeholder="Industry" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
           </div>
           <Textarea aria-label="Message" placeholder="Main service, city, and what the website should help them get." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="min-h-28 rounded-2xl" />
-          <Button type="submit" disabled={submitting} className="h-12 rounded-2xl bg-indigo-600 font-black uppercase tracking-widest hover:bg-indigo-500">
+          <Button type="submit" disabled={submitting} className="h-12 rounded-2xl bg-indigo-600 font-bold uppercase tracking-widest hover:bg-indigo-500">
             {submitting ? "Sending Request..." : "Send Preview Request"} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </form>
@@ -2092,7 +2038,7 @@ export default function PublicMarketingPages() {
               : <TemplatesPage />;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
+    <div className="brand-public min-h-screen bg-[#f7f6f2] text-[#141821]">
       <Helmet>
         <title>{meta.title}</title>
         <meta name="description" content={meta.description} />
@@ -2100,34 +2046,16 @@ export default function PublicMarketingPages() {
       </Helmet>
       <PublicSiteHeader />
       {pageContent}
-      <section className="bg-white">
-        <div className="mx-auto grid max-w-7xl gap-5 px-5 py-12 md:grid-cols-[1fr_auto] md:items-center">
+      <section className="border-t border-[#d9d7d0] bg-[#5b4bff] text-white">
+        <div className="brand-shell grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
           <div>
-            <h2 className="text-3xl font-black text-slate-950">Ready to see your website direction?</h2>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-              See a tailored website direction, then book a 30-minute review to confirm the right managed service.
-            </p>
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-white/60">Next step</p>
+            <h2 className="mt-3 max-w-2xl text-white">See your website direction before choosing a plan.</h2>
+            <p className="mt-3 max-w-2xl text-base text-white/75">Generate a real preview, then use the 30-minute review only if you want help confirming scope and fit.</p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button
-              onClick={() => {
-                trackPublicEvent({ eventType: "click_generate_preview", label: "Final Generate Preview", target: "/generate-preview" });
-                navigate("/generate-preview");
-              }}
-              className="h-auto min-h-10 w-full whitespace-normal rounded-2xl bg-indigo-600 py-3 text-center font-black uppercase tracking-widest sm:w-auto"
-            >
-              Get My Free Website Preview <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-            <Button
-              onClick={() => {
-                trackPublicEvent({ eventType: "click_book_call", label: "Final Website Review", target: "/book-demo" });
-                navigate("/book-demo");
-              }}
-              variant="outline"
-              className="h-auto min-h-10 w-full whitespace-normal rounded-2xl py-3 text-center font-black uppercase tracking-widest sm:w-auto"
-            >
-              <MessageCircle className="mr-2 h-4 w-4" /> Book 30-Minute Review
-            </Button>
+          <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
+            <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-bold text-[#141821] hover:bg-[#ece9ff]">Generate free preview <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Button onClick={() => navigate("/book-demo")} variant="outline" className="min-h-12 border-white/35 bg-transparent px-6 font-bold text-white hover:bg-white/10 hover:text-white">Book 30-minute review</Button>
           </div>
         </div>
       </section>

@@ -19,6 +19,7 @@ import { Button } from "./components/ui/button";
 import { Toaster } from "./components/ui/sonner";
 import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import "./styles/publicBrand.css";
 import { classifyTenantHost } from "./lib/tenantDomains";
 
 const CHUNK_RETRY_KEY = "bt_chunk_retry_once";

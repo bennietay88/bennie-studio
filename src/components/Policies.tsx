@@ -118,7 +118,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="brand-public min-h-screen flex items-center justify-center bg-[#f7f6f2]">
         <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
       </div>
     );
@@ -126,7 +126,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
 
   if (error || !policy) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4 text-center">
+      <div className="brand-public min-h-screen flex flex-col items-center justify-center bg-[#f7f6f2] p-4 text-center">
         <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
         <h2 className="text-2xl font-bold text-slate-900 mb-2">
           Policy Not Found
@@ -140,7 +140,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-20 px-4">
+    <div className="brand-public min-h-screen bg-[#f7f6f2] py-20 px-4">
       <Helmet>
         <title>{policy.title} | Bennie Studio</title>
         <meta

@@ -237,7 +237,7 @@ export default function BookDemo() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950">
+    <div className="brand-public min-h-screen bg-[#f7f6f2] text-[#141821]">
       <Helmet>
         <title>{isGrowthPartner ? "Book a Website Growth Partner Consultation | Bennie Studio" : "Book a Managed Website Review | Bennie Studio"}</title>
         <meta name="description" content={isGrowthPartner ? "Book a Website Growth Partner consultation to scope conversion priorities, landing pages, local SEO expansion, traffic, and ongoing growth work." : "Book a focused review of your website, offer and enquiry path with Bennie Studio."} />
@@ -248,8 +248,8 @@ export default function BookDemo() {
         <section className="border-b border-slate-200 bg-slate-950 text-white">
           <div className="mx-auto grid max-w-7xl min-w-0 gap-10 px-5 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
             <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-indigo-300">{isGrowthPartner ? "Growth Partner consultation" : "Managed Website consultation"}</p>
-              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.03] tracking-tight text-white sm:text-6xl">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-300">{isGrowthPartner ? "Growth Partner consultation" : "Managed Website consultation"}</p>
+              <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.03] tracking-tight text-white sm:text-5xl">
                 {isGrowthPartner ? "Scope the next stage of website growth with a clear commercial plan." : "Let’s find the clearest path from website visitor to real enquiry."}
               </h1>
               <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-slate-300">
@@ -262,22 +262,22 @@ export default function BookDemo() {
                   "A clear scope, timeline and commercial fit",
                   "No invented forecasts or pressure tactics",
                 ].map((item) => (
-                  <div key={item} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-bold text-slate-200">
+                  <div key={item} className="flex gap-3 rounded-lg border border-white/10 bg-white/5 p-4 text-sm font-bold text-slate-200">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /> {item}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="min-w-0 rounded-[2rem] border border-white/10 bg-white/5 p-6 backdrop-blur sm:p-8">
+            <div className="min-w-0 rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur sm:p-8">
               {submitted ? (
                 <div className="py-10 text-center">
-                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>
-                  <h2 className="mt-6 text-3xl font-black">Call confirmed</h2>
+                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>
+                  <h2 className="mt-6 text-3xl font-bold">Call confirmed</h2>
                   <p className="mx-auto mt-3 max-w-md font-semibold leading-7 text-slate-300">
                     Your time is reserved. We’ll review your website and goals before the call so the conversation starts with useful context.
                   </p>
-                  <Button onClick={() => navigate("/case-studies")} className="mt-7 min-h-12 rounded-2xl bg-white px-6 text-slate-950 hover:bg-indigo-100">
+                  <Button onClick={() => navigate("/case-studies")} className="mt-7 min-h-12 rounded-lg bg-white px-6 text-slate-950 hover:bg-indigo-100">
                     View case studies <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   {manageUrl && <Button variant="ghost" onClick={() => navigate(new URL(manageUrl, window.location.origin).pathname)} className="mt-3 min-h-11 rounded-xl text-indigo-200 hover:bg-white/10 hover:text-white">Reschedule or cancel</Button>}
@@ -285,8 +285,8 @@ export default function BookDemo() {
               ) : (
                 <form onSubmit={handleSubmit} className="min-w-0 space-y-5">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">Book a call</p>
-                    <h2 className="mt-2 text-2xl font-black text-white">{isGrowthPartner ? "Tell us enough to scope the growth work properly." : "Tell us enough to prepare properly."}</h2>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">Book a call</p>
+                    <h2 className="mt-2 text-2xl font-bold text-white">{isGrowthPartner ? "Tell us enough to scope the growth work properly." : "Tell us enough to prepare properly."}</h2>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field icon={User} label="Your name" id="call-name"><Input id="call-name" required value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Your name" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
@@ -313,10 +313,10 @@ export default function BookDemo() {
                       <option value="">Choose a confirmed time</option>
                       {slots.map((slot) => <option key={slot} value={slot}>{new Date(slot).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</option>)}
                     </select>
-                    {availabilityError && <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold text-amber-200"><span>{availabilityError}</span><button type="button" onClick={loadAvailability} className="rounded-lg border border-white/20 px-3 py-1.5 font-black text-white hover:bg-white/10">Retry</button></div>}
+                    {availabilityError && <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold text-amber-200"><span>{availabilityError}</span><button type="button" onClick={loadAvailability} className="rounded-lg border border-white/20 px-3 py-1.5 font-bold text-white hover:bg-white/10">Retry</button></div>}
                   </Field>
                   <Field icon={MessageSquare} label="What needs to improve?" id="call-message"><Textarea id="call-message" value={form.message} onChange={(e) => update("message", e.target.value)} placeholder="Where do enquiries come from today? What makes them unsuitable? What would you like to improve, and when?" className="min-h-28 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
-                  <Button type="submit" disabled={loading} className="h-auto min-h-13 w-full whitespace-normal rounded-2xl bg-indigo-500 px-6 py-3 text-center font-black text-white shadow-xl shadow-indigo-950/30 hover:bg-indigo-400">
+                  <Button type="submit" disabled={loading} className="h-auto min-h-13 w-full whitespace-normal rounded-lg bg-indigo-500 px-6 py-3 text-center font-bold text-white shadow-xl shadow-indigo-950/30 hover:bg-indigo-400">
                     {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Confirming time</> : <>{isGrowthPartner ? "Confirm Growth Consultation" : "Confirm Website Review"} <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>
                   <p className="text-center text-xs font-semibold leading-5 text-slate-400">Your selected time is reserved immediately. Rescheduling remains available through support.</p>
@@ -334,7 +334,7 @@ export default function BookDemo() {
 function Field({ icon: Icon, label, id, children }: { icon: React.ComponentType<{ className?: string }>; label: string; id: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={id} className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-slate-300"><Icon className="h-3.5 w-3.5" /> {label}</Label>
+      <Label htmlFor={id} className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-300"><Icon className="h-3.5 w-3.5" /> {label}</Label>
       {children}
     </div>
   );

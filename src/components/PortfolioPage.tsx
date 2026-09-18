@@ -30,6 +30,7 @@ import {
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
+import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 
 const featuredBuilds = [
   {
@@ -153,7 +154,7 @@ export default function PortfolioPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-white text-slate-950">
+    <div className="brand-public min-h-screen bg-[#f7f6f2] text-[#141821]">
       <Helmet>
         <title>Website Portfolio & Case Studies | Bennie Studio</title>
         <meta
@@ -162,33 +163,7 @@ export default function PortfolioPage() {
         />
       </Helmet>
 
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-8">
-          <button
-            onClick={() => navigate("/")}
-            className="flex min-w-0 items-center gap-2 border-none bg-transparent text-left text-lg font-black tracking-tight text-indigo-600 sm:text-xl"
-          >
-            <Globe className="h-7 w-7 shrink-0" />
-            <span className="truncate">Bennie Studio</span>
-          </button>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/")}
-              className="hidden rounded-xl text-slate-600 sm:inline-flex"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Home
-            </Button>
-            <Button
-              onClick={() => navigate("/book-demo")}
-              className="rounded-xl bg-indigo-600 px-4 font-bold hover:bg-indigo-700 sm:px-5"
-            >
-              Book Demo
-            </Button>
-          </div>
-        </nav>
-      </header>
+      <PublicSiteHeader />
 
       <main>
         <section className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-8 lg:grid-cols-[0.92fr_1.08fr] lg:py-20">
@@ -201,7 +176,7 @@ export default function PortfolioPage() {
             <Badge className="mb-5 w-fit rounded-full bg-indigo-50 px-4 py-2 text-indigo-700 hover:bg-indigo-50">
               Portfolio & Case Studies
             </Badge>
-            <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-7xl">
+            <h1 className="max-w-4xl text-4xl font-bold leading-tight tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
               Website case studies your prospects can understand quickly.
             </h1>
             <p className="mt-7 max-w-2xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
@@ -213,7 +188,7 @@ export default function PortfolioPage() {
               <Button
                 size="lg"
                 onClick={() => navigate("/book-demo")}
-                className="h-14 rounded-2xl bg-indigo-600 px-8 text-xs font-black uppercase tracking-widest hover:bg-indigo-700"
+                className="h-14 rounded-2xl bg-indigo-600 px-8 text-xs font-bold uppercase tracking-wide hover:bg-indigo-700"
               >
                 Request Similar Website
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -225,13 +200,13 @@ export default function PortfolioPage() {
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.65, delay: 0.1 }}
-            className="overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-950 shadow-2xl"
+            className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950 shadow-2xl"
           >
             <div className="flex items-center gap-2 border-b border-white/10 px-5 py-4">
               <span className="h-3 w-3 rounded-full bg-red-400" />
               <span className="h-3 w-3 rounded-full bg-amber-400" />
               <span className="h-3 w-3 rounded-full bg-emerald-400" />
-              <span className="ml-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              <span className="ml-3 text-[10px] font-bold uppercase tracking-wide text-slate-400">
                 Managed Website Preview
               </span>
             </div>
@@ -240,10 +215,10 @@ export default function PortfolioPage() {
                 <div key={item.title} className="overflow-hidden rounded-2xl bg-white">
                   <WebsiteConceptVisual title={item.title} eyebrow={item.niche} index={index} className="aspect-[4/3]" />
                   <div className="p-4">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-indigo-600">
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-indigo-600">
                       {item.niche}
                     </p>
-                    <h2 className="mt-1 text-sm font-black leading-tight text-slate-950">
+                    <h2 className="mt-1 text-sm font-bold leading-tight text-slate-950">
                       {item.title}
                     </h2>
                   </div>
@@ -260,7 +235,7 @@ export default function PortfolioPage() {
               return (
                 <div key={type.title} className="rounded-2xl border border-slate-200 bg-white p-6">
                   <Icon className="mb-5 h-6 w-6 text-indigo-600" />
-                  <h2 className="text-base font-black text-slate-950">{type.title}</h2>
+                  <h2 className="text-base font-bold text-slate-950">{type.title}</h2>
                   <p className="mt-3 text-sm leading-6 text-slate-600">{type.text}</p>
                 </div>
               );
@@ -274,7 +249,7 @@ export default function PortfolioPage() {
               <Badge className="mb-4 rounded-full bg-slate-100 px-4 py-2 text-slate-700 hover:bg-slate-100">
                 Selected Website Builds
               </Badge>
-              <h2 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
                 Industry-specific website case studies
               </h2>
             </div>
@@ -299,18 +274,18 @@ export default function PortfolioPage() {
                     <Badge variant="outline" className="rounded-full px-3 py-1">
                       {item.niche}
                     </Badge>
-                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">
+                    <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
                       {item.plan}
                     </span>
                   </div>
-                  <h3 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+                  <h3 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
                     {item.title}
                   </h3>
                   <p className="mt-4 text-base leading-7 text-slate-600">{item.summary}</p>
 
                   <div className="mt-6 grid gap-4 rounded-2xl bg-slate-50 p-5">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
                         Pages Included
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -339,7 +314,7 @@ export default function PortfolioPage() {
                   <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                     <Button
                       onClick={() => navigate(item.sampleHref)}
-                      className="h-12 rounded-xl bg-indigo-600 px-5 text-xs font-black uppercase tracking-widest hover:bg-indigo-700"
+                      className="h-12 rounded-xl bg-indigo-600 px-5 text-xs font-bold uppercase tracking-wide hover:bg-indigo-700"
                     >
                       Read Case Study
                       <ExternalLink className="ml-2 h-4 w-4" />
@@ -347,7 +322,7 @@ export default function PortfolioPage() {
                     <Button
                       variant="outline"
                       onClick={() => navigate("/book-demo")}
-                      className="h-12 rounded-xl px-5 text-xs font-black uppercase tracking-widest"
+                      className="h-12 rounded-xl px-5 text-xs font-bold uppercase tracking-wide"
                     >
                       Build Similar
                     </Button>
@@ -365,7 +340,7 @@ export default function PortfolioPage() {
                 <Badge className="mb-4 rounded-full bg-indigo-50 px-4 py-2 text-indigo-700 hover:bg-indigo-50">
                   What Prospects Can Inspect
                 </Badge>
-                <h2 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
+                <h2 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
                   More than a homepage screenshot
                 </h2>
               </div>
@@ -376,9 +351,9 @@ export default function PortfolioPage() {
 
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
               {proofPoints.map(([title, text]) => (
-                <div key={title} className="rounded-3xl border border-slate-200 bg-white p-6">
+                <div key={title} className="rounded-xl border border-slate-200 bg-white p-6">
                   <BadgeCheck className="mb-5 h-6 w-6 text-emerald-600" />
-                  <h3 className="text-lg font-black text-slate-950">{title}</h3>
+                  <h3 className="text-lg font-bold text-slate-950">{title}</h3>
                   <p className="mt-3 text-sm leading-6 text-slate-600">{text}</p>
                 </div>
               ))}
@@ -392,7 +367,7 @@ export default function PortfolioPage() {
               <Badge className="mb-6 rounded-full bg-white/10 px-4 py-2 text-white hover:bg-white/10">
                 What Can Be Built
               </Badge>
-              <h2 className="text-3xl font-black tracking-tight text-white sm:text-5xl">
+              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
                 A complete business website, not just a nice-looking page.
               </h2>
               <p className="mt-5 text-base leading-7 text-slate-300">
@@ -410,7 +385,7 @@ export default function PortfolioPage() {
               ].map(([Icon, title, text]: any) => (
                 <div key={title} className="rounded-2xl border border-white/15 bg-white/10 p-6">
                   <Icon className="mb-4 h-5 w-5 text-indigo-200" />
-                  <h3 className="font-black text-white">{title}</h3>
+                  <h3 className="font-bold text-white">{title}</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-200">{text}</p>
                 </div>
               ))}
@@ -424,18 +399,18 @@ export default function PortfolioPage() {
               <Badge className="mb-4 rounded-full bg-slate-100 px-4 py-2 text-slate-700 hover:bg-slate-100">
                 Build Process
               </Badge>
-              <h2 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
                 From case study to managed website direction
               </h2>
             </div>
             <div className="grid gap-4">
               {process.map(([step, title, text]) => (
-                <div key={step} className="flex gap-5 rounded-3xl border border-slate-200 bg-white p-6">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-sm font-black text-white">
+                <div key={step} className="flex gap-5 rounded-xl border border-slate-200 bg-white p-6">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-sm font-bold text-white">
                     {step}
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-slate-950">{title}</h3>
+                    <h3 className="text-lg font-bold text-slate-950">{title}</h3>
                     <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
                   </div>
                 </div>
@@ -445,9 +420,9 @@ export default function PortfolioPage() {
         </section>
 
         <section className="px-4 pb-16 sm:px-8 lg:pb-24">
-          <div className="mx-auto max-w-7xl rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm sm:p-12 lg:flex lg:items-center lg:justify-between">
+          <div className="mx-auto max-w-7xl rounded-xl border border-slate-200 bg-white p-8 shadow-sm sm:p-12 lg:flex lg:items-center lg:justify-between">
             <div>
-              <h2 className="text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
                 Want one of these for your business?
               </h2>
               <p className="mt-5 max-w-2xl text-base font-medium leading-7 text-slate-600">
@@ -464,7 +439,7 @@ export default function PortfolioPage() {
               <Button
                 size="lg"
                 onClick={() => navigate("/book-demo")}
-                className="h-14 rounded-2xl bg-indigo-600 px-8 text-xs font-black uppercase tracking-widest hover:bg-indigo-700"
+                className="h-14 rounded-2xl bg-indigo-600 px-8 text-xs font-bold uppercase tracking-wide hover:bg-indigo-700"
               >
                 Book Demo
               </Button>
@@ -472,7 +447,7 @@ export default function PortfolioPage() {
                 size="lg"
                 variant="outline"
                 onClick={() => navigate("/")}
-                className="h-14 rounded-2xl px-8 text-xs font-black uppercase tracking-widest"
+                className="h-14 rounded-2xl px-8 text-xs font-bold uppercase tracking-wide"
               >
                 Back to Home
               </Button>
@@ -480,6 +455,7 @@ export default function PortfolioPage() {
           </div>
         </section>
       </main>
+      <PublicSiteFooter />
     </div>
   );
 }
