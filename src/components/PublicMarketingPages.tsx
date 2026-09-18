@@ -1328,7 +1328,7 @@ function GeneratePreviewPage() {
 
             <div className="mt-7 flex flex-col gap-3 border-t border-[#d8d9dc] pt-6 sm:flex-row">
               <Button onClick={() => action("click_book_call_after_preview","Book Website Review","/book-demo")} className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]">Book 30-minute review</Button>
-              <Button variant="outline" onClick={() => navigate("/pricing?product=" + encodeURIComponent(commercialRecommendation.slug) + "&preview=1")} className="min-h-12 px-6 font-semibold">View recommended plan</Button>
+              <Button variant="outline" onClick={() => navigate("/pricing#plans")} className="min-h-12 px-6 font-semibold">View recommended plan</Button>
             </div>
           </div>
         </section>
@@ -1499,7 +1499,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link to="/generate-preview" onClick={savePreviewContext} className={primaryCtaClass}>See My Website Preview</Link>
-            <Link to={`/pricing?product=${encodeURIComponent(recommendedProduct.toLowerCase().replaceAll(" ", "-"))}`} onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: recommendedProduct, target: "/pricing", metadata: { recommendedProduct } })} className={secondaryCtaClass}>View Pricing</Link>
+            <Link to="/pricing#plans" onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: recommendedProduct, target: "/pricing", metadata: { recommendedProduct } })} className={secondaryCtaClass}>View Pricing</Link>
           </div>
         </div>
       </section>

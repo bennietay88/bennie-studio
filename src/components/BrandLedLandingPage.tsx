@@ -57,18 +57,21 @@ const designDirections = {
   brand: {
     label: "Brand-led",
     templateId: "accounting-firm-v1",
+    layoutFamily: "brand_statement" as const,
     title: "Strong positioning and deliberate hierarchy.",
     copy: "Best when credibility, expertise and a premium first impression influence the sale.",
   },
   media: {
     label: "Media-led",
     templateId: "dental-clinic-v1",
+    layoutFamily: "media_story" as const,
     title: "Customer photography carries more of the story.",
     copy: "Best when the business has strong people, place, project or product imagery to work with.",
   },
   editorial: {
     label: "Editorial",
     templateId: "corporate-v1",
+    layoutFamily: "editorial_b2b" as const,
     title: "Long-form credibility without a wall of cards.",
     copy: "Best for consultants, B2B and professional services that need more explanation and proof.",
   },
@@ -235,7 +238,7 @@ export default function BrandLedLandingPage() {
                   <span className="text-sm font-semibold text-[#141821]">Example managed website direction</span>
                   <span className="text-xs font-semibold text-[#5746e8]">Live template</span>
                 </div>
-                <TemplatePreviewThumbnail templateId="accounting-firm-v1" templateName="Professional service website" className="aspect-[4/3] min-h-[270px] border border-[#e2e4e8] sm:min-h-[360px]" />
+                <TemplatePreviewThumbnail templateId="accounting-firm-v1" templateName="Professional service website" layoutFamily="brand_statement" className="aspect-[16/10] min-h-0 border border-[#e2e4e8]" />
               </div>
             </div>
           </div>
@@ -282,7 +285,7 @@ export default function BrandLedLandingPage() {
             <div className="mt-10 grid gap-8 lg:grid-cols-3">
               {exampleTemplates.map(([templateId, category, direction, action]) => (
                 <article key={templateId}>
-                  <TemplatePreviewThumbnail templateId={templateId} templateName={category} className="aspect-[4/3] min-h-[240px] border border-[#d8d9dc] bg-white sm:min-h-[300px]" />
+                  <TemplatePreviewThumbnail templateId={templateId} templateName={category} className="aspect-[16/10] min-h-0 border border-[#d8d9dc] bg-white" />
                   <p className="mt-5 text-sm font-semibold text-[#5746e8]">{category}</p>
                   <h3 className="mt-2">{direction}</h3>
                   <p className="mt-2 text-sm text-[#526071]">{action}</p>
@@ -311,7 +314,7 @@ export default function BrandLedLandingPage() {
             </div>
             <div className="lg:col-span-8">
               <div className="border border-[#d8d9dc] bg-white p-4">
-                <TemplatePreviewThumbnail templateId={activeDirection.templateId} templateName={activeDirection.label} className="aspect-[16/9] min-h-[260px] sm:min-h-[430px]" />
+                <TemplatePreviewThumbnail templateId={activeDirection.templateId} templateName={activeDirection.label} layoutFamily={activeDirection.layoutFamily} className="aspect-[16/10] min-h-0" />
               </div>
               <div className="mt-5 grid gap-4 md:grid-cols-[1fr_1.4fr]">
                 <h3>{activeDirection.title}</h3>
@@ -373,7 +376,7 @@ export default function BrandLedLandingPage() {
                           </div>
                         ))}
                       </div>
-                      <button onClick={() => go("/pricing?product=" + product.slug, "Pricing " + product.name)} className={isGrowth ? "mt-5 inline-flex min-h-12 w-full items-center justify-center bg-[#5746e8] px-5 font-semibold text-white" : "mt-5 inline-flex min-h-12 w-full items-center justify-center bg-[#141821] px-5 font-semibold text-white"}>
+                      <button onClick={() => go("/pricing?market=" + market + "#plans", "Pricing " + product.name)} className={isGrowth ? "mt-5 inline-flex min-h-12 w-full items-center justify-center bg-[#5746e8] px-5 font-semibold text-white" : "mt-5 inline-flex min-h-12 w-full items-center justify-center bg-[#141821] px-5 font-semibold text-white"}>
                         View plan <ArrowRight className="ml-2 h-4 w-4" />
                       </button>
                     </article>
@@ -410,7 +413,7 @@ export default function BrandLedLandingPage() {
                         <td key={product.slug} className={index === 1 ? "border-x border-[#cbc5f4] bg-[#eeebff] px-4 py-6 align-top" : "px-4 py-6 align-top"}>
                           <p className="text-2xl font-semibold">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-[#707b8a]">/month</span></p>
                           <p className="mt-1 text-sm text-[#707b8a]">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
-                          <button onClick={() => go("/pricing?product=" + product.slug, "Pricing " + product.name)} className={index === 1 ? "mt-4 inline-flex items-center font-semibold text-[#5746e8]" : "mt-4 inline-flex items-center font-semibold text-[#526071]"}>Details <ArrowRight className="ml-1 h-4 w-4" /></button>
+                          <button onClick={() => go("/pricing?market=" + market + "#plans", "Pricing " + product.name)} className={index === 1 ? "mt-4 inline-flex items-center font-semibold text-[#5746e8]" : "mt-4 inline-flex items-center font-semibold text-[#526071]"}>Details <ArrowRight className="ml-1 h-4 w-4" /></button>
                         </td>
                       ))}
                     </tr>

@@ -470,3 +470,66 @@
     gap: 2rem !important;
   }
 }
+
+
+/* Generated customer websites also render inside the preview application.
+   Container queries make the site respond to its own width instead of the
+   outer browser width. */
+@container customer-site (max-width: 640px) {
+  .bt-website-renderer h1 {
+    font-size: clamp(2rem, 10cqw, 3.1rem) !important;
+    line-height: 1.06 !important;
+    letter-spacing: -0.03em !important;
+  }
+
+  .bt-website-renderer h2 {
+    font-size: clamp(1.7rem, 8cqw, 2.45rem) !important;
+    line-height: 1.1 !important;
+  }
+
+  .bt-website-renderer h3 {
+    font-size: clamp(1.2rem, 5.5cqw, 1.6rem) !important;
+  }
+
+  .bt-website-renderer .grid.grid-cols-2,
+  .bt-website-renderer .grid.grid-cols-3,
+  .bt-website-renderer .grid[class*="grid-cols-["] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .bt-website-renderer [class*="min-h-[72vh]"],
+  .bt-website-renderer [class*="min-h-[78vh]"],
+  .bt-website-renderer [class*="min-h-[82vh]"] {
+    min-height: auto !important;
+  }
+
+  .bt-website-renderer [class*="px-10"],
+  .bt-website-renderer [class*="px-12"],
+  .bt-website-renderer [class*="px-16"],
+  .bt-website-renderer [class*="px-20"],
+  .bt-website-renderer [class*="px-24"] {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .bt-website-renderer [class*="gap-10"],
+  .bt-website-renderer [class*="gap-12"],
+  .bt-website-renderer [class*="gap-14"],
+  .bt-website-renderer [class*="gap-16"],
+  .bt-website-renderer [class*="gap-20"] {
+    gap: 1.75rem !important;
+  }
+
+  .bt-website-renderer button,
+  .bt-website-renderer a[class*="inline-flex"] {
+    max-width: 100%;
+    white-space: normal !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .bt-website-renderer .grid.grid-cols-2,
+  .bt-website-renderer .grid.grid-cols-3 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}

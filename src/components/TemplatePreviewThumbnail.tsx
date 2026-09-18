@@ -17,6 +17,7 @@ interface TemplatePreviewThumbnailProps {
   templateId: string;
   templateName: string;
   className?: string;
+  layoutFamily?: PreviewLayoutFamily;
 }
 
 type TemplateConfig = {
@@ -36,7 +37,9 @@ export type PreviewLayoutFamily =
   | "clinic_trust"
   | "local_quote"
   | "education_program"
-  | "editorial_b2b";
+  | "editorial_b2b"
+  | "brand_statement"
+  | "media_story";
 
 type PreviewModel = {
   family: PreviewLayoutFamily;
@@ -61,6 +64,8 @@ const FAMILY_LABELS: Record<PreviewLayoutFamily, string> = {
   local_quote: "Quote-led local service",
   education_program: "Program-led education",
   editorial_b2b: "Editorial B2B",
+  brand_statement: "Brand-led statement",
+  media_story: "Media-led story",
 };
 
 function ensurePreviewFonts() {
@@ -170,8 +175,9 @@ function createPreviewModel(
   config: TemplateConfig | null,
   templateId: string,
   templateName: string,
+  layoutFamily?: PreviewLayoutFamily,
 ): PreviewModel {
-  const family = resolveTemplatePreviewFamily(templateId, templateName);
+  const family = layoutFamily || resolveTemplatePreviewFamily(templateId, templateName);
   const theme = config?.theme || {};
   const pages = Array.isArray(config?.pages) ? config?.pages || [] : [];
   const firstPage = pages.find((page) => page.slug === "" || page.slug === "home") || pages[0];
@@ -252,11 +258,11 @@ function ClinicTrustPreview({ model, name }: { model: PreviewModel; name: string
 
       <div className="grid min-h-[48%] grid-cols-[1.12fr_0.88fr] overflow-hidden">
         <div className="flex flex-col justify-center px-5 py-4">
-          <p className="text-[5px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primary }}>Care you can trust</p>
-          <h4 className="mt-2 line-clamp-2 text-[16px] font-semibold leading-[1.02] tracking-[-0.035em] text-slate-950" style={{ fontFamily: model.displayFont }}>
+          <div className="text-[5px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primary }}>Care you can trust</div>
+          <div className="mt-2 line-clamp-2 text-[16px] font-semibold leading-[1.02] tracking-[-0.035em] text-slate-950" style={{ fontFamily: model.displayFont }}>
             {model.headline}
-          </h4>
-          {model.subheadline ? <p className="mt-2 line-clamp-2 text-[6px] leading-relaxed text-slate-500">{model.subheadline}</p> : null}
+          </div>
+          {model.subheadline ? <div className="mt-2 line-clamp-2 text-[6px] leading-relaxed text-slate-500">{model.subheadline}</div> : null}
           <div className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-md px-3 py-1.5 text-[6px] font-bold text-white" style={{ backgroundColor: model.primary }}>
             <CalendarDays className="h-2.5 w-2.5" /> {model.cta}
           </div>
@@ -275,8 +281,8 @@ function ClinicTrustPreview({ model, name }: { model: PreviewModel; name: string
             </div>
           )}
           <div className="absolute bottom-3 left-3 right-3 rounded-lg bg-white/94 p-2 shadow-sm backdrop-blur">
-            <p className="text-[5px] font-bold uppercase tracking-wide text-slate-400">Quick appointment</p>
-            <p className="mt-1 text-[7px] font-semibold text-slate-800">Location · hours · contact</p>
+            <div className="text-[5px] font-bold uppercase tracking-wide text-slate-400">Quick appointment</div>
+            <div className="mt-1 text-[7px] font-semibold text-slate-800">Location · hours · contact</div>
           </div>
         </div>
       </div>
@@ -284,8 +290,8 @@ function ClinicTrustPreview({ model, name }: { model: PreviewModel; name: string
       <div className="grid grid-cols-3 border-y border-emerald-900/10 bg-white">
         {trustItems.slice(0, 3).map((item, index) => (
           <div key={index} className="border-r border-emerald-900/10 px-3 py-2.5 last:border-r-0">
-            <p className="text-[8px] font-bold" style={{ color: model.primary }}>{item.value || "✓"}</p>
-            <p className="mt-0.5 truncate text-[5px] font-semibold text-slate-400">{item.label || "Trust"}</p>
+            <div className="text-[8px] font-bold" style={{ color: model.primary }}>{item.value || "✓"}</div>
+            <div className="mt-0.5 truncate text-[5px] font-semibold text-slate-400">{item.label || "Trust"}</div>
           </div>
         ))}
       </div>
@@ -294,7 +300,7 @@ function ClinicTrustPreview({ model, name }: { model: PreviewModel; name: string
         {(model.serviceItems.length ? model.serviceItems : ["Treatment clarity", "Patient reassurance"]).slice(0, 2).map((item, index) => (
           <div key={index} className="rounded-lg border border-emerald-900/10 bg-white p-2.5">
             <ShieldCheck className="h-3 w-3" style={{ color: model.primary }} />
-            <p className="mt-1.5 truncate text-[6px] font-bold text-slate-700">{item}</p>
+            <div className="mt-1.5 truncate text-[6px] font-bold text-slate-700">{item}</div>
           </div>
         ))}
       </div>
@@ -318,17 +324,17 @@ function LocalQuotePreview({ model, name }: { model: PreviewModel; name: string 
 
       <div className="grid min-h-[55%] grid-cols-[1.05fr_0.95fr] bg-slate-950 text-white">
         <div className="flex flex-col justify-center px-5 py-4">
-          <p className="text-[5px] font-bold uppercase tracking-[0.18em] text-white/45">Local service · fast response</p>
-          <h4 className="mt-2 line-clamp-3 text-[17px] font-semibold leading-[1.02] tracking-[-0.035em]" style={{ fontFamily: model.displayFont }}>
+          <div className="text-[5px] font-bold uppercase tracking-[0.18em] text-white/45">Local service · fast response</div>
+          <div className="mt-2 line-clamp-3 text-[17px] font-semibold leading-[1.02] tracking-[-0.035em]" style={{ fontFamily: model.displayFont }}>
             {model.headline}
-          </h4>
+          </div>
           <div className="mt-3 flex items-center gap-2 text-[6px] text-white/60">
             <MapPin className="h-2.5 w-2.5" /> Service areas clearly shown
           </div>
         </div>
 
         <div className="m-3 rounded-xl bg-white p-3 text-slate-900 shadow-lg">
-          <p className="text-[6px] font-bold uppercase tracking-wide" style={{ color: model.primary }}>Request a quote</p>
+          <div className="text-[6px] font-bold uppercase tracking-wide" style={{ color: model.primary }}>Request a quote</div>
           <div className="mt-2 space-y-1.5">
             {["Service needed", "Postcode / area", "Preferred date"].map((field) => (
               <div key={field} className="flex h-5 items-center rounded-md border border-slate-200 px-2 text-[5px] text-slate-400">{field}</div>
@@ -351,8 +357,8 @@ function LocalQuotePreview({ model, name }: { model: PreviewModel; name: string 
 
       <div className="flex flex-1 items-center justify-between px-5 py-3">
         <div>
-          <p className="text-[5px] font-bold uppercase tracking-wide text-slate-400">Coverage</p>
-          <p className="mt-1 text-[7px] font-bold text-slate-800">Service area + proof + clear next step</p>
+          <div className="text-[5px] font-bold uppercase tracking-wide text-slate-400">Coverage</div>
+          <div className="mt-1 text-[7px] font-bold text-slate-800">Service area + proof + clear next step</div>
         </div>
         <Search className="h-5 w-5 text-slate-300" />
       </div>
@@ -374,10 +380,10 @@ function EducationProgramPreview({ model, name }: { model: PreviewModel; name: s
 
       <div className="relative grid min-h-[46%] grid-cols-[1.08fr_0.92fr] overflow-hidden bg-indigo-50">
         <div className="flex flex-col justify-center px-5 py-4">
-          <p className="text-[5px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primary }}>Learning path</p>
-          <h4 className="mt-2 line-clamp-3 text-[16px] font-semibold leading-[1.04] tracking-[-0.03em] text-slate-950" style={{ fontFamily: model.displayFont }}>
+          <div className="text-[5px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primary }}>Learning path</div>
+          <div className="mt-2 line-clamp-3 text-[16px] font-semibold leading-[1.04] tracking-[-0.03em] text-slate-950" style={{ fontFamily: model.displayFont }}>
             {model.headline}
-          </h4>
+          </div>
           <div className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-md px-3 py-1.5 text-[6px] font-bold text-white" style={{ backgroundColor: model.primary }}>
             <BookOpen className="h-2.5 w-2.5" /> {model.cta}
           </div>
@@ -394,7 +400,7 @@ function EducationProgramPreview({ model, name }: { model: PreviewModel; name: s
 
       <div className="px-4 py-3">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-[6px] font-bold text-slate-800">Choose a program</p>
+          <div className="text-[6px] font-bold text-slate-800">Choose a program</div>
           <span className="text-[5px] font-semibold" style={{ color: model.primary }}>Age · level · goal</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -403,7 +409,7 @@ function EducationProgramPreview({ model, name }: { model: PreviewModel; name: s
               <div className="grid h-5 w-5 place-items-center rounded-md bg-indigo-50 text-[6px] font-bold" style={{ color: model.primary }}>
                 {index + 1}
               </div>
-              <p className="mt-2 line-clamp-2 text-[6px] font-bold text-slate-700">{program}</p>
+              <div className="mt-2 line-clamp-2 text-[6px] font-bold text-slate-700">{program}</div>
             </div>
           ))}
         </div>
@@ -411,8 +417,8 @@ function EducationProgramPreview({ model, name }: { model: PreviewModel; name: s
 
       <div className="mx-4 mb-3 flex items-center justify-between rounded-lg bg-slate-950 px-3 py-2 text-white">
         <div>
-          <p className="text-[5px] text-white/50">Parent next step</p>
-          <p className="mt-0.5 text-[6px] font-bold">Trial class enquiry</p>
+          <div className="text-[5px] text-white/50">Parent next step</div>
+          <div className="mt-0.5 text-[6px] font-bold">Trial class enquiry</div>
         </div>
         <MessageCircle className="h-4 w-4" />
       </div>
@@ -436,18 +442,18 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
 
       <div className="grid min-h-[53%] grid-cols-[1.28fr_0.72fr]">
         <div className="flex flex-col justify-center border-r border-slate-300 px-5 py-4">
-          <p className="text-[5px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primary }}>Professional services</p>
-          <h4 className="mt-3 line-clamp-3 text-[18px] font-semibold leading-[1.02] tracking-[-0.04em] text-slate-950" style={{ fontFamily: model.displayFont }}>
+          <div className="text-[5px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primary }}>Professional services</div>
+          <div className="mt-3 line-clamp-3 text-[18px] font-semibold leading-[1.02] tracking-[-0.04em] text-slate-950" style={{ fontFamily: model.displayFont }}>
             {model.headline}
-          </h4>
-          {model.subheadline ? <p className="mt-2 line-clamp-2 text-[6px] leading-relaxed text-slate-500">{model.subheadline}</p> : null}
-          <p className="mt-4 inline-flex w-fit border-b border-slate-900 pb-1 text-[6px] font-bold text-slate-900">{model.cta}</p>
+          </div>
+          {model.subheadline ? <div className="mt-2 line-clamp-2 text-[6px] leading-relaxed text-slate-500">{model.subheadline}</div> : null}
+          <div className="mt-4 inline-flex w-fit border-b border-slate-900 pb-1 text-[6px] font-bold text-slate-900">{model.cta}</div>
         </div>
 
         <div className="flex flex-col justify-between bg-slate-950 p-4 text-white">
           <FileText className="h-5 w-5 text-white/40" />
           <div>
-            <p className="text-[5px] font-semibold uppercase tracking-wide text-white/40">Capability</p>
+            <div className="text-[5px] font-semibold uppercase tracking-wide text-white/40">Capability</div>
             <div className="mt-2 space-y-2">
               {services.slice(0, 3).map((service, index) => (
                 <div key={index} className="border-t border-white/15 pt-1.5 text-[6px] font-semibold text-white/85">{service}</div>
@@ -459,14 +465,14 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
 
       <div className="grid flex-1 grid-cols-[0.8fr_1.2fr] border-t border-slate-300">
         <div className="border-r border-slate-300 px-4 py-3">
-          <p className="text-[5px] font-bold uppercase tracking-wide text-slate-400">Who we help</p>
-          <p className="mt-1.5 text-[7px] font-semibold text-slate-800">Businesses that value clarity and expertise.</p>
+          <div className="text-[5px] font-bold uppercase tracking-wide text-slate-400">Who we help</div>
+          <div className="mt-1.5 text-[7px] font-semibold text-slate-800">Businesses that value clarity and expertise.</div>
         </div>
         <div className="grid grid-cols-2">
           {(model.sectionTitles.length ? model.sectionTitles : ["Services", "Process"]).slice(0, 2).map((title, index) => (
             <div key={index} className="border-r border-slate-300 px-3 py-3 last:border-r-0">
-              <p className="text-[5px] font-bold" style={{ color: model.primary }}>0{index + 1}</p>
-              <p className="mt-1.5 truncate text-[6px] font-semibold text-slate-700">{title}</p>
+              <div className="text-[5px] font-bold" style={{ color: model.primary }}>0{index + 1}</div>
+              <div className="mt-1.5 truncate text-[6px] font-semibold text-slate-700">{title}</div>
             </div>
           ))}
         </div>
@@ -475,8 +481,76 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
   );
 }
 
+function BrandStatementPreview({ model, name }: { model: PreviewModel; name: string }) {
+  return (
+    <div className="absolute inset-0 grid grid-cols-[1.35fr_0.65fr] bg-[#f4f1ea] text-slate-950" style={{ fontFamily: model.bodyFont }}>
+      <div className="flex flex-col justify-between border-r border-slate-300 p-5">
+        <div className="flex items-center justify-between">
+          <MiniBrand model={model} label={name} />
+          <span className="text-[6px] font-semibold uppercase tracking-[0.12em] text-slate-400">Brand system</span>
+        </div>
+        <div>
+          <div className="text-[6px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primary }}>Clear positioning</div>
+          <div className="mt-3 max-w-[11ch] text-[20px] font-semibold leading-[0.98] tracking-[-0.04em] text-slate-950">{model.headline}</div>
+          <div className="mt-3 max-w-[30ch] text-[7px] leading-relaxed text-slate-500">{model.subheadline || "A distinctive message, deliberate hierarchy and one clear next action."}</div>
+          <div className="mt-4 inline-flex border-b border-slate-900 pb-1 text-[7px] font-semibold">{model.cta}</div>
+        </div>
+        <div className="grid grid-cols-3 border-t border-slate-300 pt-3">
+          {["Offer", "Proof", "Action"].map((item, index) => <div key={item} className="text-[6px] font-semibold text-slate-500">0{index + 1} · {item}</div>)}
+        </div>
+      </div>
+      <div className="flex flex-col justify-between p-4 text-white" style={{ backgroundColor: model.primary }}>
+        <div className="text-[6px] font-semibold uppercase tracking-[0.14em] text-white/60">Visual identity</div>
+        <div className="space-y-2">
+          <div className="h-12 rounded-full border border-white/25" />
+          <div className="ml-auto h-20 w-20 rounded-full border border-white/20 bg-white/10" />
+          <div className="h-px bg-white/30" />
+        </div>
+        <div className="text-[7px] font-semibold text-white/80">Brand-led composition</div>
+      </div>
+    </div>
+  );
+}
+
+function MediaStoryPreview({ model, name }: { model: PreviewModel; name: string }) {
+  return (
+    <div className="absolute inset-0 flex flex-col bg-white text-slate-950" style={{ fontFamily: model.bodyFont }}>
+      <div className="flex h-8 items-center justify-between border-b border-slate-200 px-4">
+        <MiniBrand model={model} label={name} />
+        <span className="text-[6px] font-semibold text-slate-400">Story · Services · Contact</span>
+      </div>
+      <div className="grid flex-1 grid-cols-[0.82fr_1.18fr]">
+        <div className="flex flex-col justify-between bg-[#f5f5f2] p-5">
+          <div>
+            <div className="text-[6px] font-bold uppercase tracking-[0.15em]" style={{ color: model.primary }}>Media-led</div>
+            <div className="mt-3 text-[17px] font-semibold leading-[1.02] tracking-[-0.035em] text-slate-950">{model.headline}</div>
+          </div>
+          <div className="text-[7px] leading-relaxed text-slate-500">{model.subheadline || "Photography, place, people or project imagery carries the story."}</div>
+          <div className="inline-flex w-fit rounded-md px-3 py-1.5 text-[6px] font-semibold text-white" style={{ backgroundColor: model.primary }}>{model.cta}</div>
+        </div>
+        <div className="relative overflow-hidden bg-slate-200">
+          {model.heroImage ? <img src={model.heroImage} alt="" className="h-full w-full object-cover" /> : (
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,#dbeafe_0%,#eef2ff_45%,#d1fae5_100%)]">
+              <div className="absolute left-[12%] top-[14%] h-[58%] w-[58%] rounded-[40%_60%_55%_45%] bg-white/55" />
+              <div className="absolute bottom-[10%] right-[8%] h-[38%] w-[38%] rounded-full bg-slate-900/10" />
+            </div>
+          )}
+          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between rounded-lg bg-white/90 p-3 backdrop-blur">
+            <div><div className="text-[5px] font-bold uppercase tracking-wide text-slate-400">Customer asset</div><div className="mt-1 text-[7px] font-semibold text-slate-800">Image-led brand story</div></div>
+            <div className="h-7 w-7 rounded-full" style={{ backgroundColor: model.primary }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FamilyPreview({ model, name }: { model: PreviewModel; name: string }) {
   switch (model.family) {
+    case "brand_statement":
+      return <BrandStatementPreview model={model} name={name} />;
+    case "media_story":
+      return <MediaStoryPreview model={model} name={name} />;
     case "clinic_trust":
       return <ClinicTrustPreview model={model} name={name} />;
     case "local_quote":
@@ -492,6 +566,7 @@ export function TemplatePreviewThumbnail({
   templateId,
   templateName,
   className = "",
+  layoutFamily,
 }: TemplatePreviewThumbnailProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -541,8 +616,8 @@ export function TemplatePreviewThumbnail({
   }, [config, isVisible, templateId]);
 
   const model = useMemo(
-    () => createPreviewModel(config, templateId, templateName),
-    [config, templateId, templateName],
+    () => createPreviewModel(config, templateId, templateName, layoutFamily),
+    [config, templateId, templateName, layoutFamily],
   );
 
   const showPreview = Boolean(config) || failed;
@@ -550,7 +625,7 @@ export function TemplatePreviewThumbnail({
   return (
     <div
       ref={containerRef}
-      className={`relative aspect-video overflow-hidden border border-slate-200 bg-white ${className}`}
+      className={`bt-template-preview isolate relative aspect-video overflow-hidden border border-slate-200 bg-white text-slate-900 ${className}`}
       role="img"
       aria-label={`${templateName} ${FAMILY_LABELS[model.family]} website layout preview`}
       data-layout-family={model.family}

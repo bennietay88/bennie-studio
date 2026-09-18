@@ -156,14 +156,6 @@
   color: #fff;
 }
 
-.brand-public .brand-on-dark p,
-.brand-public .brand-on-dark h1,
-.brand-public .brand-on-dark h2,
-.brand-public .brand-on-dark h3,
-.brand-public .brand-on-dark h4 {
-  color: inherit;
-}
-
 .brand-public .brand-muted-on-dark {
   color: rgba(255,255,255,.72) !important;
 }
@@ -264,5 +256,27 @@
   .brand-public a[class*="inline-flex"] {
     max-width: 100%;
     white-space: normal;
+  }
+}
+
+
+/* Miniature website previews are their own visual surface. Parent marketing
+   sections must not resize or recolor their internal typography. */
+.brand-public .bt-template-preview {
+  color: #0f172a;
+  font-size: 16px;
+  line-height: 1.2;
+  container-type: inline-size;
+}
+
+.brand-public .bt-template-preview div,
+.brand-public .bt-template-preview span {
+  overflow-wrap: normal;
+}
+
+@media (max-width: 767px) {
+  .brand-public .bt-template-preview {
+    min-height: 0 !important;
+    width: 100%;
   }
 }

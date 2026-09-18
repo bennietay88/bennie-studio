@@ -1437,7 +1437,7 @@ export function WebsiteRenderer({
     <HelmetProvider>
       <div
         ref={rendererRootRef}
-        style={{ fontFamily: theme.fontFamily || "Inter, sans-serif", containerType: "inline-size" }}
+        style={{ fontFamily: theme.fontFamily || "Inter, sans-serif", containerType: "inline-size", containerName: "customer-site" }}
         data-design-profile={designProfile.id}
         data-generation-mode={generationMode}
         data-motion-profile={theme.motionProfile || designProfile.motion}
