@@ -75,15 +75,15 @@ const designDirections = {
 } as const;
 
 const industries = [
-  "Professional services",
-  "Clinics & healthcare",
-  "Consultants",
-  "Contractors",
-  "Accounting & finance",
-  "Education",
-  "Beauty & wellness",
-  "Local service businesses",
-];
+  { label: "Professional services", path: "/case-studies" },
+  { label: "Clinics & healthcare", path: "/clinic-website-design-malaysia" },
+  { label: "Consultants", path: "/consultant-website-design" },
+  { label: "Contractors", path: "/renovation-contractor-website-design" },
+  { label: "Accounting & finance", path: "/case-studies" },
+  { label: "Education", path: "/tuition-centre-website-design" },
+  { label: "Beauty & wellness", path: "/beauty-salon-website-design" },
+  { label: "Local service businesses", path: "/templates" },
+] as const;
 
 const process = [
   ["01", "Direction", "We define the audience, offer, proof and strongest enquiry path."],
@@ -159,6 +159,13 @@ export default function BrandLedLandingPage() {
   }));
   const entryPrice = getCommercialPrice(managed, market);
   const entryMonthly = formatCommercialMoney(entryPrice?.monthlyPrice, entryPrice?.currency || "MYR");
+  const planBestFor = ["Professional presence", "Active acquisition", "Ongoing growth"];
+  const planComparisonRows = [
+    ["Website management", ["Included", "Included", "Included"]],
+    ["Conversion optimisation", ["Foundation", "Monthly", "Advanced"]],
+    ["Local SEO", ["Foundation", "Expansion", "Ongoing"]],
+    ["Growth support", ["—", "Limited", "Ongoing"]],
+  ] as const;
 
   const go = (path: string, label: string) => {
     trackPublicEvent({ eventType: "sales_cta_clicked", label, target: path });
@@ -228,7 +235,7 @@ export default function BrandLedLandingPage() {
                   <span className="text-sm font-semibold text-[#141821]">Example managed website direction</span>
                   <span className="text-xs font-semibold text-[#5746e8]">Live template</span>
                 </div>
-                <TemplatePreviewThumbnail templateId="accounting-firm-v1" templateName="Professional service website" className="aspect-[4/3] min-h-[360px] border border-[#e2e4e8]" />
+                <TemplatePreviewThumbnail templateId="accounting-firm-v1" templateName="Professional service website" className="aspect-[4/3] min-h-[270px] border border-[#e2e4e8] sm:min-h-[360px]" />
               </div>
             </div>
           </div>
@@ -275,7 +282,7 @@ export default function BrandLedLandingPage() {
             <div className="mt-10 grid gap-8 lg:grid-cols-3">
               {exampleTemplates.map(([templateId, category, direction, action]) => (
                 <article key={templateId}>
-                  <TemplatePreviewThumbnail templateId={templateId} templateName={category} className="aspect-[4/3] min-h-[300px] border border-[#d8d9dc] bg-white" />
+                  <TemplatePreviewThumbnail templateId={templateId} templateName={category} className="aspect-[4/3] min-h-[240px] border border-[#d8d9dc] bg-white sm:min-h-[300px]" />
                   <p className="mt-5 text-sm font-semibold text-[#5746e8]">{category}</p>
                   <h3 className="mt-2">{direction}</h3>
                   <p className="mt-2 text-sm text-[#526071]">{action}</p>
@@ -304,7 +311,7 @@ export default function BrandLedLandingPage() {
             </div>
             <div className="lg:col-span-8">
               <div className="border border-[#d8d9dc] bg-white p-4">
-                <TemplatePreviewThumbnail templateId={activeDirection.templateId} templateName={activeDirection.label} className="aspect-[16/9] min-h-[430px]" />
+                <TemplatePreviewThumbnail templateId={activeDirection.templateId} templateName={activeDirection.label} className="aspect-[16/9] min-h-[260px] sm:min-h-[430px]" />
               </div>
               <div className="mt-5 grid gap-4 md:grid-cols-[1fr_1.4fr]">
                 <h3>{activeDirection.title}</h3>
@@ -322,10 +329,15 @@ export default function BrandLedLandingPage() {
             </div>
             <div className="brand-rule-list lg:col-span-7">
               {industries.map((industry) => (
-                <div key={industry} className="flex items-center justify-between border-b border-[#cbc5f4] py-4">
-                  <span className="text-lg font-semibold">{industry}</span>
-                  <ChevronRight className="h-4 w-4 text-[#5746e8]" />
-                </div>
+                <button
+                  key={industry.label}
+                  type="button"
+                  onClick={() => go(industry.path, `Industry ${industry.label}`)}
+                  className="group flex min-h-16 w-full items-center justify-between gap-4 border-b border-[#cbc5f4] py-4 text-left transition hover:bg-white/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5746e8] focus-visible:ring-offset-2"
+                >
+                  <span className="text-base font-semibold sm:text-lg">{industry.label}</span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-[#5746e8] transition-transform group-hover:translate-x-1" />
+                </button>
               ))}
             </div>
           </div>
@@ -338,39 +350,73 @@ export default function BrandLedLandingPage() {
               <h2 className="mt-4">Start with the website. Add growth when you need it.</h2>
               <p className="brand-copy mt-5">One pricing system across the site. Monthly service is shown first; setup is shown clearly underneath.</p>
             </div>
-            <div className="overflow-x-auto lg:col-span-8">
-              <table className="w-full min-w-[720px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-[#d8d9dc]">
-                    <th className="py-4 pr-4 text-sm font-semibold">Plan</th>
-                    {priced.map(({product}) => <th key={product.slug} className="px-4 py-4 text-lg font-semibold">{product.name}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["Best for", ["Professional presence", "Active acquisition", "Ongoing growth"]],
-                    ["Website management", ["Included", "Included", "Included"]],
-                    ["Conversion optimisation", ["Foundation", "Monthly", "Advanced"]],
-                    ["Local SEO", ["Foundation", "Expansion", "Ongoing"]],
-                    ["Growth support", ["—", "Limited", "Ongoing"]],
-                  ].map(([label, values]: any) => (
-                    <tr key={label} className="border-b border-[#d8d9dc]">
-                      <th className="py-4 pr-4 text-sm font-semibold text-[#526071]">{label}</th>
-                      {values.map((value: string, index: number) => <td key={index} className="px-4 py-4 text-sm text-[#526071]">{value}</td>)}
+            <div className="lg:col-span-8">
+              <div className="grid gap-4 md:hidden">
+                {priced.map(({ product, price }, index) => {
+                  const isGrowth = product.slug === "website-growth";
+                  return (
+                    <article key={product.slug} className={isGrowth ? "border-2 border-[#5746e8] bg-[#eeebff] p-5 shadow-sm" : "border border-[#d8d9dc] bg-white p-5"}>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]">{isGrowth ? "Most popular" : planBestFor[index]}</p>
+                          <h3 className="mt-1">{product.name}</h3>
+                        </div>
+                        {isGrowth ? <span className="rounded-full bg-[#5746e8] px-3 py-1 text-xs font-semibold text-white">Most popular</span> : null}
+                      </div>
+                      <p className="mt-5 text-3xl font-semibold">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-[#707b8a]">/month</span></p>
+                      <p className="mt-1 text-sm text-[#707b8a]">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
+                      <div className="mt-5 space-y-3 border-t border-[#d8d9dc] pt-4">
+                        {planComparisonRows.map(([label, values]) => (
+                          <div key={label} className="flex items-start justify-between gap-4 text-sm">
+                            <span className="font-semibold text-[#526071]">{label}</span>
+                            <span className="text-right text-[#526071]">{values[index]}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <button onClick={() => go("/pricing?product=" + product.slug, "Pricing " + product.name)} className={isGrowth ? "mt-5 inline-flex min-h-12 w-full items-center justify-center bg-[#5746e8] px-5 font-semibold text-white" : "mt-5 inline-flex min-h-12 w-full items-center justify-center bg-[#141821] px-5 font-semibold text-white"}>
+                        View plan <ArrowRight className="ml-2 h-4 w-4" />
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[720px] border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-[#d8d9dc]">
+                      <th className="py-4 pr-4 text-sm font-semibold">Plan</th>
+                      {priced.map(({ product }, index) => (
+                        <th key={product.slug} className={index === 1 ? "border-x border-[#cbc5f4] bg-[#eeebff] px-4 py-4 align-top" : "px-4 py-4 align-top"}>
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]">{index === 1 ? "Most popular" : planBestFor[index]}</p>
+                          <p className="mt-1 text-lg font-semibold text-[#141821]">{product.name}</p>
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                  <tr>
-                    <th className="py-6 pr-4 text-sm font-semibold">Price</th>
-                    {priced.map(({product, price}) => (
-                      <td key={product.slug} className="px-4 py-6 align-top">
-                        <p className="text-2xl font-semibold">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-[#707b8a]">/month</span></p>
-                        <p className="mt-1 text-sm text-[#707b8a]">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
-                        <button onClick={() => go("/pricing?product=" + product.slug, "Pricing " + product.name)} className="mt-4 inline-flex items-center font-semibold text-[#5746e8]">Details <ArrowRight className="ml-1 h-4 w-4" /></button>
-                      </td>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-[#d8d9dc]">
+                      <th className="py-4 pr-4 text-sm font-semibold text-[#526071]">Best for</th>
+                      {planBestFor.map((value, index) => <td key={value} className={index === 1 ? "border-x border-[#cbc5f4] bg-[#eeebff] px-4 py-4 text-sm text-[#526071]" : "px-4 py-4 text-sm text-[#526071]"}>{value}</td>)}
+                    </tr>
+                    {planComparisonRows.map(([label, values]) => (
+                      <tr key={label} className="border-b border-[#d8d9dc]">
+                        <th className="py-4 pr-4 text-sm font-semibold text-[#526071]">{label}</th>
+                        {values.map((value, index) => <td key={index} className={index === 1 ? "border-x border-[#cbc5f4] bg-[#eeebff] px-4 py-4 text-sm text-[#526071]" : "px-4 py-4 text-sm text-[#526071]"}>{value}</td>)}
+                      </tr>
                     ))}
-                  </tr>
-                </tbody>
-              </table>
+                    <tr>
+                      <th className="py-6 pr-4 text-sm font-semibold">Price</th>
+                      {priced.map(({product, price}, index) => (
+                        <td key={product.slug} className={index === 1 ? "border-x border-[#cbc5f4] bg-[#eeebff] px-4 py-6 align-top" : "px-4 py-6 align-top"}>
+                          <p className="text-2xl font-semibold">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-[#707b8a]">/month</span></p>
+                          <p className="mt-1 text-sm text-[#707b8a]">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
+                          <button onClick={() => go("/pricing?product=" + product.slug, "Pricing " + product.name)} className={index === 1 ? "mt-4 inline-flex items-center font-semibold text-[#5746e8]" : "mt-4 inline-flex items-center font-semibold text-[#526071]"}>Details <ArrowRight className="ml-1 h-4 w-4" /></button>
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
