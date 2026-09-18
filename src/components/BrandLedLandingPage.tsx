@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "motion/react";
 import {
@@ -332,15 +332,15 @@ export default function BrandLedLandingPage() {
             </div>
             <div className="brand-rule-list lg:col-span-7">
               {industries.map((industry) => (
-                <button
+                <Link
                   key={industry.label}
-                  type="button"
-                  onClick={() => go(industry.path, `Industry ${industry.label}`)}
+                  to={industry.path}
+                  onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: `Industry ${industry.label}`, target: industry.path })}
                   className="group flex min-h-16 w-full items-center justify-between gap-4 border-b border-[#cbc5f4] py-4 text-left transition hover:bg-white/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5746e8] focus-visible:ring-offset-2"
                 >
                   <span className="text-base font-semibold sm:text-lg">{industry.label}</span>
                   <ChevronRight className="h-5 w-5 shrink-0 text-[#5746e8] transition-transform group-hover:translate-x-1" />
-                </button>
+                </Link>
               ))}
             </div>
           </div>
