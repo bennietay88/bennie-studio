@@ -92,10 +92,33 @@ export default function OwnSalesSeoPage() {
   const managedProduct = COMMERCIAL_FALLBACK_PRODUCTS.find((product) => product.slug === "managed-website")!;
   const managedPrice = getCommercialPrice(managedProduct, revenueMarket)!;
   const coreOffer = { name: managedProduct.name, description: managedProduct.description, monthlyLabel: formatCommercialMoney(managedPrice.monthlyPrice, managedPrice.currency), setupLabel: formatCommercialMoney(managedPrice.setupFee, managedPrice.currency), prices: { [revenueMarket]: { currency: managedPrice.currency } } } as any;
-  const packageOptions = COMMERCIAL_FALLBACK_PRODUCTS.filter((product) => ["managed-website", "website-growth"].includes(product.slug)).map((product, index) => {
-    const price = getCommercialPrice(product, revenueMarket)!;
-    return { id: product.slug, name: product.name, price: `${formatCommercialMoney(price.monthlyPrice, price.currency)}/mo`, description: product.description, label: index === 0 ? "Recommended starting point" : "For active growth", features: index === 0 ? ["Hosting and SSL", "Conversion-focused structure", "WhatsApp and enquiry paths", "Managed updates"] : ["Monthly conversion optimisation", "Local SEO expansion", "Landing and location pages", "Priority support"] };
-  });
+  const packageOptions = COMMERCIAL_FALLBACK_PRODUCTS
+    .filter((product) => ["managed-website", "website-growth", "growth-partner"].includes(product.slug))
+    .map((product) => {
+      const price = getCommercialPrice(product, revenueMarket)!;
+      const planMeta = product.slug === "managed-website"
+        ? {
+            label: "Recommended starting point",
+            features: ["Hosting and SSL", "Conversion-focused structure", "WhatsApp and enquiry paths", "Managed updates"],
+          }
+        : product.slug === "website-growth"
+          ? {
+              label: "For active growth",
+              features: ["Monthly conversion optimisation", "Local SEO expansion", "Landing and location pages", "Priority support"],
+            }
+          : {
+              label: "For deeper growth",
+              features: ["Ongoing growth planning", "Advanced conversion work", "Campaign landing pages", "Strategic reviews"],
+            };
+      return {
+        id: product.slug,
+        name: product.name,
+        price: `${formatCommercialMoney(price.monthlyPrice, price.currency)}/mo`,
+        setupPrice: formatCommercialMoney(price.setupFee, price.currency),
+        description: product.description,
+        ...planMeta,
+      };
+    });
   const serviceSchema = {
     "@context": "https://schema.org",
     "@type": "Service",
@@ -111,11 +134,7 @@ export default function OwnSalesSeoPage() {
     offers: {
       "@type": "OfferCatalog",
       name: `Website service options for ${marketLabel}`,
-      itemListElement: [...packageOptions, {
-        name: coreOffer.name,
-        description: coreOffer.description,
-        price: coreOffer.monthlyLabel,
-      }].map((plan) => ({
+      itemListElement: packageOptions.map((plan) => ({
         "@type": "Offer",
         name: plan.name,
         description: plan.description,
@@ -463,7 +482,7 @@ export default function OwnSalesSeoPage() {
                 <thead>
                   <tr className="border-b border-[#d8d9dc]">
                     <th className="py-4 pr-5 text-sm font-semibold">Plan</th>
-                    {packageOptions.map((plan)=><th key={plan.name} className="px-5 py-4"><p className="text-sm font-semibold text-[#5746e8]">{plan.label}</p><h3 className="mt-1">{plan.name}</h3></th>)}
+                    {packageOptions.map((plan)=><th key={plan.name} className="px-5 py-4"><p className="text-sm font-semibold text-[#5746e8]">{plan.label}</p><h3 className="mt-1">{plan.name}</h3><p className="mt-2 text-xs font-medium text-[#687386]">+ {plan.setupPrice} setup</p></th>)}
                   </tr>
                 </thead>
                 <tbody>
