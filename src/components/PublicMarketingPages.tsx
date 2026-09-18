@@ -757,8 +757,6 @@ function CaseStudiesPage() {
 }
 
 const previewIndustries = [
-
-const previewIndustries = [
   {
     id: "cleaning", label: "Cleaning Company", template: "Cleaning Quote Website", recommendedPlan: "Managed Website",
     pages: ["Home", "Services", "Areas Served", "Reviews", "Contact"],
