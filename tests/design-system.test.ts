@@ -244,3 +244,71 @@ test("generated services do not invent prices", () => {
   assert.ok(services);
   assert.doesNotMatch(JSON.stringify(services?.content || {}), /Custom Quote|Enquire|"price"/i);
 });
+
+
+test("brand personality changes premium art direction", () => {
+  const elegant = buildPagesFromBlueprint({
+    businessName: "Aurelia",
+    nicheName: "Corporate",
+    plan: "business",
+    maxPages: 3,
+    mainService: "Advisory",
+    targetCustomer: "business leaders",
+    location: "London",
+    ctaPreference: "Book Call",
+    generationMode: "brand_led",
+    brandPersonality: "elegant",
+    assetReadiness: "professional",
+  });
+  const bold = buildPagesFromBlueprint({
+    businessName: "Aurelia",
+    nicheName: "Corporate",
+    plan: "business",
+    maxPages: 3,
+    mainService: "Advisory",
+    targetCustomer: "business leaders",
+    location: "London",
+    ctaPreference: "Book Call",
+    generationMode: "brand_led",
+    brandPersonality: "bold",
+    assetReadiness: "professional",
+  });
+  assert.notDeepEqual(
+    elegant[0].sections.map((section) => section.settings?.variant),
+    bold[0].sections.map((section) => section.settings?.variant),
+  );
+});
+
+test("asset readiness changes brand-led hero composition", () => {
+  const base = {
+    businessName: "Aurelia",
+    nicheName: "Corporate",
+    plan: "business",
+    maxPages: 3,
+    mainService: "Advisory",
+    targetCustomer: "business leaders",
+    location: "London",
+    ctaPreference: "Book Call",
+    generationMode: "brand_led" as const,
+  };
+  const pending = buildPagesFromBlueprint({ ...base, assetReadiness: "pending" as const });
+  const ready = buildPagesFromBlueprint({ ...base, assetReadiness: "professional" as const });
+  assert.equal(pending[0].sections[0].settings?.variant, "statement_media");
+  assert.equal(ready[0].sections[0].settings?.variant, "brand_media");
+});
+
+test("multi-location maturity adds location architecture in premium modes", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Northstar Clinics",
+    nicheName: "Clinic / Healthcare",
+    plan: "business",
+    maxPages: 3,
+    mainService: "Private healthcare",
+    targetCustomer: "patients",
+    location: "London",
+    ctaPreference: "Book Appointment",
+    generationMode: "brand_led",
+    businessMaturity: "multi_location",
+  });
+  assert.ok(pages[0].sections.some((section) => section.type === "contact"));
+});

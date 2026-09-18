@@ -1,4 +1,4 @@
-import type { IndustryCategory, Website, WebsiteGenerationMode } from "../types";
+import type { AssetReadiness, BrandPersonality, BusinessMaturity, IndustryCategory, Website, WebsiteGenerationMode } from "../types";
 
 export type DesignProfileId =
   | "editorial_luxury"
@@ -173,12 +173,34 @@ export function resolveDesignProfileForMode(
   mode: WebsiteGenerationMode = "fast",
   industry?: string | null,
   requestedProfile?: string | null,
+  intent?: {
+    brandPersonality?: BrandPersonality;
+    businessMaturity?: BusinessMaturity;
+    assetReadiness?: AssetReadiness;
+  },
 ): DesignProfile {
   if (requestedProfile && requestedProfile in DESIGN_PROFILES) {
     return DESIGN_PROFILES[requestedProfile as DesignProfileId];
   }
+
   const base = resolveDesignProfile(undefined, industry);
   if (mode === "fast") return base;
+
+  const personality = intent?.brandPersonality;
+  if (personality === "bold") return DESIGN_PROFILES.bold_contemporary;
+  if (personality === "friendly" || personality === "approachable") {
+    if (industry === "Clinic / Healthcare" || industry === "Legal") return DESIGN_PROFILES.trust_authority;
+    return DESIGN_PROFILES.craft_organic;
+  }
+  if (personality === "elegant") return DESIGN_PROFILES.editorial_luxury;
+  if (personality === "technical" || personality === "established") return DESIGN_PROFILES.brand_corporate;
+  if (personality === "premium") {
+    if (industry === "Hospitality" || industry === "Retail / Boutique" || industry === "Portfolio" || industry === "Real Estate") {
+      return DESIGN_PROFILES.editorial_luxury;
+    }
+    return DESIGN_PROFILES.brand_corporate;
+  }
+
   if (mode === "brand_led") {
     if (industry === "Clinic / Healthcare" || industry === "Legal") return DESIGN_PROFILES.trust_authority;
     if (industry === "Hospitality" || industry === "Retail / Boutique" || industry === "Portfolio" || industry === "Real Estate") {
@@ -186,6 +208,7 @@ export function resolveDesignProfileForMode(
     }
     return DESIGN_PROFILES.brand_corporate;
   }
+
   if (base.id === "craft_organic" || base.id === "bold_contemporary") return base;
   if (industry === "Corporate" || industry === "SaaS") return DESIGN_PROFILES.brand_corporate;
   return base.id === "modern_minimal" ? DESIGN_PROFILES.brand_corporate : base;
@@ -241,8 +264,27 @@ export function getVariantForMode(
   profile: DesignProfileId,
   mode: WebsiteGenerationMode = "fast",
   ordinal = 0,
+  intent?: {
+    brandPersonality?: BrandPersonality;
+    businessMaturity?: BusinessMaturity;
+    assetReadiness?: AssetReadiness;
+  },
 ): string | undefined {
   if (mode === "fast") return getDefaultVariant(type, profile);
+
+  if (type === "hero") {
+    if (intent?.assetReadiness === "pending") {
+      return mode === "brand_led" ? "statement_media" : "editorial_split";
+    }
+    if (intent?.assetReadiness === "professional") {
+      return mode === "brand_led" ? "brand_media" : "editorial_split";
+    }
+  }
+
+  if (type === "about" && intent?.brandPersonality === "elegant") return "editorial_story";
+  if (type === "services" && intent?.brandPersonality === "bold") return "alternating";
+  if (type === "features" && intent?.brandPersonality === "technical") return "capability_matrix";
+
   const premium: Record<string, string[]> = {
     hero: ["editorial_split", "statement_media"],
     services: ["editorial_list", "alternating"],

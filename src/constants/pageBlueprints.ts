@@ -386,11 +386,22 @@ const resolveHomeComposition = (
   mode: WebsiteGenerationMode,
   fallback: SectionBlockType[],
   seed = 0,
+  maturity?: BusinessMaturity,
 ): SectionBlockType[] => {
   if (mode === "fast") return fallback;
   const base = mode === "brand_led"
-    ? (BRAND_LED_HOME_COMPOSITIONS[niche] || BRAND_LED_HOME_COMPOSITIONS.consultant)
-    : (PREMIUM_HOME_COMPOSITIONS[niche] || PREMIUM_HOME_COMPOSITIONS.consultant);
+    ? [...(BRAND_LED_HOME_COMPOSITIONS[niche] || BRAND_LED_HOME_COMPOSITIONS.consultant)]
+    : [...(PREMIUM_HOME_COMPOSITIONS[niche] || PREMIUM_HOME_COMPOSITIONS.consultant)];
+
+  if (maturity === "new") {
+    return base.filter((block) => !["team", "insights"].includes(block));
+  }
+
+  if (maturity === "multi_location" && !base.includes("location")) {
+    const finalIndex = Math.max(1, base.length - 1);
+    base.splice(finalIndex, 0, "location");
+  }
+
   return seed % 2 === 0 ? base : createAlternateComposition(base);
 };
 
@@ -751,17 +762,25 @@ export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsiteP
   const blueprint = getBlueprint(nicheName, input.plan, input.maxPages);
   const limit = getPlanPageLimit(input.plan, input.maxPages);
   const generationMode = input.generationMode || "fast";
-  const profile = resolveDesignProfileForMode(generationMode, template?.category || template?.name);
+  const profile = resolveDesignProfileForMode(generationMode, template?.category || template?.name, undefined, {
+    brandPersonality: input.brandPersonality,
+    businessMaturity: input.businessMaturity,
+    assetReadiness: input.assetReadiness,
+  });
 
   return blueprint.pages.slice(0, limit).map((blueprintPage) => {
     const blockPlan = blueprintPage.slug === ""
-      ? resolveHomeComposition(blueprint.niche, generationMode, blueprintPage.sections, input.compositionSeed || 0)
+      ? resolveHomeComposition(blueprint.niche, generationMode, blueprintPage.sections, input.compositionSeed || 0, input.businessMaturity)
       : blueprintPage.sections;
     const sections = blockPlan.map((block, blockIndex) => {
       const sectionType = sectionTypeMap[block];
       const section = cloneSection(sectionType);
       const configured = buildSectionContent(section, block, blueprintPage, input);
-      const variant = getVariantForMode(sectionType, profile.id, generationMode, blockIndex + (input.compositionSeed || 0));
+      const variant = getVariantForMode(sectionType, profile.id, generationMode, blockIndex + (input.compositionSeed || 0), {
+        brandPersonality: input.brandPersonality,
+        businessMaturity: input.businessMaturity,
+        assetReadiness: input.assetReadiness,
+      });
       return variant
         ? {
             ...configured,
@@ -814,7 +833,7 @@ export const getBlueprintTheme = (
     fontFamily: "'Inter', sans-serif",
     style: "modern",
   };
-  const profile = resolveDesignProfileForMode(generationMode, template?.category || template?.name);
+  const profile = resolveDesignProfileForMode(generationMode, template?.category || template?.name, undefined, intent);
   return {
     ...baseTheme,
     style: generationMode === "fast" ? baseTheme.style : profile.defaultStyle,
