@@ -588,14 +588,14 @@ export default function BrandLedLandingPage() {
                       <article key={product.slug} className={isGrowth ? "border border-[#101827] bg-[#101827] p-6 text-white shadow-[0_24px_70px_-45px_rgba(15,23,42,.6)]" : "border border-[#dfe2ea] bg-white p-6"}>
                         <div>
                           <p className={isGrowth ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{isGrowth ? "Recommended" : planBestFor[index]}</p>
-                          <h3 className="mt-2">{product.name}</h3>
+                          <h3 className={isGrowth ? "mt-2 !text-white" : "mt-2"}>{product.name}</h3>
                         </div>
-                        <p className="mt-7 text-3xl font-semibold">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className={isGrowth ? "text-sm font-normal !text-white/55" : "text-sm font-normal text-[#707b8a]"}>/month</span></p>
-                        <p className={isGrowth ? "mt-1 text-sm !text-white/55" : "mt-1 text-sm text-[#707b8a]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
-                        <div className={isGrowth ? "mt-6 space-y-3 border-t border-white/15 pt-5" : "mt-6 space-y-3 border-t border-[#dfe2ea] pt-5"}>
+                        <p className={isGrowth ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#707b8a]"}>/month</span></p>
+                        <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#707b8a]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
+                        <div className={isGrowth ? "mt-6 space-y-3 border-t border-white/25 pt-5" : "mt-6 space-y-3 border-t border-[#dfe2ea] pt-5"}>
                           {planComparisonRows.map(([label, values]) => (
                             <div key={label} className="flex items-start justify-between gap-4 text-sm">
-                              <span className={isGrowth ? "font-semibold !text-white/55" : "font-semibold text-[#526071]"}>{label}</span>
+                              <span className={isGrowth ? "font-semibold !text-white/80" : "font-semibold text-[#526071]"}>{label}</span>
                               <span className={isGrowth ? "text-right font-semibold !text-white" : "text-right text-[#526071]"}>{values[index]}</span>
                             </div>
                           ))}
