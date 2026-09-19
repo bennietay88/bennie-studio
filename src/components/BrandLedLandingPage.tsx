@@ -288,7 +288,7 @@ export default function BrandLedLandingPage() {
               </div>
               <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm !text-white/65">
                 <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> No card required</span>
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Five-page direction</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Tailored website structure</span>
                 <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Desktop + mobile</span>
               </div>
             </div>
@@ -299,73 +299,24 @@ export default function BrandLedLandingPage() {
               transition={{ duration: 0.7, ease: "easeOut" }}
               className="relative lg:col-span-7"
             >
-              <div className="pointer-events-none absolute -left-7 -top-7 hidden h-[86%] w-[82%] border border-white/10 bg-white/[0.025] lg:block" />
-              <div className="pointer-events-none absolute -right-8 bottom-12 hidden h-48 w-48 rounded-full bg-[#5746e8]/25 blur-3xl lg:block" />
-
-              <div className="relative">
-                <div className="mb-3 flex items-center justify-between px-1">
+              <div className="pointer-events-none absolute -inset-6 hidden border border-white/10 bg-white/[0.02] lg:block" />
+              <div className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rounded-full bg-[#5746e8]/20 blur-3xl" />
+              <figure className="relative overflow-hidden border border-white/15 bg-[#090d18] shadow-[0_50px_130px_-52px_rgba(0,0,0,.95)]">
+                <img
+                  src="/images/bennie-studio-hero.jpg"
+                  alt="Bennie Studio website direction shown across desktop and mobile"
+                  className="aspect-[16/9] w-full object-cover"
+                  loading="eager"
+                  fetchPriority="high"
+                />
+                <figcaption className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-[#101827] px-4 py-3 sm:px-5">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] !text-[#b9b1ff]">Selected direction</p>
-                    <p className="mt-1 text-sm font-semibold !text-white">Professional services · Brand-led</p>
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.13em] !text-[#b9b1ff]">Website direction</p>
+                    <p className="mt-1 text-xs font-semibold !text-white">Built around the business, buyer and brand.</p>
                   </div>
-                  <span className="hidden border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] !text-white/60 sm:inline-flex">Desktop</span>
-                </div>
-
-                <div className="brand-browser-frame relative overflow-hidden border border-white/15 bg-white shadow-[0_50px_130px_-52px_rgba(0,0,0,.9)]">
-                  <div className="flex h-11 items-center gap-2 border-b border-[#e1e4eb] bg-[#fbfbfd] px-4">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#d7dae2]" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#d7dae2]" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#d7dae2]" />
-                    <div className="mx-auto hidden h-6 min-w-[13rem] items-center justify-center border border-[#e1e4eb] bg-white px-5 text-[9px] font-medium text-[#8b93a0] sm:flex">
-                      yourbusiness.com
-                    </div>
-                    <span className="hidden w-[3.75rem] sm:block" />
-                  </div>
-                  <div className="bg-[#f3f4f8] p-3 sm:p-4">
-                    <TemplatePreviewThumbnail
-                      templateId="accounting-firm-v1"
-                      templateName="Professional services"
-                      layoutFamily="brand_statement"
-                      showFamilyLabel={false}
-                      className="aspect-[16/10] min-h-0 border border-[#dfe2ea] bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="relative mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-                  <div className="border border-white/15 bg-[#12192b]/95 p-4 backdrop-blur">
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.13em] !text-[#b9b1ff]">Five-page architecture</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {["Home", "Services", "Proof", "About", "Contact"].map((page, index) => (
-                        <span key={page} className="border border-white/12 bg-white/[0.04] px-2.5 py-1.5 text-[10px] font-semibold !text-white/72">
-                          {String(index + 1).padStart(2, "0")} {page}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="justify-self-end border border-[#dfe2ea] bg-white p-2 shadow-[0_28px_70px_-38px_rgba(0,0,0,.75)] sm:-mb-8 sm:w-[10.5rem]">
-                    <div className="flex h-5 items-center justify-center rounded-t-[0.8rem] bg-[#0f172a]">
-                      <span className="h-1 w-8 rounded-full bg-white/20" />
-                    </div>
-                    <div className="bg-[#f7f8fb] p-2">
-                      <div className="rounded-[0.45rem] bg-white p-2">
-                        <div className="h-1.5 w-8 bg-[#5746e8]" />
-                        <div className="mt-3 h-3 w-11/12 bg-[#111827]" />
-                        <div className="mt-1.5 h-3 w-8/12 bg-[#111827]" />
-                        <div className="mt-3 h-1.5 w-full bg-[#e5e7eb]" />
-                        <div className="mt-1.5 h-1.5 w-9/12 bg-[#e5e7eb]" />
-                        <div className="mt-4 h-6 w-20 bg-[#5746e8]" />
-                        <div className="mt-4 grid grid-cols-2 gap-1.5">
-                          <div className="h-10 bg-[#eef0f5]" />
-                          <div className="h-10 bg-[#eef0f5]" />
-                        </div>
-                      </div>
-                    </div>
-                    <p className="px-1 pb-1 pt-2 text-center text-[9px] font-semibold text-[#687386]">Mobile direction</p>
-                  </div>
-                </div>
-              </div>
+                  <span className="border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] !text-white/60">Desktop + mobile</span>
+                </figcaption>
+              </figure>
             </motion.div>
           </div>
         </section>
@@ -396,7 +347,16 @@ export default function BrandLedLandingPage() {
             <p className="brand-copy lg:col-span-5">The benchmark is not a prettier brochure. The website needs a clear proposition, a strong visual system, useful conversion paths and an operating model after launch.</p>
           </div>
 
-          <div className="mt-12 grid gap-6 lg:grid-cols-[21rem_1fr]">
+          <div className="mt-10 overflow-hidden border border-[#dfe2ea] bg-[#0b1020]">
+            <img
+              src="/images/bennie-studio-system.jpg"
+              alt="Bennie Studio managed website system covering strategy, design, lead capture and managed growth"
+              className="aspect-[4/3] w-full object-cover sm:aspect-[16/8] lg:aspect-[16/7]"
+              loading="lazy"
+            />
+          </div>
+
+          <div className="mt-8 grid gap-6 lg:grid-cols-[21rem_1fr]">
             <div className="border-y border-[#dfe2ea]">
               {systemModules.map((item) => {
                 const Icon = item.icon;
@@ -499,9 +459,10 @@ export default function BrandLedLandingPage() {
                           </div>
                         ))}
                       </div>
-                      <div className="mt-4 grid grid-cols-5 gap-2">
-                        {["Home", "Services", "Proof", "About", "Contact"].map((page, index) => <div key={page} className="border border-[#dfe2ea] bg-white px-2 py-3 text-center"><span className="block text-[9px] font-semibold text-[#5746e8]">0{index + 1}</span><span className="mt-1 block text-[10px] font-semibold text-[#526071]">{page}</span></div>)}
+                      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {["Offer", "Services", "Proof", "Action"].map((item, index) => <div key={item} className="border border-[#dfe2ea] bg-white px-2 py-3 text-center"><span className="block text-[9px] font-semibold text-[#5746e8]">0{index + 1}</span><span className="mt-1 block text-[10px] font-semibold text-[#526071]">{item}</span></div>)}
                       </div>
+                      <p className="mt-3 text-xs leading-5 text-[#7b8494]">The final page structure and depth are selected around the business, plan and customer journey.</p>
                     </div>
                   )}
                 </div>
@@ -744,7 +705,7 @@ export default function BrandLedLandingPage() {
             <div>
               <p className="text-sm font-semibold !text-white/70">Preview before you choose</p>
               <h2 className="mt-2 max-w-2xl !text-white">See the system applied to your business before you buy it.</h2>
-              <p className="mt-4 max-w-xl !text-white/75">Generate a personalised five-page website direction, then choose a plan only if the approach fits.</p>
+              <p className="mt-4 max-w-xl !text-white/75">Generate a personalised website direction shaped around your business, then choose a plan only if the approach fits.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
               <button onClick={() => go("/generate-preview", "Final free preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821]">Build free preview <ArrowRight className="ml-2 inline h-4 w-4" /></button>
