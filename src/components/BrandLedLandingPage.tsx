@@ -272,7 +272,7 @@ export default function BrandLedLandingPage() {
         <section className="brand-on-dark brand-grid-bg relative overflow-hidden bg-[#0b1020]">
           <div className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#5b4bff]/20 blur-3xl" />
           <div className="brand-shell relative grid gap-14 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
-            <div className="lg:col-span-6">
+            <div className="lg:col-span-5">
               <p className="brand-kicker !text-[#b9b1ff]">Managed website system for service businesses</p>
               <h1 className="mt-5 !max-w-[13ch] !text-white">A serious website, without building an in-house web team.</h1>
               <p className="brand-copy brand-muted-on-dark mt-7 !max-w-xl">
@@ -297,57 +297,73 @@ export default function BrandLedLandingPage() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: "easeOut" }}
-              className="lg:col-span-6"
+              className="relative lg:col-span-7"
             >
-              <div className="brand-browser-frame relative overflow-hidden border border-white/15 bg-[#f7f8fb] shadow-[0_45px_120px_-48px_rgba(0,0,0,.85)]">
-                <div className="flex h-11 items-center gap-2 border-b border-[#dfe2ea] bg-white px-4">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#d9dce4]" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#d9dce4]" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#d9dce4]" />
-                  <span className="ml-3 text-[11px] font-semibold text-[#7b8494]">Bennie Studio · website direction</span>
+              <div className="pointer-events-none absolute -left-7 -top-7 hidden h-[86%] w-[82%] border border-white/10 bg-white/[0.025] lg:block" />
+              <div className="pointer-events-none absolute -right-8 bottom-12 hidden h-48 w-48 rounded-full bg-[#5746e8]/25 blur-3xl lg:block" />
+
+              <div className="relative">
+                <div className="mb-3 flex items-center justify-between px-1">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] !text-[#b9b1ff]">Selected direction</p>
+                    <p className="mt-1 text-sm font-semibold !text-white">Professional services · Brand-led</p>
+                  </div>
+                  <span className="hidden border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] !text-white/60 sm:inline-flex">Desktop</span>
                 </div>
-                <div className="grid gap-px bg-[#dfe2ea] sm:grid-cols-[1fr_12rem]">
-                  <div className="bg-white p-3 sm:p-4">
+
+                <div className="brand-browser-frame relative overflow-hidden border border-white/15 bg-white shadow-[0_50px_130px_-52px_rgba(0,0,0,.9)]">
+                  <div className="flex h-11 items-center gap-2 border-b border-[#e1e4eb] bg-[#fbfbfd] px-4">
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#d7dae2]" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#d7dae2]" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#d7dae2]" />
+                    <div className="mx-auto hidden h-6 min-w-[13rem] items-center justify-center border border-[#e1e4eb] bg-white px-5 text-[9px] font-medium text-[#8b93a0] sm:flex">
+                      yourbusiness.com
+                    </div>
+                    <span className="hidden w-[3.75rem] sm:block" />
+                  </div>
+                  <div className="bg-[#f3f4f8] p-3 sm:p-4">
                     <TemplatePreviewThumbnail
                       templateId="accounting-firm-v1"
                       templateName="Professional services"
                       layoutFamily="brand_statement"
                       showFamilyLabel={false}
-                      className="aspect-[16/10] min-h-0 border border-[#dfe2ea]"
+                      className="aspect-[16/10] min-h-0 border border-[#dfe2ea] bg-white"
                     />
                   </div>
-                  <div className="bg-[#101827] p-4 text-white">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] !text-[#b9b1ff]">Managed system</p>
-                    <div className="mt-5 space-y-4">
-                      {[
-                        ["01", "Strategy", "Offer + proof"],
-                        ["02", "Architecture", "5 pages"],
-                        ["03", "Conversion", "Enquiry path"],
-                        ["04", "Operations", "Managed"],
-                      ].map(([number, label, value]) => (
-                        <div key={number} className="border-t border-white/15 pt-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs font-semibold !text-white/55">{number}</span>
-                            <span className="text-right text-xs font-semibold !text-white">{label}</span>
-                          </div>
-                          <p className="mt-1 text-right text-[11px] !text-white/55">{value}</p>
-                        </div>
+                </div>
+
+                <div className="relative mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                  <div className="border border-white/15 bg-[#12192b]/95 p-4 backdrop-blur">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.13em] !text-[#b9b1ff]">Five-page architecture</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {["Home", "Services", "Proof", "About", "Contact"].map((page, index) => (
+                        <span key={page} className="border border-white/12 bg-white/[0.04] px-2.5 py-1.5 text-[10px] font-semibold !text-white/72">
+                          {String(index + 1).padStart(2, "0")} {page}
+                        </span>
                       ))}
                     </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 border-t border-[#dfe2ea] bg-white sm:grid-cols-4">
-                  {[
-                    ["Preview", "Before purchase"],
-                    ["Pages", "Five-page direction"],
-                    ["Devices", "Desktop + mobile"],
-                    ["After launch", "Managed"],
-                  ].map(([label, value]) => (
-                    <div key={label} className="border-r border-[#dfe2ea] px-4 py-3 last:border-r-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#7b8494]">{label}</p>
-                      <p className="mt-1 text-xs font-semibold text-[#141821]">{value}</p>
+
+                  <div className="justify-self-end border border-[#dfe2ea] bg-white p-2 shadow-[0_28px_70px_-38px_rgba(0,0,0,.75)] sm:-mb-8 sm:w-[10.5rem]">
+                    <div className="flex h-5 items-center justify-center rounded-t-[0.8rem] bg-[#0f172a]">
+                      <span className="h-1 w-8 rounded-full bg-white/20" />
                     </div>
-                  ))}
+                    <div className="bg-[#f7f8fb] p-2">
+                      <div className="rounded-[0.45rem] bg-white p-2">
+                        <div className="h-1.5 w-8 bg-[#5746e8]" />
+                        <div className="mt-3 h-3 w-11/12 bg-[#111827]" />
+                        <div className="mt-1.5 h-3 w-8/12 bg-[#111827]" />
+                        <div className="mt-3 h-1.5 w-full bg-[#e5e7eb]" />
+                        <div className="mt-1.5 h-1.5 w-9/12 bg-[#e5e7eb]" />
+                        <div className="mt-4 h-6 w-20 bg-[#5746e8]" />
+                        <div className="mt-4 grid grid-cols-2 gap-1.5">
+                          <div className="h-10 bg-[#eef0f5]" />
+                          <div className="h-10 bg-[#eef0f5]" />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="px-1 pb-1 pt-2 text-center text-[9px] font-semibold text-[#687386]">Mobile direction</p>
+                  </div>
                 </div>
               </div>
             </motion.div>
