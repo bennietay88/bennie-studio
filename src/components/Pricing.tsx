@@ -134,24 +134,24 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
       <div className="grid gap-8 border-b border-slate-300 pb-10 lg:grid-cols-12 lg:items-end">
         <div className="lg:col-span-8">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">Managed website plans</p>
-          <h2 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Choose the level of website support your business needs.</h2>
-          <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Start with the website itself, then add conversion, SEO and ongoing growth support when it makes sense.</p>
+          <h2 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Three levels of support. One managed website system.</h2>
+          <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Start with a professionally managed website, then add deeper conversion, SEO and growth support as the business needs it.</p>
         </div>
         <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">{COMMERCIAL_MARKETS[activeMarket].label} · {COMMERCIAL_MARKETS[activeMarket].currency} · 12-month initial commitment</p>
       </div>
     )}
 
-    <div className="mt-8 grid gap-4 md:hidden">
+    <div className="mt-8 grid gap-4 lg:grid-cols-3">
       {planSet.map(([product, price, bestFor], index) => {
         const isGrowth = product.slug === "website-growth";
         return (
-          <article key={product.slug} className={cn("rounded-xl border bg-white p-5", isGrowth ? "border-2 border-indigo-500 bg-indigo-50/70 shadow-lg shadow-indigo-100/70" : "border-slate-200")}>
+          <article key={product.slug} className={cn("border bg-white p-6 lg:p-7", isGrowth ? "border-2 border-indigo-500 bg-indigo-50/70 shadow-[0_24px_70px_-48px_rgba(79,70,229,.55)]" : "border-slate-200")}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">{isGrowth ? "Most Popular" : bestFor}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">{isGrowth ? "Recommended" : bestFor}</p>
                 <h3 className="mt-2 text-2xl font-semibold text-slate-950">{product.name}</h3>
               </div>
-              {isGrowth ? <Badge className="bg-indigo-600 text-white">Most Popular</Badge> : null}
+              {isGrowth ? <Badge className="bg-indigo-600 text-white">Recommended</Badge> : null}
             </div>
             <p className="mt-5 text-3xl font-semibold text-slate-950">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-slate-500">/month</span></p>
             <p className="mt-1 text-sm text-slate-500">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
@@ -170,52 +170,6 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
           </article>
         );
       })}
-    </div>
-
-    <div className="mt-8 hidden overflow-x-auto md:block">
-      <table className="w-full min-w-[820px] border-collapse text-left">
-        <thead>
-          <tr className="border-b border-slate-300">
-            <th className="py-4 pr-5 text-sm font-semibold text-slate-600">Plan</th>
-            {planSet.map(([product, price, bestFor], index) => (
-              <th key={product.slug} className={cn("px-5 py-5 align-top", index === 1 && "bg-indigo-50/60")}>
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">{index === 1 ? "Most Popular" : bestFor}</p>
-                <h3 className="mt-2 text-2xl font-semibold text-slate-950">{product.name}</h3>
-                <p className="mt-3 text-sm font-normal leading-6 text-slate-600">{product.description}</p>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="border-b border-slate-300">
-            <th className="py-5 pr-5 text-sm font-semibold text-slate-600">Monthly</th>
-            {planSet.map(([product, price], index) => (
-              <td key={product.slug} className={cn("px-5 py-5 align-top", index === 1 && "bg-indigo-50/60")}>
-                <p className="text-3xl font-semibold text-slate-950">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-slate-500">/month</span></p>
-                <p className="mt-1 text-sm text-slate-500">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
-              </td>
-            ))}
-          </tr>
-          <tr className="border-b border-slate-300">
-            <th className="py-4 pr-5 text-sm font-semibold text-slate-600">Best for</th>
-            {planSet.map(([product, price, bestFor], index) => <td key={product.slug} className={cn("px-5 py-4 text-sm text-slate-600", index === 1 && "bg-indigo-50/60")}>{bestFor}</td>)}
-          </tr>
-          {comparisonRows.map(([label, values]: any) => (
-            <tr key={label} className="border-b border-slate-300">
-              <th className="py-4 pr-5 text-sm font-semibold text-slate-600">{label}</th>
-              {values.map((value: string, index: number) => <td key={index} className={cn("px-5 py-4 text-sm text-slate-600", index === 1 && "bg-indigo-50/60")}>{value}</td>)}
-            </tr>
-          ))}
-          <tr>
-            <th className="py-6 pr-5"></th>
-            {planSet.map(([product, price], index) => (
-              <td key={product.slug} className={cn("px-5 py-6", index === 1 && "bg-indigo-50/60")}>
-                <Button onClick={() => handleSelect(product)} className={cn("min-h-12 w-full px-5 font-semibold text-white", index === 1 ? "bg-indigo-600 hover:bg-indigo-500" : "bg-slate-950 hover:bg-slate-800")}>{price?.monthlyConfigured ? "Choose plan" : "Discuss plan"} <ArrowRight className="ml-2 h-4 w-4" /></Button>
-              </td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
     </div>
 
     <section className="mt-12 grid gap-8 border-t border-slate-300 pt-8 lg:grid-cols-12" aria-label="What fees cover">

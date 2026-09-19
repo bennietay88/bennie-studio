@@ -34,18 +34,18 @@ function MarketSwitcher({ compact = false }: { compact?: boolean }) {
     window.dispatchEvent(new CustomEvent(COMMERCIAL_MARKET_CHANGED_EVENT, { detail: next }));
   };
 
-  return <label className={compact ? "flex items-center gap-2 text-xs font-bold text-slate-500" : "flex items-center gap-3 text-sm font-bold text-slate-600"}>
-    <span className={compact ? "sr-only" : ""}>Pricing market</span>
-    <select aria-label="Pricing market" value={market} onChange={(event) => changeMarket(event.target.value)} className="w-[min(100%,145px)] max-w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2 font-black text-slate-900 shadow-sm transition hover:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10">
+  return <label className={compact ? "flex items-center gap-2 text-xs font-semibold text-slate-500" : "flex items-center gap-3 text-sm font-semibold text-slate-600"}>
+    {compact ? <Globe className="h-4 w-4 text-slate-400" /> : <span>Pricing market</span>}
+    <select aria-label="Pricing market" value={market} onChange={(event) => changeMarket(event.target.value)} className={compact ? "max-w-[118px] min-w-0 border-0 bg-transparent py-2 pr-1 text-xs font-semibold text-slate-700 outline-none" : "w-[min(100%,170px)] max-w-full min-w-0 border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-900 shadow-sm transition hover:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"}>
       {Object.entries(COMMERCIAL_MARKETS).map(([value, item]) => <option key={value} value={value}>{item.currency} · {item.label}</option>)}
     </select>
   </label>;
 }
 
 const publicNavItems = [
+  { label: "System", href: "/how-it-works" },
   { label: "Work", href: "/case-studies" },
   { label: "Pricing", href: "/pricing" },
-  { label: "How It Works", href: "/how-it-works" },
   {
     label: "Insights",
     href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com",
@@ -54,18 +54,23 @@ const publicNavItems = [
 ];
 
 const footerGroups = [
-  ["Pages", [...publicNavItems, { label: "Generate Preview", href: "/generate-preview" }]],
-  ["Services", [
-    { label: "Managed Lead Website Plans", href: "/pricing" },
-    { label: "Website Examples", href: "/case-studies" },
+  ["Platform", [
+    { label: "Website System", href: "/how-it-works" },
+    { label: "Website Work", href: "/case-studies" },
+    { label: "Pricing", href: "/pricing" },
+    { label: "Generate Preview", href: "/generate-preview" },
+    { label: "Insights", href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com", external: true },
   ]],
-  ["Local SEO", [
-    { label: "UK Website Subscription", href: "/website-subscription-service/uk" },
-    { label: "Malaysia Website Subscription", href: "/website-subscription-service/malaysia" },
-    { label: "Singapore Website Subscription", href: "/website-subscription-service/singapore" },
-    { label: "Website Design London", href: "/website-design/london" },
-    { label: "Website Design Petaling Jaya", href: "/website-design/petaling-jaya" },
-    { label: "Website Design Orchard", href: "/website-design/singapore/orchard" },
+  ["Industries", [
+    { label: "Professional Services", href: "/professional-services-website-design" },
+    { label: "Clinics & Healthcare", href: "/clinic-website-design-malaysia" },
+    { label: "Contractors", href: "/renovation-contractor-website-design" },
+    { label: "Education", href: "/tuition-centre-website-design" },
+  ]],
+  ["Markets", [
+    { label: "Malaysia", href: "/website-subscription-service/malaysia" },
+    { label: "United Kingdom", href: "/website-subscription-service/uk" },
+    { label: "Singapore", href: "/website-subscription-service/singapore" },
   ]],
   ["Legal", [
     { label: "Privacy Policy", href: "/privacy" },
@@ -81,11 +86,11 @@ export function PublicSiteHeader() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#dedbd3] bg-[#f7f6f2]/95 backdrop-blur-xl">
-      <nav className="mx-auto flex h-20 max-w-[90rem] items-center justify-between gap-3 px-4 sm:gap-5 sm:px-8 lg:px-16" aria-label="Main navigation">
+    <header className="sticky top-0 z-50 border-b border-[#dfe2ea] bg-white/92 backdrop-blur-xl">
+      <nav className="mx-auto flex h-[72px] max-w-[92rem] items-center justify-between gap-3 px-4 sm:gap-5 sm:px-8 lg:px-14" aria-label="Main navigation">
         <Link to="/" className="flex min-w-0 shrink items-center gap-3 text-[#10131c]">
           <span className="grid h-9 w-9 place-items-center bg-[#5b4bff] text-sm font-black text-white">B.</span>
-          <span className="max-w-[10rem] truncate text-base font-semibold tracking-[-0.035em] sm:max-w-none sm:text-lg">Bennie Studio</span>
+          <span className="min-w-0"><span className="block max-w-[10rem] truncate text-base font-semibold tracking-[-0.035em] sm:max-w-none">Bennie Studio</span><span className="hidden text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 xl:block">Managed website system</span></span>
         </Link>
 
         <div className="hidden items-center gap-8 lg:flex">
@@ -103,10 +108,10 @@ export function PublicSiteHeader() {
         <div className="hidden items-center gap-4 lg:flex">
           <MarketSwitcher compact />
           <Link to={user ? "/dashboard" : "/login"} className="text-sm font-semibold text-black/50 transition hover:text-[#5b4bff]">
-            {user ? "Dashboard" : "Sign in"}
+            {user ? "Dashboard" : "Client login"}
           </Link>
-          <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => !user && trackPublicEvent({ eventType: "click_generate_preview", label: "Header Preview", target: "/generate-preview" })} className="inline-flex min-h-11 items-center justify-center bg-[#10131c] px-5 py-3 text-sm font-black text-white transition hover:bg-[#5b4bff]">
-            {user ? "Open Studio" : "Get free preview"}
+          <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => !user && trackPublicEvent({ eventType: "click_generate_preview", label: "Header Preview", target: "/generate-preview" })} className="inline-flex min-h-11 items-center justify-center bg-[#10131c] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#5b4bff]">
+            {user ? "Open Studio" : "Generate preview"}
           </Link>
         </div>
 
@@ -150,12 +155,12 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
             <span className="grid h-9 w-9 place-items-center bg-[#5b4bff] text-sm font-black">B.</span>
             <span className="text-xl font-semibold tracking-[-0.035em]">Bennie Studio</span>
           </div>
-          <p className="max-w-sm text-sm font-medium leading-7 text-white/55">{tagline || "Managed lead-generation websites for service businesses that need clearer enquiries, stronger trust, and better local visibility."}</p>
+          <p className="max-w-sm text-sm font-medium leading-7 text-white/55">{tagline || "A managed website system for service businesses that need stronger trust, clearer enquiries, and a site that stays useful after launch."}</p>
           {email ? <a href={`mailto:${email}`} className="mt-5 inline-flex text-sm font-black text-[#aaa0ff] hover:text-white">Contact us</a> : null}
         </div>
         {footerGroups.map(([title, links]) => (
           <div key={title}>
-            <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/35">{title}</p>
+            <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/45">{title}</p>
             <div className="space-y-3">
               {links.map((link) => "external" in link && link.external ? (
                 <a key={link.href} href={link.href} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Footer ${link.label}`, target: link.href })} className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white">{link.label}<ExternalLink className="h-3 w-3" /></a>
@@ -172,7 +177,7 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
           <MarketSwitcher />
         </div>
       </div>
-      <div className="border-t border-white/10 px-6 py-6 text-center text-xs font-semibold text-white/35">© {new Date().getFullYear()} Bennie Studio. All rights reserved.</div>
+      <div className="border-t border-white/10 px-6 py-6 text-center text-xs font-semibold text-white/45">© {new Date().getFullYear()} Bennie Studio. All rights reserved.</div>
     </footer>
   );
 }

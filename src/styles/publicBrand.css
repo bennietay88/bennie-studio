@@ -2,15 +2,15 @@
   --brand-ink: #141821;
   --brand-muted: #526071;
   --brand-soft: #707b8a;
-  --brand-line: #d8d9dc;
-  --brand-paper: #f8fafc;
+  --brand-line: #dfe2ea;
+  --brand-paper: #f6f7fb;
   --brand-white: #ffffff;
   --brand-accent: #5746e8;
   --brand-accent-soft: #eeebff;
-  --brand-dark: #101827;
+  --brand-dark: #0b1020;
   background: var(--brand-paper);
   color: var(--brand-ink);
-  font-family: Inter, "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif;
+  font-family: "Geist Variable", Inter, "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "kern" 1, "liga" 1;
   font-size: 16px;
   line-height: 1.65;
@@ -25,8 +25,8 @@
 .brand-public h6 {
   margin: 0;
   color: inherit;
-  font-family: Inter, "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif !important;
-  font-weight: 600 !important;
+  font-family: "Geist Variable", Inter, "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif !important;
+  font-weight: 590 !important;
   letter-spacing: -0.02em !important;
   text-wrap: balance;
   overflow-wrap: anywhere;
@@ -34,13 +34,13 @@
 
 .brand-public h1 {
   max-width: 18ch;
-  font-size: clamp(2.5rem, 5vw, 4rem) !important;
-  line-height: 1.06 !important;
+  font-size: clamp(2.7rem, 6.3vw, 5.35rem) !important;
+  line-height: .98 !important;
 }
 
 .brand-public h2 {
-  font-size: clamp(2rem, 3.5vw, 3rem) !important;
-  line-height: 1.1 !important;
+  font-size: clamp(2.05rem, 4.2vw, 3.65rem) !important;
+  line-height: 1.02 !important;
 }
 
 .brand-public h3 {
@@ -91,12 +91,12 @@
 }
 
 .brand-public .brand-shell {
-  width: min(calc(100% - 2rem), 82rem);
+  width: min(calc(100% - 2rem), 86rem);
   margin-inline: auto;
 }
 
 .brand-public .brand-section {
-  padding-block: clamp(4rem, 7vw, 6.5rem);
+  padding-block: clamp(4.75rem, 8vw, 7.5rem);
 }
 
 .brand-public .brand-kicker {
@@ -128,7 +128,7 @@
 .brand-public button,
 .brand-public [role="button"],
 .brand-public a[class*="inline-flex"] {
-  border-radius: .45rem !important;
+  border-radius: .7rem !important;
 }
 
 .brand-public .rounded-3xl,
@@ -136,14 +136,14 @@
 .brand-public [class*="rounded-[2rem]"],
 .brand-public [class*="rounded-[1.75rem]"],
 .brand-public [class*="rounded-[1.5rem]"] {
-  border-radius: .65rem !important;
+  border-radius: 1rem !important;
 }
 
 .brand-public .shadow-sm,
 .brand-public .shadow-lg,
 .brand-public .shadow-xl,
 .brand-public .shadow-2xl {
-  box-shadow: 0 12px 32px -28px rgba(15,23,42,.4) !important;
+  box-shadow: 0 24px 70px -48px rgba(15,23,42,.5) !important;
 }
 
 .brand-public input,
@@ -158,6 +158,46 @@
 
 .brand-public .brand-muted-on-dark {
   color: rgba(255,255,255,.72) !important;
+}
+
+.brand-public ::selection {
+  background: #c9c4ff;
+  color: #0b1020;
+}
+
+.brand-public .brand-grid-bg {
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.brand-public .brand-browser-frame,
+.brand-public .brand-elevated {
+  border-radius: 1rem;
+}
+
+.brand-public .brand-elevated {
+  box-shadow: 0 30px 90px -58px rgba(15, 23, 42, .55);
+}
+
+.brand-public button,
+.brand-public a {
+  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+  transition-duration: 180ms;
+  transition-timing-function: ease-out;
+}
+
+.brand-public details summary {
+  transition: color 180ms ease-out;
+}
+
+.brand-public details[open] summary {
+  color: var(--brand-accent);
+}
+
+.brand-public .brand-kicker {
+  letter-spacing: .1em;
 }
 
 .brand-public .bt-static-preview .bt-website-renderer,

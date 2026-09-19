@@ -44,6 +44,19 @@ test("blueprint themes always resolve to approved renderer styles", () => {
   }
 });
 
+test("public brand uses product-led positioning guardrails", async () => {
+  const [homepage, chrome, pricing] = await Promise.all([
+    import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/BrandLedLandingPage.tsx", import.meta.url), "utf8")),
+    import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/PublicSiteChrome.tsx", import.meta.url), "utf8")),
+    import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/Pricing.tsx", import.meta.url), "utf8")),
+  ]);
+
+  assert.match(homepage, /managed website system/i);
+  assert.match(homepage, /Managed, not handed off/i);
+  assert.doesNotMatch(chrome, /Website Design Orchard|Website Design Petaling Jaya|Website Design London/);
+  assert.doesNotMatch(pricing, /hidden overflow-x-auto md:block/);
+});
+
 test("all catalogue templates resolve to WCAG AA text contrast", () => {
   const templates = Object.values(NICHE_TEMPLATES);
   assert.ok(templates.length >= 160, `Expected full template catalogue, received ${templates.length}`);

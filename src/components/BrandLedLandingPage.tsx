@@ -19,6 +19,7 @@ import {
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { trackPublicEvent } from "../lib/publicTracking";
+import { supabase } from "../lib/supabase";
 import {
   COMMERCIAL_FALLBACK_PRODUCTS,
   COMMERCIAL_MARKET_CHANGED_EVENT,
@@ -40,12 +41,52 @@ type Consent = {
   version: string;
 };
 
-const capabilityRows = [
-  ["Clarify the offer", "Visitors should understand what you do, who it is for and why it matters within seconds."],
-  ["Build confidence", "Real proof, clear services and credible business information replace vague marketing claims."],
-  ["Create the next step", "Calls, WhatsApp, bookings and forms are organised around the way customers actually buy."],
-  ["Keep improving", "Hosting, maintenance, analytics and plan-based optimisation continue after launch."],
-];
+const systemModules = [
+  {
+    id: "positioning",
+    step: "01",
+    label: "Positioning",
+    title: "Make the offer understandable in seconds.",
+    copy: "Define the audience, core service, evidence and strongest next step before decoration gets a vote.",
+    icon: Sparkles,
+    bullets: ["Audience and offer", "Proof hierarchy", "Primary enquiry action"],
+  },
+  {
+    id: "design",
+    step: "02",
+    label: "Design system",
+    title: "Turn strategy into a distinctive visual direction.",
+    copy: "Composition, typography, media and page hierarchy adapt to the business instead of repainting one generic template.",
+    icon: Layers3,
+    bullets: ["Brand-led composition", "Desktop + mobile", "Reusable page system"],
+  },
+  {
+    id: "conversion",
+    step: "03",
+    label: "Lead capture",
+    title: "Give intent somewhere useful to go.",
+    copy: "Calls, WhatsApp, bookings, consultation requests and quote forms are placed around how customers actually buy.",
+    icon: MousePointerClick,
+    bullets: ["Clear CTAs", "Buyer-specific paths", "Lead capture built in"],
+  },
+  {
+    id: "management",
+    step: "04",
+    label: "Managed growth",
+    title: "Keep the website useful after launch.",
+    copy: "Hosting, SSL, maintenance, analytics and plan-based improvements remain part of the service after the launch date.",
+    icon: LineChart,
+    bullets: ["Hosting + maintenance", "Analytics", "Plan-based improvement"],
+  },
+] as const;
+
+const managedComparison = [
+  ["Launch", "Project handoff", "Start of the managed service"],
+  ["Hosting + SSL", "Often separate", "Managed with the website"],
+  ["Content changes", "Quoted ad hoc", "Plan-based update allowance"],
+  ["Conversion work", "Usually launch-only", "Continues by plan"],
+  ["Ownership", "Files and handoff", "Clear business assets + managed delivery"],
+] as const;
 
 const exampleTemplates = [
   ["dental-clinic-v1", "Dental / Clinic", "Trust-led premium design", "WhatsApp + appointment enquiry"],
@@ -78,14 +119,14 @@ const designDirections = {
 } as const;
 
 const industries = [
-  { label: "Professional services", path: "/professional-services-website-design" },
-  { label: "Clinics & healthcare", path: "/clinic-website-design-malaysia" },
-  { label: "Consultants", path: "/consultant-website-design" },
-  { label: "Contractors", path: "/renovation-contractor-website-design" },
-  { label: "Accounting & finance", path: "/accounting-firm-website-design" },
-  { label: "Education", path: "/tuition-centre-website-design" },
-  { label: "Beauty & wellness", path: "/beauty-salon-website-design" },
-  { label: "Local service businesses", path: "/local-service-website-design" },
+  { label: "Professional services", path: "/professional-services-website-design", description: "Credibility, expertise and qualified consultation enquiries." },
+  { label: "Clinics & healthcare", path: "/clinic-website-design-malaysia", description: "Patient trust, treatment clarity and appointment paths." },
+  { label: "Consultants", path: "/consultant-website-design", description: "Authority positioning, offers, proof and book-call journeys." },
+  { label: "Contractors", path: "/renovation-contractor-website-design", description: "Projects, service areas, quote requests and local trust." },
+  { label: "Accounting & finance", path: "/accounting-firm-website-design", description: "Service clarity, credentials and consultation conversion." },
+  { label: "Education", path: "/tuition-centre-website-design", description: "Programme clarity, parent confidence and trial enquiries." },
+  { label: "Beauty & wellness", path: "/beauty-salon-website-design", description: "Premium service presentation, proof and bookings." },
+  { label: "Local service businesses", path: "/local-service-website-design", description: "Fast mobile actions, reviews, service areas and quotes." },
 ] as const;
 
 const process = [
@@ -108,6 +149,8 @@ export default function BrandLedLandingPage() {
   const { products } = usePublicCommercialPricing(market);
   const [platformSettings, setPlatformSettings] = React.useState<any>(null);
   const [designDirection, setDesignDirection] = React.useState<keyof typeof designDirections>("brand");
+  const [systemModule, setSystemModule] = React.useState<(typeof systemModules)[number]["id"]>("positioning");
+  const [verifiedProof, setVerifiedProof] = React.useState<any[]>([]);
   const [manageCookies, setManageCookies] = React.useState(false);
   const [consent, setConsent] = React.useState<Consent | null>(() => {
     try {
@@ -123,6 +166,20 @@ export default function BrandLedLandingPage() {
     const onMarketChanged = () => setMarket(getStoredMarket());
     window.addEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
     return () => window.removeEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
+  }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("customer_testimonials")
+      .select("id,title,customer_name,company,testimonial,result_summary,result_metrics,date_approved")
+      .eq("publish_status", "published")
+      .eq("consent_status", "approved")
+      .order("date_approved", { ascending: false })
+      .limit(3)
+      .then(({ data }) => { if (!cancelled) setVerifiedProof(data || []); })
+      .catch(() => null);
+    return () => { cancelled = true; };
   }, []);
 
   React.useEffect(() => {
@@ -179,6 +236,8 @@ export default function BrandLedLandingPage() {
   const marketingAllowed = platformSettings?.salesCookieBannerEnabled === false || Boolean(consent?.marketing);
   const showCookieBanner = platformSettings?.salesCookieBannerEnabled !== false && (!consent || manageCookies);
   const activeDirection = designDirections[designDirection];
+  const activeSystem = systemModules.find((item) => item.id === systemModule) || systemModules[0];
+  const ActiveSystemIcon = activeSystem.icon;
 
   return (
     <div className="brand-public min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#10131c]">
@@ -214,92 +273,247 @@ export default function BrandLedLandingPage() {
       <PublicSiteHeader />
 
       <main>
-        <section className="brand-on-dark bg-[#101827]">
-          <div className="brand-shell grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
+        <section className="brand-on-dark brand-grid-bg relative overflow-hidden bg-[#0b1020]">
+          <div className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#5b4bff]/20 blur-3xl" />
+          <div className="brand-shell relative grid gap-14 py-18 lg:grid-cols-12 lg:items-center lg:py-28">
             <div className="lg:col-span-6">
-              <p className="brand-kicker !text-[#b9b1ff]">Managed websites for service businesses</p>
-              <h1 className="mt-5 !max-w-[15ch] !text-white">Premium websites built around trust, enquiries and growth.</h1>
-              <p className="brand-copy brand-muted-on-dark mt-6 !max-w-2xl">
-                Bennie Studio plans, designs, builds and manages websites for service businesses that need stronger positioning, better enquiries and a site that stays useful after launch.
+              <p className="brand-kicker !text-[#b9b1ff]">Managed website system for service businesses</p>
+              <h1 className="mt-5 !max-w-[13ch] !text-white">A serious website, without building an in-house web team.</h1>
+              <p className="brand-copy brand-muted-on-dark mt-7 !max-w-xl">
+                Strategy, design, lead capture, hosting and ongoing improvement in one managed service. Preview the website direction before choosing a plan.
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <button onClick={() => go("/generate-preview", "Hero free preview")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821]">
-                  Generate my free preview <ArrowRight className="ml-2 h-4 w-4" />
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <button onClick={() => go("/generate-preview", "Hero free preview")} className="inline-flex min-h-13 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
+                  Build my free preview <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
-                <button onClick={() => go("/case-studies", "Hero examples")} className="inline-flex min-h-12 items-center justify-center border border-white/30 px-6 font-semibold text-white">
-                  See website work
+                <button onClick={() => go("/case-studies", "Hero examples")} className="inline-flex min-h-13 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
+                  Explore the work
                 </button>
               </div>
-              <p className="mt-4 text-sm !text-white/60">No card required · Preview before choosing a plan · Managed plans from {entryMonthly}/month</p>
+              <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm !text-white/65">
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> No card required</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Five-page direction</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Desktop + mobile</span>
+              </div>
             </div>
-            <div className="lg:col-span-6">
-              <div className="relative pb-8 sm:pl-8">
-                <div className="absolute bottom-0 left-0 top-8 hidden w-[88%] border border-white/10 bg-white/[0.035] sm:block" />
-                <div className="relative overflow-hidden border border-white/15 bg-white shadow-[0_34px_90px_-42px_rgba(0,0,0,.75)]">
-                  <TemplatePreviewThumbnail
-                    templateId="accounting-firm-v1"
-                    templateName="Professional services"
-                    layoutFamily="brand_statement"
-                    showFamilyLabel={false}
-                    className="aspect-[16/10] min-h-0 border-0"
-                  />
+
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+              className="lg:col-span-6"
+            >
+              <div className="brand-browser-frame relative overflow-hidden border border-white/15 bg-[#f7f8fb] shadow-[0_45px_120px_-48px_rgba(0,0,0,.85)]">
+                <div className="flex h-11 items-center gap-2 border-b border-[#dfe2ea] bg-white px-4">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#d9dce4]" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#d9dce4]" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#d9dce4]" />
+                  <span className="ml-3 text-[11px] font-semibold text-[#7b8494]">Bennie Studio · website direction</span>
                 </div>
-                <div className="relative -mt-px ml-auto grid w-[92%] grid-cols-3 border border-[#d8d9dc] bg-[#f7f6f2] text-[#141821]">
-                  {[["05", "Page structure"], ["02", "Device views"], ["01", "Clear enquiry path"]].map(([value, label]) => (
-                    <div key={label} className="border-r border-[#d8d9dc] px-3 py-3 last:border-r-0 sm:px-4">
-                      <p className="text-lg font-semibold">{value}</p>
-                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#687386]">{label}</p>
+                <div className="grid gap-px bg-[#dfe2ea] sm:grid-cols-[1fr_12rem]">
+                  <div className="bg-white p-3 sm:p-4">
+                    <TemplatePreviewThumbnail
+                      templateId="accounting-firm-v1"
+                      templateName="Professional services"
+                      layoutFamily="brand_statement"
+                      showFamilyLabel={false}
+                      className="aspect-[16/10] min-h-0 border border-[#dfe2ea]"
+                    />
+                  </div>
+                  <div className="bg-[#101827] p-4 text-white">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] !text-[#b9b1ff]">Managed system</p>
+                    <div className="mt-5 space-y-4">
+                      {[
+                        ["01", "Strategy", "Offer + proof"],
+                        ["02", "Architecture", "5 pages"],
+                        ["03", "Conversion", "Enquiry path"],
+                        ["04", "Operations", "Managed"],
+                      ].map(([number, label, value]) => (
+                        <div key={number} className="border-t border-white/15 pt-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="text-xs font-semibold !text-white/45">{number}</span>
+                            <span className="text-right text-xs font-semibold !text-white">{label}</span>
+                          </div>
+                          <p className="mt-1 text-right text-[11px] !text-white/55">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 border-t border-[#dfe2ea] bg-white sm:grid-cols-4">
+                  {[
+                    ["Preview", "Before purchase"],
+                    ["Pages", "Five-page direction"],
+                    ["Devices", "Desktop + mobile"],
+                    ["After launch", "Managed"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="border-r border-[#dfe2ea] px-4 py-3 last:border-r-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#7b8494]">{label}</p>
+                      <p className="mt-1 text-xs font-semibold text-[#141821]">{value}</p>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </section>
 
-        <section className="border-b border-[#d8d9dc] bg-white">
-          <div className="brand-shell grid grid-cols-2 md:grid-cols-4">
-            {["5-page preview", "Desktop + mobile", "Real enquiry paths", "Managed after launch"].map((item) => (
-              <div key={item} className="border-r border-[#d8d9dc] px-4 py-6 text-sm font-semibold last:border-r-0 md:px-6">{item}</div>
+        <section className="border-b border-[#dfe2ea] bg-white">
+          <div className="brand-shell grid sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              [ShieldCheck, "Preview first", "See the direction before selecting a plan."],
+              [Layers3, "Built around the buyer", "Pages and hierarchy follow the enquiry journey."],
+              [Wrench, "Managed infrastructure", "Hosting, SSL, maintenance and updates stay covered."],
+              [LineChart, "Improvement after launch", "Plan-based optimisation continues over time."],
+            ].map(([Icon, title, copy]: any) => (
+              <div key={title} className="border-b border-[#dfe2ea] px-5 py-6 sm:border-r lg:border-b-0 lg:px-6">
+                <Icon className="h-5 w-5 text-[#5746e8]" />
+                <p className="mt-4 font-semibold text-[#141821]">{title}</p>
+                <p className="mt-2 text-sm leading-6 text-[#687386]">{copy}</p>
+              </div>
             ))}
           </div>
         </section>
 
-        <section className="brand-shell brand-section">
-          <div className="grid gap-12 lg:grid-cols-12">
-            <div className="lg:col-span-5">
-              <p className="brand-kicker">What the website has to do</p>
-              <h2 className="mt-4">Your website should do more than look professional.</h2>
-              <p className="brand-copy mt-5">Every major section should explain the offer, increase confidence or move the right visitor toward a useful next step.</p>
-              <button onClick={() => go("/how-it-works", "Homepage how it works")} className="mt-7 inline-flex items-center font-semibold">
-                See how the service works <ArrowRight className="ml-2 h-4 w-4" />
-              </button>
+        <section id="system" className="brand-shell brand-section">
+          <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
+            <div className="lg:col-span-7">
+              <p className="brand-kicker">The website system</p>
+              <h2 className="mt-4 max-w-3xl">One managed system. Four jobs that have to work together.</h2>
             </div>
-            <div className="brand-rule-list lg:col-span-7">
-              {capabilityRows.map(([title, body]) => (
-                <div key={title} className="brand-rule-row">
-                  <h3>{title}</h3>
-                  <p className="text-[#526071]">{body}</p>
+            <p className="brand-copy lg:col-span-5">The benchmark is not a prettier brochure. The website needs a clear proposition, a strong visual system, useful conversion paths and an operating model after launch.</p>
+          </div>
+
+          <div className="mt-12 grid gap-6 lg:grid-cols-[21rem_1fr]">
+            <div className="border-y border-[#dfe2ea]">
+              {systemModules.map((item) => {
+                const Icon = item.icon;
+                const selected = item.id === systemModule;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setSystemModule(item.id)}
+                    className={selected
+                      ? "group grid w-full grid-cols-[2.5rem_1fr_auto] items-center gap-3 border-b border-[#dfe2ea] bg-[#101827] px-4 py-5 text-left text-white last:border-b-0"
+                      : "group grid w-full grid-cols-[2.5rem_1fr_auto] items-center gap-3 border-b border-[#dfe2ea] bg-white px-4 py-5 text-left text-[#141821] transition hover:bg-[#f3f4f8] last:border-b-0"
+                    }
+                  >
+                    <span className={selected ? "grid h-9 w-9 place-items-center border border-white/15 bg-white/5" : "grid h-9 w-9 place-items-center border border-[#dfe2ea] bg-[#f7f8fb]"}>
+                      <Icon className={selected ? "h-4 w-4 text-[#b9b1ff]" : "h-4 w-4 text-[#5746e8]"} />
+                    </span>
+                    <span>
+                      <span className={selected ? "block text-[10px] font-semibold uppercase tracking-[0.1em] !text-white/45" : "block text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8b93a0]"}>{item.step}</span>
+                      <span className="mt-1 block font-semibold">{item.label}</span>
+                    </span>
+                    <ChevronRight className={selected ? "h-4 w-4 text-[#b9b1ff]" : "h-4 w-4 text-[#a0a7b3] transition group-hover:translate-x-1"} />
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="brand-elevated min-h-[31rem] overflow-hidden border border-[#dfe2ea] bg-white">
+              <div className="grid min-h-[31rem] lg:grid-cols-[0.92fr_1.08fr]">
+                <div className="flex flex-col justify-between border-b border-[#dfe2ea] p-7 lg:border-b-0 lg:border-r lg:p-9">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <span className="grid h-11 w-11 place-items-center bg-[#eeebff] text-[#5746e8]"><ActiveSystemIcon className="h-5 w-5" /></span>
+                      <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#5746e8]">{activeSystem.label}</p>
+                    </div>
+                    <h3 className="mt-7 max-w-md text-3xl">{activeSystem.title}</h3>
+                    <p className="mt-5 max-w-lg text-base leading-7 text-[#687386]">{activeSystem.copy}</p>
+                  </div>
+                  <div className="mt-8 grid gap-3">
+                    {activeSystem.bullets.map((item) => <div key={item} className="flex items-center gap-3 border-t border-[#dfe2ea] pt-3 text-sm font-semibold"><Check className="h-4 w-4 text-[#5746e8]" />{item}</div>)}
+                  </div>
                 </div>
-              ))}
+
+                <div className="bg-[#f3f4f8] p-5 sm:p-7">
+                  {systemModule === "design" ? (
+                    <div className="flex h-full items-center">
+                      <div className="w-full border border-[#dfe2ea] bg-white p-3 shadow-[0_26px_70px_-48px_rgba(15,23,42,.55)]">
+                        <TemplatePreviewThumbnail templateId="dental-clinic-v1" templateName="Clinic design system" layoutFamily="clinic_trust" showFamilyLabel={false} className="aspect-[16/10] min-h-0 border border-[#dfe2ea]" />
+                      </div>
+                    </div>
+                  ) : systemModule === "conversion" ? (
+                    <div className="flex h-full flex-col justify-center">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7b8494]">Enquiry architecture</p>
+                      <div className="mt-6 space-y-3">
+                        {[
+                          ["Intent", "Visitor arrives with a problem or service need"],
+                          ["Clarity", "Offer, service scope and proof answer the obvious questions"],
+                          ["Action", "WhatsApp · Call · Booking · Quote · Form"],
+                          ["Lead", "A useful enquiry reaches the business"],
+                        ].map(([label, body], index) => (
+                          <div key={label} className="grid grid-cols-[2.5rem_1fr] gap-4 border border-[#dfe2ea] bg-white p-4">
+                            <span className="grid h-10 w-10 place-items-center bg-[#101827] text-xs font-semibold text-white">0{index + 1}</span>
+                            <div><p className="font-semibold">{label}</p><p className="mt-1 text-sm leading-6 text-[#687386]">{body}</p></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : systemModule === "management" ? (
+                    <div className="flex h-full flex-col justify-center">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7b8494]">After launch</p>
+                      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                        {[
+                          [Globe2, "Hosting + SSL", "Infrastructure remains managed."],
+                          [Wrench, "Maintenance", "Routine website upkeep stays covered."],
+                          [Search, "SEO foundations", "Search-ready structure is maintained."],
+                          [LineChart, "Optimisation", "Improvement depth follows the plan."],
+                        ].map(([Icon, title, copy]: any) => (
+                          <div key={title} className="min-h-36 border border-[#dfe2ea] bg-white p-5">
+                            <Icon className="h-5 w-5 text-[#5746e8]" />
+                            <p className="mt-5 font-semibold">{title}</p>
+                            <p className="mt-2 text-sm leading-6 text-[#687386]">{copy}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex h-full flex-col justify-center">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7b8494]">Website blueprint</p>
+                      <div className="mt-6 border border-[#dfe2ea] bg-white">
+                        {[
+                          ["Business", "Service business"],
+                          ["Audience", "High-intent local or professional buyer"],
+                          ["Offer", "One primary service promise"],
+                          ["Proof", "Reviews · credentials · projects · process"],
+                          ["Primary action", "One useful enquiry path"],
+                        ].map(([label, value]) => (
+                          <div key={label} className="grid grid-cols-[7.5rem_1fr] border-b border-[#dfe2ea] px-4 py-3 last:border-b-0">
+                            <span className="text-xs font-semibold text-[#8b93a0]">{label}</span>
+                            <span className="text-sm font-semibold text-[#141821]">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-4 grid grid-cols-5 gap-2">
+                        {["Home", "Services", "Proof", "About", "Contact"].map((page, index) => <div key={page} className="border border-[#dfe2ea] bg-white px-2 py-3 text-center"><span className="block text-[9px] font-semibold text-[#5746e8]">0{index + 1}</span><span className="mt-1 block text-[10px] font-semibold text-[#526071]">{page}</span></div>)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="border-y border-[#d8d9dc] bg-white">
+        <section className="border-y border-[#dfe2ea] bg-white">
           <div className="brand-shell brand-section">
             <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-7">
                 <p className="brand-kicker">Website work</p>
-                <h2 className="mt-4">Real layouts, not abstract design cards.</h2>
+                <h2 className="mt-4">Work that shows the thinking, not just the decoration.</h2>
               </div>
               <p className="brand-copy lg:col-span-5">Inspect hierarchy, service presentation and conversion paths across different service-business categories.</p>
             </div>
-            <div className="mt-10 grid gap-6 lg:grid-cols-12 lg:items-start">
+            <div className="mt-11 grid gap-7 lg:grid-cols-12 lg:items-start">
               {exampleTemplates[0] ? (
                 <article className="lg:col-span-7">
-                  <TemplatePreviewThumbnail templateId={exampleTemplates[0][0]} templateName={exampleTemplates[0][1]} className="aspect-[16/10] min-h-0 border border-[#d8d9dc] bg-white shadow-[0_28px_70px_-48px_rgba(15,23,42,.5)]" />
-                  <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_1.2fr]">
+                  <div className="brand-elevated overflow-hidden border border-[#dfe2ea] bg-[#f3f4f8] p-3">
+                    <TemplatePreviewThumbnail templateId={exampleTemplates[0][0]} templateName={exampleTemplates[0][1]} className="aspect-[16/10] min-h-0 border border-[#dfe2ea] bg-white" />
+                  </div>
+                  <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_1.2fr]">
                     <div>
                       <p className="text-sm font-semibold text-[#5746e8]">{exampleTemplates[0][1]}</p>
                       <h3 className="mt-2">{exampleTemplates[0][2]}</h3>
@@ -308,51 +522,76 @@ export default function BrandLedLandingPage() {
                   </div>
                 </article>
               ) : null}
-              <div className="grid gap-6 lg:col-span-5">
+              <div className="grid gap-7 lg:col-span-5">
                 {exampleTemplates.slice(1).map(([templateId, category, direction, action]) => (
-                  <article key={templateId} className="grid gap-4 border-t border-[#d8d9dc] pt-5 sm:grid-cols-[1.15fr_.85fr] lg:grid-cols-1">
-                    <TemplatePreviewThumbnail templateId={templateId} templateName={category} className="aspect-[16/9] min-h-0 border border-[#d8d9dc] bg-white" />
-                    <div>
-                      <p className="text-sm font-semibold text-[#5746e8]">{category}</p>
-                      <h3 className="mt-2">{direction}</h3>
-                      <p className="mt-2 text-sm text-[#526071]">{action}</p>
+                  <article key={templateId} className="border-t border-[#dfe2ea] pt-5">
+                    <TemplatePreviewThumbnail templateId={templateId} templateName={category} className="aspect-[16/9] min-h-0 border border-[#dfe2ea] bg-white" />
+                    <p className="mt-4 text-sm font-semibold text-[#5746e8]">{category}</p>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr] lg:grid-cols-1">
+                      <h3>{direction}</h3>
+                      <p className="text-sm text-[#526071]">{action}</p>
                     </div>
                   </article>
                 ))}
               </div>
             </div>
-            <button onClick={() => go("/case-studies", "Homepage all examples")} className="mt-8 inline-flex items-center font-semibold">
-              View all website work <ArrowRight className="ml-2 h-4 w-4" />
+            <button onClick={() => go("/case-studies", "Homepage all examples")} className="mt-9 inline-flex items-center font-semibold">
+              Explore all website work <ArrowRight className="ml-2 h-4 w-4" />
             </button>
           </div>
         </section>
 
+        {verifiedProof.length ? (
+          <section className="brand-on-dark bg-[#0b1020]">
+            <div className="brand-shell brand-section">
+              <div className="grid gap-10 lg:grid-cols-12">
+                <div className="lg:col-span-4">
+                  <p className="brand-kicker !text-[#b9b1ff]">Verified customer proof</p>
+                  <h2 className="mt-4 !text-white">Real customer evidence, published only with approval.</h2>
+                  <button onClick={() => go("/case-studies", "Homepage verified proof")} className="mt-7 inline-flex items-center font-semibold text-white">See customer proof <ArrowRight className="ml-2 h-4 w-4" /></button>
+                </div>
+                <div className="grid gap-4 lg:col-span-8">
+                  {verifiedProof.map((proof) => (
+                    <article key={proof.id} className="border border-white/15 bg-white/[0.035] p-6 sm:p-7">
+                      <p className="text-lg leading-8 !text-white/85">“{proof.testimonial}”</p>
+                      <div className="mt-6 flex flex-wrap items-end justify-between gap-4 border-t border-white/15 pt-5">
+                        <div><p className="font-semibold !text-white">{proof.customer_name || "Customer"}</p><p className="mt-1 text-sm !text-white/50">{proof.company || proof.title || proof.result_summary}</p></div>
+                        {Array.isArray(proof.result_metrics) && proof.result_metrics.length ? <div className="flex flex-wrap gap-2">{proof.result_metrics.slice(0, 3).map((metric: any) => <span key={String(metric.metric) + String(metric.value)} className="border border-white/15 px-3 py-2 text-xs font-semibold !text-[#c7c1ff]">{metric.metric}: {metric.value}</span>)}</div> : null}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <section className="brand-shell brand-section">
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <p className="brand-kicker">Design approach</p>
-              <h2 className="mt-4">One system. Three distinct visual styles.</h2>
-              <p className="brand-copy mt-5">The layout, hierarchy and media treatment change with the business instead of repainting the same template.</p>
+              <p className="brand-kicker">Design direction</p>
+              <h2 className="mt-4">Different businesses should not wear the same website.</h2>
+              <p className="brand-copy mt-5">The system changes composition, typography and media treatment around the way trust is built in that category.</p>
               <div className="mt-7 flex flex-wrap gap-2">
                 {(Object.keys(designDirections) as Array<keyof typeof designDirections>).map((key) => (
-                  <button key={key} type="button" onClick={() => setDesignDirection(key)} className={designDirection === key ? "border border-[#5746e8] bg-[#5746e8] px-4 py-2 text-sm font-semibold text-white" : "border border-[#d8d9dc] bg-white px-4 py-2 text-sm font-semibold text-[#526071]"}>
+                  <button key={key} type="button" onClick={() => setDesignDirection(key)} className={designDirection === key ? "border border-[#5746e8] bg-[#5746e8] px-4 py-2 text-sm font-semibold text-white" : "border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold text-[#526071] transition hover:border-[#b9b1ff]"}>
                     {designDirections[key].label}
                   </button>
                 ))}
               </div>
             </div>
             <div className="lg:col-span-8">
-              <div className="overflow-hidden border border-[#d8d9dc] bg-white shadow-[0_24px_70px_-50px_rgba(15,23,42,.45)]">
+              <div className="brand-elevated overflow-hidden border border-[#dfe2ea] bg-[#f3f4f8] p-3">
                 <TemplatePreviewThumbnail
                   key={designDirection}
                   templateId={activeDirection.templateId}
                   templateName={activeDirection.label}
                   layoutFamily={activeDirection.layoutFamily}
                   showFamilyLabel={false}
-                  className="aspect-[16/10] min-h-0 border-0"
+                  className="aspect-[16/10] min-h-0 border border-[#dfe2ea]"
                 />
               </div>
-              <div className="mt-5 grid gap-4 md:grid-cols-[1fr_1.4fr]">
+              <div className="mt-6 grid gap-4 md:grid-cols-[1fr_1.4fr]">
                 <h3>{activeDirection.title}</h3>
                 <p className="text-[#526071]">{activeDirection.copy}</p>
               </div>
@@ -360,22 +599,26 @@ export default function BrandLedLandingPage() {
           </div>
         </section>
 
-        <section className="border-y border-[#d8d9dc] bg-[#eeebff]">
-          <div className="brand-shell brand-section grid gap-12 lg:grid-cols-12">
-            <div className="lg:col-span-5">
-              <p className="brand-kicker">Who it works for</p>
-              <h2 className="mt-4">Built for businesses where trust affects the sale.</h2>
+        <section className="border-y border-[#dfe2ea] bg-[#f0efff]">
+          <div className="brand-shell brand-section">
+            <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
+              <div className="lg:col-span-6">
+                <p className="brand-kicker">Built for trust-sensitive sales</p>
+                <h2 className="mt-4">The service adapts to how your customers make decisions.</h2>
+              </div>
+              <p className="brand-copy lg:col-span-6">Different industries need different proof, page depth and enquiry paths. The underlying system stays consistent; the buying journey does not.</p>
             </div>
-            <div className="brand-rule-list lg:col-span-7">
-              {industries.map((industry) => (
+            <div className="mt-10 grid gap-3 md:grid-cols-2">
+              {industries.map((industry, index) => (
                 <Link
                   key={industry.label}
                   to={industry.path}
                   onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: `Industry ${industry.label}`, target: industry.path })}
-                  className="group flex min-h-16 w-full items-center justify-between gap-4 border-b border-[#cbc5f4] py-4 text-left transition hover:bg-white/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5746e8] focus-visible:ring-offset-2"
+                  className="group grid min-h-36 grid-cols-[3rem_1fr_auto] gap-4 border border-[#d8d6f1] bg-white/75 p-5 transition hover:-translate-y-0.5 hover:border-[#b8b0ff] hover:bg-white"
                 >
-                  <span className="text-base font-semibold sm:text-lg">{industry.label}</span>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-[#5746e8] transition-transform group-hover:translate-x-1" />
+                  <span className="text-xs font-semibold text-[#5746e8]">{String(index + 1).padStart(2, "0")}</span>
+                  <span><span className="block text-lg font-semibold text-[#141821]">{industry.label}</span><span className="mt-2 block text-sm leading-6 text-[#687386]">{industry.description}</span></span>
+                  <ChevronRight className="mt-1 h-5 w-5 text-[#5746e8] transition-transform group-hover:translate-x-1" />
                 </Link>
               ))}
             </div>
@@ -385,52 +628,75 @@ export default function BrandLedLandingPage() {
         <section className="brand-shell brand-section">
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <p className="brand-kicker">Managed plans</p>
-              <h2 className="mt-4">Start with the website. Add growth when you need it.</h2>
-              <p className="brand-copy mt-5">One pricing system across the site. Monthly service is shown first; setup is shown clearly underneath.</p>
+              <p className="brand-kicker">Managed, not handed off</p>
+              <h2 className="mt-4">Launch is a milestone, not the end of the relationship.</h2>
+              <p className="brand-copy mt-5">This is the operating difference between buying a one-off website project and using a managed website service.</p>
             </div>
-            <div className="lg:col-span-8">
-              <div className="grid gap-4 lg:grid-cols-3">
-                {priced.map(({ product, price }, index) => {
-                  const isGrowth = product.slug === "website-growth";
-                  return (
-                    <article key={product.slug} className={isGrowth ? "border-2 border-[#5746e8] bg-[#eeebff] p-5 shadow-sm" : "border border-[#d8d9dc] bg-white p-5"}>
-                      <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="overflow-hidden border border-[#dfe2ea] bg-white lg:col-span-8">
+              <div className="grid grid-cols-[1fr_1fr] border-b border-[#dfe2ea] bg-[#f3f4f8] sm:grid-cols-[1.1fr_1fr_1fr]">
+                <div className="hidden px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#8b93a0] sm:block">Area</div>
+                <div className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#8b93a0]">Project-only build</div>
+                <div className="bg-[#101827] px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#b9b1ff]">Bennie Studio</div>
+              </div>
+              {managedComparison.map(([area, project, managed]) => (
+                <div key={area} className="grid grid-cols-[1fr_1fr] border-b border-[#dfe2ea] last:border-b-0 sm:grid-cols-[1.1fr_1fr_1fr]">
+                  <div className="hidden px-5 py-4 text-sm font-semibold text-[#141821] sm:block">{area}</div>
+                  <div className="px-5 py-4 text-sm leading-6 text-[#687386]">{project}</div>
+                  <div className="bg-[#f8f8ff] px-5 py-4 text-sm font-semibold leading-6 text-[#141821]">{managed}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-y border-[#dfe2ea] bg-white">
+          <div className="brand-shell brand-section">
+            <div className="grid gap-10 lg:grid-cols-12">
+              <div className="lg:col-span-4">
+                <p className="brand-kicker">Managed plans</p>
+                <h2 className="mt-4">Start with the website. Add growth when the business needs it.</h2>
+                <p className="brand-copy mt-5">Monthly service first, setup shown clearly, and one recommended middle plan for businesses actively acquiring customers.</p>
+              </div>
+              <div className="lg:col-span-8">
+                <div className="grid gap-4 lg:grid-cols-3">
+                  {priced.map(({ product, price }, index) => {
+                    const isGrowth = product.slug === "website-growth";
+                    return (
+                      <article key={product.slug} className={isGrowth ? "border border-[#101827] bg-[#101827] p-6 text-white shadow-[0_24px_70px_-45px_rgba(15,23,42,.6)]" : "border border-[#dfe2ea] bg-white p-6"}>
                         <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]">{isGrowth ? "Most Popular" : planBestFor[index]}</p>
-                          <h3 className="mt-1">{product.name}</h3>
+                          <p className={isGrowth ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{isGrowth ? "Recommended" : planBestFor[index]}</p>
+                          <h3 className="mt-2">{product.name}</h3>
                         </div>
-                        {isGrowth ? <span className="rounded-full bg-[#5746e8] px-3 py-1 text-xs font-semibold text-white">Most Popular</span> : null}
-                      </div>
-                      <p className="mt-5 text-3xl font-semibold">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-[#707b8a]">/month</span></p>
-                      <p className="mt-1 text-sm text-[#707b8a]">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
-                      <div className="mt-5 space-y-3 border-t border-[#d8d9dc] pt-4">
-                        {planComparisonRows.map(([label, values]) => (
-                          <div key={label} className="flex items-start justify-between gap-4 text-sm">
-                            <span className="font-semibold text-[#526071]">{label}</span>
-                            <span className="text-right text-[#526071]">{values[index]}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <button onClick={() => go("/pricing?market=" + market + "#plan-" + product.slug, "Pricing " + product.name)} className={isGrowth ? "mt-5 inline-flex min-h-12 w-full items-center justify-center bg-[#5746e8] px-5 font-semibold text-white" : "mt-5 inline-flex min-h-12 w-full items-center justify-center bg-[#141821] px-5 font-semibold text-white"}>
-                        View plan <ArrowRight className="ml-2 h-4 w-4" />
-                      </button>
-                    </article>
-                  );
-                })}
+                        <p className="mt-7 text-3xl font-semibold">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className={isGrowth ? "text-sm font-normal !text-white/55" : "text-sm font-normal text-[#707b8a]"}>/month</span></p>
+                        <p className={isGrowth ? "mt-1 text-sm !text-white/55" : "mt-1 text-sm text-[#707b8a]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
+                        <div className={isGrowth ? "mt-6 space-y-3 border-t border-white/15 pt-5" : "mt-6 space-y-3 border-t border-[#dfe2ea] pt-5"}>
+                          {planComparisonRows.map(([label, values]) => (
+                            <div key={label} className="flex items-start justify-between gap-4 text-sm">
+                              <span className={isGrowth ? "font-semibold !text-white/55" : "font-semibold text-[#526071]"}>{label}</span>
+                              <span className={isGrowth ? "text-right font-semibold !text-white" : "text-right text-[#526071]"}>{values[index]}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <button onClick={() => go("/pricing?market=" + market + "#plan-" + product.slug, "Pricing " + product.name)} className={isGrowth ? "mt-6 inline-flex min-h-12 w-full items-center justify-center bg-white px-5 font-semibold text-[#101827]" : "mt-6 inline-flex min-h-12 w-full items-center justify-center bg-[#141821] px-5 font-semibold text-white"}>
+                          View plan <ArrowRight className="ml-2 h-4 w-4" />
+                        </button>
+                      </article>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="brand-on-dark bg-[#101827]">
+        <section className="brand-on-dark bg-[#0b1020]">
           <div className="brand-shell brand-section">
             <p className="brand-kicker !text-[#b9b1ff]">How it works</p>
             <div className="mt-4 grid gap-10 lg:grid-cols-12">
-              <h2 className="!text-white lg:col-span-4">From brief to a website you can actually use.</h2>
+              <h2 className="!text-white lg:col-span-4">A clear operating model from brief to ongoing improvement.</h2>
               <div className="lg:col-span-8">
                 {process.map(([number, title, body]) => (
-                  <div key={number} className="grid gap-3 border-t border-white/15 py-6 sm:grid-cols-[4rem_1fr_1.5fr]">
+                  <div key={number} className="grid gap-3 border-t border-white/15 py-7 sm:grid-cols-[4rem_1fr_1.5fr]">
                     <span className="text-sm font-semibold !text-[#b9b1ff]">{number}</span>
                     <h3 className="!text-white">{title}</h3>
                     <p className="brand-muted-on-dark">{body}</p>
@@ -445,13 +711,13 @@ export default function BrandLedLandingPage() {
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
               <p className="brand-kicker">Questions</p>
-              <h2 className="mt-4">A few things worth knowing before we build.</h2>
+              <h2 className="mt-4">The details serious buyers usually ask about.</h2>
             </div>
-            <div className="border-t border-[#d8d9dc] lg:col-span-8">
+            <div className="border-t border-[#dfe2ea] lg:col-span-8">
               {faqs.map(([question, answer]) => (
-                <details key={question} className="group border-b border-[#d8d9dc] py-5">
+                <details key={question} className="group border-b border-[#dfe2ea] py-5">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-lg font-semibold">
-                    {question}<span className="text-xl text-[#5746e8] group-open:rotate-45">+</span>
+                    {question}<span className="text-xl text-[#5746e8] transition group-open:rotate-45">+</span>
                   </summary>
                   <p className="max-w-2xl pt-4 text-[#526071]">{answer}</p>
                 </details>
@@ -460,23 +726,24 @@ export default function BrandLedLandingPage() {
           </div>
         </section>
 
-        <section className="bg-[#5746e8] text-white">
-          <div className="brand-shell grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
+        <section className="brand-grid-bg relative overflow-hidden bg-[#5746e8] text-white">
+          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+          <div className="brand-shell relative grid gap-8 py-16 md:grid-cols-[1fr_auto] md:items-center">
             <div>
               <p className="text-sm font-semibold !text-white/70">Preview before you choose</p>
-              <h2 className="mt-2 !text-white">See what your website could become.</h2>
-              <p className="mt-3 !text-white/75">Generate a personalised website preview before choosing a plan.</p>
+              <h2 className="mt-2 max-w-2xl !text-white">See the system applied to your business before you buy it.</h2>
+              <p className="mt-4 max-w-xl !text-white/75">Generate a personalised five-page website direction, then choose a plan only if the approach fits.</p>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button onClick={() => go("/generate-preview", "Final free preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821]">Generate free preview</button>
-              <button onClick={() => go("/book-demo", "Final book review")} className="min-h-12 border border-white/35 px-6 font-semibold text-white">Book 30-minute review</button>
+            <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
+              <button onClick={() => go("/generate-preview", "Final free preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821]">Build free preview <ArrowRight className="ml-2 inline h-4 w-4" /></button>
+              <button onClick={() => go("/book-demo", "Final book review")} className="min-h-12 border border-white/30 bg-white/[0.04] px-6 font-semibold text-white">Book 30-minute review</button>
             </div>
           </div>
         </section>
       </main>
 
       <PublicSiteFooter
-        tagline="Brand-led managed websites for service businesses that want stronger trust, clearer enquiries and a site that keeps improving."
+        tagline="A managed website system for service businesses that need stronger trust, clearer enquiries and ongoing improvement."
         email={platformSettings?.supportEmail}
         onManageCookies={() => setManageCookies(true)}
       />

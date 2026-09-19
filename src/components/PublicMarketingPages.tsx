@@ -158,9 +158,9 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
 };
 
 const primaryCtaClass =
-  "inline-flex min-h-12 max-w-full items-center justify-center whitespace-normal rounded-2xl bg-indigo-600 px-6 py-3 text-center text-sm font-bold uppercase tracking-[0.12em] text-white shadow-[0_12px_28px_-14px_rgba(79,70,229,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-500 hover:shadow-[0_18px_34px_-16px_rgba(79,70,229,0.9)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/25 active:translate-y-0";
+  "inline-flex min-h-12 max-w-full items-center justify-center whitespace-normal rounded-xl bg-[#5746e8] px-6 py-3 text-center text-sm font-semibold text-white shadow-[0_16px_34px_-20px_rgba(87,70,232,.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#4938db] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20 active:translate-y-0";
 const secondaryCtaClass =
-  "inline-flex min-h-12 max-w-full items-center justify-center whitespace-normal rounded-2xl border border-slate-200 bg-white px-6 py-3 text-center text-sm font-bold uppercase tracking-[0.12em] text-slate-950 shadow-[0_8px_22px_-14px_rgba(15,23,42,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow-[0_14px_28px_-16px_rgba(15,23,42,0.4)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20 active:translate-y-0";
+  "inline-flex min-h-12 max-w-full items-center justify-center whitespace-normal rounded-xl border border-[#dfe2ea] bg-white px-6 py-3 text-center text-sm font-semibold text-[#141821] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#b9b1ff] hover:bg-[#f8f8ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15 active:translate-y-0";
 
 const industries = [
   ["Dental Clinic", "Appointment booking, treatment pages, local SEO, WhatsApp enquiries."],
@@ -512,7 +512,7 @@ function Hero({
   title,
   copy,
   icon: Icon,
-  primaryLabel = "Get My Free Website Preview",
+  primaryLabel = "Generate My Website Preview",
   primaryHref = "/generate-preview",
   secondaryLabel,
   secondaryHref,
@@ -527,24 +527,38 @@ function Hero({
 }) {
   const primaryContent = <>{primaryLabel} <ArrowRight className="ml-2 h-4 w-4" /></>;
   return (
-    <section className="border-b border-[#d9d7d0] bg-[#f7f6f2]">
-      <div className="brand-shell grid gap-10 py-16 lg:grid-cols-12 lg:items-end lg:py-20">
+    <section className="brand-grid-bg relative overflow-hidden border-b border-white/10 bg-[#0b1020] text-white">
+      <div className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full bg-[#5746e8]/20 blur-3xl" />
+      <div className="brand-shell relative grid gap-10 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
         <div className="lg:col-span-8">
-          <div className="brand-kicker flex items-center gap-3"><Icon className="h-4 w-4" /> Bennie Studio</div>
-          <h1 className="mt-5">{title}</h1>
-          <p className="brand-copy mt-6">{copy}</p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="brand-kicker flex items-center gap-3 !text-[#b9b1ff]"><span className="grid h-9 w-9 place-items-center border border-white/15 bg-white/[0.04]"><Icon className="h-4 w-4" /></span> Bennie Studio</div>
+          <h1 className="mt-6 !max-w-[16ch] !text-white">{title}</h1>
+          <p className="brand-copy brand-muted-on-dark mt-6">{copy}</p>
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             {primaryHref.startsWith("#") ? (
-              <a href={primaryHref} onClick={() => trackPublicEvent({ eventType: "click_generate_preview", label: primaryLabel, target: primaryHref })} className={primaryCtaClass}>{primaryContent}</a>
+              <a href={primaryHref} onClick={() => trackPublicEvent({ eventType: "click_generate_preview", label: primaryLabel, target: primaryHref })} className="inline-flex min-h-12 items-center justify-center bg-white px-6 text-sm font-semibold text-[#141821] hover:-translate-y-0.5 hover:bg-[#eeebff]">{primaryContent}</a>
             ) : (
-              <Link to={primaryHref} onClick={() => trackPublicEvent({ eventType: "click_primary_cta", label: primaryLabel, target: primaryHref })} className={primaryCtaClass}>{primaryContent}</Link>
+              <Link to={primaryHref} onClick={() => trackPublicEvent({ eventType: "click_primary_cta", label: primaryLabel, target: primaryHref })} className="inline-flex min-h-12 items-center justify-center bg-white px-6 text-sm font-semibold text-[#141821] hover:-translate-y-0.5 hover:bg-[#eeebff]">{primaryContent}</Link>
             )}
-            {secondaryLabel && secondaryHref ? <Link to={secondaryHref} className={secondaryCtaClass}>{secondaryLabel}</Link> : null}
+            {secondaryLabel && secondaryHref ? <Link to={secondaryHref} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 text-sm font-semibold text-white hover:bg-white/[0.08]">{secondaryLabel}</Link> : null}
           </div>
         </div>
-        <div className="border-t border-[#d9d7d0] pt-6 lg:col-span-4 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-          <p className="text-sm font-bold text-[#141821]">What this page helps you decide</p>
-          <p className="mt-3 text-sm leading-6 text-[#5f6673]">See the structure, scope and next action clearly before committing to a managed website plan.</p>
+        <div className="lg:col-span-4">
+          <div className="border border-white/15 bg-white/[0.035] p-6">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Decision brief</p>
+            <div className="mt-5 space-y-4">
+              {[
+                ["01", "Scope", "See what the page or service includes."],
+                ["02", "Evidence", "Separate real proof from demonstrations."],
+                ["03", "Next step", "Preview first, then choose the right plan."],
+              ].map(([number, label, body]) => (
+                <div key={number} className="grid grid-cols-[2rem_1fr] gap-3 border-t border-white/15 pt-4">
+                  <span className="text-xs font-semibold !text-white/40">{number}</span>
+                  <div><p className="text-sm font-semibold !text-white">{label}</p><p className="mt-1 text-sm leading-6 !text-white/55">{body}</p></div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -2140,16 +2154,17 @@ export default function PublicMarketingPages() {
       </Helmet>
       <PublicSiteHeader />
       {pageContent}
-      <section className="border-t border-[#d9d7d0] bg-[#5b4bff] text-white">
-        <div className="brand-shell grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
+      <section className="brand-grid-bg relative overflow-hidden border-t border-white/10 bg-[#5746e8] text-white">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+        <div className="brand-shell relative grid gap-8 py-16 md:grid-cols-[1fr_auto] md:items-center">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-white/60">Next step</p>
-            <h2 className="mt-3 max-w-2xl text-white">See your website direction before choosing a plan.</h2>
-            <p className="mt-3 max-w-2xl text-base text-white/75">Generate a real preview, then use the 30-minute review only if you want help confirming scope and fit.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] !text-white/65">Next step</p>
+            <h2 className="mt-3 max-w-2xl !text-white">See the website system applied to your business.</h2>
+            <p className="mt-4 max-w-2xl text-base !text-white/75">Generate a real five-page direction first. Use the 30-minute review when you want help confirming scope and fit.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-            <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-bold text-[#141821] hover:bg-[#ece9ff]">Generate free preview <ArrowRight className="ml-2 h-4 w-4" /></Button>
-            <Button onClick={() => navigate("/book-demo")} variant="outline" className="min-h-12 border-white/35 bg-transparent px-6 font-bold text-white hover:bg-white/10 hover:text-white">Book 30-minute review</Button>
+            <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#ece9ff]">Generate free preview <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Button onClick={() => navigate("/book-demo")} variant="outline" className="min-h-12 border-white/30 bg-white/[0.04] px-6 font-semibold text-white hover:bg-white/10 hover:text-white">Book 30-minute review</Button>
           </div>
         </div>
       </section>
