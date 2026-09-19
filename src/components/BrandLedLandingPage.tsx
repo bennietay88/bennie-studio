@@ -70,10 +70,10 @@ const designDirections = {
   },
   editorial: {
     label: "Editorial",
-    templateId: "corporate-v1",
+    templateId: "law-firm-v1",
     layoutFamily: "editorial_b2b" as const,
-    title: "Long-form credibility without a wall of cards.",
-    copy: "Best for consultants, B2B and professional services that need more explanation and proof.",
+    title: "Editorial authority for complex services.",
+    copy: "Best when insight, expertise and evidence need room to breathe before the enquiry step.",
   },
 } as const;
 

@@ -64,29 +64,29 @@
   font-size: 1rem;
 }
 
-.brand-public .text-sm {
+.brand-public .text-sm:not(.bt-template-preview * ) {
   font-size: .925rem !important;
 }
 
-.brand-public .text-xs,
-.brand-public [class*="text-[9px]"],
-.brand-public [class*="text-[10px]"],
-.brand-public [class*="text-[11px]"] {
+.brand-public .text-xs:not(.bt-template-preview * ),
+.brand-public [class*="text-[9px]"]:not(.bt-template-preview * ),
+.brand-public [class*="text-[10px]"]:not(.bt-template-preview * ),
+.brand-public [class*="text-[11px]"]:not(.bt-template-preview * ) {
   font-size: .78rem !important;
 }
 
-.brand-public .font-black,
-.brand-public .font-extrabold,
-.brand-public .font-bold {
+.brand-public .font-black:not(.bt-template-preview * ),
+.brand-public .font-extrabold:not(.bt-template-preview * ),
+.brand-public .font-bold:not(.bt-template-preview * ) {
   font-weight: 650 !important;
 }
 
-.brand-public .font-semibold {
+.brand-public .font-semibold:not(.bt-template-preview * ) {
   font-weight: 600 !important;
 }
 
-.brand-public .tracking-widest,
-.brand-public [class*="tracking-["] {
+.brand-public .tracking-widest:not(.bt-template-preview * ),
+.brand-public [class*="tracking-["]:not(.bt-template-preview * ) {
   letter-spacing: .06em !important;
 }
 
@@ -379,5 +379,66 @@
 
   .bt-template-preview {
     max-width: 100%;
+  }
+}
+
+
+/* Miniature previews are screenshot-like canvases. Public-page typography must
+   never restyle their internal text, spacing or tracking. */
+.brand-public .bt-template-preview {
+  isolation: isolate;
+  container-type: inline-size;
+  aspect-ratio: 16 / 10;
+  font-size: 6px;
+  line-height: 1.2;
+}
+
+.brand-public .bt-template-preview *,
+.bt-template-preview * {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .brand-public .bt-template-preview {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+  }
+
+  .brand-public .bt-template-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .bt-website-renderer nav {
+    width: 100%;
+  }
+
+  .bt-website-renderer nav > div {
+    min-height: 4.5rem;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .bt-website-renderer section > [class*="max-w-"],
+  .bt-website-renderer footer > [class*="max-w-"] {
+    width: 100%;
+    max-width: 100% !important;
+  }
+
+  .bt-website-renderer section .flex {
+    min-width: 0;
+  }
+
+  .bt-website-renderer section button,
+  .bt-website-renderer section a {
+    min-height: 44px;
+  }
+
+  .bt-website-renderer [class*="gap-16"],
+  .bt-website-renderer [class*="gap-20"],
+  .bt-website-renderer [class*="gap-24"] {
+    gap: 2rem !important;
   }
 }
