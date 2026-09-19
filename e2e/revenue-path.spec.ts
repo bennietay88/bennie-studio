@@ -310,7 +310,7 @@ test("covers signup and a usable billing handoff", async ({ page }) => {
   await page.waitForURL("**/dashboard/billing");
   await expect(page.getByRole("heading", { name: "Available Plans" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Request a growth plan|Get my growth plan/i }).first()).toBeVisible();
+  await expect(page.locator("table").getByRole("button", { name: "Choose plan" }).nth(1)).toBeVisible();
 });
 
 test("connects the website growth review to a prefilled preview", async ({ page }) => {
@@ -402,7 +402,7 @@ test("presents Managed Website as the primary homepage offer", async ({ page }) 
   await expect(page.getByRole("heading", { name: /Premium websites built around trust, enquiries and growth/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Start with the website\. Add growth when you need it\./i })).toBeVisible();
   await expect(page.getByRole("button", { name: /Generate my free preview/i }).first()).toBeVisible();
-  await expect(page.getByText("Website Growth", { exact: true }).first()).toBeVisible();
+  await expect(page.locator("table").getByText("Website Growth", { exact: true })).toBeVisible();
   await expect(page.getByText(/\$49/)).toHaveCount(0);
 });
 
@@ -419,21 +419,29 @@ test("routes homepage industry links and pricing details to the intended destina
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
 });
 
-test("pricing order summary closes without reopening from the product query", async ({ page }) => {
+test("pricing order summary closes and clears a stale product query", async ({ page }) => {
   await mockSupabaseAndStripe(page);
 
-  await page.goto("/signup?redirectTo=%2Fpricing%3Fproduct%3Dwebsite-growth%26market%3DINTL");
+  await page.goto("/signup?redirectTo=%2Fdashboard%2Fbilling");
   await page.getByTestId("auth-email").fill("owner@example.test");
   await page.getByTestId("auth-password").fill("Password123!");
   await page.getByTestId("auth-terms").check();
   await page.getByTestId("auth-submit").click();
+  await page.waitForURL("**/dashboard/billing");
+  await expect(page.getByRole("heading", { name: "Available Plans" })).toBeVisible();
 
-  await page.waitForURL(/\/pricing\?product=website-growth&market=INTL/);
+  await page.goto("/pricing?product=website-growth&market=INTL");
+  const growthButton = page.locator("table").getByRole("button", { name: "Choose plan" }).nth(1);
+  await expect(growthButton).toBeVisible();
+  await growthButton.click();
+
   const dialog = page.getByRole("dialog", { name: "Order summary" });
   await expect(dialog).toBeVisible();
   await page.getByRole("button", { name: "Close order summary" }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page).toHaveURL(/\/pricing\?market=INTL$/);
+  await page.waitForTimeout(250);
+  await expect(dialog).toHaveCount(0);
 });
 
 test("shows and accepts a public proposal without exposing checkout secrets", async ({ page }) => {
