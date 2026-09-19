@@ -4401,7 +4401,7 @@ export function WebsiteRenderer({
                                   View Details
                                 </Button>
                                 <Button
-                                  className="flex-1 h-14 bg-slate-950 hover:bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-widest text-xs transition-all gap-2 group/btn"
+                                  className="flex-1 h-14 bg-slate-950 text-white hover:bg-primary hover:text-primary-foreground rounded-2xl font-black uppercase tracking-widest text-xs transition-all gap-2 group/btn"
                                   onClick={() => {
                                     if (product.sourceType === "industry_content") {
                                       trackInteraction("industry_item_enquiry_click", product.name || product.title || "Industry Item", {
@@ -5046,7 +5046,7 @@ export function WebsiteRenderer({
 
                   <div className="pt-8 border-t border-slate-100 flex flex-col gap-4">
                     <Button
-                      className="w-full h-16 bg-slate-950 hover:bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-widest text-xs transition-all gap-3 shadow-xl group"
+                      className="w-full h-16 bg-slate-950 text-white hover:bg-primary hover:text-primary-foreground rounded-2xl font-black uppercase tracking-widest text-xs transition-all gap-3 shadow-xl group"
                       onClick={() => isIndustryItem ? handleIndustryEnquiry() : handleCheckout(selectedProduct)}
                       disabled={checkoutLoading === selectedProduct.id}
                     >
