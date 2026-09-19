@@ -1385,7 +1385,7 @@ function GeneratePreviewPage() {
                   </div>
                   {form.websiteStatus === "yes" ? (
                     <div className="sm:col-span-2">
-                      <label htmlFor="preview-url" className="mb-2 block text-sm font-semibold text-slate-800">Website URL</label>
+                      <label htmlFor="preview-url" className="mb-2 block text-sm font-semibold text-slate-800">Current website URL</label>
                       <Input id="preview-url" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://..." className="h-12 rounded-xl" />
                     </div>
                   ) : null}

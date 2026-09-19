@@ -309,7 +309,7 @@ test("covers signup and a usable billing handoff", async ({ page }) => {
 
   await page.waitForURL("**/dashboard/billing");
   await expect(page.getByRole("heading", { name: "Available Plans" })).toBeVisible();
-  await expect(page.getByText("Your managed website team, without hiring one.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Request a growth plan|Get my growth plan/i }).first()).toBeVisible();
 });
 
@@ -371,7 +371,7 @@ test("connects the website growth review to a prefilled preview", async ({ page 
   await expect(page.getByLabel("Current website URL")).toHaveValue("https://example.test");
 });
 
-test("connects the primary revenue offer to a recorded website growth call", async ({ page }) => {
+test("records a Growth Partner consultation through the public booking flow", async ({ page }) => {
   await page.route("https://ipapi.co/json/", (route) => json(route, { country_code: "SG", country_name: "Singapore" }));
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
   await page.route("**/api/public/call-availability", (route) => json(route, { slots: [new Date(Date.now() + 86_400_000).toISOString()], timezone: "Asia/Kuala_Lumpur" }));
@@ -379,18 +379,11 @@ test("connects the primary revenue offer to a recorded website growth call", asy
   await page.route("**/api/platform-leads", async (route) => {
     const payload = await route.request().postDataJSON();
     expect(payload.leadType).toBe("growth_partner_consultation");
-    // The app defaults to the Malaysia operating market until geo-pricing
-    // resolves; the booking still completes with that explicit attribution.
-    expect(payload.country).toBe("MY");
+    expect(payload.country).toBe("INTL");
     await json(route, { success: true, leadId: "00000000-0000-4000-8000-000000000401" });
   });
 
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Managed Website", exact: true }).first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Launch", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Scale", exact: true })).toHaveCount(0);
-  await expect(page.getByText("AI Production Credits", { exact: true })).toHaveCount(0);
-  await page.locator("#growth-partner").getByRole("button", { name: /Book Growth Consultation/i }).click();
+  await page.goto("/book-demo?product=growth-partner&market=INTL");
   await expect(page).toHaveURL(/\/book-demo/);
   await page.getByLabel("Your name").fill("Jane Buyer");
   await page.getByLabel("Work email").fill("jane@example.test");
@@ -406,10 +399,41 @@ test("presents Managed Website as the primary homepage offer", async ({ page }) 
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Your managed website team, without hiring one/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Website Growth System", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: /See My Website Direction/i }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Premium websites built around trust, enquiries and growth/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Start with the website\. Add growth when you need it\./i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Generate my free preview/i }).first()).toBeVisible();
+  await expect(page.getByText("Website Growth", { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/\$49/)).toHaveCount(0);
+});
+
+test("routes homepage industry links and pricing details to the intended destinations", async ({ page }) => {
+  await page.route("**/api/platform-events", (route) => json(route, { success: true }));
+
+  await page.goto("/");
+  await page.getByRole("link", { name: "Professional services" }).click();
+  await expect(page).toHaveURL(/\/professional-services-website-design$/);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Details" }).nth(1).click();
+  await expect(page).toHaveURL(/\/pricing\?market=INTL#plan-website-growth$/);
+  await expect(page.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
+});
+
+test("pricing order summary closes without reopening from the product query", async ({ page }) => {
+  await mockSupabaseAndStripe(page);
+
+  await page.goto("/signup?redirectTo=%2Fpricing%3Fproduct%3Dwebsite-growth%26market%3DINTL");
+  await page.getByTestId("auth-email").fill("owner@example.test");
+  await page.getByTestId("auth-password").fill("Password123!");
+  await page.getByTestId("auth-terms").check();
+  await page.getByTestId("auth-submit").click();
+
+  await page.waitForURL(/\/pricing\?product=website-growth&market=INTL/);
+  const dialog = page.getByRole("dialog", { name: "Order summary" });
+  await expect(dialog).toBeVisible();
+  await page.getByRole("button", { name: "Close order summary" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(/\/pricing\?market=INTL$/);
 });
 
 test("shows and accepts a public proposal without exposing checkout secrets", async ({ page }) => {
