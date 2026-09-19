@@ -160,8 +160,18 @@
   color: rgba(255,255,255,.72) !important;
 }
 
-.brand-public .bt-static-preview [style*="opacity: 0"] {
+.brand-public .bt-static-preview .bt-website-renderer,
+.brand-public .bt-static-preview .bt-website-renderer * {
+  animation-delay: 0ms !important;
+  animation-duration: 0ms !important;
+  transition-duration: 0ms !important;
+}
+
+.brand-public .bt-static-preview .bt-website-renderer [style*="opacity"] {
   opacity: 1 !important;
+}
+
+.brand-public .bt-static-preview .bt-website-renderer [style*="transform"] {
   transform: none !important;
 }
 

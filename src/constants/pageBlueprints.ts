@@ -447,13 +447,21 @@ export const getBlueprint = (nicheValue: string | undefined, plan: WebsitePlanId
   const niche = inferBlueprintNiche(nicheValue);
   const blueprintPlan = resolveBlueprintPlan(plan, maxPages);
   const blueprint = BLUEPRINTS[niche] || BLUEPRINTS.consultant;
+  const pageLimit = getPlanPageLimit(plan, maxPages);
+  // A five-page allowance should produce a real five-page website. Previously
+  // the "business" blueprint stopped at three pages even when the plan allowed
+  // five, which made generated previews look incomplete.
+  const structurePlan: BlueprintPlanId =
+    blueprintPlan === "business" && pageLimit >= 5 ? "growth" : blueprintPlan;
+  const structure = blueprint[structurePlan];
+
   return {
     niche,
     plan: blueprintPlan,
     positioning: PLAN_POSITIONING[blueprintPlan],
     upgradeMessage: UPGRADE_MESSAGES[blueprintPlan],
-    ...blueprint[blueprintPlan],
-    pages: blueprint[blueprintPlan].pages.map((blueprintPage) => ({
+    ...structure,
+    pages: structure.pages.map((blueprintPage) => ({
       ...blueprintPage,
       seoTitle: `${blueprintPage.name} | {businessName}`,
       metaDescription: `${blueprintPage.purpose} Serving {targetCustomer} in {location}.`,

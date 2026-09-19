@@ -123,6 +123,26 @@ test("blueprints do not fabricate testimonials or prices when proof is absent", 
 });
 
 
+test("five-page managed previews use the full five-page website architecture", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Example Dental",
+    nicheId: "dental-clinic-v1",
+    nicheName: "Clinic / Healthcare",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Family dentistry",
+    targetCustomer: "local families",
+    location: "Kuala Lumpur",
+    ctaPreference: "Book Appointment",
+    generationMode: "brand_led",
+  });
+
+  assert.equal(pages.length, 5);
+  assert.equal(new Set(pages.map((page) => page.slug)).size, 5);
+  assert.ok(pages.some((page) => page.slug === "treatments"));
+  assert.ok(pages.some((page) => page.slug === "appointment"));
+});
+
 test("brand-led mode creates a deeper composition without fabricated people", () => {
   const pages = buildPagesFromBlueprint({
     businessName: "Northstar Advisory",

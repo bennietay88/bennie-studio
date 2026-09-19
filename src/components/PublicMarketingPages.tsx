@@ -1261,7 +1261,7 @@ function GeneratePreviewPage() {
               See the website direction before you spend on the build.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-[#5f6673] sm:text-lg">
-              Give us the essentials. We turn them into a tailored homepage direction built around your service, location, trust signals and preferred enquiry action.
+              Give us the essentials. We turn them into a tailored five-page website direction built around your service, location, trust signals and preferred enquiry action.
             </p>
             <div className="mt-8 flex flex-wrap gap-2">
               {["No card required", "Nothing is published", "Uses your real business details"].map((item) => (
@@ -1555,10 +1555,28 @@ function GeneratePreviewPage() {
               </div>
             </div>
 
-            <div className={(previewDevice==="mobile" ? "max-w-[430px] " : "max-w-full ") + (previewExpanded ? "max-h-[90vh] " : "max-h-[850px] ") + "bt-static-preview mx-auto mt-6 overflow-y-auto border border-[#d8d9dc] bg-white transition-all"}>
-              <React.Suspense fallback={<div className="grid min-h-[40rem] place-items-center text-[#526071]">Rendering website…</div>}>
-                <PublicWebsiteRenderer initialData={generatedWebsite} />
-              </React.Suspense>
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-xs font-bold uppercase tracking-[0.12em] text-[#8b93a0]">Interactive {generatedWebsite.pages.length}-page preview</span>
+              {generatedWebsite.pages.map((page, index) => (
+                <span key={page.id || page.slug || page.title} className="border border-[#d8d9dc] bg-[#f7f6f2] px-3 py-1.5 text-xs font-semibold text-[#374151]">
+                  {String(index + 1).padStart(2, "0")} {page.title}
+                </span>
+              ))}
+              <span className="text-xs text-[#687386]">Use the navigation inside the preview to inspect every page.</span>
+            </div>
+
+            <div className="mt-4 border border-[#d8d9dc] bg-[#f7f6f2] p-2 sm:p-3">
+              <div className="mb-2 flex items-center gap-2 border-b border-[#d8d9dc] bg-white px-3 py-2 text-[11px] font-semibold text-[#687386]">
+                <span className="h-2 w-2 rounded-full bg-[#d8d9dc]" />
+                <span className="h-2 w-2 rounded-full bg-[#d8d9dc]" />
+                <span className="h-2 w-2 rounded-full bg-[#d8d9dc]" />
+                <span className="ml-2 truncate">Preview · {businessLabel}</span>
+              </div>
+              <div className={(previewDevice==="mobile" ? "max-w-[430px] " : "max-w-full ") + (previewExpanded ? "max-h-[90vh] " : "max-h-[900px] ") + "bt-static-preview mx-auto overflow-y-auto border border-[#d8d9dc] bg-white shadow-[0_20px_60px_-45px_rgba(15,23,42,.55)] transition-all"}>
+                <React.Suspense fallback={<div className="grid min-h-[40rem] place-items-center text-[#526071]">Rendering website…</div>}>
+                  <PublicWebsiteRenderer initialData={generatedWebsite} />
+                </React.Suspense>
+              </div>
             </div>
 
             <div className="mt-7 flex flex-col gap-3 border-t border-[#d8d9dc] pt-6 sm:flex-row">

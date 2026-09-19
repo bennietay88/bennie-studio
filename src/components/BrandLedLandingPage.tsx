@@ -216,7 +216,7 @@ export default function BrandLedLandingPage() {
       <main>
         <section className="brand-on-dark bg-[#101827]">
           <div className="brand-shell grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
-            <div className="lg:col-span-7">
+            <div className="lg:col-span-6">
               <p className="brand-kicker !text-[#b9b1ff]">Managed websites for service businesses</p>
               <h1 className="mt-5 !max-w-[15ch] !text-white">Premium websites built around trust, enquiries and growth.</h1>
               <p className="brand-copy brand-muted-on-dark mt-6 !max-w-2xl">
@@ -232,15 +232,26 @@ export default function BrandLedLandingPage() {
               </div>
               <p className="mt-4 text-sm !text-white/60">No card required · Preview before choosing a plan · Managed plans from {entryMonthly}/month</p>
             </div>
-            <div className="lg:col-span-5">
-              <div className="relative overflow-hidden border border-white/15 bg-white shadow-[0_30px_80px_-45px_rgba(0,0,0,.65)]">
-                <TemplatePreviewThumbnail
-                  templateId="accounting-firm-v1"
-                  templateName="Professional services"
-                  layoutFamily="brand_statement"
-                  showFamilyLabel={false}
-                  className="aspect-[16/10] min-h-0 border-0"
-                />
+            <div className="lg:col-span-6">
+              <div className="relative pb-8 sm:pl-8">
+                <div className="absolute bottom-0 left-0 top-8 hidden w-[88%] border border-white/10 bg-white/[0.035] sm:block" />
+                <div className="relative overflow-hidden border border-white/15 bg-white shadow-[0_34px_90px_-42px_rgba(0,0,0,.75)]">
+                  <TemplatePreviewThumbnail
+                    templateId="accounting-firm-v1"
+                    templateName="Professional services"
+                    layoutFamily="brand_statement"
+                    showFamilyLabel={false}
+                    className="aspect-[16/10] min-h-0 border-0"
+                  />
+                </div>
+                <div className="relative -mt-px ml-auto grid w-[92%] grid-cols-3 border border-[#d8d9dc] bg-[#f7f6f2] text-[#141821]">
+                  {[["05", "Page structure"], ["02", "Device views"], ["01", "Clear enquiry path"]].map(([value, label]) => (
+                    <div key={label} className="border-r border-[#d8d9dc] px-3 py-3 last:border-r-0 sm:px-4">
+                      <p className="text-lg font-semibold">{value}</p>
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#687386]">{label}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -248,7 +259,7 @@ export default function BrandLedLandingPage() {
 
         <section className="border-b border-[#d8d9dc] bg-white">
           <div className="brand-shell grid grid-cols-2 md:grid-cols-4">
-            {["Strategy", "Premium design", "Lead capture", "Managed growth"].map((item) => (
+            {["5-page preview", "Desktop + mobile", "Real enquiry paths", "Managed after launch"].map((item) => (
               <div key={item} className="border-r border-[#d8d9dc] px-4 py-6 text-sm font-semibold last:border-r-0 md:px-6">{item}</div>
             ))}
           </div>
@@ -284,15 +295,31 @@ export default function BrandLedLandingPage() {
               </div>
               <p className="brand-copy lg:col-span-5">Inspect hierarchy, service presentation and conversion paths across different service-business categories.</p>
             </div>
-            <div className="mt-10 grid gap-8 lg:grid-cols-3">
-              {exampleTemplates.map(([templateId, category, direction, action]) => (
-                <article key={templateId}>
-                  <TemplatePreviewThumbnail templateId={templateId} templateName={category} className="aspect-[16/10] min-h-0 border border-[#d8d9dc] bg-white" />
-                  <p className="mt-5 text-sm font-semibold text-[#5746e8]">{category}</p>
-                  <h3 className="mt-2">{direction}</h3>
-                  <p className="mt-2 text-sm text-[#526071]">{action}</p>
+            <div className="mt-10 grid gap-6 lg:grid-cols-12 lg:items-start">
+              {exampleTemplates[0] ? (
+                <article className="lg:col-span-7">
+                  <TemplatePreviewThumbnail templateId={exampleTemplates[0][0]} templateName={exampleTemplates[0][1]} className="aspect-[16/10] min-h-0 border border-[#d8d9dc] bg-white shadow-[0_28px_70px_-48px_rgba(15,23,42,.5)]" />
+                  <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_1.2fr]">
+                    <div>
+                      <p className="text-sm font-semibold text-[#5746e8]">{exampleTemplates[0][1]}</p>
+                      <h3 className="mt-2">{exampleTemplates[0][2]}</h3>
+                    </div>
+                    <p className="text-sm leading-6 text-[#526071]">{exampleTemplates[0][3]}</p>
+                  </div>
                 </article>
-              ))}
+              ) : null}
+              <div className="grid gap-6 lg:col-span-5">
+                {exampleTemplates.slice(1).map(([templateId, category, direction, action]) => (
+                  <article key={templateId} className="grid gap-4 border-t border-[#d8d9dc] pt-5 sm:grid-cols-[1.15fr_.85fr] lg:grid-cols-1">
+                    <TemplatePreviewThumbnail templateId={templateId} templateName={category} className="aspect-[16/9] min-h-0 border border-[#d8d9dc] bg-white" />
+                    <div>
+                      <p className="text-sm font-semibold text-[#5746e8]">{category}</p>
+                      <h3 className="mt-2">{direction}</h3>
+                      <p className="mt-2 text-sm text-[#526071]">{action}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
             <button onClick={() => go("/case-studies", "Homepage all examples")} className="mt-8 inline-flex items-center font-semibold">
               View all website work <ArrowRight className="ml-2 h-4 w-4" />
@@ -363,7 +390,7 @@ export default function BrandLedLandingPage() {
               <p className="brand-copy mt-5">One pricing system across the site. Monthly service is shown first; setup is shown clearly underneath.</p>
             </div>
             <div className="lg:col-span-8">
-              <div className="grid gap-4 md:hidden">
+              <div className="grid gap-4 lg:grid-cols-3">
                 {priced.map(({ product, price }, index) => {
                   const isGrowth = product.slug === "website-growth";
                   return (
@@ -391,43 +418,6 @@ export default function BrandLedLandingPage() {
                     </article>
                   );
                 })}
-              </div>
-              <div className="hidden overflow-x-auto md:block">
-                <table className="w-full min-w-[720px] border-collapse text-left">
-                  <thead>
-                    <tr className="border-b border-[#d8d9dc]">
-                      <th className="py-4 pr-4 text-sm font-semibold">Plan</th>
-                      {priced.map(({ product }, index) => (
-                        <th key={product.slug} className={index === 1 ? "border-x border-[#cbc5f4] bg-[#eeebff] px-4 py-4 align-top" : "px-4 py-4 align-top"}>
-                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]">{index === 1 ? "Most Popular" : planBestFor[index]}</p>
-                          <p className="mt-1 text-lg font-semibold text-[#141821]">{product.name}</p>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-[#d8d9dc]">
-                      <th className="py-4 pr-4 text-sm font-semibold text-[#526071]">Best for</th>
-                      {planBestFor.map((value, index) => <td key={value} className={index === 1 ? "border-x border-[#cbc5f4] bg-[#eeebff] px-4 py-4 text-sm text-[#526071]" : "px-4 py-4 text-sm text-[#526071]"}>{value}</td>)}
-                    </tr>
-                    {planComparisonRows.map(([label, values]) => (
-                      <tr key={label} className="border-b border-[#d8d9dc]">
-                        <th className="py-4 pr-4 text-sm font-semibold text-[#526071]">{label}</th>
-                        {values.map((value, index) => <td key={index} className={index === 1 ? "border-x border-[#cbc5f4] bg-[#eeebff] px-4 py-4 text-sm text-[#526071]" : "px-4 py-4 text-sm text-[#526071]"}>{value}</td>)}
-                      </tr>
-                    ))}
-                    <tr>
-                      <th className="py-6 pr-4 text-sm font-semibold">Price</th>
-                      {priced.map(({product, price}, index) => (
-                        <td key={product.slug} className={index === 1 ? "border-x border-[#cbc5f4] bg-[#eeebff] px-4 py-6 align-top" : "px-4 py-6 align-top"}>
-                          <p className="text-2xl font-semibold">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-[#707b8a]">/month</span></p>
-                          <p className="mt-1 text-sm text-[#707b8a]">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
-                          <button onClick={() => go("/pricing?market=" + market + "#plan-" + product.slug, "Pricing " + product.name)} className={index === 1 ? "mt-4 inline-flex items-center font-semibold text-[#5746e8]" : "mt-4 inline-flex items-center font-semibold text-[#526071]"}>Details <ArrowRight className="ml-1 h-4 w-4" /></button>
-                        </td>
-                      ))}
-                    </tr>
-                  </tbody>
-                </table>
               </div>
             </div>
           </div>
