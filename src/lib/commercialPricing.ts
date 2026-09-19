@@ -114,11 +114,11 @@ export const getStoredMarket = (): CommercialMarket => {
     const stored = localStorage.getItem("bt_commercial_market");
     if (stored) return normalizeCommercialMarket(stored);
 
-    // MYR is the launch market. Visitors can switch markets using the visible
-    // selector, and their choice is persisted after they make it.
-    return "MY";
+    // Public pricing is USD-first for a global audience. Explicit campaign
+    // market parameters and a visitor's saved market still take precedence.
+    return "INTL";
   } catch {
-    return "MY";
+    return "INTL";
   }
 };
 

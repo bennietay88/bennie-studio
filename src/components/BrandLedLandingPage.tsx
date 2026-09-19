@@ -373,7 +373,7 @@ export default function BrandLedLandingPage() {
                           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]">{isGrowth ? "Most Popular" : planBestFor[index]}</p>
                           <h3 className="mt-1">{product.name}</h3>
                         </div>
-                        {isGrowth ? <span className="rounded-full bg-[#5746e8] px-3 py-1 text-xs font-semibold text-white">Most popular</span> : null}
+                        {isGrowth ? <span className="rounded-full bg-[#5746e8] px-3 py-1 text-xs font-semibold text-white">Most Popular</span> : null}
                       </div>
                       <p className="mt-5 text-3xl font-semibold">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-[#707b8a]">/month</span></p>
                       <p className="mt-1 text-sm text-[#707b8a]">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>

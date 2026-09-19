@@ -106,7 +106,7 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
       "Request a free website audit to identify design, mobile, SEO, enquiry, speed, content, and trust issues on your current website.",
   },
   "generate-preview": {
-    title: "See Your Website Direction | Bennie Studio",
+    title: "Free Website Preview | Bennie Studio",
     description:
       "See a tailored managed website direction based on your business type, location, services, reviews, and preferred enquiry goal.",
   },
@@ -1251,97 +1251,193 @@ function GeneratePreviewPage() {
 
   return (
     <>
-      <section className="border-b border-[#d8d9dc] bg-[#f7f6f2]">
-        <div className="brand-shell py-12 sm:py-16">
-          <p className="brand-kicker">Free website preview</p>
-          <h1 className="mt-4">See a website direction built around your business.</h1>
-          <p className="brand-copy mt-5">Give us the essentials. The generator will lock the site to the right business family, structure the buyer journey and render the actual website direction.</p>
+      <section className="relative overflow-hidden border-b border-slate-800 bg-[#0f1726] text-white">
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <div className="absolute -right-24 top-6 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
+          <div className="absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-violet-400/10 blur-3xl" />
+        </div>
+        <div className="brand-shell relative grid gap-10 py-14 sm:py-16 lg:grid-cols-12 lg:items-center lg:py-20">
+          <div className="lg:col-span-7">
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-indigo-200">
+              <Sparkles className="h-4 w-4" /> Free website preview
+            </p>
+            <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl">
+              See how your business could look online before you buy.
+            </h1>
+            <p className="mt-6 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+              Share the essentials and we will shape a tailored website direction around your services, location, customer journey and preferred enquiry action.
+            </p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              {[
+                ["01", "Tell us the basics"],
+                ["02", "We shape the direction"],
+                ["03", "Review the website"],
+              ].map(([step, label]) => (
+                <div key={step} className="border-t border-white/20 pt-3">
+                  <p className="text-xs font-bold text-indigo-200">{step}</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-sm text-slate-300">
+              {["No card required", "Nothing is published", "Built from your real details"].map((item) => (
+                <span key={item} className="inline-flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-emerald-300" /> {item}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="lg:col-span-5">
+            <div className="overflow-hidden rounded-[2rem] border border-white/15 bg-white shadow-2xl shadow-black/30">
+              <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
+                <span className="ml-2 truncate text-xs font-semibold text-slate-400">{businessLabel === "your business" ? "Your future website" : businessLabel}</span>
+              </div>
+              <div className="p-6 text-slate-950 sm:p-7">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">{industry.label}</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.02em]">{serviceLabel}</h2>
+                <p className="mt-4 text-sm leading-6 text-slate-600">A direction organised around trust, clear services and the next enquiry step.</p>
+                <div className="mt-6 grid gap-2">
+                  {industry.sections.slice(0, 4).map((sectionName) => (
+                    <div key={sectionName} className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                      <Check className="h-4 w-4 shrink-0 text-indigo-600" /> {sectionName}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-bold text-white">
+                  {resolvePreviewCta(goal)}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section id="preview-brief" className="brand-shell brand-section">
-        <form onSubmit={generatePreview} className="grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-4">
-            <p className="brand-kicker">Business brief</p>
-            <h2 className="mt-4">Start with what the customer needs to understand.</h2>
-            <p className="brand-copy mt-5">Advanced brand details and reviews are optional. The first preview should not require a questionnaire marathon.</p>
-          </div>
-
-          <div className="grid gap-5 lg:col-span-8">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Business type</label>
-                <select value={industryId} onChange={(e) => selectIndustry(e.target.value)} className="h-12 w-full border border-[#d8d9dc] bg-white px-4">
-                  {previewIndustries.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-                </select>
+      <section id="preview-brief" className="bg-[#f7f6f2]">
+        <div className="brand-shell py-12 sm:py-16">
+          <form onSubmit={generatePreview} className="grid gap-8 lg:grid-cols-12 lg:items-start">
+            <div className="lg:sticky lg:top-24 lg:col-span-4">
+              <p className="brand-kicker">Your business brief</p>
+              <h2 className="mt-4">Enough detail to make the preview useful. No questionnaire marathon.</h2>
+              <p className="brand-copy mt-5">Start with your business, main service and goal. Extra brand context is optional and can refine the direction.</p>
+              <div className="mt-7 space-y-3 border-t border-[#d8d9dc] pt-5">
+                {[
+                  ["Business family", industry.label],
+                  ["Primary goal", goal],
+                  ["Direction", previewGenerationMode === "brand_led" ? "Brand-led" : "Premium"],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex items-start justify-between gap-4 text-sm">
+                    <span className="font-semibold text-[#687386]">{label}</span>
+                    <span className="text-right font-semibold text-[#141821]">{value}</span>
+                  </div>
+                ))}
               </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Main service</label>
-                <Input required value={form.mainService} onChange={(e) => setForm({...form, mainService:e.target.value})} placeholder="e.g. Teeth extraction" className="h-12" />
-                {inferredIndustryId && inferredIndustryId !== industryId ? <p className="mt-2 text-sm text-[#5746e8]">Service detected as {previewIndustries.find((item) => item.id === inferredIndustryId)?.label}. The preview will use that website family.</p> : null}
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Business name</label>
-                <Input required value={form.businessName} onChange={(e) => setForm({...form, businessName:e.target.value})} placeholder="Business name" className="h-12" />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Location</label>
-                <Input required value={form.location} onChange={(e) => setForm({...form, location:e.target.value})} placeholder="City / area served" className="h-12" />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Primary goal</label>
-                <select value={goal} onChange={(e) => selectGoal(e.target.value)} className="h-12 w-full border border-[#d8d9dc] bg-white px-4">
-                  {previewGoals.map((item) => <option key={item}>{item}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Current website</label>
-                <select value={form.websiteStatus} onChange={(e) => setForm({...form, websiteStatus:e.target.value, websiteUrl:e.target.value==="no"?"":form.websiteUrl})} className="h-12 w-full border border-[#d8d9dc] bg-white px-4">
-                  <option value="yes">I have a website</option>
-                  <option value="no">No website yet</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Your name</label>
-                <Input required value={form.contactName} onChange={(e) => setForm({...form, contactName:e.target.value})} placeholder="Your name" className="h-12" />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold">Email</label>
-                <Input required type="email" value={form.email} onChange={(e) => setForm({...form, email:e.target.value})} placeholder="Email for your preview" className="h-12" />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold">WhatsApp / phone</label>
-                <Input required value={form.phone} onChange={(e) => setForm({...form, phone:e.target.value})} placeholder="Phone number" className="h-12" />
-              </div>
-              {form.websiteStatus === "yes" ? (
-                <div>
-                  <label className="mb-2 block text-sm font-semibold">Website URL</label>
-                  <Input required value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://..." className="h-12" />
-                </div>
-              ) : null}
             </div>
 
-            <details className="border-t border-[#d8d9dc] pt-5">
-              <summary className="cursor-pointer font-semibold">Optional: brand style, reviews and extra context</summary>
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <select value={form.brandStyle} onChange={(e)=>setForm({...form,brandStyle:e.target.value})} className="h-12 border border-[#d8d9dc] bg-white px-4 sm:col-span-2">
-                  {["Modern professional","Premium corporate","Friendly local business","Bold sales landing page","Clean minimal","Luxury premium"].map((style)=><option key={style}>{style}</option>)}
-                </select>
-                <Input value={form.socialUrl} onChange={(e)=>setForm({...form,socialUrl:e.target.value})} placeholder="Google Business / social URL" className="h-12 sm:col-span-2" />
-                <Textarea value={form.reviews} onChange={(e)=>setForm({...form,reviews:e.target.value})} placeholder="Paste real customer reviews, one per line." className="min-h-28 sm:col-span-2" />
-                <select value={form.biggestProblem} onChange={(e)=>setForm({...form,biggestProblem:e.target.value})} className="h-12 border border-[#d8d9dc] bg-white px-4 sm:col-span-2">
-                  <option value="">Biggest website problem (optional)</option>
-                  {previewProblems.map((problem)=><option key={problem}>{problem}</option>)}
-                </select>
-              </div>
-            </details>
+            <div className="lg:col-span-8">
+              <div className="overflow-hidden rounded-[2rem] border border-[#d8d9dc] bg-white shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)]">
+                <div className="border-b border-slate-200 px-5 py-5 sm:px-7">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Step 1 · Business</p>
+                  <h3 className="mt-2 text-2xl font-semibold text-slate-950">What do you want customers to understand?</h3>
+                </div>
+                <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
+                  <div>
+                    <label htmlFor="preview-industry" className="mb-2 block text-sm font-semibold text-slate-800">Business type</label>
+                    <select id="preview-industry" value={industryId} onChange={(e) => selectIndustry(e.target.value)} className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10">
+                      {previewIndustries.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="preview-service" className="mb-2 block text-sm font-semibold text-slate-800">Main service</label>
+                    <Input id="preview-service" required value={form.mainService} onChange={(e) => setForm({...form, mainService:e.target.value})} placeholder="e.g. Teeth extraction" className="h-12 rounded-xl" />
+                    {inferredIndustryId && inferredIndustryId !== industryId ? <p className="mt-2 text-sm font-semibold text-indigo-600">We detected {previewIndustries.find((item) => item.id === inferredIndustryId)?.label} and will use that website family.</p> : null}
+                  </div>
+                  <div>
+                    <label htmlFor="preview-business" className="mb-2 block text-sm font-semibold text-slate-800">Business name</label>
+                    <Input id="preview-business" required value={form.businessName} onChange={(e) => setForm({...form, businessName:e.target.value})} placeholder="Business name" className="h-12 rounded-xl" />
+                  </div>
+                  <div>
+                    <label htmlFor="preview-location" className="mb-2 block text-sm font-semibold text-slate-800">Location / service area</label>
+                    <Input id="preview-location" required value={form.location} onChange={(e) => setForm({...form, location:e.target.value})} placeholder="City or area served" className="h-12 rounded-xl" />
+                  </div>
+                </div>
 
-            {error ? <div className="border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{error}</div> : null}
-            <Button type="submit" disabled={generating} className="min-h-12 w-full bg-[#141821] font-semibold text-white hover:bg-[#5746e8] sm:w-auto sm:px-7">
-              {generating ? "Building your website direction..." : "Generate my preview"} <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </form>
+                <div className="border-y border-slate-200 bg-slate-50/70 px-5 py-5 sm:px-7">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Step 2 · Enquiry goal</p>
+                  <h3 className="mt-2 text-2xl font-semibold text-slate-950">What should the website help people do next?</h3>
+                </div>
+                <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
+                  <div>
+                    <label htmlFor="preview-goal" className="mb-2 block text-sm font-semibold text-slate-800">Primary goal</label>
+                    <select id="preview-goal" value={goal} onChange={(e) => selectGoal(e.target.value)} className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10">
+                      {previewGoals.map((item) => <option key={item}>{item}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="preview-site-status" className="mb-2 block text-sm font-semibold text-slate-800">Current website</label>
+                    <select id="preview-site-status" value={form.websiteStatus} onChange={(e) => setForm({...form, websiteStatus:e.target.value, websiteUrl:e.target.value==="no"?"":form.websiteUrl})} className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10">
+                      <option value="yes">I have a website</option>
+                      <option value="no">No website yet</option>
+                    </select>
+                  </div>
+                  {form.websiteStatus === "yes" ? (
+                    <div className="sm:col-span-2">
+                      <label htmlFor="preview-url" className="mb-2 block text-sm font-semibold text-slate-800">Website URL</label>
+                      <Input id="preview-url" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://..." className="h-12 rounded-xl" />
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="border-y border-slate-200 bg-slate-50/70 px-5 py-5 sm:px-7">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Step 3 · Contact</p>
+                  <h3 className="mt-2 text-2xl font-semibold text-slate-950">Connect the preview to your enquiry.</h3>
+                </div>
+                <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
+                  <div>
+                    <label htmlFor="preview-name" className="mb-2 block text-sm font-semibold text-slate-800">Your name <span className="font-normal text-slate-400">optional</span></label>
+                    <Input id="preview-name" autoComplete="name" value={form.contactName} onChange={(e) => setForm({...form, contactName:e.target.value})} placeholder="Your name" className="h-12 rounded-xl" />
+                  </div>
+                  <div>
+                    <label htmlFor="preview-email" className="mb-2 block text-sm font-semibold text-slate-800">Email</label>
+                    <Input id="preview-email" required autoComplete="email" type="email" value={form.email} onChange={(e) => setForm({...form, email:e.target.value})} placeholder="you@business.com" className="h-12 rounded-xl" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="preview-phone" className="mb-2 block text-sm font-semibold text-slate-800">
+                      WhatsApp / phone {goal.toLowerCase().includes("whatsapp") ? null : <span className="font-normal text-slate-400">optional</span>}
+                    </label>
+                    <Input id="preview-phone" required={goal.toLowerCase().includes("whatsapp")} autoComplete="tel" value={form.phone} onChange={(e) => setForm({...form, phone:e.target.value})} placeholder="Phone or WhatsApp number" className="h-12 rounded-xl" />
+                  </div>
+
+                  <details className="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <summary className="cursor-pointer font-semibold text-slate-800">Optional: refine the brand direction</summary>
+                    <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                      <select value={form.brandStyle} onChange={(e)=>setForm({...form,brandStyle:e.target.value})} className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 sm:col-span-2">
+                        {["Modern professional","Premium corporate","Friendly local business","Bold sales landing page","Clean minimal","Luxury premium"].map((style)=><option key={style}>{style}</option>)}
+                      </select>
+                      <Input value={form.socialUrl} onChange={(e)=>setForm({...form,socialUrl:e.target.value})} placeholder="Google Business / social URL" className="h-12 rounded-xl sm:col-span-2" />
+                      <Textarea value={form.reviews} onChange={(e)=>setForm({...form,reviews:e.target.value})} placeholder="Paste real customer reviews, one per line." className="min-h-28 rounded-xl sm:col-span-2" />
+                      <select value={form.biggestProblem} onChange={(e)=>setForm({...form,biggestProblem:e.target.value})} className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 sm:col-span-2">
+                        <option value="">Biggest website problem (optional)</option>
+                        {previewProblems.map((problem)=><option key={problem}>{problem}</option>)}
+                      </select>
+                    </div>
+                  </details>
+
+                  {error ? <div className="sm:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{error}</div> : null}
+                  <div className="sm:col-span-2">
+                    <Button type="submit" disabled={generating} className="min-h-14 w-full rounded-xl bg-indigo-600 px-7 text-base font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-500 sm:w-auto">
+                      {generating ? "Building your website direction..." : "Build my free website preview"} <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                    <p className="mt-3 max-w-xl text-xs leading-5 text-slate-500">No card required. Your information is used to prepare and follow up on this preview. Nothing is published without your approval.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
       </section>
 
       {generating ? (
@@ -1385,14 +1481,51 @@ function GeneratePreviewPage() {
 
             <div className="mt-7 flex flex-col gap-3 border-t border-[#d8d9dc] pt-6 sm:flex-row">
               <Button onClick={() => action("click_book_call_after_preview","Book Website Review","/book-demo")} className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]">Book 30-minute review</Button>
-              <Button variant="outline" onClick={() => navigate("/pricing#plans")} className="min-h-12 px-6 font-semibold">View recommended plan</Button>
+              <Button variant="outline" onClick={() => navigate("/pricing?market=" + (initialParams.get("market") || "INTL") + "#plan-" + commercialRecommendation.slug)} className="min-h-12 rounded-xl px-6 font-semibold">View recommended plan</Button>
             </div>
           </div>
         </section>
       ) : !generating ? (
-        <section className="border-y border-[#d8d9dc] bg-white">
-          <div className="brand-shell py-10 text-center">
-            <p className="text-[#526071]">Your real website preview will appear here after you submit the brief.</p>
+        <section className="border-y border-slate-200 bg-white">
+          <div className="brand-shell py-12 sm:py-14">
+            <div className="grid overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50 lg:grid-cols-12">
+              <div className="p-6 sm:p-8 lg:col-span-5">
+                <p className="brand-kicker">What you will see</p>
+                <h2 className="mt-4">A website direction, not a generic template screenshot.</h2>
+                <p className="brand-copy mt-4">The preview uses your service, location, business family and enquiry goal to choose the page structure and design direction.</p>
+                <div className="mt-6 space-y-3">
+                  {["Page structure around the buyer journey","Desktop and mobile preview","Recommended next plan based on your goal"].map((item) => (
+                    <div key={item} className="flex items-start gap-3 text-sm font-semibold text-slate-700">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" /> {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="border-t border-slate-200 bg-white p-4 sm:p-6 lg:col-span-7 lg:border-l lg:border-t-0">
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                  <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                    <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
+                  </div>
+                  <div className="p-5 sm:p-7">
+                    <div className="h-3 w-24 rounded-full bg-indigo-100" />
+                    <div className="mt-4 h-8 w-4/5 rounded-lg bg-slate-900" />
+                    <div className="mt-3 h-3 w-full rounded-full bg-slate-200" />
+                    <div className="mt-2 h-3 w-2/3 rounded-full bg-slate-200" />
+                    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                      {industry.sections.slice(0, 3).map((sectionName) => (
+                        <div key={sectionName} className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="h-7 w-7 rounded-lg bg-indigo-100" />
+                          <p className="mt-3 text-xs font-semibold leading-5 text-slate-600">{sectionName}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-6 h-11 w-40 rounded-lg bg-indigo-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       ) : null}

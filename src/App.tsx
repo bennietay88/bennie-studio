@@ -200,7 +200,10 @@ function ScrollToTop() {
 
 function RouteRobotsMeta() {
   const { pathname } = useLocation();
-  const privateRoute = /^\/(admin|dashboard|checkout|login|signup|forgot-password|reset-password|profile)(\/|$)/.test(pathname);
+  const privateRoute =
+    /^\/(admin|dashboard|checkout|login|signup|forgot-password|reset-password|profile)(\/|$)/.test(pathname) ||
+    /^\/(manage-call|proposal|preview\/template|w)(\/|$)/.test(pathname) ||
+    /^\/affiliate\/(login|signup)(\/|$)/.test(pathname);
   // Canonicals belong to each public page so route-specific metadata can own
   // the URL. A global canonical creates duplicate tags and can incorrectly
   // consolidate every page into the homepage.

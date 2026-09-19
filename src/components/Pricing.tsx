@@ -151,7 +151,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">{isGrowth ? "Most Popular" : bestFor}</p>
                 <h3 className="mt-2 text-2xl font-semibold text-slate-950">{product.name}</h3>
               </div>
-              {isGrowth ? <Badge className="bg-indigo-600 text-white">Most popular</Badge> : null}
+              {isGrowth ? <Badge className="bg-indigo-600 text-white">Most Popular</Badge> : null}
             </div>
             <p className="mt-5 text-3xl font-semibold text-slate-950">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-slate-500">/month</span></p>
             <p className="mt-1 text-sm text-slate-500">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>

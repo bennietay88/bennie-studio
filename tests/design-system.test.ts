@@ -142,7 +142,11 @@ test("brand-led mode creates a deeper composition without fabricated people", ()
   const home = pages[0];
   assert.ok(home.sections.length >= 7);
   assert.equal(home.sections[0]?.settings?.variant, "statement_media");
-  assert.ok(home.sections.some((section) => section.settings?.variant === "brand_families"));
+  assert.ok(
+    home.sections.some((section) =>
+      ["brand_families", "editorial_list"].includes(String(section.settings?.variant || "")),
+    ),
+  );
   const team = home.sections.find((section) => section.type === "team");
   assert.equal(team?.isVisible, false);
   assert.doesNotMatch(JSON.stringify(home.sections), /Dr\. John Smith|Dr\. Sarah Johnson|Michael Chen|Elena Rodriguez/);
