@@ -126,8 +126,8 @@ const buildCapabilities = [
   },
   {
     icon: LayoutTemplate,
-    title: "Niche Page Structure",
-    text: "Clinic, salon, contractor, consultant, restaurant, education, and service-business page structures.",
+    title: "Niche content architecture",
+    text: "Clinic, salon, contractor, consultant, restaurant, education, and service-business content architectures.",
   },
   {
     icon: CalendarCheck,
@@ -146,7 +146,7 @@ const proofPoints = [
 const process = [
   ["1", "Choose the build style", "Select a managed website plan or request a custom website quote."],
   ["2", "Submit business details", "Provide services, location, target customer, CTA preference, and brand direction."],
-  ["3", "Preview the structure", "Review the page structure, sections, CTA flow, and SEO-ready content."],
+  ["3", "Preview the structure", "Review the content architecture, sections, CTA flow, and SEO-ready content."],
   ["4", "Launch and improve", "Go live, capture enquiries, request updates, and improve the site over time."],
 ];
 
@@ -154,7 +154,7 @@ export default function PortfolioPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="brand-public min-h-screen bg-[#f7f6f2] text-[#141821]">
+    <div className="brand-public min-h-screen bg-[#f6f7fb] text-[#141821]">
       <Helmet>
         <title>Website Portfolio & Case Studies | Bennie Studio</title>
         <meta
@@ -166,66 +166,29 @@ export default function PortfolioPage() {
       <PublicSiteHeader />
 
       <main>
-        <section className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-8 lg:grid-cols-[0.92fr_1.08fr] lg:py-20">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65 }}
-            className="flex flex-col justify-center"
-          >
-            <Badge className="mb-5 w-fit rounded-full bg-indigo-50 px-4 py-2 text-indigo-700 hover:bg-indigo-50">
-              Portfolio & Case Studies
-            </Badge>
-            <h1 className="max-w-4xl text-4xl font-bold leading-tight tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
-              Website case studies your prospects can understand quickly.
-            </h1>
-            <p className="mt-7 max-w-2xl text-base font-medium leading-8 text-slate-600 sm:text-lg">
-              Show potential customers the type of websites Bennie Studio can prepare:
-              professional service pages, booking flows, WhatsApp CTAs, local SEO
-              sections, and industry-specific website structures.
-            </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Button
-                size="lg"
-                onClick={() => navigate("/book-demo")}
-                className="h-14 rounded-2xl bg-indigo-600 px-8 text-xs font-bold uppercase tracking-wide hover:bg-indigo-700"
-              >
-                Request Similar Website
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.65, delay: 0.1 }}
-            className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950 shadow-2xl"
-          >
-            <div className="flex items-center gap-2 border-b border-white/10 px-5 py-4">
-              <span className="h-3 w-3 rounded-full bg-red-400" />
-              <span className="h-3 w-3 rounded-full bg-amber-400" />
-              <span className="h-3 w-3 rounded-full bg-emerald-400" />
-              <span className="ml-3 text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                Managed Website Preview
-              </span>
-            </div>
-            <div className="grid gap-4 p-5 sm:grid-cols-2">
-              {featuredBuilds.slice(0, 4).map((item, index) => (
-                <div key={item.title} className="overflow-hidden rounded-2xl bg-white">
-                  <WebsiteConceptVisual title={item.title} eyebrow={item.niche} index={index} className="aspect-[4/3]" />
-                  <div className="p-4">
-                    <p className="text-[9px] font-bold uppercase tracking-wide text-indigo-600">
-                      {item.niche}
-                    </p>
-                    <h2 className="mt-1 text-sm font-bold leading-tight text-slate-950">
-                      {item.title}
-                    </h2>
-                  </div>
+        <section className="brand-grid-bg relative overflow-hidden border-b border-white/10 bg-[#0b1020] text-white">
+          <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#5746e8]/20 blur-3xl" />
+          <div className="brand-shell relative grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
+            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65 }} className="lg:col-span-5">
+              <p className="brand-kicker !text-[#b9b1ff]">Website work</p>
+              <h1 className="mt-5 !max-w-[13ch] !text-white">Website work that shows the thinking behind the design.</h1>
+              <p className="brand-copy brand-muted-on-dark mt-6">Explore service-business website directions through positioning, proof, enquiry flow and local search context. The examples show possibilities, not a fixed template or page count.</p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#eeebff]">Generate my preview <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                <Button variant="outline" onClick={() => navigate("/book-demo")} className="min-h-12 border-white/25 bg-white/[0.03] px-6 font-semibold text-white hover:bg-white/[0.08] hover:text-white">Discuss my scope</Button>
+              </div>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.08 }} className="relative lg:col-span-7 lg:-mr-8 xl:-mr-14">
+              <div className="pointer-events-none absolute -inset-8 bg-[#5746e8]/10 blur-3xl" />
+              <div className="relative overflow-hidden rounded-[1.15rem] border border-white/10 bg-[#080b15] shadow-[0_55px_140px_-55px_rgba(0,0,0,.95)]">
+                <img src="/images/bennie-studio-hero.webp" alt="" className="aspect-[16/9] w-full object-cover" loading="eager" decoding="async" />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#080b15] via-[#080b15]/75 to-transparent px-5 pb-5 pt-16">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Different businesses · different outcomes</p>
+                  <p className="mt-2 text-sm font-semibold !text-white">The direction adapts to the offer, customer and evidence available.</p>
                 </div>
-              ))}
-            </div>
-          </motion.div>
+              </div>
+            </motion.div>
+          </div>
         </section>
 
         <section className="border-y border-slate-200 bg-slate-50 px-4 py-10 sm:px-8">
@@ -254,7 +217,7 @@ export default function PortfolioPage() {
               </h2>
             </div>
             <p className="max-w-xl text-base font-medium leading-7 text-slate-600">
-              Each concept study shows the business challenge, recommended page structure, enquiry flow, and SEO angle.
+              Each concept study shows the business challenge, recommended content architecture, enquiry flow, and SEO angle.
             </p>
           </div>
 
@@ -286,7 +249,7 @@ export default function PortfolioPage() {
                   <div className="mt-6 grid gap-4 rounded-2xl bg-slate-50 p-5">
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                        Pages Included
+                        Content Scope
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {item.pages.map((page) => (
@@ -426,7 +389,7 @@ export default function PortfolioPage() {
                 Want one of these for your business?
               </h2>
               <p className="mt-5 max-w-2xl text-base font-medium leading-7 text-slate-600">
-                Send a short brief and we can recommend the right website plan, page structure, CTA flow, and upgrade path.
+                Send a short brief and we can recommend the right website plan, content architecture, CTA flow, and upgrade path.
               </p>
               <div className="mt-6 flex flex-wrap gap-4 text-sm font-bold text-slate-600">
                 <span className="flex items-center gap-2"><MapPin className="h-4 w-4 text-indigo-600" /> Local SEO-ready</span>

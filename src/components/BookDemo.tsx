@@ -237,7 +237,7 @@ export default function BookDemo() {
   };
 
   return (
-    <div className="brand-public min-h-screen bg-[#f7f6f2] text-[#141821]">
+    <div className="brand-public min-h-screen bg-[#f6f7fb] text-[#141821]">
       <Helmet>
         <title>{isGrowthPartner ? "Book a Website Growth Partner Consultation | Bennie Studio" : "Book a Managed Website Review | Bennie Studio"}</title>
         <meta name="description" content={isGrowthPartner ? "Book a Website Growth Partner consultation to scope conversion priorities, landing pages, local SEO expansion, traffic, and ongoing growth work." : "Book a focused review of your website, offer and enquiry path with Bennie Studio."} />
@@ -245,9 +245,10 @@ export default function BookDemo() {
       </Helmet>
       <PublicSiteHeader />
       <main>
-        <section className="border-b border-slate-200 bg-slate-950 text-white">
-          <div className="mx-auto grid max-w-7xl min-w-0 gap-10 px-5 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
-            <div className="min-w-0">
+        <section className="brand-grid-bg relative overflow-hidden border-b border-white/10 bg-[#0b1020] text-white">
+          <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#5746e8]/20 blur-3xl" />
+          <div className="brand-shell relative grid min-w-0 gap-10 py-16 lg:grid-cols-12 lg:items-start lg:py-24">
+            <div className="min-w-0 lg:col-span-5">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-300">{isGrowthPartner ? "Growth Partner consultation" : "Managed Website consultation"}</p>
               <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.03] tracking-tight text-white sm:text-5xl">
                 {isGrowthPartner ? "Scope the next stage of website growth with a clear commercial plan." : "Let’s find the clearest path from website visitor to real enquiry."}
@@ -269,7 +270,7 @@ export default function BookDemo() {
               </div>
             </div>
 
-            <div className="min-w-0 rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur sm:p-8">
+            <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.05] p-6 backdrop-blur sm:p-8 lg:col-span-7">
               {submitted ? (
                 <div className="py-10 text-center">
                   <div className="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>

@@ -7,6 +7,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { supabase } from "../lib/supabase";
 import { SafeImage } from "./SafeImage";
+import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 
 const getPostDate = (post: any) => post?.created_at || post?.createdAt || post?.updated_at || post?.updatedAt;
 
@@ -112,47 +113,26 @@ export default function PublicBlogPostPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white text-slate-950">
+    <div className="brand-public min-h-screen bg-[#f6f7fb] text-[#141821]">
       <Helmet>
         <title>{title} | Bennie Studio</title>
         <meta name="description" content={description} />
       </Helmet>
 
-      <header className="border-b border-slate-200 bg-white">
-        <nav className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
-          <Link to="/" className="flex items-center gap-2 text-lg font-black tracking-tight text-indigo-600">
-            <Home className="h-5 w-5" />
-            Bennie Studio
-          </Link>
-          <Link
-            to="/generate-preview"
-            className="inline-flex h-8 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50"
-          >
-            Generate Preview
-          </Link>
-        </nav>
-      </header>
+      <PublicSiteHeader />
 
-      <article className="mx-auto max-w-5xl px-5 py-12">
-        <Button onClick={() => navigate("/#blog")} variant="ghost" className="mb-8 rounded-xl px-0 font-bold text-slate-600">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to articles
-        </Button>
+      <main>
+        <section className="brand-grid-bg border-b border-white/10 bg-[#0b1020] text-white">
+          <div className="brand-shell py-14 sm:py-20">
+            <Link to="/#blog" className="inline-flex items-center text-sm font-semibold !text-white/60 hover:!text-white"><ArrowLeft className="mr-2 h-4 w-4" />Back to insights</Link>
+            <p className="brand-kicker mt-8 !text-[#b9b1ff]">Insight</p>
+            <h1 className="mt-4 !max-w-[16ch] !text-white">{title}</h1>
+            {description && <p className="brand-copy brand-muted-on-dark mt-6">{description}</p>}
+            {publishedAt && <p className="mt-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] !text-white/45"><CalendarDays className="h-4 w-4" />{new Date(publishedAt).toLocaleDateString()}</p>}
+          </div>
+        </section>
 
-        <div className="max-w-3xl">
-          <Badge className="mb-5 bg-indigo-50 text-indigo-700">Article</Badge>
-          <h1 className="text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-6xl">
-            {title}
-          </h1>
-          {description && <p className="mt-6 text-lg font-semibold leading-8 text-slate-600">{description}</p>}
-          {publishedAt && (
-            <p className="mt-5 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400">
-              <CalendarDays className="h-4 w-4" />
-              {new Date(publishedAt).toLocaleDateString()}
-            </p>
-          )}
-        </div>
-
+            <article className="mx-auto max-w-5xl px-5 py-12">
         {imageUrl && (
           <SafeImage
             src={imageUrl}
@@ -167,6 +147,8 @@ export default function PublicBlogPostPage() {
           <ReactMarkdown>{post.content || description}</ReactMarkdown>
         </div>
       </article>
-    </main>
+      </main>
+      <PublicSiteFooter />
+    </div>
   );
 }

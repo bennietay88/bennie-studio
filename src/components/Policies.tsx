@@ -125,7 +125,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
 
   if (loading) {
     return (
-      <div className="brand-public min-h-screen flex items-center justify-center bg-[#f7f6f2]">
+      <div className="brand-public min-h-screen flex items-center justify-center bg-[#f6f7fb]">
         <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
       </div>
     );
@@ -133,7 +133,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
 
   if (error || !policy) {
     return (
-      <div className="brand-public min-h-screen flex flex-col items-center justify-center bg-[#f7f6f2] p-4 text-center">
+      <div className="brand-public min-h-screen flex flex-col items-center justify-center bg-[#f6f7fb] p-4 text-center">
         <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
         <h2 className="text-2xl font-bold text-slate-900 mb-2">
           Policy Not Found
@@ -147,7 +147,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
   }
 
   return (
-    <div className="brand-public min-h-screen bg-[#f7f6f2] text-[#141821]">
+    <div className="brand-public min-h-screen bg-[#f6f7fb] text-[#141821]">
       <Helmet>
         <title>{policy.title} | Bennie Studio</title>
         <meta name="description" content={`${policy.title} for Bennie Studio managed website customers and visitors.`} />
@@ -155,11 +155,11 @@ export function PolicyPage({ type }: PolicyPageProps) {
       </Helmet>
       <PublicSiteHeader />
       <main>
-        <section className="border-b border-[#d9d7d0]">
-          <div className="brand-shell py-14 sm:py-18">
-            <p className="brand-kicker">Legal & policy</p>
-            <h1 className="mt-4">{policy.title}</h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-[#5f6673]">This document explains the terms, data handling or platform rules that apply to Bennie Studio visitors and managed website customers.</p>
+        <section className="brand-grid-bg border-b border-white/10 bg-[#0b1020] text-white">
+          <div className="brand-shell py-14 sm:py-20">
+            <p className="brand-kicker !text-[#b9b1ff]">Legal & policy</p>
+            <h1 className="mt-4 !text-white">{policy.title}</h1>
+            <p className="brand-copy brand-muted-on-dark mt-5">This document explains the terms, data handling or platform rules that apply to Bennie Studio visitors and managed website customers.</p>
           </div>
         </section>
         <section className="brand-shell py-12 sm:py-16">
