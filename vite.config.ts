@@ -29,6 +29,11 @@ export default defineConfig(({ mode }) => {
       // chunk. Routes are already lazy-loaded; these stable vendor boundaries
       // make that split effective in production and improve cache reuse.
       rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, "index.html"),
+          pricing: path.resolve(__dirname, "pricing/index.html"),
+          generatePreview: path.resolve(__dirname, "generate-preview/index.html"),
+        },
         output: {
           manualChunks: {
             "vendor-react": ["react", "react-dom", "react-router-dom"],

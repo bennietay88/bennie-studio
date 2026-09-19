@@ -19,6 +19,7 @@ import { Button } from "./components/ui/button";
 import { Toaster } from "./components/ui/sonner";
 import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { LoadingFallback } from "./components/LoadingFallback";
 import "./styles/publicBrand.css";
 import { classifyTenantHost } from "./lib/tenantDomains";
 
@@ -249,7 +250,7 @@ function CustomDomainWebsiteRoute() {
     };
   }, []);
 
-  if (loading) return null;
+  if (loading) return <LoadingFallback message="Loading website..." />;
 
   if (error || !businessId) {
     return (
@@ -332,7 +333,7 @@ export default function App() {
         <ErrorBoundary>
           <Router>
             <ScrollToTop />
-            <Suspense fallback={null}>
+            <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 <Route path="*" element={<CustomDomainWebsiteRoute />} />
               </Routes>
@@ -351,7 +352,7 @@ export default function App() {
           <ScrollToTop />
           <RouteRobotsMeta />
           <TrafficTracker />
-          <Suspense fallback={null}>
+          <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route
@@ -407,7 +408,7 @@ export default function App() {
             </script>
           </Helmet>
           <Toaster position="top-right" />
-          <Suspense fallback={null}>
+          <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/pay-monthly-websites" element={<OwnSalesSeoPage />} />
@@ -492,7 +493,7 @@ export default function App() {
                         onLogout={logout}
                       >
                         <FeatureTour />
-                        <Suspense fallback={null}>
+                        <Suspense fallback={<LoadingFallback />}>
                           <Routes>
                             <Route
                               path=""
