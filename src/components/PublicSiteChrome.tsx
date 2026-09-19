@@ -122,7 +122,7 @@ export function PublicSiteHeader() {
 
       {mobileOpen ? (
         <div className="fixed inset-0 z-[100] bg-[#0c1224]/50 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
-          <div className="absolute right-0 top-0 flex h-dvh w-[min(90vw,360px)] flex-col bg-[#f7f6f2] p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div className="absolute right-0 top-0 flex h-dvh w-[min(90vw,360px)] flex-col bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-[#dedbd3] pb-5">
               <span className="text-lg font-semibold tracking-[-0.03em] text-[#10131c]">Bennie Studio</span>
               <Button type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Close navigation menu"><X className="h-5 w-5" /></Button>
@@ -136,8 +136,8 @@ export function PublicSiteHeader() {
             </div>
             <div className="mt-auto grid gap-3 border-t border-[#dedbd3] pt-5">
               <MarketSwitcher />
-              <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center border border-[#10131c] px-5 text-sm font-bold text-[#10131c]">{user ? "Dashboard" : "Sign in"}</Link>
-              <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-12 items-center justify-center bg-[#10131c] px-5 text-sm font-black text-white">{user ? "Open Studio" : "Get free preview"}</Link>
+              <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center border border-[#10131c] px-5 text-sm font-bold text-[#10131c]">{user ? "Dashboard" : "Client login"}</Link>
+              <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-12 items-center justify-center bg-[#10131c] px-5 text-sm font-black text-white">{user ? "Open Studio" : "Generate preview"}</Link>
             </div>
           </div>
         </div>
@@ -160,7 +160,7 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
         </div>
         {footerGroups.map(([title, links]) => (
           <div key={title}>
-            <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/45">{title}</p>
+            <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/55">{title}</p>
             <div className="space-y-3">
               {links.map((link) => "external" in link && link.external ? (
                 <a key={link.href} href={link.href} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Footer ${link.label}`, target: link.href })} className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white">{link.label}<ExternalLink className="h-3 w-3" /></a>
@@ -172,12 +172,12 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
           </div>
         ))}
         <div>
-          <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/35">Pricing market</p>
-          <p className="mb-4 text-sm font-medium leading-6 text-white/45">Switch market to view matching local pricing.</p>
+          <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/55">Pricing market</p>
+          <p className="mb-4 text-sm font-medium leading-6 text-white/55">Switch market to view matching local pricing.</p>
           <MarketSwitcher />
         </div>
       </div>
-      <div className="border-t border-white/10 px-6 py-6 text-center text-xs font-semibold text-white/45">© {new Date().getFullYear()} Bennie Studio. All rights reserved.</div>
+      <div className="border-t border-white/10 px-6 py-6 text-center text-xs font-semibold text-white/55">© {new Date().getFullYear()} Bennie Studio. All rights reserved.</div>
     </footer>
   );
 }

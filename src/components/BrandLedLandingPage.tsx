@@ -9,7 +9,6 @@ import {
   Globe2,
   Layers3,
   LineChart,
-  MapPin,
   MousePointerClick,
   Search,
   ShieldCheck,
@@ -177,8 +176,7 @@ export default function BrandLedLandingPage() {
       .eq("consent_status", "approved")
       .order("date_approved", { ascending: false })
       .limit(3)
-      .then(({ data }) => { if (!cancelled) setVerifiedProof(data || []); })
-      .catch(() => null);
+      .then(({ data }) => { if (!cancelled) setVerifiedProof(data || []); });
     return () => { cancelled = true; };
   }, []);
 
@@ -217,8 +215,6 @@ export default function BrandLedLandingPage() {
     product,
     price: getCommercialPrice(product, market),
   }));
-  const entryPrice = getCommercialPrice(managed, market);
-  const entryMonthly = formatCommercialMoney(entryPrice?.monthlyPrice, entryPrice?.currency || "MYR");
   const planBestFor = ["Professional presence", "Active acquisition", "Ongoing growth"];
   const planComparisonRows = [
     ["Website management", ["Included", "Included", "Included"]],
@@ -240,13 +236,13 @@ export default function BrandLedLandingPage() {
   const ActiveSystemIcon = activeSystem.icon;
 
   return (
-    <div className="brand-public min-h-screen overflow-x-hidden bg-[#f8fafc] text-[#10131c]">
+    <div className="brand-public min-h-screen overflow-x-hidden bg-[#f6f7fb] text-[#10131c]">
       <Helmet>
-        <title>Bennie Studio | Premium Managed Websites for Service Businesses</title>
-        <meta name="description" content="Brand-led, conversion-focused websites planned, built, hosted and continuously improved for service businesses that want stronger trust and more qualified enquiries." />
+        <title>Bennie Studio | Managed Website System for Service Businesses</title>
+        <meta name="description" content="A managed website system combining strategy, design, lead capture, hosting and ongoing improvement for service businesses that need stronger trust and qualified enquiries." />
         <link rel="canonical" href="https://app.bennietay.com/" />
-        <meta property="og:title" content="Bennie Studio | Premium Managed Websites" />
-        <meta property="og:description" content="Premium websites built around trust, conversion and ongoing growth." />
+        <meta property="og:title" content="Bennie Studio | Managed Website System" />
+        <meta property="og:description" content="Strategy, design, lead capture, hosting and ongoing improvement in one managed website service." />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         {analyticsAllowed && platformSettings?.gaMeasurementId ? <script async src={`https://www.googletagmanager.com/gtag/js?id=${platformSettings.gaMeasurementId}`} /> : null}
@@ -275,7 +271,7 @@ export default function BrandLedLandingPage() {
       <main>
         <section className="brand-on-dark brand-grid-bg relative overflow-hidden bg-[#0b1020]">
           <div className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#5b4bff]/20 blur-3xl" />
-          <div className="brand-shell relative grid gap-14 py-18 lg:grid-cols-12 lg:items-center lg:py-28">
+          <div className="brand-shell relative grid gap-14 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
             <div className="lg:col-span-6">
               <p className="brand-kicker !text-[#b9b1ff]">Managed website system for service businesses</p>
               <h1 className="mt-5 !max-w-[13ch] !text-white">A serious website, without building an in-house web team.</h1>
@@ -283,10 +279,10 @@ export default function BrandLedLandingPage() {
                 Strategy, design, lead capture, hosting and ongoing improvement in one managed service. Preview the website direction before choosing a plan.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <button onClick={() => go("/generate-preview", "Hero free preview")} className="inline-flex min-h-13 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
+                <button onClick={() => go("/generate-preview", "Hero free preview")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
                   Build my free preview <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
-                <button onClick={() => go("/case-studies", "Hero examples")} className="inline-flex min-h-13 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
+                <button onClick={() => go("/case-studies", "Hero examples")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
                   Explore the work
                 </button>
               </div>
@@ -331,7 +327,7 @@ export default function BrandLedLandingPage() {
                       ].map(([number, label, value]) => (
                         <div key={number} className="border-t border-white/15 pt-3">
                           <div className="flex items-start justify-between gap-3">
-                            <span className="text-xs font-semibold !text-white/45">{number}</span>
+                            <span className="text-xs font-semibold !text-white/55">{number}</span>
                             <span className="text-right text-xs font-semibold !text-white">{label}</span>
                           </div>
                           <p className="mt-1 text-right text-[11px] !text-white/55">{value}</p>
@@ -403,7 +399,7 @@ export default function BrandLedLandingPage() {
                       <Icon className={selected ? "h-4 w-4 text-[#b9b1ff]" : "h-4 w-4 text-[#5746e8]"} />
                     </span>
                     <span>
-                      <span className={selected ? "block text-[10px] font-semibold uppercase tracking-[0.1em] !text-white/45" : "block text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8b93a0]"}>{item.step}</span>
+                      <span className={selected ? "block text-[10px] font-semibold uppercase tracking-[0.1em] !text-white/55" : "block text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8b93a0]"}>{item.step}</span>
                       <span className="mt-1 block font-semibold">{item.label}</span>
                     </span>
                     <ChevronRight className={selected ? "h-4 w-4 text-[#b9b1ff]" : "h-4 w-4 text-[#a0a7b3] transition group-hover:translate-x-1"} />

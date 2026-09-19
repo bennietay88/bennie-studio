@@ -553,7 +553,7 @@ function Hero({
                 ["03", "Next step", "Preview first, then choose the right plan."],
               ].map(([number, label, body]) => (
                 <div key={number} className="grid grid-cols-[2rem_1fr] gap-3 border-t border-white/15 pt-4">
-                  <span className="text-xs font-semibold !text-white/40">{number}</span>
+                  <span className="text-xs font-semibold !text-white/55">{number}</span>
                   <div><p className="text-sm font-semibold !text-white">{label}</p><p className="mt-1 text-sm leading-6 !text-white/55">{body}</p></div>
                 </div>
               ))}
