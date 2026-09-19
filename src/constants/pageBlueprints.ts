@@ -2,7 +2,7 @@ import { SECTION_TEMPLATES } from "./sectionTemplates";
 import { NICHE_TEMPLATES } from "./nicheTemplates";
 import { PLANS } from "./plans";
 import { generateId } from "../lib/utils";
-import { AssetReadiness, BrandPersonality, BusinessMaturity, WebsiteGenerationMode, WebsitePage, WebsiteSection } from "../types";
+import { AssetReadiness, BrandPersonality, BusinessMaturity, Website, WebsiteGenerationMode, WebsitePage, WebsiteSection } from "../types";
 import { getVariantForMode, resolveDesignProfileForMode } from "./designProfiles";
 
 export type BlueprintPlanId = "starter" | "business" | "growth";
@@ -823,6 +823,25 @@ export const buildNavigationPreview = (input: Pick<BlueprintBusinessInput, "nich
   return getBlueprint(nicheName, input.plan, input.maxPages).pages.slice(0, getPlanPageLimit(input.plan, input.maxPages));
 };
 
+const APPROVED_WEBSITE_STYLES = new Set<NonNullable<Website["theme"]["style"]>>([
+  "modern",
+  "neumorphic",
+  "glassmorphic",
+  "brutalist",
+  "editorial",
+  "action",
+  "immersive",
+  "authority",
+  "corporate",
+  "prestige",
+  "luxury_dark",
+]);
+
+const normalizeBlueprintWebsiteStyle = (style?: string): NonNullable<Website["theme"]["style"]> => {
+  const candidate = String(style || "").trim() as NonNullable<Website["theme"]["style"]>;
+  return APPROVED_WEBSITE_STYLES.has(candidate) ? candidate : "modern";
+};
+
 export const getBlueprintTheme = (
   nicheId?: string,
   generationMode: WebsiteGenerationMode = "fast",
@@ -831,7 +850,7 @@ export const getBlueprintTheme = (
     businessMaturity?: BusinessMaturity;
     assetReadiness?: AssetReadiness;
   },
-) => {
+): Website["theme"] => {
   const template = getNicheTemplateById(nicheId);
   const baseTheme = template?.theme || {
     primaryColor: "#4f46e5",
@@ -840,9 +859,10 @@ export const getBlueprintTheme = (
     style: "modern",
   };
   const profile = resolveDesignProfileForMode(generationMode, template?.category || template?.name, undefined, intent);
+  const baseStyle = normalizeBlueprintWebsiteStyle(baseTheme.style);
   return {
     ...baseTheme,
-    style: generationMode === "fast" ? baseTheme.style : profile.defaultStyle,
+    style: generationMode === "fast" ? baseStyle : profile.defaultStyle,
     fontFamily: generationMode === "fast" ? baseTheme.fontFamily : profile.bodyFont,
     displayFont: profile.displayFont,
     bodyFont: profile.bodyFont,

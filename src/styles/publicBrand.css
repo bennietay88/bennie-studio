@@ -442,3 +442,72 @@
     gap: 2rem !important;
   }
 }
+
+
+/* Generated-site previews can be narrower than the browser viewport. Container
+   queries keep the real customer renderer responsive inside device previews,
+   not only when the entire browser window is small. */
+@container (max-width: 1023px) {
+  .bt-website-renderer nav [class*="hidden lg:flex"] {
+    display: none !important;
+  }
+
+  .bt-website-renderer nav button[class*="lg:hidden"] {
+    display: inline-flex !important;
+  }
+
+  .bt-website-renderer nav div[class*="lg:hidden"] {
+    display: block !important;
+  }
+}
+
+@container (max-width: 767px) {
+  .bt-website-renderer nav [class*="hidden md:flex"] {
+    display: none !important;
+  }
+
+  .bt-website-renderer nav button[class*="md:hidden"] {
+    display: inline-flex !important;
+  }
+
+  .bt-website-renderer nav div[class*="md:hidden"] {
+    display: block !important;
+  }
+
+  .bt-website-renderer main section .grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .bt-website-renderer main section [class*="col-span-"] {
+    grid-column: auto !important;
+  }
+
+  .bt-website-renderer main section [class*="px-8"],
+  .bt-website-renderer main section [class*="px-10"],
+  .bt-website-renderer main section [class*="px-12"],
+  .bt-website-renderer main section [class*="px-16"],
+  .bt-website-renderer main section [class*="px-20"],
+  .bt-website-renderer main section [class*="px-24"],
+  .bt-website-renderer main section [class*="px-32"],
+  .bt-website-renderer main section [class*="px-40"] {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .bt-website-renderer main section h1 {
+    font-size: clamp(2.15rem, 11cqi, 3.1rem) !important;
+    line-height: 1.06 !important;
+  }
+
+  .bt-website-renderer main section h2 {
+    font-size: clamp(1.75rem, 8.5cqi, 2.4rem) !important;
+    line-height: 1.12 !important;
+  }
+
+  .bt-website-renderer main section img,
+  .bt-website-renderer main section video,
+  .bt-website-renderer main section iframe {
+    max-width: 100% !important;
+    height: auto;
+  }
+}

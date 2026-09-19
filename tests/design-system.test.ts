@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DESIGN_PROFILES, resolveDesignProfile } from "../src/constants/designProfiles.ts";
-import { buildPagesFromBlueprint } from "../src/constants/pageBlueprints.ts";
+import { buildPagesFromBlueprint, getBlueprintTheme } from "../src/constants/pageBlueprints.ts";
 import { parseDesignDirection } from "../src/lib/designDirector.ts";
 import { assessWebsiteDesign } from "../src/lib/designQa.ts";
 import { SECTION_TEMPLATES } from "../src/constants/sectionTemplates.ts";
@@ -18,6 +18,22 @@ test("all approved design profiles have complete production defaults", () => {
 test("legacy themes resolve to a safe modern profile", () => {
   assert.equal(resolveDesignProfile(undefined, undefined).id, "modern_minimal");
   assert.equal(resolveDesignProfile("editorial_luxury").typography, "luxury_editorial");
+});
+
+
+test("blueprint themes always resolve to approved renderer styles", () => {
+  const approvedStyles = new Set([
+    "modern", "neumorphic", "glassmorphic", "brutalist", "editorial", "action",
+    "immersive", "authority", "corporate", "prestige", "luxury_dark",
+  ]);
+  const themes = [
+    getBlueprintTheme("dental-clinic-v1", "fast"),
+    getBlueprintTheme("accounting-firm-v1", "premium"),
+    getBlueprintTheme("accounting-firm-v1", "brand_led"),
+  ];
+  for (const theme of themes) {
+    assert.ok(theme.style && approvedStyles.has(theme.style), `Unexpected renderer style: ${theme.style}`);
+  }
 });
 
 test("design director rejects unapproved variants", () => {

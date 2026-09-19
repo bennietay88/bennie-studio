@@ -69,7 +69,10 @@ type PublicPageKind =
   | "renovation-contractor-website-design"
   | "beauty-salon-website-design"
   | "tuition-centre-website-design"
-  | "consultant-website-design";
+  | "consultant-website-design"
+  | "professional-services-website-design"
+  | "accounting-firm-website-design"
+  | "local-service-website-design";
 type PricingMarket = "MY" | "SG" | "GB" | "US";
 
 const PublicWebsiteRenderer = React.lazy(() =>
@@ -136,6 +139,21 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
     title: "Consultant Website Design | Authority and Book-Call Websites",
     description:
       "Consultant websites that explain your offer, build trust, present services, and convert visitors into consultation calls and qualified enquiries.",
+  },
+  "professional-services-website-design": {
+    title: "Professional Services Website Design | Trust and Enquiry Websites",
+    description:
+      "Professional services websites for firms that need clearer positioning, credible expertise, structured services, and qualified enquiry paths.",
+  },
+  "accounting-firm-website-design": {
+    title: "Accounting Firm Website Design | Consultation Enquiry Websites",
+    description:
+      "Accounting and finance websites that clarify services, client fit, credentials, compliance-sensitive proof, and consultation enquiries.",
+  },
+  "local-service-website-design": {
+    title: "Local Service Website Design | Quote and Lead Generation Websites",
+    description:
+      "Local service websites built around service areas, clear scope, real proof, quote requests, calls, and WhatsApp enquiries.",
   },
 };
 
@@ -286,6 +304,9 @@ const nichePages: Record<
     | "beauty-salon-website-design"
     | "tuition-centre-website-design"
     | "consultant-website-design"
+    | "professional-services-website-design"
+    | "accounting-firm-website-design"
+    | "local-service-website-design"
   >,
   {
     label: string;
@@ -370,6 +391,42 @@ const nichePages: Record<
     cta: "Get a Free Consultant Website Audit",
     leadCapture: "Book-call CTA, consultation form, LinkedIn/WhatsApp enquiry, and lead qualification questions.",
     sections: ["Authority hero", "Problem/solution", "Services/programmes", "Proof/case studies", "Process", "FAQ", "Book-call CTA"],
+  },
+  "professional-services-website-design": {
+    label: "Professional services websites",
+    title: "Professional Services Websites Built Around Trust, Expertise, and Qualified Enquiries",
+    subtitle:
+      "For legal, advisory, insurance, recruitment, IT, and other B2B service firms that need clearer positioning and a credible path to contact.",
+    positioning: "Trust-led websites for professional service firms.",
+    pain: "Buyers need to understand expertise, service fit, credibility, and what happens after they make contact.",
+    promise: "We organise the offer, expertise, evidence, service pages, and enquiry path so prospects can assess fit without wading through generic corporate copy.",
+    cta: "Get a Free Professional Services Website Review",
+    leadCapture: "Consultation form, book-call CTA, phone or email enquiry, and service-specific contact paths.",
+    sections: ["Positioning-led hero", "Service architecture", "Expertise and credentials", "Who we help", "Case-study proof", "FAQ", "Consultation CTA"],
+  },
+  "accounting-firm-website-design": {
+    label: "Accounting and finance websites",
+    title: "Accounting Firm Websites That Make Services Clear and Start Better Client Conversations",
+    subtitle:
+      "For accountants, bookkeepers, tax advisers, payroll providers, and finance firms that need stronger client-fit messaging and consultation enquiries.",
+    positioning: "Credibility-first websites for accounting and finance firms.",
+    pain: "Business owners need to know whether you understand their business type, provide the right services, and can handle the work professionally.",
+    promise: "We structure services, client fit, credentials, process, FAQs, and consultation CTAs so prospects can decide whether to start a conversation.",
+    cta: "Get a Free Accounting Website Review",
+    leadCapture: "Consultation form, book-call CTA, phone or email enquiry, and service-specific contact paths.",
+    sections: ["Professional hero", "Who we help", "Service scope", "Credentials", "Process", "FAQ", "Consultation CTA"],
+  },
+  "local-service-website-design": {
+    label: "Local service lead websites",
+    title: "Local Service Websites Built to Turn Nearby Searchers Into Quote Requests",
+    subtitle:
+      "For cleaning, repair, maintenance, pest control, trades, and home-service businesses that need faster quote enquiries from local customers.",
+    positioning: "Quote-focused websites for local service businesses.",
+    pain: "Customers need to confirm service scope, coverage area, availability, proof, and how quickly they can request help.",
+    promise: "We make services, areas served, real proof, response expectations, FAQs, and quote CTAs easy to scan on mobile.",
+    cta: "Get a Free Local Service Website Review",
+    leadCapture: "Quote form, WhatsApp enquiry, call button, postcode or service-area prompt, and service-specific CTA.",
+    sections: ["Quote-focused hero", "Service categories", "Areas served", "Real reviews/proof", "Process", "FAQ", "Quote form"],
   },
 };
 

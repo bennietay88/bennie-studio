@@ -428,6 +428,9 @@ export default function App() {
               <Route path="/beauty-salon-website-design" element={<PublicMarketingPages />} />
               <Route path="/tuition-centre-website-design" element={<PublicMarketingPages />} />
               <Route path="/consultant-website-design" element={<PublicMarketingPages />} />
+              <Route path="/professional-services-website-design" element={<PublicMarketingPages />} />
+              <Route path="/accounting-firm-website-design" element={<PublicMarketingPages />} />
+              <Route path="/local-service-website-design" element={<PublicMarketingPages />} />
               <Route path="/portfolio/sample/:sampleType" element={<WaasSamplePage />} />
               <Route path="/demo" element={<DemoModePage />} />
               <Route path="/book-demo" element={<BookDemo />} />

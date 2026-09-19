@@ -140,23 +140,31 @@ export function resolveTemplatePreviewFamily(templateId: string, templateName = 
   return "editorial_b2b";
 }
 
-async function resolveTemplateConfig(templateId: string) {
+function getBuiltInTemplateConfig(templateId: string): TemplateConfig | null {
   const cached = configCache.get(templateId);
   if (cached) return cached;
 
   const builtIn = Object.values(NICHE_TEMPLATES).find((template: any) => template?.id === templateId) as any;
-  if (builtIn) {
-    const localConfig: TemplateConfig = {
-      theme: builtIn.theme || {},
-      thumbnail: builtIn.thumbnail,
-      name: builtIn.name,
-      category: builtIn.category,
-      ctaType: builtIn.ctaType,
-      pages: Array.isArray(builtIn.pages) ? builtIn.pages : [],
-    };
-    configCache.set(templateId, localConfig);
-    return localConfig;
-  }
+  if (!builtIn) return null;
+
+  const localConfig: TemplateConfig = {
+    theme: builtIn.theme || {},
+    thumbnail: builtIn.thumbnail,
+    name: builtIn.name,
+    category: builtIn.category,
+    ctaType: builtIn.ctaType,
+    pages: Array.isArray(builtIn.pages) ? builtIn.pages : [],
+  };
+  configCache.set(templateId, localConfig);
+  return localConfig;
+}
+
+async function resolveTemplateConfig(templateId: string) {
+  const cached = configCache.get(templateId);
+  if (cached) return cached;
+
+  const builtIn = getBuiltInTemplateConfig(templateId);
+  if (builtIn) return builtIn;
 
   const { data, error } = await supabase
     .from("templates")
@@ -559,11 +567,19 @@ function BrandStatementPreview({ model, name }: { model: PreviewModel; name: str
 }
 
 function MediaStoryPreview({ model, name }: { model: PreviewModel; name: string }) {
-  const image = model.heroImage || "/template-assets/flagship-clinic.jpg";
-
   return (
     <div className="absolute inset-0 overflow-hidden bg-slate-950 text-white" style={{ fontFamily: model.bodyFont }}>
-      <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      {model.heroImage ? (
+        <img src={model.heroImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <div className="absolute inset-0 overflow-hidden bg-[linear-gradient(135deg,#172554_0%,#1e3a8a_44%,#0f172a_100%)]">
+          <div className="absolute -right-8 top-5 h-28 w-28 rounded-full border border-white/15" />
+          <div className="absolute right-7 top-10 h-20 w-20 rounded-full border border-white/10" />
+          <div className="absolute bottom-8 right-8 grid h-14 w-14 place-items-center border border-white/20 bg-white/10 backdrop-blur">
+            <FileText className="h-5 w-5 text-white/80" />
+          </div>
+        </div>
+      )}
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,15,30,.86)_0%,rgba(7,15,30,.58)_44%,rgba(7,15,30,.08)_78%,rgba(7,15,30,.2)_100%)]" />
 
       <div className="relative z-10 grid h-full grid-rows-[38px_1fr_66px]">
@@ -637,7 +653,7 @@ export function TemplatePreviewThumbnail({
 }: TemplatePreviewThumbnailProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [config, setConfig] = useState<TemplateConfig | null>(() => configCache.get(templateId) || null);
+  const [config, setConfig] = useState<TemplateConfig | null>(() => configCache.get(templateId) || getBuiltInTemplateConfig(templateId));
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {

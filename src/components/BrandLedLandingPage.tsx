@@ -78,14 +78,14 @@ const designDirections = {
 } as const;
 
 const industries = [
-  { label: "Professional services", path: "/case-studies" },
+  { label: "Professional services", path: "/professional-services-website-design" },
   { label: "Clinics & healthcare", path: "/clinic-website-design-malaysia" },
   { label: "Consultants", path: "/consultant-website-design" },
   { label: "Contractors", path: "/renovation-contractor-website-design" },
-  { label: "Accounting & finance", path: "/case-studies" },
+  { label: "Accounting & finance", path: "/accounting-firm-website-design" },
   { label: "Education", path: "/tuition-centre-website-design" },
   { label: "Beauty & wellness", path: "/beauty-salon-website-design" },
-  { label: "Local service businesses", path: "/templates" },
+  { label: "Local service businesses", path: "/local-service-website-design" },
 ] as const;
 
 const process = [
