@@ -1275,7 +1275,7 @@ function GeneratePreviewPage() {
               See the website direction before you spend on the build.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-[#5f6673] sm:text-lg">
-              Give us the essentials. We turn them into a tailored five-page website direction built around your service, location, trust signals and preferred enquiry action.
+              Give us the essentials. We turn them into a tailored website direction built around your service, location, trust signals and preferred enquiry action.
             </p>
             <div className="mt-8 flex flex-wrap gap-2">
               {["No card required", "Nothing is published", "Uses your real business details"].map((item) => (
@@ -2160,7 +2160,7 @@ export default function PublicMarketingPages() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.1em] !text-white/65">Next step</p>
             <h2 className="mt-3 max-w-2xl !text-white">See the website system applied to your business.</h2>
-            <p className="mt-4 max-w-2xl text-base !text-white/75">Generate a real five-page direction first. Use the 30-minute review when you want help confirming scope and fit.</p>
+            <p className="mt-4 max-w-2xl text-base !text-white/75">Generate a real website direction first. Use the 30-minute review when you want help confirming scope and fit.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
             <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#ece9ff]">Generate free preview <ArrowRight className="ml-2 h-4 w-4" /></Button>

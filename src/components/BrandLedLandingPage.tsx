@@ -6,11 +6,9 @@ import {
   ArrowRight,
   Check,
   ChevronRight,
-  Globe2,
   Layers3,
   LineChart,
   MousePointerClick,
-  Search,
   ShieldCheck,
   Sparkles,
   Wrench,
@@ -87,10 +85,10 @@ const managedComparison = [
   ["Ownership", "Files and handoff", "Clear business assets + managed delivery"],
 ] as const;
 
-const exampleTemplates = [
-  ["dental-clinic-v1", "Dental / Clinic", "Trust-led premium design", "WhatsApp + appointment enquiry"],
-  ["accounting-firm-v1", "Professional Services", "Authority-led design", "Consultation enquiry"],
-  ["cleaning-company-v1", "Local Service", "Conversion-led design", "Quote request"],
+const workDirections = [
+  ["Professional services", "Authority-led", "Expertise, evidence and a clear consultation path."],
+  ["Clinics & healthcare", "Trust-led", "Patient confidence, service clarity and an easy booking path."],
+  ["Local services", "Conversion-led", "Fast proof, service-area clarity and a focused quote journey."],
 ] as const;
 
 const designDirections = {
@@ -148,7 +146,6 @@ export default function BrandLedLandingPage() {
   const { products } = usePublicCommercialPricing(market);
   const [platformSettings, setPlatformSettings] = React.useState<any>(null);
   const [designDirection, setDesignDirection] = React.useState<keyof typeof designDirections>("brand");
-  const [systemModule, setSystemModule] = React.useState<(typeof systemModules)[number]["id"]>("positioning");
   const [verifiedProof, setVerifiedProof] = React.useState<any[]>([]);
   const [manageCookies, setManageCookies] = React.useState(false);
   const [consent, setConsent] = React.useState<Consent | null>(() => {
@@ -232,8 +229,6 @@ export default function BrandLedLandingPage() {
   const marketingAllowed = platformSettings?.salesCookieBannerEnabled === false || Boolean(consent?.marketing);
   const showCookieBanner = platformSettings?.salesCookieBannerEnabled !== false && (!consent || manageCookies);
   const activeDirection = designDirections[designDirection];
-  const activeSystem = systemModules.find((item) => item.id === systemModule) || systemModules[0];
-  const ActiveSystemIcon = activeSystem.icon;
 
   return (
     <div className="brand-public min-h-screen overflow-x-hidden bg-[#f6f7fb] text-[#10131c]">
@@ -244,6 +239,7 @@ export default function BrandLedLandingPage() {
         <meta property="og:title" content="Bennie Studio | Managed Website System" />
         <meta property="og:description" content="Strategy, design, lead capture, hosting and ongoing improvement in one managed website service." />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://app.bennietay.com/images/bennie-studio-hero.webp" />
         <meta name="twitter:card" content="summary_large_image" />
         {analyticsAllowed && platformSettings?.gaMeasurementId ? <script async src={`https://www.googletagmanager.com/gtag/js?id=${platformSettings.gaMeasurementId}`} /> : null}
         {analyticsAllowed && platformSettings?.gaMeasurementId ? (
@@ -297,26 +293,24 @@ export default function BrandLedLandingPage() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: "easeOut" }}
-              className="relative lg:col-span-7"
+              className="relative lg:col-span-7 lg:-mr-8 xl:-mr-14"
             >
-              <div className="pointer-events-none absolute -inset-6 hidden border border-white/10 bg-white/[0.02] lg:block" />
-              <div className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rounded-full bg-[#5746e8]/20 blur-3xl" />
-              <figure className="relative overflow-hidden border border-white/15 bg-[#090d18] shadow-[0_50px_130px_-52px_rgba(0,0,0,.95)]">
+              <div className="pointer-events-none absolute -inset-10 bg-[#5746e8]/10 blur-3xl" />
+              <div className="relative overflow-hidden rounded-[1.15rem] border border-white/10 bg-[#080b15] shadow-[0_55px_140px_-55px_rgba(0,0,0,.95)]">
                 <img
-                  src="/images/bennie-studio-hero.jpg"
-                  alt="Bennie Studio website direction shown across desktop and mobile"
+                  src="/images/bennie-studio-hero.webp"
+                  alt="Premium Bennie Studio website direction shown on desktop and mobile"
                   className="aspect-[16/9] w-full object-cover"
                   loading="eager"
+                  decoding="async"
                   fetchPriority="high"
                 />
-                <figcaption className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-[#101827] px-4 py-3 sm:px-5">
-                  <div>
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.13em] !text-[#b9b1ff]">Website direction</p>
-                    <p className="mt-1 text-xs font-semibold !text-white">Built around the business, buyer and brand.</p>
-                  </div>
-                  <span className="border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] !text-white/60">Desktop + mobile</span>
-                </figcaption>
-              </figure>
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#0b1020]/55 to-transparent sm:w-32" />
+              </div>
+              <div className="relative mx-4 -mt-px flex flex-wrap items-center justify-between gap-2 border-x border-b border-white/10 bg-[#101827]/95 px-4 py-3 backdrop-blur sm:mx-8">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Tailored website direction</span>
+                <span className="text-[10px] font-semibold !text-white/60">Desktop + mobile · structure adapts to the business</span>
+              </div>
             </motion.div>
           </div>
         </section>
@@ -344,172 +338,81 @@ export default function BrandLedLandingPage() {
               <p className="brand-kicker">The website system</p>
               <h2 className="mt-4 max-w-3xl">One managed system. Four jobs that have to work together.</h2>
             </div>
-            <p className="brand-copy lg:col-span-5">The benchmark is not a prettier brochure. The website needs a clear proposition, a strong visual system, useful conversion paths and an operating model after launch.</p>
+            <p className="brand-copy lg:col-span-5">The website should clarify the offer, build confidence, create an obvious next step and remain useful after launch. The exact pages and depth depend on the business.</p>
           </div>
 
-          <div className="mt-10 overflow-hidden border border-[#dfe2ea] bg-[#0b1020]">
-            <img
-              src="/images/bennie-studio-system.jpg"
-              alt="Bennie Studio managed website system covering strategy, design, lead capture and managed growth"
-              className="aspect-[4/3] w-full object-cover sm:aspect-[16/8] lg:aspect-[16/7]"
-              loading="lazy"
-            />
-          </div>
-
-          <div className="mt-8 grid gap-6 lg:grid-cols-[21rem_1fr]">
-            <div className="border-y border-[#dfe2ea]">
-              {systemModules.map((item) => {
-                const Icon = item.icon;
-                const selected = item.id === systemModule;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setSystemModule(item.id)}
-                    className={selected
-                      ? "group grid w-full grid-cols-[2.5rem_1fr_auto] items-center gap-3 border-b border-[#dfe2ea] bg-[#101827] px-4 py-5 text-left text-white last:border-b-0"
-                      : "group grid w-full grid-cols-[2.5rem_1fr_auto] items-center gap-3 border-b border-[#dfe2ea] bg-white px-4 py-5 text-left text-[#141821] transition hover:bg-[#f3f4f8] last:border-b-0"
-                    }
-                  >
-                    <span className={selected ? "grid h-9 w-9 place-items-center border border-white/15 bg-white/5" : "grid h-9 w-9 place-items-center border border-[#dfe2ea] bg-[#f7f8fb]"}>
-                      <Icon className={selected ? "h-4 w-4 text-[#b9b1ff]" : "h-4 w-4 text-[#5746e8]"} />
-                    </span>
-                    <span>
-                      <span className={selected ? "block text-[10px] font-semibold uppercase tracking-[0.1em] !text-white/55" : "block text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8b93a0]"}>{item.step}</span>
-                      <span className="mt-1 block font-semibold">{item.label}</span>
-                    </span>
-                    <ChevronRight className={selected ? "h-4 w-4 text-[#b9b1ff]" : "h-4 w-4 text-[#a0a7b3] transition group-hover:translate-x-1"} />
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="brand-elevated min-h-[31rem] overflow-hidden border border-[#dfe2ea] bg-white">
-              <div className="grid min-h-[31rem] lg:grid-cols-[0.92fr_1.08fr]">
-                <div className="flex flex-col justify-between border-b border-[#dfe2ea] p-7 lg:border-b-0 lg:border-r lg:p-9">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <span className="grid h-11 w-11 place-items-center bg-[#eeebff] text-[#5746e8]"><ActiveSystemIcon className="h-5 w-5" /></span>
-                      <p className="text-xs font-semibold uppercase tracking-[0.1em] text-[#5746e8]">{activeSystem.label}</p>
-                    </div>
-                    <h3 className="mt-7 max-w-md text-3xl">{activeSystem.title}</h3>
-                    <p className="mt-5 max-w-lg text-base leading-7 text-[#687386]">{activeSystem.copy}</p>
-                  </div>
-                  <div className="mt-8 grid gap-3">
-                    {activeSystem.bullets.map((item) => <div key={item} className="flex items-center gap-3 border-t border-[#dfe2ea] pt-3 text-sm font-semibold"><Check className="h-4 w-4 text-[#5746e8]" />{item}</div>)}
-                  </div>
-                </div>
-
-                <div className="bg-[#f3f4f8] p-5 sm:p-7">
-                  {systemModule === "design" ? (
-                    <div className="flex h-full items-center">
-                      <div className="w-full border border-[#dfe2ea] bg-white p-3 shadow-[0_26px_70px_-48px_rgba(15,23,42,.55)]">
-                        <TemplatePreviewThumbnail templateId="dental-clinic-v1" templateName="Clinic design system" layoutFamily="clinic_trust" showFamilyLabel={false} className="aspect-[16/10] min-h-0 border border-[#dfe2ea]" />
+          <div className="mt-12 grid gap-8 lg:grid-cols-12 lg:items-center">
+            <div className="lg:col-span-5">
+              <div className="grid gap-px overflow-hidden rounded-[1rem] border border-[#dfe2ea] bg-[#dfe2ea] sm:grid-cols-2 lg:grid-cols-1">
+                {systemModules.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <article key={item.id} className="bg-white p-5 sm:p-6">
+                      <div className="grid grid-cols-[2.75rem_1fr] gap-4">
+                        <span className="grid h-11 w-11 place-items-center bg-[#eeebff] text-[#5746e8]"><Icon className="h-5 w-5" /></span>
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8b93a0]">{item.step} · {item.label}</p>
+                          <h3 className="mt-2 text-lg">{item.title}</h3>
+                          <p className="mt-2 text-sm leading-6 text-[#687386]">{item.copy}</p>
+                        </div>
                       </div>
-                    </div>
-                  ) : systemModule === "conversion" ? (
-                    <div className="flex h-full flex-col justify-center">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7b8494]">Enquiry architecture</p>
-                      <div className="mt-6 space-y-3">
-                        {[
-                          ["Intent", "Visitor arrives with a problem or service need"],
-                          ["Clarity", "Offer, service scope and proof answer the obvious questions"],
-                          ["Action", "WhatsApp · Call · Booking · Quote · Form"],
-                          ["Lead", "A useful enquiry reaches the business"],
-                        ].map(([label, body], index) => (
-                          <div key={label} className="grid grid-cols-[2.5rem_1fr] gap-4 border border-[#dfe2ea] bg-white p-4">
-                            <span className="grid h-10 w-10 place-items-center bg-[#101827] text-xs font-semibold text-white">0{index + 1}</span>
-                            <div><p className="font-semibold">{label}</p><p className="mt-1 text-sm leading-6 text-[#687386]">{body}</p></div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : systemModule === "management" ? (
-                    <div className="flex h-full flex-col justify-center">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7b8494]">After launch</p>
-                      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                        {[
-                          [Globe2, "Hosting + SSL", "Infrastructure remains managed."],
-                          [Wrench, "Maintenance", "Routine website upkeep stays covered."],
-                          [Search, "SEO foundations", "Search-ready structure is maintained."],
-                          [LineChart, "Optimisation", "Improvement depth follows the plan."],
-                        ].map(([Icon, title, copy]: any) => (
-                          <div key={title} className="min-h-36 border border-[#dfe2ea] bg-white p-5">
-                            <Icon className="h-5 w-5 text-[#5746e8]" />
-                            <p className="mt-5 font-semibold">{title}</p>
-                            <p className="mt-2 text-sm leading-6 text-[#687386]">{copy}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex h-full flex-col justify-center">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7b8494]">Website blueprint</p>
-                      <div className="mt-6 border border-[#dfe2ea] bg-white">
-                        {[
-                          ["Business", "Service business"],
-                          ["Audience", "High-intent local or professional buyer"],
-                          ["Offer", "One primary service promise"],
-                          ["Proof", "Reviews · credentials · projects · process"],
-                          ["Primary action", "One useful enquiry path"],
-                        ].map(([label, value]) => (
-                          <div key={label} className="grid grid-cols-[7.5rem_1fr] border-b border-[#dfe2ea] px-4 py-3 last:border-b-0">
-                            <span className="text-xs font-semibold text-[#8b93a0]">{label}</span>
-                            <span className="text-sm font-semibold text-[#141821]">{value}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                        {["Offer", "Services", "Proof", "Action"].map((item, index) => <div key={item} className="border border-[#dfe2ea] bg-white px-2 py-3 text-center"><span className="block text-[9px] font-semibold text-[#5746e8]">0{index + 1}</span><span className="mt-1 block text-[10px] font-semibold text-[#526071]">{item}</span></div>)}
-                      </div>
-                      <p className="mt-3 text-xs leading-5 text-[#7b8494]">The final page structure and depth are selected around the business, plan and customer journey.</p>
-                    </div>
-                  )}
-                </div>
+                    </article>
+                  );
+                })}
               </div>
             </div>
+
+            <figure className="lg:col-span-7">
+              <div className="brand-elevated overflow-hidden rounded-[1rem] border border-[#dfe2ea] bg-[#0b1020]">
+                <img
+                  src="/images/bennie-studio-system.webp"
+                  alt="Bennie Studio managed website system connecting strategy, design, lead capture and managed growth"
+                  className="aspect-[4/3] w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+              <figcaption className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-[#687386]">
+                <span>Tailored structure</span><span>Desktop + mobile</span><span>Conversion paths</span><span>Managed after launch</span>
+              </figcaption>
+            </figure>
           </div>
         </section>
 
-        <section className="border-y border-[#dfe2ea] bg-white">
+                <section className="border-y border-[#dfe2ea] bg-white">
           <div className="brand-shell brand-section">
             <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-7">
                 <p className="brand-kicker">Website work</p>
-                <h2 className="mt-4">Work that shows the thinking, not just the decoration.</h2>
+                <h2 className="mt-4">One system. Different outcomes for different businesses.</h2>
               </div>
-              <p className="brand-copy lg:col-span-5">Inspect hierarchy, service presentation and conversion paths across different service-business categories.</p>
+              <p className="brand-copy lg:col-span-5">The visual direction, proof hierarchy and enquiry journey should change with the business. The system underneath stays disciplined.</p>
             </div>
-            <div className="mt-11 grid gap-7 lg:grid-cols-12 lg:items-start">
-              {exampleTemplates[0] ? (
-                <article className="lg:col-span-7">
-                  <div className="brand-elevated overflow-hidden border border-[#dfe2ea] bg-[#f3f4f8] p-3">
-                    <TemplatePreviewThumbnail templateId={exampleTemplates[0][0]} templateName={exampleTemplates[0][1]} className="aspect-[16/10] min-h-0 border border-[#dfe2ea] bg-white" />
+
+            <div className="mt-11 overflow-hidden rounded-[1rem] border border-[#dfe2ea] bg-[#0b1020] shadow-[0_32px_90px_-60px_rgba(15,23,42,.55)]">
+              <img
+                src="/images/bennie-studio-work.webp"
+                alt="Three distinct Bennie Studio website directions for professional services, healthcare and local services"
+                className="aspect-[16/9] w-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+
+            <div className="mt-5 grid gap-px overflow-hidden rounded-[1rem] border border-[#dfe2ea] bg-[#dfe2ea] md:grid-cols-3">
+              {workDirections.map(([category, direction, copy], index) => (
+                <article key={category} className="bg-white p-5 sm:p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#5746e8]">{category}</p>
+                    <span className="text-[10px] font-semibold text-[#a0a7b3]">0{index + 1}</span>
                   </div>
-                  <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_1.2fr]">
-                    <div>
-                      <p className="text-sm font-semibold text-[#5746e8]">{exampleTemplates[0][1]}</p>
-                      <h3 className="mt-2">{exampleTemplates[0][2]}</h3>
-                    </div>
-                    <p className="text-sm leading-6 text-[#526071]">{exampleTemplates[0][3]}</p>
-                  </div>
+                  <h3 className="mt-4 text-xl">{direction}</h3>
+                  <p className="mt-3 text-sm leading-6 text-[#687386]">{copy}</p>
                 </article>
-              ) : null}
-              <div className="grid gap-7 lg:col-span-5">
-                {exampleTemplates.slice(1).map(([templateId, category, direction, action]) => (
-                  <article key={templateId} className="border-t border-[#dfe2ea] pt-5">
-                    <TemplatePreviewThumbnail templateId={templateId} templateName={category} className="aspect-[16/9] min-h-0 border border-[#dfe2ea] bg-white" />
-                    <p className="mt-4 text-sm font-semibold text-[#5746e8]">{category}</p>
-                    <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr] lg:grid-cols-1">
-                      <h3>{direction}</h3>
-                      <p className="text-sm text-[#526071]">{action}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
+              ))}
             </div>
-            <button onClick={() => go("/case-studies", "Homepage all examples")} className="mt-9 inline-flex items-center font-semibold">
-              Explore all website work <ArrowRight className="ml-2 h-4 w-4" />
+            <button onClick={() => go("/case-studies", "Homepage all examples")} className="mt-8 inline-flex items-center font-semibold">
+              Explore website work <ArrowRight className="ml-2 h-4 w-4" />
             </button>
           </div>
         </section>
@@ -542,9 +445,9 @@ export default function BrandLedLandingPage() {
         <section className="brand-shell brand-section">
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <p className="brand-kicker">Design direction</p>
+              <p className="brand-kicker">Live system output</p>
               <h2 className="mt-4">Different businesses should not wear the same website.</h2>
-              <p className="brand-copy mt-5">The system changes composition, typography and media treatment around the way trust is built in that category.</p>
+              <p className="brand-copy mt-5">This is the actual generator output. Use the direction controls to see how the same system changes composition, typography and media treatment without pretending every business needs the same layout.</p>
               <div className="mt-7 flex flex-wrap gap-2">
                 {(Object.keys(designDirections) as Array<keyof typeof designDirections>).map((key) => (
                   <button key={key} type="button" onClick={() => setDesignDirection(key)} className={designDirection === key ? "border border-[#5746e8] bg-[#5746e8] px-4 py-2 text-sm font-semibold text-white" : "border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold text-[#526071] transition hover:border-[#b9b1ff]"}>
