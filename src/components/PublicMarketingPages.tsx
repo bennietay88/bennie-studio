@@ -1251,191 +1251,273 @@ function GeneratePreviewPage() {
 
   return (
     <>
-      <section className="relative overflow-hidden border-b border-slate-800 bg-[#0f1726] text-white">
-        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          <div className="absolute -right-24 top-6 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
-          <div className="absolute -left-24 bottom-0 h-64 w-64 rounded-full bg-violet-400/10 blur-3xl" />
-        </div>
-        <div className="brand-shell relative grid gap-10 py-14 sm:py-16 lg:grid-cols-12 lg:items-center lg:py-20">
+      <section className="border-b border-[#d9d7d0] bg-[#f7f6f2]">
+        <div className="brand-shell grid gap-10 py-14 sm:py-16 lg:grid-cols-12 lg:items-center lg:py-20">
           <div className="lg:col-span-7">
-            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-indigo-200">
+            <p className="brand-kicker flex items-center gap-2">
               <Sparkles className="h-4 w-4" /> Free website preview
             </p>
-            <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl">
-              See how your business could look online before you buy.
+            <h1 className="mt-5 max-w-4xl text-[clamp(2.8rem,6vw,5.8rem)] font-semibold leading-[0.95] tracking-[-0.06em] text-[#141821]">
+              See the website direction before you spend on the build.
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-              Share the essentials and we will shape a tailored website direction around your services, location, customer journey and preferred enquiry action.
+            <p className="mt-6 max-w-2xl text-base leading-7 text-[#5f6673] sm:text-lg">
+              Give us the essentials. We turn them into a tailored homepage direction built around your service, location, trust signals and preferred enquiry action.
             </p>
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {[
-                ["01", "Tell us the basics"],
-                ["02", "We shape the direction"],
-                ["03", "Review the website"],
-              ].map(([step, label]) => (
-                <div key={step} className="border-t border-white/20 pt-3">
-                  <p className="text-xs font-bold text-indigo-200">{step}</p>
-                  <p className="mt-1 text-sm font-semibold text-white">{label}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-3 text-sm text-slate-300">
-              {["No card required", "Nothing is published", "Built from your real details"].map((item) => (
-                <span key={item} className="inline-flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-emerald-300" /> {item}
+            <div className="mt-8 flex flex-wrap gap-2">
+              {["No card required", "Nothing is published", "Uses your real business details"].map((item) => (
+                <span key={item} className="inline-flex items-center gap-2 rounded-full border border-[#d8d9dc] bg-white px-4 py-2 text-sm font-semibold text-[#374151]">
+                  <Check className="h-4 w-4 text-[#5746e8]" /> {item}
                 </span>
               ))}
             </div>
           </div>
 
           <div className="lg:col-span-5">
-            <div className="overflow-hidden rounded-[2rem] border border-white/15 bg-white shadow-2xl shadow-black/30">
-              <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
-                <span className="ml-2 truncate text-xs font-semibold text-slate-400">{businessLabel === "your business" ? "Your future website" : businessLabel}</span>
+            <div className="overflow-hidden border border-[#d8d9dc] bg-white shadow-[0_28px_80px_-50px_rgba(15,23,42,0.55)]">
+              <div className="bg-[#141821] px-6 py-5 text-white">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#b9b1ff]">Your preview blueprint</p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">{businessLabel === "your business" ? "Your business, made clearer." : businessLabel}</h2>
               </div>
-              <div className="p-6 text-slate-950 sm:p-7">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">{industry.label}</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.02em]">{serviceLabel}</h2>
-                <p className="mt-4 text-sm leading-6 text-slate-600">A direction organised around trust, clear services and the next enquiry step.</p>
-                <div className="mt-6 grid gap-2">
-                  {industry.sections.slice(0, 4).map((sectionName) => (
-                    <div key={sectionName} className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-                      <Check className="h-4 w-4 shrink-0 text-indigo-600" /> {sectionName}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 rounded-xl bg-indigo-600 px-4 py-3 text-center text-sm font-bold text-white">
-                  {resolvePreviewCta(goal)}
-                </div>
+              <div className="divide-y divide-[#e4e2dc] px-6">
+                {[
+                  ["Business", industry.label],
+                  ["Main service", serviceLabel],
+                  ["Location", locationLabel],
+                  ["Primary action", resolvePreviewCta(goal)],
+                ].map(([label, value]) => (
+                  <div key={label} className="grid grid-cols-[110px_1fr] gap-4 py-4 text-sm">
+                    <span className="font-semibold text-[#7b8491]">{label}</span>
+                    <span className="font-semibold text-[#141821]">{value}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-[#e4e2dc] bg-[#eeebff] px-6 py-5">
+                <p className="text-sm font-semibold text-[#5746e8]">We use this brief to choose structure, messaging hierarchy and the enquiry path.</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="preview-brief" className="bg-[#f7f6f2]">
+      <section id="preview-brief" className="bg-white">
         <div className="brand-shell py-12 sm:py-16">
-          <form onSubmit={generatePreview} className="grid gap-8 lg:grid-cols-12 lg:items-start">
-            <div className="lg:sticky lg:top-24 lg:col-span-4">
-              <p className="brand-kicker">Your business brief</p>
-              <h2 className="mt-4">Enough detail to make the preview useful. No questionnaire marathon.</h2>
-              <p className="brand-copy mt-5">Start with your business, main service and goal. Extra brand context is optional and can refine the direction.</p>
-              <div className="mt-7 space-y-3 border-t border-[#d8d9dc] pt-5">
-                {[
-                  ["Business family", industry.label],
-                  ["Primary goal", goal],
-                  ["Direction", previewGenerationMode === "brand_led" ? "Brand-led" : "Premium"],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex items-start justify-between gap-4 text-sm">
-                    <span className="font-semibold text-[#687386]">{label}</span>
-                    <span className="text-right font-semibold text-[#141821]">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="mb-10 max-w-3xl">
+            <p className="brand-kicker">Build your direction</p>
+            <h2 className="mt-4">A useful preview needs a sharp brief, not a 27-field interrogation.</h2>
+            <p className="brand-copy mt-4">Complete the essentials below. Optional proof and brand details can improve the direction, but they are not required to get started.</p>
+          </div>
 
-            <div className="lg:col-span-8">
-              <div className="overflow-hidden rounded-[2rem] border border-[#d8d9dc] bg-white shadow-[0_20px_60px_-36px_rgba(15,23,42,0.45)]">
-                <div className="border-b border-slate-200 px-5 py-5 sm:px-7">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Step 1 · Business</p>
-                  <h3 className="mt-2 text-2xl font-semibold text-slate-950">What do you want customers to understand?</h3>
-                </div>
-                <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
+          <form onSubmit={generatePreview} className="grid gap-8 lg:grid-cols-12 lg:items-start">
+            <div className="space-y-6 lg:col-span-8">
+              <section className="border border-[#d8d9dc] bg-[#f9f8f4] p-5 sm:p-7">
+                <div className="mb-6 flex items-start gap-4 border-b border-[#d8d9dc] pb-5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">1</span>
                   <div>
-                    <label htmlFor="preview-industry" className="mb-2 block text-sm font-semibold text-slate-800">Business type</label>
-                    <select id="preview-industry" value={industryId} onChange={(e) => selectIndustry(e.target.value)} className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Business essentials</p>
+                    <h3 className="mt-1 text-2xl font-semibold text-[#141821]">What are we building around?</h3>
+                  </div>
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="preview-industry" className="mb-2 block text-sm font-semibold text-[#374151]">Business type</label>
+                    <select id="preview-industry" value={industryId} onChange={(e) => selectIndustry(e.target.value)} className="h-12 w-full border border-[#d8d9dc] bg-white px-4 text-[#141821] outline-none transition focus:border-[#5746e8] focus:ring-4 focus:ring-[#5746e8]/10">
                       {previewIndustries.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="preview-service" className="mb-2 block text-sm font-semibold text-slate-800">Main service</label>
-                    <Input id="preview-service" required value={form.mainService} onChange={(e) => setForm({...form, mainService:e.target.value})} placeholder="e.g. Teeth extraction" className="h-12 rounded-xl" />
-                    {inferredIndustryId && inferredIndustryId !== industryId ? <p className="mt-2 text-sm font-semibold text-indigo-600">We detected {previewIndustries.find((item) => item.id === inferredIndustryId)?.label} and will use that website family.</p> : null}
+                    <label htmlFor="preview-service" className="mb-2 block text-sm font-semibold text-[#374151]">Main service</label>
+                    <Input id="preview-service" required value={form.mainService} onChange={(e) => setForm({...form, mainService:e.target.value})} placeholder="e.g. Invisalign, bookkeeping, renovation" className="h-12 rounded-none border-[#d8d9dc] bg-white" />
+                    {inferredIndustryId && inferredIndustryId !== industryId ? <p className="mt-2 text-xs font-semibold text-[#5746e8]">Detected: {previewIndustries.find((item) => item.id === inferredIndustryId)?.label}. We will use that website family.</p> : null}
                   </div>
                   <div>
-                    <label htmlFor="preview-business" className="mb-2 block text-sm font-semibold text-slate-800">Business name</label>
-                    <Input id="preview-business" required value={form.businessName} onChange={(e) => setForm({...form, businessName:e.target.value})} placeholder="Business name" className="h-12 rounded-xl" />
+                    <label htmlFor="preview-business" className="mb-2 block text-sm font-semibold text-[#374151]">Business name</label>
+                    <Input id="preview-business" required value={form.businessName} onChange={(e) => setForm({...form, businessName:e.target.value})} placeholder="Business name" className="h-12 rounded-none border-[#d8d9dc] bg-white" />
                   </div>
                   <div>
-                    <label htmlFor="preview-location" className="mb-2 block text-sm font-semibold text-slate-800">Location / service area</label>
-                    <Input id="preview-location" required value={form.location} onChange={(e) => setForm({...form, location:e.target.value})} placeholder="City or area served" className="h-12 rounded-xl" />
+                    <label htmlFor="preview-location" className="mb-2 block text-sm font-semibold text-[#374151]">Location / service area</label>
+                    <Input id="preview-location" required value={form.location} onChange={(e) => setForm({...form, location:e.target.value})} placeholder="City or area served" className="h-12 rounded-none border-[#d8d9dc] bg-white" />
+                  </div>
+                </div>
+              </section>
+
+              <section className="border border-[#d8d9dc] bg-white p-5 sm:p-7">
+                <div className="mb-6 flex items-start gap-4 border-b border-[#d8d9dc] pb-5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">2</span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Customer action</p>
+                    <h3 className="mt-1 text-2xl font-semibold text-[#141821]">What should a good visitor do next?</h3>
                   </div>
                 </div>
 
-                <div className="border-y border-slate-200 bg-slate-50/70 px-5 py-5 sm:px-7">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Step 2 · Enquiry goal</p>
-                  <h3 className="mt-2 text-2xl font-semibold text-slate-950">What should the website help people do next?</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {previewGoals.map((item) => {
+                    const selected = goal === item;
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => selectGoal(item)}
+                        className={selected
+                          ? "flex min-h-20 items-center justify-between border-2 border-[#5746e8] bg-[#eeebff] px-4 py-4 text-left text-sm font-semibold text-[#141821]"
+                          : "flex min-h-20 items-center justify-between border border-[#d8d9dc] bg-[#f9f8f4] px-4 py-4 text-left text-sm font-semibold text-[#374151] transition hover:border-[#aaa4dc] hover:bg-white"}
+                      >
+                        <span>{item}</span>
+                        <span className={selected ? "grid h-6 w-6 place-items-center rounded-full bg-[#5746e8] text-white" : "grid h-6 w-6 place-items-center rounded-full border border-[#c8cad0] bg-white text-transparent"}>
+                          <Check className="h-3.5 w-3.5" />
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
+
+                <div className="mt-6 grid gap-5 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="preview-goal" className="mb-2 block text-sm font-semibold text-slate-800">Primary goal</label>
-                    <select id="preview-goal" value={goal} onChange={(e) => selectGoal(e.target.value)} className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10">
-                      {previewGoals.map((item) => <option key={item}>{item}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="preview-site-status" className="mb-2 block text-sm font-semibold text-slate-800">Current website</label>
-                    <select id="preview-site-status" value={form.websiteStatus} onChange={(e) => setForm({...form, websiteStatus:e.target.value, websiteUrl:e.target.value==="no"?"":form.websiteUrl})} className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10">
+                    <label htmlFor="preview-site-status" className="mb-2 block text-sm font-semibold text-[#374151]">Current website</label>
+                    <select id="preview-site-status" value={form.websiteStatus} onChange={(e) => setForm({...form, websiteStatus:e.target.value, websiteUrl:e.target.value==="no"?"":form.websiteUrl})} className="h-12 w-full border border-[#d8d9dc] bg-white px-4 text-[#141821] outline-none transition focus:border-[#5746e8] focus:ring-4 focus:ring-[#5746e8]/10">
                       <option value="yes">I have a website</option>
                       <option value="no">No website yet</option>
                     </select>
                   </div>
                   {form.websiteStatus === "yes" ? (
-                    <div className="sm:col-span-2">
-                      <label htmlFor="preview-url" className="mb-2 block text-sm font-semibold text-slate-800">Current website URL</label>
-                      <Input id="preview-url" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://..." className="h-12 rounded-xl" />
+                    <div>
+                      <label htmlFor="preview-url" className="mb-2 block text-sm font-semibold text-[#374151]">Current website URL</label>
+                      <Input id="preview-url" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://..." className="h-12 rounded-none border-[#d8d9dc]" />
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="flex items-end">
+                      <div className="w-full border border-[#d8d9dc] bg-[#f9f8f4] px-4 py-3 text-sm font-semibold text-[#687386]">We will start from your business brief instead.</div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="border border-[#d8d9dc] bg-[#f9f8f4] p-5 sm:p-7">
+                <div className="mb-6 flex items-start gap-4 border-b border-[#d8d9dc] pb-5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">3</span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Design direction</p>
+                    <h3 className="mt-1 text-2xl font-semibold text-[#141821]">Choose the personality, not a template colour.</h3>
+                  </div>
                 </div>
 
-                <div className="border-y border-slate-200 bg-slate-50/70 px-5 py-5 sm:px-7">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Step 3 · Contact</p>
-                  <h3 className="mt-2 text-2xl font-semibold text-slate-950">Connect the preview to your enquiry.</h3>
+                <div className="grid gap-3 md:grid-cols-3">
+                  {[
+                    ["Modern professional", "Clear, credible, balanced", "Structured service businesses"],
+                    ["Premium corporate", "Sharper authority and hierarchy", "Higher-trust or B2B offers"],
+                    ["Friendly local business", "Warm, accessible and direct", "Local service enquiries"],
+                  ].map(([style, description, fit]) => {
+                    const selected = form.brandStyle === style;
+                    return (
+                      <button
+                        key={style}
+                        type="button"
+                        onClick={() => setForm({...form, brandStyle: style})}
+                        className={selected
+                          ? "border-2 border-[#5746e8] bg-white p-5 text-left shadow-[0_16px_36px_-28px_rgba(87,70,232,0.8)]"
+                          : "border border-[#d8d9dc] bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#aaa4dc]"}
+                      >
+                        <div className="mb-5 flex gap-1">
+                          <span className={style === "Premium corporate" ? "h-7 w-7 bg-[#141821]" : style === "Friendly local business" ? "h-7 w-7 rounded-full bg-[#d4f5e7]" : "h-7 w-7 bg-[#5746e8]"} />
+                          <span className={style === "Premium corporate" ? "h-7 w-10 bg-[#d8d9dc]" : style === "Friendly local business" ? "h-7 w-10 rounded-full bg-[#fde7c7]" : "h-7 w-10 bg-[#eeebff]"} />
+                        </div>
+                        <p className="font-semibold text-[#141821]">{style}</p>
+                        <p className="mt-2 text-sm leading-5 text-[#687386]">{description}</p>
+                        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#8b93a0]">{fit}</p>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-7">
+
+                <details className="mt-5 border-t border-[#d8d9dc] pt-5">
+                  <summary className="cursor-pointer text-sm font-semibold text-[#5746e8]">Add proof or extra brand context (optional)</summary>
+                  <div className="mt-5 grid gap-4">
+                    <Input value={form.socialUrl} onChange={(e)=>setForm({...form,socialUrl:e.target.value})} placeholder="Google Business / social URL" className="h-12 rounded-none border-[#d8d9dc] bg-white" />
+                    <Textarea value={form.reviews} onChange={(e)=>setForm({...form,reviews:e.target.value})} placeholder="Paste real customer reviews, one per line." className="min-h-28 rounded-none border-[#d8d9dc] bg-white" />
+                    <select value={form.biggestProblem} onChange={(e)=>setForm({...form,biggestProblem:e.target.value})} className="h-12 border border-[#d8d9dc] bg-white px-4 text-[#141821]">
+                      <option value="">Biggest website problem (optional)</option>
+                      {previewProblems.map((problem)=><option key={problem}>{problem}</option>)}
+                    </select>
+                  </div>
+                </details>
+              </section>
+
+              <section className="border border-[#d8d9dc] bg-[#141821] p-5 text-white sm:p-7">
+                <div className="mb-6 flex items-start gap-4 border-b border-white/15 pb-5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-[#141821]">4</span>
                   <div>
-                    <label htmlFor="preview-name" className="mb-2 block text-sm font-semibold text-slate-800">Your name <span className="font-normal text-slate-400">optional</span></label>
-                    <Input id="preview-name" autoComplete="name" value={form.contactName} onChange={(e) => setForm({...form, contactName:e.target.value})} placeholder="Your name" className="h-12 rounded-xl" />
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#b9b1ff]">Send the preview</p>
+                    <h3 className="mt-1 text-2xl font-semibold text-white">Where should we connect this direction?</h3>
+                  </div>
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="preview-name" className="mb-2 block text-sm font-semibold text-slate-200">Your name <span className="font-normal text-slate-400">optional</span></label>
+                    <Input id="preview-name" autoComplete="name" value={form.contactName} onChange={(e) => setForm({...form, contactName:e.target.value})} placeholder="Your name" className="h-12 rounded-none border-white/15 bg-white text-[#141821]" />
                   </div>
                   <div>
-                    <label htmlFor="preview-email" className="mb-2 block text-sm font-semibold text-slate-800">Email</label>
-                    <Input id="preview-email" required autoComplete="email" type="email" value={form.email} onChange={(e) => setForm({...form, email:e.target.value})} placeholder="you@business.com" className="h-12 rounded-xl" />
+                    <label htmlFor="preview-email" className="mb-2 block text-sm font-semibold text-slate-200">Email</label>
+                    <Input id="preview-email" required autoComplete="email" type="email" value={form.email} onChange={(e) => setForm({...form, email:e.target.value})} placeholder="you@business.com" className="h-12 rounded-none border-white/15 bg-white text-[#141821]" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label htmlFor="preview-phone" className="mb-2 block text-sm font-semibold text-slate-800">
+                    <label htmlFor="preview-phone" className="mb-2 block text-sm font-semibold text-slate-200">
                       WhatsApp / phone {goal.toLowerCase().includes("whatsapp") ? null : <span className="font-normal text-slate-400">optional</span>}
                     </label>
-                    <Input id="preview-phone" required={goal.toLowerCase().includes("whatsapp")} autoComplete="tel" value={form.phone} onChange={(e) => setForm({...form, phone:e.target.value})} placeholder="Phone or WhatsApp number" className="h-12 rounded-xl" />
-                  </div>
-
-                  <details className="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-                    <summary className="cursor-pointer font-semibold text-slate-800">Optional: refine the brand direction</summary>
-                    <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                      <select value={form.brandStyle} onChange={(e)=>setForm({...form,brandStyle:e.target.value})} className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 sm:col-span-2">
-                        {["Modern professional","Premium corporate","Friendly local business","Bold sales landing page","Clean minimal","Luxury premium"].map((style)=><option key={style}>{style}</option>)}
-                      </select>
-                      <Input value={form.socialUrl} onChange={(e)=>setForm({...form,socialUrl:e.target.value})} placeholder="Google Business / social URL" className="h-12 rounded-xl sm:col-span-2" />
-                      <Textarea value={form.reviews} onChange={(e)=>setForm({...form,reviews:e.target.value})} placeholder="Paste real customer reviews, one per line." className="min-h-28 rounded-xl sm:col-span-2" />
-                      <select value={form.biggestProblem} onChange={(e)=>setForm({...form,biggestProblem:e.target.value})} className="h-12 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 sm:col-span-2">
-                        <option value="">Biggest website problem (optional)</option>
-                        {previewProblems.map((problem)=><option key={problem}>{problem}</option>)}
-                      </select>
-                    </div>
-                  </details>
-
-                  {error ? <div className="sm:col-span-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{error}</div> : null}
-                  <div className="sm:col-span-2">
-                    <Button type="submit" disabled={generating} className="min-h-14 w-full rounded-xl bg-indigo-600 px-7 text-base font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-500 sm:w-auto">
-                      {generating ? "Building your website direction..." : "Build my free website preview"} <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                    <p className="mt-3 max-w-xl text-xs leading-5 text-slate-500">No card required. Your information is used to prepare and follow up on this preview. Nothing is published without your approval.</p>
+                    <Input id="preview-phone" required={goal.toLowerCase().includes("whatsapp")} autoComplete="tel" value={form.phone} onChange={(e) => setForm({...form, phone:e.target.value})} placeholder="Phone or WhatsApp number" className="h-12 rounded-none border-white/15 bg-white text-[#141821]" />
                   </div>
                 </div>
-              </div>
+
+                {error ? <div className="mt-5 border border-rose-300/40 bg-rose-400/10 p-4 text-sm font-semibold text-rose-100">{error}</div> : null}
+
+                <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+                  <Button type="submit" disabled={generating} className="min-h-14 rounded-none bg-[#6758ff] px-7 text-base font-bold text-white hover:bg-[#7a6cff]">
+                    {generating ? "Building your website direction..." : "Build my free website preview"} <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                  <p className="max-w-md text-xs leading-5 text-slate-400">No card required. Your details are used to prepare and follow up on the preview. Nothing is published without your approval.</p>
+                </div>
+              </section>
             </div>
+
+            <aside className="lg:sticky lg:top-24 lg:col-span-4">
+              <div className="border border-[#d8d9dc] bg-[#f7f6f2] p-5 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <LayoutTemplate className="h-5 w-5 text-[#5746e8]" />
+                  <p className="text-sm font-bold uppercase tracking-[0.1em] text-[#5746e8]">Live brief</p>
+                </div>
+                <h3 className="mt-4 text-2xl font-semibold text-[#141821]">{businessLabel === "your business" ? "Your preview will adapt as you fill this in." : businessLabel}</h3>
+                <div className="mt-6 divide-y divide-[#d8d9dc] border-y border-[#d8d9dc]">
+                  {[
+                    ["Industry", industry.label],
+                    ["Service", serviceLabel],
+                    ["Location", locationLabel],
+                    ["Goal", goal],
+                    ["Style", form.brandStyle],
+                  ].map(([label, value]) => (
+                    <div key={label} className="grid grid-cols-[82px_1fr] gap-3 py-3 text-sm">
+                      <span className="font-semibold text-[#8b93a0]">{label}</span>
+                      <span className="font-semibold text-[#141821]">{value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8b93a0]">Likely homepage structure</p>
+                  <div className="mt-3 space-y-2">
+                    {industry.sections.slice(0, 5).map((sectionName, index) => (
+                      <div key={sectionName} className="flex items-center gap-3 bg-white px-3 py-3 text-sm font-semibold text-[#374151]">
+                        <span className="text-xs font-bold text-[#5746e8]">0{index + 1}</span>
+                        {sectionName}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-6 border-t border-[#d8d9dc] pt-5">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8b93a0]">Recommended after preview</p>
+                  <p className="mt-2 font-semibold text-[#141821]">{commercialRecommendation.name}</p>
+                  <p className="mt-1 text-sm leading-5 text-[#687386]">The recommendation is based on the website goal and business brief, not a forced upsell.</p>
+                </div>
+              </div>
+            </aside>
           </form>
         </div>
       </section>
