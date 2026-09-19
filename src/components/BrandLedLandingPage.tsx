@@ -370,7 +370,7 @@ export default function BrandLedLandingPage() {
                     <article key={product.slug} className={isGrowth ? "border-2 border-[#5746e8] bg-[#eeebff] p-5 shadow-sm" : "border border-[#d8d9dc] bg-white p-5"}>
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]">{isGrowth ? "Most popular" : planBestFor[index]}</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]">{isGrowth ? "Most Popular" : planBestFor[index]}</p>
                           <h3 className="mt-1">{product.name}</h3>
                         </div>
                         {isGrowth ? <span className="rounded-full bg-[#5746e8] px-3 py-1 text-xs font-semibold text-white">Most popular</span> : null}
@@ -385,7 +385,7 @@ export default function BrandLedLandingPage() {
                           </div>
                         ))}
                       </div>
-                      <button onClick={() => go("/pricing?market=" + market + "#plans", "Pricing " + product.name)} className={isGrowth ? "mt-5 inline-flex min-h-12 w-full items-center justify-center bg-[#5746e8] px-5 font-semibold text-white" : "mt-5 inline-flex min-h-12 w-full items-center justify-center bg-[#141821] px-5 font-semibold text-white"}>
+                      <button onClick={() => go("/pricing?market=" + market + "#plan-" + product.slug, "Pricing " + product.name)} className={isGrowth ? "mt-5 inline-flex min-h-12 w-full items-center justify-center bg-[#5746e8] px-5 font-semibold text-white" : "mt-5 inline-flex min-h-12 w-full items-center justify-center bg-[#141821] px-5 font-semibold text-white"}>
                         View plan <ArrowRight className="ml-2 h-4 w-4" />
                       </button>
                     </article>
@@ -399,7 +399,7 @@ export default function BrandLedLandingPage() {
                       <th className="py-4 pr-4 text-sm font-semibold">Plan</th>
                       {priced.map(({ product }, index) => (
                         <th key={product.slug} className={index === 1 ? "border-x border-[#cbc5f4] bg-[#eeebff] px-4 py-4 align-top" : "px-4 py-4 align-top"}>
-                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]">{index === 1 ? "Most popular" : planBestFor[index]}</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]">{index === 1 ? "Most Popular" : planBestFor[index]}</p>
                           <p className="mt-1 text-lg font-semibold text-[#141821]">{product.name}</p>
                         </th>
                       ))}
@@ -422,7 +422,7 @@ export default function BrandLedLandingPage() {
                         <td key={product.slug} className={index === 1 ? "border-x border-[#cbc5f4] bg-[#eeebff] px-4 py-6 align-top" : "px-4 py-6 align-top"}>
                           <p className="text-2xl font-semibold">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-[#707b8a]">/month</span></p>
                           <p className="mt-1 text-sm text-[#707b8a]">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
-                          <button onClick={() => go("/pricing?market=" + market + "#plans", "Pricing " + product.name)} className={index === 1 ? "mt-4 inline-flex items-center font-semibold text-[#5746e8]" : "mt-4 inline-flex items-center font-semibold text-[#526071]"}>Details <ArrowRight className="ml-1 h-4 w-4" /></button>
+                          <button onClick={() => go("/pricing?market=" + market + "#plan-" + product.slug, "Pricing " + product.name)} className={index === 1 ? "mt-4 inline-flex items-center font-semibold text-[#5746e8]" : "mt-4 inline-flex items-center font-semibold text-[#526071]"}>Details <ArrowRight className="ml-1 h-4 w-4" /></button>
                         </td>
                       ))}
                     </tr>

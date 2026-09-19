@@ -2270,11 +2270,11 @@ export function WebsiteRenderer({
                                   ))}
                               </div>
 
-                              <div className="grid grid-cols-3 gap-3">
+                              <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-3">
                                 {[
-                                  ["CTA", "Tracked"],
-                                  ["CRM", "Synced"],
-                                  ["Speed", "Ready"],
+                                  ["Offer", "Clarify"],
+                                  ["Proof", "Show"],
+                                  ["Next step", "Guide"],
                                 ].map(([label, value]) => (
                                   <div key={label} className="rounded-2xl bg-white/[0.06] p-4 text-center border border-white/10">
                                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
@@ -3954,7 +3954,7 @@ export function WebsiteRenderer({
 
                         <div className="relative">
                           <div className="absolute -inset-4 bg-primary/5 rounded-[4rem] blur-2xl" />
-                          <div className="p-10 sm:p-12 rounded-[3.5rem] border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900 shadow-3xl relative z-10">
+                          <div className="p-5 sm:p-12 rounded-[2rem] sm:rounded-[3.5rem] border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900 shadow-3xl relative z-10">
                             <div className="mb-10 flex items-center justify-between">
                               <h3 className="font-black text-2xl tracking-tighter uppercase text-slate-900 dark:text-white">
                                 {section.content.calendarTitle || "Select Date"}
@@ -3976,7 +3976,7 @@ export function WebsiteRenderer({
                                 </Button>
                               </div>
                             </div>
-                            <div className="grid grid-cols-7 gap-4 mb-8">
+                            <div className="mb-5 grid grid-cols-7 gap-1 sm:mb-8 sm:gap-4">
                               {[
                                 "Sun",
                                 "Mon",
@@ -3994,7 +3994,7 @@ export function WebsiteRenderer({
                                 </div>
                               ))}
                             </div>
-                            <div className="grid grid-cols-7 gap-4">
+                            <div className="grid grid-cols-7 gap-1 sm:gap-4">
                               {Array.from({ length: 35 }).map((_, i) => {
                                 const day = i - 3; // Mock offset
                                 const isToday = day === 15;
@@ -4013,7 +4013,7 @@ export function WebsiteRenderer({
                                       setBookingDate(d);
                                     }}
                                     className={cn(
-                                      "aspect-square rounded-2xl flex items-center justify-center text-sm font-black transition-all",
+                                      "aspect-square rounded-lg sm:rounded-2xl flex items-center justify-center text-xs sm:text-sm font-black transition-all",
                                       isSelected
                                         ? "bg-slate-950 text-white shadow-2xl"
                                         : isToday
@@ -5054,22 +5054,22 @@ export function WebsiteRenderer({
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackContactAction("whatsapp_click", "Floating WhatsApp", whatsappHref)}
-            className="fixed bottom-6 left-6 z-[95] inline-flex h-14 items-center gap-3 rounded-2xl bg-emerald-500 px-5 text-sm font-black uppercase tracking-widest text-white shadow-2xl shadow-emerald-900/20 transition-all hover:-translate-y-1 hover:bg-emerald-600"
+            className="fixed bottom-4 left-4 z-[95] inline-flex h-12 w-12 items-center justify-center gap-3 rounded-2xl bg-emerald-500 px-0 text-sm font-black uppercase tracking-widest text-white shadow-2xl shadow-emerald-900/20 transition-all hover:-translate-y-1 hover:bg-emerald-600 sm:bottom-6 sm:left-6 sm:h-14 sm:w-auto sm:px-5"
           >
             <MessageSquare className="h-5 w-5" />
-            WhatsApp
+            <span className="hidden sm:inline">WhatsApp</span>
           </a>
         )}
 
         {/* AI Chatbot Widget */}
-        {!isThumbnail && <div className="fixed bottom-6 right-6 z-[100]">
+        {!isThumbnail && <div className="fixed bottom-4 right-4 z-[100] sm:bottom-6 sm:right-6">
           <AnimatePresence>
             {isChatOpen && (
               <motion.div
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                className="absolute bottom-20 right-0 w-[350px] sm:w-[400px] h-[500px] bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden"
+                className="absolute bottom-16 right-0 flex h-[min(500px,calc(100dvh-6rem))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:bottom-20 sm:rounded-[2rem]"
               >
                 <div className="p-6 bg-indigo-600 text-white flex items-center justify-between">
                   <div className="flex items-center gap-3">

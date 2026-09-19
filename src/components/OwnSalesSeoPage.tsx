@@ -98,12 +98,12 @@ export default function OwnSalesSeoPage() {
       const price = getCommercialPrice(product, revenueMarket)!;
       const planMeta = product.slug === "managed-website"
         ? {
-            label: "Recommended starting point",
+            label: "Starting point",
             features: ["Hosting and SSL", "Conversion-focused structure", "WhatsApp and enquiry paths", "Managed updates"],
           }
         : product.slug === "website-growth"
           ? {
-              label: "Most popular",
+              label: "Most Popular · Recommended",
               features: ["Monthly conversion optimisation", "Local SEO expansion", "Landing and location pages", "Priority support"],
             }
           : {
@@ -490,7 +490,7 @@ export default function OwnSalesSeoPage() {
                         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]">{plan.label}</p>
                         <h3 className="mt-1">{plan.name}</h3>
                       </div>
-                      {isGrowth ? <Badge className="bg-indigo-600 text-white">Most popular</Badge> : null}
+                      {isGrowth ? <Badge className="bg-indigo-600 text-white">Most Popular</Badge> : null}
                     </div>
                     <p className="mt-5 text-3xl font-semibold text-[#141821]">{plan.price}</p>
                     <p className="mt-1 text-sm text-[#687386]">+ {plan.setupPrice} setup</p>

@@ -474,7 +474,10 @@
     display: block !important;
   }
 
-  .bt-website-renderer main section .grid {
+  .bt-website-renderer main section .grid[class*="grid-cols-["],
+  .bt-website-renderer main section .grid[class*="sm:grid-cols-"],
+  .bt-website-renderer main section .grid[class*="md:grid-cols-"],
+  .bt-website-renderer main section .grid[class*="lg:grid-cols-"] {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 

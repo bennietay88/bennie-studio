@@ -125,6 +125,11 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   ];
 
   return <div id="plans" className={cn("mx-auto max-w-6xl scroll-mt-24 px-5", hideIntro ? "pb-10 pt-2 sm:pb-14" : "py-14 sm:py-20")}>
+    <div className="relative h-0 overflow-visible" aria-hidden="true">
+      {planSet.map(([product]) => (
+        <span key={product.slug} id={`plan-${product.slug}`} className="absolute -top-24" data-plan-anchor={product.slug} />
+      ))}
+    </div>
     {!hideIntro && (
       <div className="grid gap-8 border-b border-slate-300 pb-10 lg:grid-cols-12 lg:items-end">
         <div className="lg:col-span-8">
@@ -143,7 +148,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
           <article key={product.slug} className={cn("rounded-xl border bg-white p-5", isGrowth ? "border-2 border-indigo-500 bg-indigo-50/70 shadow-lg shadow-indigo-100/70" : "border-slate-200")}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">{isGrowth ? "Most popular" : bestFor}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">{isGrowth ? "Most Popular" : bestFor}</p>
                 <h3 className="mt-2 text-2xl font-semibold text-slate-950">{product.name}</h3>
               </div>
               {isGrowth ? <Badge className="bg-indigo-600 text-white">Most popular</Badge> : null}
@@ -174,7 +179,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
             <th className="py-4 pr-5 text-sm font-semibold text-slate-600">Plan</th>
             {planSet.map(([product, price, bestFor], index) => (
               <th key={product.slug} className={cn("px-5 py-5 align-top", index === 1 && "bg-indigo-50/60")}>
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">{index === 1 ? "Most popular" : bestFor}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">{index === 1 ? "Most Popular" : bestFor}</p>
                 <h3 className="mt-2 text-2xl font-semibold text-slate-950">{product.name}</h3>
                 <p className="mt-3 text-sm font-normal leading-6 text-slate-600">{product.description}</p>
               </th>
