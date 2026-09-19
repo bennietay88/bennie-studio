@@ -9,4 +9,16 @@ Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /profile
 
+Disallow: /manage-call
+
+Disallow: /proposal
+
+Disallow: /preview/template
+
+Disallow: /w/
+
+Disallow: /affiliate/login
+
+Disallow: /affiliate/signup
+
 Sitemap: https://app.bennietay.com/sitemap.xml
