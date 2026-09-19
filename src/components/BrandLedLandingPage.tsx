@@ -14,7 +14,6 @@ import {
   Wrench,
 } from "lucide-react";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
-import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { supabase } from "../lib/supabase";
 import {
@@ -91,30 +90,6 @@ const workDirections = [
   ["Local services", "Conversion-led", "Fast proof, service-area clarity and a focused quote journey."],
 ] as const;
 
-const designDirections = {
-  brand: {
-    label: "Brand-led",
-    templateId: "accounting-firm-v1",
-    layoutFamily: "brand_statement" as const,
-    title: "Strong positioning and deliberate hierarchy.",
-    copy: "Best when credibility, expertise and a premium first impression influence the sale.",
-  },
-  media: {
-    label: "Media-led",
-    templateId: "dental-clinic-v1",
-    layoutFamily: "media_story" as const,
-    title: "Customer photography carries more of the story.",
-    copy: "Best when the business has strong people, place, project or product imagery to work with.",
-  },
-  editorial: {
-    label: "Editorial",
-    templateId: "law-firm-v1",
-    layoutFamily: "editorial_b2b" as const,
-    title: "Editorial authority for complex services.",
-    copy: "Best when insight, expertise and evidence need room to breathe before the enquiry step.",
-  },
-} as const;
-
 const industries = [
   { label: "Professional services", path: "/professional-services-website-design", description: "Credibility, expertise and qualified consultation enquiries." },
   { label: "Clinics & healthcare", path: "/clinic-website-design-malaysia", description: "Patient trust, treatment clarity and appointment paths." },
@@ -140,12 +115,139 @@ const faqs = [
   ["Can I preview the website before paying?", "Yes. The free preview flow uses the same Premium and Brand-led generator system used for customer builds."],
 ];
 
+
+function SystemVisual() {
+  return (
+    <div className="relative min-h-[31rem] overflow-hidden rounded-[1.2rem] border border-[#20283a] bg-[#090d18] p-5 shadow-[0_34px_90px_-55px_rgba(15,23,42,.8)] sm:p-7">
+      <div className="pointer-events-none absolute -right-24 -top-20 h-72 w-72 rounded-full bg-[#6654ff]/25 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-[#8d7bff]/10 blur-3xl" />
+
+      <div className="relative mx-auto max-w-[41rem] pt-10 sm:pt-8">
+        <div className="overflow-hidden rounded-[1rem] border border-white/10 bg-[#111827] shadow-[0_36px_90px_-45px_rgba(0,0,0,.9)]">
+          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <div className="flex gap-1.5"><span className="h-2 w-2 rounded-full bg-white/20" /><span className="h-2 w-2 rounded-full bg-white/15" /><span className="h-2 w-2 rounded-full bg-white/10" /></div>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.14em] !text-white/35">Managed website system</span>
+          </div>
+          <div className="grid gap-5 p-5 sm:grid-cols-[1.05fr_.95fr] sm:p-7">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.13em] !text-[#b9b1ff]">Positioning first</p>
+              <p className="mt-3 max-w-xs text-3xl font-semibold leading-[1.02] !text-white sm:text-4xl">Clear enough to trust. Built to convert.</p>
+              <p className="mt-4 max-w-sm text-xs leading-5 !text-white/48">Offer, proof and next action are decided before visual polish. The page system follows the buying journey.</p>
+              <div className="mt-6 flex gap-2">
+                <span className="bg-white px-3 py-2 text-[10px] font-semibold text-[#101827]">Primary action</span>
+                <span className="border border-white/15 px-3 py-2 text-[10px] font-semibold !text-white/65">Proof path</span>
+              </div>
+            </div>
+            <div className="grid gap-3">
+              <div className="rounded-xl bg-[#ece9ff] p-4">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#5746e8]">Proof hierarchy</p>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <span className="h-16 bg-white" /><span className="h-16 bg-white" /><span className="h-16 bg-white" />
+                </div>
+                <div className="mt-3 h-2 w-3/4 bg-[#c8c2ff]" />
+                <div className="mt-2 h-2 w-1/2 bg-[#d9d5ff]" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                  <MousePointerClick className="h-4 w-4 text-[#b9b1ff]" />
+                  <p className="mt-5 text-xs font-semibold !text-white">Lead capture</p>
+                  <p className="mt-1 text-[10px] leading-4 !text-white/40">One useful next step.</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                  <LineChart className="h-4 w-4 text-[#b9b1ff]" />
+                  <p className="mt-5 text-xs font-semibold !text-white">Managed growth</p>
+                  <p className="mt-1 text-[10px] leading-4 !text-white/40">Improve after launch.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute left-0 top-0 hidden -translate-x-5 rounded-xl border border-white/10 bg-[#111827]/95 p-4 shadow-xl backdrop-blur md:block">
+          <Sparkles className="h-4 w-4 text-[#b9b1ff]" />
+          <p className="mt-3 text-xs font-semibold !text-white">Strategy</p>
+          <p className="mt-1 text-[10px] !text-white/40">Audience · offer · proof</p>
+        </div>
+        <div className="absolute right-0 top-2 hidden translate-x-5 rounded-xl border border-white/10 bg-[#111827]/95 p-4 shadow-xl backdrop-blur md:block">
+          <Layers3 className="h-4 w-4 text-[#b9b1ff]" />
+          <p className="mt-3 text-xs font-semibold !text-white">Design system</p>
+          <p className="mt-1 text-[10px] !text-white/40">Hierarchy · media · type</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WorkShowcase() {
+  return (
+    <div className="relative overflow-hidden rounded-[1.2rem] border border-[#dfe2ea] bg-[#0b1020] p-4 shadow-[0_34px_90px_-55px_rgba(15,23,42,.75)] sm:p-6 lg:p-8">
+      <div className="pointer-events-none absolute -right-20 top-0 h-64 w-64 rounded-full bg-[#5b49f2]/20 blur-3xl" />
+      <div className="relative grid gap-4 lg:grid-cols-[1.02fr_.98fr]">
+        <article className="overflow-hidden rounded-[.9rem] bg-[#f7f4ed] shadow-2xl">
+          <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
+            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#6b6257]">Professional services</span>
+            <span className="h-2 w-16 rounded-full bg-[#d6d0c6]" />
+          </div>
+          <div className="grid min-h-[19rem] gap-5 p-5 sm:grid-cols-[1.05fr_.95fr] sm:p-6">
+            <div className="flex flex-col justify-between">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7468ef]">Authority-led</p>
+                <p className="mt-4 text-3xl font-semibold leading-[.98] text-[#171717]">Expertise made easier to choose.</p>
+                <div className="mt-5 h-2 w-full bg-[#ddd7cd]" /><div className="mt-2 h-2 w-4/5 bg-[#e7e2da]" />
+              </div>
+              <div className="mt-6 flex gap-2"><span className="bg-[#171717] px-3 py-2 text-[9px] font-semibold text-white">Book consultation</span><span className="border border-black/10 px-3 py-2 text-[9px] font-semibold">See credentials</span></div>
+            </div>
+            <div className="relative overflow-hidden rounded-xl bg-[linear-gradient(145deg,#d7d2ca,#9d9489)]">
+              <div className="absolute bottom-4 left-4 right-4 rounded-lg bg-white/88 p-3 backdrop-blur">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#6f675e]">Proof before claims</p>
+                <div className="mt-2 h-2 w-2/3 bg-[#d6d0c6]" />
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <div className="grid gap-4">
+          <article className="overflow-hidden rounded-[.9rem] bg-white shadow-2xl">
+            <div className="grid min-h-[10.5rem] grid-cols-[1.1fr_.9fr]">
+              <div className="p-5">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#4e9a87]">Clinic / healthcare</p>
+                <p className="mt-3 text-xl font-semibold leading-tight text-[#14211e]">Confidence before the appointment.</p>
+                <div className="mt-4 flex gap-2"><span className="bg-[#173f36] px-3 py-2 text-[9px] font-semibold text-white">Book visit</span><span className="bg-[#e8f5f1] px-3 py-2 text-[9px] font-semibold text-[#276655]">Treatments</span></div>
+              </div>
+              <div className="bg-[linear-gradient(145deg,#dceee8,#9bc9bb)] p-4">
+                <div className="h-full rounded-lg border border-white/70 bg-white/30 p-3">
+                  <span className="block h-8 w-8 rounded-full bg-white/80" />
+                  <div className="mt-6 h-2 w-full bg-white/70" /><div className="mt-2 h-2 w-3/5 bg-white/50" />
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article className="overflow-hidden rounded-[.9rem] bg-[#111a2d] shadow-2xl">
+            <div className="grid min-h-[10.5rem] grid-cols-[1fr_.85fr]">
+              <div className="p-5">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] !text-[#91a9ff]">Local service</p>
+                <p className="mt-3 text-xl font-semibold leading-tight !text-white">Fast proof. Clear service area. Easy quote.</p>
+                <div className="mt-4 h-2 w-4/5 bg-white/15" /><div className="mt-2 h-2 w-2/3 bg-white/10" />
+              </div>
+              <div className="m-4 rounded-lg bg-white p-3">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#6f7785]">Request a quote</p>
+                <div className="mt-3 h-7 border border-[#e5e7eb]" /><div className="mt-2 h-7 border border-[#e5e7eb]" />
+                <div className="mt-2 h-7 bg-[#4f46e5]" />
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BrandLedLandingPage() {
   const navigate = useNavigate();
   const [market, setMarket] = React.useState(() => getStoredMarket());
   const { products } = usePublicCommercialPricing(market);
   const [platformSettings, setPlatformSettings] = React.useState<any>(null);
-  const [designDirection, setDesignDirection] = React.useState<keyof typeof designDirections>("brand");
   const [verifiedProof, setVerifiedProof] = React.useState<any[]>([]);
   const [manageCookies, setManageCookies] = React.useState(false);
   const [consent, setConsent] = React.useState<Consent | null>(() => {
@@ -228,7 +330,6 @@ export default function BrandLedLandingPage() {
   const analyticsAllowed = platformSettings?.salesCookieBannerEnabled === false || Boolean(consent?.analytics);
   const marketingAllowed = platformSettings?.salesCookieBannerEnabled === false || Boolean(consent?.marketing);
   const showCookieBanner = platformSettings?.salesCookieBannerEnabled !== false && (!consent || manageCookies);
-  const activeDirection = designDirections[designDirection];
 
   return (
     <div className="brand-public min-h-screen overflow-x-hidden bg-[#f6f7fb] text-[#10131c]">
@@ -362,42 +463,21 @@ export default function BrandLedLandingPage() {
               </div>
             </div>
 
-            <figure className="lg:col-span-7">
-              <div className="brand-elevated overflow-hidden rounded-[1rem] border border-[#dfe2ea] bg-[#0b1020]">
-                <img
-                  src="/images/bennie-studio-system.webp"
-                  alt="Bennie Studio managed website system connecting strategy, design, lead capture and managed growth"
-                  className="aspect-[4/3] w-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-[#687386]">
-                <span>Tailored structure</span><span>Desktop + mobile</span><span>Conversion paths</span><span>Managed after launch</span>
-              </figcaption>
-            </figure>
+            <div className="lg:col-span-7"><SystemVisual /></div>
           </div>
         </section>
 
-                <section className="border-y border-[#dfe2ea] bg-white">
+        <section className="border-y border-[#dfe2ea] bg-white">
           <div className="brand-shell brand-section">
             <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-7">
                 <p className="brand-kicker">Website work</p>
                 <h2 className="mt-4">One system. Different outcomes for different businesses.</h2>
               </div>
-              <p className="brand-copy lg:col-span-5">The visual direction, proof hierarchy and enquiry journey should change with the business. The system underneath stays disciplined.</p>
+              <p className="brand-copy lg:col-span-5">The same operating system can produce very different visual and conversion directions. The business decides the shape, not a fixed template.</p>
             </div>
 
-            <div className="mt-11 overflow-hidden rounded-[1rem] border border-[#dfe2ea] bg-[#0b1020] shadow-[0_32px_90px_-60px_rgba(15,23,42,.55)]">
-              <img
-                src="/images/bennie-studio-work.webp"
-                alt="Three distinct Bennie Studio website directions for professional services, healthcare and local services"
-                className="aspect-[16/9] w-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-            </div>
+            <div className="mt-11"><WorkShowcase /></div>
 
             <div className="mt-5 grid gap-px overflow-hidden rounded-[1rem] border border-[#dfe2ea] bg-[#dfe2ea] md:grid-cols-3">
               {workDirections.map(([category, direction, copy], index) => (
@@ -441,39 +521,6 @@ export default function BrandLedLandingPage() {
             </div>
           </section>
         ) : null}
-
-        <section className="brand-shell brand-section">
-          <div className="grid gap-10 lg:grid-cols-12">
-            <div className="lg:col-span-4">
-              <p className="brand-kicker">Live system output</p>
-              <h2 className="mt-4">Different businesses should not wear the same website.</h2>
-              <p className="brand-copy mt-5">This is the actual generator output. Use the direction controls to see how the same system changes composition, typography and media treatment without pretending every business needs the same layout.</p>
-              <div className="mt-7 flex flex-wrap gap-2">
-                {(Object.keys(designDirections) as Array<keyof typeof designDirections>).map((key) => (
-                  <button key={key} type="button" onClick={() => setDesignDirection(key)} className={designDirection === key ? "border border-[#5746e8] bg-[#5746e8] px-4 py-2 text-sm font-semibold text-white" : "border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold text-[#526071] transition hover:border-[#b9b1ff]"}>
-                    {designDirections[key].label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="lg:col-span-8">
-              <div className="brand-elevated overflow-hidden border border-[#dfe2ea] bg-[#f3f4f8] p-3">
-                <TemplatePreviewThumbnail
-                  key={designDirection}
-                  templateId={activeDirection.templateId}
-                  templateName={activeDirection.label}
-                  layoutFamily={activeDirection.layoutFamily}
-                  showFamilyLabel={false}
-                  className="aspect-[16/10] min-h-0 border border-[#dfe2ea]"
-                />
-              </div>
-              <div className="mt-6 grid gap-4 md:grid-cols-[1fr_1.4fr]">
-                <h3>{activeDirection.title}</h3>
-                <p className="text-[#526071]">{activeDirection.copy}</p>
-              </div>
-            </div>
-          </div>
-        </section>
 
         <section className="border-y border-[#dfe2ea] bg-[#f0efff]">
           <div className="brand-shell brand-section">
