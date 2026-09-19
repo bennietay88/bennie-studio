@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { NICHE_TEMPLATES } from "../constants/nicheTemplates";
+import { resolveAccessibleThemeColors } from "../lib/colorContrast";
 
 interface TemplatePreviewThumbnailProps {
   templateId: string;
@@ -46,6 +47,8 @@ type PreviewModel = {
   family: PreviewLayoutFamily;
   primary: string;
   secondary: string;
+  primaryInk: string;
+  primaryForeground: string;
   displayFont: string;
   bodyFont: string;
   headline: string;
@@ -210,6 +213,7 @@ function createPreviewModel(
           : "#1e3a8a",
   );
   const secondary = textFrom(theme.secondaryColor, "#f8fafc");
+  const contrast = resolveAccessibleThemeColors(primary, secondary);
   const fonts = getPreviewFonts(theme, family);
   const configuredThumbnail = textFrom(config?.thumbnail);
   const heroImage = textFrom(
@@ -223,6 +227,8 @@ function createPreviewModel(
     family,
     primary,
     secondary,
+    primaryInk: contrast.primaryInk,
+    primaryForeground: contrast.primaryForeground,
     displayFont: fonts.display,
     bodyFont: fonts.body,
     headline: textFrom(heroContent.headline || heroContent.title || heroContent.heading, templateName),
@@ -260,19 +266,19 @@ function ClinicTrustPreview({ model, name }: { model: PreviewModel; name: string
     <div className="absolute inset-0 flex flex-col bg-[#f8fbfa]" style={{ fontFamily: model.bodyFont }}>
       <div className="flex h-8 items-center justify-between border-b border-emerald-900/10 bg-white px-4">
         <MiniBrand model={model} label={name} />
-        <div className="flex items-center gap-3 text-[5px] font-semibold uppercase tracking-wide text-slate-400">
+        <div className="flex items-center gap-3 text-[5px] font-semibold uppercase tracking-wide text-slate-600">
           <span>Treatments</span><span>Team</span><span>Contact</span>
         </div>
       </div>
 
       <div className="grid min-h-[48%] grid-cols-[1.12fr_0.88fr] overflow-hidden">
         <div className="flex flex-col justify-center px-5 py-4">
-          <div className="text-[5px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primary }}>Care you can trust</div>
+          <div className="text-[5px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primaryInk }}>Care you can trust</div>
           <div className="mt-2 line-clamp-2 text-[16px] font-semibold leading-[1.02] tracking-[-0.035em] text-slate-950" style={{ fontFamily: model.displayFont }}>
             {model.headline}
           </div>
           {model.subheadline ? <div className="mt-2 line-clamp-2 text-[6px] leading-relaxed text-slate-500">{model.subheadline}</div> : null}
-          <div className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-md px-3 py-1.5 text-[6px] font-bold text-white" style={{ backgroundColor: model.primary }}>
+          <div className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-md px-3 py-1.5 text-[6px] font-bold " style={{ backgroundColor: model.primary, color: model.primaryForeground }}>
             <CalendarDays className="h-2.5 w-2.5" /> {model.cta}
           </div>
         </div>
@@ -283,14 +289,14 @@ function ClinicTrustPreview({ model, name }: { model: PreviewModel; name: string
           ) : (
             <div className="flex h-full items-center justify-center">
               <div className="rounded-xl bg-white p-4 shadow-sm">
-                <CalendarDays className="h-6 w-6" style={{ color: model.primary }} />
+                <CalendarDays className="h-6 w-6" style={{ color: model.primaryInk }} />
                 <div className="mt-3 h-1.5 w-16 rounded-full bg-slate-200" />
                 <div className="mt-1.5 h-1.5 w-11 rounded-full bg-slate-100" />
               </div>
             </div>
           )}
           <div className="absolute bottom-3 left-3 right-3 rounded-lg bg-white/94 p-2 shadow-sm backdrop-blur">
-            <div className="text-[5px] font-bold uppercase tracking-wide text-slate-400">Quick appointment</div>
+            <div className="text-[5px] font-bold uppercase tracking-wide text-slate-600">Quick appointment</div>
             <div className="mt-1 text-[7px] font-semibold text-slate-800">Location · hours · contact</div>
           </div>
         </div>
@@ -299,8 +305,8 @@ function ClinicTrustPreview({ model, name }: { model: PreviewModel; name: string
       <div className="grid grid-cols-3 border-y border-emerald-900/10 bg-white">
         {trustItems.slice(0, 3).map((item, index) => (
           <div key={index} className="border-r border-emerald-900/10 px-3 py-2.5 last:border-r-0">
-            <div className="text-[8px] font-bold" style={{ color: model.primary }}>{item.value || "✓"}</div>
-            <div className="mt-0.5 truncate text-[5px] font-semibold text-slate-400">{item.label || "Trust"}</div>
+            <div className="text-[8px] font-bold" style={{ color: model.primaryInk }}>{item.value || "✓"}</div>
+            <div className="mt-0.5 truncate text-[5px] font-semibold text-slate-600">{item.label || "Trust"}</div>
           </div>
         ))}
       </div>
@@ -308,7 +314,7 @@ function ClinicTrustPreview({ model, name }: { model: PreviewModel; name: string
       <div className="grid flex-1 grid-cols-2 gap-2 px-4 py-3">
         {(model.serviceItems.length ? model.serviceItems : ["Treatment clarity", "Patient reassurance"]).slice(0, 2).map((item, index) => (
           <div key={index} className="rounded-lg border border-emerald-900/10 bg-white p-2.5">
-            <ShieldCheck className="h-3 w-3" style={{ color: model.primary }} />
+            <ShieldCheck className="h-3 w-3" style={{ color: model.primaryInk }} />
             <div className="mt-1.5 truncate text-[6px] font-bold text-slate-700">{item}</div>
           </div>
         ))}
@@ -326,14 +332,14 @@ function LocalQuotePreview({ model, name }: { model: PreviewModel; name: string 
     <div className="absolute inset-0 flex flex-col bg-white" style={{ fontFamily: model.bodyFont }}>
       <div className="flex h-8 items-center justify-between bg-slate-950 px-4 text-white">
         <MiniBrand model={model} label={name} inverse />
-        <span className="rounded-md px-2 py-1 text-[5px] font-bold text-white" style={{ backgroundColor: model.primary }}>
+        <span className="rounded-md px-2 py-1 text-[5px] font-bold " style={{ backgroundColor: model.primary, color: model.primaryForeground }}>
           Get quote
         </span>
       </div>
 
       <div className="grid min-h-[55%] grid-cols-[1.05fr_0.95fr] bg-slate-950 text-white">
         <div className="flex flex-col justify-center px-5 py-4">
-          <div className="text-[5px] font-bold uppercase tracking-[0.18em] text-white/45">Local service · fast response</div>
+          <div className="text-[5px] font-bold uppercase tracking-[0.18em] text-white/55">Local service · fast response</div>
           <div className="mt-2 line-clamp-3 text-[17px] font-semibold leading-[1.02] tracking-[-0.035em]" style={{ fontFamily: model.displayFont }}>
             {model.headline}
           </div>
@@ -343,13 +349,13 @@ function LocalQuotePreview({ model, name }: { model: PreviewModel; name: string 
         </div>
 
         <div className="m-3 rounded-xl bg-white p-3 text-slate-900 shadow-lg">
-          <div className="text-[6px] font-bold uppercase tracking-wide" style={{ color: model.primary }}>Request a quote</div>
+          <div className="text-[6px] font-bold uppercase tracking-wide" style={{ color: model.primaryInk }}>Request a quote</div>
           <div className="mt-2 space-y-1.5">
             {["Service needed", "Postcode / area", "Preferred date"].map((field) => (
-              <div key={field} className="flex h-5 items-center rounded-md border border-slate-200 px-2 text-[5px] text-slate-400">{field}</div>
+              <div key={field} className="flex h-5 items-center rounded-md border border-slate-200 px-2 text-[5px] text-slate-600">{field}</div>
             ))}
           </div>
-          <div className="mt-2 rounded-md py-1.5 text-center text-[5px] font-bold text-white" style={{ backgroundColor: model.primary }}>
+          <div className="mt-2 rounded-md py-1.5 text-center text-[5px] font-bold " style={{ backgroundColor: model.primary, color: model.primaryForeground }}>
             {model.cta}
           </div>
         </div>
@@ -358,7 +364,7 @@ function LocalQuotePreview({ model, name }: { model: PreviewModel; name: string 
       <div className="grid grid-cols-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
         {services.slice(0, 3).map((service, index) => (
           <div key={index} className="flex items-center gap-1.5 border-r border-slate-200 px-2 last:border-r-0">
-            <Check className="h-2.5 w-2.5" style={{ color: model.primary }} />
+            <Check className="h-2.5 w-2.5" style={{ color: model.primaryInk }} />
             <span className="truncate text-[5.5px] font-semibold text-slate-600">{service}</span>
           </div>
         ))}
@@ -366,7 +372,7 @@ function LocalQuotePreview({ model, name }: { model: PreviewModel; name: string 
 
       <div className="flex flex-1 items-center justify-between px-5 py-3">
         <div>
-          <div className="text-[5px] font-bold uppercase tracking-wide text-slate-400">Coverage</div>
+          <div className="text-[5px] font-bold uppercase tracking-wide text-slate-600">Coverage</div>
           <div className="mt-1 text-[7px] font-bold text-slate-800">Service area + proof + clear next step</div>
         </div>
         <Search className="h-5 w-5 text-slate-300" />
@@ -384,16 +390,16 @@ function EducationProgramPreview({ model, name }: { model: PreviewModel; name: s
     <div className="absolute inset-0 flex flex-col bg-[#fffdf7]" style={{ fontFamily: model.bodyFont }}>
       <div className="flex h-8 items-center justify-between border-b border-indigo-100 bg-white px-4">
         <MiniBrand model={model} label={name} />
-        <div className="flex gap-3 text-[5px] font-semibold text-slate-400"><span>Programs</span><span>Teachers</span><span>Trial class</span></div>
+        <div className="flex gap-3 text-[5px] font-semibold text-slate-600"><span>Programs</span><span>Teachers</span><span>Trial class</span></div>
       </div>
 
       <div className="relative grid min-h-[46%] grid-cols-[1.08fr_0.92fr] overflow-hidden bg-indigo-50">
         <div className="flex flex-col justify-center px-5 py-4">
-          <div className="text-[5px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primary }}>Learning path</div>
+          <div className="text-[5px] font-bold uppercase tracking-[0.18em]" style={{ color: model.primaryInk }}>Learning path</div>
           <div className="mt-2 line-clamp-3 text-[16px] font-semibold leading-[1.04] tracking-[-0.03em] text-slate-950" style={{ fontFamily: model.displayFont }}>
             {model.headline}
           </div>
-          <div className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-md px-3 py-1.5 text-[6px] font-bold text-white" style={{ backgroundColor: model.primary }}>
+          <div className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-md px-3 py-1.5 text-[6px] font-bold " style={{ backgroundColor: model.primary, color: model.primaryForeground }}>
             <BookOpen className="h-2.5 w-2.5" /> {model.cta}
           </div>
         </div>
@@ -402,7 +408,7 @@ function EducationProgramPreview({ model, name }: { model: PreviewModel; name: s
           <img src={model.heroImage} alt="" className="h-full w-full object-cover" />
         ) : (
           <div className="m-4 flex items-center justify-center rounded-2xl bg-white shadow-sm">
-            <BookOpen className="h-10 w-10" style={{ color: model.primary }} />
+            <BookOpen className="h-10 w-10" style={{ color: model.primaryInk }} />
           </div>
         )}
       </div>
@@ -410,12 +416,12 @@ function EducationProgramPreview({ model, name }: { model: PreviewModel; name: s
       <div className="px-4 py-3">
         <div className="mb-2 flex items-center justify-between">
           <div className="text-[6px] font-bold text-slate-800">Choose a program</div>
-          <span className="text-[5px] font-semibold" style={{ color: model.primary }}>Age · level · goal</span>
+          <span className="text-[5px] font-semibold" style={{ color: model.primaryInk }}>Age · level · goal</span>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {programs.slice(0, 3).map((program, index) => (
             <div key={index} className="rounded-lg border border-indigo-100 bg-white p-2.5">
-              <div className="grid h-5 w-5 place-items-center rounded-md bg-indigo-50 text-[6px] font-bold" style={{ color: model.primary }}>
+              <div className="grid h-5 w-5 place-items-center rounded-md bg-indigo-50 text-[6px] font-bold" style={{ color: model.primaryInk }}>
                 {index + 1}
               </div>
               <div className="mt-2 line-clamp-2 text-[6px] font-bold text-slate-700">{program}</div>
@@ -443,7 +449,7 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
       <div className="grid h-full grid-rows-[34px_1fr_72px]">
         <div className="flex items-center justify-between border-b border-black/15 px-4">
           <MiniBrand model={{ ...model, primary: "#171717" }} label={name} />
-          <div className="flex items-center gap-3 text-[5px] font-semibold uppercase tracking-[0.08em] text-black/45">
+          <div className="flex items-center gap-3 text-[5px] font-semibold uppercase tracking-[0.08em] text-black/60">
             <span>Perspective</span><span>Services</span><span>Contact</span>
           </div>
         </div>
@@ -452,7 +458,7 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
           <div className="grid min-h-0 grid-cols-[1.55fr_0.45fr] border-b border-black/15">
             <div className="flex min-h-0 flex-col justify-between px-5 py-4">
               <div>
-                <div className="text-[5px] font-semibold uppercase tracking-[0.12em] text-black/45">Editorial point of view</div>
+                <div className="text-[5px] font-semibold uppercase tracking-[0.12em] text-black/60">Editorial point of view</div>
                 <div
                   className="mt-3 max-w-[18ch] text-[22px] font-medium leading-[1.02] tracking-[-0.03em] text-[#171717]"
                   style={{ fontFamily: "'Fraunces', Georgia, serif" }}
@@ -469,23 +475,23 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
             </div>
 
             <div className="flex flex-col justify-between border-l border-black/15 bg-[#d9d0bf] p-4">
-              <div className="text-[5px] font-semibold uppercase tracking-[0.1em] text-black/45">Issue 01</div>
+              <div className="text-[5px] font-semibold uppercase tracking-[0.1em] text-black/60">Issue 01</div>
               <div className="text-[11px] font-medium leading-[1.1]" style={{ fontFamily: "'Fraunces', Georgia, serif" }}>
                 Insight before interface.
               </div>
-              <div className="text-[5px] font-semibold text-black/50">{name}</div>
+              <div className="text-[5px] font-semibold text-black/60">{name}</div>
             </div>
           </div>
 
           <div className="grid grid-cols-[0.7fr_1.3fr]">
             <div className="border-r border-black/15 px-4 py-3">
-              <div className="text-[5px] uppercase tracking-[0.08em] text-black/40">Reading path</div>
+              <div className="text-[5px] uppercase tracking-[0.08em] text-black/60">Reading path</div>
               <div className="mt-2 text-[7px] font-semibold leading-[1.35]">Point of view → evidence → action</div>
             </div>
             <div className="grid grid-cols-3">
               {services.slice(0, 3).map((service, index) => (
                 <div key={service} className="border-r border-black/15 px-3 py-3 last:border-r-0">
-                  <div className="text-[5px] font-semibold text-black/40">0{index + 1}</div>
+                  <div className="text-[5px] font-semibold text-black/60">0{index + 1}</div>
                   <div className="mt-2 line-clamp-2 text-[6px] font-semibold leading-[1.35]">{service}</div>
                 </div>
               ))}
@@ -495,7 +501,7 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
 
         <div className="flex items-center justify-between border-t border-black/15 bg-[#171717] px-4 text-white">
           <div>
-            <div className="text-[5px] uppercase tracking-[0.08em] text-white/45">Best for</div>
+            <div className="text-[5px] uppercase tracking-[0.08em] text-white/55">Best for</div>
             <div className="mt-1 text-[6px] font-semibold">Consulting, legal and complex B2B services</div>
           </div>
           <div className="text-[6px] font-semibold text-white/70">Editorial direction</div>
@@ -513,7 +519,7 @@ function BrandStatementPreview({ model, name }: { model: PreviewModel; name: str
       <div className="grid h-full grid-rows-[34px_1fr_60px]">
         <div className="flex items-center justify-between border-b border-slate-200 px-4">
           <MiniBrand model={model} label={name} />
-          <div className="flex gap-3 text-[5px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+          <div className="flex gap-3 text-[5px] font-semibold uppercase tracking-[0.1em] text-slate-600">
             <span>Services</span><span>Work</span><span>Contact</span>
           </div>
         </div>
@@ -521,7 +527,7 @@ function BrandStatementPreview({ model, name }: { model: PreviewModel; name: str
         <div className="grid min-h-0 grid-cols-[1.02fr_0.98fr]">
           <div className="flex min-h-0 flex-col justify-between px-5 py-4">
             <div>
-              <div className="text-[5px] font-semibold uppercase tracking-[0.16em]" style={{ color: model.primary }}>Professional services</div>
+              <div className="text-[5px] font-semibold uppercase tracking-[0.16em]" style={{ color: model.primaryInk }}>Professional services</div>
               <div className="mt-3 max-w-[12ch] text-[23px] font-semibold leading-[0.98] tracking-[-0.04em] text-slate-950">{model.headline}</div>
               <div className="mt-3 max-w-[34ch] text-[6px] leading-[1.6] text-slate-500">{model.subheadline || "A crisp, confident website built around a clear offer, credible proof and one useful next step."}</div>
             </div>
@@ -556,7 +562,7 @@ function BrandStatementPreview({ model, name }: { model: PreviewModel; name: str
         <div className="grid grid-cols-3 border-t border-slate-200 bg-[#f1f5f9]">
           {["Positioning", "Credibility", "Conversion"].map((item, index) => (
             <div key={item} className="border-r border-slate-200 px-4 py-2 last:border-r-0">
-              <div className="text-[5px] font-semibold" style={{ color: model.primary }}>0{index + 1}</div>
+              <div className="text-[5px] font-semibold" style={{ color: model.primaryInk }}>0{index + 1}</div>
               <div className="mt-1 text-[6px] font-semibold text-slate-700">{item}</div>
             </div>
           ))}
@@ -617,7 +623,7 @@ function MediaStoryPreview({ model, name }: { model: PreviewModel; name: string 
         <div className="grid grid-cols-3 border-t border-white/15 bg-slate-950/72 backdrop-blur">
           {["People", "Place", "Experience"].map((item, index) => (
             <div key={item} className="border-r border-white/15 px-4 py-2 last:border-r-0">
-              <div className="text-[5px] text-white/45">0{index + 1}</div>
+              <div className="text-[5px] text-white/55">0{index + 1}</div>
               <div className="mt-1 text-[6px] font-semibold text-white">{item}</div>
             </div>
           ))}
@@ -716,7 +722,7 @@ export function TemplatePreviewThumbnail({
     >
       {!showPreview ? (
         <div className="absolute inset-0 grid place-items-center bg-[linear-gradient(145deg,#f8fafc,#eef2ff)]">
-          <div className="flex flex-col items-center gap-2 text-slate-400">
+          <div className="flex flex-col items-center gap-2 text-slate-600">
             <LayoutTemplate className="h-8 w-8" aria-hidden="true" />
             <span className="text-[9px] font-bold uppercase tracking-[0.1em]">Building preview</span>
           </div>

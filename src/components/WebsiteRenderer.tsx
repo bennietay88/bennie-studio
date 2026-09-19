@@ -73,6 +73,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { DESIGN_TOKENS, resolveDesignProfile } from "../constants/designProfiles";
+import { resolveAccessibleThemeColors } from "../lib/colorContrast";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -1108,6 +1109,7 @@ export function WebsiteRenderer({
       socialLinks: website?.theme?.footer?.socialLinks || [],
     },
   };
+  const accessibleTheme = resolveAccessibleThemeColors(theme.primaryColor, theme.secondaryColor);
   const designProfile = resolveDesignProfile(theme.designProfile, businessInfo?.industry || website?.seo?.businessType);
   const generationMode = theme.generationMode || "fast";
   const spacingTokens = DESIGN_TOKENS.spacing[theme.spacingProfile || designProfile.spacing];
@@ -1613,6 +1615,12 @@ export function WebsiteRenderer({
         :root {
           --primary: ${theme.primaryColor};
           --secondary: ${theme.secondaryColor};
+          --primary-foreground: ${accessibleTheme.primaryForeground};
+          --secondary-foreground: ${accessibleTheme.secondaryForeground};
+          --primary-ink: ${accessibleTheme.primaryInk};
+          --secondary-ink: ${accessibleTheme.secondaryInk};
+          --primary-on-dark: ${accessibleTheme.primaryOnDark};
+          --secondary-on-dark: ${accessibleTheme.secondaryOnDark};
           --bt-display-font: ${designProfile.displayFont};
           --bt-body-font: ${designProfile.bodyFont};
           --bt-section-padding: ${spacingTokens.section};
@@ -1627,7 +1635,7 @@ export function WebsiteRenderer({
         
         .btn-primary { 
           background-color: var(--primary); 
-          color: white; 
+          color: var(--primary-foreground); 
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
@@ -1637,9 +1645,33 @@ export function WebsiteRenderer({
         }
 
         .text-gradient {
-          background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+          background: linear-gradient(135deg, var(--primary-ink) 0%, var(--secondary-ink) 100%);
           -webkit-background-clip: text;
+          background-clip: text;
           -webkit-text-fill-color: transparent;
+        }
+
+        /* Theme colors can be excellent brand colors and terrible text colors.
+           Keep the visual brand color for fills while using AA-safe derived ink
+           and foreground tokens wherever the color carries readable text. */
+        .bt-website-renderer .text-primary {
+          color: var(--primary-ink) !important;
+        }
+        .bt-website-renderer .bg-primary {
+          color: var(--primary-foreground);
+        }
+        .bt-website-renderer .bg-primary.text-white,
+        .bt-website-renderer .bg-primary.text-primary-foreground {
+          color: var(--primary-foreground) !important;
+        }
+        .bt-website-renderer .bg-primary .text-white {
+          color: inherit !important;
+        }
+        .bt-website-renderer.style-glassmorphic .text-primary,
+        .bt-website-renderer.style-immersive .text-primary,
+        .bt-website-renderer.style-luxury_dark .text-primary,
+        .bt-website-renderer section.bg-slate-950 .text-primary {
+          color: var(--primary-on-dark) !important;
         }
 
         .bt-website-renderer,
@@ -1779,7 +1811,7 @@ export function WebsiteRenderer({
         /* Design Style: Neumorphic */
         .style-neumorphic { background-color: #f0f2f5; color: #334155; }
         .style-neumorphic .section-container { background: #f0f2f5; box-shadow: 20px 20px 60px #d1d9e6, -20px -20px 60px #ffffff; border-radius: 40px; padding: 4rem; margin-bottom: 4rem; }
-        .style-neumorphic .btn-primary { background: #f0f2f5; box-shadow: 8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff; color: var(--primary); border: none; border-radius: 16px; font-weight: 700; }
+        .style-neumorphic .btn-primary { background: #f0f2f5; box-shadow: 8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff; color: var(--primary-ink); border: none; border-radius: 16px; font-weight: 700; }
         .style-neumorphic .btn-primary:hover { box-shadow: inset 8px 8px 16px #d1d9e6, inset -8px -8px 16px #ffffff; transform: scale(0.98); }
 
         /* Design Style: Brutalist */
@@ -1851,7 +1883,7 @@ export function WebsiteRenderer({
         }
 
         section.bg-slate-950 .text-primary {
-          color: color-mix(in srgb, var(--primary) 42%, white 58%) !important;
+          color: var(--primary-on-dark) !important;
         }
 
         section.bg-slate-950 button.bg-white,
@@ -2139,7 +2171,7 @@ export function WebsiteRenderer({
                       className={cn(
                         "w-full text-left p-4 rounded-2xl text-lg font-black uppercase tracking-widest flex items-center justify-between group",
                         activePageSlug === page.slug
-                          ? "bg-primary text-white"
+                          ? "bg-primary text-primary-foreground"
                           : theme.style === "luxury_dark" ||
                               theme.style === "immersive" ||
                               theme.style === "glassmorphic"
@@ -2546,14 +2578,14 @@ export function WebsiteRenderer({
                         variants={staggerContainer}
                         className={cn(
                           "relative overflow-hidden border-b",
-                          brandHero ? "text-white border-white/10" : "bg-[#f8f7f4] text-slate-950 border-slate-200",
+                          brandHero ? "border-white/20" : "bg-[#f8f7f4] text-slate-950 border-slate-200",
                         )}
-                        style={brandHero ? { backgroundColor: theme.primaryColor } : undefined}
+                        style={brandHero ? { backgroundColor: theme.primaryColor, color: accessibleTheme.primaryForeground } : undefined}
                       >
                         <div className="mx-auto grid min-h-[72vh] max-w-[90rem] grid-cols-1 items-stretch lg:grid-cols-12">
                           <motion.div variants={fadeInUp} className="flex flex-col justify-center px-6 py-20 sm:px-10 lg:col-span-7 lg:px-16 lg:py-28">
                             <div className={cn("mb-8 h-px w-16", brandHero ? "bg-white/70" : "bg-primary")} />
-                            <p className={cn("mb-5 text-[10px] font-black uppercase tracking-[0.32em]", brandHero ? "text-white/70" : "text-primary")}>
+                            <p className={cn("mb-5 text-[10px] font-black uppercase tracking-[0.32em]", brandHero ? "text-current" : "text-primary")}>
                               {displayBusinessDescriptor}
                             </p>
                             <h1
@@ -2562,7 +2594,7 @@ export function WebsiteRenderer({
                             >
                               {section.content.headline || displayBusinessName}
                             </h1>
-                            <p className={cn("mt-8 max-w-2xl text-lg font-medium leading-8 sm:text-xl", brandHero ? "text-white/80" : "text-slate-600")}>
+                            <p className={cn("mt-8 max-w-2xl text-lg font-medium leading-8 sm:text-xl", brandHero ? "text-current" : "text-slate-600")}>
                               {section.content.subheadline}
                             </p>
                             <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -2591,8 +2623,8 @@ export function WebsiteRenderer({
                             ) : (
                               <div className={cn("absolute inset-6 flex flex-col justify-end border p-8 sm:inset-10", brandHero ? "border-white/25 bg-white/[0.04]" : "border-slate-200 bg-slate-50")}>
                                 <div className={cn("mb-auto h-16 w-16 border", brandHero ? "border-white/30" : "border-primary/30")} />
-                                <p className={cn("text-[10px] font-black uppercase tracking-[0.28em]", brandHero ? "text-white/60" : "text-slate-400")}>Customer media slot</p>
-                                <p className={cn("mt-3 max-w-sm text-xl font-semibold leading-7", brandHero ? "text-white" : "text-slate-900")}>Add real photography, product UI, projects or brand artwork here.</p>
+                                <p className={cn("text-[10px] font-black uppercase tracking-[0.28em]", brandHero ? "text-current" : "text-slate-500")}>Customer media slot</p>
+                                <p className={cn("mt-3 max-w-sm text-xl font-semibold leading-7", brandHero ? "text-current" : "text-slate-900")}>Add real photography, product UI, projects or brand artwork here.</p>
                               </div>
                             )}
                           </motion.div>
@@ -2875,7 +2907,7 @@ export function WebsiteRenderer({
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="rounded-full group-hover:bg-primary group-hover:text-white transition-colors"
+                                    className="rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                                     onClick={() =>
                                       trackInteraction("service_click", item.title || "Service", {
                                         target: section.id || "services",
@@ -2984,7 +3016,7 @@ export function WebsiteRenderer({
                               variants={fadeInUp}
                               className="rounded-[2rem] border border-slate-100 bg-slate-50/80 p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-xl"
                             >
-                              <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20">
+                              <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
                                 <CheckCircle2 className="h-6 w-6" />
                               </div>
                               <h3 className="text-xl font-black tracking-tight text-slate-950">
@@ -3015,7 +3047,7 @@ export function WebsiteRenderer({
                         <div className="mx-auto max-w-7xl px-6">
                           <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-end">
                             <div className="lg:col-span-7">
-                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/45">Capability system</p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/55">Capability system</p>
                               <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{section.content.title || "Built to work together"}</h2>
                             </div>
                             <p className="max-w-xl text-sm leading-7 text-slate-400 lg:col-span-5 lg:justify-self-end">{section.content.description}</p>
@@ -3388,7 +3420,7 @@ export function WebsiteRenderer({
                                 )}
                               >
                                 {plan.isPopular && (
-                                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-10 py-3 bg-primary text-white text-[10px] font-black uppercase tracking-[0.4em] rounded-full shadow-2xl">
+                                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-10 py-3 bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-[0.4em] rounded-full shadow-2xl">
                                     Priority Choice
                                   </div>
                                 )}
@@ -3483,7 +3515,7 @@ export function WebsiteRenderer({
                         <div className="mx-auto max-w-7xl px-6">
                           <motion.div variants={fadeInUp} className="grid gap-8 border-b border-white/10 pb-10 lg:grid-cols-12 lg:items-end">
                             <div className="lg:col-span-5">
-                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/45">Customer perspective</p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/55">Customer perspective</p>
                               <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
                                 {section.content.title || "What customers say"}
                               </h2>
@@ -3558,12 +3590,12 @@ export function WebsiteRenderer({
                 case "cta":
                   if (["brand_band", "consultation", "editorial", "full_bleed"].includes(section.settings?.variant || "")) {
                     return (
-                      <motion.section key={section.id || `cta-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true }} variants={staggerContainer} className="text-white" style={{ backgroundColor: theme.primaryColor }}>
+                      <motion.section key={section.id || `cta-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true }} variants={staggerContainer} style={{ backgroundColor: theme.primaryColor, color: accessibleTheme.primaryForeground }}>
                         <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:py-20 lg:grid-cols-12 lg:items-center">
                           <motion.div variants={fadeInUp} className="lg:col-span-8">
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">Next step</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-current">Next step</p>
                             <h2 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{section.content.title || "Ready to talk?"}</h2>
-                            <p className="mt-5 max-w-2xl text-base leading-7 text-white/75">{section.content.description}</p>
+                            <p className="mt-5 max-w-2xl text-base leading-7 text-current">{section.content.description}</p>
                           </motion.div>
                           <motion.div variants={fadeInUp} className="lg:col-span-4 lg:justify-self-end">
                             <Button size="lg" className="h-14 rounded-none bg-white px-8 text-sm font-black uppercase tracking-widest text-slate-950 hover:bg-white/90" onClick={() => handleButtonAction(section.content.buttonText || section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "website_button_clicked", sectionId: section.id })}>
@@ -3603,7 +3635,7 @@ export function WebsiteRenderer({
                         <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
                           <Button
                             size="lg"
-                            className="h-20 px-12 text-lg font-black uppercase tracking-widest bg-white text-slate-950 hover:bg-primary hover:text-white rounded-none transition-all duration-500 shadow-2xl"
+                            className="h-20 px-12 text-lg font-black uppercase tracking-widest bg-white text-slate-950 hover:bg-primary hover:text-primary-foreground rounded-none transition-all duration-500 shadow-2xl"
                             onClick={() =>
                               handleButtonAction(section.content.buttonText || section.content.ctaText || "Contact Us", section.content.buttonAction, {
                                 eventType: "website_button_clicked",
@@ -3963,14 +3995,14 @@ export function WebsiteRenderer({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-10 w-10 rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-all"
+                                  className="h-10 w-10 rounded-xl bg-slate-50 hover:bg-primary hover:text-primary-foreground transition-all"
                                 >
                                   <ChevronLeft className="h-5 w-5" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-10 w-10 rounded-xl bg-slate-50 hover:bg-primary hover:text-white transition-all"
+                                  className="h-10 w-10 rounded-xl bg-slate-50 hover:bg-primary hover:text-primary-foreground transition-all"
                                 >
                                   <ChevronRight className="h-5 w-5" />
                                 </Button>
@@ -4369,7 +4401,7 @@ export function WebsiteRenderer({
                                   View Details
                                 </Button>
                                 <Button
-                                  className="flex-1 h-14 bg-slate-950 hover:bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all gap-2 group/btn"
+                                  className="flex-1 h-14 bg-slate-950 hover:bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-widest text-xs transition-all gap-2 group/btn"
                                   onClick={() => {
                                     if (product.sourceType === "industry_content") {
                                       trackInteraction("industry_item_enquiry_click", product.name || product.title || "Industry Item", {
@@ -4551,7 +4583,7 @@ export function WebsiteRenderer({
             <div className="mx-auto max-w-[90rem] px-6 sm:px-8">
               <div className="grid gap-10 border-b border-white/10 py-14 sm:py-20 lg:grid-cols-12 lg:items-end">
                 <div className="lg:col-span-8">
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/45">Next step</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/55">Next step</p>
                   <h2 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>Start a conversation with {displayBusinessName}.</h2>
                 </div>
                 <div className="lg:col-span-4 lg:justify-self-end">
@@ -4731,7 +4763,7 @@ export function WebsiteRenderer({
                       onClick={() => trackContactAction("email_click", "Footer email", contactEmail)}
                       className="flex gap-5 group"
                     >
-                      <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+                      <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-primary-foreground transition-all shrink-0">
                         <Mail className="h-5 w-5" />
                       </div>
                       <div className="space-y-1">
@@ -4752,7 +4784,7 @@ export function WebsiteRenderer({
                       onClick={() => normalizedPhone && trackContactAction("call_click", "Footer phone", normalizedPhone)}
                       className="flex gap-5 group"
                     >
-                      <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+                      <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-primary-foreground transition-all shrink-0">
                         <Phone className="h-5 w-5" />
                       </div>
                       <div className="space-y-1">
@@ -4791,7 +4823,7 @@ export function WebsiteRenderer({
                   )}
                   {theme.footer?.contactAddress && (
                     <li className="flex gap-5 group">
-                      <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all shrink-0">
+                      <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-primary-foreground transition-all shrink-0">
                         <MapPin className="h-5 w-5" />
                       </div>
                       <div className="space-y-1">
@@ -5014,7 +5046,7 @@ export function WebsiteRenderer({
 
                   <div className="pt-8 border-t border-slate-100 flex flex-col gap-4">
                     <Button
-                      className="w-full h-16 bg-slate-950 hover:bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all gap-3 shadow-xl group"
+                      className="w-full h-16 bg-slate-950 hover:bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-widest text-xs transition-all gap-3 shadow-xl group"
                       onClick={() => isIndustryItem ? handleIndustryEnquiry() : handleCheckout(selectedProduct)}
                       disabled={checkoutLoading === selectedProduct.id}
                     >

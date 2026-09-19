@@ -5,6 +5,14 @@ import { buildPagesFromBlueprint, getBlueprintTheme } from "../src/constants/pag
 import { parseDesignDirection } from "../src/lib/designDirector.ts";
 import { assessWebsiteDesign } from "../src/lib/designQa.ts";
 import { SECTION_TEMPLATES } from "../src/constants/sectionTemplates.ts";
+import { NICHE_TEMPLATES } from "../src/constants/nicheTemplates.ts";
+import {
+  CONTRAST_TEST_DARK_SURFACE,
+  CONTRAST_TEST_LIGHT_SURFACE,
+  contrastRatio,
+  resolveAccessibleThemeColors,
+  WCAG_AA_NORMAL_TEXT_RATIO,
+} from "../src/lib/colorContrast.ts";
 
 test("all approved design profiles have complete production defaults", () => {
   for (const profile of Object.values(DESIGN_PROFILES)) {
@@ -33,6 +41,39 @@ test("blueprint themes always resolve to approved renderer styles", () => {
   ];
   for (const theme of themes) {
     assert.ok(theme.style && approvedStyles.has(theme.style), `Unexpected renderer style: ${theme.style}`);
+  }
+});
+
+test("all catalogue templates resolve to WCAG AA text contrast", () => {
+  const templates = Object.values(NICHE_TEMPLATES);
+  assert.ok(templates.length >= 160, `Expected full template catalogue, received ${templates.length}`);
+
+  for (const template of templates) {
+    const colors = resolveAccessibleThemeColors(
+      template.theme?.primaryColor,
+      template.theme?.secondaryColor,
+    );
+
+    assert.ok(
+      contrastRatio(colors.primaryForeground, colors.primary) >= WCAG_AA_NORMAL_TEXT_RATIO,
+      `${template.id}: primary fill foreground fails AA`,
+    );
+    assert.ok(
+      contrastRatio(colors.secondaryForeground, colors.secondary) >= WCAG_AA_NORMAL_TEXT_RATIO,
+      `${template.id}: secondary fill foreground fails AA`,
+    );
+    assert.ok(
+      contrastRatio(colors.primaryInk, CONTRAST_TEST_LIGHT_SURFACE) >= WCAG_AA_NORMAL_TEXT_RATIO,
+      `${template.id}: primary text on light surfaces fails AA`,
+    );
+    assert.ok(
+      contrastRatio(colors.secondaryInk, CONTRAST_TEST_LIGHT_SURFACE) >= WCAG_AA_NORMAL_TEXT_RATIO,
+      `${template.id}: secondary text on light surfaces fails AA`,
+    );
+    assert.ok(
+      contrastRatio(colors.primaryOnDark, CONTRAST_TEST_DARK_SURFACE) >= WCAG_AA_NORMAL_TEXT_RATIO,
+      `${template.id}: primary text on dark surfaces fails AA`,
+    );
   }
 });
 
