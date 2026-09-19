@@ -123,18 +123,18 @@ export function PublicSiteHeader() {
       {mobileOpen ? (
         <div className="fixed inset-0 z-[100] bg-[#0c1224]/50 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
           <div className="absolute right-0 top-0 flex h-dvh w-[min(90vw,360px)] flex-col bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-[#dedbd3] pb-5">
+            <div className="flex items-center justify-between border-b border-[#dfe2ea] pb-5">
               <span className="text-lg font-semibold tracking-[-0.03em] text-[#10131c]">Bennie Studio</span>
               <Button type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Close navigation menu"><X className="h-5 w-5" /></Button>
             </div>
             <div className="flex flex-col py-5">
               {publicNavItems.map((item) => item.external ? (
-                <a key={item.href} href={item.href} target="_blank" rel="noreferrer" onClick={() => setMobileOpen(false)} className="border-b border-[#dedbd3] py-4 text-lg font-semibold text-[#10131c]">{item.label}</a>
+                <a key={item.href} href={item.href} target="_blank" rel="noreferrer" onClick={() => setMobileOpen(false)} className="border-b border-[#dfe2ea] py-4 text-lg font-semibold text-[#10131c]">{item.label}</a>
               ) : (
-                <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="border-b border-[#dedbd3] py-4 text-lg font-semibold text-[#10131c]">{item.label}</Link>
+                <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="border-b border-[#dfe2ea] py-4 text-lg font-semibold text-[#10131c]">{item.label}</Link>
               ))}
             </div>
-            <div className="mt-auto grid gap-3 border-t border-[#dedbd3] pt-5">
+            <div className="mt-auto grid gap-3 border-t border-[#dfe2ea] pt-5">
               <MarketSwitcher />
               <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center border border-[#10131c] px-5 text-sm font-bold text-[#10131c]">{user ? "Dashboard" : "Client login"}</Link>
               <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-12 items-center justify-center bg-[#10131c] px-5 text-sm font-black text-white">{user ? "Open Studio" : "Generate preview"}</Link>

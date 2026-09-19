@@ -586,7 +586,7 @@ function TemplatesPage() {
         </div>
       </section>
 
-      <section className="border-y border-[#d9d7d0] bg-white">
+      <section className="border-y border-[#dfe2ea] bg-white">
         <div className="brand-shell brand-section">
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
@@ -612,7 +612,7 @@ function TemplatesPage() {
         </div>
       </section>
 
-      <section className="bg-[#0f1726] text-white">
+      <section className="bg-[#0b1020] text-white">
         <div className="brand-shell brand-section">
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
@@ -649,8 +649,8 @@ function HowItWorksPage() {
   return (
     <>
       <Hero
-        title="You run the business. We manage the website."
-        copy="The working model is deliberately simple: you provide accurate business information and approvals; Bennie Studio handles strategy, production, hosting, maintenance and plan-based improvement."
+        title="A managed website operating model, not a project handoff."
+        copy="You provide accurate business information and approvals. Bennie Studio handles strategy, production, hosting, maintenance and the improvement included in your plan."
         icon={Rocket}
       />
       <section className="brand-shell brand-section">
@@ -662,7 +662,7 @@ function HowItWorksPage() {
           </div>
           <div className="brand-rule-list lg:col-span-8">
             {deliveryStages.map((stage, index) => (
-              <article key={stage.title} className="border-b border-[#d9d7d0] py-7">
+              <article key={stage.title} className="border-b border-[#dfe2ea] py-7">
                 <div className="grid gap-5 md:grid-cols-[5rem_1fr]">
                   <div>
                     <p className="text-xs font-bold text-[#5b4bff]">0{index + 1}</p>
@@ -689,14 +689,14 @@ function HowItWorksPage() {
         </div>
       </section>
 
-      <section className="border-y border-[#d9d7d0] bg-white">
+      <section className="border-y border-[#dfe2ea] bg-white">
         <div className="brand-shell grid gap-8 py-12 md:grid-cols-3">
           {[
             ["Before launch", "You review the prepared website and approve the final direction before it goes live."],
             ["After launch", "Hosting, SSL, maintenance, tracking and the included update allowance remain managed."],
             ["When needs change", "Upgrade the plan or scope CMS, ecommerce, integrations or deeper growth work separately."],
           ].map(([title, copy]) => (
-            <div key={title} className="border-t border-[#d9d7d0] pt-4">
+            <div key={title} className="border-t border-[#dfe2ea] pt-4">
               <h3>{title}</h3>
               <p className="mt-3 text-sm leading-6 text-[#5f6673]">{copy}</p>
             </div>
@@ -760,7 +760,7 @@ function CaseStudiesPage() {
       />
 
       {verifiedProof.length ? (
-        <section className="bg-[#0f1726] text-white">
+        <section className="bg-[#0b1020] text-white">
           <div className="brand-shell brand-section">
             <div className="grid gap-10 lg:grid-cols-12">
               <div className="lg:col-span-4">
@@ -803,9 +803,9 @@ function CaseStudiesPage() {
             <p className="brand-copy mt-5">These are demonstrations, not claimed customer results. Use them to inspect hierarchy, service presentation, proof placement and enquiry flow.</p>
             <a href="https://portfolio.bennietay.com" target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center text-sm font-bold text-[#141821]">Open live portfolio <ExternalLink className="ml-2 h-4 w-4" /></a>
           </div>
-          <div className="border-t border-[#d9d7d0] lg:col-span-8">
+          <div className="border-t border-[#dfe2ea] lg:col-span-8">
             {caseStudies.map((item) => (
-              <article key={item.title} className="grid gap-6 border-b border-[#d9d7d0] py-7 md:grid-cols-[1.05fr_1fr]">
+              <article key={item.title} className="grid gap-6 border-b border-[#dfe2ea] py-7 md:grid-cols-[1.05fr_1fr]">
                 <TemplatePreviewThumbnail templateId={item.templateId} templateName={item.title} className="min-h-56" />
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.06em] text-[#5b4bff]">{item.industry} · demonstration</p>
@@ -1265,7 +1265,7 @@ function GeneratePreviewPage() {
 
   return (
     <>
-      <section className="border-b border-[#d9d7d0] bg-[#f7f6f2]">
+      <section className="border-b border-[#dfe2ea] bg-[#f6f7fb]">
         <div className="brand-shell grid gap-10 py-14 sm:py-16 lg:grid-cols-12 lg:items-center lg:py-20">
           <div className="lg:col-span-7">
             <p className="brand-kicker flex items-center gap-2">
@@ -1279,7 +1279,7 @@ function GeneratePreviewPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-2">
               {["No card required", "Nothing is published", "Uses your real business details"].map((item) => (
-                <span key={item} className="inline-flex items-center gap-2 rounded-full border border-[#d8d9dc] bg-white px-4 py-2 text-sm font-semibold text-[#374151]">
+                <span key={item} className="inline-flex items-center gap-2 rounded-full border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold text-[#374151]">
                   <Check className="h-4 w-4 text-[#5746e8]" /> {item}
                 </span>
               ))}
@@ -1287,7 +1287,7 @@ function GeneratePreviewPage() {
           </div>
 
           <div className="lg:col-span-5">
-            <div className="overflow-hidden border border-[#d8d9dc] bg-white shadow-[0_28px_80px_-50px_rgba(15,23,42,0.55)]">
+            <div className="overflow-hidden border border-[#dfe2ea] bg-white shadow-[0_28px_80px_-50px_rgba(15,23,42,0.55)]">
               <div className="bg-[#141821] px-6 py-5 text-white">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#b9b1ff]">Your preview blueprint</p>
                 <h2 className="mt-2 text-2xl font-semibold text-white">{businessLabel === "your business" ? "Your business, made clearer." : businessLabel}</h2>
@@ -1323,8 +1323,8 @@ function GeneratePreviewPage() {
 
           <form onSubmit={generatePreview} className="grid gap-8 lg:grid-cols-12 lg:items-start">
             <div className="space-y-6 lg:col-span-8">
-              <section className="border border-[#d8d9dc] bg-[#f9f8f4] p-5 sm:p-7">
-                <div className="mb-6 flex items-start gap-4 border-b border-[#d8d9dc] pb-5">
+              <section className="border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7">
+                <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">1</span>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Business essentials</p>
@@ -1335,28 +1335,28 @@ function GeneratePreviewPage() {
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
                     <label htmlFor="preview-industry" className="mb-2 block text-sm font-semibold text-[#374151]">Business type</label>
-                    <select id="preview-industry" value={industryId} onChange={(e) => selectIndustry(e.target.value)} className="h-12 w-full border border-[#d8d9dc] bg-white px-4 text-[#141821] outline-none transition focus:border-[#5746e8] focus:ring-4 focus:ring-[#5746e8]/10">
+                    <select id="preview-industry" value={industryId} onChange={(e) => selectIndustry(e.target.value)} className="h-12 w-full border border-[#dfe2ea] bg-white px-4 text-[#141821] outline-none transition focus:border-[#5746e8] focus:ring-4 focus:ring-[#5746e8]/10">
                       {previewIndustries.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                     </select>
                   </div>
                   <div>
                     <label htmlFor="preview-service" className="mb-2 block text-sm font-semibold text-[#374151]">Main service</label>
-                    <Input id="preview-service" required value={form.mainService} onChange={(e) => setForm({...form, mainService:e.target.value})} placeholder="e.g. Invisalign, bookkeeping, renovation" className="h-12 rounded-none border-[#d8d9dc] bg-white" />
+                    <Input id="preview-service" required value={form.mainService} onChange={(e) => setForm({...form, mainService:e.target.value})} placeholder="e.g. Invisalign, bookkeeping, renovation" className="h-12 rounded-none border-[#dfe2ea] bg-white" />
                     {inferredIndustryId && inferredIndustryId !== industryId ? <p className="mt-2 text-xs font-semibold text-[#5746e8]">Detected: {previewIndustries.find((item) => item.id === inferredIndustryId)?.label}. We will use that website family.</p> : null}
                   </div>
                   <div>
                     <label htmlFor="preview-business" className="mb-2 block text-sm font-semibold text-[#374151]">Business name</label>
-                    <Input id="preview-business" required value={form.businessName} onChange={(e) => setForm({...form, businessName:e.target.value})} placeholder="Business name" className="h-12 rounded-none border-[#d8d9dc] bg-white" />
+                    <Input id="preview-business" required value={form.businessName} onChange={(e) => setForm({...form, businessName:e.target.value})} placeholder="Business name" className="h-12 rounded-none border-[#dfe2ea] bg-white" />
                   </div>
                   <div>
                     <label htmlFor="preview-location" className="mb-2 block text-sm font-semibold text-[#374151]">Location / service area</label>
-                    <Input id="preview-location" required value={form.location} onChange={(e) => setForm({...form, location:e.target.value})} placeholder="City or area served" className="h-12 rounded-none border-[#d8d9dc] bg-white" />
+                    <Input id="preview-location" required value={form.location} onChange={(e) => setForm({...form, location:e.target.value})} placeholder="City or area served" className="h-12 rounded-none border-[#dfe2ea] bg-white" />
                   </div>
                 </div>
               </section>
 
-              <section className="border border-[#d8d9dc] bg-white p-5 sm:p-7">
-                <div className="mb-6 flex items-start gap-4 border-b border-[#d8d9dc] pb-5">
+              <section className="border border-[#dfe2ea] bg-white p-5 sm:p-7">
+                <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">2</span>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Customer action</p>
@@ -1374,7 +1374,7 @@ function GeneratePreviewPage() {
                         onClick={() => selectGoal(item)}
                         className={selected
                           ? "flex min-h-20 items-center justify-between border-2 border-[#5746e8] bg-[#eeebff] px-4 py-4 text-left text-sm font-semibold text-[#141821]"
-                          : "flex min-h-20 items-center justify-between border border-[#d8d9dc] bg-[#f9f8f4] px-4 py-4 text-left text-sm font-semibold text-[#374151] transition hover:border-[#aaa4dc] hover:bg-white"}
+                          : "flex min-h-20 items-center justify-between border border-[#dfe2ea] bg-[#f9f8f4] px-4 py-4 text-left text-sm font-semibold text-[#374151] transition hover:border-[#aaa4dc] hover:bg-white"}
                       >
                         <span>{item}</span>
                         <span className={selected ? "grid h-6 w-6 place-items-center rounded-full bg-[#5746e8] text-white" : "grid h-6 w-6 place-items-center rounded-full border border-[#c8cad0] bg-white text-transparent"}>
@@ -1388,7 +1388,7 @@ function GeneratePreviewPage() {
                 <div className="mt-6 grid gap-5 sm:grid-cols-2">
                   <div>
                     <label htmlFor="preview-site-status" className="mb-2 block text-sm font-semibold text-[#374151]">Current website</label>
-                    <select id="preview-site-status" value={form.websiteStatus} onChange={(e) => setForm({...form, websiteStatus:e.target.value, websiteUrl:e.target.value==="no"?"":form.websiteUrl})} className="h-12 w-full border border-[#d8d9dc] bg-white px-4 text-[#141821] outline-none transition focus:border-[#5746e8] focus:ring-4 focus:ring-[#5746e8]/10">
+                    <select id="preview-site-status" value={form.websiteStatus} onChange={(e) => setForm({...form, websiteStatus:e.target.value, websiteUrl:e.target.value==="no"?"":form.websiteUrl})} className="h-12 w-full border border-[#dfe2ea] bg-white px-4 text-[#141821] outline-none transition focus:border-[#5746e8] focus:ring-4 focus:ring-[#5746e8]/10">
                       <option value="yes">I have a website</option>
                       <option value="no">No website yet</option>
                     </select>
@@ -1396,18 +1396,18 @@ function GeneratePreviewPage() {
                   {form.websiteStatus === "yes" ? (
                     <div>
                       <label htmlFor="preview-url" className="mb-2 block text-sm font-semibold text-[#374151]">Current website URL</label>
-                      <Input id="preview-url" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://..." className="h-12 rounded-none border-[#d8d9dc]" />
+                      <Input id="preview-url" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://..." className="h-12 rounded-none border-[#dfe2ea]" />
                     </div>
                   ) : (
                     <div className="flex items-end">
-                      <div className="w-full border border-[#d8d9dc] bg-[#f9f8f4] px-4 py-3 text-sm font-semibold text-[#687386]">We will start from your business brief instead.</div>
+                      <div className="w-full border border-[#dfe2ea] bg-[#f9f8f4] px-4 py-3 text-sm font-semibold text-[#687386]">We will start from your business brief instead.</div>
                     </div>
                   )}
                 </div>
               </section>
 
-              <section className="border border-[#d8d9dc] bg-[#f9f8f4] p-5 sm:p-7">
-                <div className="mb-6 flex items-start gap-4 border-b border-[#d8d9dc] pb-5">
+              <section className="border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7">
+                <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">3</span>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Design direction</p>
@@ -1429,11 +1429,11 @@ function GeneratePreviewPage() {
                         onClick={() => setForm({...form, brandStyle: style})}
                         className={selected
                           ? "border-2 border-[#5746e8] bg-white p-5 text-left shadow-[0_16px_36px_-28px_rgba(87,70,232,0.8)]"
-                          : "border border-[#d8d9dc] bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#aaa4dc]"}
+                          : "border border-[#dfe2ea] bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#aaa4dc]"}
                       >
                         <div className="mb-5 flex gap-1">
                           <span className={style === "Premium corporate" ? "h-7 w-7 bg-[#141821]" : style === "Friendly local business" ? "h-7 w-7 rounded-full bg-[#d4f5e7]" : "h-7 w-7 bg-[#5746e8]"} />
-                          <span className={style === "Premium corporate" ? "h-7 w-10 bg-[#d8d9dc]" : style === "Friendly local business" ? "h-7 w-10 rounded-full bg-[#fde7c7]" : "h-7 w-10 bg-[#eeebff]"} />
+                          <span className={style === "Premium corporate" ? "h-7 w-10 bg-[#dfe2ea]" : style === "Friendly local business" ? "h-7 w-10 rounded-full bg-[#fde7c7]" : "h-7 w-10 bg-[#eeebff]"} />
                         </div>
                         <p className="font-semibold text-[#141821]">{style}</p>
                         <p className="mt-2 text-sm leading-5 text-[#687386]">{description}</p>
@@ -1443,12 +1443,12 @@ function GeneratePreviewPage() {
                   })}
                 </div>
 
-                <details className="mt-5 border-t border-[#d8d9dc] pt-5">
+                <details className="mt-5 border-t border-[#dfe2ea] pt-5">
                   <summary className="cursor-pointer text-sm font-semibold text-[#5746e8]">Add proof or extra brand context (optional)</summary>
                   <div className="mt-5 grid gap-4">
-                    <Input value={form.socialUrl} onChange={(e)=>setForm({...form,socialUrl:e.target.value})} placeholder="Google Business / social URL" className="h-12 rounded-none border-[#d8d9dc] bg-white" />
-                    <Textarea value={form.reviews} onChange={(e)=>setForm({...form,reviews:e.target.value})} placeholder="Paste real customer reviews, one per line." className="min-h-28 rounded-none border-[#d8d9dc] bg-white" />
-                    <select value={form.biggestProblem} onChange={(e)=>setForm({...form,biggestProblem:e.target.value})} className="h-12 border border-[#d8d9dc] bg-white px-4 text-[#141821]">
+                    <Input value={form.socialUrl} onChange={(e)=>setForm({...form,socialUrl:e.target.value})} placeholder="Google Business / social URL" className="h-12 rounded-none border-[#dfe2ea] bg-white" />
+                    <Textarea value={form.reviews} onChange={(e)=>setForm({...form,reviews:e.target.value})} placeholder="Paste real customer reviews, one per line." className="min-h-28 rounded-none border-[#dfe2ea] bg-white" />
+                    <select value={form.biggestProblem} onChange={(e)=>setForm({...form,biggestProblem:e.target.value})} className="h-12 border border-[#dfe2ea] bg-white px-4 text-[#141821]">
                       <option value="">Biggest website problem (optional)</option>
                       {previewProblems.map((problem)=><option key={problem}>{problem}</option>)}
                     </select>
@@ -1456,7 +1456,7 @@ function GeneratePreviewPage() {
                 </details>
               </section>
 
-              <section className="border border-[#d8d9dc] bg-[#141821] p-5 text-white sm:p-7">
+              <section className="border border-[#dfe2ea] bg-[#141821] p-5 text-white sm:p-7">
                 <div className="mb-6 flex items-start gap-4 border-b border-white/15 pb-5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-[#141821]">4</span>
                   <div>
@@ -1494,13 +1494,13 @@ function GeneratePreviewPage() {
             </div>
 
             <aside className="lg:sticky lg:top-24 lg:col-span-4">
-              <div className="border border-[#d8d9dc] bg-[#f7f6f2] p-5 sm:p-6">
+              <div className="border border-[#dfe2ea] bg-[#f6f7fb] p-5 sm:p-6">
                 <div className="flex items-center gap-3">
                   <LayoutTemplate className="h-5 w-5 text-[#5746e8]" />
                   <p className="text-sm font-bold uppercase tracking-[0.1em] text-[#5746e8]">Live brief</p>
                 </div>
                 <h3 className="mt-4 text-2xl font-semibold text-[#141821]">{businessLabel === "your business" ? "Your preview will adapt as you fill this in." : businessLabel}</h3>
-                <div className="mt-6 divide-y divide-[#d8d9dc] border-y border-[#d8d9dc]">
+                <div className="mt-6 divide-y divide-[#dfe2ea] border-y border-[#dfe2ea]">
                   {[
                     ["Industry", industry.label],
                     ["Service", serviceLabel],
@@ -1525,7 +1525,7 @@ function GeneratePreviewPage() {
                     ))}
                   </div>
                 </div>
-                <div className="mt-6 border-t border-[#d8d9dc] pt-5">
+                <div className="mt-6 border-t border-[#dfe2ea] pt-5">
                   <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8b93a0]">Recommended after preview</p>
                   <p className="mt-2 font-semibold text-[#141821]">{commercialRecommendation.name}</p>
                   <p className="mt-1 text-sm leading-5 text-[#687386]">The recommendation is based on the website goal and business brief, not a forced upsell.</p>
@@ -1537,12 +1537,12 @@ function GeneratePreviewPage() {
       </section>
 
       {generating ? (
-        <section className="border-y border-[#d8d9dc] bg-white">
+        <section className="border-y border-[#dfe2ea] bg-white">
           <div className="brand-shell py-12">
             <p className="brand-kicker">Building your website direction</p>
             <div className="mt-6 grid gap-4 md:grid-cols-4">
               {["Understanding the business","Selecting the layout family","Structuring the buyer journey","Preparing the preview"].map((step,index)=>(
-                <div key={step} className="border-t border-[#d8d9dc] pt-4">
+                <div key={step} className="border-t border-[#dfe2ea] pt-4">
                   <span className="text-sm font-semibold text-[#5746e8]">0{index+1}</span>
                   <p className="mt-2 font-semibold">{step}</p>
                 </div>
@@ -1553,9 +1553,9 @@ function GeneratePreviewPage() {
       ) : null}
 
       {generated && generatedWebsite ? (
-        <section className="border-y border-[#d8d9dc] bg-white">
+        <section className="border-y border-[#dfe2ea] bg-white">
           <div className="brand-shell py-10">
-            <div className="flex flex-col gap-5 border-b border-[#d8d9dc] pb-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-5 border-b border-[#dfe2ea] pb-5 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="brand-kicker">Generated website</p>
                 <h2 className="mt-2">{businessLabel}</h2>
@@ -1563,37 +1563,37 @@ function GeneratePreviewPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {(["desktop","mobile"] as const).map((device)=>(
-                  <button key={device} type="button" onClick={()=>setPreviewDevice(device)} className={previewDevice===device ? "border border-[#5746e8] bg-[#5746e8] px-4 py-2 text-sm font-semibold text-white" : "border border-[#d8d9dc] bg-white px-4 py-2 text-sm font-semibold"}>{device==="desktop"?"Desktop":"Mobile"}</button>
+                  <button key={device} type="button" onClick={()=>setPreviewDevice(device)} className={previewDevice===device ? "border border-[#5746e8] bg-[#5746e8] px-4 py-2 text-sm font-semibold text-white" : "border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold"}>{device==="desktop"?"Desktop":"Mobile"}</button>
                 ))}
-                <button type="button" onClick={()=>setPreviewExpanded((value)=>!value)} className="border border-[#d8d9dc] bg-white px-4 py-2 text-sm font-semibold">{previewExpanded?"Compact":"Expand preview"}</button>
+                <button type="button" onClick={()=>setPreviewExpanded((value)=>!value)} className="border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold">{previewExpanded?"Compact":"Expand preview"}</button>
               </div>
             </div>
 
             <div className="mt-5 flex flex-wrap items-center gap-2">
               <span className="mr-1 text-xs font-bold uppercase tracking-[0.12em] text-[#8b93a0]">Interactive {generatedWebsite.pages.length}-page preview</span>
               {generatedWebsite.pages.map((page, index) => (
-                <span key={page.id || page.slug || page.title} className="border border-[#d8d9dc] bg-[#f7f6f2] px-3 py-1.5 text-xs font-semibold text-[#374151]">
+                <span key={page.id || page.slug || page.title} className="border border-[#dfe2ea] bg-[#f6f7fb] px-3 py-1.5 text-xs font-semibold text-[#374151]">
                   {String(index + 1).padStart(2, "0")} {page.title}
                 </span>
               ))}
               <span className="text-xs text-[#687386]">Use the navigation inside the preview to inspect every page.</span>
             </div>
 
-            <div className="mt-4 border border-[#d8d9dc] bg-[#f7f6f2] p-2 sm:p-3">
-              <div className="mb-2 flex items-center gap-2 border-b border-[#d8d9dc] bg-white px-3 py-2 text-[11px] font-semibold text-[#687386]">
-                <span className="h-2 w-2 rounded-full bg-[#d8d9dc]" />
-                <span className="h-2 w-2 rounded-full bg-[#d8d9dc]" />
-                <span className="h-2 w-2 rounded-full bg-[#d8d9dc]" />
+            <div className="mt-4 border border-[#dfe2ea] bg-[#f6f7fb] p-2 sm:p-3">
+              <div className="mb-2 flex items-center gap-2 border-b border-[#dfe2ea] bg-white px-3 py-2 text-[11px] font-semibold text-[#687386]">
+                <span className="h-2 w-2 rounded-full bg-[#dfe2ea]" />
+                <span className="h-2 w-2 rounded-full bg-[#dfe2ea]" />
+                <span className="h-2 w-2 rounded-full bg-[#dfe2ea]" />
                 <span className="ml-2 truncate">Preview · {businessLabel}</span>
               </div>
-              <div className={(previewDevice==="mobile" ? "max-w-[430px] " : "max-w-full ") + (previewExpanded ? "max-h-[90vh] " : "max-h-[900px] ") + "bt-static-preview mx-auto overflow-y-auto border border-[#d8d9dc] bg-white shadow-[0_20px_60px_-45px_rgba(15,23,42,.55)] transition-all"}>
+              <div className={(previewDevice==="mobile" ? "max-w-[430px] " : "max-w-full ") + (previewExpanded ? "max-h-[90vh] " : "max-h-[900px] ") + "bt-static-preview mx-auto overflow-y-auto border border-[#dfe2ea] bg-white shadow-[0_20px_60px_-45px_rgba(15,23,42,.55)] transition-all"}>
                 <React.Suspense fallback={<div className="grid min-h-[40rem] place-items-center text-[#526071]">Rendering website…</div>}>
                   <PublicWebsiteRenderer initialData={generatedWebsite} />
                 </React.Suspense>
               </div>
             </div>
 
-            <div className="mt-7 flex flex-col gap-3 border-t border-[#d8d9dc] pt-6 sm:flex-row">
+            <div className="mt-7 flex flex-col gap-3 border-t border-[#dfe2ea] pt-6 sm:flex-row">
               <Button onClick={() => action("click_book_call_after_preview","Book Website Review","/book-demo")} className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]">Book 30-minute review</Button>
               <Button variant="outline" onClick={() => navigate("/pricing?market=" + (initialParams.get("market") || "INTL") + "#plan-" + commercialRecommendation.slug)} className="min-h-12 rounded-xl px-6 font-semibold">View recommended plan</Button>
             </div>
@@ -2146,7 +2146,7 @@ export default function PublicMarketingPages() {
               : <TemplatesPage />;
 
   return (
-    <div className="brand-public min-h-screen bg-[#f7f6f2] text-[#141821]">
+    <div className="brand-public min-h-screen bg-[#f6f7fb] text-[#141821]">
       <Helmet>
         <title>{meta.title}</title>
         <meta name="description" content={meta.description} />
