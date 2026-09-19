@@ -103,7 +103,7 @@ export default function OwnSalesSeoPage() {
           }
         : product.slug === "website-growth"
           ? {
-              label: "Most Popular · Recommended",
+              label: "Recommended",
               features: ["Monthly conversion optimisation", "Local SEO expansion", "Landing and location pages", "Priority support"],
             }
           : {
@@ -259,7 +259,7 @@ export default function OwnSalesSeoPage() {
   ];
 
   return (
-    <div className="brand-public min-h-screen overflow-x-hidden bg-[#f7f6f2] text-[#141821]">
+    <div className="brand-public min-h-screen overflow-x-hidden bg-[#f6f7fb] text-[#141821]">
       <Helmet>
         <title>{page.seoTitle}</title>
         <meta name="description" content={page.metaDescription} />
@@ -274,92 +274,49 @@ export default function OwnSalesSeoPage() {
       <PublicSiteHeader />
 
       <main>
-        <section className="relative overflow-hidden px-5 py-10 lg:py-14">
-          <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_80%_10%,rgba(79,70,229,0.18),transparent_32%),linear-gradient(135deg,#ffffff_0%,#f8fafc_52%,#eef2ff_100%)]" />
-          <div className="mx-auto max-w-7xl">
-          <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
-            <div>
-              <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
-                <Link to="/" className="hover:text-indigo-600">Home</Link>
-                <span>/</span>
-                <span>{page.h1}</span>
+        <section className="brand-grid-bg relative overflow-hidden border-b border-white/10 bg-[#0b1020] text-white">
+          <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#5746e8]/20 blur-3xl" />
+          <div className="brand-shell relative grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
+            <div className="lg:col-span-5">
+              <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs font-semibold !text-white/45">
+                <Link to="/" className="hover:!text-white">Home</Link><span>/</span><span>{page.h1}</span>
               </nav>
-              <Badge className="mb-4 border-indigo-100 bg-indigo-50 px-4 py-1.5 text-indigo-700">
-                {page.eyebrow}
-              </Badge>
-              <h1 className="max-w-4xl text-4xl font-bold leading-[1.03] tracking-tight text-slate-950 sm:text-4xl sm:leading-[0.98] lg:text-6xl">
-                {page.h1}
-              </h1>
-              <p className="mt-5 max-w-3xl text-base font-semibold leading-relaxed text-slate-600 sm:text-lg">
-                {page.heroCopy}
-              </p>
-              <div className="mt-7 flex flex-col gap-4 sm:flex-row">
-                <Button onClick={() => navigate("/generate-preview")} className="h-14 w-full rounded-2xl bg-indigo-600 px-6 text-sm font-bold uppercase tracking-wide sm:w-auto sm:px-8">
+              <p className="brand-kicker !text-[#b9b1ff]">{page.eyebrow}</p>
+              <h1 className="mt-5 !max-w-[13ch] !text-white">{page.h1}</h1>
+              <p className="brand-copy brand-muted-on-dark mt-6">{page.heroCopy}</p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#eeebff]">
                   {page.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/book-demo")}
-                  className="h-14 w-full rounded-2xl border-2 px-6 text-sm font-bold uppercase tracking-wide text-indigo-600 sm:w-auto sm:px-8"
-                >
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  {page.whatsappCta}
+                <Button variant="outline" onClick={() => navigate("/book-demo")} className="min-h-12 border-white/25 bg-white/[0.03] px-6 font-semibold text-white hover:bg-white/[0.08] hover:text-white">
+                  <MessageSquare className="mr-2 h-4 w-4" /> {page.whatsappCta}
                 </Button>
               </div>
-              <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                {heroProofPoints.map((point) => (
-                  <div key={point} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm">
-                    <Check className="h-4 w-4 shrink-0 text-emerald-500" />
-                    <span className="text-xs font-bold uppercase tracking-wide text-slate-600">{point}</span>
-                  </div>
-                ))}
+              <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold !text-white/60">
+                {heroProofPoints.slice(0,3).map((point) => <span key={point} className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#b9b1ff]" />{point}</span>)}
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xl shadow-indigo-100/60">
-              <div className="rounded-xl bg-slate-950 p-6 text-white lg:min-h-[360px]">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600">
-                    <Rocket className="h-5 w-5 text-white" />
-                  </div>
-                  <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.25em] text-indigo-300">
-                    {isCityPage ? `${cityName} launch focus` : "Recommended setup"}
-                  </p>
-                  <h2 className="mt-3 text-2xl font-bold leading-tight text-white">
-                    {isCityPage
-                      ? `Build a website that helps ${cityName} visitors contact you faster.`
-                      : "Preview first. Launch after the right package is selected."}
-                  </h2>
-                  <p className="mt-4 text-sm font-medium leading-relaxed text-slate-200">
-                    {page.marketWhy}
-                  </p>
+            <div className="relative lg:col-span-7 lg:-mr-8 xl:-mr-14">
+              <div className="pointer-events-none absolute -inset-8 bg-[#5746e8]/10 blur-3xl" />
+              <div className="relative overflow-hidden rounded-[1.15rem] border border-white/10 bg-[#080b15] shadow-[0_55px_140px_-55px_rgba(0,0,0,.95)]">
+                <img src="/images/bennie-studio-hero.webp" alt="" className="aspect-[16/9] w-full object-cover" loading="eager" decoding="async" />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#080b15] via-[#080b15]/80 to-transparent px-5 pb-5 pt-20">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">{isCityPage ? cityName + " website direction" : marketLabel + " website direction"}</p>
+                  <p className="mt-2 max-w-lg text-sm font-semibold !text-white">{isCityPage ? "Local intent, trust and enquiry flow shape the structure." : "Market context changes the message and enquiry path, not just the location name."}</p>
+                </div>
               </div>
             </div>
           </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {heroSupportCards.map((item) => (
-              <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-indigo-600">{item.label}</p>
-                <p className="mt-2 text-sm font-bold leading-relaxed text-slate-800">{item.value}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {packageOptions.map((plan) => {
-              const isGrowth = plan.id === "website-growth";
-              return (
-                <div key={plan.name} className={isGrowth ? "rounded-2xl border-2 border-indigo-500 bg-indigo-50 p-5 shadow-lg shadow-indigo-100/70" : "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"}>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-indigo-600">{plan.label}</p>
-                      <p className="mt-2 text-xl font-bold text-slate-950">{plan.name}</p>
-                    </div>
-                    <p className={isGrowth ? "rounded-full bg-indigo-600 px-3 py-1 text-sm font-bold text-white" : "rounded-full bg-slate-950 px-3 py-1 text-sm font-bold text-white"}>{plan.price}</p>
-                  </div>
-                  <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-600">{plan.description}</p>
+          <div className="border-t border-white/10 bg-white/[0.02]">
+            <div className="brand-shell grid gap-px md:grid-cols-3">
+              {heroSupportCards.map((item) => (
+                <div key={item.label} className="border-white/10 py-5 md:border-r md:px-5 first:pl-0 last:border-r-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">{item.label}</p>
+                  <p className="mt-2 max-w-sm text-sm font-semibold !text-white/70">{item.value}</p>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -395,7 +352,7 @@ export default function OwnSalesSeoPage() {
               <div className="grid gap-4 md:grid-cols-4">
                 {[
                   { label: "City focus", value: `${cityName} service buyers need trust, speed, and a clear next step.`, icon: MapPin },
-                  { label: "Suggested structure", value: "Home, services, proof, FAQs, nearby areas, and contact.", icon: FileText },
+                  { label: "Content architecture", value: "The page mix is tailored around services, proof, local intent, and the preferred enquiry path.", icon: FileText },
                   { label: "Lead path", value: "Quote request, booking, phone, WhatsApp, or enquiry form.", icon: PhoneCall },
                   { label: "SEO angle", value: `Service keywords, ${cityName} intent, nearby areas, and local FAQs.`, icon: Search },
                 ].map((item) => (
@@ -470,76 +427,39 @@ export default function OwnSalesSeoPage() {
         </section>
 
         
-        <section className="border-y border-[#d8d9dc] bg-white px-5 py-14">
-          <div className="mx-auto max-w-7xl">
+        <section className="border-y border-[#dfe2ea] bg-white">
+          <div className="brand-shell brand-section">
             <div className="grid gap-8 lg:grid-cols-12 lg:items-end">
-              <div className="lg:col-span-5">
+              <div className="lg:col-span-7">
                 <p className="brand-kicker">Managed plans</p>
-                <h2 className="mt-4">Simple managed website options.</h2>
-                <p className="brand-copy mt-5">Monthly service is the main price. Setup is shown underneath, with no duplicate plan blocks.</p>
+                <h2 className="mt-4">Choose the level of ongoing support, not a rigid website template.</h2>
+                <p className="brand-copy mt-5">The page count and structure can vary by scope. The plans mainly change how much optimisation, local SEO and growth support continues after launch.</p>
               </div>
-              <p className="lg:col-span-7 lg:justify-self-end text-[#526071]">Prices are shown in {coreOffer.prices[revenueMarket].currency}. Generate a preview first, then choose the level of ongoing support.</p>
+              <p className="text-sm font-semibold text-[#707b8a] lg:col-span-5 lg:text-right">Prices shown in {coreOffer.prices[revenueMarket].currency} · preview before commitment</p>
             </div>
-            <div className="mt-10 grid gap-4 md:hidden">
+            <div className="mt-10 grid gap-4 lg:grid-cols-3">
               {packageOptions.map((plan) => {
                 const isGrowth = plan.id === "website-growth";
                 return (
-                  <article key={plan.id} className={isGrowth ? "rounded-xl border-2 border-indigo-500 bg-indigo-50 p-5 shadow-lg shadow-indigo-100/70" : "rounded-xl border border-[#d8d9dc] bg-white p-5"}>
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]">{plan.label}</p>
-                        <h3 className="mt-1">{plan.name}</h3>
-                      </div>
-                      {isGrowth ? <Badge className="bg-indigo-600 text-white">Most Popular</Badge> : null}
+                  <article key={plan.id} className={isGrowth ? "border border-[#101827] bg-[#101827] p-6 text-white shadow-[0_28px_80px_-48px_rgba(15,23,42,.75)]" : "border border-[#dfe2ea] bg-white p-6"}>
+                    <p className={isGrowth ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{plan.label}</p>
+                    <h3 className={isGrowth ? "mt-2 !text-white" : "mt-2"}>{plan.name}</h3>
+                    <p className={isGrowth ? "mt-5 text-3xl font-semibold !text-white" : "mt-5 text-3xl font-semibold text-[#141821]"}>{plan.price}</p>
+                    <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#707b8a]"}>+ {plan.setupPrice} setup</p>
+                    <p className={isGrowth ? "mt-4 text-sm leading-6 !text-white/70" : "mt-4 text-sm leading-6 text-[#526071]"}>{plan.description}</p>
+                    <div className={isGrowth ? "mt-5 space-y-3 border-t border-white/25 pt-4" : "mt-5 space-y-3 border-t border-[#dfe2ea] pt-4"}>
+                      {plan.features.map((feature) => <div key={feature} className={isGrowth ? "flex gap-2 text-sm !text-white/80" : "flex gap-2 text-sm text-[#526071]"}><Check className={isGrowth ? "mt-0.5 h-4 w-4 shrink-0 text-[#b9b1ff]" : "mt-0.5 h-4 w-4 shrink-0 text-emerald-600"} /><span>{feature}</span></div>)}
                     </div>
-                    <p className="mt-5 text-3xl font-semibold text-[#141821]">{plan.price}</p>
-                    <p className="mt-1 text-sm text-[#687386]">+ {plan.setupPrice} setup</p>
-                    <div className="mt-5 space-y-3 border-t border-[#d8d9dc] pt-4">
-                      {plan.features.map((feature) => (
-                        <div key={feature} className="flex gap-2 text-sm text-[#526071]">
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                          <span>{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <Button onClick={()=>{localStorage.setItem("bt_checkout_intent",JSON.stringify({productSlug:plan.id,market:revenueMarket,currency:coreOffer.prices[revenueMarket].currency,billingCycle:"monthly",savedAt:new Date().toISOString()}));navigate("/generate-preview");}} className={isGrowth ? "mt-6 min-h-12 w-full bg-indigo-600 px-5 font-semibold text-white hover:bg-indigo-500" : "mt-6 min-h-12 w-full bg-[#141821] px-5 font-semibold text-white hover:bg-[#5746e8]"}>
-                      Generate preview
+                    <Button onClick={()=>{localStorage.setItem("bt_checkout_intent",JSON.stringify({productSlug:plan.id,market:revenueMarket,currency:coreOffer.prices[revenueMarket].currency,billingCycle:"monthly",savedAt:new Date().toISOString()}));navigate("/generate-preview");}} className={isGrowth ? "mt-6 min-h-12 w-full bg-white px-5 font-semibold text-[#101827] hover:bg-[#eeebff]" : "mt-6 min-h-12 w-full bg-[#141821] px-5 font-semibold text-white hover:bg-[#5746e8]"}>
+                      Generate preview <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </article>
                 );
               })}
             </div>
-
-            <div className="mt-10 hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[760px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-[#d8d9dc]">
-                    <th className="py-4 pr-5 text-sm font-semibold">Plan</th>
-                    {packageOptions.map((plan)=><th key={plan.name} className={plan.id === "website-growth" ? "border-x border-indigo-200 bg-indigo-50 px-5 py-4" : "px-5 py-4"}><p className="text-sm font-semibold text-[#5746e8]">{plan.label}</p><h3 className="mt-1">{plan.name}</h3><p className="mt-2 text-xs font-medium text-[#687386]">+ {plan.setupPrice} setup</p></th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-[#d8d9dc]">
-                    <th className="py-5 pr-5 text-sm font-semibold text-[#526071]">Monthly</th>
-                    {packageOptions.map((plan)=><td key={plan.name} className={plan.id === "website-growth" ? "border-x border-indigo-200 bg-indigo-50 px-5 py-5 text-2xl font-semibold" : "px-5 py-5 text-2xl font-semibold"}>{plan.price}</td>)}
-                  </tr>
-                  {[0,1,2,3].map((featureIndex)=>(
-                    <tr key={featureIndex} className="border-b border-[#d8d9dc]">
-                      <th className="py-4 pr-5 text-sm font-semibold text-[#526071]">{featureIndex===0?"Included":""}</th>
-                      {packageOptions.map((plan)=><td key={plan.name} className={plan.id === "website-growth" ? "border-x border-indigo-200 bg-indigo-50 px-5 py-4 text-sm text-[#526071]" : "px-5 py-4 text-sm text-[#526071]"}>{plan.features[featureIndex] ? <span className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"/>{plan.features[featureIndex]}</span> : "—"}</td>)}
-                    </tr>
-                  ))}
-                  <tr>
-                    <th className="py-5 pr-5"></th>
-                    {packageOptions.map((plan)=><td key={plan.name} className={plan.id === "website-growth" ? "border-x border-indigo-200 bg-indigo-50 px-5 py-5" : "px-5 py-5"}><Button onClick={()=>{localStorage.setItem("bt_checkout_intent",JSON.stringify({productSlug:plan.id,market:revenueMarket,currency:coreOffer.prices[revenueMarket].currency,billingCycle:"monthly",savedAt:new Date().toISOString()}));navigate("/generate-preview");}} className={plan.id === "website-growth" ? "min-h-11 bg-indigo-600 px-5 font-semibold text-white hover:bg-indigo-500" : "min-h-11 bg-[#141821] px-5 font-semibold text-white hover:bg-[#5746e8]"}>Generate preview</Button></td>)}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
           </div>
         </section>
 
-        
         <section className="px-5 py-14">
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-12">
             <div className="lg:col-span-5">

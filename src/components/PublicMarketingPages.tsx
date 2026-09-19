@@ -528,11 +528,11 @@ function Hero({
   const primaryContent = <>{primaryLabel} <ArrowRight className="ml-2 h-4 w-4" /></>;
   return (
     <section className="brand-grid-bg relative overflow-hidden border-b border-white/10 bg-[#0b1020] text-white">
-      <div className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full bg-[#5746e8]/20 blur-3xl" />
-      <div className="brand-shell relative grid gap-10 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
-        <div className="lg:col-span-8">
+      <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#5746e8]/20 blur-3xl" />
+      <div className="brand-shell relative grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
+        <div className="lg:col-span-5">
           <div className="brand-kicker flex items-center gap-3 !text-[#b9b1ff]"><span className="grid h-9 w-9 place-items-center border border-white/15 bg-white/[0.04]"><Icon className="h-4 w-4" /></span> Bennie Studio</div>
-          <h1 className="mt-6 !max-w-[16ch] !text-white">{title}</h1>
+          <h1 className="mt-6 !max-w-[13ch] !text-white">{title}</h1>
           <p className="brand-copy brand-muted-on-dark mt-6">{copy}</p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             {primaryHref.startsWith("#") ? (
@@ -542,21 +542,17 @@ function Hero({
             )}
             {secondaryLabel && secondaryHref ? <Link to={secondaryHref} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 text-sm font-semibold text-white hover:bg-white/[0.08]">{secondaryLabel}</Link> : null}
           </div>
+          <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold !text-white/60">
+            <span>Tailored structure</span><span>Desktop + mobile</span><span>Managed after launch</span>
+          </div>
         </div>
-        <div className="lg:col-span-4">
-          <div className="border border-white/15 bg-white/[0.035] p-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Decision brief</p>
-            <div className="mt-5 space-y-4">
-              {[
-                ["01", "Scope", "See what the page or service includes."],
-                ["02", "Evidence", "Separate real proof from demonstrations."],
-                ["03", "Next step", "Preview first, then choose the right plan."],
-              ].map(([number, label, body]) => (
-                <div key={number} className="grid grid-cols-[2rem_1fr] gap-3 border-t border-white/15 pt-4">
-                  <span className="text-xs font-semibold !text-white/55">{number}</span>
-                  <div><p className="text-sm font-semibold !text-white">{label}</p><p className="mt-1 text-sm leading-6 !text-white/55">{body}</p></div>
-                </div>
-              ))}
+        <div className="relative lg:col-span-7 lg:-mr-8 xl:-mr-14">
+          <div className="pointer-events-none absolute -inset-8 bg-[#5746e8]/10 blur-3xl" />
+          <div className="relative overflow-hidden rounded-[1.15rem] border border-white/10 bg-[#080b15] shadow-[0_55px_140px_-55px_rgba(0,0,0,.95)]">
+            <img src="/images/bennie-studio-hero.webp" alt="" className="aspect-[16/9] w-full object-cover" loading="eager" decoding="async" />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#080b15] via-[#080b15]/75 to-transparent px-5 pb-5 pt-16">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Managed website direction</p>
+              <p className="mt-2 max-w-md text-sm font-semibold !text-white">The visual direction changes. The operating system underneath stays disciplined.</p>
             </div>
           </div>
         </div>
@@ -639,10 +635,21 @@ function TemplatesPage() {
 function PricingPage() {
   const location = useLocation();
   const requestedMarket = new URLSearchParams(location.search).get("market");
-  // Keep shared/campaign pricing links authoritative even when a visitor has
-  // previously persisted a different market in localStorage.
   const marketOverride = requestedMarket ? normalizeCommercialMarket(requestedMarket) : undefined;
-  return <><h1 className="sr-only">Website Growth pricing</h1><CommercialPricing marketOverride={marketOverride} /></>;
+  return (
+    <>
+      <Hero
+        title="Managed website plans built around how much support you need."
+        copy="Start with a serious managed website. Add deeper conversion, local SEO and growth support when the commercial need is there."
+        icon={Sparkles}
+        primaryLabel="Generate my preview"
+        primaryHref="/generate-preview"
+        secondaryLabel="See how it works"
+        secondaryHref="/how-it-works"
+      />
+      <CommercialPricing marketOverride={marketOverride} hideIntro />
+    </>
+  );
 }
 
 function HowItWorksPage() {
@@ -2029,6 +2036,23 @@ function NicheLandingPage({ page }: { page: (typeof nichePages)[keyof typeof nic
             </div>
           </div>
           <div className="lg:col-span-7">
+            <div className="mb-6 overflow-hidden rounded-[1rem] border border-[#dfe2ea] bg-[#0b1020] p-5 sm:p-6">
+              <div className="grid gap-4 sm:grid-cols-[1.1fr_.9fr]">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Buyer journey</p>
+                  <h3 className="mt-3 !text-white">The structure follows the buying decision, not a fixed page recipe.</h3>
+                  <p className="mt-3 text-sm leading-6 !text-white/60">{page.pain}</p>
+                </div>
+                <div className="grid gap-2">
+                  {["Offer clarity", "Relevant proof", "Clear next action"].map((item, index) => (
+                    <div key={item} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3">
+                      <span className="text-xs font-semibold !text-white/70">0{index + 1}</span>
+                      <span className="text-sm font-semibold !text-white">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
             <div className="brand-rule-list">
               <div className="brand-rule-row">
                 <strong>Main buyer concern</strong>

@@ -124,7 +124,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
     ["Growth support", ["—", "Limited", "Ongoing"]],
   ];
 
-  return <div id="plans" className={cn("mx-auto max-w-6xl scroll-mt-24 px-5", hideIntro ? "pb-10 pt-2 sm:pb-14" : "py-14 sm:py-20")}>
+  return <div id="plans" className={cn("brand-shell scroll-mt-24", hideIntro ? "py-14 sm:py-20" : "py-14 sm:py-20")}>
     <div className="relative h-0 overflow-visible" aria-hidden="true">
       {planSet.map(([product]) => (
         <span key={product.slug} id={`plan-${product.slug}`} className="absolute -top-24" data-plan-anchor={product.slug} />
@@ -145,26 +145,25 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
       {planSet.map(([product, price, bestFor], index) => {
         const isGrowth = product.slug === "website-growth";
         return (
-          <article key={product.slug} className={cn("border bg-white p-6 lg:p-7", isGrowth ? "border-2 border-indigo-500 bg-indigo-50/70 shadow-[0_24px_70px_-48px_rgba(79,70,229,.55)]" : "border-slate-200")}>
+          <article key={product.slug} className={cn("border p-6 lg:p-7", isGrowth ? "border-[#101827] bg-[#101827] text-white shadow-[0_28px_80px_-48px_rgba(15,23,42,.75)]" : "border-[#dfe2ea] bg-white")}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">{isGrowth ? "Recommended" : bestFor}</p>
-                <h3 className="mt-2 text-2xl font-semibold text-slate-950">{product.name}</h3>
+                <p className={isGrowth ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{isGrowth ? "Recommended" : bestFor}</p>
+                <h3 className={isGrowth ? "mt-2 text-2xl font-semibold !text-white" : "mt-2 text-2xl font-semibold text-[#141821]"}>{product.name}</h3>
               </div>
-              {isGrowth ? <Badge className="bg-indigo-600 text-white">Recommended</Badge> : null}
             </div>
-            <p className="mt-5 text-3xl font-semibold text-slate-950">{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className="text-sm font-normal text-slate-500">/month</span></p>
-            <p className="mt-1 text-sm text-slate-500">+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
-            <p className="mt-4 text-sm leading-6 text-slate-600">{product.description}</p>
-            <div className="mt-5 space-y-3 border-t border-slate-200 pt-4">
+            <p className={isGrowth ? "mt-5 text-3xl font-semibold !text-white" : "mt-5 text-3xl font-semibold text-[#141821]"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#707b8a]"}>/month</span></p>
+            <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#707b8a]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
+            <p className={isGrowth ? "mt-4 text-sm leading-6 !text-white/70" : "mt-4 text-sm leading-6 text-[#526071]"}>{product.description}</p>
+            <div className={isGrowth ? "mt-5 space-y-3 border-t border-white/25 pt-4" : "mt-5 space-y-3 border-t border-[#dfe2ea] pt-4"}>
               {comparisonRows.map(([label, values]: any) => (
                 <div key={label} className="flex items-start justify-between gap-4 text-sm">
-                  <span className="font-semibold text-slate-600">{label}</span>
-                  <span className="text-right text-slate-700">{values[index]}</span>
+                  <span className={isGrowth ? "font-semibold !text-white/80" : "font-semibold text-[#526071]"}>{label}</span>
+                  <span className={isGrowth ? "text-right font-semibold !text-white" : "text-right text-[#526071]"}>{values[index]}</span>
                 </div>
               ))}
             </div>
-            <Button onClick={() => handleSelect(product)} className={cn("mt-6 min-h-12 w-full px-5 font-semibold text-white", isGrowth ? "bg-indigo-600 hover:bg-indigo-500" : "bg-slate-950 hover:bg-slate-800")}>
+            <Button onClick={() => handleSelect(product)} className={cn("mt-6 min-h-12 w-full px-5 font-semibold", isGrowth ? "bg-white text-[#101827] hover:bg-[#eeebff]" : "bg-[#141821] text-white hover:bg-[#5746e8]")}>
               {price?.monthlyConfigured ? "Choose plan" : "Discuss plan"} <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </article>

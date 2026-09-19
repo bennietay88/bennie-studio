@@ -564,3 +564,60 @@
     height: auto;
   }
 }
+
+
+/* 2026 public-site convergence layer.
+   Legacy public routes still use older Tailwind slate/indigo utility names.
+   Map those utilities onto the current Bennie Studio system without touching
+   generated customer website previews. */
+.brand-public .bg-slate-950:not(.bt-template-preview *),
+.brand-public .bg-slate-900:not(.bt-template-preview *) {
+  background-color: #0b1020 !important;
+}
+.brand-public .bg-slate-50:not(.bt-template-preview *) {
+  background-color: #f6f7fb !important;
+}
+.brand-public .bg-indigo-600:not(.bt-template-preview *) {
+  background-color: #5746e8 !important;
+}
+.brand-public .bg-indigo-50:not(.bt-template-preview *) {
+  background-color: #eeebff !important;
+}
+.brand-public .text-indigo-600:not(.bt-template-preview *),
+.brand-public .text-indigo-700:not(.bt-template-preview *) {
+  color: #5746e8 !important;
+}
+.brand-public .text-indigo-300:not(.bt-template-preview *),
+.brand-public .text-indigo-200:not(.bt-template-preview *) {
+  color: #b9b1ff !important;
+}
+.brand-public .text-slate-950:not(.bt-template-preview *) {
+  color: #141821 !important;
+}
+.brand-public .text-slate-700:not(.bt-template-preview *),
+.brand-public .text-slate-600:not(.bt-template-preview *) {
+  color: #526071 !important;
+}
+.brand-public .text-slate-500:not(.bt-template-preview *),
+.brand-public .text-slate-400:not(.bt-template-preview *) {
+  color: #707b8a !important;
+}
+.brand-public .border-slate-300:not(.bt-template-preview *),
+.brand-public .border-slate-200:not(.bt-template-preview *) {
+  border-color: #dfe2ea !important;
+}
+.brand-public .border-indigo-500:not(.bt-template-preview *),
+.brand-public .border-indigo-300:not(.bt-template-preview *),
+.brand-public .border-indigo-200:not(.bt-template-preview *),
+.brand-public .border-indigo-100:not(.bt-template-preview *) {
+  border-color: #c9c4ff !important;
+}
+.brand-public .shadow-indigo-100\/60:not(.bt-template-preview *),
+.brand-public .shadow-indigo-100\/70:not(.bt-template-preview *),
+.brand-public .shadow-slate-200:not(.bt-template-preview *) {
+  --tw-shadow-color: rgba(15,23,42,.14) !important;
+}
+.brand-public .hover\:bg-indigo-500:hover:not(.bt-template-preview *),
+.brand-public .hover\:bg-indigo-700:hover:not(.bt-template-preview *) {
+  background-color: #4938db !important;
+}
