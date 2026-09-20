@@ -34,6 +34,7 @@ import {
 } from "../constants/pageBlueprints";
 import { getUpgradeRecommendation } from "../constants/localSeoEngine";
 import { GENERATION_MODE_OPTIONS } from "../constants/designProfiles";
+import { CUSTOMER_SITE_CAPABILITIES } from "../constants/customerSiteCapabilities";
 import { assessManualReviewInput, buildReviewWebsiteStrategy } from "../constants/reviewPoweredWaas";
 import { evaluateGeneratedDesign } from "../lib/designQa";
 import type { Website } from "../types";
@@ -276,6 +277,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
         lockedLocationPages: Math.max(0, requestedLocationCount - locationLimit),
         upgradeRecommendation: submitUpgrade,
         generatedAt: new Date().toISOString(),
+        customerSiteCapabilitySet: CUSTOMER_SITE_CAPABILITIES.map((capability) => capability.id),
       };
       const reviewPoweredStrategy = buildReviewWebsiteStrategy({
         businessName: data.businessName,
