@@ -745,6 +745,10 @@ export function WebsiteEditor({
   }, [businessId]);
 
   const handlePushToWordPress = async () => {
+    if (!isInternalOperator) {
+      toast.error("WordPress publishing is managed by the Bennie Studio delivery team.");
+      return;
+    }
     if (!selectedWpIntegration) {
       toast.error("Please select a WordPress site");
       return;
@@ -1797,7 +1801,7 @@ export function WebsiteEditor({
 
       if (error) throw error;
       toast.success("Website deleted successfully");
-      navigate("/dashboard", { replace: true });
+      navigate(isInternalOperator ? "/admin/businesses" : "/dashboard", { replace: true });
     } catch (err: any) {
       console.error("Delete failed:", err);
       toast.error(err.message || "Failed to delete website");
@@ -4403,7 +4407,7 @@ export function WebsiteEditor({
                       ? "Publish Site"
                       : "Submit for Review"}
                 </Button>
-                {isFeatureEnabled("wordpress_sync") && wpIntegrations.length > 0 && (
+                {isInternalOperator && isFeatureEnabled("wordpress_sync") && wpIntegrations.length > 0 && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -4794,11 +4798,11 @@ export function WebsiteEditor({
                   <div className="grid grid-cols-2 text-xs gap-2">
                     <span className="text-slate-500">Business:</span>
                     <span className="text-slate-900 font-medium">
-                      {profile?.businessId}
+                      {businessId}
                     </span>
                     <span className="text-slate-500">URL:</span>
                     <span className="text-indigo-600 font-medium">
-                      /w/{profile?.businessId}
+                      /w/{businessId}
                     </span>
                   </div>
                 </div>
