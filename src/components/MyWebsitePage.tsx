@@ -103,6 +103,34 @@ export function MyWebsitePage() {
           </div>
         </div>
       </section>
+      {liveHealth?.delivery && (
+        <section className="rounded-3xl border border-indigo-100 bg-indigo-50/50 p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">Managed delivery status</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <h2 className="text-xl font-black capitalize text-slate-950">
+                  {String(liveHealth.delivery.status || "in progress").replace(/_/g, " ")}
+                </h2>
+                {liveHealth.delivery.priority && <Badge variant="outline" className="capitalize">{liveHealth.delivery.priority} priority</Badge>}
+              </div>
+              <p className="mt-2 text-sm text-slate-600">
+                The delivery team updates this stage as your website moves through production, review, approval and launch.
+              </p>
+            </div>
+            <div className="rounded-2xl bg-white px-5 py-4 shadow-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target launch</p>
+              <p className="mt-1 text-lg font-black text-slate-950">
+                {liveHealth.delivery.targetLaunchDate
+                  ? new Date(`${liveHealth.delivery.targetLaunchDate}T00:00:00`).toLocaleDateString()
+                  : "Being scheduled"}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">Customer feedback or domain dependencies can move this date.</p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
