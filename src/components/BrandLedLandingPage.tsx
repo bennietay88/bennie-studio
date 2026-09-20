@@ -116,6 +116,53 @@ const faqs = [
 ];
 
 
+
+const technologyStack = [
+  { name: "Google Analytics", detail: "Measure what converts", icon: "https://cdn.simpleicons.org/googleanalytics/6b7280" },
+  { name: "Search Console", detail: "Improve search visibility", icon: "https://cdn.simpleicons.org/googlesearchconsole/6b7280" },
+  { name: "WhatsApp", detail: "Capture enquiries", icon: "https://cdn.simpleicons.org/whatsapp/6b7280" },
+  { name: "Meta", detail: "Ready for paid traffic", icon: "https://cdn.simpleicons.org/meta/6b7280" },
+  { name: "Vercel", detail: "Fast modern delivery", icon: "https://cdn.simpleicons.org/vercel/6b7280" },
+  { name: "Supabase", detail: "Reliable app infrastructure", icon: "https://cdn.simpleicons.org/supabase/6b7280" },
+] as const;
+
+function TechnologyMarquee() {
+  return (
+    <section className="brand-tech-marquee border-b border-[#dfe2ea] bg-white" aria-labelledby="technology-marquee-title">
+      <div className="brand-shell grid gap-5 py-7 sm:py-8 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-center">
+        <div>
+          <p className="brand-kicker">Modern technology. Managed for you.</p>
+          <p id="technology-marquee-title" className="mt-2 max-w-sm text-sm font-semibold leading-6 text-[#526071]">
+            Proven tools for performance, search, analytics and customer enquiries.
+          </p>
+        </div>
+
+        <div className="brand-logo-marquee" aria-label="Technology used or supported by Bennie Studio">
+          <div className="brand-logo-track">
+            {[0, 1].map((groupIndex) => (
+              <div
+                key={groupIndex}
+                className="brand-logo-group"
+                aria-hidden={groupIndex === 1}
+              >
+                {technologyStack.map((item) => (
+                  <div key={item.name} className="brand-logo-chip">
+                    <img src={item.icon} alt="" width="24" height="24" loading="lazy" decoding="async" />
+                    <span>
+                      <span className="brand-logo-name">{item.name}</span>
+                      <span className="brand-logo-detail">{item.detail}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function SystemVisual() {
   return (
     <div className="relative min-h-[31rem] overflow-hidden rounded-[1.2rem] border border-[#20283a] bg-[#090d18] p-5 shadow-[0_34px_90px_-55px_rgba(15,23,42,.8)] sm:p-7">
@@ -415,6 +462,8 @@ export default function BrandLedLandingPage() {
             </motion.div>
           </div>
         </section>
+
+        <TechnologyMarquee />
 
         <section className="border-b border-[#dfe2ea] bg-white">
           <div className="brand-shell grid sm:grid-cols-2 lg:grid-cols-4">
