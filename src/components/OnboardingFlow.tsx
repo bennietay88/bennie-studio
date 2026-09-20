@@ -145,6 +145,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     proofLogoRelationship: "",
     brandNotes: "",
     complianceNotes: "",
+    referenceLinks: "",
   });
   const [agreed, setAgreed] = useState(false);
   const selectedPackageConfig =
@@ -425,6 +426,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               proofLogoRelationship: businessData.proofLogoRelationship,
               brandNotes: businessData.brandNotes,
               complianceNotes: businessData.complianceNotes,
+              referenceLinks: businessData.referenceLinks
+                .split(/\n+/)
+                .map((item) => item.trim())
+                .filter(Boolean),
             },
           },
         }).eq("id", businessId);
@@ -485,6 +490,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               proofLogoRelationship: businessData.proofLogoRelationship,
               brandNotes: businessData.brandNotes,
               complianceNotes: businessData.complianceNotes,
+              referenceLinks: businessData.referenceLinks
+                .split(/\n+/)
+                .map((item) => item.trim())
+                .filter(Boolean),
             },
           },
           owner_id: user.id,
@@ -732,6 +741,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               projectImageUrl: businessData.projectImageUrl,
               brandNotes: businessData.brandNotes,
               complianceNotes: businessData.complianceNotes,
+              referenceLinks: businessData.referenceLinks
+                .split(/\n+/)
+                .map((item) => item.trim())
+                .filter(Boolean),
             },
             deliveryQuality: {
               internalCreativeReviewApproved: false,
@@ -771,6 +784,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               proofLogoRelationship: businessData.proofLogoRelationship,
               brandNotes: businessData.brandNotes,
               complianceNotes: businessData.complianceNotes,
+              referenceLinks: businessData.referenceLinks
+                .split(/\n+/)
+                .map((item) => item.trim())
+                .filter(Boolean),
             },
             deliveryQuality: {
               internalCreativeReviewApproved: false,
@@ -862,6 +879,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               proofLogoRelationship: businessData.proofLogoRelationship,
               brandNotes: businessData.brandNotes,
               complianceNotes: businessData.complianceNotes,
+              referenceLinks: businessData.referenceLinks
+                .split(/\n+/)
+                .map((item) => item.trim())
+                .filter(Boolean),
             },
           },
         }),
@@ -1666,6 +1687,19 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         onChange={(e) => setBusinessData({ ...businessData, complianceNotes: e.target.value })}
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Reference files & source links</label>
+                    <Textarea
+                      className="mt-2 min-h-28 rounded-2xl"
+                      placeholder={"One link per line. Add Google Drive, Dropbox, brochure, menu, price list, brand guide, video, existing website or other source material the delivery team should review."}
+                      value={businessData.referenceLinks}
+                      onChange={(e) => setBusinessData({ ...businessData, referenceLinks: e.target.value })}
+                    />
+                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                      Use links with the correct sharing permissions. Do not include passwords or confidential credentials.
+                    </p>
                   </div>
 
                   <div className="flex gap-4 border-t border-slate-100 pt-6">
