@@ -10,6 +10,8 @@ export function MyWebsitePage() {
   const [website, setWebsite] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const [liveHealth, setLiveHealth] = React.useState<any>(null);
+  const [healthLoading, setHealthLoading] = React.useState(false);
 
   React.useEffect(() => {
     if (!profile?.businessId) { setLoading(false); return; }
@@ -24,6 +26,29 @@ export function MyWebsitePage() {
     return () => { active = false; };
   }, [profile?.businessId]);
 
+  React.useEffect(() => {
+    if (!profile?.businessId || !website?.id) return;
+    let active = true;
+    const check = async () => {
+      setHealthLoading(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const response = await fetch(`/api/website-health?businessId=${profile.businessId}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (active && response.ok) setLiveHealth(payload);
+      } catch {
+        // Health status is supplementary and should not block the customer dashboard.
+      } finally {
+        if (active) setHealthLoading(false);
+      }
+    };
+    void check();
+    return () => { active = false; };
+  }, [profile?.businessId, website?.id, website?.updated_at]);
+
   if (loading) return <div className="flex min-h-72 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
   const siteUrl = (business as any)?.custom_domain ? `https://${(business as any).custom_domain}` : (business as any)?.site_url || "";
   const buttonHealth = website?.seo?.buttonHealth || {};
@@ -31,6 +56,15 @@ export function MyWebsitePage() {
   const launchGate = website?.seo?.launchGate || {};
   const release = website?.seo?.publishedVersion || null;
   const healthChecks = [
+    {
+      label: "Live reachability",
+      ok: liveHealth ? Boolean(liveHealth.reachable) : false,
+      detail: healthLoading
+        ? "Checking current site..."
+        : liveHealth
+          ? `${liveHealth.httpStatus || "No HTTP status"} · ${liveHealth.latencyMs || 0}ms · checked ${new Date(liveHealth.checkedAt).toLocaleTimeString()}`
+          : "Live check pending",
+    },
     {
       label: "Critical CTA health",
       ok: Number(buttonHealth.criticalBroken || 0) === 0,
@@ -80,7 +114,7 @@ export function MyWebsitePage() {
               </Badge>
             </div>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              These are the recorded launch and conversion-health checks for your managed website. They are evidence from the delivery workflow, not a decorative “99.9% everything is wonderful” badge.
+              These combine a current reachability check with recorded launch and conversion-health evidence from the delivery workflow.
             </p>
           </div>
           {release && (
@@ -91,7 +125,7 @@ export function MyWebsitePage() {
             </div>
           )}
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           {healthChecks.map((check) => (
             <div key={check.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex items-center gap-2">
