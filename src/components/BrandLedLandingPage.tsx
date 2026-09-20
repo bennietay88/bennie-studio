@@ -24,6 +24,7 @@ import {
   getStoredMarket,
 } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
+import { DELIVERY_STANDARD_VERSION, PUBLIC_DELIVERY_PROMISES } from "../constants/deliveryStandards";
 
 const CONSENT_KEY = "bt_sales_cookie_consent";
 const CONSENT_VERSION = "uk-sales-consent-v1";
@@ -513,6 +514,33 @@ export default function BrandLedLandingPage() {
             </div>
 
             <div className="lg:col-span-7"><SystemVisual /></div>
+          </div>
+        </section>
+
+        <section className="border-y border-[#dfe2ea] bg-[#101827] text-white">
+          <div className="brand-shell brand-section">
+            <div className="grid gap-10 lg:grid-cols-12">
+              <div className="lg:col-span-5">
+                <p className="brand-kicker !text-[#b9b1ff]">Human-reviewed delivery · Standard {DELIVERY_STANDARD_VERSION}</p>
+                <h2 className="mt-4 !text-white">The generator does not get the final say.</h2>
+                <p className="mt-5 max-w-xl text-base leading-7 !text-white/65">
+                  Automation gives us speed and consistency. Paid customer work still goes through internal creative direction, responsive QA, conversion checks and customer approval before launch.
+                </p>
+                <button onClick={() => go("/how-it-works", "Homepage delivery standard")} className="mt-7 inline-flex items-center font-semibold text-white">
+                  See the delivery standard <ArrowRight className="ml-2 h-4 w-4" />
+                </button>
+              </div>
+              <div className="grid gap-3 lg:col-span-7 sm:grid-cols-2">
+                {PUBLIC_DELIVERY_PROMISES.slice(0, 4).map((promise, index) => (
+                  <div key={promise} className="border border-white/15 bg-white/[0.035] p-5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.12em] !text-[#b9b1ff]">
+                      0{index + 1}
+                    </p>
+                    <p className="mt-3 text-sm font-semibold leading-6 !text-white/80">{promise}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
