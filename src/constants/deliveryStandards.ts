@@ -139,10 +139,8 @@ export function evaluateWorldClassLaunchGate(input: LaunchGateInput) {
   if (!input.responsiveQaApproved) blockers.push("Responsive QA must be explicitly approved.");
   if (!input.internalCreativeReviewApproved) blockers.push("Internal creative review must be approved.");
   if (!input.customerApprovalRecorded) blockers.push("Customer approval must be recorded before launch.");
-  if (input.productionQualityPassed === false) {
-    blockers.push("Production quality budget has unresolved blocking issues.");
-  } else if (input.productionQualityPassed === undefined) {
-    warnings.push("Production quality budget has not yet been recorded.");
+  if (!input.productionQualityPassed) {
+    blockers.push("Production quality budget must be verified before launch.");
   }
 
   if (UNSUPPORTED_CLAIM_PATTERN.test(serialized)) {
