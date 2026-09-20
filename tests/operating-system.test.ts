@@ -26,7 +26,13 @@ test("task keys are stable and unavailable report metrics are explicit", () => {
   assert.equal(publishedReportMetrics({ enquiries: null, views: 0 }).enquiries, "Data unavailable");
 });
 
-test("new operating-system customer surfaces fail closed by default", () => {
-  assert.equal(isOperatingSystemFlagEnabled("delivery_queue"), false);
-  assert.equal(isOperatingSystemFlagEnabled("delivery_queue", { delivery_queue: true }), true);
+test("core delivery operating-system controls are active by default", () => {
+  assert.equal(isOperatingSystemFlagEnabled("delivery_queue"), true);
+  assert.equal(isOperatingSystemFlagEnabled("launch_readiness"), true);
+  assert.equal(isOperatingSystemFlagEnabled("website_health"), true);
+  assert.equal(isOperatingSystemFlagEnabled("structured_update_requests"), true);
+  assert.equal(isOperatingSystemFlagEnabled("sales_delivery_handoff"), true);
+  assert.equal(isOperatingSystemFlagEnabled("content_provenance"), true);
+  assert.equal(isOperatingSystemFlagEnabled("template_versioning"), true);
+  assert.equal(isOperatingSystemFlagEnabled("delivery_queue", { delivery_queue: false }), false);
 });
