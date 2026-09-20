@@ -67,6 +67,12 @@ import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recor
 import { parseProspectCsv } from "../src/lib/prospectImport.js";
 import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS } from "../src/lib/commercialPricing.js";
 import { DEFAULT_LAUNCH_FLAGS, normalizeLaunchFlags, type LaunchFlags } from "../src/lib/launchFlags.js";
+import {
+  DELIVERY_STANDARD_VERSION,
+  PLAN_DELIVERY_STANDARDS,
+  addBusinessDays,
+  legacyPlanToPublicPlanSlug,
+} from "../src/constants/deliveryStandards.js";
 import { buildInternalContentPrompt, INTERNAL_CONTENT_SYSTEM_PROMPT, InternalContentBriefSchema, parseInternalContentDraft, buildHumaniseContentPrompt, HUMANISE_CONTENT_SYSTEM_PROMPT, parseHumaniseContentDraft } from "../src/lib/internalAiContentEngine.js";
 import { buildDesignDirectionPrompt, DESIGN_DIRECTOR_SYSTEM_PROMPT, parseDesignDirection } from "../src/lib/designDirector.js";
 import { isMarketingRoute, renderMarketingDocument } from "../server/marketingSsr.js";
@@ -7131,7 +7137,15 @@ async function startServer() {
     authenticate,
     rateLimit({ windowMs: 60 * 1000, max: 10, keyPrefix: "onboarding-complete", key: (req) => req.user?.id || getClientIp(req) }),
     async (req: any, res) => {
-      const body = validateBody(z.object({ businessId: UUID_SCHEMA, websiteId: UUID_SCHEMA, planId: z.string().trim().min(1).max(80), proposalId: UUID_SCHEMA.optional().nullable() }), req, res);
+      const body = validateBody(z.object({
+        businessId: UUID_SCHEMA,
+        websiteId: UUID_SCHEMA,
+        planId: z.string().trim().min(1).max(80),
+        proposalId: UUID_SCHEMA.optional().nullable(),
+        previewIntent: z.record(z.string(), z.any()).optional(),
+        deliveryStandardVersion: z.string().trim().max(40).optional(),
+        deliveryContext: z.record(z.string(), z.any()).optional(),
+      }), req, res);
       if (!body) return;
       try {
 		        let effectivePlanId = "";
@@ -7179,10 +7193,58 @@ async function startServer() {
 	            code: "BILLING_CONFIRMATION_REQUIRED",
 	          });
 	        }
-	        const { data: existingProject } = await supabaseAdmin.from("projects").select("id").eq("business_id", body.businessId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-        const projectPayload = { website_id: body.websiteId, title: `${business.name} Managed Website`, package_name: effectivePlanId, status: "ready_for_build", updated_at: new Date().toISOString() };
-        if (existingProject) await supabaseAdmin.from("projects").update(projectPayload).eq("id", existingProject.id);
-        else await supabaseAdmin.from("projects").insert({ business_id: body.businessId, type: "waas", priority: "medium", ...projectPayload });
+	        const { data: existingProject } = await supabaseAdmin
+          .from("projects")
+          .select("id")
+          .eq("business_id", body.businessId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const publicPlanSlug = legacyPlanToPublicPlanSlug(effectivePlanId);
+        const deliveryStandard = PLAN_DELIVERY_STANDARDS[publicPlanSlug];
+        const now = new Date();
+        const firstDraftTarget = addBusinessDays(now, deliveryStandard.firstDraftBusinessDays);
+        const targetLaunch = addBusinessDays(now, deliveryStandard.targetLaunchBusinessDays);
+        const handoffSummary = {
+          standardVersion: body.deliveryStandardVersion || DELIVERY_STANDARD_VERSION,
+          publicPlanSlug,
+          firstDraftTarget: firstDraftTarget.toISOString(),
+          targetLaunch: targetLaunch.toISOString(),
+          previewIntent: body.previewIntent || {},
+          deliveryContext: body.deliveryContext || {},
+        };
+        const projectPayload = {
+          website_id: body.websiteId,
+          title: `${business.name} Managed Website`,
+          package_name: effectivePlanId,
+          status: "ready_for_build",
+          target_launch_date: targetLaunch.toISOString().slice(0, 10),
+          admin_notes: `Delivery handoff ${JSON.stringify(handoffSummary)}`,
+          updated_at: new Date().toISOString(),
+        };
+        if (existingProject) {
+          await supabaseAdmin.from("projects").update(projectPayload).eq("id", existingProject.id);
+        } else {
+          await supabaseAdmin.from("projects").insert({
+            business_id: body.businessId,
+            type: "waas",
+            priority: "medium",
+            ...projectPayload,
+          });
+        }
+
+        await supabaseAdmin.from("tracking_events").insert({
+          event_type: "sales_delivery_handoff",
+          source_platform: "customer_dashboard",
+          metadata: {
+            businessId: body.businessId,
+            websiteId: body.websiteId,
+            ...handoffSummary,
+          },
+        }).then(({ error }) => {
+          if (error) console.warn("Sales-to-delivery handoff tracking skipped:", error.message);
+        });
 
         const { data: onboarding } = await supabaseAdmin.from("onboarding_sessions").select("id").eq("business_id", body.businessId).neq("status", "Completed").order("created_at", { ascending: false }).limit(1).maybeSingle();
         const onboardingPayload = { current_step: "Ready for build", status: "Completed", progress: 100, notes: "Customer onboarding submitted and website draft generated.", updated_at: new Date().toISOString() };
@@ -7190,11 +7252,17 @@ async function startServer() {
         else await supabaseAdmin.from("onboarding_sessions").insert({ business_id: body.businessId, ...onboardingPayload });
 
         const { data: admins } = await supabaseAdmin.from("profiles").select("id").in("role", ["super_admin", "platform_staff"]);
-        if (admins?.length) await supabaseAdmin.from("notifications").insert(admins.map((admin: any) => ({ user_id: admin.id, business_id: body.businessId, title: "Customer onboarding completed", message: `${business.name} submitted onboarding and is ready for production.`, type: "onboarding", metadata: { websiteId: body.websiteId } })))
+        if (admins?.length) await supabaseAdmin.from("notifications").insert(admins.map((admin: any) => ({ user_id: admin.id, business_id: body.businessId, title: "Customer onboarding completed", message: `${business.name} submitted onboarding and is ready for production. First reviewed draft target: ${firstDraftTarget.toISOString().slice(0, 10)}.`, type: "onboarding", metadata: { websiteId: body.websiteId, firstDraftTarget: firstDraftTarget.toISOString(), targetLaunch: targetLaunch.toISOString(), deliveryStandardVersion: body.deliveryStandardVersion || DELIVERY_STANDARD_VERSION } })))
           .then(({ error }) => { if (error) console.warn("Onboarding admin notification skipped:", error.message); });
         await supabaseAdmin.from("tracking_events").insert({ event_type: "onboarding_completed", source_platform: "customer_dashboard", metadata: { businessId: body.businessId, websiteId: body.websiteId, planId: effectivePlanId } })
           .then(({ error }) => { if (error) console.warn("Onboarding tracking skipped:", error.message); });
-        return res.json({ success: true, projectStatus: "ready_for_build" });
+        return res.json({
+          success: true,
+          projectStatus: "ready_for_build",
+          deliveryStandardVersion: body.deliveryStandardVersion || DELIVERY_STANDARD_VERSION,
+          firstDraftTarget: firstDraftTarget.toISOString(),
+          targetLaunch: targetLaunch.toISOString(),
+        });
       } catch (error: any) {
         if (["BUSINESS_NOT_FOUND", "PROFILE_NOT_FOUND", "FORBIDDEN_BUSINESS_ACCESS"].includes(error?.message)) return handleAccessError(res, error);
         console.error("Onboarding handoff failed:", error);
