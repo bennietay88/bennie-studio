@@ -7791,49 +7791,119 @@ export function WebsiteEditor({
                                           <Label>
                                             Customer-supplied Logos
                                           </Label>
-                                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                          <p className="text-xs leading-5 text-slate-500">
+                                            Add only logos the business is entitled to display, then describe the relationship accurately.
+                                          </p>
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             {(section.content.logos || []).map(
-                                              (logo: string, idx: number) => (
-                                                <div
-                                                  key={idx}
-                                                  className="relative group aspect-video bg-slate-50 rounded-lg border border-slate-200 overflow-hidden"
-                                                >
-                                                  <img
-                                                    src={logo}
-                                                    alt="Logo"
-                                                    className="w-full h-full object-contain p-4"
-                                                  />
-                                                  <Button
-                                                    variant="destructive"
-                                                    size="icon"
-                                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => {
-                                                      const newLogos =
-                                                        section.content.logos.filter(
-                                                          (_: any, i: number) =>
-                                                            i !== idx,
-                                                        );
-                                                      updateSectionContent(
-                                                        page.id,
-                                                        section.id,
-                                                        { logos: newLogos },
-                                                      );
-                                                    }}
+                                              (logo: any, idx: number) => {
+                                                const logoUrl =
+                                                  typeof logo === "string"
+                                                    ? logo
+                                                    : logo?.url || logo?.imageUrl || "";
+                                                const logoName =
+                                                  typeof logo === "string"
+                                                    ? ""
+                                                    : logo?.name || logo?.label || "";
+                                                const logoDetail =
+                                                  typeof logo === "string"
+                                                    ? ""
+                                                    : logo?.detail || logo?.description || logo?.relationship || "";
+                                                return (
+                                                  <div
+                                                    key={idx}
+                                                    className="relative group rounded-2xl border border-slate-200 bg-slate-50 p-4"
                                                   >
-                                                    <Trash2 className="h-3 w-3" />
-                                                  </Button>
-                                                </div>
-                                              ),
+                                                    <div className="flex min-h-24 items-center justify-center rounded-xl border border-slate-100 bg-white p-4">
+                                                      {logoUrl ? (
+                                                        <img
+                                                          src={logoUrl}
+                                                          alt={logoName || "Business-supplied logo"}
+                                                          className="max-h-12 max-w-full object-contain"
+                                                        />
+                                                      ) : (
+                                                        <span className="text-xs font-bold text-slate-400">Logo image</span>
+                                                      )}
+                                                    </div>
+                                                    <div className="mt-3 grid gap-2">
+                                                      <Input
+                                                        placeholder="Logo / brand name"
+                                                        value={logoName}
+                                                        onChange={(e) => {
+                                                          const newLogos = [...(section.content.logos || [])];
+                                                          newLogos[idx] = {
+                                                            ...(typeof logo === "object" ? logo : {}),
+                                                            url: logoUrl,
+                                                            name: e.target.value,
+                                                            detail: logoDetail,
+                                                          };
+                                                          updateSectionContent(page.id, section.id, {
+                                                            logos: newLogos,
+                                                            providedByBusiness: true,
+                                                            sourceLabel: "Business-supplied logos",
+                                                          });
+                                                        }}
+                                                      />
+                                                      <Input
+                                                        placeholder="Relationship, e.g. Technology, Partner, Member"
+                                                        value={logoDetail}
+                                                        onChange={(e) => {
+                                                          const newLogos = [...(section.content.logos || [])];
+                                                          newLogos[idx] = {
+                                                            ...(typeof logo === "object" ? logo : {}),
+                                                            url: logoUrl,
+                                                            name: logoName,
+                                                            detail: e.target.value,
+                                                          };
+                                                          updateSectionContent(page.id, section.id, {
+                                                            logos: newLogos,
+                                                            providedByBusiness: true,
+                                                            sourceLabel: "Business-supplied logos",
+                                                          });
+                                                        }}
+                                                      />
+                                                    </div>
+                                                    <Button
+                                                      variant="destructive"
+                                                      size="icon"
+                                                      className="absolute right-2 top-2 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                                                      onClick={() => {
+                                                        const newLogos =
+                                                          section.content.logos.filter(
+                                                            (_: any, i: number) => i !== idx,
+                                                          );
+                                                        updateSectionContent(
+                                                          page.id,
+                                                          section.id,
+                                                          { logos: newLogos },
+                                                        );
+                                                      }}
+                                                    >
+                                                      <Trash2 className="h-3 w-3" />
+                                                    </Button>
+                                                  </div>
+                                                );
+                                              },
                                             )}
-                                            <div className="col-span-2 sm:col-span-4">
+                                            <div className="sm:col-span-2">
                                               <ImageUpload
-                                                label="Add Client / Partner Logo"
-                                                description="Upload only logos the customer is entitled to display."
+                                                label="Add Logo"
+                                                description="Upload only client, partner, association, certification, platform or technology logos the business is entitled to display."
                                                 bucket="website-assets"
                                                 value=""
                                                 onUpload={(url) => {
-                                                  const newLogos = [...(section.content.logos || []), url];
-                                                  updateSectionContent(page.id, section.id, { logos: newLogos, providedByBusiness: true, sourceLabel: "Business-supplied logos" });
+                                                  const newLogos = [
+                                                    ...(section.content.logos || []),
+                                                    { url, name: "", detail: "" },
+                                                  ];
+                                                  updateSectionContent(page.id, section.id, {
+                                                    logos: newLogos,
+                                                    providedByBusiness: true,
+                                                    sourceLabel: "Business-supplied logos",
+                                                  });
+                                                  updateSectionSettings(page.id, section.id, {
+                                                    variant: "logo_marquee",
+                                                  });
                                                 }}
                                               />
                                             </div>
