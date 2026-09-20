@@ -123,6 +123,7 @@ export const CONVERSION_GOALS: ConversionGoal[] = [
 export const REUSABLE_TEMPLATE_BLOCKS = [
   "Hero",
   "Trust bar",
+  "Animated logo / trust marquee (verified logos only)",
   "Service cards",
   "Problem selector",
   "Why choose us",
@@ -149,6 +150,8 @@ export const TEMPLATE_EDITABLE_FIELDS = [
   "FAQ question",
   "FAQ answer",
   "Review text",
+  "Proof logo",
+  "Proof logo label / relationship",
   "Business phone",
   "WhatsApp number",
   "Email",
@@ -163,7 +166,7 @@ export const PLAN_PAGE_STRUCTURES: Record<RecommendedPlan, TemplatePageStructure
     plan: "Starter",
     pageCount: 1,
     pages: ["Home"],
-    sections: ["Hero", "Trust bar", "Services overview", "Why choose us", "Process", "Testimonials", "FAQ", "CTA banner", "Contact section"],
+    sections: ["Hero", "Trust bar / verified logo marquee", "Services overview", "Why choose us", "Process", "Testimonials", "FAQ", "CTA banner", "Contact section"],
   },
   Business: {
     plan: "Business",
