@@ -74,3 +74,29 @@ test("launch gate passes a clean, reviewed and customer-approved website", () =>
   assert.equal(ready.ready, true);
   assert.deepEqual(ready.blockers, []);
 });
+
+
+test("appointment and managed lead-capture sections satisfy the contact launch gate", () => {
+  const appointmentWebsite = structuredClone(baseWebsite);
+  appointmentWebsite.theme.footer.contactEmail = "";
+  appointmentWebsite.theme.footer.contactPhone = "";
+  appointmentWebsite.seo.phone = "";
+  appointmentWebsite.pages[0].sections = [
+    { id: "hero", type: "hero", isVisible: true, content: { headline: "Book your next visit", ctaText: "Book Appointment" } },
+    { id: "services", type: "services", isVisible: true, content: { items: [{ title: "Consultation", description: "Appointment service" }] } },
+    { id: "booking", type: "appointment", isVisible: true, content: { title: "Reserve your time" } },
+  ];
+  const ready = evaluateWorldClassLaunchGate({
+    website: appointmentWebsite,
+    buttonIssues: [],
+    designProductionReady: true,
+    internalCreativeReviewApproved: true,
+    responsiveQaApproved: true,
+    customerApprovalRecorded: true,
+  });
+  assert.equal(ready.ready, true);
+  assert.equal(
+    ready.blockers.some((item) => /contact or lead-capture/i.test(item)),
+    false,
+  );
+});
