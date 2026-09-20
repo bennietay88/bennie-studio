@@ -54,12 +54,14 @@ test("launch gate blocks generated work until human and customer checks are comp
     designProductionReady: true,
     internalCreativeReviewApproved: false,
     responsiveQaApproved: false,
+    productionQualityPassed: false,
     customerApprovalRecorded: false,
   });
   assert.equal(blocked.ready, false);
   assert.ok(blocked.blockers.some((item) => /Internal creative review/i.test(item)));
   assert.ok(blocked.blockers.some((item) => /Responsive QA/i.test(item)));
   assert.ok(blocked.blockers.some((item) => /Customer approval/i.test(item)));
+  assert.ok(blocked.blockers.some((item) => /Production quality budget/i.test(item)));
 });
 
 test("launch gate passes a clean, reviewed and customer-approved website", () => {
@@ -69,6 +71,7 @@ test("launch gate passes a clean, reviewed and customer-approved website", () =>
     designProductionReady: true,
     internalCreativeReviewApproved: true,
     responsiveQaApproved: true,
+    productionQualityPassed: true,
     customerApprovalRecorded: true,
   });
   assert.equal(ready.ready, true);
@@ -92,6 +95,7 @@ test("appointment and managed lead-capture sections satisfy the contact launch g
     designProductionReady: true,
     internalCreativeReviewApproved: true,
     responsiveQaApproved: true,
+    productionQualityPassed: true,
     customerApprovalRecorded: true,
   });
   assert.equal(ready.ready, true);
