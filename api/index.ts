@@ -7132,6 +7132,97 @@ async function startServer() {
     },
   );
 
+  app.get(
+    "/api/website-health",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: "website-health", key: (req) => req.user?.id || getClientIp(req) }),
+    async (req: any, res) => {
+      const businessId = String(req.query.businessId || "");
+      if (!UUID_SCHEMA.safeParse(businessId).success) {
+        return res.status(400).json({ error: "Invalid business reference." });
+      }
+      try {
+        await assertBusinessAccess(req.user.id, businessId);
+        const [{ data: business, error: businessError }, { data: website, error: websiteError }] = await Promise.all([
+          supabaseAdmin
+            .from("businesses")
+            .select("id,name,custom_domain,custom_domain_status,subdomain")
+            .eq("id", businessId)
+            .single(),
+          supabaseAdmin
+            .from("websites")
+            .select("id,status,seo,updated_at")
+            .eq("business_id", businessId)
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
+        if (businessError || !business) return res.status(404).json({ error: "Business not found." });
+        if (websiteError) throw websiteError;
+
+        const connectedDomain =
+          String((business as any).custom_domain_status || "").toLowerCase() === "connected"
+            ? normalizeDomainInput(String((business as any).custom_domain || ""))
+            : "";
+        const publicUrl = connectedDomain
+          ? `https://${connectedDomain}`
+          : `${publicAppUrl()}/w/${businessId}`;
+
+        const startedAt = Date.now();
+        let reachable = false;
+        let httpStatus: number | null = null;
+        let finalUrl = publicUrl;
+        let fetchError: string | null = null;
+        try {
+          const response = await fetch(publicUrl, {
+            method: "GET",
+            redirect: "follow",
+            signal: AbortSignal.timeout(8000),
+            headers: { "user-agent": "BennieStudio-WebsiteHealth/1.0" },
+          });
+          httpStatus = response.status;
+          finalUrl = response.url || publicUrl;
+          reachable = response.status >= 200 && response.status < 500;
+          await response.body?.cancel().catch(() => undefined);
+        } catch (error: any) {
+          fetchError = safeErrorMessage(error);
+        }
+
+        const seo: any = website?.seo || {};
+        const buttonHealth = seo.buttonHealth || {};
+        const release = seo.publishedVersion || null;
+        return res.json({
+          businessId,
+          websiteId: website?.id || null,
+          websiteStatus: website?.status || "not_created",
+          url: publicUrl,
+          finalUrl,
+          reachable,
+          httpStatus,
+          latencyMs: Date.now() - startedAt,
+          checkedAt: new Date().toISOString(),
+          buttonHealth: {
+            total: Number(buttonHealth.total || 0),
+            broken: Number(buttonHealth.broken || 0),
+            criticalBroken: Number(buttonHealth.criticalBroken || 0),
+            checkedAt: buttonHealth.checkedAt || null,
+          },
+          release,
+          launchGateReady: seo.launchGate?.ready === true,
+          deliveryStandardVersion: seo.deliveryStandardVersion || null,
+          websiteUpdatedAt: website?.updated_at || null,
+          error: fetchError,
+        });
+      } catch (error: any) {
+        if (["BUSINESS_NOT_FOUND", "PROFILE_NOT_FOUND", "FORBIDDEN_BUSINESS_ACCESS"].includes(error?.message)) {
+          return handleAccessError(res, error);
+        }
+        console.error("Website health check failed:", error);
+        return res.status(500).json({ error: "Website health could not be checked." });
+      }
+    },
+  );
+
   app.post(
     "/api/onboarding/complete",
     authenticate,
