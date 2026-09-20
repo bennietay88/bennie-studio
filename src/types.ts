@@ -469,6 +469,53 @@ export interface Website {
     coreValueProposition?: string;
     knowledgeBaseSummary?: string;
     workflowStatus?: "draft" | "in_review" | "changes_requested" | "ready_to_launch" | "live";
+    deliveryStandardVersion?: string;
+    assetVault?: {
+      logoUrl?: string;
+      heroImageUrl?: string;
+      storyImageUrl?: string;
+      projectImageUrl?: string;
+      proofLogoUrl?: string;
+      proofLogoName?: string;
+      proofLogoRelationship?: string;
+      brandNotes?: string;
+      complianceNotes?: string;
+      referenceLinks?: string[];
+    };
+    deliveryQuality?: {
+      internalCreativeReviewApproved?: boolean;
+      responsiveQaApproved?: boolean;
+      customerApprovalRecorded?: boolean;
+      lastReviewedAt?: string;
+      lastReviewedBy?: string;
+      lastLaunchApprovedAt?: string;
+    };
+    launchGate?: {
+      ready?: boolean;
+      blockers?: string[];
+      warnings?: string[];
+      checkedAt?: string;
+      standardVersion?: string;
+    };
+    publishedVersion?: {
+      id?: string;
+      publishedAt?: string;
+      standardVersion?: string;
+    } | null;
+    releaseHistory?: Array<{
+      id?: string;
+      publishedAt?: string;
+      standardVersion?: string;
+    } | null>;
+    buttonHealth?: {
+      total?: number;
+      working?: number;
+      broken?: number;
+      critical?: number;
+      criticalBroken?: number;
+      updatedAt?: string;
+      checkedAt?: string;
+    };
   };
   status: "published" | "draft";
   updatedAt: number;
