@@ -105,12 +105,15 @@ const industries = [
 const process = [
   ["01", "Strategy", "We define the audience, offer, proof and strongest enquiry path."],
   ["02", "Design", "The system chooses the right visual structure and builds the site architecture around the business."],
-  ["03", "Review", "You add real assets and approve the final message, pages and actions."],
+  ["03", "Review", "Bennie Studio art-directs and quality-checks the build, then you review and approve the final website before launch."],
   ["04", "Grow", "The site stays hosted, maintained and improved as the business changes."],
 ];
 
 const faqs = [
   ["Is this a template website?", "No. The system uses reusable design rules and components, but the composition, hierarchy, copy structure and conversion path are selected around the business brief."],
+  ["Who reviews my website before launch?", "Every paid build goes through Bennie Studio's internal creative review, responsive QA, production-quality checks and customer approval before it can be published."],
+  ["Why is there a 12-month initial commitment?", "Managed plans combine the initial strategy and build with hosting, maintenance, tracking and plan-based improvements after launch. The exact commitment, renewal, cancellation and transfer terms are shown in writing before payment."],
+  ["What stays mine?", "Your domain and the business assets you supply remain yours. Any managed transfer, export or platform arrangements are confirmed in the written terms before payment."],
   ["Do I need professional photography before we start?", "No. Brand-led layouts can work without customer photography at first. When real imagery is supplied, it is placed into deliberate media slots rather than replaced with fake AI photos."],
   ["What happens after launch?", "Managed plans include hosting and ongoing website management. Higher tiers add deeper conversion, landing-page and growth support."],
   ["Can I preview the website before paying?", "Yes. The free preview flow uses the same Premium and Brand-led generator system used for customer builds."],
