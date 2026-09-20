@@ -7153,7 +7153,11 @@ async function startServer() {
       }
       try {
         await assertBusinessAccess(req.user.id, businessId);
-        const [{ data: business, error: businessError }, { data: website, error: websiteError }] = await Promise.all([
+        const [
+          { data: business, error: businessError },
+          { data: website, error: websiteError },
+          { data: deliveryProject, error: deliveryError },
+        ] = await Promise.all([
           supabaseAdmin
             .from("businesses")
             .select("id,name,custom_domain,custom_domain_status,subdomain")
@@ -7166,9 +7170,17 @@ async function startServer() {
             .order("updated_at", { ascending: false })
             .limit(1)
             .maybeSingle(),
+          supabaseAdmin
+            .from("projects")
+            .select("id,status,priority,target_launch_date,updated_at")
+            .eq("business_id", businessId)
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
         ]);
         if (businessError || !business) return res.status(404).json({ error: "Business not found." });
         if (websiteError) throw websiteError;
+        if (deliveryError) console.warn("Website health delivery status unavailable:", deliveryError.message);
 
         const connectedDomain =
           String((business as any).custom_domain_status || "").toLowerCase() === "connected"
@@ -7221,6 +7233,15 @@ async function startServer() {
           launchGateReady: seo.launchGate?.ready === true,
           deliveryStandardVersion: seo.deliveryStandardVersion || null,
           websiteUpdatedAt: website?.updated_at || null,
+          delivery: deliveryProject
+            ? {
+                projectId: deliveryProject.id,
+                status: deliveryProject.status || null,
+                priority: deliveryProject.priority || null,
+                targetLaunchDate: deliveryProject.target_launch_date || null,
+                updatedAt: deliveryProject.updated_at || null,
+              }
+            : null,
           error: fetchError,
         });
       } catch (error: any) {
