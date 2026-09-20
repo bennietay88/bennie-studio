@@ -621,3 +621,125 @@
 .brand-public .hover\:bg-indigo-700:hover:not(.bt-template-preview *) {
   background-color: #4938db !important;
 }
+
+
+/* Homepage technology credibility marquee. */
+.brand-public .brand-tech-marquee {
+  position: relative;
+  overflow: hidden;
+}
+
+.brand-public .brand-logo-marquee {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+}
+
+.brand-public .brand-logo-track {
+  display: flex;
+  width: max-content;
+  gap: 1rem;
+  will-change: transform;
+  animation: brand-logo-marquee 28s linear infinite;
+}
+
+.brand-public .brand-logo-group {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 1rem;
+}
+
+.brand-public .brand-logo-chip {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .85rem;
+  min-width: 12.25rem;
+  border: 1px solid #e2e5ec;
+  border-radius: .85rem;
+  background: #fafbff;
+  padding: .8rem 1rem;
+}
+
+.brand-public .brand-logo-chip img {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  opacity: .82;
+  object-fit: contain;
+}
+
+.brand-public .brand-logo-name,
+.brand-public .brand-logo-detail {
+  display: block;
+}
+
+.brand-public .brand-logo-name {
+  color: #202632;
+  font-size: .82rem;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.brand-public .brand-logo-detail {
+  margin-top: .2rem;
+  color: #7a8493;
+  font-size: .68rem;
+  font-weight: 540;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.brand-public .brand-logo-marquee:hover .brand-logo-track {
+  animation-play-state: paused;
+}
+
+@keyframes brand-logo-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(calc(-50% - .5rem));
+  }
+}
+
+@media (max-width: 767px) {
+  .brand-public .brand-logo-marquee {
+    margin-inline: -1rem;
+  }
+
+  .brand-public .brand-logo-track,
+  .brand-public .brand-logo-group {
+    gap: .75rem;
+  }
+
+  .brand-public .brand-logo-track {
+    animation-duration: 24s;
+  }
+
+  .brand-public .brand-logo-chip {
+    min-width: 10.75rem;
+    padding: .72rem .85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-public .brand-logo-marquee {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .brand-public .brand-logo-track {
+    animation: none;
+    transform: none;
+  }
+
+  .brand-public .brand-logo-group[aria-hidden="true"] {
+    display: none;
+  }
+}
