@@ -1,6 +1,7 @@
 
 import { supabase } from "./supabase";
 import axios from "axios";
+import { getCustomerSiteCapabilityPrompt } from "../constants/customerSiteCapabilities";
 
 // TypeScript definitions moved from constants to ensure availability
 export type AIUseCase = "copy" | "synthesis" | "seo" | "chat" | "ad_copy" | "rewrite_section" | "blog" | "image" | "marketing";
@@ -235,9 +236,14 @@ export async function generateWebsiteContent(
     }
 
     Notes:
-    - types available: Hero, Services, Proof, Features, Benefits, CTA
+    - types available: Hero, Services, Proof, Features, Benefits, CTA, FAQ, Testimonials, Contact, Appointment, Blog_List.
+    - Proof supports variants: metrics, logo_wall, certification_strip, trust_strip, logo_marquee.
+    - If the requested concept is a logo strip, partner strip, client-logo row, technology-logo row or trust bar, output type "Proof" with settings.variant "logo_marquee".
+    - Never invent clients, brand relationships, certifications, awards, testimonials or performance metrics. For logo_marquee, include logos only when explicitly supplied by the business; otherwise leave logos empty.
     - Ensure EVERY section requested is present.
-    - Return ONLY valid JSON. No markdown wrappers.`;
+    - Return ONLY valid JSON. No markdown wrappers.
+
+    ${getCustomerSiteCapabilityPrompt()}`;
 
   const prompt = `synthesize a master website for:
     Business: ${businessName}
