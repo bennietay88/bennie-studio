@@ -67,6 +67,7 @@ export interface BlueprintBusinessInput {
   state?: string;
   nearbyAreas?: string[];
   localProof?: string;
+  proofLogos?: Array<string | { name?: string; label?: string; url?: string; imageUrl?: string; detail?: string; description?: string; relationship?: string }>;
   ctaPreference?: string;
   tone?: string;
   services?: string[];
@@ -585,19 +586,25 @@ const buildSectionContent = (
 
   if (section.type === "proof") {
     const suppliedProof = (input.localProof || "").trim();
+    const suppliedLogos = Array.isArray(input.proofLogos) ? input.proofLogos.filter(Boolean) : [];
+    const hasBusinessProof = Boolean(suppliedProof || suppliedLogos.length);
     section.content = {
       ...section.content,
-      title: suppliedProof ? "Proof From the Business" : "Proof",
+      title: suppliedLogos.length
+        ? "Trusted Connections"
+        : suppliedProof
+          ? "Proof From the Business"
+          : "Proof",
       description: suppliedProof || undefined,
       stats: [],
-      logos: [],
+      logos: suppliedLogos,
       items: suppliedProof
         ? [{ title: "Business-supplied evidence", description: suppliedProof }]
         : [],
-      providedByBusiness: Boolean(suppliedProof),
-      sourceLabel: suppliedProof ? "Business-supplied proof" : undefined,
+      providedByBusiness: hasBusinessProof,
+      sourceLabel: hasBusinessProof ? "Business-supplied proof" : undefined,
     };
-    section.isVisible = Boolean(suppliedProof);
+    section.isVisible = hasBusinessProof;
   }
 
   if (section.type === "about") {
@@ -790,11 +797,14 @@ export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsiteP
       const sectionType = sectionTypeMap[block];
       const section = cloneSection(sectionType);
       const configured = buildSectionContent(section, block, blueprintPage, input);
-      const variant = getVariantForMode(sectionType, profile.id, generationMode, blockIndex + (input.compositionSeed || 0), {
-        brandPersonality: input.brandPersonality,
-        businessMaturity: input.businessMaturity,
-        assetReadiness: input.assetReadiness,
-      });
+      const variant =
+        sectionType === "proof" && (input.proofLogos?.length || 0) > 0
+          ? "logo_marquee"
+          : getVariantForMode(sectionType, profile.id, generationMode, blockIndex + (input.compositionSeed || 0), {
+              brandPersonality: input.brandPersonality,
+              businessMaturity: input.businessMaturity,
+              assetReadiness: input.assetReadiness,
+            });
       return variant
         ? {
             ...configured,
