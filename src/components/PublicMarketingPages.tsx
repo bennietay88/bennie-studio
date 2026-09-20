@@ -46,6 +46,11 @@ import { Pricing as CommercialPricing } from "./Pricing";
 import { trackPinterestLead } from "../lib/pinterestTracking";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { FREE_PREVIEW_LIMITS, PUBLIC_PROMISE, SUBSCRIPTION_DELIVERY_FLOW } from "../constants/salesFlow";
+import {
+  DELIVERY_PIPELINE,
+  PUBLIC_DELIVERY_PROMISES,
+  DELIVERY_STANDARD_VERSION,
+} from "../constants/deliveryStandards";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { normalizeCommercialMarket } from "../lib/commercialPricing";
 import { FlagshipTemplateGallery } from "./FlagshipTemplateGallery";
@@ -692,6 +697,40 @@ function HowItWorksPage() {
                 </div>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-[#dfe2ea] bg-[#0b1020] text-white">
+        <div className="brand-shell brand-section">
+          <div className="grid gap-10 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#b9b1ff]">Delivery standard {DELIVERY_STANDARD_VERSION}</p>
+              <h2 className="mt-4 !text-white">Generation starts the work. It does not approve the work.</h2>
+              <p className="mt-5 text-base leading-7 !text-white/65">
+                Every paid site moves through a human-reviewed delivery pipeline before it can be published.
+              </p>
+            </div>
+            <div className="lg:col-span-8">
+              <div className="grid gap-px overflow-hidden border border-white/15 bg-white/15 sm:grid-cols-2">
+                {DELIVERY_PIPELINE.map((stage, index) => (
+                  <div key={stage} className="bg-[#101827] p-5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.14em] !text-[#b9b1ff]">
+                      {String(index + 1).padStart(2, "0")}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold !text-white">{stage}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 grid gap-3">
+                {PUBLIC_DELIVERY_PROMISES.map((promise) => (
+                  <p key={promise} className="flex gap-3 text-sm leading-6 !text-white/75">
+                    <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-300" />
+                    {promise}
+                  </p>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
