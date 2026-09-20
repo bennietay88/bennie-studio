@@ -640,6 +640,7 @@ export function WebsiteEditor({
   const deliveryQuality = (website?.seo?.deliveryQuality || {}) as {
     internalCreativeReviewApproved?: boolean;
     responsiveQaApproved?: boolean;
+    productionQualityPassed?: boolean;
     customerApprovalRecorded?: boolean;
   };
   const launchGate = useMemo(
@@ -651,6 +652,7 @@ export function WebsiteEditor({
             designProductionReady: !designPublishBlocked,
             internalCreativeReviewApproved: Boolean(deliveryQuality.internalCreativeReviewApproved),
             responsiveQaApproved: Boolean(deliveryQuality.responsiveQaApproved),
+            productionQualityPassed: Boolean(deliveryQuality.productionQualityPassed),
             customerApprovalRecorded:
               customerApprovalRecorded || Boolean(deliveryQuality.customerApprovalRecorded),
           })
@@ -661,6 +663,7 @@ export function WebsiteEditor({
       designPublishBlocked,
       deliveryQuality.internalCreativeReviewApproved,
       deliveryQuality.responsiveQaApproved,
+      deliveryQuality.productionQualityPassed,
       deliveryQuality.customerApprovalRecorded,
       customerApprovalRecorded,
     ],
@@ -686,7 +689,7 @@ export function WebsiteEditor({
   }, [businessId, isTemplateMode]);
 
   const updateDeliveryQuality = async (
-    key: "internalCreativeReviewApproved" | "responsiveQaApproved" | "customerApprovalRecorded",
+    key: "internalCreativeReviewApproved" | "responsiveQaApproved" | "productionQualityPassed" | "customerApprovalRecorded",
     value: boolean,
   ) => {
     if (!website || !isInternalOperator) return;
@@ -4893,6 +4896,7 @@ export function WebsiteEditor({
                   {[
                     ["Internal creative review", "internalCreativeReviewApproved", Boolean(deliveryQuality.internalCreativeReviewApproved)],
                     ["Responsive desktop/mobile QA", "responsiveQaApproved", Boolean(deliveryQuality.responsiveQaApproved)],
+                    ["Production quality budget", "productionQualityPassed", Boolean(deliveryQuality.productionQualityPassed)],
                     ["Customer approval recorded", "customerApprovalRecorded", customerApprovalRecorded || Boolean(deliveryQuality.customerApprovalRecorded)],
                   ].map(([label, key, checked]) => (
                     <div key={String(key)} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -4906,7 +4910,7 @@ export function WebsiteEditor({
                         <Switch
                           checked={Boolean(checked)}
                           onCheckedChange={(value) =>
-                            updateDeliveryQuality(key as "internalCreativeReviewApproved" | "responsiveQaApproved" | "customerApprovalRecorded", value)
+                            updateDeliveryQuality(key as "internalCreativeReviewApproved" | "responsiveQaApproved" | "productionQualityPassed" | "customerApprovalRecorded", value)
                           }
                         />
                       ) : (
