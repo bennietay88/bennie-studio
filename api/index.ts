@@ -7226,8 +7226,8 @@ async function startServer() {
           buttonHealth: {
             total: Number(buttonHealth.total || 0),
             broken: Number(buttonHealth.broken || 0),
-            criticalBroken: Number(buttonHealth.criticalBroken || 0),
-            checkedAt: buttonHealth.checkedAt || null,
+            criticalBroken: Number(buttonHealth.criticalBroken ?? buttonHealth.critical ?? 0),
+            checkedAt: buttonHealth.checkedAt || buttonHealth.updatedAt || null,
           },
           release,
           launchGateReady: seo.launchGate?.ready === true,
