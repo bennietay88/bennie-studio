@@ -1440,6 +1440,11 @@ export function WebsiteEditor({
 
   const handleSave = async (data?: any) => {
     if (!website) return;
+    if (website.status === "published" && !isInternalOperator) {
+      toast.info("Live website changes are handled through the managed update workflow so production stays protected.");
+      navigate("/dashboard/update-requests");
+      return;
+    }
     setSaving(true);
     try {
       const isWebsiteObject = data && data.pages && data.theme && data.seo;
@@ -1777,6 +1782,11 @@ export function WebsiteEditor({
 
   const handleDeleteWebsite = async () => {
     if (!website) return;
+    if (!isInternalOperator) {
+      toast.error("Managed websites can only be deleted by the Bennie Studio delivery team.");
+      setShowDeleteConfirm(false);
+      return;
+    }
     setIsDeleting(true);
     setSaving(true);
     try {
@@ -4424,7 +4434,14 @@ export function WebsiteEditor({
                 <Eye className="h-4 w-4" />{" "}
                 <span className="hidden sm:inline">Live Preview</span>
               </Button>
-              {activeTab === "seo" ? (
+              {website.status === "published" && !isInternalOperator ? (
+                <Button
+                  onClick={() => navigate("/dashboard/update-requests")}
+                  className="gap-2 h-10 rounded-xl whitespace-nowrap px-6 font-bold bg-indigo-600 hover:bg-indigo-700"
+                >
+                  Managed Update <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : activeTab === "seo" ? (
                 <Button
                   onClick={handleSubmitSeo(handleSave)}
                   isLoading={saving}
@@ -4448,7 +4465,7 @@ export function WebsiteEditor({
                   {isTemplateMode ? "Save Master" : "Save Changes"}
                 </Button>
               )}
-              {!isTemplateMode && (
+              {!isTemplateMode && isInternalOperator && (
                 <Button
                   variant="ghost"
                   className="h-10 w-10 p-0 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50"
