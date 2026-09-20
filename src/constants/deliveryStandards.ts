@@ -103,13 +103,20 @@ export function evaluateWorldClassLaunchGate(input: LaunchGateInput) {
   const allSections = pages.flatMap((page) => page.sections || []);
   const serialized = JSON.stringify(pages);
   const contact = allSections.find((section) => section.type === "contact")?.content || {};
+  const hasLeadCaptureSection = allSections.some((section) =>
+    ["contact", "contact_form", "appointment", "booking"].includes(String(section.type || "")),
+  );
   const hasContactMethod = Boolean(
     contact.email ||
+      contact.contactEmail ||
       contact.phone ||
+      contact.contactPhone ||
       contact.whatsapp ||
+      contact.whatsappNumber ||
       website.theme?.footer?.contactEmail ||
       website.theme?.footer?.contactPhone ||
-      website.seo?.phone,
+      website.seo?.phone ||
+      hasLeadCaptureSection,
   );
   const hasPrimaryCta = Boolean(
     home?.sections?.some((section) =>
@@ -123,7 +130,7 @@ export function evaluateWorldClassLaunchGate(input: LaunchGateInput) {
 
   if (!home || (home.sections || []).length < 3) blockers.push("Homepage needs a complete customer journey.");
   if (!hasPrimaryCta) blockers.push("Homepage needs a working primary conversion action.");
-  if (!hasContactMethod) blockers.push("At least one verified customer contact method is required.");
+  if (!hasContactMethod) blockers.push("At least one verified customer contact or lead-capture path is required.");
   if (!seoComplete) blockers.push("SEO title and description must be completed before launch.");
   if (PLACEHOLDER_PATTERN.test(serialized)) blockers.push("Placeholder or sample content is still present.");
   if (brokenCritical.length) blockers.push(`${brokenCritical.length} critical CTA/button issue(s) must be fixed.`);
