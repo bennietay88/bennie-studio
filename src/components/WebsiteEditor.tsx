@@ -1461,6 +1461,8 @@ export function WebsiteEditor({
           working: nextButtonAudit.filter((button) => button.status === "working").length,
           broken: nextButtonAudit.filter((button) => button.status !== "working").length,
           critical: nextButtonAudit.filter((button) => button.critical && button.status !== "working").length,
+          criticalBroken: nextButtonAudit.filter((button) => button.critical && button.status !== "working").length,
+          checkedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
       };
