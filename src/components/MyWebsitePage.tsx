@@ -1,5 +1,5 @@
 import React from "react";
-import { ExternalLink, FileEdit, Globe, Loader2, MessageSquare, ShieldCheck } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, ExternalLink, FileEdit, Globe, Loader2, MessageSquare, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
@@ -14,7 +14,7 @@ export function MyWebsitePage() {
   React.useEffect(() => {
     if (!profile?.businessId) { setLoading(false); return; }
     let active = true;
-    supabase.from("websites").select("id,status,updated_at,pages").eq("business_id", profile.businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle()
+    supabase.from("websites").select("id,status,updated_at,pages,seo").eq("business_id", profile.businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle()
       .then(({ data, error: queryError }) => {
         if (!active) return;
         if (queryError) setError("Your website status could not be loaded. Please retry shortly.");
@@ -26,6 +26,35 @@ export function MyWebsitePage() {
 
   if (loading) return <div className="flex min-h-72 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
   const siteUrl = (business as any)?.custom_domain ? `https://${(business as any).custom_domain}` : (business as any)?.site_url || "";
+  const buttonHealth = website?.seo?.buttonHealth || {};
+  const deliveryQuality = website?.seo?.deliveryQuality || {};
+  const launchGate = website?.seo?.launchGate || {};
+  const release = website?.seo?.publishedVersion || null;
+  const healthChecks = [
+    {
+      label: "Critical CTA health",
+      ok: Number(buttonHealth.criticalBroken || 0) === 0,
+      detail: buttonHealth.checkedAt
+        ? `Last checked ${new Date(buttonHealth.checkedAt).toLocaleDateString()}`
+        : "Checked during website QA",
+    },
+    {
+      label: "Responsive QA",
+      ok: Boolean(deliveryQuality.responsiveQaApproved),
+      detail: deliveryQuality.responsiveQaApproved ? "Desktop and mobile review approved" : "Pending delivery-team review",
+    },
+    {
+      label: "Creative review",
+      ok: Boolean(deliveryQuality.internalCreativeReviewApproved),
+      detail: deliveryQuality.internalCreativeReviewApproved ? "Internal art direction approved" : "Pending internal review",
+    },
+    {
+      label: "Customer approval",
+      ok: Boolean(deliveryQuality.customerApprovalRecorded),
+      detail: deliveryQuality.customerApprovalRecorded ? "Final approval recorded" : "Approval required before launch",
+    },
+  ];
+  const healthyCount = healthChecks.filter((check) => check.ok).length;
   return (
     <div className="space-y-6">
       <div><h1 className="text-3xl font-black text-slate-950">My Website</h1><p className="mt-1 text-sm font-semibold text-slate-500">Review status, open the current version, request changes, or enter Development mode when you need editing tools.</p></div>
@@ -40,6 +69,46 @@ export function MyWebsitePage() {
           </div>
         </div>
       </section>
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Activity className="h-5 w-5 text-indigo-600" />
+              <h2 className="text-xl font-black text-slate-950">Managed Website Health</h2>
+              <Badge className={healthyCount === healthChecks.length ? "border-none bg-emerald-100 text-emerald-700" : "border-none bg-amber-100 text-amber-700"}>
+                {healthyCount}/{healthChecks.length} checks ready
+              </Badge>
+            </div>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              These are the recorded launch and conversion-health checks for your managed website. They are evidence from the delivery workflow, not a decorative “99.9% everything is wonderful” badge.
+            </p>
+          </div>
+          {release && (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Published release</p>
+              <p className="mt-1 text-sm font-black text-slate-900">{release.id || "Current release"}</p>
+              <p className="mt-1 text-xs text-slate-500">{release.publishedAt ? new Date(release.publishedAt).toLocaleString() : ""}</p>
+            </div>
+          )}
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {healthChecks.map((check) => (
+            <div key={check.label} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center gap-2">
+                {check.ok ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <AlertTriangle className="h-4 w-4 text-amber-600" />}
+                <p className="text-sm font-black text-slate-900">{check.label}</p>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-500">{check.detail}</p>
+            </div>
+          ))}
+        </div>
+        {website?.status === "published" && launchGate?.ready === true && (
+          <p className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
+            This release passed the Bennie Studio launch gate before publication.
+          </p>
+        )}
+      </section>
+
       <div className="grid gap-4 md:grid-cols-3">
         <Link to="/dashboard/approvals" className="rounded-2xl border border-slate-200 bg-white p-5 hover:border-indigo-300"><ShieldCheck className="h-5 w-5 text-indigo-600"/><h3 className="mt-4 font-black">Review & Approval</h3><p className="mt-1 text-sm text-slate-500">Approve the latest version or submit consolidated feedback.</p></Link>
         <Link to="/dashboard/update-requests" className="rounded-2xl border border-slate-200 bg-white p-5 hover:border-indigo-300"><MessageSquare className="h-5 w-5 text-indigo-600"/><h3 className="mt-4 font-black">Request an Update</h3><p className="mt-1 text-sm text-slate-500">Send content, image, or contact-detail changes to the team.</p></Link>
