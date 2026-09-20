@@ -1611,16 +1611,27 @@ export function WebsiteEditor({
     setSaving(true);
     setShowPublishConfirm(false);
     try {
+      const releaseRecord = {
+        id: `release_${Date.now()}`,
+        publishedAt: new Date().toISOString(),
+        standardVersion: DELIVERY_STANDARD_VERSION,
+      };
       const nextSeo = {
         ...website.seo,
         workflowStatus: "live",
         deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
-        launchGate: launchGate,
-        publishedVersion: {
-          id: `release_${Date.now()}`,
-          publishedAt: new Date().toISOString(),
-          standardVersion: DELIVERY_STANDARD_VERSION,
+        deliveryQuality: {
+          ...(website.seo?.deliveryQuality || {}),
+          customerApprovalRecorded:
+            customerApprovalRecorded || Boolean(deliveryQuality.customerApprovalRecorded),
+          lastLaunchApprovedAt: new Date().toISOString(),
         },
+        launchGate: launchGate,
+        publishedVersion: releaseRecord,
+        releaseHistory: [
+          ...((Array.isArray(website.seo?.releaseHistory) ? website.seo.releaseHistory : []).slice(-9)),
+          releaseRecord,
+        ],
       };
       const { error } = await supabase
         .from("websites")
@@ -1657,11 +1668,33 @@ export function WebsiteEditor({
     setSaving(true);
     try {
       const nextWorkflowStatus = newStatus === "published" ? "live" : "draft";
+      const releaseRecord = newStatus === "published"
+        ? { id: `release_${Date.now()}`, publishedAt: new Date().toISOString(), standardVersion: DELIVERY_STANDARD_VERSION }
+        : null;
       const nextSeo = {
         ...website.seo,
         workflowStatus: nextWorkflowStatus,
         deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
-        ...(newStatus === "published" ? { launchGate } : {}),
+        deliveryQuality: {
+          ...(website.seo?.deliveryQuality || {}),
+          ...(newStatus === "published"
+            ? {
+                customerApprovalRecorded:
+                  customerApprovalRecorded || Boolean(deliveryQuality.customerApprovalRecorded),
+                lastLaunchApprovedAt: new Date().toISOString(),
+              }
+            : {}),
+        },
+        ...(newStatus === "published"
+          ? {
+              launchGate,
+              publishedVersion: releaseRecord,
+              releaseHistory: [
+                ...((Array.isArray(website.seo?.releaseHistory) ? website.seo.releaseHistory : []).slice(-9)),
+                releaseRecord,
+              ],
+            }
+          : {}),
       };
       const { error } = await supabase
         .from("websites")
@@ -1691,11 +1724,33 @@ export function WebsiteEditor({
     setSaving(true);
     try {
       const publishStatus = newStatus === "live" ? "published" : "draft";
+      const releaseRecord = newStatus === "live"
+        ? { id: `release_${Date.now()}`, publishedAt: new Date().toISOString(), standardVersion: DELIVERY_STANDARD_VERSION }
+        : null;
       const nextSeo = {
         ...website.seo,
         workflowStatus: newStatus,
         deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
-        ...(newStatus === "live" ? { launchGate } : {}),
+        deliveryQuality: {
+          ...(website.seo?.deliveryQuality || {}),
+          ...(newStatus === "live"
+            ? {
+                customerApprovalRecorded:
+                  customerApprovalRecorded || Boolean(deliveryQuality.customerApprovalRecorded),
+                lastLaunchApprovedAt: new Date().toISOString(),
+              }
+            : {}),
+        },
+        ...(newStatus === "live"
+          ? {
+              launchGate,
+              publishedVersion: releaseRecord,
+              releaseHistory: [
+                ...((Array.isArray(website.seo?.releaseHistory) ? website.seo.releaseHistory : []).slice(-9)),
+                releaseRecord,
+              ],
+            }
+          : {}),
       };
       const { error } = await supabase
         .from("websites")
