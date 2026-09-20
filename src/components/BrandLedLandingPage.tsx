@@ -316,16 +316,24 @@ export default function BrandLedLandingPage() {
 
   React.useEffect(() => {
     let cancelled = false;
+    const approvedIds = Array.isArray(platformSettings?.publicProofTestimonialIds)
+      ? platformSettings.publicProofTestimonialIds.filter(Boolean)
+      : [];
+    if (!approvedIds.length) {
+      setVerifiedProof([]);
+      return () => { cancelled = true; };
+    }
     supabase
       .from("customer_testimonials")
       .select("id,title,customer_name,company,testimonial,result_summary,result_metrics,date_approved")
+      .in("id", approvedIds)
       .eq("publish_status", "published")
       .eq("consent_status", "approved")
       .order("date_approved", { ascending: false })
       .limit(3)
       .then(({ data }) => { if (!cancelled) setVerifiedProof(data || []); });
     return () => { cancelled = true; };
-  }, []);
+  }, [platformSettings?.publicProofTestimonialIds]);
 
   React.useEffect(() => {
     const controller = new AbortController();
