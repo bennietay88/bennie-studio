@@ -253,6 +253,11 @@ const normalizeSectionType = (type: unknown) => {
     services_section: "services",
     proof_section: "proof",
     social_proof: "proof",
+    logo_marquee: "proof",
+    logo_strip: "proof",
+    trust_bar: "proof",
+    partner_logos: "proof",
+    technology_logos: "proof",
     feature: "features",
     features_section: "features",
     benefit: "benefits",
@@ -293,17 +298,24 @@ const normalizeSectionContent = (type: string, content: unknown) => {
     source.items = [];
   }
 
-  if (type === "proof" && !Array.isArray(source.stats)) {
-    source.stats = [];
+  if (type === "proof") {
+    if (!Array.isArray(source.stats)) source.stats = [];
+    if (!Array.isArray(source.logos)) source.logos = [];
+    if (!Array.isArray(source.items)) source.items = [];
   }
 
   return source;
 };
 
 const normalizeGeneratedSection = (section: any, existing?: WebsiteSection): WebsiteSection => {
-  const type = normalizeSectionType(section?.type || existing?.type);
+  const rawType = String(section?.type || existing?.type || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  const type = normalizeSectionType(rawType);
   const incomingContent = normalizeSectionContent(type, section?.content);
   const existingContent = normalizeSectionContent(type, existing?.content);
+  const logoMarqueeAlias = ["logo_marquee", "logo_strip", "trust_bar", "partner_logos", "technology_logos"].includes(rawType);
 
   return {
     ...(existing || {}),
@@ -315,10 +327,11 @@ const normalizeGeneratedSection = (section: any, existing?: WebsiteSection): Web
       ...incomingContent,
     },
     isVisible: section?.isVisible !== false && existing?.isVisible !== false,
-    settings:
-      section?.settings && typeof section.settings === "object"
-        ? { ...(existing?.settings || {}), ...section.settings }
-        : existing?.settings || {},
+    settings: {
+      ...(existing?.settings || {}),
+      ...(section?.settings && typeof section.settings === "object" ? section.settings : {}),
+      ...(logoMarqueeAlias ? { variant: "logo_marquee" } : {}),
+    },
   } as WebsiteSection;
 };
 
