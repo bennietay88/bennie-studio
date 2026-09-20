@@ -5,6 +5,11 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { getLocalSeoLimits } from "../constants/localSeoEngine";
 import { PLANS, findPlan, normalizePlans } from "../constants/plans";
+import {
+  PLAN_DELIVERY_STANDARDS,
+  addBusinessDays,
+  legacyPlanToPublicPlanSlug,
+} from "../constants/deliveryStandards";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -67,6 +72,8 @@ export default function MonthlyUpdateRequests() {
     !["declined", "cancelled"].includes(String(request.status || "")),
   ).length;
   const remainingAllowance = Math.max(0, monthlyAllowance - usedAllowance);
+  const publicPlanSlug = legacyPlanToPublicPlanSlug(business?.plan);
+  const updateStandard = PLAN_DELIVERY_STANDARDS[publicPlanSlug];
 
   const submitRequest = async () => {
     if (submitting) return;
@@ -96,7 +103,7 @@ export default function MonthlyUpdateRequests() {
       allowance_period: new Date().toISOString().slice(0, 7),
       client_request_id: clientRequestId,
       submitted_at: new Date().toISOString(),
-      estimated_response_at: new Date(Date.now() + 2 * 86400000).toISOString(),
+      estimated_response_at: addBusinessDays(new Date(), updateStandard.updateBusinessDays).toISOString(),
       customer_draft: draft,
     };
 
@@ -144,7 +151,7 @@ export default function MonthlyUpdateRequests() {
         <Badge className="mb-4 bg-indigo-50 text-indigo-700">Website Support</Badge>
         <h1 className="text-4xl font-black tracking-tight text-slate-950">Monthly Update Requests</h1>
         <p className="mt-2 max-w-2xl text-sm font-semibold text-slate-500">
-          Request content, SEO, CTA, local page, image, or service updates based on your website plan.
+          Request content, SEO, CTA, local page, image, or service updates based on your website plan. Complex redesigns, new applications, ecommerce, or integrations outside your plan are scoped separately before work begins.
         </p>
       </div>
 
@@ -165,7 +172,7 @@ export default function MonthlyUpdateRequests() {
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estimated response</p>
-                <p className="mt-1 text-lg font-black text-slate-950">2 business days</p>
+                <p className="mt-1 text-lg font-black text-slate-950">{updateStandard.targetUpdateTurnaround.replace(/^.*?within\s+/i, "")}</p>
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Draft safety</p>
