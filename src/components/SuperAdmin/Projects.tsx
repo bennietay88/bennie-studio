@@ -107,7 +107,53 @@ export function Projects() {
   };
 
   const moveProject = async (project: any, status: string) => {
-    const { error } = await supabase.from("projects").update({ status, updated_at: new Date().toISOString() }).eq("id", project.id);
+    const productionStages = ["in_production", "internal_review", "customer_review", "changes_requested", "approved", "domain_setup", "live"];
+    if (productionStages.includes(status) && !project.assigned_to) {
+      toast.error("Assign an internal owner before moving this project into production.");
+      return;
+    }
+    if (productionStages.includes(status) && !project.target_launch_date) {
+      toast.error("Set a target launch date before moving this project into production.");
+      return;
+    }
+    if (status === "customer_review" && !["internal_review", "changes_requested", "customer_review"].includes(String(project.status || ""))) {
+      toast.error("Complete Internal Review before sending the website to the customer.");
+      return;
+    }
+    if (status === "approved" && !["customer_review", "changes_requested", "approved"].includes(String(project.status || ""))) {
+      toast.error("Customer review must happen before the project can be marked approved.");
+      return;
+    }
+    if (status === "live") {
+      const { data: website, error: websiteError } = await supabase
+        .from("websites")
+        .select("id,status,seo,updated_at")
+        .eq("business_id", project.business_id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (websiteError) {
+        toast.error("Could not verify website launch readiness.");
+        return;
+      }
+      const deliveryQuality = website?.seo?.deliveryQuality || {};
+      const launchGate = website?.seo?.launchGate || {};
+      const missing = [
+        !deliveryQuality.internalCreativeReviewApproved ? "internal creative review" : "",
+        !deliveryQuality.responsiveQaApproved ? "responsive QA" : "",
+        !deliveryQuality.customerApprovalRecorded ? "customer approval" : "",
+        launchGate.ready !== true ? "recorded launch gate" : "",
+      ].filter(Boolean);
+      if (!website || missing.length) {
+        toast.error(`Launch blocked: complete ${missing.join(", ") || "website readiness"} first.`);
+        return;
+      }
+    }
+
+    const { error } = await supabase
+      .from("projects")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", project.id);
     if (error) return toast.error(error.message);
     setProjects((rows) => rows.map((row) => row.id === project.id ? { ...row, status } : row));
     toast.success(`Project moved to ${labelFor(status)}`);
