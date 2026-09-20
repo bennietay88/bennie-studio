@@ -40,6 +40,8 @@ import { toast } from "sonner";
 import { PACKAGES } from "../constants/packages";
 import { activePlans } from "../constants/plans";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
+import { ImageUpload } from "./ImageUpload";
+import { DELIVERY_STANDARD_VERSION } from "../constants/deliveryStandards";
 import {
   buildNavigationPreview,
   buildPagesFromBlueprint,
@@ -134,6 +136,15 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     testimonials: "",
     faq: "",
     existingUrl: String(previewIntent.websiteUrl || ""),
+    logoUrl: "",
+    heroImageUrl: "",
+    storyImageUrl: "",
+    projectImageUrl: "",
+    proofLogoUrl: "",
+    proofLogoName: "",
+    proofLogoRelationship: "",
+    brandNotes: "",
+    complianceNotes: "",
   });
   const [agreed, setAgreed] = useState(false);
   const selectedPackageConfig =
@@ -304,7 +315,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     },
   ];
 
-  const totalSteps = 6;
+  const totalSteps = 7;
   const MAX_ONBOARDING_PAGES = 5;
   const recommendedPlanId = React.useMemo(() => {
     const requestedPages = businessData.pagesNeeded.length;
@@ -401,7 +412,20 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             websiteGoal: businessData.websiteGoal, pagesNeeded: businessData.pagesNeeded, ctaPreference: businessData.ctaPreference,
             tonePreference: businessData.tonePreference, primaryLocation: businessData.location, serviceArea: businessData.serviceArea,
             nearbyAreas: businessData.nearbyAreas.split(/,|\n/).map((item) => item.trim()).filter(Boolean),
-            localSeoCities: businessData.localSeoCities.split(/,|\n/).map((item) => item.trim()).filter(Boolean), recommendedPlanId,
+            localSeoCities: businessData.localSeoCities.split(/,|\n/).map((item) => item.trim()).filter(Boolean),
+            recommendedPlanId,
+            deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
+            assetVault: {
+              logoUrl: businessData.logoUrl,
+              heroImageUrl: businessData.heroImageUrl,
+              storyImageUrl: businessData.storyImageUrl,
+              projectImageUrl: businessData.projectImageUrl,
+              proofLogoUrl: businessData.proofLogoUrl,
+              proofLogoName: businessData.proofLogoName,
+              proofLogoRelationship: businessData.proofLogoRelationship,
+              brandNotes: businessData.brandNotes,
+              complianceNotes: businessData.complianceNotes,
+            },
           },
         }).eq("id", businessId);
       } else {
@@ -450,6 +474,18 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             localSeoCities: businessData.localSeoCities.split(/,|\n/).map((item) => item.trim()).filter(Boolean),
             hasLocalProof: businessData.hasLocalProof,
             recommendedPlanId,
+            deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
+            assetVault: {
+              logoUrl: businessData.logoUrl,
+              heroImageUrl: businessData.heroImageUrl,
+              storyImageUrl: businessData.storyImageUrl,
+              projectImageUrl: businessData.projectImageUrl,
+              proofLogoUrl: businessData.proofLogoUrl,
+              proofLogoName: businessData.proofLogoName,
+              proofLogoRelationship: businessData.proofLogoRelationship,
+              brandNotes: businessData.brandNotes,
+              complianceNotes: businessData.complianceNotes,
+            },
           },
           owner_id: user.id,
           status: "active",
@@ -670,6 +706,17 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           whatsappNumber: businessData.whatsappNumber,
           faqs: businessData.faq.split("\n").map((item) => item.trim()).filter(Boolean),
           testimonials: businessData.testimonials.split("\n").map((item) => item.trim()).filter(Boolean),
+          generationMode: "brand_led" as const,
+          assetReadiness: businessData.heroImageUrl || businessData.storyImageUrl ? "professional" as const : "pending" as const,
+          heroImageUrl: businessData.heroImageUrl || undefined,
+          storyImageUrl: businessData.storyImageUrl || businessData.projectImageUrl || undefined,
+          proofLogos: businessData.proofLogoUrl && businessData.proofLogoName
+            ? [{
+                url: businessData.proofLogoUrl,
+                name: businessData.proofLogoName,
+                detail: businessData.proofLogoRelationship || "Verified business connection",
+              }]
+            : [],
         };
 
         websiteData = {
@@ -677,7 +724,21 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           business_id: businessId,
           theme: getBlueprintTheme(undefined),
           pages: buildPagesFromBlueprint(blueprintInput),
-          seo: getBlueprintSeo(blueprintInput),
+          seo: {
+            ...getBlueprintSeo(blueprintInput),
+            deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
+            assetVault: {
+              logoUrl: businessData.logoUrl,
+              projectImageUrl: businessData.projectImageUrl,
+              brandNotes: businessData.brandNotes,
+              complianceNotes: businessData.complianceNotes,
+            },
+            deliveryQuality: {
+              internalCreativeReviewApproved: false,
+              responsiveQaApproved: false,
+              customerApprovalRecorded: false,
+            },
+          },
           status: "draft",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -750,7 +811,34 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       const handoffResponse = await fetch("/api/onboarding/complete", {
         method: "POST",
         headers: { "content-type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
-        body: JSON.stringify({ businessId, websiteId, planId: selectedPackage, proposalId }),
+        body: JSON.stringify({
+          businessId,
+          websiteId,
+          planId: selectedPackage,
+          proposalId,
+          previewIntent,
+          deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
+          deliveryContext: {
+            websiteGoal: businessData.websiteGoal,
+            pagesNeeded: businessData.pagesNeeded,
+            ctaPreference: businessData.ctaPreference,
+            tonePreference: businessData.tonePreference,
+            mainOffer: businessData.mainOffer,
+            serviceArea: businessData.serviceArea,
+            localSeoCities: businessData.localSeoCities,
+            assetVault: {
+              logoUrl: businessData.logoUrl,
+              heroImageUrl: businessData.heroImageUrl,
+              storyImageUrl: businessData.storyImageUrl,
+              projectImageUrl: businessData.projectImageUrl,
+              proofLogoUrl: businessData.proofLogoUrl,
+              proofLogoName: businessData.proofLogoName,
+              proofLogoRelationship: businessData.proofLogoRelationship,
+              brandNotes: businessData.brandNotes,
+              complianceNotes: businessData.complianceNotes,
+            },
+          },
+        }),
       });
       if (!handoffResponse.ok) {
         const payload = await handoffResponse.json().catch(() => ({}));
@@ -1451,6 +1539,121 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               {step === 6 && (
                 <motion.div
                   key="step6"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-10"
+                >
+                  <div className="text-center space-y-3">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">
+                      <Sparkles className="h-3 w-3" /> Brand & Evidence Vault
+                    </div>
+                    <h2 className="text-3xl sm:text-5xl font-black tracking-tighter uppercase text-slate-900">
+                      Give the design team real material to work with
+                    </h2>
+                    <p className="mx-auto max-w-2xl text-sm sm:text-base font-medium leading-7 text-slate-500">
+                      Real brand assets are what turn a competent generated structure into a website that feels unmistakably yours. You can continue without every asset, but missing proof and photography will be flagged for the delivery team.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                      <ImageUpload
+                        label="Logo / brand mark"
+                        description="PNG, SVG, JPG or WebP. Transparent files are ideal."
+                        value={businessData.logoUrl}
+                        onUpload={(url) => setBusinessData({ ...businessData, logoUrl: url })}
+                      />
+                    </div>
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                      <ImageUpload
+                        label="Primary hero / flagship image"
+                        description="Use a real team, location, service, project or product image."
+                        value={businessData.heroImageUrl}
+                        onUpload={(url) => setBusinessData({ ...businessData, heroImageUrl: url })}
+                      />
+                    </div>
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                      <ImageUpload
+                        label="Story / team / location image"
+                        description="Useful for About, team, clinic, office or process sections."
+                        value={businessData.storyImageUrl}
+                        onUpload={(url) => setBusinessData({ ...businessData, storyImageUrl: url })}
+                      />
+                    </div>
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                      <ImageUpload
+                        label="Project / result / portfolio image"
+                        description="Use a real project, result, treatment environment or work example."
+                        value={businessData.projectImageUrl}
+                        onUpload={(url) => setBusinessData({ ...businessData, projectImageUrl: url })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 space-y-5">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Verified logo relationship</p>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        Optional. Add an association, certification, partner, platform or client logo only when you are entitled to display it.
+                      </p>
+                    </div>
+                    <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+                      <ImageUpload
+                        label="Proof logo"
+                        value={businessData.proofLogoUrl}
+                        onUpload={(url) => setBusinessData({ ...businessData, proofLogoUrl: url })}
+                      />
+                      <div className="grid content-start gap-4">
+                        <Input
+                          placeholder="Brand / association name"
+                          value={businessData.proofLogoName}
+                          onChange={(e) => setBusinessData({ ...businessData, proofLogoName: e.target.value })}
+                          className="h-12 rounded-2xl"
+                        />
+                        <Input
+                          placeholder="Relationship, e.g. Member, Technology, Partner, Client"
+                          value={businessData.proofLogoRelationship}
+                          onChange={(e) => setBusinessData({ ...businessData, proofLogoRelationship: e.target.value })}
+                          className="h-12 rounded-2xl"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Brand direction</label>
+                      <Textarea
+                        className="mt-2 min-h-28 rounded-2xl"
+                        placeholder="Brand guidelines, competitors you like, words to use/avoid, visual references..."
+                        value={businessData.brandNotes}
+                        onChange={(e) => setBusinessData({ ...businessData, brandNotes: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Claims / compliance notes</label>
+                      <Textarea
+                        className="mt-2 min-h-28 rounded-2xl"
+                        placeholder="Claims that need approval, regulated wording, disclaimers, memberships, licences..."
+                        value={businessData.complianceNotes}
+                        onChange={(e) => setBusinessData({ ...businessData, complianceNotes: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 border-t border-slate-100 pt-6">
+                    <Button variant="ghost" onClick={handleBack} className="h-14 rounded-2xl px-7">Previous</Button>
+                    <Button onClick={handleNext} className="h-14 flex-1 rounded-2xl bg-indigo-600 font-black uppercase tracking-widest">
+                      Review my complete brief <ArrowRight className="ml-3 h-5 w-5" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 7 && (
+                <motion.div
+                  key="step7"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
