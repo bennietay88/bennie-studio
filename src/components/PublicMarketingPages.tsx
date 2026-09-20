@@ -787,13 +787,30 @@ function CaseStudiesPage() {
 
   React.useEffect(() => {
     let cancelled = false;
-    supabase
-      .from("customer_testimonials")
-      .select("id,slug,title,customer_name,company,testimonial,result_summary,evidence_reference,date_approved,before_summary,changes,result_metrics,before_image_url,after_image_url")
-      .eq("publish_status", "published")
-      .eq("consent_status", "approved")
-      .order("date_approved", { ascending: false })
-      .then(({ data }) => { if (!cancelled) setVerifiedProof(data || []); });
+    const loadCuratedProof = async () => {
+      try {
+        const configResponse = await fetch("/api/public/site-config");
+        const configPayload = configResponse.ok ? await configResponse.json() : null;
+        const approvedIds = Array.isArray(configPayload?.platform?.publicProofTestimonialIds)
+          ? configPayload.platform.publicProofTestimonialIds.filter(Boolean)
+          : [];
+        if (!approvedIds.length) {
+          if (!cancelled) setVerifiedProof([]);
+          return;
+        }
+        const { data } = await supabase
+          .from("customer_testimonials")
+          .select("id,slug,title,customer_name,company,testimonial,result_summary,evidence_reference,date_approved,before_summary,changes,result_metrics,before_image_url,after_image_url")
+          .in("id", approvedIds)
+          .eq("publish_status", "published")
+          .eq("consent_status", "approved")
+          .order("date_approved", { ascending: false });
+        if (!cancelled) setVerifiedProof(data || []);
+      } catch {
+        if (!cancelled) setVerifiedProof([]);
+      }
+    };
+    void loadCuratedProof();
     return () => { cancelled = true; };
   }, []);
 
