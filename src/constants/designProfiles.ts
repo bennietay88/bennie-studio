@@ -236,7 +236,7 @@ export const APPROVED_VARIANTS = {
   about: ["split_media_left", "split_media_right", "editorial_story", "founder_feature"],
   features: ["editorial_strip", "capability_matrix", "media_cards", "bento"],
   benefits: ["editorial_values", "icon_grid", "numbered_principles"],
-  proof: ["logo_wall", "certification_strip", "metrics", "trust_strip"],
+  proof: ["logo_wall", "logo_marquee", "certification_strip", "metrics", "trust_strip"],
   team: ["founder_story", "leadership_grid", "editorial_people"],
   blog_list: ["insights_editorial", "featured_article", "news_grid"],
   testimonials: ["editorial_quote", "review_grid", "featured", "slider", "proof_wall"],
