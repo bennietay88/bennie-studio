@@ -1654,6 +1654,10 @@ export function WebsiteEditor({
 
   const handleUpdateStatus = async (newStatus: "published" | "draft") => {
     if (!website) return;
+    if (newStatus === "draft" && website.status === "published" && !isInternalOperator) {
+      toast.error("Live managed websites can only be unpublished by the Bennie Studio delivery team.");
+      return;
+    }
     if (newStatus === "published") {
       if (!isInternalOperator) {
         await handleUpdateWorkflowStatus("in_review");
@@ -1713,6 +1717,10 @@ export function WebsiteEditor({
 
   const handleUpdateWorkflowStatus = async (newStatus: WebsiteWorkflowStatus) => {
     if (!website) return;
+    if (website.status === "published" && newStatus !== "live" && !isInternalOperator) {
+      toast.error("The delivery team manages workflow changes for a live website.");
+      return;
+    }
     if ((newStatus === "ready_to_launch" || newStatus === "live") && !isInternalOperator) {
       toast.error("Only the Bennie Studio delivery team can approve a site for launch.");
       return;
@@ -4328,7 +4336,7 @@ export function WebsiteEditor({
                     onValueChange={(value) =>
                       handleUpdateWorkflowStatus(value as WebsiteWorkflowStatus)
                     }
-                    disabled={saving}
+                    disabled={saving || !isInternalOperator}
                   >
                     <SelectTrigger className="h-9 w-[170px] rounded-xl border-slate-200 bg-white text-[11px] font-black uppercase tracking-wider">
                       <SelectValue placeholder="Workflow" />
@@ -4359,9 +4367,12 @@ export function WebsiteEditor({
                   }
                   isLoading={saving}
                   disabled={
-                    website.status !== "published" &&
-                    isInternalOperator &&
-                    Boolean(launchGate && !launchGate.ready)
+                    (!isInternalOperator && website.status === "published") ||
+                    (
+                      website.status !== "published" &&
+                      isInternalOperator &&
+                      Boolean(launchGate && !launchGate.ready)
+                    )
                   }
                   title={
                     website.status !== "published" && launchGate && !launchGate.ready
@@ -4375,7 +4386,9 @@ export function WebsiteEditor({
                     <Globe className="h-4 w-4" />
                   )}
                   {website.status === "published"
-                    ? "Unpublish"
+                    ? isInternalOperator
+                      ? "Unpublish"
+                      : "Live — Managed"
                     : isInternalOperator
                       ? "Publish Site"
                       : "Submit for Review"}
