@@ -67,9 +67,9 @@ export function MyWebsitePage() {
     },
     {
       label: "Critical CTA health",
-      ok: Number(buttonHealth.criticalBroken || 0) === 0,
-      detail: buttonHealth.checkedAt
-        ? `Last checked ${new Date(buttonHealth.checkedAt).toLocaleDateString()}`
+      ok: Number(buttonHealth.criticalBroken ?? buttonHealth.critical ?? 0) === 0,
+      detail: buttonHealth.checkedAt || buttonHealth.updatedAt
+        ? `Last checked ${new Date(buttonHealth.checkedAt || buttonHealth.updatedAt).toLocaleDateString()}`
         : "Checked during website QA",
     },
     {
