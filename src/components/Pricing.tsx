@@ -11,6 +11,7 @@ import { cn } from "../lib/utils";
 import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, CommercialMarket, CommercialProduct, formatCommercialMoney, getCommercialPrice, getStoredMarket, normalizeCommercialMarket, persistCommercialMarket } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
+import { PLAN_DELIVERY_STANDARDS, type PublicPlanSlug } from "../constants/deliveryStandards";
 
 interface PricingProps { currentPlan?: string; onSelectPlan?: (plan: any) => void; isDashboard?: boolean; onDark?: boolean; hideIntro?: boolean; marketOverride?: CommercialMarket; }
 const outcomes = ["Website planned and built around your offer", "Managed hosting, updates and launch support", "WhatsApp, call, booking and quotation enquiry paths", "Trust proof, local SEO foundation and analytics"];
@@ -155,6 +156,24 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
             <p className={isGrowth ? "mt-5 text-3xl font-semibold !text-white" : "mt-5 text-3xl font-semibold text-[#141821]"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#707b8a]"}>/month</span></p>
             <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#707b8a]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
             <p className={isGrowth ? "mt-4 text-sm leading-6 !text-white/70" : "mt-4 text-sm leading-6 text-[#526071]"}>{product.description}</p>
+            {PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug] && (
+              <div className={isGrowth ? "mt-5 border-t border-white/20 pt-4" : "mt-5 border-t border-[#dfe2ea] pt-4"}>
+                <p className={isGrowth ? "text-[10px] font-black uppercase tracking-widest !text-[#b9b1ff]" : "text-[10px] font-black uppercase tracking-widest text-[#5746e8]"}>Defined delivery scope</p>
+                <ul className="mt-3 space-y-2">
+                  {[
+                    PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug].pages,
+                    PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug].revisions,
+                    PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug].targetFirstDraft,
+                    PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug].targetUpdateTurnaround,
+                  ].map((item) => (
+                    <li key={item} className={isGrowth ? "flex gap-2 text-xs leading-5 !text-white/75" : "flex gap-2 text-xs leading-5 text-[#526071]"}>
+                      <Check className={isGrowth ? "mt-0.5 h-3.5 w-3.5 shrink-0 text-[#b9b1ff]" : "mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5746e8]"} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className={isGrowth ? "mt-5 space-y-3 border-t border-white/25 pt-4" : "mt-5 space-y-3 border-t border-[#dfe2ea] pt-4"}>
               {comparisonRows.map(([label, values]: any) => (
                 <div key={label} className="flex items-start justify-between gap-4 text-sm">
@@ -175,6 +194,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
       <div className="lg:col-span-4">
         <h3 className="text-2xl font-semibold text-slate-950">Know exactly what you are buying.</h3>
         <p className="mt-3 leading-7 text-slate-600">Advertising, guaranteed rankings, guaranteed leads and guaranteed sales are not included unless separately scoped.</p>
+        <p className="mt-3 text-sm font-semibold leading-6 text-slate-500">Timelines begin after the business brief and required assets are complete. Complex integrations, ecommerce, custom applications and work outside the defined plan scope are quoted separately before work begins.</p>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:col-span-8">
         {[
