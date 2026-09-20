@@ -6209,6 +6209,7 @@ async function startServer() {
       "name", "salesPageTitle", "maintenanceMode", "maintenanceMessage", "maintenanceTitle", "estimatedDowntime",
       "supportEmail", "gaMeasurementId", "metaPixelId", "salesWhatsappAriaLabel", "salesWhatsappEnabled",
       "salesWhatsappLink", "salesWhatsappMessage", "salesCookieBannerEnabled", "trackingScriptsHeader", "trackingScriptsFooter",
+      "publicProofTestimonialIds",
     ];
     const publicPlatform = Object.fromEntries(publicPlatformKeys.filter((key) => platform[key] !== undefined).map((key) => [key, platform[key]]));
     const policies = Array.isArray(settings.get("platform_policies")?.policies)
