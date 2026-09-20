@@ -13,6 +13,8 @@ export const PLAN_DELIVERY_STANDARDS: Record<PublicPlanSlug, {
   strategy: string;
   targetFirstDraft: string;
   targetUpdateTurnaround: string;
+  firstDraftBusinessDays: number;
+  updateBusinessDays: number;
 }> = {
   "managed-website": {
     pages: "Up to 5 core pages",
@@ -23,6 +25,8 @@ export const PLAN_DELIVERY_STANDARDS: Record<PublicPlanSlug, {
     strategy: "Offer, page hierarchy and primary enquiry path",
     targetFirstDraft: "First reviewed draft targeted within 5 business days after a complete brief and required assets",
     targetUpdateTurnaround: "Routine managed updates targeted within 3 business days",
+    firstDraftBusinessDays: 5,
+    updateBusinessDays: 3,
   },
   "website-growth": {
     pages: "Up to 5 core pages plus plan-based landing-page support",
@@ -33,6 +37,8 @@ export const PLAN_DELIVERY_STANDARDS: Record<PublicPlanSlug, {
     strategy: "Conversion strategy, proof hierarchy, analytics and growth prioritisation",
     targetFirstDraft: "First reviewed draft targeted within 5 business days after a complete brief and required assets",
     targetUpdateTurnaround: "Routine managed updates targeted within 2 business days",
+    firstDraftBusinessDays: 5,
+    updateBusinessDays: 2,
   },
   "growth-partner": {
     pages: "Core website plus separately prioritised growth pages",
@@ -43,6 +49,8 @@ export const PLAN_DELIVERY_STANDARDS: Record<PublicPlanSlug, {
     strategy: "Consultant-led growth direction, testing priorities and conversion roadmap",
     targetFirstDraft: "First reviewed draft targeted within 4 business days after a complete brief and required assets",
     targetUpdateTurnaround: "Priority managed updates targeted within 1–2 business days",
+    firstDraftBusinessDays: 4,
+    updateBusinessDays: 1,
   },
 };
 
@@ -145,3 +153,22 @@ export const PUBLIC_DELIVERY_PROMISES = [
   "Customers approve the final website version before it is published.",
   "The managed service continues after launch with hosting, maintenance, tracking and plan-based improvements.",
 ] as const;
+
+
+export function addBusinessDays(from: Date, businessDays: number) {
+  const result = new Date(from);
+  let remaining = Math.max(0, Math.floor(businessDays));
+  while (remaining > 0) {
+    result.setUTCDate(result.getUTCDate() + 1);
+    const day = result.getUTCDay();
+    if (day !== 0 && day !== 6) remaining -= 1;
+  }
+  return result;
+}
+
+export function legacyPlanToPublicPlanSlug(plan?: string | null): PublicPlanSlug {
+  const normalized = String(plan || "").toLowerCase();
+  if (["growth_partner", "growth-partner", "partner"].includes(normalized)) return "growth-partner";
+  if (["growth", "premium", "website_growth", "website-growth"].includes(normalized)) return "website-growth";
+  return "managed-website";
+}
