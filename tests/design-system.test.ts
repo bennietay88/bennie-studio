@@ -6,6 +6,7 @@ import { parseDesignDirection } from "../src/lib/designDirector.ts";
 import { assessWebsiteDesign } from "../src/lib/designQa.ts";
 import { SECTION_TEMPLATES } from "../src/constants/sectionTemplates.ts";
 import { NICHE_TEMPLATES } from "../src/constants/nicheTemplates.ts";
+import { CUSTOMER_SITE_CAPABILITIES } from "../src/constants/customerSiteCapabilities.ts";
 import {
   CONTRAST_TEST_DARK_SURFACE,
   CONTRAST_TEST_LIGHT_SURFACE,
@@ -405,4 +406,54 @@ test("multi-location maturity adds location architecture in premium modes", () =
     businessMaturity: "multi_location",
   });
   assert.ok(pages[0].sections.some((section) => section.type === "contact"));
+});
+
+
+test("public-site credibility marquee is available to generated customer sites", async () => {
+  const [homepage, renderer] = await Promise.all([
+    import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("../src/components/BrandLedLandingPage.tsx", import.meta.url), "utf8"),
+    ),
+    import("node:fs/promises").then((fs) =>
+      fs.readFile(new URL("../src/components/WebsiteRenderer.tsx", import.meta.url), "utf8"),
+    ),
+  ]);
+
+  assert.match(homepage, /TechnologyMarquee/);
+  assert.ok(APPROVED_VARIANTS.proof.includes("logo_marquee"));
+  assert.equal(SECTION_TEMPLATES.logo_marquee.type, "proof");
+  assert.equal(SECTION_TEMPLATES.logo_marquee.settings?.variant, "logo_marquee");
+  assert.match(renderer, /proofVariant === "logo_marquee"/);
+  assert.match(renderer, /useReducedMotion/);
+});
+
+test("customer-site capability catalog covers core Bennie Studio website patterns", () => {
+  const ids = new Set(CUSTOMER_SITE_CAPABILITIES.map((capability) => capability.id));
+  for (const id of [
+    "hero_composition",
+    "logo_marquee",
+    "proof_system",
+    "capability_sections",
+    "services",
+    "customer_reviews",
+    "faq",
+    "conversion_cta",
+    "lead_capture",
+    "booking",
+    "blog",
+    "whatsapp",
+    "analytics",
+    "seo",
+    "cookie_consent",
+    "responsive_motion",
+  ]) {
+    assert.ok(ids.has(id), `Missing customer-site parity capability: ${id}`);
+  }
+});
+
+test("logo marquee defaults never fabricate brand relationships", () => {
+  const section = SECTION_TEMPLATES.logo_marquee;
+  assert.deepEqual(section.content.logos, []);
+  assert.equal(section.content.providedByBusiness, false);
+  assert.doesNotMatch(JSON.stringify(section), /Google|Meta|Vercel|Nike|Apple|Microsoft|Trusted by/i);
 });
