@@ -1100,6 +1100,35 @@ export const LandingPageEditor = () => {
             </CardContent>
           </Card>
 
+          <Card className="rounded-3xl border-indigo-100 bg-indigo-50/40 shadow-sm overflow-hidden">
+            <CardHeader className="border-b border-indigo-100/80">
+              <CardTitle>Curated Bennie Studio Proof</CardTitle>
+              <CardDescription>
+                Only testimonial record IDs listed here can appear as Bennie Studio customer proof on the public homepage and case-study page.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 space-y-3">
+              <Label>Approved testimonial record IDs</Label>
+              <Textarea
+                value={(content?.publicProofTestimonialIds || []).join("\n")}
+                onChange={(e) =>
+                  setContent({
+                    ...content,
+                    publicProofTestimonialIds: e.target.value
+                      .split(/[\n,]+/)
+                      .map((item) => item.trim())
+                      .filter(Boolean),
+                  })
+                }
+                className="min-h-28 rounded-xl bg-white font-mono text-xs"
+                placeholder={"One customer_testimonials UUID per line. Leave empty until real proof is approved."}
+              />
+              <p className="text-xs leading-5 text-slate-500">
+                A record must also have approved consent and published status. Removing an ID removes it from the public sales site without deleting the testimonial record.
+              </p>
+            </CardContent>
+          </Card>
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-900">Testimonials</h3>
