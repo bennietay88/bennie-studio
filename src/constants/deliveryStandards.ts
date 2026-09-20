@@ -88,6 +88,7 @@ export type LaunchGateInput = {
   internalCreativeReviewApproved?: boolean;
   customerApprovalRecorded?: boolean;
   responsiveQaApproved?: boolean;
+  productionQualityPassed?: boolean;
 };
 
 const PLACEHOLDER_PATTERN = /\b(lorem ipsum|sample text|placeholder|your business|business name|verified client|coming soon)\b/i;
@@ -138,6 +139,11 @@ export function evaluateWorldClassLaunchGate(input: LaunchGateInput) {
   if (!input.responsiveQaApproved) blockers.push("Responsive QA must be explicitly approved.");
   if (!input.internalCreativeReviewApproved) blockers.push("Internal creative review must be approved.");
   if (!input.customerApprovalRecorded) blockers.push("Customer approval must be recorded before launch.");
+  if (input.productionQualityPassed === false) {
+    blockers.push("Production quality budget has unresolved blocking issues.");
+  } else if (input.productionQualityPassed === undefined) {
+    warnings.push("Production quality budget has not yet been recorded.");
+  }
 
   if (UNSUPPORTED_CLAIM_PATTERN.test(serialized)) {
     warnings.push("High-risk marketing claims detected. Verify supporting evidence before publishing.");
