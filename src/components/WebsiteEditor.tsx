@@ -104,6 +104,10 @@ import * as z from "zod";
 import { generateId, cn } from "../lib/utils";
 import { auditWebsiteButtons, normalizeWebsiteForPreview } from "../lib/websiteButtons";
 import { assessWebsiteDesign } from "../lib/designQa";
+import {
+  DELIVERY_STANDARD_VERSION,
+  evaluateWorldClassLaunchGate,
+} from "../constants/deliveryStandards";
 import { 
   generatePageContent, 
   generateSectionContent, 
@@ -618,6 +622,8 @@ export function WebsiteEditor({
   const [wpIntegrations, setWpIntegrations] = useState<any[]>([]);
   const [selectedWpIntegration, setSelectedWpIntegration] = useState<string | "">("");
   const [wpApiKey, setWpApiKey] = useState("");
+  const [customerApprovalRecorded, setCustomerApprovalRecorded] = useState(false);
+  const isInternalOperator = ["super_admin", "platform_staff", "staff"].includes(String(profile?.role || ""));
   const workflowStatus: WebsiteWorkflowStatus =
     (website?.seo?.workflowStatus as WebsiteWorkflowStatus | undefined) ||
     (website?.status === "published" ? "live" : "draft");
@@ -631,6 +637,85 @@ export function WebsiteEditor({
     Boolean(designAudit && !designAudit.productionReady);
   const designBlockingChecks =
     designAudit?.checks.filter((check) => !check.pass && (check.severity === "high" || generationMode === "brand_led")) || [];
+  const deliveryQuality = (website?.seo?.deliveryQuality || {}) as {
+    internalCreativeReviewApproved?: boolean;
+    responsiveQaApproved?: boolean;
+    customerApprovalRecorded?: boolean;
+  };
+  const launchGate = useMemo(
+    () =>
+      website
+        ? evaluateWorldClassLaunchGate({
+            website,
+            buttonIssues: buttonAudit,
+            designProductionReady: !designPublishBlocked,
+            internalCreativeReviewApproved: Boolean(deliveryQuality.internalCreativeReviewApproved),
+            responsiveQaApproved: Boolean(deliveryQuality.responsiveQaApproved),
+            customerApprovalRecorded:
+              customerApprovalRecorded || Boolean(deliveryQuality.customerApprovalRecorded),
+          })
+        : null,
+    [
+      website,
+      buttonAudit,
+      designPublishBlocked,
+      deliveryQuality.internalCreativeReviewApproved,
+      deliveryQuality.responsiveQaApproved,
+      deliveryQuality.customerApprovalRecorded,
+      customerApprovalRecorded,
+    ],
+  );
+
+  React.useEffect(() => {
+    if (!businessId || isTemplateMode) return;
+    let active = true;
+    supabase
+      .from("customer_approvals")
+      .select("status,responded_at")
+      .eq("business_id", businessId)
+      .eq("status", "approved")
+      .order("responded_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) setCustomerApprovalRecorded(Boolean(data));
+      });
+    return () => {
+      active = false;
+    };
+  }, [businessId, isTemplateMode]);
+
+  const updateDeliveryQuality = async (
+    key: "internalCreativeReviewApproved" | "responsiveQaApproved" | "customerApprovalRecorded",
+    value: boolean,
+  ) => {
+    if (!website || !isInternalOperator) return;
+    const nextSeo = {
+      ...website.seo,
+      deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
+      deliveryQuality: {
+        ...(website.seo?.deliveryQuality || {}),
+        [key]: value,
+        lastReviewedAt: new Date().toISOString(),
+        lastReviewedBy: profile?.uid || profile?.email || "internal_operator",
+      },
+    };
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("websites")
+        .update({ seo: nextSeo, updated_at: new Date().toISOString() })
+        .eq("id", website.id);
+      if (error) throw error;
+      setWebsite({ ...website, seo: nextSeo });
+      if (key === "customerApprovalRecorded") setCustomerApprovalRecorded(value);
+      toast.success("Delivery quality gate updated");
+    } catch (error: any) {
+      toast.error(error?.message || "Could not update the delivery quality gate");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const previewUrl = useMemo(() => {
     return isTemplateMode && templateIdOverride
@@ -1512,35 +1597,42 @@ export function WebsiteEditor({
 
   const handlePublish = async () => {
     if (!website) return;
-    if (criticalBrokenButtons.length > 0) {
-      toast.error("Fix critical website buttons before publishing.");
+    if (!isInternalOperator) {
+      await handleUpdateWorkflowStatus("in_review");
+      toast.info("Submitted for Bennie Studio review. An internal operator must approve launch.");
       setShowPublishConfirm(false);
       return;
     }
-    if (designPublishBlocked) {
-      const firstIssue = designBlockingChecks[0]?.note || "Resolve the premium design-quality checks before publishing.";
-      toast.error(firstIssue);
+    if (!launchGate?.ready) {
+      toast.error(launchGate?.blockers?.[0] || "Complete the launch-readiness checks before publishing.");
       setShowPublishConfirm(false);
       return;
     }
     setSaving(true);
     setShowPublishConfirm(false);
     try {
+      const nextSeo = {
+        ...website.seo,
+        workflowStatus: "live",
+        deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
+        launchGate: launchGate,
+        publishedVersion: {
+          id: `release_${Date.now()}`,
+          publishedAt: new Date().toISOString(),
+          standardVersion: DELIVERY_STANDARD_VERSION,
+        },
+      };
       const { error } = await supabase
         .from("websites")
         .update({
           status: "published",
-          seo: { ...website.seo, workflowStatus: "live" },
+          seo: nextSeo,
           updated_at: new Date().toISOString(),
         })
         .eq("id", website.id);
       if (error) throw error;
-      setWebsite({
-        ...website,
-        status: "published",
-        seo: { ...website.seo, workflowStatus: "live" },
-      });
-      toast.success("Website published successfully!");
+      setWebsite({ ...website, status: "published", seo: nextSeo });
+      toast.success("Website passed launch readiness and is now live.");
     } catch (error) {
       console.error("Publish failed:", error);
       toast.error("Failed to publish website");
@@ -1551,32 +1643,32 @@ export function WebsiteEditor({
 
   const handleUpdateStatus = async (newStatus: "published" | "draft") => {
     if (!website) return;
-    if (newStatus === "published" && criticalBrokenButtons.length > 0) {
-      toast.error("Fix critical website buttons before publishing.");
-      return;
-    }
-    if (newStatus === "published" && designPublishBlocked) {
-      const firstIssue = designBlockingChecks[0]?.note || "Resolve the premium design-quality checks before publishing.";
-      toast.error(firstIssue);
-      return;
+    if (newStatus === "published") {
+      if (!isInternalOperator) {
+        await handleUpdateWorkflowStatus("in_review");
+        toast.info("Submitted for internal review instead of publishing directly.");
+        return;
+      }
+      if (!launchGate?.ready) {
+        toast.error(launchGate?.blockers?.[0] || "Complete launch readiness before publishing.");
+        return;
+      }
     }
     setSaving(true);
     try {
       const nextWorkflowStatus = newStatus === "published" ? "live" : "draft";
+      const nextSeo = {
+        ...website.seo,
+        workflowStatus: nextWorkflowStatus,
+        deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
+        ...(newStatus === "published" ? { launchGate } : {}),
+      };
       const { error } = await supabase
         .from("websites")
-        .update({
-          status: newStatus,
-          seo: { ...website.seo, workflowStatus: nextWorkflowStatus },
-          updated_at: new Date().toISOString(),
-        })
+        .update({ status: newStatus, seo: nextSeo, updated_at: new Date().toISOString() })
         .eq("id", website.id);
       if (error) throw error;
-      setWebsite({
-        ...website,
-        status: newStatus,
-        seo: { ...website.seo, workflowStatus: nextWorkflowStatus },
-      });
+      setWebsite({ ...website, status: newStatus, seo: nextSeo });
       toast.success(`Website status updated to ${newStatus}`);
     } catch (error) {
       console.error("Status update failed:", error);
@@ -1588,33 +1680,29 @@ export function WebsiteEditor({
 
   const handleUpdateWorkflowStatus = async (newStatus: WebsiteWorkflowStatus) => {
     if (!website) return;
-    if (newStatus === "live" && criticalBrokenButtons.length > 0) {
-      toast.error("Fix critical website buttons before moving this site live.");
+    if ((newStatus === "ready_to_launch" || newStatus === "live") && !isInternalOperator) {
+      toast.error("Only the Bennie Studio delivery team can approve a site for launch.");
       return;
     }
-    if (newStatus === "live" && designPublishBlocked) {
-      const firstIssue = designBlockingChecks[0]?.note || "Resolve the premium design-quality checks before moving this site live.";
-      toast.error(firstIssue);
+    if (newStatus === "live" && !launchGate?.ready) {
+      toast.error(launchGate?.blockers?.[0] || "Complete launch readiness before moving this site live.");
       return;
     }
     setSaving(true);
     try {
       const publishStatus = newStatus === "live" ? "published" : "draft";
-      const nextSeo = { ...website.seo, workflowStatus: newStatus };
+      const nextSeo = {
+        ...website.seo,
+        workflowStatus: newStatus,
+        deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
+        ...(newStatus === "live" ? { launchGate } : {}),
+      };
       const { error } = await supabase
         .from("websites")
-        .update({
-          status: publishStatus,
-          seo: nextSeo,
-          updated_at: new Date().toISOString(),
-        })
+        .update({ status: publishStatus, seo: nextSeo, updated_at: new Date().toISOString() })
         .eq("id", website.id);
       if (error) throw error;
-      setWebsite({
-        ...website,
-        status: publishStatus,
-        seo: nextSeo,
-      });
+      setWebsite({ ...website, status: publishStatus, seo: nextSeo });
       toast.success(`Website moved to ${getWorkflowLabel(newStatus)}`);
     } catch (error) {
       console.error("Workflow status update failed:", error);
@@ -4215,8 +4303,16 @@ export function WebsiteEditor({
                     )
                   }
                   isLoading={saving}
-                  disabled={website.status !== "published" && designPublishBlocked}
-                  title={designPublishBlocked ? "Resolve Premium Design QA before publishing" : undefined}
+                  disabled={
+                    website.status !== "published" &&
+                    isInternalOperator &&
+                    Boolean(launchGate && !launchGate.ready)
+                  }
+                  title={
+                    website.status !== "published" && launchGate && !launchGate.ready
+                      ? launchGate.blockers[0]
+                      : undefined
+                  }
                 >
                   {website.status === "published" ? (
                     <EyeOff className="h-4 w-4" />
@@ -4225,7 +4321,9 @@ export function WebsiteEditor({
                   )}
                   {website.status === "published"
                     ? "Unpublish"
-                    : "Publish Site"}
+                    : isInternalOperator
+                      ? "Publish Site"
+                      : "Submit for Review"}
                 </Button>
                 {isFeatureEnabled("wordpress_sync") && wpIntegrations.length > 0 && (
                   <Button
@@ -4661,6 +4759,76 @@ export function WebsiteEditor({
               </CardFooter>
             </Card>
           </div>
+        )}
+
+        {!isTemplateMode && launchGate && (
+          <Card className={cn(
+            "rounded-3xl shadow-sm overflow-hidden",
+            launchGate.ready ? "border-emerald-200" : "border-amber-200",
+          )}>
+            <CardContent className="p-5 md:p-6">
+              <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+                <div className="max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-black text-slate-950">Agency Launch Gate</h2>
+                    <Badge className={cn(
+                      "border-none",
+                      launchGate.ready ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700",
+                    )}>
+                      {launchGate.ready ? "Launch ready" : `${launchGate.blockers.length} blocker(s)`}
+                    </Badge>
+                    <Badge variant="outline">Standard {DELIVERY_STANDARD_VERSION}</Badge>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    Paid customer sites cannot go live from generation alone. They must pass human creative review, responsive QA, conversion/technical checks and recorded customer approval.
+                  </p>
+                  {!launchGate.ready && (
+                    <div className="mt-4 grid gap-2">
+                      {launchGate.blockers.slice(0, 6).map((blocker) => (
+                        <div key={blocker} className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+                          {blocker}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {launchGate.warnings.length > 0 && (
+                    <div className="mt-3 text-xs font-semibold text-slate-500">
+                      {launchGate.warnings.join(" · ")}
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-full space-y-2 xl:min-w-[410px]">
+                  {[
+                    ["Internal creative review", "internalCreativeReviewApproved", Boolean(deliveryQuality.internalCreativeReviewApproved)],
+                    ["Responsive desktop/mobile QA", "responsiveQaApproved", Boolean(deliveryQuality.responsiveQaApproved)],
+                    ["Customer approval recorded", "customerApprovalRecorded", customerApprovalRecorded || Boolean(deliveryQuality.customerApprovalRecorded)],
+                  ].map(([label, key, checked]) => (
+                    <div key={String(key)} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <div>
+                        <p className="text-sm font-black text-slate-900">{label}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                          {checked ? "Approved" : "Required"}
+                        </p>
+                      </div>
+                      {isInternalOperator ? (
+                        <Switch
+                          checked={Boolean(checked)}
+                          onCheckedChange={(value) =>
+                            updateDeliveryQuality(key as "internalCreativeReviewApproved" | "responsiveQaApproved" | "customerApprovalRecorded", value)
+                          }
+                        />
+                      ) : (
+                        <Badge className={checked ? "bg-emerald-100 text-emerald-700 border-none" : "bg-slate-200 text-slate-600 border-none"}>
+                          {checked ? "Done" : "Pending"}
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {!isTemplateMode && designAudit && generationMode !== "fast" && (
