@@ -46,7 +46,7 @@ import {
   Cookie,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { generateChatResponse } from "../lib/gemini";
 import { cn, formatDate, generateId, formatStatValue } from "../lib/utils";
 import { Helmet, HelmetProvider } from "react-helmet-async";
@@ -118,6 +118,7 @@ export function WebsiteRenderer({
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const rendererRootRef = useRef<HTMLDivElement | null>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     if (initialData) {
@@ -2377,6 +2378,116 @@ export function WebsiteRenderer({
                   const proofVariant = section.settings?.variant || "metrics";
                   const proofItems = section.content.items || [];
                   const proofLogos = section.content.logos || [];
+
+                  if (proofVariant === "logo_marquee" && proofLogos.length > 0) {
+                    const normalizedLogos = proofLogos
+                      .map((logo: any, logoIndex: number) => ({
+                        url: typeof logo === "string" ? logo : logo?.url || logo?.imageUrl || "",
+                        name:
+                          typeof logo === "string"
+                            ? `Logo ${logoIndex + 1}`
+                            : logo?.name || logo?.label || `Logo ${logoIndex + 1}`,
+                        detail:
+                          typeof logo === "string"
+                            ? ""
+                            : logo?.detail || logo?.description || logo?.relationship || "",
+                      }))
+                      .filter((logo: any) => logo.url || logo.name);
+
+                    if (normalizedLogos.length === 0) return null;
+
+                    const marqueeGroups = prefersReducedMotion ? [0] : [0, 1];
+
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `proof-marquee-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={fadeInUp}
+                        className="overflow-hidden border-y border-slate-200 bg-white py-10 sm:py-12"
+                      >
+                        <div className="mx-auto grid max-w-7xl gap-6 px-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-center">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">
+                              Verified connections
+                            </p>
+                            <h2
+                              className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-3xl"
+                              style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
+                            >
+                              {section.content.title || "Logos connected to the business"}
+                            </h2>
+                            {section.content.description && (
+                              <p className="mt-3 text-sm leading-6 text-slate-600">
+                                {section.content.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <div
+                            className={cn(
+                              "min-w-0",
+                              prefersReducedMotion
+                                ? "overflow-x-auto"
+                                : "overflow-hidden [mask-image:linear-gradient(90deg,transparent_0,#000_7%,#000_93%,transparent_100%)] [-webkit-mask-image:linear-gradient(90deg,transparent_0,#000_7%,#000_93%,transparent_100%)]",
+                            )}
+                          >
+                            <motion.div
+                              className="flex w-max"
+                              animate={prefersReducedMotion ? undefined : { x: ["0%", "-50%"] }}
+                              transition={
+                                prefersReducedMotion
+                                  ? undefined
+                                  : { duration: 26, ease: "linear", repeat: Infinity }
+                              }
+                            >
+                              {marqueeGroups.map((groupIndex) => (
+                                <div
+                                  key={groupIndex}
+                                  className="flex shrink-0 gap-3 pr-3"
+                                  aria-hidden={groupIndex === 1}
+                                >
+                                  {normalizedLogos.map((logo: any, logoIndex: number) => (
+                                    <div
+                                      key={`${groupIndex}-${logo.name}-${logoIndex}`}
+                                      className="flex min-w-[11.5rem] items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 sm:min-w-[13rem]"
+                                    >
+                                      {logo.url ? (
+                                        <img
+                                          src={logo.url}
+                                          alt={logo.name}
+                                          className="h-7 w-7 shrink-0 object-contain grayscale"
+                                          loading="lazy"
+                                          referrerPolicy="no-referrer"
+                                        />
+                                      ) : (
+                                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white text-[10px] font-black text-slate-500">
+                                          {String(logo.name || "?").slice(0, 1).toUpperCase()}
+                                        </span>
+                                      )}
+                                      <span className="min-w-0">
+                                        <span className="block truncate text-sm font-semibold text-slate-900">
+                                          {logo.name}
+                                        </span>
+                                        {logo.detail && (
+                                          <span className="mt-0.5 block truncate text-[10px] font-semibold text-slate-500">
+                                            {logo.detail}
+                                          </span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ))}
+                            </motion.div>
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
                   if (["logo_wall", "certification_strip", "trust_strip"].includes(proofVariant) && (proofItems.length || proofLogos.length)) {
                     return (
                       <motion.section
