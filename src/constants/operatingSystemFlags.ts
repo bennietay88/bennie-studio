@@ -3,15 +3,15 @@
 export const OPERATING_SYSTEM_FLAGS = {
   customer_lifecycle_v2: false,
   entitlements_v2: false,
-  delivery_queue: false,
-  launch_readiness: false,
+  delivery_queue: true,
+  launch_readiness: true,
   monthly_reports: false,
   profitability_dashboard: false,
-  website_health: false,
-  structured_update_requests: false,
-  sales_delivery_handoff: false,
-  content_provenance: false,
-  template_versioning: false,
+  website_health: true,
+  structured_update_requests: true,
+  sales_delivery_handoff: true,
+  content_provenance: true,
+  template_versioning: true,
 } as const;
 
 export type OperatingSystemFlag = keyof typeof OPERATING_SYSTEM_FLAGS;
