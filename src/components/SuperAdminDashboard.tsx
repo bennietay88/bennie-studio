@@ -340,6 +340,7 @@ export default function SuperAdminDashboard() {
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(
     null,
   );
+  const [editingWebsiteBusinessId, setEditingWebsiteBusinessId] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [terminatingUser, setTerminatingUser] = useState<any>(null);
   const [isTerminateDialogOpen, setIsTerminateDialogOpen] = useState(false);
@@ -1320,7 +1321,30 @@ export default function SuperAdminDashboard() {
       {activeTab === "client_onboarding" && <ClientOnboarding />}
       {activeTab === "seo_management" && <SeoAdmin />}
       
-      {(activeTab === "businesses" || activeTab === "admin") && (
+      {(activeTab === "businesses" || activeTab === "admin") && editingWebsiteBusinessId && (
+        <div className="space-y-6">
+          <div className="flex flex-col gap-4 rounded-3xl border border-indigo-100 bg-indigo-50/50 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">Internal customer website review</p>
+              <h1 className="mt-1 text-2xl font-black text-slate-950">Creative direction, QA and launch approval</h1>
+              <p className="mt-1 text-sm font-semibold text-slate-500">
+                Review the real customer build, resolve launch blockers and record the internal quality gates before publication.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setEditingWebsiteBusinessId(null)}
+              className="shrink-0 rounded-xl bg-white"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Businesses
+            </Button>
+          </div>
+          <WebsiteEditor businessIdOverride={editingWebsiteBusinessId} />
+        </div>
+      )}
+
+      {(activeTab === "businesses" || activeTab === "admin") && !editingWebsiteBusinessId && (
             <div className="space-y-8">
               <div className="flex justify-between items-start">
                 <div>
@@ -1447,6 +1471,12 @@ export default function SuperAdminDashboard() {
                                       <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase p-3">Admin Actions</DropdownMenuLabel>
                                       <DropdownMenuItem onClick={() => { setEditingBusiness(biz); setIsEditDialogOpen(true); }} className="rounded-xl p-3">
                                         <Edit className="h-4 w-4 mr-3 text-indigo-600" /> Edit Configuration
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => setEditingWebsiteBusinessId(biz.id)}
+                                        className="rounded-xl p-3"
+                                      >
+                                        <Layout className="h-4 w-4 mr-3 text-violet-600" /> Review / Edit Website
                                       </DropdownMenuItem>
                                       <DropdownMenuItem onClick={() => openBusinessWebsite(biz)} className="rounded-xl p-3">
                                         <ExternalLink className="h-4 w-4 mr-3 text-blue-600" /> View Live Site
