@@ -15,6 +15,7 @@ export const PLAN_DELIVERY_STANDARDS: Record<PublicPlanSlug, {
   targetUpdateTurnaround: string;
   firstDraftBusinessDays: number;
   updateBusinessDays: number;
+  targetLaunchBusinessDays: number;
 }> = {
   "managed-website": {
     pages: "Up to 5 core pages",
@@ -27,6 +28,7 @@ export const PLAN_DELIVERY_STANDARDS: Record<PublicPlanSlug, {
     targetUpdateTurnaround: "Routine managed updates targeted within 3 business days",
     firstDraftBusinessDays: 5,
     updateBusinessDays: 3,
+    targetLaunchBusinessDays: 10,
   },
   "website-growth": {
     pages: "Up to 5 core pages plus plan-based landing-page support",
@@ -39,6 +41,7 @@ export const PLAN_DELIVERY_STANDARDS: Record<PublicPlanSlug, {
     targetUpdateTurnaround: "Routine managed updates targeted within 2 business days",
     firstDraftBusinessDays: 5,
     updateBusinessDays: 2,
+    targetLaunchBusinessDays: 10,
   },
   "growth-partner": {
     pages: "Core website plus separately prioritised growth pages",
@@ -51,6 +54,7 @@ export const PLAN_DELIVERY_STANDARDS: Record<PublicPlanSlug, {
     targetUpdateTurnaround: "Priority managed updates targeted within 1–2 business days",
     firstDraftBusinessDays: 4,
     updateBusinessDays: 1,
+    targetLaunchBusinessDays: 8,
   },
 };
 
