@@ -218,6 +218,22 @@ export const SECTION_TEMPLATES: Record<string, SectionTemplate> = {
     },
     isVisible: true,
   },
+  logo_marquee: {
+    type: "proof",
+    content: {
+      title: "Logos Connected to the Business",
+      description:
+        "Add only client, partner, association, certification, platform or technology logos the business is entitled to display.",
+      stats: [],
+      logos: [],
+      items: [],
+      providedByBusiness: false,
+    },
+    settings: {
+      variant: "logo_marquee",
+    },
+    isVisible: true,
+  },
   cta: {
     type: "cta",
     content: {
