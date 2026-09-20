@@ -29,11 +29,24 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "chromium",
-      // Use Playwright's pinned browser in every environment. The system
-      // Chrome channel can abort in headless macOS sessions and makes the
-      // same fixtures behave differently locally versus CI.
+      name: "chromium-desktop",
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "firefox-desktop",
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "webkit-desktop",
+      use: { ...devices["Desktop Safari"] },
+    },
+    {
+      name: "mobile-chromium",
+      use: { ...devices["Pixel 7"] },
+    },
+    {
+      name: "mobile-webkit",
+      use: { ...devices["iPhone 15"] },
     },
   ],
 });
