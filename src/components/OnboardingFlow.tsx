@@ -753,6 +753,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           businessId,
           updatedAt: Date.now(),
           status: websiteData.status || "draft",
+          theme: {
+            ...(websiteData.theme || {}),
+            logoUrl: businessData.logoUrl || websiteData.theme?.logoUrl || undefined,
+          },
           seo: {
             ...(websiteData.seo || {}),
             deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
