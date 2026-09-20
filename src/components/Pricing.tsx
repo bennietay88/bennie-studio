@@ -11,7 +11,7 @@ import { cn } from "../lib/utils";
 import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, CommercialMarket, CommercialProduct, formatCommercialMoney, getCommercialPrice, getStoredMarket, normalizeCommercialMarket, persistCommercialMarket } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
-import { PLAN_DELIVERY_STANDARDS, type PublicPlanSlug } from "../constants/deliveryStandards";
+import { PLAN_DELIVERY_STANDARDS, PUBLIC_DELIVERY_PROMISES, type PublicPlanSlug } from "../constants/deliveryStandards";
 
 interface PricingProps { currentPlan?: string; onSelectPlan?: (plan: any) => void; isDashboard?: boolean; onDark?: boolean; hideIntro?: boolean; marketOverride?: CommercialMarket; }
 const outcomes = ["Website planned and built around your offer", "Managed hosting, updates and launch support", "WhatsApp, call, booking and quotation enquiry paths", "Trust proof, local SEO foundation and analytics"];
@@ -189,6 +189,26 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
         );
       })}
     </div>
+
+    <section className="mt-10 border border-[#dfe2ea] bg-[#f8f8ff] p-6 sm:p-8" aria-label="Delivery safeguards">
+      <div className="grid gap-7 lg:grid-cols-[0.75fr_1.25fr] lg:items-start">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.1em] text-[#5746e8]">Before your site goes live</p>
+          <h3 className="mt-3 text-2xl font-semibold text-slate-950">Payment starts a managed delivery process, not an automatic publish button.</h3>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            You see the direction before buying, then approve the finished website before launch.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {PUBLIC_DELIVERY_PROMISES.slice(0, 4).map((promise) => (
+            <div key={promise} className="flex gap-3 border-t border-slate-200 pt-3 text-sm font-semibold leading-6 text-slate-700">
+              <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
+              {promise}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
 
     <section className="mt-12 grid gap-8 border-t border-slate-300 pt-8 lg:grid-cols-12" aria-label="What fees cover">
       <div className="lg:col-span-4">
