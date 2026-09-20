@@ -6211,7 +6211,16 @@ async function startServer() {
       "salesWhatsappLink", "salesWhatsappMessage", "salesCookieBannerEnabled", "trackingScriptsHeader", "trackingScriptsFooter",
       "publicProofTestimonialIds",
     ];
-    const publicPlatform = Object.fromEntries(publicPlatformKeys.filter((key) => platform[key] !== undefined).map((key) => [key, platform[key]]));
+    const publicPlatform: Record<string, unknown> = Object.fromEntries(
+      publicPlatformKeys.filter((key) => platform[key] !== undefined).map((key) => [key, platform[key]]),
+    );
+    const landingSettings = settings.get("landing_page") || {};
+    if (
+      publicPlatform.publicProofTestimonialIds === undefined &&
+      Array.isArray(landingSettings.publicProofTestimonialIds)
+    ) {
+      publicPlatform.publicProofTestimonialIds = landingSettings.publicProofTestimonialIds;
+    }
     const policies = Array.isArray(settings.get("platform_policies")?.policies)
       ? settings.get("platform_policies").policies.filter((policy: any) => policy?.status === "published")
       : [];
