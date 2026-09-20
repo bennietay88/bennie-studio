@@ -753,6 +753,28 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           businessId,
           updatedAt: Date.now(),
           status: websiteData.status || "draft",
+          seo: {
+            ...(websiteData.seo || {}),
+            deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
+            assetVault: {
+              ...(websiteData.seo?.assetVault || {}),
+              logoUrl: businessData.logoUrl,
+              heroImageUrl: businessData.heroImageUrl,
+              storyImageUrl: businessData.storyImageUrl,
+              projectImageUrl: businessData.projectImageUrl,
+              proofLogoUrl: businessData.proofLogoUrl,
+              proofLogoName: businessData.proofLogoName,
+              proofLogoRelationship: businessData.proofLogoRelationship,
+              brandNotes: businessData.brandNotes,
+              complianceNotes: businessData.complianceNotes,
+            },
+            deliveryQuality: {
+              internalCreativeReviewApproved: false,
+              responsiveQaApproved: false,
+              customerApprovalRecorded: false,
+              ...(websiteData.seo?.deliveryQuality || {}),
+            },
+          },
         },
         {
           businessName: businessData.name,
