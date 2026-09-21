@@ -138,7 +138,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
           <h2 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Three levels of support. One managed website system.</h2>
           <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Start with a professionally managed website, then add deeper conversion, SEO and growth support as the business needs it.</p>
         </div>
-        <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">{COMMERCIAL_MARKETS[activeMarket].label} · {COMMERCIAL_MARKETS[activeMarket].currency} · 12-month initial commitment</p>
+        <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">{COMMERCIAL_MARKETS[activeMarket].label} · {COMMERCIAL_MARKETS[activeMarket].currency} · 90-day initial commitment, then month-to-month</p>
       </div>
     )}
 
@@ -221,7 +221,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
           ["Setup fee", "Strategy, content structure, design, development, tracking and launch setup."],
           ["Monthly service", "Hosting, SSL, maintenance, updates, analytics and the optimisation included in your plan."],
           ["Domain ownership", "If you already own your domain, it remains yours. Any managed transfer is confirmed before payment."],
-          ["Commitment and transfer", "Managed plans have a 12-month initial commitment. Renewal, cancellation and export arrangements are covered in the written terms."],
+          ["Commitment and transfer", "Managed plans have a 90-day initial commitment, then month-to-month. Renewal, cancellation and export arrangements are covered in the written terms."],
         ].map(([title, body]) => <div key={title} className="border-t border-slate-200 pt-4"><p className="font-semibold text-slate-950">{title}</p><p className="mt-2 text-sm leading-6 text-slate-600">{body}</p></div>)}
       </div>
       <div className="lg:col-start-5 lg:col-span-8">
