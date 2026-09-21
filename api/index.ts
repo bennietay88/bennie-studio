@@ -2369,13 +2369,13 @@ async function startServer() {
     // instead of blocking the same email after only a few legitimate rebuilds.
     rateLimit({
       windowMs: 60 * 1000,
-      max: 30,
-      keyPrefix: "preview-intake-burst-v2",
+      max: 120,
+      keyPrefix: "preview-intake-burst-v3",
     }),
     rateLimit({
       windowMs: 60 * 60 * 1000,
-      max: 30,
-      keyPrefix: "preview-intake-lead-v2",
+      max: 500,
+      keyPrefix: "preview-intake-lead-v3",
       key: (req) => String(req.body?.leadId || req.body?.previewId || getClientIp(req)).trim().toLowerCase(),
     }),
     async (req: any, res: any) => {
@@ -2493,13 +2493,13 @@ async function startServer() {
     "/api/public/preview-site",
     rateLimit({
       windowMs: 60 * 1000,
-      max: 30,
-      keyPrefix: "preview-site-burst-v2",
+      max: 120,
+      keyPrefix: "preview-site-burst-v3",
     }),
     rateLimit({
       windowMs: 60 * 60 * 1000,
-      max: 30,
-      keyPrefix: "preview-site-lead-v2",
+      max: 500,
+      keyPrefix: "preview-site-lead-v3",
       key: (req) => String(req.body?.leadId || req.body?.previewId || getClientIp(req)).trim().toLowerCase(),
     }),
     async (req: any, res: any) => {
@@ -4710,11 +4710,11 @@ async function startServer() {
 
   app.post(
     "/api/platform-leads",
-    rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: "platform-leads-burst-v2" }),
+    rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: "platform-leads-burst-v3" }),
     rateLimit({
       windowMs: 60 * 60 * 1000,
-      max: 20,
-      keyPrefix: "platform-leads-identity-v2",
+      max: 200,
+      keyPrefix: "platform-leads-identity-v3",
       key: (req) => String(
         req.body?.previewId
         || req.body?.email
