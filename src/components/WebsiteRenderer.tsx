@@ -77,16 +77,24 @@ import { resolveAccessibleThemeColors } from "../lib/colorContrast";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
+  // Hero sections animate on mount, while lower sections animate on scroll.
+  // Keep both states identical so content never gets stranded at opacity: 0.
+  animate: { opacity: 1, y: 0 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, margin: "-50px" },
-  transition: { duration: 0.8, ease: [0.21, 0.47, 0.32, 0.98] },
+  transition: { duration: 0.65, ease: [0.21, 0.47, 0.32, 0.98] },
 };
 
 const staggerContainer = {
   initial: {},
+  animate: {
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
   whileInView: {
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.08,
     },
   },
   viewport: { once: true, margin: "-50px" },
@@ -2612,23 +2620,31 @@ export function WebsiteRenderer({
                           variants={staggerContainer}
                           className="relative overflow-hidden border-b border-slate-200 bg-[#f4f2ed]"
                         >
-                          <div className="pointer-events-none absolute inset-0">
-                            <div className="absolute -right-[10vw] top-[8%] h-[34vw] w-[34vw] min-h-[20rem] min-w-[20rem] rounded-full border border-primary/20" />
-                            <div className="absolute -right-[2vw] top-[16%] h-[22vw] w-[22vw] min-h-[13rem] min-w-[13rem] rounded-full bg-primary/10" />
+                          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+                            <div className="absolute -right-[8vw] top-[6%] h-[30vw] w-[30vw] min-h-[17rem] min-w-[17rem] rounded-full border border-primary/15" />
+                            <div className="absolute right-[4vw] top-[18%] h-[18vw] w-[18vw] min-h-[10rem] min-w-[10rem] rounded-full bg-primary/[0.08]" />
+                            <div className="absolute -bottom-[18%] right-[2%] h-[28vw] w-[28vw] min-h-[18rem] min-w-[18rem] rounded-full border-[2rem] border-white/45" />
                           </div>
-                          <div className="relative mx-auto flex min-h-[78vh] max-w-[90rem] flex-col justify-between px-6 py-16 sm:px-10 sm:py-20 lg:px-16">
+                          <div className="relative mx-auto flex min-h-[52vh] max-w-[90rem] flex-col justify-between px-6 py-12 sm:min-h-[58vh] sm:px-10 sm:py-16 lg:px-16 lg:py-20">
                             <motion.div variants={fadeInUp} className="flex items-center gap-4">
                               <span className="h-px w-12 bg-primary" />
                               <p className="text-[10px] font-black uppercase tracking-[0.32em] text-slate-500">{displayBusinessDescriptor}</p>
                             </motion.div>
-                            <motion.div variants={fadeInUp} className="max-w-[78rem] py-16">
-                              <h1 className="max-w-full break-words text-[clamp(2.8rem,7cqw,7.2rem)] font-semibold leading-[0.92] tracking-[-0.05em] text-slate-950 [text-wrap:balance]" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                            <motion.div variants={fadeInUp} className="max-w-[72rem] py-10 sm:py-12">
+                              <h1
+                                className="max-w-[13ch] break-words text-[clamp(2.8rem,6.2cqw,6.6rem)] font-semibold leading-[0.94] tracking-[-0.05em] text-slate-950 [text-wrap:balance]"
+                                style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
+                              >
                                 {section.content.headline || displayBusinessName}
                               </h1>
-                              <div className="mt-10 grid gap-8 border-t border-slate-300 pt-8 md:grid-cols-12">
-                                <p className="max-w-2xl text-lg font-medium leading-8 text-slate-600 md:col-span-7">{section.content.subheadline}</p>
-                                <div className="md:col-span-5 md:justify-self-end">
-                                  <Button size="lg" className="h-14 rounded-none px-8 text-[11px] font-black uppercase tracking-[0.18em]" onClick={() => handleButtonAction(section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "hero_cta_clicked", sectionId: section.id })}>
+                              <div className="mt-8 grid gap-7 border-t border-slate-300 pt-7 md:grid-cols-12 md:items-end">
+                                <p className="max-w-2xl text-base font-medium leading-7 text-slate-600 sm:text-lg md:col-span-8">{section.content.subheadline}</p>
+                                <div className="md:col-span-4 md:justify-self-end">
+                                  <Button
+                                    size="lg"
+                                    className="h-14 rounded-none px-8 text-[11px] font-black uppercase tracking-[0.18em]"
+                                    onClick={() => handleButtonAction(section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "hero_cta_clicked", sectionId: section.id })}
+                                  >
                                     {section.content.ctaText || "Contact Us"} <ArrowRight className="ml-2 h-4 w-4" />
                                   </Button>
                                 </div>
@@ -3704,9 +3720,14 @@ export function WebsiteRenderer({
                       <motion.section key={section.id || `cta-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true }} variants={staggerContainer} style={{ backgroundColor: theme.primaryColor, color: accessibleTheme.primaryForeground }}>
                         <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:py-20 lg:grid-cols-12 lg:items-center">
                           <motion.div variants={fadeInUp} className="lg:col-span-8">
-                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-current">Next step</p>
-                            <h2 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{section.content.title || "Ready to talk?"}</h2>
-                            <p className="mt-5 max-w-2xl text-base leading-7 text-current">{section.content.description}</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: accessibleTheme.primaryForeground }}>Next step</p>
+                            <h2
+                              className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.04em] sm:text-6xl"
+                              style={{ fontFamily: theme.displayFont || designProfile.displayFont, color: accessibleTheme.primaryForeground }}
+                            >
+                              {section.content.title || "Ready to talk?"}
+                            </h2>
+                            <p className="mt-5 max-w-2xl text-base leading-7" style={{ color: accessibleTheme.primaryForeground }}>{section.content.description}</p>
                           </motion.div>
                           <motion.div variants={fadeInUp} className="lg:col-span-4 lg:justify-self-end">
                             <Button size="lg" className="h-14 rounded-none bg-white px-8 text-sm font-black uppercase tracking-widest text-slate-950 hover:bg-white/90" onClick={() => handleButtonAction(section.content.buttonText || section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "website_button_clicked", sectionId: section.id })}>
