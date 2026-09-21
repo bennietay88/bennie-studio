@@ -1,9 +1,30 @@
 import { expect, test } from "@playwright/test";
+import { COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice } from "../src/lib/commercialPricing";
 
 const publicRoutes = ["/", "/pricing", "/how-it-works", "/generate-preview"];
 
 for (const route of publicRoutes) {
   test(`${route} passes public agency QA`, async ({ page }) => {
+    await page.route("https://ipapi.co/json/", (request) => request.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ country_code: "US", country_name: "United States" }),
+    }));
+    await page.route("**/api/public/pricing**", (request) => request.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        products: COMMERCIAL_FALLBACK_PRODUCTS.map((product) => ({
+          ...product,
+          price: {
+            ...getCommercialPrice(product, "INTL"),
+            monthlyConfigured: product.salesMotion === "self_serve",
+            recurringConfigured: product.salesMotion === "self_serve",
+            recurringConfigStatus: product.salesMotion === "self_serve" ? "live" : "draft",
+          },
+        })),
+      }),
+    }));
     const consoleErrors: string[] = [];
     page.on("console", (message) => {
       if (message.type() === "error") consoleErrors.push(message.text());
@@ -57,11 +78,31 @@ for (const route of publicRoutes) {
 }
 
 test("sales journey exposes delivery safeguards and defined scope", async ({ page }) => {
+  await page.route("https://ipapi.co/json/", (request) => request.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ country_code: "US", country_name: "United States" }),
+  }));
+  await page.route("**/api/public/pricing**", (request) => request.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      products: COMMERCIAL_FALLBACK_PRODUCTS.map((product) => ({
+        ...product,
+        price: {
+          ...getCommercialPrice(product, "INTL"),
+          monthlyConfigured: product.salesMotion === "self_serve",
+          recurringConfigured: product.salesMotion === "self_serve",
+          recurringConfigStatus: product.salesMotion === "self_serve" ? "live" : "draft",
+        },
+      })),
+    }),
+  }));
   await page.goto("/how-it-works", { waitUntil: "networkidle" });
   await expect(page.getByText(/Generation starts the work/i)).toBeVisible();
   await expect(page.getByText(/human reviews and art-directs every paid build/i)).toBeVisible();
 
   await page.goto("/pricing", { waitUntil: "networkidle" });
-  await expect(page.getByText(/Before your site goes live/i).first()).toBeVisible();
+  await expect(page.getByText(/Know exactly what you are buying/i).first()).toBeVisible();
   await expect(page.getByText(/90-day initial commitment/i).first()).toBeVisible();
 });
