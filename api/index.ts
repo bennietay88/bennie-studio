@@ -7224,7 +7224,7 @@ async function startServer() {
           const startDate = new Date().toISOString().slice(0, 10);
           const minimumEnd = new Date();
           minimumEnd.setUTCMonth(minimumEnd.getUTCMonth() + termMonths);
-          await supabaseAdmin.from("user_subscriptions").upsert({
+          const subscriptionRecord = {
             user_id: req.user.id,
             plan_id: plan?.id || null,
             stripe_customer_id: business.stripe_customer_id,
@@ -7239,17 +7239,42 @@ async function startServer() {
             minimum_term_end_date: minimumEnd.toISOString().slice(0, 10),
             renewal_state: "active",
             last_payment_status: "paid",
-          }, { onConflict: "user_id" });
+            updated_at: now,
+          };
+          const { data: existingSubscription } = await supabaseAdmin
+            .from("user_subscriptions")
+            .select("id")
+            .eq("user_id", req.user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (existingSubscription?.id) {
+            await supabaseAdmin.from("user_subscriptions").update(subscriptionRecord).eq("id", existingSubscription.id);
+          } else {
+            await supabaseAdmin.from("user_subscriptions").insert(subscriptionRecord);
+          }
 
           const creditLimit = Number(plan?.monthly_credit_limit || 300);
-          await supabaseAdmin.from("ai_credit_balances").upsert({
+          const creditRecord = {
             user_id: req.user.id,
-            business_id: business.id,
             monthly_credit_limit: creditLimit,
             credits_remaining: creditLimit,
             credits_used: 0,
             reset_date: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
-          }, { onConflict: "user_id" });
+            updated_at: now,
+          };
+          const { data: existingCredits } = await supabaseAdmin
+            .from("ai_credit_balances")
+            .select("id")
+            .eq("user_id", req.user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (existingCredits?.id) {
+            await supabaseAdmin.from("ai_credit_balances").update(creditRecord).eq("id", existingCredits.id);
+          } else {
+            await supabaseAdmin.from("ai_credit_balances").insert(creditRecord);
+          }
         }
 
         await supabaseAdmin.from("business_lifecycle_events").insert({
