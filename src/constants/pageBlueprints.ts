@@ -151,6 +151,153 @@ const page = (
   navLabel,
 });
 
+
+export const WEBSITE_GENERATION_RULES = {
+  minPreviewPages: 5,
+  maxPreviewPages: 8,
+  heroMaxWords: 7,
+  heroMaxChars: 58,
+  sectionTitleMaxWords: 9,
+  sectionTitleMaxChars: 72,
+  serviceTitleMaxWords: 8,
+  serviceTitleMaxChars: 64,
+  bodyMaxWords: 34,
+  bodyMaxChars: 220,
+} as const;
+
+const cleanGeneratedText = (value: string) =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.!?;:])/g, "$1")
+    .trim();
+
+const clampGeneratedText = (
+  value: string,
+  maxWords: number,
+  maxChars: number,
+) => {
+  const cleaned = cleanGeneratedText(value);
+  if (!cleaned) return "";
+  const words = cleaned.split(" ").filter(Boolean);
+  let result = words.slice(0, maxWords).join(" ");
+  while (result.length > maxChars && result.includes(" ")) {
+    result = result.slice(0, result.lastIndexOf(" "));
+  }
+  if (!result) result = cleaned.slice(0, maxChars).trim();
+  return result.replace(/[,:;\-–—]+$/g, "").trim();
+};
+
+const generatedHeadline = (value: string) =>
+  clampGeneratedText(
+    value,
+    WEBSITE_GENERATION_RULES.sectionTitleMaxWords,
+    WEBSITE_GENERATION_RULES.sectionTitleMaxChars,
+  );
+
+const generatedBody = (value: string) =>
+  clampGeneratedText(
+    value,
+    WEBSITE_GENERATION_RULES.bodyMaxWords,
+    WEBSITE_GENERATION_RULES.bodyMaxChars,
+  );
+
+const generatedServiceTitle = (value: string) =>
+  clampGeneratedText(
+    value,
+    WEBSITE_GENERATION_RULES.serviceTitleMaxWords,
+    WEBSITE_GENERATION_RULES.serviceTitleMaxChars,
+  );
+
+const buildGeneratedHeroHeadline = (service: string, target: string, businessName: string) => {
+  const serviceLead = cleanGeneratedText(service).replace(/[,.!?;:]+$/g, "");
+  const targetLead = cleanGeneratedText(target).replace(/[,.!?;:]+$/g, "");
+  const combined = generatedHeadline(`${serviceLead.charAt(0).toUpperCase() + serviceLead.slice(1)} for ${targetLead}`);
+  const combinedWords = combined.split(/\s+/).filter(Boolean).length;
+
+  if (
+    combinedWords <= WEBSITE_GENERATION_RULES.heroMaxWords
+    && combined.length <= WEBSITE_GENERATION_RULES.heroMaxChars
+  ) {
+    return combined;
+  }
+
+  const serviceOnly = clampGeneratedText(
+    serviceLead.charAt(0).toUpperCase() + serviceLead.slice(1),
+    WEBSITE_GENERATION_RULES.heroMaxWords,
+    WEBSITE_GENERATION_RULES.heroMaxChars,
+  );
+  if (serviceOnly) return serviceOnly;
+
+  return clampGeneratedText(
+    businessName || "Professional service",
+    WEBSITE_GENERATION_RULES.heroMaxWords,
+    WEBSITE_GENERATION_RULES.heroMaxChars,
+  );
+};
+
+const SUPPLEMENTAL_BLUEPRINT_PAGES: Record<string, BlueprintPageSeed[]> = {
+  restaurant: [
+    page("About", "about", "Tell the venue, team and hospitality story.", ["hero", "about", "trust", "final_cta"], "Reserve Table"),
+    page("FAQ", "faq", "Answer practical questions before a reservation.", ["hero", "faq", "location", "final_cta"], "Reserve Table"),
+    page("Private Events", "private-events", "Explain group dining and event enquiry options.", ["hero", "services", "portfolio", "contact_form", "final_cta"], "Enquire"),
+  ],
+  clinic: [
+    page("Process", "process", "Explain what patients can expect before booking.", ["hero", "process", "benefits", "faq", "final_cta"], "Book Appointment"),
+    page("FAQ", "faq", "Answer common patient questions and reduce booking friction.", ["hero", "faq", "trust", "final_cta"], "Book Appointment"),
+    page("Insights", "insights", "Create room for useful patient education and updates.", ["hero", "insights", "final_cta"], "Book Appointment"),
+  ],
+  contractor: [
+    page("Process", "process", "Show how enquiries, scoping and delivery work.", ["hero", "process", "benefits", "final_cta"], "Get Quote"),
+    page("FAQ", "faq", "Answer common project and service questions.", ["hero", "faq", "final_cta"], "Get Quote"),
+    page("Insights", "insights", "Create room for useful project guides and updates.", ["hero", "insights", "final_cta"], "Get Quote"),
+  ],
+  consultant: [
+    page("Process", "process", "Explain how the engagement works from first call to delivery.", ["hero", "process", "benefits", "final_cta"], "Book Call"),
+    page("FAQ", "faq", "Answer common fit, scope and engagement questions.", ["hero", "faq", "final_cta"], "Book Call"),
+    page("Insights", "insights", "Show useful thinking, guides and point of view.", ["hero", "insights", "final_cta"], "Book Call"),
+  ],
+  real_estate: [
+    page("Process", "process", "Explain the buyer and seller journey.", ["hero", "process", "benefits", "final_cta"], "Contact Agent"),
+    page("FAQ", "faq", "Answer common buyer and seller questions.", ["hero", "faq", "final_cta"], "Contact Agent"),
+    page("Insights", "insights", "Create room for local market guides and updates.", ["hero", "insights", "final_cta"], "Contact Agent"),
+  ],
+  law: [
+    page("Process", "process", "Explain consultation, next steps and client expectations.", ["hero", "process", "benefits", "final_cta"], "Request Consultation"),
+    page("FAQ", "faq", "Answer common consultation and service questions.", ["hero", "faq", "final_cta"], "Request Consultation"),
+    page("Insights", "insights", "Create room for practical legal updates and guidance.", ["hero", "insights", "final_cta"], "Request Consultation"),
+  ],
+  boutique: [
+    page("About", "about", "Tell the brand, curation and quality story.", ["hero", "about", "benefits", "final_cta"], "WhatsApp"),
+    page("FAQ", "faq", "Answer common product and purchase questions.", ["hero", "faq", "final_cta"], "WhatsApp"),
+    page("Journal", "journal", "Create room for launches, styling and brand stories.", ["hero", "insights", "final_cta"], "WhatsApp"),
+  ],
+  portfolio: [
+    page("Process", "process", "Explain how projects move from brief to delivery.", ["hero", "process", "benefits", "final_cta"], "Book Call"),
+    page("FAQ", "faq", "Answer common project and collaboration questions.", ["hero", "faq", "final_cta"], "Book Call"),
+    page("Insights", "insights", "Create room for project notes and useful thinking.", ["hero", "insights", "final_cta"], "Book Call"),
+  ],
+};
+
+const expandBlueprintPages = (
+  niche: string,
+  pages: BlueprintPageSeed[],
+  pageLimit: number,
+) => {
+  if (pages.length >= pageLimit) return pages.slice(0, pageLimit);
+  const expanded = [...pages];
+  const usedSlugs = new Set(expanded.map((item) => item.slug));
+  const candidates = SUPPLEMENTAL_BLUEPRINT_PAGES[niche] || SUPPLEMENTAL_BLUEPRINT_PAGES.consultant;
+
+  for (const candidate of candidates) {
+    if (expanded.length >= pageLimit) break;
+    if (usedSlugs.has(candidate.slug)) continue;
+    expanded.push(candidate);
+    usedSlugs.add(candidate.slug);
+  }
+
+  return expanded.slice(0, pageLimit);
+};
+
 const BLUEPRINTS: Record<string, Record<BlueprintPlanId, { pages: BlueprintPageSeed[] }>> = {
   restaurant: {
     starter: {
@@ -455,6 +602,7 @@ export const getBlueprint = (nicheValue: string | undefined, plan: WebsitePlanId
   const structurePlan: BlueprintPlanId =
     blueprintPlan === "business" && pageLimit >= 5 ? "growth" : blueprintPlan;
   const structure = blueprint[structurePlan];
+  const expandedPages = expandBlueprintPages(niche, structure.pages, pageLimit);
 
   return {
     niche,
@@ -462,7 +610,7 @@ export const getBlueprint = (nicheValue: string | undefined, plan: WebsitePlanId
     positioning: PLAN_POSITIONING[blueprintPlan],
     upgradeMessage: UPGRADE_MESSAGES[blueprintPlan],
     ...structure,
-    pages: structure.pages.map((blueprintPage) => ({
+    pages: expandedPages.map((blueprintPage) => ({
       ...blueprintPage,
       seoTitle: `${blueprintPage.name} | {businessName}`,
       metaDescription: `${blueprintPage.purpose} Serving {targetCustomer} in {location}.`,
@@ -474,11 +622,14 @@ const getServiceItems = (input: BlueprintBusinessInput) => {
   const fallbackService = input.mainService || "Professional Service";
   const raw = (input.services || []).filter(Boolean);
   const services = raw.length > 0 ? raw : [fallbackService, "Consultation", "Ongoing Support"];
-  return services.slice(0, 6).map((service) => ({
-    title: service,
-    description: `${service} designed for ${input.targetCustomer || "your customers"} in ${input.location || "your area"}.`,
-    imageUrl: undefined,
-  }));
+  return services.slice(0, 6).map((service) => {
+    const title = generatedServiceTitle(service);
+    return {
+      title,
+      description: generatedBody(`${title} designed for ${input.targetCustomer || "your customers"} in ${input.location || "your area"}.`),
+      imageUrl: undefined,
+    };
+  });
 };
 
 const getFaqItems = (input: BlueprintBusinessInput) => {
@@ -529,8 +680,7 @@ const buildSectionContent = (
   const location = input.location || "your area";
   const cta = input.ctaPreference || pageBlueprint.ctaType || "Get Started";
   const tone = input.tone || "Professional";
-  const serviceLead = service.charAt(0).toUpperCase() + service.slice(1);
-  const premiumHeroHeadline = `${serviceLead} for ${target}`;
+  const premiumHeroHeadline = buildGeneratedHeroHeadline(service, target, businessName);
 
   if (section.type === "hero") {
     section.content = {
@@ -538,14 +688,15 @@ const buildSectionContent = (
       headline:
         pageBlueprint.slug === ""
           ? input.generationMode === "fast"
-            ? `${businessName} for ${target}`
+            ? buildGeneratedHeroHeadline(businessName, target, businessName)
             : premiumHeroHeadline
           : input.generationMode === "fast"
-            ? `${pageBlueprint.name} Built Around ${service}`
-            : pageBlueprint.name,
-      subheadline:
+            ? generatedHeadline(`${pageBlueprint.name} Built Around ${generatedServiceTitle(service)}`)
+            : generatedHeadline(pageBlueprint.name),
+      subheadline: generatedBody(
         input.description ||
-        `${tone} ${service} in ${location}, designed to help ${target} take the next step with confidence.`,
+        `${tone} ${generatedServiceTitle(service)} in ${location}, designed to help ${target} take the next step with confidence.`,
+      ),
       ctaText: cta,
       imageUrl: input.heroImageUrl || undefined,
       imageAlt: input.heroImageUrl ? `${businessName} - ${service}` : undefined,
@@ -768,8 +919,8 @@ const buildSectionContent = (
       title:
         block === "whatsapp_cta"
           ? "Prefer WhatsApp?"
-          : `Ready to talk about ${service}?`,
-      description: `Take the next step with ${businessName} in ${location}.`,
+          : generatedHeadline(`Ready to talk about ${generatedServiceTitle(service)}?`),
+      description: generatedBody(`Take the next step with ${businessName} in ${location}.`),
       buttonText: cta,
     };
   }
