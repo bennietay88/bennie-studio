@@ -2395,8 +2395,21 @@ async function startServer() {
       if (leadError) return res.status(503).json({ error: "Preview verification is temporarily unavailable." });
       if (!lead || lead.preview_id !== body.previewId) return res.status(403).json({ error: "Preview verification failed." });
 
+      const PREVIEW_PROFILE_VERSION = 2;
       const cached = lead.raw_fields?.previewProfile;
-      if (cached && lead.raw_fields?.previewMode === body.mode && (body.mode !== "website" || cached.sourceUrl === body.websiteUrl)) {
+      const cachedVersion = Number(lead.raw_fields?.previewProfileVersion || 0);
+      const cachedAt = Date.parse(String(lead.raw_fields?.previewProfileCapturedAt || ""));
+      const websiteCacheFresh = Number.isFinite(cachedAt) && Date.now() - cachedAt < 15 * 60 * 1000;
+      const canUseCachedProfile =
+        Boolean(cached)
+        && cachedVersion === PREVIEW_PROFILE_VERSION
+        && lead.raw_fields?.previewMode === body.mode
+        && (
+          body.mode !== "website"
+          || (websiteCacheFresh && cached.sourceUrl === body.websiteUrl)
+        );
+
+      if (canUseCachedProfile) {
         return res.json({ success: true, profile: cached, cached: true, aiUsed: false, estimatedAiCostUsd: 0 });
       }
 
@@ -2445,6 +2458,7 @@ async function startServer() {
           ...(lead.raw_fields || {}),
           previewMode: body.mode,
           previewProfile: profile,
+          previewProfileVersion: PREVIEW_PROFILE_VERSION,
           previewProfileCapturedAt: new Date().toISOString(),
           previewGenerationMethod: "deterministic",
           previewAiCostUsd: 0,
