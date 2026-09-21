@@ -240,6 +240,7 @@ const SUPPLEMENTAL_BLUEPRINT_PAGES: Record<string, BlueprintPageSeed[]> = {
     page("About", "about", "Tell the venue, team and hospitality story.", ["hero", "about", "trust", "final_cta"], "Reserve Table"),
     page("FAQ", "faq", "Answer practical questions before a reservation.", ["hero", "faq", "location", "final_cta"], "Reserve Table"),
     page("Private Events", "private-events", "Explain group dining and event enquiry options.", ["hero", "services", "portfolio", "contact_form", "final_cta"], "Enquire"),
+    page("Visit", "visit", "Make location, hours and arrival details easy to find.", ["hero", "location", "faq", "final_cta"], "Reserve Table"),
   ],
   clinic: [
     page("Process", "process", "Explain what patients can expect before booking.", ["hero", "process", "benefits", "faq", "final_cta"], "Book Appointment"),
@@ -270,6 +271,7 @@ const SUPPLEMENTAL_BLUEPRINT_PAGES: Record<string, BlueprintPageSeed[]> = {
     page("About", "about", "Tell the brand, curation and quality story.", ["hero", "about", "benefits", "final_cta"], "WhatsApp"),
     page("FAQ", "faq", "Answer common product and purchase questions.", ["hero", "faq", "final_cta"], "WhatsApp"),
     page("Journal", "journal", "Create room for launches, styling and brand stories.", ["hero", "insights", "final_cta"], "WhatsApp"),
+    page("Buying Guide", "buying-guide", "Help customers choose the right option before enquiry.", ["hero", "benefits", "faq", "final_cta"], "WhatsApp"),
   ],
   portfolio: [
     page("Process", "process", "Explain how projects move from brief to delivery.", ["hero", "process", "benefits", "final_cta"], "Book Call"),
