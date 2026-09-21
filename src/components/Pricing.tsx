@@ -81,15 +81,10 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   };
 
   const handleSelect = async (product: CommercialProduct) => {
-    const price = getCommercialPrice(product, activeMarket);
-    // Markets without live recurring Stripe IDs stay consultation-led. This
-    // prevents a public button from sending a customer into a checkout that
-    // the selected market cannot complete yet.
-    if (product.salesMotion === "self_serve" && !price?.monthlyConfigured) {
-      navigate(`/book-demo?product=${product.slug}&market=${activeMarket}`);
-      return;
-    }
     if (onSelectPlan || product.salesMotion !== "self_serve") return startCheckout(product);
+    // Self-serve selection always opens the order review. The server remains
+    // authoritative for live Stripe availability and fails closed if a market
+    // has not been activated yet.
     setPendingProduct(product);
   };
 
@@ -199,7 +194,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
               ))}
             </div>
             <Button onClick={() => handleSelect(product)} className={cn("mt-6 min-h-12 w-full px-5 font-semibold", isGrowth ? "bg-white text-[#101827] hover:bg-[#eeebff]" : "bg-[#141821] text-white hover:bg-[#5746e8]")}>
-              {price?.monthlyConfigured ? "Choose plan" : "Discuss plan"} <ArrowRight className="ml-2 h-4 w-4" />
+              {product.salesMotion === "self_serve" ? "Choose plan" : "Discuss plan"} <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </article>
         );
