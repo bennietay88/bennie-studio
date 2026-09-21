@@ -1428,6 +1428,55 @@ async function startServer() {
           const businessId = session.metadata?.businessId;
           const proposalId = session.metadata?.proposalId;
           const type = session.metadata?.type;
+          const publicOrder = session.metadata?.publicOrder === "1";
+          const publicOrderId = session.metadata?.orderId;
+          const publicLeadId = session.metadata?.leadId;
+          const publicPreviewId = session.metadata?.previewId;
+
+          if (publicOrder) {
+            const paidAt = new Date().toISOString();
+            if (publicOrderId && UUID_SCHEMA.safeParse(publicOrderId).success) {
+              await supabaseAdmin.from("orders").update({
+                status: "paid",
+                stripe_session_id: session.id,
+                customer_name: session.customer_details?.name || undefined,
+                customer_email: session.customer_details?.email || session.customer_email || undefined,
+                updated_at: paidAt,
+              }).eq("id", publicOrderId);
+            }
+            if (publicLeadId && UUID_SCHEMA.safeParse(publicLeadId).success) {
+              await supabaseAdmin.from("leads").update({
+                status: "won",
+                automation_next_action: "Payment received — activate customer account and begin onboarding",
+                next_follow_up_at: paidAt,
+                raw_fields: {
+                  payment: {
+                    stripeSessionId: session.id,
+                    stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
+                    stripeSubscriptionId: typeof session.subscription === "string" ? session.subscription : null,
+                    paidAt,
+                    previewId: publicPreviewId || null,
+                    orderId: publicOrderId || null,
+                  },
+                },
+              }).eq("id", publicLeadId);
+              await supabaseAdmin.from("sales_tasks").insert({
+                lead_id: publicLeadId,
+                title: "Activate paid preview customer",
+                task_type: "onboarding",
+                priority: "high",
+                due_at: paidAt,
+                metadata: {
+                  businessId: businessId || null,
+                  previewId: publicPreviewId || null,
+                  orderId: publicOrderId || null,
+                  stripeSessionId: session.id,
+                },
+              }).then(({ error }) => {
+                if (error) console.warn("Paid preview onboarding task skipped:", error.message);
+              });
+            }
+          }
 
           if (proposalId && UUID_SCHEMA.safeParse(proposalId).success) {
             const paidAt = new Date().toISOString();
