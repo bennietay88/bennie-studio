@@ -56,6 +56,7 @@ import { normalizeCommercialMarket } from "../lib/commercialPricing";
 import { FlagshipTemplateGallery } from "./FlagshipTemplateGallery";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { TurnstileWidget } from "./TurnstileWidget";
+import { PreviewOrderPage } from "./PreviewOrderPage";
 import { supabase } from "../lib/supabase";
 import {
   normalizeWebsiteAuditResult,
@@ -70,6 +71,7 @@ type PublicPageKind =
   | "case-studies"
   | "website-audit"
   | "generate-preview"
+  | "preview-order"
   | "dental-clinics"
   | "clinic-website-design-malaysia"
   | "renovation-contractor-website-design"
@@ -114,7 +116,12 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
   "generate-preview": {
     title: "Free Website Preview | Bennie Studio",
     description:
-      "See a tailored managed website direction based on your business type, location, services, reviews, and preferred enquiry goal.",
+      "See a tailored managed website direction from your existing website URL or a short business brief.",
+  },
+  "preview-order": {
+    title: "Launch Your Website | Bennie Studio",
+    description:
+      "Turn your Bennie Studio website preview into a managed website with a simple setup fee, monthly service, and 90-day initial commitment.",
   },
   "dental-clinics": {
     title: "Dental Clinic Website Design Malaysia | More Patient Enquiries",
@@ -1859,8 +1866,8 @@ function GeneratePreviewPage() {
             </div>
 
             <div className="mt-7 flex flex-col gap-3 border-t border-[#dfe2ea] pt-6 sm:flex-row">
-              <Button onClick={() => action("click_book_call_after_preview","Book Website Review","/book-demo")} className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]">Book 30-minute review</Button>
-              <Button variant="outline" onClick={() => navigate("/pricing?market=" + (initialParams.get("market") || "INTL") + "#plan-" + commercialRecommendation.slug)} className="min-h-12 rounded-xl px-6 font-semibold">View recommended plan</Button>
+              <Button onClick={() => action("click_launch_after_preview","Launch This Website","/preview-order")} className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]">Launch this website <ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <Button variant="outline" onClick={() => navigate("/pricing?market=INTL#plan-" + (JSON.parse(localStorage.getItem("bt_preview_intent") || "{}").recommendedProduct || commercialRecommendation.slug))} className="min-h-12 rounded-xl px-6 font-semibold">Compare plans</Button>
             </div>
           </div>
         </section>
@@ -2425,7 +2432,9 @@ export default function PublicMarketingPages() {
             ? <WebsiteAuditPage />
             : pageKind === "generate-preview"
               ? <GeneratePreviewPage />
-              : <TemplatesPage />;
+              : pageKind === "preview-order"
+                ? <PreviewOrderPage />
+                : <TemplatesPage />;
 
   return (
     <div className="brand-public min-h-screen bg-[#f6f7fb] text-[#141821]">
