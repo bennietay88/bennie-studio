@@ -76,7 +76,8 @@ import { DESIGN_TOKENS, resolveDesignProfile } from "../constants/designProfiles
 import { resolveAccessibleThemeColors } from "../lib/colorContrast";
 
 const fadeInUp = {
-  initial: { opacity: 0, y: 30 },
+  // Never hide conversion copy while waiting for viewport animation.
+  initial: { opacity: 1, y: 18 },
   // Hero sections animate on mount, while lower sections animate on scroll.
   // Keep both states identical so content never gets stranded at opacity: 0.
   animate: { opacity: 1, y: 0 },
