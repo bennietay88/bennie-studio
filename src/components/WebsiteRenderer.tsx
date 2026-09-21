@@ -4074,7 +4074,7 @@ export function WebsiteRenderer({
                                     })
                                   }
                                 >
-                                  <SelectTrigger className="h-14 rounded-2xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                                  <SelectTrigger aria-label="Service tier" className="h-14 rounded-2xl border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                                     <SelectValue placeholder="Select Service Tier" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -4116,22 +4116,7 @@ export function WebsiteRenderer({
                               <h3 className="font-black text-2xl tracking-tighter uppercase text-slate-900 dark:text-white">
                                 {section.content.calendarTitle || "Select Date"}
                               </h3>
-                              <div className="flex gap-4">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-10 w-10 rounded-xl bg-slate-50 hover:bg-primary hover:text-primary-foreground transition-all"
-                                >
-                                  <ChevronLeft className="h-5 w-5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-10 w-10 rounded-xl bg-slate-50 hover:bg-primary hover:text-primary-foreground transition-all"
-                                >
-                                  <ChevronRight className="h-5 w-5" />
-                                </Button>
-                              </div>
+                              <p className="text-xs font-semibold text-slate-400">Choose an available day</p>
                             </div>
                             <div className="mb-5 grid grid-cols-7 gap-1 sm:mb-8 sm:gap-4">
                               {[
@@ -4160,10 +4145,16 @@ export function WebsiteRenderer({
                                 const isSelected =
                                   bookingDate?.getDate() === day;
 
+                                if (isBefore || isAfter) {
+                                  return <span key={i} aria-hidden="true" className="aspect-square" />;
+                                }
+
                                 return (
                                   <button
                                     key={i}
-                                    disabled={isBefore || isAfter}
+                                    type="button"
+                                    aria-label={`Select day ${day}`}
+                                    aria-pressed={isSelected}
                                     onClick={() => {
                                       const d = new Date();
                                       d.setDate(day);
@@ -4175,12 +4166,10 @@ export function WebsiteRenderer({
                                         ? "bg-slate-950 text-white shadow-2xl"
                                         : isToday
                                           ? "text-primary bg-primary/10"
-                                          : isBefore || isAfter
-                                            ? "text-slate-100 cursor-not-allowed"
-                                            : "hover:bg-slate-50 text-slate-800",
+                                          : "hover:bg-slate-50 text-slate-800",
                                     )}
                                   >
-                                    {day > 0 && day <= 31 ? day : ""}
+                                    {day}
                                   </button>
                                 );
                               })}

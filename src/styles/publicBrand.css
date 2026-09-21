@@ -777,11 +777,11 @@
 /* Premium typography and interaction guardrails shared across public and generated surfaces. */
 .brand-public h1 {
   max-width: 16ch;
-  font-size: clamp(2.55rem, 5.4vw, 4.9rem) !important;
+  font-size: clamp(2.5rem, 4.8vw, 4.4rem) !important;
 }
 
 .brand-public h2 {
-  font-size: clamp(1.95rem, 3.65vw, 3.25rem) !important;
+  font-size: clamp(1.9rem, 3.35vw, 3.05rem) !important;
 }
 
 .brand-public h1,

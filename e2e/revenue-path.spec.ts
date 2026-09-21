@@ -473,7 +473,9 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
   }));
 
   await page.goto("/pricing?market=INTL", { waitUntil: "networkidle" });
-  const growthCard = page.getByRole("heading", { name: "Website Growth", exact: true }).locator("xpath=ancestor::article[1]");
+  const plansSection = page.locator("#plans");
+  await expect(plansSection).toBeVisible();
+  const growthCard = plansSection.locator("article").filter({ hasText: "Website Growth" });
   await expect(growthCard).toBeVisible();
   await growthCard.getByRole("button", { name: /Choose plan/i }).click();
   await expect(page.getByRole("dialog", { name: "Order summary" })).toBeVisible();

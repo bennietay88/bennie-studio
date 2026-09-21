@@ -166,7 +166,8 @@ test("generated customer site mobile navigation is accessible", async ({ page })
   await expect(menu).toBeVisible();
   await expect(menu).toHaveAttribute("aria-expanded", "false");
   await menu.click();
-  await expect(menu).toHaveAttribute("aria-expanded", "true");
+  const closeMenu = page.getByRole("button", { name: "Close Menu" }).first();
+  await expect(closeMenu).toHaveAttribute("aria-expanded", "true");
 });
 
 test("sales journey exposes delivery safeguards and defined scope", async ({ page }) => {
@@ -176,7 +177,9 @@ test("sales journey exposes delivery safeguards and defined scope", async ({ pag
   await expect(page.getByText(/human reviews and art-directs every paid build/i)).toBeVisible();
 
   await page.goto("/pricing", { waitUntil: "networkidle" });
-  const fees = page.getByRole("region", { name: "What fees cover" });
+  const plans = page.locator("#plans");
+  await expect(plans).toBeVisible();
+  const fees = plans.locator('section[aria-label="What fees cover"]');
   await expect(fees).toBeVisible();
   await expect(fees.getByText(/Know exactly what you are buying/i)).toBeVisible();
   await expect(page.getByText(/90-day initial commitment/i).first()).toBeVisible();

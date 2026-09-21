@@ -545,9 +545,9 @@ function Hero({
     <section className="brand-grid-bg relative overflow-hidden border-b border-white/10 bg-[#0b1020] text-white">
       <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#5746e8]/20 blur-3xl" />
       <div className="brand-shell relative grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-6">
           <div className="brand-kicker flex items-center gap-3 !text-[#b9b1ff]"><span className="grid h-9 w-9 place-items-center border border-white/15 bg-white/[0.04]"><Icon className="h-4 w-4" /></span> Bennie Studio</div>
-          <h1 className="mt-6 !max-w-[16ch] !text-white">{title}</h1>
+          <h1 className="mt-6 !max-w-[20ch] !text-white">{title}</h1>
           <p className="brand-copy brand-muted-on-dark mt-6">{copy}</p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             {primaryHref.startsWith("#") ? (
@@ -561,7 +561,7 @@ function Hero({
             <span>Tailored structure</span><span>Desktop + mobile</span><span>Managed after launch</span>
           </div>
         </div>
-        <div className="relative lg:col-span-7 lg:-mr-8 xl:-mr-14">
+        <div className="relative lg:col-span-6 lg:-mr-8 xl:-mr-14">
           <div className="pointer-events-none absolute -inset-8 bg-[#5746e8]/10 blur-3xl" />
           <div className="relative overflow-hidden rounded-[1.15rem] border border-white/10 bg-[#080b15] shadow-[0_55px_140px_-55px_rgba(0,0,0,.95)]">
             <img src="/images/bennie-studio-hero.webp" alt="" width="1600" height="900" sizes="(min-width: 1024px) 44vw, 100vw" className="aspect-[16/9] w-full object-cover" loading="eager" decoding="async" />
@@ -580,7 +580,7 @@ function TemplatesPage() {
   return (
     <>
       <Hero
-        title="Website directions for real buyer journeys."
+        title="Website directions that fit the buyer."
         copy="Start with the buyer journey, the evidence available, the main enquiry action and the business category. The design direction follows those decisions."
         icon={LayoutTemplate}
       />
@@ -654,7 +654,7 @@ function PricingPage() {
   return (
     <>
       <Hero
-        title="Plans that grow with your website."
+        title="Managed website plans."
         copy="Start with a serious managed website. Add deeper conversion, local SEO and growth support when the commercial need is there."
         icon={Sparkles}
         primaryLabel="Generate my preview"
@@ -1528,7 +1528,7 @@ function GeneratePreviewPage() {
               <Sparkles className="h-4 w-4" /> Free website preview
             </p>
             <h1 className="mt-5 max-w-4xl text-[clamp(2.8rem,6vw,5.8rem)] font-semibold leading-[0.95] tracking-[-0.06em] text-[#141821]">
-              See your website direction before you build.
+              See your website before you build.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-[#5f6673] sm:text-lg">
               Give us the essentials. We turn them into a tailored website direction built around your service, location, trust signals and preferred enquiry action.
