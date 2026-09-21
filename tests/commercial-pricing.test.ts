@@ -22,8 +22,8 @@ test("managed website recurring price book is fixed by market", () => {
   assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 1099);
   assert.equal(getCommercialPrice(product!, "MY")?.annualPrice, null);
   assert.equal(getCommercialPrice(product!, "MY")?.billingInterval, "month");
-  assert.equal(getCommercialPrice(product!, "MY")?.minimumTermMonths, 12);
-  assert.equal(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, 12);
+  assert.equal(getCommercialPrice(product!, "MY")?.minimumTermMonths, 3);
+  assert.equal(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, 3);
 });
 
 test("all four launch markets keep the approved recurring catalogue", () => {
@@ -39,7 +39,7 @@ test("all four launch markets keep the approved recurring catalogue", () => {
     assert.equal(price?.monthlyPrice, monthly);
     assert.equal(price?.setupFee, setup);
     assert.equal(price?.currency, currency);
-    assert.equal(price?.minimumTermMonths, 12);
+    assert.equal(price?.minimumTermMonths, 3);
     assert.equal(price?.billingInterval, "month");
   }
 });
