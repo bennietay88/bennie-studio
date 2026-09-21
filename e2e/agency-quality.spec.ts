@@ -13,7 +13,9 @@ for (const route of publicRoutes) {
     expect(response?.ok(), `${route} should return a successful response`).toBeTruthy();
 
     await expect(page.locator("h1").first()).toBeVisible();
-    expect(await page.locator('meta[name="description"]').getAttribute("content")).toBeTruthy();
+    const descriptions = page.locator('meta[name="description"]');
+    expect(await descriptions.count(), `${route} should expose one canonical meta description`).toBe(1);
+    expect(await descriptions.first().getAttribute("content")).toBeTruthy();
 
     const layout = await page.evaluate(() => ({
       innerWidth: window.innerWidth,
@@ -60,6 +62,6 @@ test("sales journey exposes delivery safeguards and defined scope", async ({ pag
   await expect(page.getByText(/human reviews and art-directs every paid build/i)).toBeVisible();
 
   await page.goto("/pricing", { waitUntil: "networkidle" });
-  await expect(page.getByText(/Defined delivery scope/i).first()).toBeVisible();
-  await expect(page.getByText(/12-month initial commitment/i)).toBeVisible();
+  await expect(page.getByText(/Before your site goes live/i).first()).toBeVisible();
+  await expect(page.getByText(/90-day initial commitment/i).first()).toBeVisible();
 });
