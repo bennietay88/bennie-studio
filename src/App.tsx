@@ -426,6 +426,7 @@ export default function App() {
               <Route path="/examples." element={<Navigate to="/case-studies" replace />} />
               <Route path="/website-audit" element={<PublicMarketingPages />} />
               <Route path="/generate-preview" element={<PublicMarketingPages />} />
+              <Route path="/preview-order" element={<PublicMarketingPages />} />
               <Route path="/blog/:slug" element={<PublicBlogPostPage />} />
               <Route path="/clinic-website-design-malaysia" element={<PublicMarketingPages />} />
               <Route path="/renovation-contractor-website-design" element={<PublicMarketingPages />} />
