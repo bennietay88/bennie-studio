@@ -1524,6 +1524,56 @@ function GeneratePreviewPage() {
 
           <form onSubmit={generatePreview} className="grid gap-8 lg:grid-cols-12 lg:items-start">
             <div className="space-y-6 lg:col-span-8">
+              <section className="border border-[#dfe2ea] bg-white p-5 sm:p-7">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Start with what you already have</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewMode("website");
+                      setForm((current) => ({ ...current, websiteStatus: "yes" }));
+                      setGenerated(false);
+                      setGeneratedWebsite(null);
+                    }}
+                    className={previewMode === "website"
+                      ? "border-2 border-[#5746e8] bg-[#eeebff] p-5 text-left"
+                      : "border border-[#dfe2ea] bg-[#f9f8f4] p-5 text-left hover:border-[#aaa4dc]"}
+                  >
+                    <p className="font-semibold text-[#141821]">I already have a website</p>
+                    <p className="mt-2 text-sm leading-5 text-[#687386]">Paste one URL. We extract the public business facts and build the preview without AI-generation cost.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewMode("business");
+                      setForm((current) => ({ ...current, websiteStatus: "no" }));
+                      setGenerated(false);
+                      setGeneratedWebsite(null);
+                    }}
+                    className={previewMode === "business"
+                      ? "border-2 border-[#5746e8] bg-[#eeebff] p-5 text-left"
+                      : "border border-[#dfe2ea] bg-[#f9f8f4] p-5 text-left hover:border-[#aaa4dc]"}
+                  >
+                    <p className="font-semibold text-[#141821]">I need a website from scratch</p>
+                    <p className="mt-2 text-sm leading-5 text-[#687386]">Tell us the business, service and location. No existing site required.</p>
+                  </button>
+                </div>
+              </section>
+
+              {previewMode === "website" ? (
+                <section className="border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7">
+                  <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">1</span>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Existing website</p>
+                      <h3 className="mt-1 text-2xl font-semibold text-[#141821]">Paste the URL. That is enough for the business brief.</h3>
+                    </div>
+                  </div>
+                  <label htmlFor="preview-url-first" className="mb-2 block text-sm font-semibold text-[#374151]">Website URL</label>
+                  <Input id="preview-url-first" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://yourbusiness.com" className="h-14 rounded-none border-[#dfe2ea] bg-white text-base" />
+                  <p className="mt-3 text-sm leading-6 text-[#687386]">We read one public page, reuse the business facts we can verify, and generate the layout from Bennie Studio's existing design system. No ChatGPT call is used for the free preview.</p>
+                </section>
+              ) : (
               <section className="border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7">
                 <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">1</span>
@@ -1555,8 +1605,9 @@ function GeneratePreviewPage() {
                   </div>
                 </div>
               </section>
+              )}
 
-              <section className="border border-[#dfe2ea] bg-white p-5 sm:p-7">
+              <section className={previewMode === "website" ? "hidden" : "border border-[#dfe2ea] bg-white p-5 sm:p-7"}>
                 <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">2</span>
                   <div>
@@ -1607,7 +1658,7 @@ function GeneratePreviewPage() {
                 </div>
               </section>
 
-              <section className="border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7">
+              <section className={previewMode === "website" ? "hidden" : "border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7"}>
                 <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">3</span>
                   <div>
@@ -1659,7 +1710,7 @@ function GeneratePreviewPage() {
 
               <section className="border border-[#dfe2ea] bg-[#141821] p-5 text-white sm:p-7">
                 <div className="mb-6 flex items-start gap-4 border-b border-white/15 pb-5">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-[#141821]">4</span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-[#141821]">{previewMode === "website" ? "2" : "4"}</span>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#b9b1ff]">Send the preview</p>
                     <h3 className="mt-1 text-2xl font-semibold text-white">Where should we connect this direction?</h3>
@@ -1683,11 +1734,24 @@ function GeneratePreviewPage() {
                   </div>
                 </div>
 
+                <div className="hidden" aria-hidden="true">
+                  <label htmlFor="preview-company-website">Company website</label>
+                  <input id="preview-company-website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(event) => setHoneypot(event.target.value)} />
+                </div>
+
+                <div className="mt-5">
+                  <TurnstileWidget
+                    siteKey={String(import.meta.env.VITE_TURNSTILE_SITE_KEY || "")}
+                    onToken={setTurnstileToken}
+                    onExpire={() => setTurnstileToken("")}
+                  />
+                </div>
+
                 {error ? <div className="mt-5 border border-rose-300/40 bg-rose-400/10 p-4 text-sm font-semibold text-rose-100">{error}</div> : null}
 
                 <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
                   <Button type="submit" disabled={generating} className="min-h-14 rounded-none bg-[#6758ff] px-7 text-base font-bold text-white hover:bg-[#7a6cff]">
-                    {generating ? "Building your website direction..." : "Build my free website preview"} <ArrowRight className="ml-2 h-4 w-4" />
+                    {generating ? "Building your website preview..." : previewMode === "website" ? "Build preview from my URL" : "Build my free website preview"} <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   <p className="max-w-md text-xs leading-5 text-slate-400">No card required. Your details are used to prepare and follow up on the preview. Nothing is published without your approval.</p>
                 </div>
