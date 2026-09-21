@@ -48,8 +48,8 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
     trackPublicEvent({ eventType: "checkout_started", label: product.name, target: "/pricing", metadata: { product: product.slug, market: activeMarket, billingCycle, previewId } });
     const price = getCommercialPrice(product, activeMarket);
     if (onSelectPlan) return onSelectPlan({ ...product, price });
-    if (product.slug === "custom-website") { navigate(`/apply-custom?product=${product.slug}&market=${activeMarket}`); return; }
-    if (product.salesMotion !== "self_serve") { navigate(`/book-demo?product=${product.slug}&market=${activeMarket}`); return; }
+    if (product.slug === "custom-website") { navigate(`/apply-custom?product=${product.slug}&market=${activeMarket}`, { viewTransition: true }); return; }
+    if (product.salesMotion !== "self_serve") { navigate(`/book-demo?product=${product.slug}&market=${activeMarket}`, { viewTransition: true }); return; }
     localStorage.setItem("bt_checkout_intent", JSON.stringify({ productSlug: product.slug, market: activeMarket, currency: price?.currency, billingCycle, savedAt: new Date().toISOString() }));
 
     // New customers pay first. Bennie Studio creates/claims the portal only
@@ -146,7 +146,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
       <div className="grid gap-8 border-b border-slate-300 pb-10 lg:grid-cols-12 lg:items-end">
         <div className="lg:col-span-8">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">Managed website plans</p>
-          <h2 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Three levels of support. One managed website system.</h2>
+          <h2 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Three plans. One managed website system.</h2>
           <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Start with a professionally managed website, then add deeper conversion, SEO and growth support as the business needs it.</p>
         </div>
         <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">{COMMERCIAL_MARKETS[activeMarket].label} · {COMMERCIAL_MARKETS[activeMarket].currency} · 90-day initial commitment, then month-to-month</p>
@@ -236,7 +236,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
         ].map(([title, body]) => <div key={title} className="border-t border-slate-200 pt-4"><p className="font-semibold text-slate-950">{title}</p><p className="mt-2 text-sm leading-6 text-slate-600">{body}</p></div>)}
       </div>
       <div className="lg:col-start-5 lg:col-span-8">
-        <Button variant="outline" onClick={() => navigate("/book-demo?market=" + activeMarket)}>Discuss my scope first</Button>
+        <Button variant="outline" onClick={() => navigate("/book-demo?market=" + activeMarket, { viewTransition: true })}>Discuss my scope first</Button>
       </div>
     </section>
 

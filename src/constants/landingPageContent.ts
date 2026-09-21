@@ -6,7 +6,7 @@
 export const DEFAULT_LANDING_CONTENT = {
   hero: {
     badge: "Premium managed website growth",
-    headline: "A Managed Website Built to Generate More Enquiries",
+    headline: "A Website Built for More Enquiries",
     subheadline:
       "We plan, build, manage and continuously improve your website around conversion, trust, local visibility and lead generation.",
       ctaPrimary: "Get My Website Growth Plan",
@@ -41,7 +41,7 @@ export const DEFAULT_LANDING_CONTENT = {
     ],
   },
   reviewCopyExample: {
-    title: "Turn Real Customer Language Into Website Copy",
+    title: "Turn Reviews Into Website Copy",
     subtitle:
       "Generic AI copy sounds like everyone else. Review-powered copy starts from what real customers already trust.",
     reviewLabel: "Example review input",
@@ -55,7 +55,7 @@ export const DEFAULT_LANDING_CONTENT = {
     insights: ["Fast response", "WhatsApp-friendly", "Clear process", "Price confidence"],
   },
   launchModels: {
-    title: "One Managed Website Service, Built Around Enquiries",
+    title: "One Managed Website. Built for Enquiries.",
     subtitle: "Bennie Studio plans, builds, hosts, manages and continuously improves the website so you can focus on the business rather than website software.",
     items: [
       {
@@ -202,7 +202,7 @@ export const DEFAULT_LANDING_CONTENT = {
     trialNote: "Setup fee + monthly managed service · 12-month initial commitment · scope confirmed before payment",
   },
   dashboard: {
-    title: "Track Website Progress and Enquiries From Your Portal",
+    title: "Track Progress and Enquiries",
     subtitle: "Customers can track project progress, submit updates, and view enquiries without learning a website builder.",
     image: "/brand-template-preview.svg",
     features: [
@@ -213,7 +213,7 @@ export const DEFAULT_LANDING_CONTENT = {
     ]
   },
   howItWorks: {
-    title: "How Your Business Website Gets Launched",
+    title: "How Your Website Gets Launched",
     subtitle: "A simple managed process from plan choice to launch.",
     steps: [
       {
@@ -244,7 +244,7 @@ export const DEFAULT_LANDING_CONTENT = {
     ]
   },
   whoIsItFor: {
-    title: "Built First for Three Service Categories",
+    title: "Built for Service Businesses",
     subtitle: "The service is intentionally focused so onboarding, page structure, proof sections, and CTAs can be sharper.",
     items: [
       {
@@ -277,7 +277,7 @@ export const DEFAULT_LANDING_CONTENT = {
     ],
   },
   comparison: {
-    title: "DIY Builders vs Cheap Websites vs Bennie Studio",
+    title: "Typical Websites vs Bennie Studio",
     subtitle: "DIY tools give you pages. Cheap builds often stop at design. Bennie Studio structures your website around enquiries, trust, local visibility, and follow-up.",
     plans: ["Typical Website", "Bennie Studio"],
     features: [
@@ -342,7 +342,7 @@ export const DEFAULT_LANDING_CONTENT = {
   },
   testimonials: null,
   cta: {
-    headline: "See Your Website Direction Before You Decide",
+    headline: "See Your Website Direction First",
     subheadline:
       "Generate a homepage concept first, then choose the managed website service that fits your business.",
     buttonText: "See My Website Direction",

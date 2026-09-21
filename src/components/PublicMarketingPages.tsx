@@ -335,7 +335,7 @@ const nichePages: Record<
 > = {
   "dental-clinics": {
     label: "Dental clinic lead websites",
-    title: "Dental Websites Built to Turn Google Visitors Into Patient Enquiries",
+    title: "Dental Websites Built for Patient Enquiries",
     subtitle:
       "For dental clinics that want clearer treatment pages, stronger patient trust, local search visibility, and a faster path into WhatsApp, calls, or appointment requests.",
     positioning: "Patient-enquiry websites for dental clinics in Malaysia.",
@@ -347,7 +347,7 @@ const nichePages: Record<
   },
   "clinic-website-design-malaysia": {
     label: "Clinic lead websites",
-    title: "Clinic Websites Built to Increase Patient Enquiries",
+    title: "Clinic Websites Built for Patient Enquiries",
     subtitle:
       "For dental, aesthetic, wellness, and healthcare clinics that need treatment pages, doctor trust, local visibility, and appointment CTAs.",
     positioning: "Appointment-focused websites for clinics in Malaysia.",
@@ -359,7 +359,7 @@ const nichePages: Record<
   },
   "renovation-contractor-website-design": {
     label: "Contractor quote websites",
-    title: "Renovation Websites That Turn Project Visitors Into Quote Requests",
+    title: "Renovation Websites Built for Quote Requests",
     subtitle:
       "For contractors, renovation firms, interior specialists, and home service companies that need project proof and clear quote flow.",
     positioning: "Quote-request websites for renovation and home improvement businesses.",
@@ -371,7 +371,7 @@ const nichePages: Record<
   },
   "beauty-salon-website-design": {
     label: "Salon booking websites",
-    title: "Salon Websites Built for Bookings, Trust, and Treatment Enquiries",
+    title: "Salon Websites Built for Bookings",
     subtitle:
       "For beauty salons, spas, aesthetic providers, nail studios, and wellness brands that need better treatment presentation and booking flow.",
     positioning: "Booking-focused websites for beauty and lifestyle businesses.",
@@ -383,7 +383,7 @@ const nichePages: Record<
   },
   "tuition-centre-website-design": {
     label: "Tuition enquiry websites",
-    title: "Tuition Centre Websites That Help Parents Enquire Faster",
+    title: "Tuition Websites Built for Parent Enquiries",
     subtitle:
       "For tuition centres, education centres, enrichment programmes, and tutors that need parent trust and trial class enquiries.",
     positioning: "Parent-enquiry websites for education businesses.",
@@ -395,7 +395,7 @@ const nichePages: Record<
   },
   "consultant-website-design": {
     label: "Consultant authority websites",
-    title: "Consultant Websites That Explain Your Value and Convert Visitors Into Calls",
+    title: "Consultant Websites Built to Win Calls",
     subtitle:
       "For consultants, coaches, advisors, and professional service providers who need clearer positioning and qualified call requests.",
     positioning: "Authority websites for consultants and expert-led businesses.",
@@ -407,7 +407,7 @@ const nichePages: Record<
   },
   "professional-services-website-design": {
     label: "Professional services websites",
-    title: "Professional Services Websites Built Around Trust, Expertise, and Qualified Enquiries",
+    title: "Professional Websites Built for Qualified Enquiries",
     subtitle:
       "For legal, advisory, insurance, recruitment, IT, and other B2B service firms that need clearer positioning and a credible path to contact.",
     positioning: "Trust-led websites for professional service firms.",
@@ -419,7 +419,7 @@ const nichePages: Record<
   },
   "accounting-firm-website-design": {
     label: "Accounting and finance websites",
-    title: "Accounting Firm Websites That Make Services Clear and Start Better Client Conversations",
+    title: "Accounting Websites Built for Better Enquiries",
     subtitle:
       "For accountants, bookkeepers, tax advisers, payroll providers, and finance firms that need stronger client-fit messaging and consultation enquiries.",
     positioning: "Credibility-first websites for accounting and finance firms.",
@@ -431,7 +431,7 @@ const nichePages: Record<
   },
   "local-service-website-design": {
     label: "Local service lead websites",
-    title: "Local Service Websites Built to Turn Nearby Searchers Into Quote Requests",
+    title: "Local Service Websites Built for Quote Requests",
     subtitle:
       "For cleaning, repair, maintenance, pest control, trades, and home-service businesses that need faster quote enquiries from local customers.",
     positioning: "Quote-focused websites for local service businesses.",
@@ -547,7 +547,7 @@ function Hero({
       <div className="brand-shell relative grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
         <div className="lg:col-span-5">
           <div className="brand-kicker flex items-center gap-3 !text-[#b9b1ff]"><span className="grid h-9 w-9 place-items-center border border-white/15 bg-white/[0.04]"><Icon className="h-4 w-4" /></span> Bennie Studio</div>
-          <h1 className="mt-6 !max-w-[13ch] !text-white">{title}</h1>
+          <h1 className="mt-6 !max-w-[16ch] !text-white">{title}</h1>
           <p className="brand-copy brand-muted-on-dark mt-6">{copy}</p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             {primaryHref.startsWith("#") ? (
@@ -580,7 +580,7 @@ function TemplatesPage() {
   return (
     <>
       <Hero
-        title="Website directions organised around the business, not a theme gallery."
+        title="Website directions built around your business."
         copy="Start with the buyer journey, the evidence available, the main enquiry action and the business category. The design direction follows those decisions."
         icon={LayoutTemplate}
       />
@@ -654,7 +654,7 @@ function PricingPage() {
   return (
     <>
       <Hero
-        title="Managed website plans built around how much support you need."
+        title="Managed website plans that grow with you."
         copy="Start with a serious managed website. Add deeper conversion, local SEO and growth support when the commercial need is there."
         icon={Sparkles}
         primaryLabel="Generate my preview"
@@ -671,7 +671,7 @@ function HowItWorksPage() {
   return (
     <>
       <Hero
-        title="A managed website operating model, not a project handoff."
+        title="A managed website, not a project handoff."
         copy="You provide accurate business information and approvals. Bennie Studio handles strategy, production, hosting, maintenance and the improvement included in your plan."
         icon={Rocket}
       />
@@ -827,7 +827,7 @@ function CaseStudiesPage() {
   return (
     <>
       <Hero
-        title="See how the website system is applied to different buyer journeys."
+        title="See the system across different buyer journeys."
         copy="Verified customer proof is shown separately from demonstration builds so you can tell the difference between measured evidence and a design example."
         icon={Sparkles}
       />
@@ -1516,7 +1516,7 @@ function GeneratePreviewPage() {
       target,
       metadata: { industry: industry.label, goal, businessName: form.businessName, generated },
     });
-    navigate(target);
+    navigate(target, { viewTransition: true });
   };
 
   return (
@@ -1528,7 +1528,7 @@ function GeneratePreviewPage() {
               <Sparkles className="h-4 w-4" /> Free website preview
             </p>
             <h1 className="mt-5 max-w-4xl text-[clamp(2.8rem,6vw,5.8rem)] font-semibold leading-[0.95] tracking-[-0.06em] text-[#141821]">
-              See the website direction before you spend on the build.
+              See your website direction before you build.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-[#5f6673] sm:text-lg">
               Give us the essentials. We turn them into a tailored website direction built around your service, location, trust signals and preferred enquiry action.
@@ -2511,8 +2511,8 @@ export default function PublicMarketingPages() {
             <p className="mt-4 max-w-2xl text-base !text-white/75">Generate a real website direction first. Use the 30-minute review when you want help confirming scope and fit.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-            <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#ece9ff]">Generate free preview <ArrowRight className="ml-2 h-4 w-4" /></Button>
-            <Button onClick={() => navigate("/book-demo")} variant="outline" className="min-h-12 border-white/30 bg-white/[0.04] px-6 font-semibold text-white hover:bg-white/10 hover:text-white">Book 30-minute review</Button>
+            <Button onClick={() => navigate("/generate-preview", { viewTransition: true })} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#ece9ff]">Generate free preview <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Button onClick={() => navigate("/book-demo", { viewTransition: true })} variant="outline" className="min-h-12 border-white/30 bg-white/[0.04] px-6 font-semibold text-white hover:bg-white/10 hover:text-white">Book 30-minute review</Button>
           </div>
         </div>
       </section>

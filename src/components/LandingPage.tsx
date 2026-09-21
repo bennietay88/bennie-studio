@@ -58,13 +58,13 @@ import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing"
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.8, ease: [0.21, 0.47, 0.32, 0.98] },
+  transition: { duration: 0.52, ease: [0.16, 1, 0.3, 1] },
 };
 
 const staggerContainer = {
   animate: {
     transition: {
-      staggerChildren: 0.15,
+      staggerChildren: 0.08,
     },
   },
 };
@@ -228,7 +228,7 @@ export default function LandingPage() {
     eventType = "sales_cta_clicked",
   ) => {
     trackPublicEvent({ eventType, label, target: path });
-    navigate(path);
+    navigate(path, { viewTransition: true });
   };
 
   const trackAndScroll = (
@@ -459,7 +459,7 @@ export default function LandingPage() {
               variants={fadeInUp}
               className="mx-auto mb-4 max-w-[21rem] whitespace-normal break-words text-3xl font-extrabold leading-[1.08] tracking-tight text-slate-900 sm:max-w-3xl sm:text-5xl lg:mx-0 lg:text-6xl"
             >
-              Turn your website into a managed lead-generation system.
+              Turn your website into an enquiry system.
             </motion.h1>
 
             <motion.p
@@ -517,7 +517,7 @@ export default function LandingPage() {
                 type="button"
                 onClick={() => {
                   trackPublicEvent({ eventType: "plan_comparison_viewed", label: "Hero compare all plans", target: "/pricing" });
-                  navigate("/pricing");
+                  navigate("/pricing", { viewTransition: true });
                 }}
                 className="mb-5 inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100"
               >
@@ -795,7 +795,7 @@ export default function LandingPage() {
                     ))}
                   </div>
                   <Button
-                    onClick={() => navigate(item.href)}
+                    onClick={() => navigate(item.href, { viewTransition: true })}
                     className={cn(
                       "mt-8 h-14 rounded-2xl px-8 font-black uppercase tracking-widest sm:w-fit",
                       index === 0 ? "bg-indigo-600 hover:bg-indigo-700" : "bg-slate-950 hover:bg-slate-800",
@@ -1027,7 +1027,7 @@ export default function LandingPage() {
                   <Button
                     size="lg"
                     variant="outline"
-                    onClick={() => navigate("/pay-monthly-websites/malaysia")}
+                    onClick={() => navigate("/pay-monthly-websites/malaysia", { viewTransition: true })}
                     className="h-14 rounded-2xl border-white/20 bg-white/5 text-white hover:bg-white hover:text-slate-950 font-black uppercase tracking-widest px-8"
                   >
                     View Local SEO Example
@@ -1416,7 +1416,7 @@ export default function LandingPage() {
                       <Button
                         variant="ghost"
                         className="p-0 h-auto text-indigo-600 font-bold hover:bg-transparent hover:text-indigo-700 group/btn"
-                        onClick={() => navigate(`/blog/${post.slug}`)}
+                        onClick={() => navigate(`/blog/${post.slug}`, { viewTransition: true })}
                       >
                         Read Article{" "}
                         <ArrowRight className="ml-2 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
@@ -1540,7 +1540,7 @@ export default function LandingPage() {
                 <p className="text-sm font-black uppercase tracking-widest text-slate-950">Cookie Preferences</p>
                 <p className="mt-1 text-xs font-medium leading-5 text-slate-600">Necessary cookies keep Bennie Studio working. Optional analytics help us improve the website.</p>
                 <button
-                  onClick={() => navigate("/cookie-policy")}
+                  onClick={() => navigate("/cookie-policy", { viewTransition: true })}
                   className="mt-2 text-xs font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700"
                 >
                   Read Cookie Policy

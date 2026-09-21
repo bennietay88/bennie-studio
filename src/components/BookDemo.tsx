@@ -251,7 +251,7 @@ export default function BookDemo() {
             <div className="min-w-0 lg:col-span-5">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-300">{isGrowthPartner ? "Growth Partner consultation" : "Managed Website consultation"}</p>
               <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.03] tracking-tight text-white sm:text-5xl">
-                {isGrowthPartner ? "Scope the next stage of website growth with a clear commercial plan." : "Let’s find the clearest path from website visitor to real enquiry."}
+                {isGrowthPartner ? "Plan the next stage of your website growth." : "Turn more website visitors into real enquiries."}
               </h1>
               <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-slate-300">
                 {isGrowthPartner ? "Bring your current website, traffic sources, enquiry baseline and growth priorities. We’ll scope conversion work, landing pages, local SEO expansion, experiments, implementation priorities and commercial fit." : "Bring your current website, business goals, or prepared review. We’ll discuss what is getting in the way, what should change first, and whether Bennie Studio is the right partner to build it."}
@@ -278,7 +278,7 @@ export default function BookDemo() {
                   <p className="mx-auto mt-3 max-w-md font-semibold leading-7 text-slate-300">
                     Your time is reserved. We’ll review your website and goals before the call so the conversation starts with useful context.
                   </p>
-                  <Button onClick={() => navigate("/case-studies")} className="mt-7 min-h-12 rounded-lg bg-white px-6 text-slate-950 hover:bg-indigo-100">
+                  <Button onClick={() => navigate("/case-studies", { viewTransition: true })} className="mt-7 min-h-12 rounded-lg bg-white px-6 text-slate-950 hover:bg-indigo-100">
                     View case studies <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   {manageUrl && <Button variant="ghost" onClick={() => navigate(new URL(manageUrl, window.location.origin).pathname)} className="mt-3 min-h-11 rounded-xl text-indigo-200 hover:bg-white/10 hover:text-white">Reschedule or cancel</Button>}
