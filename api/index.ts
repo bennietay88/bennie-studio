@@ -586,6 +586,44 @@ function validateBody<T extends z.ZodTypeAny>(schema: T, req: any, res: any) {
   return result.data as z.infer<T>;
 }
 
+const previewClaimSecret = () => String(
+  process.env.PREVIEW_ORDER_CLAIM_SECRET
+  || process.env.SUPABASE_SERVICE_ROLE_KEY
+  || "",
+).trim();
+
+function createPreviewClaimToken(payload: {
+  businessId: string;
+  email: string;
+  sessionId: string;
+  previewId: string;
+  exp: number;
+}) {
+  const secret = previewClaimSecret();
+  if (!secret) throw new Error("PREVIEW_CLAIM_SECRET_MISSING");
+  const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  const signature = crypto.createHmac("sha256", secret).update(body).digest("base64url");
+  return `${body}.${signature}`;
+}
+
+function verifyPreviewClaimToken(token: string) {
+  const secret = previewClaimSecret();
+  if (!secret) throw new Error("PREVIEW_CLAIM_SECRET_MISSING");
+  const [body, signature] = String(token || "").split(".");
+  if (!body || !signature) throw new Error("INVALID_PREVIEW_CLAIM");
+  const expected = crypto.createHmac("sha256", secret).update(body).digest("base64url");
+  const actualBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (actualBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(actualBuffer, expectedBuffer)) {
+    throw new Error("INVALID_PREVIEW_CLAIM");
+  }
+  const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+  if (!payload?.businessId || !payload?.email || !payload?.sessionId || !payload?.previewId || Number(payload?.exp || 0) < Date.now()) {
+    throw new Error("EXPIRED_PREVIEW_CLAIM");
+  }
+  return payload as { businessId: string; email: string; sessionId: string; previewId: string; exp: number };
+}
+
 function safeErrorMessage(error: any) {
   if (!error?.message) return "Unexpected server error";
   if (
@@ -7063,6 +7101,175 @@ async function startServer() {
           });
         }
         return res.status(500).json({ error: "Secure checkout could not be started." });
+      }
+    },
+  );
+
+  app.get(
+    "/api/public/preview-checkout/status",
+    rateLimit({ windowMs: 60 * 60 * 1000, max: 20, keyPrefix: "preview-checkout-status" }),
+    async (req: any, res: any) => {
+      const sessionId = String(req.query.session_id || "");
+      const previewId = String(req.query.preview_id || "");
+      if (!/^cs_[A-Za-z0-9_]+$/.test(sessionId) || previewId.length < 8 || previewId.length > 160) {
+        return res.status(400).json({ error: "Invalid checkout confirmation." });
+      }
+      try {
+        const stripe = await getStripe();
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        if (session.metadata?.publicOrder !== "1" || session.metadata?.previewId !== previewId) {
+          return res.status(403).json({ error: "Checkout confirmation does not match this preview." });
+        }
+        const paid = ["paid", "no_payment_required"].includes(String(session.payment_status || ""));
+        const complete = session.status === "complete" && paid;
+        if (!complete) {
+          return res.json({ status: session.status || "open", paymentStatus: session.payment_status || "unpaid", complete: false });
+        }
+        const email = String(session.customer_details?.email || session.customer_email || "").trim().toLowerCase();
+        const businessId = String(session.metadata?.businessId || "");
+        const orderId = String(session.metadata?.orderId || "");
+        if (!EMAIL_SCHEMA.safeParse(email).success || !UUID_SCHEMA.safeParse(businessId).success) {
+          return res.status(409).json({ error: "Checkout completed but account activation details are incomplete." });
+        }
+        const claimToken = createPreviewClaimToken({
+          businessId,
+          email,
+          sessionId,
+          previewId,
+          exp: Date.now() + 24 * 60 * 60 * 1000,
+        });
+        return res.json({
+          status: "complete",
+          paymentStatus: session.payment_status,
+          complete: true,
+          email,
+          businessId,
+          orderId: UUID_SCHEMA.safeParse(orderId).success ? orderId : null,
+          productSlug: session.metadata?.productSlug || null,
+          claimToken,
+        });
+      } catch (error: any) {
+        console.error("Public preview checkout status failed", error?.message || error);
+        return res.status(502).json({ error: "Checkout confirmation is temporarily unavailable." });
+      }
+    },
+  );
+
+  app.post(
+    "/api/preview-checkout/claim",
+    authenticate,
+    rateLimit({
+      windowMs: 60 * 60 * 1000,
+      max: 6,
+      keyPrefix: "preview-checkout-claim",
+      key: (req: any) => req.user?.id || getClientIp(req),
+    }),
+    async (req: any, res: any) => {
+      const body = validateBody(z.object({ claimToken: z.string().trim().min(40).max(4096) }), req, res);
+      if (!body) return;
+      try {
+        const claim = verifyPreviewClaimToken(body.claimToken);
+        const userEmail = String(req.user?.email || "").trim().toLowerCase();
+        if (!userEmail || userEmail !== String(claim.email).trim().toLowerCase()) {
+          return res.status(403).json({ error: "Sign in with the same email used at checkout." });
+        }
+
+        const stripe = await getStripe();
+        const session = await stripe.checkout.sessions.retrieve(claim.sessionId);
+        if (
+          session.status !== "complete"
+          || !["paid", "no_payment_required"].includes(String(session.payment_status || ""))
+          || session.metadata?.businessId !== claim.businessId
+          || session.metadata?.previewId !== claim.previewId
+          || session.metadata?.publicOrder !== "1"
+        ) {
+          return res.status(409).json({ error: "This paid order could not be verified." });
+        }
+
+        const { data: business, error: businessError } = await supabaseAdmin
+          .from("businesses")
+          .select("id,owner_id,plan,commercial_product_slug,commercial_market,commercial_term_months,stripe_customer_id,stripe_subscription_id,status")
+          .eq("id", claim.businessId)
+          .maybeSingle();
+        if (businessError || !business) return res.status(404).json({ error: "Paid website order not found." });
+        if (business.owner_id && business.owner_id !== req.user.id) {
+          return res.status(409).json({ error: "This paid website has already been activated by another account." });
+        }
+
+        const now = new Date().toISOString();
+        const { error: businessUpdateError } = await supabaseAdmin.from("businesses").update({
+          owner_id: req.user.id,
+          status: "active",
+          lifecycle_stage: "onboarding",
+          lifecycle_stage_changed_at: now,
+          onboarding_started_at: now,
+        }).eq("id", business.id);
+        if (businessUpdateError) throw businessUpdateError;
+
+        const { error: profileError } = await supabaseAdmin.from("profiles").update({
+          business_id: business.id,
+          role: "business_admin",
+          status: "active",
+        }).eq("id", req.user.id);
+        if (profileError) throw profileError;
+
+        if (business.stripe_subscription_id) {
+          const subscription = await stripe.subscriptions.retrieve(business.stripe_subscription_id) as any;
+          const { data: plan } = await supabaseAdmin
+            .from("plans")
+            .select("id,monthly_credit_limit")
+            .eq("slug", business.plan)
+            .maybeSingle();
+          const termMonths = Number(business.commercial_term_months || COMMERCIAL_DEFAULT_COMMITMENT_MONTHS);
+          const startDate = new Date().toISOString().slice(0, 10);
+          const minimumEnd = new Date();
+          minimumEnd.setUTCMonth(minimumEnd.getUTCMonth() + termMonths);
+          await supabaseAdmin.from("user_subscriptions").upsert({
+            user_id: req.user.id,
+            plan_id: plan?.id || null,
+            stripe_customer_id: business.stripe_customer_id,
+            stripe_subscription_id: business.stripe_subscription_id,
+            status: subscription.status || "active",
+            current_period_start: subscription.current_period_start ? new Date(subscription.current_period_start * 1000).toISOString() : now,
+            current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : now,
+            commercial_product_slug: business.commercial_product_slug,
+            commercial_market: business.commercial_market || "INTL",
+            contract_start_date: startDate,
+            minimum_term_months: termMonths,
+            minimum_term_end_date: minimumEnd.toISOString().slice(0, 10),
+            renewal_state: "active",
+            last_payment_status: "paid",
+          }, { onConflict: "user_id" });
+
+          const creditLimit = Number(plan?.monthly_credit_limit || 300);
+          await supabaseAdmin.from("ai_credit_balances").upsert({
+            user_id: req.user.id,
+            business_id: business.id,
+            monthly_credit_limit: creditLimit,
+            credits_remaining: creditLimit,
+            credits_used: 0,
+            reset_date: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+          }, { onConflict: "user_id" });
+        }
+
+        await supabaseAdmin.from("business_lifecycle_events").insert({
+          business_id: business.id,
+          from_stage: "onboarding",
+          to_stage: "onboarding",
+          reason: "Paid preview order claimed by authenticated customer",
+          metadata: { userId: req.user.id, stripeSessionId: claim.sessionId, previewId: claim.previewId },
+        }).then(({ error }) => {
+          if (error) console.warn("Preview claim lifecycle event skipped:", error.message);
+        });
+
+        return res.json({ success: true, businessId: business.id, redirectTo: "/dashboard/onboarding" });
+      } catch (error: any) {
+        console.error("Preview order claim failed", error?.message || error);
+        const code = String(error?.message || "");
+        if (["INVALID_PREVIEW_CLAIM", "EXPIRED_PREVIEW_CLAIM"].includes(code)) {
+          return res.status(403).json({ error: "This account activation link has expired or is invalid." });
+        }
+        return res.status(500).json({ error: "Account activation could not be completed." });
       }
     },
   );
