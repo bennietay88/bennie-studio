@@ -419,6 +419,68 @@ test("routes homepage industry links and pricing details to the intended destina
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
 });
 
+test("pricing checkout reaches Stripe before signup for a new customer", async ({ page }) => {
+  await page.route("https://ipapi.co/json/", (route) => json(route, { country_code: "US", country_name: "United States" }));
+  await page.route("**/api/platform-events", (route) => json(route, { success: true }));
+  await page.route("**/api/public/pricing?**", (route) => json(route, {
+    products: [
+      {
+        slug: "managed-website",
+        name: "Managed Website",
+        description: "Managed website",
+        productType: "managed_website",
+        salesMotion: "self_serve",
+        price: { market: "INTL", currency: "USD", monthlyPrice: 89, setupFee: 299, annualPrice: null, monthlyConfigured: true, recurringConfigured: true, recurringConfigStatus: "live", billingInterval: "month" },
+      },
+      {
+        slug: "website-growth",
+        name: "Website Growth",
+        description: "Website growth",
+        productType: "website_growth",
+        salesMotion: "self_serve",
+        includesProductSlug: "managed-website",
+        price: { market: "INTL", currency: "USD", monthlyPrice: 179, setupFee: 599, annualPrice: null, monthlyConfigured: true, recurringConfigured: true, recurringConfigStatus: "live", billingInterval: "month" },
+      },
+      {
+        slug: "growth-partner",
+        name: "Growth Partner",
+        description: "Growth partner",
+        productType: "growth_partner",
+        salesMotion: "self_serve",
+        price: { market: "INTL", currency: "USD", monthlyPrice: 349, setupFee: 1199, annualPrice: null, monthlyConfigured: true, recurringConfigured: true, recurringConfigStatus: "live", billingInterval: "month" },
+      },
+    ],
+  }));
+  await page.route("**/api/public/plan-checkout", async (route) => {
+    const payload = await route.request().postDataJSON();
+    expect(payload.productSlug).toBe("website-growth");
+    expect(payload.market).toBe("INTL");
+    await json(route, {
+      success: true,
+      url: "/checkout/success?session_id=cs_e2e_public&public_order=1&preview_id=checkout_e2e_12345678&direct_checkout=1",
+    });
+  });
+  await page.route("**/api/public/preview-checkout/status?**", (route) => json(route, {
+    status: "complete",
+    paymentStatus: "paid",
+    complete: true,
+    email: "buyer@example.test",
+    businessId: "00000000-0000-4000-8000-000000000902",
+    productSlug: "website-growth",
+    claimToken: "claim-token-e2e-abcdefghijklmnopqrstuvwxyz-1234567890",
+  }));
+
+  await page.goto("/pricing?market=INTL");
+  await page.getByRole("button", { name: /Choose plan/i }).nth(1).click();
+  await expect(page.getByRole("dialog", { name: "Order summary" })).toBeVisible();
+  await expect(page.getByText(/No account is required before payment/i)).toBeVisible();
+  await page.getByRole("button", { name: /Continue to secure checkout/i }).click();
+  await expect(page).toHaveURL(/\/checkout\/success\?/);
+  await expect(page).not.toHaveURL(/\/signup/);
+  await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Activate my account" })).toBeVisible();
+});
+
 test("preview order carries the captured lead into payment without signup", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("bt_preview_intent", JSON.stringify({

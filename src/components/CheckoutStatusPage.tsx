@@ -11,6 +11,7 @@ export function CheckoutStatusPage({ status }: { status: "success" | "cancel" })
   const params = new URLSearchParams(location.search);
   const sessionId = params.get("session_id");
   const publicOrder = params.get("public_order") === "1";
+  const directCheckout = params.get("direct_checkout") === "1";
   const previewId = params.get("preview_id") || "";
   const successful = status === "success";
   const [verification, setVerification] = React.useState<VerificationState>(successful ? "checking" : "failed");
@@ -46,7 +47,7 @@ export function CheckoutStatusPage({ status }: { status: "success" | "cancel" })
     if (publicOrder) {
       if (!previewId) {
         setVerification("failed");
-        setMessage("Preview confirmation reference is missing.");
+        setMessage("Checkout confirmation reference is missing.");
         return;
       }
       fetch(`/api/public/preview-checkout/status?session_id=${encodeURIComponent(sessionId)}&preview_id=${encodeURIComponent(previewId)}`, {
@@ -193,7 +194,7 @@ export function CheckoutStatusPage({ status }: { status: "success" | "cancel" })
               Return to order
             </Link>
           ) : verification === "failed" ? (
-            <Link className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-900 hover:bg-slate-50" to={publicOrder ? "/preview-order" : "/pricing"}>
+            <Link className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-900 hover:bg-slate-50" to={publicOrder && !directCheckout ? "/preview-order" : "/pricing"}>
               Return
             </Link>
           ) : null}
