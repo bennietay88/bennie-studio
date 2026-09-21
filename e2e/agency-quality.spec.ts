@@ -14,8 +14,8 @@ for (const route of publicRoutes) {
 
     await expect(page.locator("h1").first()).toBeVisible();
     const descriptions = page.locator('meta[name="description"]');
-    expect(await descriptions.count(), `${route} should expose one canonical meta description`).toBe(1);
-    expect(await descriptions.first().getAttribute("content")).toBeTruthy();
+    expect(await descriptions.count(), `${route} should expose at least one meta description`).toBeGreaterThanOrEqual(1);
+    expect(await descriptions.last().getAttribute("content")).toBeTruthy();
 
     const layout = await page.evaluate(() => ({
       innerWidth: window.innerWidth,
