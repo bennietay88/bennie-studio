@@ -1175,13 +1175,34 @@ function GeneratePreviewPage() {
   const generatePreview = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
+
+    if (!form.email.trim()) {
+      setError("Enter an email so we can connect the preview to your enquiry.");
+      return;
+    }
+    if (previewMode === "website" && !form.websiteUrl.trim()) {
+      setError("Paste your existing website URL first.");
+      return;
+    }
+    if (previewMode === "business" && (!form.businessName.trim() || !form.mainService.trim() || !form.location.trim())) {
+      setError("Add your business name, main service and location.");
+      return;
+    }
+
     setGenerating(true);
     trackPublicEvent({
       eventType: "submit_business_details",
-      label: businessLabel,
+      label: form.businessName || form.websiteUrl || "Website preview",
       target: "/generate-preview",
-      metadata: { industry: industry.label, goal, location: form.location, hasWebsite: Boolean(form.websiteUrl) },
+      metadata: {
+        previewMode,
+        industry: industry.label,
+        goal,
+        location: form.location,
+        hasWebsite: Boolean(form.websiteUrl),
+      },
     });
+
     try {
       let existingPreview: Record<string, unknown> = {};
       try { existingPreview = JSON.parse(localStorage.getItem("bt_preview_intent") || "{}"); } catch { /* start a fresh preview */ }
@@ -1189,49 +1210,147 @@ function GeneratePreviewPage() {
         ? existingPreview.previewId
         : `preview_${globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
 
+      // Lead capture happens before the website fetch. This gives the sales
+      // pipeline a usable lead while preventing anonymous scraping abuse.
+      const leadResult = await submitPlatformLead({
+        name: form.contactName || form.businessName || form.email.split("@")[0] || "Website preview lead",
+        email: form.email,
+        phone: form.phone,
+        businessName: form.businessName,
+        industry: industry.label,
+        websiteUrl: form.websiteUrl,
+        service: form.mainService,
+        message: previewMode === "website"
+          ? `URL-first website preview requested for ${form.websiteUrl}.`
+          : `Business-info preview: ${form.mainService} in ${form.location}. Goal: ${goal}.`,
+        formName: "Personalized website preview",
+        leadType: previewMode === "website" ? "free_website_rebuild_preview" : "free_website_preview",
+        previewId,
+        market: initialParams.get("market") || "INTL",
+        turnstileToken,
+        website: honeypot,
+      });
+      if (!leadResult?.leadId) throw new Error("We could not connect this preview to your enquiry. Please retry.");
+
+      const intakeResponse = await fetch("/api/public/preview-intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: previewMode,
+          previewId,
+          leadId: leadResult.leadId,
+          leadEmail: form.email,
+          websiteUrl: previewMode === "website" ? form.websiteUrl : null,
+          businessName: form.businessName || null,
+          industry: industry.label,
+          location: form.location || null,
+          mainService: form.mainService || null,
+        }),
+      });
+      const intake = await intakeResponse.json().catch(() => null);
+      if (!intakeResponse.ok || !intake?.profile) {
+        throw new Error(intake?.error || "We could not prepare that preview. Try business information instead.");
+      }
+
+      const profile = intake.profile as {
+        sourceUrl?: string;
+        businessName?: string;
+        description?: string;
+        location?: string;
+        contactEmail?: string;
+        contactPhone?: string;
+        services?: string[];
+        heroImage?: string;
+      };
+
+      const resolvedBusinessName = String(profile.businessName || form.businessName || "Your Business").trim();
+      const resolvedLocation = String(profile.location || form.location || "Local area").trim();
+      const resolvedServices = Array.isArray(profile.services) && profile.services.length
+        ? profile.services.map((service) => String(service).trim()).filter(Boolean).slice(0, 8)
+        : form.mainService.split(/[,/\n]+/).map((service) => service.trim()).filter(Boolean).slice(0, 8);
+      const resolvedMainService = resolvedServices.join(", ") || form.mainService.trim() || "Professional services";
+      const resolvedIndustryId = inferPreviewIndustryId(resolvedMainService) || industryId;
+      const resolvedIndustry = previewIndustries.find((item) => item.id === resolvedIndustryId) || previewIndustries[0];
+      const resolvedTemplateId = explicitTemplateId && resolvedIndustryId === initialIndustry
+        ? explicitTemplateId
+        : previewTemplateIds[resolvedIndustryId] || "service-pro-v1";
+      const resolvedGenerationMode = resolvePreviewGenerationMode(
+        resolvedIndustryId,
+        form.brandStyle,
+        previewMode === "website" ? "yes" : form.websiteStatus,
+      );
+      const resolvedBrandPersonality = resolvePreviewBrandPersonality(form.brandStyle);
+      const resolvedBusinessMaturity: BusinessMaturity = previewMode === "website" ? "established" : "growing";
+      const resolvedGoal = previewMode === "website" && goal === previewGoals[0]
+        ? "Generate local service leads"
+        : goal;
+      const resolvedCta = resolvePreviewCta(resolvedGoal);
+      const resolvedReviewStrategy = buildReviewWebsiteStrategy({
+        businessName: resolvedBusinessName,
+        industry: resolvedIndustry.label,
+        city: resolvedLocation,
+        mainServices: resolvedMainService,
+        preferredCta: resolvedGoal.toLowerCase().includes("whatsapp")
+          ? "WhatsApp"
+          : resolvedGoal.toLowerCase().includes("booking")
+            ? "booking"
+            : resolvedGoal.toLowerCase().includes("phone")
+              ? "call"
+              : "form",
+        googleBusinessUrl: form.socialUrl,
+        reviews: form.reviews,
+      });
       const previewTestimonials = form.reviews
         .split(/\n+/)
         .map((review) => review.trim())
         .filter(Boolean)
         .slice(0, 4);
-      const previewServices = form.mainService
-        .split(/[,/\n]+/)
-        .map((service) => service.trim())
-        .filter(Boolean);
-      const targetCustomer = previewTargetCustomers[effectiveIndustryId] || "customers";
-      const previewCta = resolvePreviewCta(goal);
+
       const blueprintInput: BlueprintBusinessInput = {
-        businessName: form.businessName.trim(),
-        nicheId: selectedTemplateId,
-        nicheName: industry.label,
+        businessName: resolvedBusinessName,
+        nicheId: resolvedTemplateId,
+        nicheName: resolvedIndustry.label,
         plan: "business",
         maxPages: 5,
-        mainService: form.mainService.trim(),
-        targetCustomer,
-        location: form.location.trim(),
-        ctaPreference: previewCta,
+        mainService: resolvedMainService,
+        targetCustomer: previewTargetCustomers[resolvedIndustryId] || "customers",
+        location: resolvedLocation,
+        ctaPreference: resolvedCta,
         tone: form.brandStyle,
-        services: previewServices.length ? previewServices : [form.mainService.trim()],
-        description: reviewStrategy.subheadline,
-        contactEmail: form.email.trim(),
-        contactPhone: form.phone.trim(),
-        whatsappNumber: goal.toLowerCase().includes("whatsapp") ? form.phone.trim() : undefined,
-        faqs: reviewStrategy.intelligence.faqs,
+        services: resolvedServices.length ? resolvedServices : [resolvedMainService],
+        description: profile.description || resolvedReviewStrategy.subheadline,
+        contactEmail: String(profile.contactEmail || form.email || "").trim(),
+        contactPhone: String(profile.contactPhone || form.phone || "").trim(),
+        whatsappNumber: resolvedGoal.toLowerCase().includes("whatsapp")
+          ? String(profile.contactPhone || form.phone || "").trim()
+          : undefined,
+        faqs: resolvedReviewStrategy.intelligence.faqs,
         testimonials: previewTestimonials,
-        generationMode: previewGenerationMode,
-        brandPersonality: previewBrandPersonality,
-        businessMaturity: previewBusinessMaturity,
-        assetReadiness: "pending",
+        generationMode: resolvedGenerationMode,
+        brandPersonality: resolvedBrandPersonality,
+        businessMaturity: resolvedBusinessMaturity,
+        assetReadiness: profile.heroImage ? "partial" : "pending",
       };
 
-      const previewTheme = getBlueprintTheme(selectedTemplateId, previewGenerationMode, {
-        brandPersonality: previewBrandPersonality,
-        businessMaturity: previewBusinessMaturity,
-        assetReadiness: "pending",
+      const previewTheme = getBlueprintTheme(resolvedTemplateId, resolvedGenerationMode, {
+        brandPersonality: resolvedBrandPersonality,
+        businessMaturity: resolvedBusinessMaturity,
+        assetReadiness: profile.heroImage ? "partial" : "pending",
       });
       const previewSeo = getBlueprintSeo(blueprintInput);
       const previewCandidates = [0, 1].map((compositionSeed) => {
         const pages = buildPagesFromBlueprint({ ...blueprintInput, compositionSeed });
+        if (profile.heroImage) {
+          const home = pages.find((page) => page.slug === "" || page.slug === "home") || pages[0];
+          const hero = home?.sections?.find((section) => section.type === "hero");
+          if (hero) {
+            hero.content = {
+              ...hero.content,
+              imageUrl: hero.content?.imageUrl || profile.heroImage,
+              imageAlt: hero.content?.imageAlt || resolvedBusinessName,
+            };
+          }
+        }
         const website: Website = {
           id: "preview",
           businessId: "preview",
@@ -1251,74 +1370,85 @@ function GeneratePreviewPage() {
         return { website, quality, rank };
       });
       const selectedPreview = previewCandidates.sort((a, b) => b.rank - a.rank)[0];
+      const resolvedRecommendation = recommendCommercialProduct({
+        goal: resolvedGoal,
+        notes: resolvedMainService,
+        industry: resolvedIndustry.label,
+      });
+
+      const resolvedForm = {
+        ...form,
+        businessName: resolvedBusinessName,
+        location: resolvedLocation,
+        mainService: resolvedMainService,
+        websiteStatus: previewMode === "website" ? "yes" : form.websiteStatus,
+        websiteUrl: profile.sourceUrl || form.websiteUrl,
+      };
+      setForm(resolvedForm);
+      setGoal(resolvedGoal);
 
       localStorage.setItem("bt_preview_intent", JSON.stringify({
-        ...form,
+        ...resolvedForm,
+        previewMode,
         previewId,
-        industryId: effectiveIndustryId,
-        industry: industry.label,
-        goal,
-        recommendedProduct: commercialRecommendation.slug,
-        leadId: null,
+        leadId: leadResult.leadId,
+        industryId: resolvedIndustryId,
+        industry: resolvedIndustry.label,
+        goal: resolvedGoal,
+        recommendedProduct: resolvedRecommendation.slug,
         attribution: getTrackingContext(),
         market: initialParams.get("market") || "INTL",
         source: initialParams.get("source") || "",
         campaign: initialParams.get("campaign") || initialParams.get("utm_campaign") || "",
-        templateId: selectedTemplateId,
-        generationMode: previewGenerationMode,
-        brandPersonality: previewBrandPersonality,
-        businessMaturity: previewBusinessMaturity,
+        templateId: resolvedTemplateId,
+        generationMode: resolvedGenerationMode,
+        brandPersonality: resolvedBrandPersonality,
+        businessMaturity: resolvedBusinessMaturity,
         designScore: selectedPreview.quality.score,
         designMetrics: selectedPreview.quality.metrics,
-        reviewSuggestions: reviewQuality.suggestions,
+        previewProfile: profile,
+        previewGenerationMethod: "deterministic",
+        previewAiCostUsd: 0,
+        reviewSuggestions: assessManualReviewInput(form.reviews).suggestions,
         reviewStrategy: {
-          heroHeadline: reviewStrategy.heroHeadline,
-          subheadline: reviewStrategy.subheadline,
-          primaryCta: reviewStrategy.primaryCta,
-          secondaryCta: reviewStrategy.secondaryCta,
-          trustSignals: reviewStrategy.trustSignals,
+          heroHeadline: resolvedReviewStrategy.heroHeadline,
+          subheadline: resolvedReviewStrategy.subheadline,
+          primaryCta: resolvedReviewStrategy.primaryCta,
+          secondaryCta: resolvedReviewStrategy.secondaryCta,
+          trustSignals: resolvedReviewStrategy.trustSignals,
           intelligence: {
-            localKeywords: reviewStrategy.intelligence.localKeywords,
-            faqs: reviewStrategy.intelligence.faqs,
+            localKeywords: resolvedReviewStrategy.intelligence.localKeywords,
+            faqs: resolvedReviewStrategy.intelligence.faqs,
           },
         },
         createdAt: new Date().toISOString(),
       }));
-      // Capture the prospect before revealing the full recommendation. The
-      // preview id makes retries idempotent, while attribution is carried into
-      // the CRM record for follow-up and checkout continuity.
-      const leadResult = await submitPlatformLead({
-        name: form.contactName || form.businessName,
-        email: form.email,
-        phone: form.phone,
-        businessName: form.businessName,
-        industry: industry.label,
-        websiteUrl: form.websiteUrl,
-        service: form.mainService,
-        selectedProduct: commercialRecommendation.slug,
-        message: `Preview brief: ${form.mainService} in ${form.location}. Goal: ${goal}. Biggest problem: ${form.biggestProblem || "Not specified"}. Website status: ${form.websiteStatus}. Brand style: ${form.brandStyle}.`,
-        formName: "Personalized website preview",
-        leadType: "free_website_preview",
-        previewId,
-        market: initialParams.get("market") || "INTL",
+
+      trackPublicEvent({
+        eventType: "preview_lead_captured",
+        label: resolvedBusinessName,
+        target: "/generate-preview",
+        metadata: { previewId, leadId: leadResult.leadId, previewMode, aiCostUsd: 0 },
       });
-      localStorage.setItem("bt_preview_intent", JSON.stringify({
-        ...JSON.parse(localStorage.getItem("bt_preview_intent") || "{}"),
-        leadId: leadResult?.leadId || null,
-      }));
-      trackPublicEvent({ eventType: "preview_lead_captured", label: previewTitle, target: "/generate-preview", metadata: { previewId, leadId: leadResult?.leadId || null } });
       setGeneratedWebsite(selectedPreview.website);
       setPreviewExpanded(false);
       setGenerated(true);
       trackPublicEvent({
         eventType: "preview_generated",
-        label: previewTitle,
+        label: resolvedBusinessName,
         target: "/generate-preview",
-        metadata: { industry: industry.label, recommendedProduct: commercialRecommendation.slug, goal },
+        metadata: {
+          industry: resolvedIndustry.label,
+          recommendedProduct: resolvedRecommendation.slug,
+          goal: resolvedGoal,
+          previewMode,
+          generationMethod: "deterministic",
+          aiCostUsd: 0,
+        },
       });
     } catch (submissionError: any) {
       setError(submissionError?.message || "The preview could not be prepared. Please retry.");
-      trackPublicEvent({ eventType: "preview_failed", label: form.businessName, target: "/generate-preview" });
+      trackPublicEvent({ eventType: "preview_failed", label: form.businessName || form.websiteUrl, target: "/generate-preview" });
     } finally {
       setGenerating(false);
     }
