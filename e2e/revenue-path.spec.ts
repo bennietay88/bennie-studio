@@ -421,6 +421,8 @@ test("routes homepage industry links and pricing details to the intended destina
 
 test("pricing checkout reaches Stripe before signup for a new customer", async ({ page }) => {
   await page.route("https://ipapi.co/json/", (route) => json(route, { country_code: "US", country_name: "United States" }));
+  await page.route("**/auth/v1/**", (route) => json(route, { user: null, session: null }));
+  await page.route("**/rest/v1/**", (route) => json(route, []));
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
   await page.route("**/api/public/pricing**", (route) => json(route, {
     products: [
