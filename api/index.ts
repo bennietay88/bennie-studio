@@ -4710,12 +4710,16 @@ async function startServer() {
 
   app.post(
     "/api/platform-leads",
-    rateLimit({ windowMs: 60 * 1000, max: 12, keyPrefix: "platform-leads" }),
+    rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: "platform-leads-burst-v2" }),
     rateLimit({
       windowMs: 60 * 60 * 1000,
-      max: 5,
-      keyPrefix: "platform-leads-email",
-      key: (req) => String(req.body?.email || getClientIp(req)).trim().toLowerCase(),
+      max: 20,
+      keyPrefix: "platform-leads-identity-v2",
+      key: (req) => String(
+        req.body?.previewId
+        || req.body?.email
+        || getClientIp(req)
+      ).trim().toLowerCase(),
     }),
     async (req, res) => {
       const leadBody = validateBody(
