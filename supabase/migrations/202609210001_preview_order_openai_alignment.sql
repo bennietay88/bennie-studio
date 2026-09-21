@@ -31,6 +31,9 @@ WHERE ai_model_config::text ILIKE '%gemini%'
 
 -- New managed website orders use a 90-day initial commitment.
 -- Existing customer-specific overrides are preserved.
+ALTER TABLE public.commercial_market_prices
+  ALTER COLUMN minimum_term_months SET DEFAULT 3;
+
 UPDATE public.commercial_market_prices
 SET minimum_term_months = 3,
     updated_at = now()
@@ -43,3 +46,11 @@ SET commercial_term_months = 3
 WHERE commercial_term_months = 12
   AND lifecycle_stage IN ('prospect', 'checkout', 'onboarding')
   AND stripe_subscription_id IS NULL;
+
+
+-- Keep the entitlement catalogue aligned for future customers. Existing
+-- subscriptions retain their stored contract dates and business-level term.
+UPDATE public.plans
+SET commitment_months = 3
+WHERE is_active = true
+  AND slug IN ('starter', 'business', 'growth', 'website_growth_partner');
