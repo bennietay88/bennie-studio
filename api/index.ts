@@ -2364,12 +2364,19 @@ async function startServer() {
 
   app.post(
     "/api/public/preview-intake",
-    rateLimit({ windowMs: 60 * 60 * 1000, max: 4, keyPrefix: "preview-intake" }),
+    // Preview regeneration is an interactive design workflow, not a one-shot
+    // lead form. Rate-limit bursts by IP and sustained use by the verified lead
+    // instead of blocking the same email after only a few legitimate rebuilds.
     rateLimit({
-      windowMs: 24 * 60 * 60 * 1000,
-      max: 3,
-      keyPrefix: "preview-intake-email",
-      key: (req) => String(req.body?.leadEmail || getClientIp(req)).trim().toLowerCase(),
+      windowMs: 60 * 1000,
+      max: 30,
+      keyPrefix: "preview-intake-burst-v2",
+    }),
+    rateLimit({
+      windowMs: 60 * 60 * 1000,
+      max: 30,
+      keyPrefix: "preview-intake-lead-v2",
+      key: (req) => String(req.body?.leadId || req.body?.previewId || getClientIp(req)).trim().toLowerCase(),
     }),
     async (req: any, res: any) => {
       const body = validateBody(z.object({
@@ -2484,7 +2491,17 @@ async function startServer() {
 
   app.post(
     "/api/public/preview-site",
-    rateLimit({ windowMs: 60 * 60 * 1000, max: 4, keyPrefix: "preview-site" }),
+    rateLimit({
+      windowMs: 60 * 1000,
+      max: 30,
+      keyPrefix: "preview-site-burst-v2",
+    }),
+    rateLimit({
+      windowMs: 60 * 60 * 1000,
+      max: 30,
+      keyPrefix: "preview-site-lead-v2",
+      key: (req) => String(req.body?.leadId || req.body?.previewId || getClientIp(req)).trim().toLowerCase(),
+    }),
     async (req: any, res: any) => {
       const body = validateBody(z.object({
         previewId: z.string().trim().min(8).max(160),
