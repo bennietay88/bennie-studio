@@ -25,7 +25,7 @@ const routeData: Record<MarketingRoute, { title: string; description: string; im
   },
   "/pricing": {
     title: "Managed Website Plans and Pricing | Bennie Studio",
-    description: "Compare Bennie Studio managed website packages, setup fees, monthly service, trial terms and cancellation expectations before checkout.",
+    description: "Compare Bennie Studio managed website packages, setup fees, monthly service, 90-day initial commitment and cancellation expectations before checkout.",
     image: "/og-pricing.svg",
     body: `
       <main class="marketing-shell wide">
@@ -33,11 +33,11 @@ const routeData: Record<MarketingRoute, { title: string; description: string; im
         <h1>Choose the website package that fits your next stage.</h1>
         <p class="lede">Every package includes managed hosting and launch support. Scope, setup fee, billing start and cancellation terms are visible before checkout.</p>
         <div class="plan-grid">
-          <article class="plan"><p class="eyebrow">Best starting point</p><h2>Managed Website</h2><p>Professionally planned, built, hosted and continuously managed for service businesses.</p><p class="price">From RM 1,099 setup · RM 199/month</p><p class="terms"><strong>Free preview:</strong> no card required. <strong>Billing:</strong> setup fee and first month are due at checkout. <strong>Cancel:</strong> follow the written service terms after the initial commitment.</p><a class="primary" href="/generate-preview?product=managed-website">Start with a preview</a></article>
-          <article class="plan featured"><p class="eyebrow">Most popular</p><h2>Website Growth</h2><p>Managed website growth with stronger lead capture, trust sections, analytics and local SEO foundations.</p><p class="price">From RM 2,499 setup · RM 399/month</p><p class="terms"><strong>Free preview:</strong> no card required. <strong>Billing:</strong> setup fee and first month are due at checkout. <strong>Cancel:</strong> follow the written service terms after the initial commitment.</p><a class="primary" href="/generate-preview?product=website-growth">See the growth preview</a></article>
+          <article class="plan"><p class="eyebrow">Best starting point</p><h2>Managed Website</h2><p>Professionally planned, built, hosted and continuously managed for service businesses.</p><p class="price">From RM 1,099 setup · RM 199/month</p><p class="terms"><strong>Free preview:</strong> no card required. <strong>Billing:</strong> setup fee and first month are due at checkout. <strong>Term:</strong> 90-day initial commitment, then month-to-month.</p><a class="primary" href="/generate-preview?product=managed-website">Start with a preview</a></article>
+          <article class="plan featured"><p class="eyebrow">Most popular</p><h2>Website Growth</h2><p>Managed website growth with stronger lead capture, trust sections, analytics and local SEO foundations.</p><p class="price">From RM 2,499 setup · RM 399/month</p><p class="terms"><strong>Free preview:</strong> no card required. <strong>Billing:</strong> setup fee and first month are due at checkout. <strong>Term:</strong> 90-day initial commitment, then month-to-month.</p><a class="primary" href="/generate-preview?product=website-growth">See the growth preview</a></article>
           <article class="plan"><p class="eyebrow">For larger teams</p><h2>Growth Partner</h2><p>Consultant-led website growth with deeper conversion strategy, landing pages and expanded SEO direction.</p><p class="price">From RM 4,999 setup · RM 799/month</p><p class="terms"><strong>Free preview:</strong> no card required; book a scope review before committing. <strong>Billing:</strong> billing begins on the agreed start date. <strong>Cancel:</strong> follow the written service terms and signed scope.</p><a class="secondary" href="/book-demo?product=growth-partner">Discuss scope first</a></article>
         </div>
-        <section><h2>Before you choose</h2><p>Paid advertising, ad spend and guaranteed traffic, rankings or sales are not included. Custom software and bespoke integrations require a separate quote. We confirm page scope, content responsibilities, update allowance, launch schedule, billing start, cancellation and export arrangements in writing.</p></section>
+        <section><h2>Before your site goes live</h2><p>Managed plans start with a 90-day initial commitment, then continue month-to-month. Paid advertising, ad spend and guaranteed traffic, rankings or sales are not included. Custom software and bespoke integrations require a separate quote. We confirm page scope, content responsibilities, update allowance, launch schedule, billing start, cancellation and export arrangements in writing.</p></section>
       </main>`,
   },
   "/generate-preview": {
