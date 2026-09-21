@@ -1,0 +1,23 @@
+name: Feature Preview Order QA
+
+on:
+  push:
+    branches:
+      - feature/preview-order-flow-v2
+  workflow_dispatch:
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:sales
+      - run: npm run test:design
+      - run: npm run build
