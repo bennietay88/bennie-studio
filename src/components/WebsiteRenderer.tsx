@@ -1695,6 +1695,26 @@ export function WebsiteRenderer({
         .bt-website-renderer main > section p {
           max-width: 72ch;
         }
+
+        /* Generated-site readability guardrails. Keep supporting copy legible
+           even when a visual profile requests very light utility text. */
+        .bt-website-renderer main > section:not(.bg-slate-950) p.text-slate-400,
+        .bt-website-renderer main > section:not(.bg-slate-950) p.text-gray-400,
+        .bt-website-renderer main > section:not(.bg-slate-950) p.text-neutral-400,
+        .bt-website-renderer main > section:not(.bg-slate-950) .text-slate-400:not(svg),
+        .bt-website-renderer main > section:not(.bg-slate-950) .text-gray-400:not(svg),
+        .bt-website-renderer main > section:not(.bg-slate-950) .text-neutral-400:not(svg) {
+          color: #64748b !important;
+        }
+
+        .bt-website-renderer main > section p {
+          font-size: max(0.9375rem, 1em);
+          line-height: 1.65;
+        }
+
+        .bt-website-renderer main > section h3 {
+          line-height: 1.15 !important;
+        }
         .bt-website-renderer[data-motion-profile="none"] *,
         .bt-website-renderer[data-motion-profile="subtle"] * {
           animation-duration: var(--bt-motion-duration);
