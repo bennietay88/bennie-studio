@@ -414,7 +414,7 @@ test("routes homepage industry links and pricing details to the intended destina
   await expect(page).toHaveURL(/\/professional-services-website-design$/);
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Details" }).nth(1).click();
+  await page.getByRole("button", { name: "View plan" }).nth(1).click();
   await expect(page).toHaveURL(/\/pricing\?market=INTL#plan-website-growth$/);
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
 });
