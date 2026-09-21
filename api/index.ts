@@ -2492,7 +2492,7 @@ async function startServer() {
         email: EMAIL_SCHEMA,
         website: z.object({
           theme: z.record(z.string(), z.any()),
-          pages: z.array(z.any()).min(1).max(5),
+          pages: z.array(z.any()).min(1).max(8),
           seo: z.record(z.string(), z.any()),
         }),
       }), req, res);
