@@ -6737,6 +6737,282 @@ async function startServer() {
   });
 
   app.post(
+    "/api/public/preview-checkout",
+    rateLimit({ windowMs: 60 * 60 * 1000, max: 3, keyPrefix: "preview-checkout" }),
+    rateLimit({
+      windowMs: 24 * 60 * 60 * 1000,
+      max: 2,
+      keyPrefix: "preview-checkout-email",
+      key: (req) => String(req.body?.email || getClientIp(req)).trim().toLowerCase(),
+    }),
+    async (req: any, res: any) => {
+      const body = validateBody(z.object({
+        previewId: z.string().trim().min(8).max(160),
+        leadId: UUID_SCHEMA,
+        email: EMAIL_SCHEMA,
+        productSlug: z.enum(["managed-website", "website-growth", "growth-partner"]),
+      }), req, res);
+      if (!body) return;
+
+      try {
+        const { data: lead, error: leadError } = await supabaseAdmin
+          .from("leads")
+          .select("id,name,email,phone,business_id,preview_id,raw_fields,status")
+          .eq("id", body.leadId)
+          .ilike("email", body.email)
+          .maybeSingle();
+        if (leadError) throw leadError;
+        if (!lead || lead.preview_id !== body.previewId) {
+          return res.status(403).json({ error: "This preview could not be verified." });
+        }
+
+        const previewProfile = lead.raw_fields?.previewProfile || {};
+        const businessName = String(
+          previewProfile.businessName
+          || lead.raw_fields?.businessName
+          || lead.name
+          || "Website customer",
+        ).trim().slice(0, 160);
+        const industry = String(
+          lead.raw_fields?.industry
+          || lead.raw_fields?.service
+          || "Professional Services",
+        ).trim().slice(0, 160);
+        const location = String(previewProfile.location || "").trim().slice(0, 160);
+
+        // Public preview checkout is USD-first. Stripe can localize the payment
+        // experience separately; the Bennie Studio catalogue remains canonical.
+        const market = "INTL";
+        const { data: product, error: productError } = await supabaseAdmin
+          .from("commercial_products")
+          .select("id,slug,name,description,sales_motion,entitlement_plan_slug,active,commercial_market_prices!inner(market,currency,recurring_monthly_price,recurring_setup_fee,minimum_term_months,recurring_stripe_monthly_price_id,recurring_stripe_setup_price_id,recurring_config_status,active)")
+          .eq("slug", body.productSlug)
+          .eq("active", true)
+          .eq("commercial_market_prices.market", market)
+          .eq("commercial_market_prices.active", true)
+          .maybeSingle();
+        if (productError) throw productError;
+        const price = product && (Array.isArray(product.commercial_market_prices)
+          ? product.commercial_market_prices[0]
+          : product.commercial_market_prices);
+        if (!product || !price || product.sales_motion !== "self_serve") {
+          return res.status(409).json({ error: "This plan is not available for self-serve checkout." });
+        }
+        if (
+          price.recurring_config_status !== "live"
+          || !price.recurring_stripe_monthly_price_id
+          || Number(price.recurring_monthly_price || 0) <= 0
+        ) {
+          return res.status(409).json({
+            error: "Secure checkout for this plan is not active yet. Your preview and lead details are saved.",
+            code: "PREVIEW_CHECKOUT_NOT_LIVE",
+          });
+        }
+
+        const monthly = Number(price.recurring_monthly_price || 0);
+        const setup = Number(price.recurring_setup_fee || 0);
+        const termMonths = Math.max(3, Number(price.minimum_term_months || COMMERCIAL_DEFAULT_COMMITMENT_MONTHS));
+        const dueToday = monthly + setup;
+
+        let businessId = lead.business_id || null;
+        if (businessId) {
+          const { data: existingBusiness } = await supabaseAdmin
+            .from("businesses")
+            .select("id,owner_id,lifecycle_stage")
+            .eq("id", businessId)
+            .maybeSingle();
+          if (!existingBusiness || existingBusiness.owner_id) businessId = null;
+        }
+
+        if (!businessId) {
+          const { data: business, error: businessError } = await supabaseAdmin
+            .from("businesses")
+            .insert({
+              name: businessName,
+              owner_id: null,
+              plan: product.entitlement_plan_slug || product.slug,
+              status: "pending",
+              subscription_status: "incomplete",
+              industry,
+              location: location || null,
+              business_nature: String(previewProfile.description || industry).slice(0, 500),
+              platform_type: "waas",
+              business_type: "local_service",
+              lifecycle_stage: "checkout",
+              lifecycle_stage_changed_at: new Date().toISOString(),
+              commercial_product_slug: product.slug,
+              commercial_market: market,
+              commercial_currency: price.currency || "USD",
+              commercial_term_months: termMonths,
+              admin_notes: `Created from public preview ${body.previewId}. Awaiting payment/account activation.`,
+            })
+            .select("id")
+            .single();
+          if (businessError || !business) throw businessError || new Error("BUSINESS_CREATE_FAILED");
+          businessId = business.id;
+          await supabaseAdmin.from("leads").update({
+            business_id: businessId,
+            automation_next_action: "Checkout started from website preview",
+          }).eq("id", lead.id);
+        } else {
+          await supabaseAdmin.from("businesses").update({
+            plan: product.entitlement_plan_slug || product.slug,
+            status: "pending",
+            subscription_status: "incomplete",
+            lifecycle_stage: "checkout",
+            lifecycle_stage_changed_at: new Date().toISOString(),
+            commercial_product_slug: product.slug,
+            commercial_market: market,
+            commercial_currency: price.currency || "USD",
+            commercial_term_months: termMonths,
+          }).eq("id", businessId);
+        }
+
+        const { data: existingOrder } = await supabaseAdmin
+          .from("orders")
+          .select("id,status,stripe_session_id,items")
+          .eq("business_id", businessId)
+          .eq("customer_email", body.email)
+          .eq("status", "pending")
+          .contains("items", [{ previewId: body.previewId }])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const orderItems = [{
+          type: "managed_website_subscription",
+          previewId: body.previewId,
+          leadId: lead.id,
+          productSlug: product.slug,
+          productName: product.name,
+          setupFee: setup,
+          monthlyPrice: monthly,
+          currency: price.currency || "USD",
+          minimumTermMonths: termMonths,
+        }];
+
+        let orderId = existingOrder?.id || null;
+        if (!orderId) {
+          const { data: order, error: orderError } = await supabaseAdmin
+            .from("orders")
+            .insert({
+              business_id: businessId,
+              customer_name: lead.name || businessName,
+              customer_email: body.email,
+              total_amount: dueToday,
+              status: "pending",
+              items: orderItems,
+            })
+            .select("id")
+            .single();
+          if (orderError || !order) throw orderError || new Error("ORDER_CREATE_FAILED");
+          orderId = order.id;
+        }
+
+        const stripe = await getStripe();
+        const lineItems: any[] = [
+          { price: price.recurring_stripe_monthly_price_id, quantity: 1 },
+        ];
+        if (setup > 0) {
+          if (!price.recurring_stripe_setup_price_id) {
+            return res.status(409).json({
+              error: "The setup fee is not configured for secure checkout yet.",
+              code: "SETUP_PRICE_NOT_CONFIGURED",
+            });
+          }
+          lineItems.push({ price: price.recurring_stripe_setup_price_id, quantity: 1 });
+        }
+
+        // Verify server-side Stripe catalogue amounts before exposing Checkout.
+        const verifyStripePrice = async (priceId: string, expectedAmount: number, recurring: boolean) => {
+          const live = await stripe.prices.retrieve(priceId, { expand: ["product"] });
+          if (live.active === false || String(live.currency || "").toUpperCase() !== String(price.currency || "USD").toUpperCase()) {
+            throw new Error("STRIPE_CATALOG_MISMATCH");
+          }
+          if (Number(live.unit_amount || 0) !== Math.round(expectedAmount * 100)) {
+            throw new Error("STRIPE_CATALOG_MISMATCH");
+          }
+          if (recurring && (!live.recurring || live.recurring.interval !== "month" || live.recurring.interval_count !== 1)) {
+            throw new Error("STRIPE_CATALOG_MISMATCH");
+          }
+          if (!recurring && live.recurring) throw new Error("STRIPE_CATALOG_MISMATCH");
+        };
+        await verifyStripePrice(price.recurring_stripe_monthly_price_id, monthly, true);
+        if (setup > 0) await verifyStripePrice(price.recurring_stripe_setup_price_id, setup, false);
+
+        const session = await stripe.checkout.sessions.create({
+          mode: "subscription",
+          payment_method_types: ["card"],
+          payment_method_collection: "always",
+          customer_email: body.email,
+          line_items: lineItems,
+          success_url: `${publicAppUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}&public_order=1&preview_id=${encodeURIComponent(body.previewId)}`,
+          cancel_url: `${publicAppUrl()}/preview-order?cancelled=1`,
+          metadata: {
+            businessId,
+            productSlug: product.slug,
+            market,
+            currency: price.currency || "USD",
+            termMonths: String(termMonths),
+            orderId,
+            leadId: lead.id,
+            previewId: body.previewId,
+            publicOrder: "1",
+            type: "subscription",
+          },
+          subscription_data: {
+            metadata: {
+              businessId,
+              productSlug: product.slug,
+              orderId,
+              leadId: lead.id,
+              previewId: body.previewId,
+              publicOrder: "1",
+              termMonths: String(termMonths),
+            },
+          },
+        });
+
+        await supabaseAdmin.from("orders").update({
+          stripe_session_id: session.id,
+          updated_at: new Date().toISOString(),
+        }).eq("id", orderId);
+        await supabaseAdmin.from("leads").update({
+          status: lead.status === "won" ? "won" : "qualified",
+          automation_next_action: "Complete secure checkout",
+          next_follow_up_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          raw_fields: {
+            ...(lead.raw_fields || {}),
+            selectedProduct: product.slug,
+            checkoutOrderId: orderId,
+            checkoutStartedAt: new Date().toISOString(),
+          },
+        }).eq("id", lead.id);
+
+        return res.json({
+          success: true,
+          url: session.url,
+          orderId,
+          dueToday,
+          monthly,
+          setup,
+          currency: price.currency || "USD",
+          termMonths,
+        });
+      } catch (error: any) {
+        console.error("Public preview checkout failed", error?.message || error);
+        if (error?.message === "STRIPE_CATALOG_MISMATCH") {
+          return res.status(503).json({
+            error: "Secure checkout pricing is being verified. Please try again later.",
+            code: "STRIPE_CATALOG_MISMATCH",
+          });
+        }
+        return res.status(500).json({ error: "Secure checkout could not be started." });
+      }
+    },
+  );
+
+  app.post(
     "/api/create-checkout-session",
     authenticate,
     rateLimit({
