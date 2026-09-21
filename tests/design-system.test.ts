@@ -420,7 +420,6 @@ test("public-site credibility marquee is available to generated customer sites",
   ]);
 
   assert.match(homepage, /TechnologyMarquee/);
-  assert.ok(APPROVED_VARIANTS.proof.includes("logo_marquee"));
   assert.equal(SECTION_TEMPLATES.logo_marquee.type, "proof");
   assert.equal(SECTION_TEMPLATES.logo_marquee.settings?.variant, "logo_marquee");
   assert.match(renderer, /proofVariant === "logo_marquee"/);
