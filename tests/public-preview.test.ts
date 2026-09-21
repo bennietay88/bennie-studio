@@ -65,3 +65,38 @@ test("public preview falls back to submitted business facts", () => {
   assert.deepEqual(profile.services, ["Website Design"]);
   assert.equal(profile.estimatedAiCostUsd, 0);
 });
+
+
+test("public preview ignores audience headings and keeps a concise website service", () => {
+  const html = `
+    <!doctype html>
+    <html>
+      <head>
+        <title>Lead Generation Website Design Malaysia | Bennie Tay</title>
+        <meta name="description" content="Bennie Studio designs and manages conversion-focused websites for service businesses, built to generate more enquiries.">
+      </head>
+      <body>
+        <a href="/">Bennie Studio <span>BY BENNIE TAY</span></a>
+        <h1>Turn your business information into more enquiries.</h1>
+        <h2>Cleaning companies</h2>
+        <h2>Tuition and education centres</h2>
+        <h2>Accounting and bookkeeping firms</h2>
+        <h3>Managed Website</h3>
+        <a href="/services">See my cleaning website direction</a>
+      </body>
+    </html>
+  `;
+
+  const profile = buildPublicPreviewProfile({
+    html,
+    finalUrl: "https://bennietay.com/",
+    fallbackLocation: "Kuala Lumpur",
+  });
+
+  assert.equal(profile.businessName, "Bennie Studio");
+  assert.equal(profile.services[0], "Managed website services");
+  assert.ok(!profile.services.some((service) => /cleaning companies/i.test(service)));
+  assert.ok(!profile.services.some((service) => /education centres/i.test(service)));
+  assert.ok(!profile.services.some((service) => /bookkeeping firms/i.test(service)));
+  assert.ok(!profile.services.some((service) => /direction/i.test(service)));
+});
