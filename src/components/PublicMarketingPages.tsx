@@ -900,6 +900,8 @@ function CaseStudiesPage() {
   );
 }
 
+const PREVIEW_GENERATION_VERSION = 2;
+
 const previewIndustries = [
   {
     id: "cleaning", label: "Cleaning Company", template: "Cleaning Quote Website", recommendedPlan: "Managed Website",
@@ -912,6 +914,12 @@ const previewIndustries = [
     pages: ["Home", "Services", "Who We Help", "About", "Contact"],
     sections: ["Clients you serve", "Bookkeeping and accounting scope", "Genuine credentials", "How consultations work", "Consultation request"],
     cta: "Request a Consultation", proof: "Verified qualifications, team profiles, client-approved testimonials and clear service boundaries.",
+  },
+  {
+    id: "agency", label: "Web / Marketing Agency", template: "Agency Lead Website", recommendedPlan: "Business",
+    pages: ["Home", "Services", "Work", "About", "Contact"],
+    sections: ["Outcome-led hero", "Website and growth services", "Selected work", "How delivery works", "Consultation CTA"],
+    cta: "Book a Consultation", proof: "Real client work, delivery process, testimonials, service scope and clear commercial positioning.",
   },
   {
     id: "clinic",
@@ -993,6 +1001,7 @@ const previewProblems = [
 const previewTemplateIds: Record<string, string> = {
   cleaning: "cleaning-company-v1",
   accounting: "accounting-firm-v1",
+  agency: "corporate-v1",
   "local-service": "service-pro-v1",
   clinic: "dental-clinic-v1",
   contractor: "renovation-contractor-v1",
@@ -1004,6 +1013,7 @@ const previewTemplateIds: Record<string, string> = {
 const previewTargetCustomers: Record<string, string> = {
   cleaning: "homes and businesses",
   accounting: "business owners",
+  agency: "service businesses and growing teams",
   "local-service": "local customers",
   clinic: "patients",
   contractor: "homeowners and property teams",
@@ -1048,6 +1058,7 @@ const resolvePreviewCta = (goal: string) => {
 
 const inferPreviewIndustryId = (service: string): string | null => {
   const value = service.toLowerCase();
+  if (/website|web design|web development|seo|lead generation|digital marketing|marketing agency/.test(value)) return "agency";
   if (/dent|tooth|teeth|extraction|implant|orthodont|braces|clinic|medical|health|physio|chiro/.test(value)) return "clinic";
   if (/tuition|school|class|student|education|course|lesson|learning|tutor/.test(value)) return "education";
   if (/clean|maid|housekeep|janitor/.test(value)) return "cleaning";
@@ -1067,17 +1078,18 @@ function GeneratePreviewPage() {
     try { return JSON.parse(localStorage.getItem("bt_preview_intent") || "{}") as Record<string, any>; }
     catch { return {} as Record<string, any>; }
   }, []);
-  const initialIndustry = initialParams.get("industry") || savedPreviewIntent.industryId || previewIndustries[0].id;
+  const savedPreviewIsCurrent = Number(savedPreviewIntent.previewGenerationVersion || 0) === PREVIEW_GENERATION_VERSION;
+  const initialIndustry = initialParams.get("industry") || (savedPreviewIsCurrent ? savedPreviewIntent.industryId : "") || previewIndustries[0].id;
   const explicitTemplateId = initialParams.get("template");
   const [industryId, setIndustryId] = React.useState(previewIndustries.some((item) => item.id === initialIndustry) ? initialIndustry : previewIndustries[0].id);
   const initialGoal = initialParams.get("goal") || savedPreviewIntent.goal || previewGoals[0];
   const [goal, setGoal] = React.useState(previewGoals.includes(initialGoal) ? initialGoal : previewGoals[0]);
-  const [generated, setGenerated] = React.useState(Boolean(savedPreviewIntent.generatedWebsite));
+  const [generated, setGenerated] = React.useState(savedPreviewIsCurrent && Boolean(savedPreviewIntent.generatedWebsite));
   const [generatedWebsite, setGeneratedWebsite] = React.useState<Website | null>(
-    savedPreviewIntent.generatedWebsite || null,
+    savedPreviewIsCurrent ? savedPreviewIntent.generatedWebsite || null : null,
   );
   const [shareablePreviewUrl, setShareablePreviewUrl] = React.useState(
-    String(savedPreviewIntent.shareablePreviewUrl || ""),
+    savedPreviewIsCurrent ? String(savedPreviewIntent.shareablePreviewUrl || "") : "",
   );
   const [previewExpanded, setPreviewExpanded] = React.useState(false);
   const [previewDevice, setPreviewDevice] = React.useState<"desktop" | "tablet" | "mobile">("desktop");
@@ -1097,9 +1109,9 @@ function GeneratePreviewPage() {
     }
     return {
       contactName: String(savedPreviewIntent.contactName || auditContext.contactName || initialParams.get("name") || ""),
-      businessName: String(savedPreviewIntent.businessName || auditContext.businessName || initialParams.get("business") || ""),
+      businessName: String((savedPreviewIsCurrent ? savedPreviewIntent.businessName : "") || auditContext.businessName || initialParams.get("business") || ""),
       location: String(savedPreviewIntent.location || initialParams.get("city") || ""),
-      mainService: String(savedPreviewIntent.mainService || initialParams.get("service") || ""),
+      mainService: String((savedPreviewIsCurrent ? savedPreviewIntent.mainService : "") || initialParams.get("service") || ""),
       websiteUrl: String(savedPreviewIntent.websiteUrl || auditContext.website || initialParams.get("website") || ""),
       websiteStatus: String(savedPreviewIntent.websiteStatus || initialParams.get("websiteStatus") || (auditContext.website ? "yes" : "no")),
       phone: String(savedPreviewIntent.phone || ""),
@@ -1290,7 +1302,10 @@ function GeneratePreviewPage() {
       const resolvedServices = Array.isArray(profile.services) && profile.services.length
         ? profile.services.map((service) => String(service).trim()).filter(Boolean).slice(0, 8)
         : form.mainService.split(/[,/\n]+/).map((service) => service.trim()).filter(Boolean).slice(0, 8);
-      const resolvedMainService = resolvedServices.join(", ") || form.mainService.trim() || "Professional services";
+      const resolvedMainService = String(resolvedServices[0] || form.mainService.trim() || "Professional services")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 96);
       const resolvedIndustryId = inferPreviewIndustryId(resolvedMainService) || industryId;
       const resolvedIndustry = previewIndustries.find((item) => item.id === resolvedIndustryId) || previewIndustries[0];
       const resolvedTemplateId = explicitTemplateId && resolvedIndustryId === initialIndustry
@@ -1408,6 +1423,7 @@ function GeneratePreviewPage() {
       };
       setForm(resolvedForm);
       setGoal(resolvedGoal);
+      setIndustryId(resolvedIndustryId);
 
       let persistedPreview: { shareUrl?: string; businessId?: string; websiteId?: string } = {};
       try {
@@ -1459,6 +1475,7 @@ function GeneratePreviewPage() {
         designMetrics: selectedPreview.quality.metrics,
         previewProfile: profile,
         generatedWebsite: selectedPreview.website,
+        previewGenerationVersion: PREVIEW_GENERATION_VERSION,
         previewGenerationMethod: "deterministic",
         previewAiCostUsd: 0,
         shareablePreviewUrl: persistedPreview.shareUrl || "",
