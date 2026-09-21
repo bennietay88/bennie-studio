@@ -6433,7 +6433,7 @@ async function startServer() {
           setupFee: price.recurring_setup_fee === null || price.recurring_setup_fee === undefined ? 0 : Number(price.recurring_setup_fee),
           annualPrice: price.recurring_annual_price === null || price.recurring_annual_price === undefined ? null : Number(price.recurring_annual_price),
           billingInterval: "month",
-          minimumTermMonths: Number(price.minimum_term_months || COMMERCIAL_RECURRING_COMMITMENT_MONTHS),
+          minimumTermMonths: COMMERCIAL_RECURRING_COMMITMENT_MONTHS,
           catalogueMode: "otc_mrc",
           recurringConfigStatus: price.recurring_config_status || "draft",
           recurringConfigured: Boolean(dynamicCheckoutAvailable || (
@@ -7050,7 +7050,7 @@ async function startServer() {
 
         const monthly = Number(price.recurring_monthly_price || 0);
         const setup = Number(price.recurring_setup_fee || 0);
-        const termMonths = Math.max(3, Number(price.minimum_term_months || COMMERCIAL_DEFAULT_COMMITMENT_MONTHS));
+        const termMonths = COMMERCIAL_DEFAULT_COMMITMENT_MONTHS;
         const dueToday = monthly + setup;
 
         let businessId = lead.business_id || null;
@@ -7554,13 +7554,10 @@ async function startServer() {
             return res.status(400).json({ error: "Annual billing is not configured for this market yet. Choose monthly billing or book a consultation." });
           }
           isOneTimeCheckout = false;
-          minimumTermMonths = Number(currentPrice.minimum_term_months || COMMERCIAL_RECURRING_COMMITMENT_MONTHS);
-          if (minimumTermMonths !== COMMERCIAL_RECURRING_COMMITMENT_MONTHS) {
-            return res.status(400).json({ error: "This product is missing the required 90-day commitment configuration." });
-          }
-          // Founding-customer terms are an internal, server-side override;
-          // the browser cannot choose a shorter commitment.
-          minimumTermMonths = customerTermOverride || minimumTermMonths;
+          // New managed website orders use the canonical 90-day initial term.
+          // Database catalogue rows may briefly retain the previous term during
+          // deployment, so checkout does not trust a stale row for this value.
+          minimumTermMonths = customerTermOverride || COMMERCIAL_RECURRING_COMMITMENT_MONTHS;
           commercialPriceExpectation = {
             currency: commercialCurrencyForMarket(market),
             monthlyAmount: Number(testDynamicMonthlyAmount || 0),
