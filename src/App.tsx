@@ -376,10 +376,6 @@ export default function App() {
           <Helmet>
             <title>{defaultSiteTitle}</title>
             <meta
-              name="description"
-              content="Bennie Studio plans, builds and continuously improves premium managed websites for service businesses that want more qualified enquiries."
-            />
-            <meta
               name="keywords"
               content="lead generation website, managed website plans, small business website design, WhatsApp enquiry website, local SEO website, clinic website design, renovation contractor website, beauty salon website, consultant website, Bennie Studio"
             />
