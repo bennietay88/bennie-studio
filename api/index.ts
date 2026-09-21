@@ -433,12 +433,12 @@ app.use((req, res, next) => {
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      `script-src 'self'${localDevelopment ? " 'unsafe-inline'" : ""} https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://s.pinimg.com`,
+      `script-src 'self'${localDevelopment ? " 'unsafe-inline'" : ""} https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://s.pinimg.com https://challenges.cloudflare.com`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
-      `connect-src 'self'${localDevelopment ? " ws://127.0.0.1:* ws://localhost:*" : ""} https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.deepseek.com https://api.openai.com https://api.resend.com https://ct.pinterest.com https://*.sentry.io https://*.ingest.sentry.io`,
-      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://ct.pinterest.com",
+      `connect-src 'self'${localDevelopment ? " ws://127.0.0.1:* ws://localhost:*" : ""} https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.deepseek.com https://api.openai.com https://api.resend.com https://ct.pinterest.com https://challenges.cloudflare.com https://*.sentry.io https://*.ingest.sentry.io`,
+      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://ct.pinterest.com https://challenges.cloudflare.com",
       "object-src 'none'",
       "base-uri 'self'",
       "frame-ancestors 'self'",
@@ -3641,7 +3641,7 @@ async function startServer() {
       const request = { prompt: buildInternalContentPrompt(brief.data), systemMessage: INTERNAL_CONTENT_SYSTEM_PROMPT, temperature: 0.2, maxTokens: 1800, isJson: true };
       try {
         const response = provider.name === "openai"
-          ? await callOpenAI(provider.key, request, "gpt-4o-mini")
+          ? await callOpenAI(provider.key, request, "gpt-5.6-luna")
           : await callDeepSeek(provider.key, request, "deepseek-chat");
         const draft = parseInternalContentDraft(response.text);
         const { data: log, error: logError } = await supabaseAdmin.from("ai_generation_logs").insert({
@@ -3649,7 +3649,7 @@ async function startServer() {
           project_id: body.businessId || null,
           feature_key: "internal_content_engine",
           provider: provider.name,
-          model: provider.name === "openai" ? "gpt-4o-mini" : "deepseek-chat",
+          model: provider.name === "openai" ? "gpt-5.6-luna" : "deepseek-chat",
           prompt_tokens: response.usage.promptTokens,
           output_tokens: response.usage.completionTokens,
           status: "completed",
@@ -3716,7 +3716,7 @@ async function startServer() {
       try {
         const request = { prompt: buildHumaniseContentPrompt(body.input), systemMessage: HUMANISE_CONTENT_SYSTEM_PROMPT, temperature: 0.15, maxTokens: 1400, isJson: true };
         const response = provider.name === "openai"
-          ? await callOpenAI(provider.key, request, "gpt-4o-mini")
+          ? await callOpenAI(provider.key, request, "gpt-5.6-luna")
           : await callDeepSeek(provider.key, request, "deepseek-chat");
         const draft = parseHumaniseContentDraft(response.text);
         const { data: log } = await supabaseAdmin.from("ai_generation_logs").insert({
@@ -3724,7 +3724,7 @@ async function startServer() {
           project_id: body.businessId || null,
           feature_key: "internal_humanise_content",
           provider: provider.name,
-          model: provider.name === "openai" ? "gpt-4o-mini" : "deepseek-chat",
+          model: provider.name === "openai" ? "gpt-5.6-luna" : "deepseek-chat",
           prompt_tokens: response.usage.promptTokens,
           output_tokens: response.usage.completionTokens,
           status: "completed",
@@ -3772,7 +3772,7 @@ async function startServer() {
       try {
         const request = { prompt: buildDesignDirectionPrompt(body.input), systemMessage: DESIGN_DIRECTOR_SYSTEM_PROMPT, temperature: 0.1, maxTokens: 1200, isJson: true };
         const response = provider.name === "openai"
-          ? await callOpenAI(provider.key, request, "gpt-4o-mini")
+          ? await callOpenAI(provider.key, request, "gpt-5.6-luna")
           : await callDeepSeek(provider.key, request, "deepseek-chat");
         const direction = parseDesignDirection(response.text);
         const { data: log } = await supabaseAdmin.from("ai_generation_logs").insert({
@@ -3780,7 +3780,7 @@ async function startServer() {
           project_id: body.businessId || null,
           feature_key: "internal_design_direction",
           provider: provider.name,
-          model: provider.name === "openai" ? "gpt-4o-mini" : "deepseek-chat",
+          model: provider.name === "openai" ? "gpt-5.6-luna" : "deepseek-chat",
           prompt_tokens: response.usage.promptTokens,
           output_tokens: response.usage.completionTokens,
           status: "completed",
@@ -3967,7 +3967,7 @@ async function startServer() {
         deepseek: firstUsableKey(process.env.DEEPSEEK_API_KEY),
       };
       const fallbackModels: Record<string, string> = {
-        openai: "gpt-4o-mini",
+        openai: "gpt-5.6-luna",
         deepseek: "deepseek-chat",
       };
 
@@ -3977,7 +3977,7 @@ async function startServer() {
       let apiKey = providerKeys[selectedProvider] || "";
 
       if (!apiKey) {
-        const availableProvider = ["deepseek", "openai"].find((name) => providerKeys[name]);
+        const availableProvider = ["openai", "deepseek"].find((name) => providerKeys[name]);
         if (availableProvider) {
           selectedProvider = availableProvider;
           selectedModel = fallbackModels[availableProvider];
