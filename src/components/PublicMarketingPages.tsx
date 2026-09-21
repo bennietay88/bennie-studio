@@ -1336,13 +1336,13 @@ function GeneratePreviewPage() {
         generationMode: resolvedGenerationMode,
         brandPersonality: resolvedBrandPersonality,
         businessMaturity: resolvedBusinessMaturity,
-        assetReadiness: profile.heroImage ? "partial" : "pending",
+        assetReadiness: profile.heroImage ? "some" : "pending",
       };
 
       const previewTheme = getBlueprintTheme(resolvedTemplateId, resolvedGenerationMode, {
         brandPersonality: resolvedBrandPersonality,
         businessMaturity: resolvedBusinessMaturity,
-        assetReadiness: profile.heroImage ? "partial" : "pending",
+        assetReadiness: profile.heroImage ? "some" : "pending",
       });
       const previewSeo = getBlueprintSeo(blueprintInput);
       const previewCandidates = [0, 1].map((compositionSeed) => {
