@@ -71,7 +71,7 @@ const isAudienceOrMarketingLabel = (value: string) => {
   if (!label) return true;
   if (/^(see|view|learn|discover|read|book|get|request|start|explore)\b/i.test(label)) return true;
   if (/\b(direction|click here|find out more|you can contact|in one service|all in one)\b/i.test(label)) return true;
-  if (/\b(companies|businesses|firms|centres?|centers?|parents?|students?|homeowners?|customers?|clients?|founders?|teams?)\b/i.test(label)) return true;
+  if (!/\bfor\b/i.test(label) && /\b(companies|businesses|firms|centres?|centers?|parents?|students?|homeowners?|customers?|clients?|founders?|teams?)\s*$/i.test(label)) return true;
   return label.split(/\s+/).length > 8;
 };
 
