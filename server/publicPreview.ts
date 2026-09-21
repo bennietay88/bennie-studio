@@ -64,7 +64,64 @@ const normalizePhone = (value: string) =>
 const isGenericServiceLabel = (value: string) =>
   /^(home|about|about us|contact|contact us|blog|news|gallery|reviews?|testimonials?|faq|privacy|terms|login|sign in|book now|get started|learn more|read more)$/i.test(value.trim());
 
-const serviceSignal = /\b(service|repair|install|installation|maintenance|servicing|cleaning|plumb|heating|boiler|gas|electrical|roof|renovation|dental|dentist|clinic|treatment|accounting|bookkeeping|tax|payroll|consult|therapy|tuition|training|marketing|design|development|legal|law|insurance|recruit|pest|landlord|commercial|residential|emergency|cylinder|flushing)\b/i;
+const serviceSignal = /\b(service|repair|install|installation|maintenance|servicing|cleaning|plumb|heating|boiler|gas|electrical|roof|renovation|dental|dentist|clinic|treatment|accounting|bookkeeping|tax|payroll|consult|therapy|tuition|training|marketing|design|development|website|web design|web development|seo|lead generation|hosting|legal|law|insurance|recruit|pest|landlord|commercial|residential|emergency|cylinder|flushing)\b/i;
+
+const isAudienceOrMarketingLabel = (value: string) => {
+  const label = value.trim();
+  if (!label) return true;
+  if (/^(see|view|learn|discover|read|book|get|request|start|explore)\b/i.test(label)) return true;
+  if (/\b(direction|click here|find out more|you can contact|in one service|all in one)\b/i.test(label)) return true;
+  if (/\b(companies|businesses|firms|centres?|centers?|parents?|students?|homeowners?|customers?|clients?|founders?|teams?)\b/i.test(label)) return true;
+  return label.split(/\s+/).length > 8;
+};
+
+const extractBusinessSchemaName = (objects: any[]) => {
+  const preferred = [
+    "organization",
+    "localbusiness",
+    "professionalservice",
+    "corporation",
+    "person",
+    "medicalbusiness",
+    "dentist",
+    "accountingservice",
+    "legalservice",
+  ];
+  for (const typeName of preferred) {
+    for (const object of objects) {
+      const types = Array.isArray(object?.["@type"]) ? object["@type"] : [object?.["@type"]];
+      if (!types.some((type: unknown) => String(type || "").toLowerCase() === typeName)) continue;
+      const value = typeof object?.name === "string" ? object.name.trim() : "";
+      if (value) return value;
+    }
+  }
+  for (const object of objects) {
+    const types = Array.isArray(object?.["@type"]) ? object["@type"] : [object?.["@type"]];
+    if (!types.some((type: unknown) => String(type || "").toLowerCase() === "website")) continue;
+    const value = typeof object?.name === "string" ? object.name.trim() : "";
+    if (value) return value;
+  }
+  return "";
+};
+
+const titleBrandCandidate = (value: string) => {
+  const parts = value.split(/\s+[|–—]\s+/).map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 2) return value;
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  const seoLead = /\b(website|web design|lead generation|seo|marketing|dentist|dental|clinic|accounting|bookkeeping|cleaning|plumbing|heating|renovation|contractor|tuition|education|consulting|consultant)\b/i;
+  if (last.length <= 80 && seoLead.test(first)) return last;
+  return first;
+};
+
+const inferPrimaryService = (title: string, description: string, h1: string) => {
+  const combined = [title, description, h1].filter(Boolean).join(" ");
+  if (/\bmanaged websites?\b|\bmanaged website service\b/i.test(combined)) return "Managed website services";
+  if (/\bwebsite design\b|\bweb design\b|\bconversion-focused websites?\b|\blead generation website\b/i.test(combined)) {
+    return "Website design and lead generation";
+  }
+  return "";
+};
 
 const extractJsonLdObjects = (html: string) => {
   const objects: any[] = [];
@@ -108,20 +165,25 @@ const extractServices = (html: string) => {
 
   for (const match of html.matchAll(/<(?:h1|h2|h3)[^>]*>([\s\S]*?)<\/(?:h1|h2|h3)>/gi)) {
     const label = text(match[1]);
-    if (label && label.length <= 90 && serviceSignal.test(label)) candidates.push(label);
+    if (
+      label
+      && label.length <= 90
+      && serviceSignal.test(label)
+      && !isAudienceOrMarketingLabel(label)
+    ) candidates.push(label);
   }
 
   for (const match of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     const href = String(match[1] || "");
     const label = text(match[2]);
-    if (!label || label.length > 70 || isGenericServiceLabel(label)) continue;
+    if (!label || label.length > 70 || isGenericServiceLabel(label) || isAudienceOrMarketingLabel(label)) continue;
     if (serviceSignal.test(label) || /\/(services?|treatments?|solutions?|repairs?|installations?|commercial|landlords?)(?:\/|$|-)/i.test(href)) {
       candidates.push(label);
     }
   }
 
   return [...new Set(candidates.map((item) => item.replace(/\s+/g, " ").trim()))]
-    .filter((item) => item.length >= 3 && !isGenericServiceLabel(item))
+    .filter((item) => item.length >= 3 && !isGenericServiceLabel(item) && !isAudienceOrMarketingLabel(item))
     .slice(0, 8);
 };
 
@@ -136,16 +198,25 @@ export function buildPublicPreviewProfile(input: {
   const schemaObjects = extractJsonLdObjects(html);
 
   const title = firstMatch(html, [/<title[^>]*>([\s\S]*?)<\/title>/i]);
-  const schemaName = pickSchemaValue(schemaObjects, ["name", "legalName"]);
+  const schemaName = extractBusinessSchemaName(schemaObjects);
   const ogSiteName = firstMatch(html, [
     /<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i,
     /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:site_name["']/i,
   ]);
+  const homeBrand = firstMatch(html, [
+    /<a\b[^>]*href=["'](?:\/|\.\/|\/)["'][^>]*>([\s\S]*?)<\/a>/i,
+  ]);
   const h1 = firstMatch(html, [/<h1[^>]*>([\s\S]*?)<\/h1>/i]);
 
   const businessName = cleanBusinessName(
-    schemaName || ogSiteName || title || input.fallbackBusinessName || h1 || new URL(finalUrl).hostname.replace(/^www\./, ""),
-  );
+    schemaName
+    || ogSiteName
+    || homeBrand
+    || titleBrandCandidate(title)
+    || input.fallbackBusinessName
+    || h1
+    || new URL(finalUrl).hostname.replace(/^www\./, ""),
+  ).replace(/\s+\bby\b\s+.*$/i, "").trim();
 
   const description = firstMatch(html, [
     /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i,
@@ -166,7 +237,11 @@ export function buildPublicPreviewProfile(input: {
     || String(input.fallbackLocation || "").trim()
   ).slice(0, 160);
 
-  const services = extractServices(html);
+  const inferredPrimaryService = inferPrimaryService(title, description, h1);
+  const services = [
+    ...(inferredPrimaryService ? [inferredPrimaryService] : []),
+    ...extractServices(html),
+  ].filter((item, index, items) => items.findIndex((candidate) => candidate.toLowerCase() === item.toLowerCase()) === index);
   if (!services.length && input.fallbackMainService?.trim()) services.push(input.fallbackMainService.trim());
 
   const schemaImageRaw = (() => {
