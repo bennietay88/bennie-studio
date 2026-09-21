@@ -1630,7 +1630,7 @@ export function WebsiteEditor({
         publishedAt: new Date().toISOString(),
         standardVersion: DELIVERY_STANDARD_VERSION,
       };
-      const nextSeo = {
+      const nextSeo: Website["seo"] = {
         ...website.seo,
         workflowStatus: "live",
         deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
@@ -1685,11 +1685,11 @@ export function WebsiteEditor({
     }
     setSaving(true);
     try {
-      const nextWorkflowStatus = newStatus === "published" ? "live" : "draft";
+      const nextWorkflowStatus: WebsiteWorkflowStatus = newStatus === "published" ? "live" : "draft";
       const releaseRecord = newStatus === "published"
         ? { id: `release_${Date.now()}`, publishedAt: new Date().toISOString(), standardVersion: DELIVERY_STANDARD_VERSION }
         : null;
-      const nextSeo = {
+      const nextSeo: Website["seo"] = {
         ...website.seo,
         workflowStatus: nextWorkflowStatus,
         deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
