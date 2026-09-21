@@ -456,3 +456,29 @@ test("logo marquee defaults never fabricate brand relationships", () => {
   assert.equal(section.content.providedByBusiness, false);
   assert.doesNotMatch(JSON.stringify(section), /Google|Meta|Vercel|Nike|Apple|Microsoft|Trusted by/i);
 });
+
+
+test("preview generation enforces concise hero copy and supports eight pages", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Bennie Studio",
+    nicheName: "Corporate",
+    plan: "business",
+    maxPages: 8,
+    mainService: "Managed website services for service businesses and growing teams",
+    targetCustomer: "service businesses and growing teams",
+    location: "Kuala Lumpur",
+    ctaPreference: "Book a Consultation",
+    generationMode: "brand_led",
+    brandPersonality: "professional",
+    businessMaturity: "established",
+    assetReadiness: "some",
+  });
+
+  assert.equal(pages.length, 8);
+  assert.equal(new Set(pages.map((page) => page.slug)).size, 8);
+
+  const homeHero = pages[0]?.sections.find((section) => section.type === "hero");
+  const headline = String(homeHero?.content?.headline || "");
+  assert.ok(headline.length <= 58, `Hero exceeded 58 characters: ${headline}`);
+  assert.ok(headline.split(/\s+/).filter(Boolean).length <= 7, `Hero exceeded 7 words: ${headline}`);
+});
