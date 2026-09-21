@@ -88,7 +88,7 @@ export function PublicSiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-[#dfe2ea] bg-white/92 backdrop-blur-xl">
       <nav className="mx-auto flex h-[72px] max-w-[92rem] items-center justify-between gap-3 px-4 sm:gap-5 sm:px-8 lg:px-14" aria-label="Main navigation">
-        <Link viewTransition to="/" className="flex min-w-0 shrink items-center gap-3 text-[#10131c]">
+        <Link to="/" className="flex min-w-0 shrink items-center gap-3 text-[#10131c]">
           <span className="grid h-9 w-9 place-items-center bg-[#5b4bff] text-sm font-black text-white">B.</span>
           <span className="min-w-0"><span className="block max-w-[10rem] truncate text-base font-semibold tracking-[-0.035em] sm:max-w-none">Bennie Studio</span><span className="hidden text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 xl:block">Managed website system</span></span>
         </Link>
@@ -99,7 +99,7 @@ export function PublicSiteHeader() {
               {item.label}
             </a>
           ) : (
-            <Link viewTransition key={item.href} to={item.href} className="text-sm font-semibold text-black/50 transition hover:text-[#5b4bff]">
+            <Link key={item.href} to={item.href} className="text-sm font-semibold text-black/50 transition hover:text-[#5b4bff]">
               {item.label}
             </Link>
           ))}
@@ -107,10 +107,10 @@ export function PublicSiteHeader() {
 
         <div className="hidden items-center gap-4 lg:flex">
           <MarketSwitcher compact />
-          <Link viewTransition to={user ? "/dashboard" : "/login"} className="text-sm font-semibold text-black/50 transition hover:text-[#5b4bff]">
+          <Link to={user ? "/dashboard" : "/login"} className="text-sm font-semibold text-black/50 transition hover:text-[#5b4bff]">
             {user ? "Dashboard" : "Client login"}
           </Link>
-          <Link viewTransition to={user ? "/dashboard" : "/generate-preview"} onClick={() => !user && trackPublicEvent({ eventType: "click_generate_preview", label: "Header Preview", target: "/generate-preview" })} className="inline-flex min-h-11 items-center justify-center bg-[#10131c] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#5b4bff]">
+          <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => !user && trackPublicEvent({ eventType: "click_generate_preview", label: "Header Preview", target: "/generate-preview" })} className="inline-flex min-h-11 items-center justify-center bg-[#10131c] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#5b4bff]">
             {user ? "Open Studio" : "Generate preview"}
           </Link>
         </div>
@@ -131,13 +131,13 @@ export function PublicSiteHeader() {
               {publicNavItems.map((item) => item.external ? (
                 <a key={item.href} href={item.href} target="_blank" rel="noreferrer" onClick={() => setMobileOpen(false)} className="border-b border-[#dfe2ea] py-4 text-lg font-semibold text-[#10131c]">{item.label}</a>
               ) : (
-                <Link viewTransition key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="border-b border-[#dfe2ea] py-4 text-lg font-semibold text-[#10131c]">{item.label}</Link>
+                <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="border-b border-[#dfe2ea] py-4 text-lg font-semibold text-[#10131c]">{item.label}</Link>
               ))}
             </div>
             <div className="mt-auto grid gap-3 border-t border-[#dfe2ea] pt-5">
               <MarketSwitcher />
-              <Link viewTransition to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center border border-[#10131c] px-5 text-sm font-bold text-[#10131c]">{user ? "Dashboard" : "Client login"}</Link>
-              <Link viewTransition to={user ? "/dashboard" : "/generate-preview"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-12 items-center justify-center bg-[#10131c] px-5 text-sm font-black text-white">{user ? "Open Studio" : "Generate preview"}</Link>
+              <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center border border-[#10131c] px-5 text-sm font-bold text-[#10131c]">{user ? "Dashboard" : "Client login"}</Link>
+              <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-12 items-center justify-center bg-[#10131c] px-5 text-sm font-black text-white">{user ? "Open Studio" : "Generate preview"}</Link>
             </div>
           </div>
         </div>
@@ -165,7 +165,7 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
               {links.map((link) => "external" in link && link.external ? (
                 <a key={link.href} href={link.href} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Footer ${link.label}`, target: link.href })} className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white">{link.label}<ExternalLink className="h-3 w-3" /></a>
               ) : (
-                <Link viewTransition key={link.href} to={link.href} className="block text-sm font-semibold text-white/60 hover:text-white">{link.label}</Link>
+                <Link key={link.href} to={link.href} className="block text-sm font-semibold text-white/60 hover:text-white">{link.label}</Link>
               ))}
               {title === "Legal" && onManageCookies ? <button type="button" onClick={onManageCookies} className="block text-left text-sm font-semibold text-white/60 hover:text-white">Manage Cookies</button> : null}
             </div>

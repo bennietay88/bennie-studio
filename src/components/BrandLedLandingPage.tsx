@@ -430,9 +430,9 @@ export default function BrandLedLandingPage() {
           <div className="brand-shell relative grid gap-14 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
             <div className="lg:col-span-5">
               <p className="brand-kicker !text-[#b9b1ff]">Managed website system for service businesses</p>
-              <h1 className="mt-5 !max-w-[13ch] !text-white">A serious website, without building an in-house web team.</h1>
+              <h1 className="mt-5 !max-w-[13ch] !text-white">Your website, fully managed.</h1>
               <p className="brand-copy brand-muted-on-dark mt-7 !max-w-xl">
-                Strategy, design, lead capture, hosting and ongoing improvement in one managed service. Preview the website direction before choosing a plan.
+                Strategy, design, lead capture, hosting and ongoing improvement in one managed service.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <button onClick={() => go("/generate-preview", "Hero free preview")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
@@ -498,7 +498,7 @@ export default function BrandLedLandingPage() {
           <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
             <div className="lg:col-span-7">
               <p className="brand-kicker">The website system</p>
-              <h2 className="mt-4 max-w-3xl">One managed system. Four jobs that have to work together.</h2>
+              <h2 className="mt-4 max-w-3xl">One system. Four jobs.</h2>
             </div>
             <p className="brand-copy lg:col-span-5">The website should clarify the offer, build confidence, create an obvious next step and remain useful after launch. The exact pages and depth depend on the business.</p>
           </div>
@@ -533,7 +533,7 @@ export default function BrandLedLandingPage() {
             <div className="grid gap-10 lg:grid-cols-12">
               <div className="lg:col-span-5">
                 <p className="brand-kicker !text-[#b9b1ff]">Human-reviewed delivery · Standard {DELIVERY_STANDARD_VERSION}</p>
-                <h2 className="mt-4 !text-white">The generator does not get the final say.</h2>
+                <h2 className="mt-4 !text-white">Human review before launch.</h2>
                 <p className="mt-5 max-w-xl text-base leading-7 !text-white/65">
                   Automation gives us speed and consistency. Paid customer work still goes through internal creative direction, responsive QA, conversion checks and customer approval before launch.
                 </p>
@@ -560,7 +560,7 @@ export default function BrandLedLandingPage() {
             <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-7">
                 <p className="brand-kicker">Website work</p>
-                <h2 className="mt-4">One system. Different outcomes for different businesses.</h2>
+                <h2 className="mt-4">Different businesses. Different outcomes.</h2>
               </div>
               <p className="brand-copy lg:col-span-5">The same operating system can produce very different visual and conversion directions. The business decides the shape, not a fixed template.</p>
             </div>
@@ -591,7 +591,7 @@ export default function BrandLedLandingPage() {
               <div className="grid gap-10 lg:grid-cols-12">
                 <div className="lg:col-span-4">
                   <p className="brand-kicker !text-[#b9b1ff]">Verified customer proof</p>
-                  <h2 className="mt-4 !text-white">Real customer evidence, published only with approval.</h2>
+                  <h2 className="mt-4 !text-white">Real proof, published with approval.</h2>
                   <button onClick={() => go("/case-studies", "Homepage verified proof")} className="mt-7 inline-flex items-center font-semibold text-white">See customer proof <ArrowRight className="ml-2 h-4 w-4" /></button>
                 </div>
                 <div className="grid gap-4 lg:col-span-8">
@@ -615,7 +615,7 @@ export default function BrandLedLandingPage() {
             <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-6">
                 <p className="brand-kicker">Built for trust-sensitive sales</p>
-                <h2 className="mt-4">The service adapts to how your customers make decisions.</h2>
+                <h2 className="mt-4">Built around how customers decide.</h2>
               </div>
               <p className="brand-copy lg:col-span-6">Different industries need different proof, page depth and enquiry paths. The underlying system stays consistent; the buying journey does not.</p>
             </div>
@@ -640,7 +640,7 @@ export default function BrandLedLandingPage() {
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
               <p className="brand-kicker">Managed, not handed off</p>
-              <h2 className="mt-4">Launch is a milestone, not the end of the relationship.</h2>
+              <h2 className="mt-4">Launch is the beginning.</h2>
               <p className="brand-copy mt-5">This is the operating difference between buying a one-off website project and using a managed website service.</p>
             </div>
             <div className="overflow-hidden border border-[#dfe2ea] bg-white lg:col-span-8">
@@ -665,7 +665,7 @@ export default function BrandLedLandingPage() {
             <div className="grid gap-10 lg:grid-cols-12">
               <div className="lg:col-span-4">
                 <p className="brand-kicker">Managed plans</p>
-                <h2 className="mt-4">Start with the website. Add growth when the business needs it.</h2>
+                <h2 className="mt-4">Start with the website. Add growth later.</h2>
                 <p className="brand-copy mt-5">Monthly service first, setup shown clearly, and one recommended middle plan for businesses actively acquiring customers.</p>
               </div>
               <div className="lg:col-span-8">
@@ -704,7 +704,7 @@ export default function BrandLedLandingPage() {
           <div className="brand-shell brand-section">
             <p className="brand-kicker !text-[#b9b1ff]">How it works</p>
             <div className="mt-4 grid gap-10 lg:grid-cols-12">
-              <h2 className="!text-white lg:col-span-4">A clear operating model from brief to ongoing improvement.</h2>
+              <h2 className="!text-white lg:col-span-4">From brief to ongoing improvement.</h2>
               <div className="lg:col-span-8">
                 {process.map(([number, title, body]) => (
                   <div key={number} className="grid gap-3 border-t border-white/15 py-7 sm:grid-cols-[4rem_1fr_1.5fr]">
@@ -722,7 +722,7 @@ export default function BrandLedLandingPage() {
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
               <p className="brand-kicker">Questions</p>
-              <h2 className="mt-4">The details serious buyers usually ask about.</h2>
+              <h2 className="mt-4">Questions serious buyers ask.</h2>
             </div>
             <div className="border-t border-[#dfe2ea] lg:col-span-8">
               {faqs.map(([question, answer]) => (
@@ -742,7 +742,7 @@ export default function BrandLedLandingPage() {
           <div className="brand-shell relative grid gap-8 py-16 md:grid-cols-[1fr_auto] md:items-center">
             <div>
               <p className="text-sm font-semibold !text-white/70">Preview before you choose</p>
-              <h2 className="mt-2 max-w-2xl !text-white">See the system applied to your business before you buy it.</h2>
+              <h2 className="mt-2 max-w-2xl !text-white">See it on your business first.</h2>
               <p className="mt-4 max-w-xl !text-white/75">Generate a personalised website direction shaped around your business, then choose a plan only if the approach fits.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row md:flex-col">

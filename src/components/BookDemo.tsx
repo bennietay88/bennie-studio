@@ -278,7 +278,7 @@ export default function BookDemo() {
                   <p className="mx-auto mt-3 max-w-md font-semibold leading-7 text-slate-300">
                     Your time is reserved. We’ll review your website and goals before the call so the conversation starts with useful context.
                   </p>
-                  <Button onClick={() => navigate("/case-studies", { viewTransition: true })} className="mt-7 min-h-12 rounded-lg bg-white px-6 text-slate-950 hover:bg-indigo-100">
+                  <Button onClick={() => navigate("/case-studies")} className="mt-7 min-h-12 rounded-lg bg-white px-6 text-slate-950 hover:bg-indigo-100">
                     View case studies <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   {manageUrl && <Button variant="ghost" onClick={() => navigate(new URL(manageUrl, window.location.origin).pathname)} className="mt-3 min-h-11 rounded-xl text-indigo-200 hover:bg-white/10 hover:text-white">Reschedule or cancel</Button>}

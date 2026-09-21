@@ -174,8 +174,8 @@ export default function PortfolioPage() {
               <h1 className="mt-5 !max-w-[16ch] !text-white">Website work with strategy behind it.</h1>
               <p className="brand-copy brand-muted-on-dark mt-6">Explore service-business website directions through positioning, proof, enquiry flow and local search context. The examples show possibilities, not a fixed template or page count.</p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Button onClick={() => navigate("/generate-preview", { viewTransition: true })} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#eeebff]">Generate my preview <ArrowRight className="ml-2 h-4 w-4" /></Button>
-                <Button variant="outline" onClick={() => navigate("/book-demo", { viewTransition: true })} className="min-h-12 border-white/25 bg-white/[0.03] px-6 font-semibold text-white hover:bg-white/[0.08] hover:text-white">Discuss my scope</Button>
+                <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#eeebff]">Generate my preview <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                <Button variant="outline" onClick={() => navigate("/book-demo")} className="min-h-12 border-white/25 bg-white/[0.03] px-6 font-semibold text-white hover:bg-white/[0.08] hover:text-white">Discuss my scope</Button>
               </div>
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.08 }} className="relative lg:col-span-7 lg:-mr-8 xl:-mr-14">
@@ -276,7 +276,7 @@ export default function PortfolioPage() {
 
                   <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                     <Button
-                      onClick={() => navigate(item.sampleHref, { viewTransition: true })}
+                      onClick={() => navigate(item.sampleHref)}
                       className="h-12 rounded-xl bg-indigo-600 px-5 text-xs font-bold uppercase tracking-wide hover:bg-indigo-700"
                     >
                       Read Case Study
@@ -284,7 +284,7 @@ export default function PortfolioPage() {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => navigate("/book-demo", { viewTransition: true })}
+                      onClick={() => navigate("/book-demo")}
                       className="h-12 rounded-xl px-5 text-xs font-bold uppercase tracking-wide"
                     >
                       Build Similar
@@ -401,7 +401,7 @@ export default function PortfolioPage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row lg:mt-0 lg:flex-col">
               <Button
                 size="lg"
-                onClick={() => navigate("/book-demo", { viewTransition: true })}
+                onClick={() => navigate("/book-demo")}
                 className="h-14 rounded-2xl bg-indigo-600 px-8 text-xs font-bold uppercase tracking-wide hover:bg-indigo-700"
               >
                 Book Demo
@@ -409,7 +409,7 @@ export default function PortfolioPage() {
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => navigate("/", { viewTransition: true })}
+                onClick={() => navigate("/")}
                 className="h-14 rounded-2xl px-8 text-xs font-bold uppercase tracking-wide"
               >
                 Back to Home

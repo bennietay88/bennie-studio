@@ -199,6 +199,38 @@ function ScrollToTop() {
   return null;
 }
 
+const PRIVATE_ROUTE_PREFIXES = [
+  "/admin",
+  "/dashboard",
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/checkout",
+  "/proposal",
+  "/manage-call",
+  "/preview/template",
+  "/w/",
+  "/affiliate",
+];
+
+function PublicRouteTransition({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  const isPublicRoute = !PRIVATE_ROUTE_PREFIXES.some(
+    (prefix) =>
+      pathname === prefix ||
+      pathname.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`),
+  );
+
+  if (!isPublicRoute) return <>{children}</>;
+
+  return (
+    <div key={pathname} className="bt-public-route-transition">
+      {children}
+    </div>
+  );
+}
+
 function RouteRobotsMeta() {
   const { pathname } = useLocation();
   const privateRoute =
@@ -405,7 +437,8 @@ export default function App() {
           </Helmet>
           <Toaster position="top-right" />
           <Suspense fallback={<LoadingFallback />}>
-            <Routes>
+            <PublicRouteTransition>
+              <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/pay-monthly-websites" element={<OwnSalesSeoPage />} />
               <Route path="/pay-monthly-websites/:market" element={<OwnSalesSeoPage />} />
@@ -743,7 +776,8 @@ export default function App() {
               />
 
               <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+              </Routes>
+            </PublicRouteTransition>
           </Suspense>
         </Router>
       </ErrorBoundary>

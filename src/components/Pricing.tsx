@@ -48,8 +48,8 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
     trackPublicEvent({ eventType: "checkout_started", label: product.name, target: "/pricing", metadata: { product: product.slug, market: activeMarket, billingCycle, previewId } });
     const price = getCommercialPrice(product, activeMarket);
     if (onSelectPlan) return onSelectPlan({ ...product, price });
-    if (product.slug === "custom-website") { navigate(`/apply-custom?product=${product.slug}&market=${activeMarket}`, { viewTransition: true }); return; }
-    if (product.salesMotion !== "self_serve") { navigate(`/book-demo?product=${product.slug}&market=${activeMarket}`, { viewTransition: true }); return; }
+    if (product.slug === "custom-website") { navigate(`/apply-custom?product=${product.slug}&market=${activeMarket}`); return; }
+    if (product.salesMotion !== "self_serve") { navigate(`/book-demo?product=${product.slug}&market=${activeMarket}`); return; }
     localStorage.setItem("bt_checkout_intent", JSON.stringify({ productSlug: product.slug, market: activeMarket, currency: price?.currency, billingCycle, savedAt: new Date().toISOString() }));
 
     // New customers pay first. Bennie Studio creates/claims the portal only
@@ -236,7 +236,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
         ].map(([title, body]) => <div key={title} className="border-t border-slate-200 pt-4"><p className="font-semibold text-slate-950">{title}</p><p className="mt-2 text-sm leading-6 text-slate-600">{body}</p></div>)}
       </div>
       <div className="lg:col-start-5 lg:col-span-8">
-        <Button variant="outline" onClick={() => navigate("/book-demo?market=" + activeMarket, { viewTransition: true })}>Discuss my scope first</Button>
+        <Button variant="outline" onClick={() => navigate("/book-demo?market=" + activeMarket)}>Discuss my scope first</Button>
       </div>
     </section>
 

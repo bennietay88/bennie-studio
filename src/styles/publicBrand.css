@@ -745,23 +745,33 @@
 }
 
 
-/* Public route transitions: quick cross-fade without slowing navigation. */
+/* Public route transitions: keyed in React so they work without browser View Transition support. */
+.bt-public-route-transition {
+  min-height: 100vh;
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root) {
-    animation: bt-route-fade-out 120ms ease-out both;
+  .bt-public-route-transition {
+    animation: bt-public-route-enter 320ms cubic-bezier(.16, 1, .3, 1) both;
+    will-change: opacity, transform, filter;
   }
 
+  ::view-transition-old(root),
   ::view-transition-new(root) {
-    animation: bt-route-fade-in 240ms cubic-bezier(.16, 1, .3, 1) both;
+    animation: none !important;
   }
 }
 
-@keyframes bt-route-fade-out {
-  from { opacity: 1; }
-  to { opacity: .88; }
-}
+@keyframes bt-public-route-enter {
+  from {
+    opacity: .52;
+    transform: translate3d(0, 10px, 0);
+    filter: blur(2px);
+  }
 
-@keyframes bt-route-fade-in {
-  from { opacity: .72; }
-  to { opacity: 1; }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
 }

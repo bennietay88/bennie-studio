@@ -1516,7 +1516,7 @@ function GeneratePreviewPage() {
       target,
       metadata: { industry: industry.label, goal, businessName: form.businessName, generated },
     });
-    navigate(target, { viewTransition: true });
+    navigate(target);
   };
 
   return (
@@ -2511,8 +2511,8 @@ export default function PublicMarketingPages() {
             <p className="mt-4 max-w-2xl text-base !text-white/75">Generate a real website direction first. Use the 30-minute review when you want help confirming scope and fit.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-            <Button onClick={() => navigate("/generate-preview", { viewTransition: true })} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#ece9ff]">Generate free preview <ArrowRight className="ml-2 h-4 w-4" /></Button>
-            <Button onClick={() => navigate("/book-demo", { viewTransition: true })} variant="outline" className="min-h-12 border-white/30 bg-white/[0.04] px-6 font-semibold text-white hover:bg-white/10 hover:text-white">Book 30-minute review</Button>
+            <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#ece9ff]">Generate free preview <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Button onClick={() => navigate("/book-demo")} variant="outline" className="min-h-12 border-white/30 bg-white/[0.04] px-6 font-semibold text-white hover:bg-white/10 hover:text-white">Book 30-minute review</Button>
           </div>
         </div>
       </section>

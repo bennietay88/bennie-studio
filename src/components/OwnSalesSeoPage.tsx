@@ -285,10 +285,10 @@ export default function OwnSalesSeoPage() {
               <h1 className="mt-5 !max-w-[13ch] !text-white">{page.h1}</h1>
               <p className="brand-copy brand-muted-on-dark mt-6">{page.heroCopy}</p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Button onClick={() => navigate("/generate-preview", { viewTransition: true })} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#eeebff]">
+                <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#eeebff]">
                   {page.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button variant="outline" onClick={() => navigate("/book-demo", { viewTransition: true })} className="min-h-12 border-white/25 bg-white/[0.03] px-6 font-semibold text-white hover:bg-white/[0.08] hover:text-white">
+                <Button variant="outline" onClick={() => navigate("/book-demo")} className="min-h-12 border-white/25 bg-white/[0.03] px-6 font-semibold text-white hover:bg-white/[0.08] hover:text-white">
                   <MessageSquare className="mr-2 h-4 w-4" /> {page.whatsappCta}
                 </Button>
               </div>
@@ -450,7 +450,7 @@ export default function OwnSalesSeoPage() {
                     <div className={isGrowth ? "mt-5 space-y-3 border-t border-white/25 pt-4" : "mt-5 space-y-3 border-t border-[#dfe2ea] pt-4"}>
                       {plan.features.map((feature) => <div key={feature} className={isGrowth ? "flex gap-2 text-sm !text-white/80" : "flex gap-2 text-sm text-[#526071]"}><Check className={isGrowth ? "mt-0.5 h-4 w-4 shrink-0 text-[#b9b1ff]" : "mt-0.5 h-4 w-4 shrink-0 text-emerald-600"} /><span>{feature}</span></div>)}
                     </div>
-                    <Button onClick={()=>{localStorage.setItem("bt_checkout_intent",JSON.stringify({productSlug:plan.id,market:revenueMarket,currency:coreOffer.prices[revenueMarket].currency,billingCycle:"monthly",savedAt:new Date().toISOString()}));navigate("/generate-preview", { viewTransition: true });}} className={isGrowth ? "mt-6 min-h-12 w-full bg-white px-5 font-semibold text-[#101827] hover:bg-[#eeebff]" : "mt-6 min-h-12 w-full bg-[#141821] px-5 font-semibold text-white hover:bg-[#5746e8]"}>
+                    <Button onClick={()=>{localStorage.setItem("bt_checkout_intent",JSON.stringify({productSlug:plan.id,market:revenueMarket,currency:coreOffer.prices[revenueMarket].currency,billingCycle:"monthly",savedAt:new Date().toISOString()}));navigate("/generate-preview");}} className={isGrowth ? "mt-6 min-h-12 w-full bg-white px-5 font-semibold text-[#101827] hover:bg-[#eeebff]" : "mt-6 min-h-12 w-full bg-[#141821] px-5 font-semibold text-white hover:bg-[#5746e8]"}>
                       Generate preview <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </article>
@@ -481,7 +481,7 @@ export default function OwnSalesSeoPage() {
                 <p className="brand-kicker">Website examples</p>
                 <h2 className="mt-4">Website directions for this market.</h2>
               </div>
-              <Button onClick={()=>navigate("/portfolio", { viewTransition: true })} variant="outline" className="min-h-11 lg:col-span-5 lg:justify-self-end">View example library</Button>
+              <Button onClick={()=>navigate("/portfolio")} variant="outline" className="min-h-11 lg:col-span-5 lg:justify-self-end">View example library</Button>
             </div>
             <div className="mt-8 border-t border-[#d8d9dc]">
               {page.examples.map((example)=>(
@@ -549,10 +549,10 @@ export default function OwnSalesSeoPage() {
               Start with a monthly website plan, then add pages, locations, and support as your business grows.
             </p>
             <div className="mt-9 flex flex-col justify-center gap-4 sm:flex-row">
-              <Button onClick={() => navigate("/generate-preview", { viewTransition: true })} className="h-14 rounded-2xl bg-white px-8 text-sm font-bold uppercase tracking-wide text-indigo-600 hover:bg-slate-950 hover:text-white">
+              <Button onClick={() => navigate("/generate-preview")} className="h-14 rounded-2xl bg-white px-8 text-sm font-bold uppercase tracking-wide text-indigo-600 hover:bg-slate-950 hover:text-white">
                 {page.primaryCta}
               </Button>
-              <Button onClick={() => navigate("/book-demo", { viewTransition: true })} variant="outline" className="h-14 rounded-2xl border-white/30 bg-white/10 px-8 text-sm font-bold uppercase tracking-wide text-white hover:bg-white hover:text-indigo-600">
+              <Button onClick={() => navigate("/book-demo")} variant="outline" className="h-14 rounded-2xl border-white/30 bg-white/10 px-8 text-sm font-bold uppercase tracking-wide text-white hover:bg-white hover:text-indigo-600">
                 Book a Call
               </Button>
             </div>
@@ -562,7 +562,7 @@ export default function OwnSalesSeoPage() {
         <footer className="hidden border-t border-slate-200 bg-white px-5 py-12">
           <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.15fr_2fr]">
             <div>
-              <button onClick={() => navigate("/", { viewTransition: true })} className="flex items-center gap-2 bg-transparent border-0 p-0 cursor-pointer">
+              <button onClick={() => navigate("/")} className="flex items-center gap-2 bg-transparent border-0 p-0 cursor-pointer">
                 <Globe className="h-7 w-7 text-indigo-600" />
                 <span className="text-xl font-bold text-slate-950">Bennie Studio</span>
               </button>
