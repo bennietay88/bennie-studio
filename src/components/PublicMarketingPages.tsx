@@ -1076,6 +1076,9 @@ function GeneratePreviewPage() {
   const [generatedWebsite, setGeneratedWebsite] = React.useState<Website | null>(
     savedPreviewIntent.generatedWebsite || null,
   );
+  const [shareablePreviewUrl, setShareablePreviewUrl] = React.useState(
+    String(savedPreviewIntent.shareablePreviewUrl || ""),
+  );
   const [previewExpanded, setPreviewExpanded] = React.useState(false);
   const [previewDevice, setPreviewDevice] = React.useState<"desktop" | "mobile">("desktop");
   const [previewMode, setPreviewMode] = React.useState<"website" | "business">(
@@ -1121,6 +1124,7 @@ function GeneratePreviewPage() {
     }
     setGenerated(false);
     setGeneratedWebsite(null);
+    setShareablePreviewUrl("");
     setPreviewExpanded(false);
   }, [
     form.businessName,
@@ -1405,6 +1409,35 @@ function GeneratePreviewPage() {
       setForm(resolvedForm);
       setGoal(resolvedGoal);
 
+      let persistedPreview: { shareUrl?: string; businessId?: string; websiteId?: string } = {};
+      try {
+        const persistResponse = await fetch("/api/public/preview-site", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            previewId,
+            leadId: leadResult.leadId,
+            email: form.email,
+            website: {
+              theme: selectedPreview.website.theme,
+              pages: selectedPreview.website.pages,
+              seo: selectedPreview.website.seo,
+            },
+          }),
+        });
+        const persistPayload = await persistResponse.json().catch(() => null);
+        if (persistResponse.ok && persistPayload?.success) {
+          persistedPreview = {
+            shareUrl: persistPayload.shareUrl,
+            businessId: persistPayload.businessId,
+            websiteId: persistPayload.websiteId,
+          };
+          setShareablePreviewUrl(String(persistPayload.shareUrl || ""));
+        }
+      } catch {
+        // The in-browser preview remains usable if share-link persistence is unavailable.
+      }
+
       localStorage.setItem("bt_preview_intent", JSON.stringify({
         ...resolvedForm,
         previewMode,
@@ -1428,6 +1461,9 @@ function GeneratePreviewPage() {
         generatedWebsite: selectedPreview.website,
         previewGenerationMethod: "deterministic",
         previewAiCostUsd: 0,
+        shareablePreviewUrl: persistedPreview.shareUrl || "",
+        previewBusinessId: persistedPreview.businessId || "",
+        previewWebsiteId: persistedPreview.websiteId || "",
         reviewSuggestions: assessManualReviewInput(form.reviews).suggestions,
         reviewStrategy: {
           heroHeadline: resolvedReviewStrategy.heroHeadline,
@@ -1877,8 +1913,17 @@ function GeneratePreviewPage() {
               </div>
             </div>
 
-            <div className="mt-7 flex flex-col gap-3 border-t border-[#dfe2ea] pt-6 sm:flex-row">
+            <div className="mt-7 flex flex-col gap-3 border-t border-[#dfe2ea] pt-6 sm:flex-row sm:flex-wrap">
               <Button onClick={() => action("click_launch_after_preview","Launch This Website","/preview-order")} className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]">Launch this website <ArrowRight className="ml-2 h-4 w-4" /></Button>
+              {shareablePreviewUrl ? (
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(shareablePreviewUrl, "_blank", "noopener,noreferrer")}
+                  className="min-h-12 rounded-xl px-6 font-semibold"
+                >
+                  Open shareable preview <ExternalLink className="ml-2 h-4 w-4" />
+                </Button>
+              ) : null}
               <Button variant="outline" onClick={() => navigate("/pricing?market=INTL#plan-" + (JSON.parse(localStorage.getItem("bt_preview_intent") || "{}").recommendedProduct || commercialRecommendation.slug))} className="min-h-12 rounded-xl px-6 font-semibold">Compare plans</Button>
             </div>
           </div>
