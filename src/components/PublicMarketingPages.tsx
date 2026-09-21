@@ -55,6 +55,7 @@ import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { normalizeCommercialMarket } from "../lib/commercialPricing";
 import { FlagshipTemplateGallery } from "./FlagshipTemplateGallery";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
+import { TurnstileWidget } from "./TurnstileWidget";
 import { supabase } from "../lib/supabase";
 import {
   normalizeWebsiteAuditResult,
@@ -490,6 +491,8 @@ async function submitPlatformLead(input: {
   selectedProduct?: string;
   previewId?: string;
   market?: string;
+  turnstileToken?: string;
+  website?: string;
 }) {
   const response = await fetch("/api/platform-leads", {
     method: "POST",
@@ -1062,6 +1065,11 @@ function GeneratePreviewPage() {
   const [generatedWebsite, setGeneratedWebsite] = React.useState<Website | null>(null);
   const [previewExpanded, setPreviewExpanded] = React.useState(false);
   const [previewDevice, setPreviewDevice] = React.useState<"desktop" | "mobile">("desktop");
+  const [previewMode, setPreviewMode] = React.useState<"website" | "business">(
+    initialParams.get("website") ? "website" : "website",
+  );
+  const [turnstileToken, setTurnstileToken] = React.useState("");
+  const [honeypot, setHoneypot] = React.useState("");
   const [generating, setGenerating] = React.useState(false);
   const [error, setError] = React.useState("");
   const [form, setForm] = React.useState(() => {
