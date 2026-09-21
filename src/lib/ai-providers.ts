@@ -69,33 +69,33 @@ export async function callDeepSeek(
 
 /**
  * OpenAI Provider
+ *
+ * Bennie Studio uses the Responses API for new OpenAI generation work.
+ * Public free previews deliberately do not call this provider; they are
+ * deterministic so the marginal AI cost stays at $0.
  */
 export async function callOpenAI(
   apiKey: string,
   request: AIRequest,
-  model: string = "gpt-4o"
+  model: string = "gpt-5.6-luna"
 ): Promise<AIResponse> {
   const openai = new OpenAI({ apiKey: apiKey.trim() });
 
-  const messages: any[] = [];
-  if (request.systemMessage) {
-    messages.push({ role: "system", content: request.systemMessage });
-  }
-  messages.push({ role: "user", content: request.prompt });
-
-  const response = await openai.chat.completions.create({
+  const response = await openai.responses.create({
     model,
-    messages,
-    temperature: request.temperature || 0.2,
-    max_tokens: request.maxTokens || 4096,
-    response_format: request.isJson ? { type: "json_object" } : { type: "text" },
+    instructions: request.systemMessage || "You are a helpful AI assistant.",
+    input: request.prompt,
+    max_output_tokens: request.maxTokens || 4096,
+    temperature: request.temperature ?? 0.2,
+    store: false,
+    reasoning: model.startsWith("gpt-5") ? { effort: "none" } : undefined,
   });
 
   return {
-    text: response.choices[0].message.content || "",
+    text: response.output_text || "",
     usage: {
-      promptTokens: response.usage?.prompt_tokens || 0,
-      completionTokens: response.usage?.completion_tokens || 0,
+      promptTokens: response.usage?.input_tokens || 0,
+      completionTokens: response.usage?.output_tokens || 0,
       totalTokens: response.usage?.total_tokens || 0,
     },
   };
