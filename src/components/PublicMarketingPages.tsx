@@ -1244,26 +1244,35 @@ function GeneratePreviewPage() {
         ? existingPreview.previewId
         : `preview_${globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
 
-      // Lead capture happens before the website fetch. This gives the sales
-      // pipeline a usable lead while preventing anonymous scraping abuse.
-      const leadResult = await submitPlatformLead({
-        name: form.contactName || form.businessName || form.email.split("@")[0] || "Website preview lead",
-        email: form.email,
-        phone: form.phone,
-        businessName: form.businessName,
-        industry: industry.label,
-        websiteUrl: form.websiteUrl,
-        service: form.mainService,
-        message: previewMode === "website"
-          ? `URL-first website preview requested for ${form.websiteUrl}.`
-          : `Business-info preview: ${form.mainService} in ${form.location}. Goal: ${goal}.`,
-        formName: "Personalized website preview",
-        leadType: previewMode === "website" ? "free_website_rebuild_preview" : "free_website_preview",
-        previewId,
-        market: initialParams.get("market") || "INTL",
-        turnstileToken,
-        website: honeypot,
-      });
+      // Reuse the verified lead when regenerating the same preview. Re-submitting
+      // the lead form on every design refresh wastes rate-limit capacity and can
+      // block a legitimate user who is simply rebuilding a stale preview.
+      const existingLeadId = typeof existingPreview.leadId === "string" && /^[0-9a-f-]{36}$/i.test(existingPreview.leadId)
+        ? existingPreview.leadId
+        : "";
+      const existingLeadEmail = String(existingPreview.email || "").trim().toLowerCase();
+      const canReuseExistingLead = Boolean(existingLeadId) && existingLeadEmail === form.email.trim().toLowerCase();
+
+      const leadResult = canReuseExistingLead
+        ? { leadId: existingLeadId, reused: true }
+        : await submitPlatformLead({
+            name: form.contactName || form.businessName || form.email.split("@")[0] || "Website preview lead",
+            email: form.email,
+            phone: form.phone,
+            businessName: form.businessName,
+            industry: industry.label,
+            websiteUrl: form.websiteUrl,
+            service: form.mainService,
+            message: previewMode === "website"
+              ? `URL-first website preview requested for ${form.websiteUrl}.`
+              : `Business-info preview: ${form.mainService} in ${form.location}. Goal: ${goal}.`,
+            formName: "Personalized website preview",
+            leadType: previewMode === "website" ? "free_website_rebuild_preview" : "free_website_preview",
+            previewId,
+            market: initialParams.get("market") || "INTL",
+            turnstileToken,
+            website: honeypot,
+          });
       if (!leadResult?.leadId) throw new Error("We could not connect this preview to your enquiry. Please retry.");
 
       const intakeResponse = await fetch("/api/public/preview-intake", {
