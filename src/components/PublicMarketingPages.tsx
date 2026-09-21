@@ -1527,10 +1527,10 @@ function GeneratePreviewPage() {
             <p className="brand-kicker flex items-center gap-2">
               <Sparkles className="h-4 w-4" /> Free website preview
             </p>
-            <h1 className="mt-5 max-w-4xl text-[clamp(2.8rem,6vw,5.8rem)] font-semibold leading-[0.95] tracking-[-0.06em] text-[#141821]">
+            <h1 className="mt-5 !max-w-[15ch] text-[#141821]">
               See your website before you build.
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-7 text-[#5f6673] sm:text-lg">
+            <p className="brand-copy mt-6 !max-w-2xl">
               Give us the essentials. We turn them into a tailored website direction built around your service, location, trust signals and preferred enquiry action.
             </p>
             <div className="mt-8 flex flex-wrap gap-2">
