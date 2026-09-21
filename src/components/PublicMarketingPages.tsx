@@ -1063,17 +1063,23 @@ function GeneratePreviewPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const initialParams = React.useMemo(() => new URLSearchParams(location.search), [location.search]);
-  const initialIndustry = initialParams.get("industry") || previewIndustries[0].id;
+  const savedPreviewIntent = React.useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("bt_preview_intent") || "{}") as Record<string, any>; }
+    catch { return {} as Record<string, any>; }
+  }, []);
+  const initialIndustry = initialParams.get("industry") || savedPreviewIntent.industryId || previewIndustries[0].id;
   const explicitTemplateId = initialParams.get("template");
   const [industryId, setIndustryId] = React.useState(previewIndustries.some((item) => item.id === initialIndustry) ? initialIndustry : previewIndustries[0].id);
-  const initialGoal = initialParams.get("goal") || previewGoals[0];
+  const initialGoal = initialParams.get("goal") || savedPreviewIntent.goal || previewGoals[0];
   const [goal, setGoal] = React.useState(previewGoals.includes(initialGoal) ? initialGoal : previewGoals[0]);
-  const [generated, setGenerated] = React.useState(false);
-  const [generatedWebsite, setGeneratedWebsite] = React.useState<Website | null>(null);
+  const [generated, setGenerated] = React.useState(Boolean(savedPreviewIntent.generatedWebsite));
+  const [generatedWebsite, setGeneratedWebsite] = React.useState<Website | null>(
+    savedPreviewIntent.generatedWebsite || null,
+  );
   const [previewExpanded, setPreviewExpanded] = React.useState(false);
   const [previewDevice, setPreviewDevice] = React.useState<"desktop" | "mobile">("desktop");
   const [previewMode, setPreviewMode] = React.useState<"website" | "business">(
-    initialParams.get("website") ? "website" : "website",
+    savedPreviewIntent.previewMode === "business" ? "business" : "website",
   );
   const [turnstileToken, setTurnstileToken] = React.useState("");
   const [honeypot, setHoneypot] = React.useState("");
@@ -1087,18 +1093,18 @@ function GeneratePreviewPage() {
       auditContext = {};
     }
     return {
-      contactName: String(auditContext.contactName || initialParams.get("name") || ""),
-      businessName: String(auditContext.businessName || initialParams.get("business") || ""),
-      location: String(initialParams.get("city") || ""),
-      mainService: String(initialParams.get("service") || ""),
-      websiteUrl: String(auditContext.website || initialParams.get("website") || ""),
-      websiteStatus: String(initialParams.get("websiteStatus") || (auditContext.website ? "yes" : "no")),
-      phone: "",
-      email: String(auditContext.email || initialParams.get("email") || ""),
-      brandStyle: "Modern professional",
-      socialUrl: "",
-      reviews: "",
-      biggestProblem: String(initialParams.get("problem") || ""),
+      contactName: String(savedPreviewIntent.contactName || auditContext.contactName || initialParams.get("name") || ""),
+      businessName: String(savedPreviewIntent.businessName || auditContext.businessName || initialParams.get("business") || ""),
+      location: String(savedPreviewIntent.location || initialParams.get("city") || ""),
+      mainService: String(savedPreviewIntent.mainService || initialParams.get("service") || ""),
+      websiteUrl: String(savedPreviewIntent.websiteUrl || auditContext.website || initialParams.get("website") || ""),
+      websiteStatus: String(savedPreviewIntent.websiteStatus || initialParams.get("websiteStatus") || (auditContext.website ? "yes" : "no")),
+      phone: String(savedPreviewIntent.phone || ""),
+      email: String(savedPreviewIntent.email || auditContext.email || initialParams.get("email") || ""),
+      brandStyle: String(savedPreviewIntent.brandStyle || "Modern professional"),
+      socialUrl: String(savedPreviewIntent.socialUrl || ""),
+      reviews: String(savedPreviewIntent.reviews || ""),
+      biggestProblem: String(savedPreviewIntent.biggestProblem || initialParams.get("problem") || ""),
     };
   });
   const inferredIndustryId = inferPreviewIndustryId(form.mainService);
@@ -1107,7 +1113,12 @@ function GeneratePreviewPage() {
     ? explicitTemplateId
     : previewTemplateIds[effectiveIndustryId] || "service-pro-v1";
 
+  const previewFormMounted = React.useRef(false);
   React.useEffect(() => {
+    if (!previewFormMounted.current) {
+      previewFormMounted.current = true;
+      return;
+    }
     setGenerated(false);
     setGeneratedWebsite(null);
     setPreviewExpanded(false);
@@ -1414,6 +1425,7 @@ function GeneratePreviewPage() {
         designScore: selectedPreview.quality.score,
         designMetrics: selectedPreview.quality.metrics,
         previewProfile: profile,
+        generatedWebsite: selectedPreview.website,
         previewGenerationMethod: "deterministic",
         previewAiCostUsd: 0,
         reviewSuggestions: assessManualReviewInput(form.reviews).suggestions,
