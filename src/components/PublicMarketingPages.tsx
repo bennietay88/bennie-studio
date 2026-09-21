@@ -900,7 +900,7 @@ function CaseStudiesPage() {
   );
 }
 
-const PREVIEW_GENERATION_VERSION = 2;
+const PREVIEW_GENERATION_VERSION = 3;
 
 const previewIndustries = [
   {
@@ -1120,6 +1120,7 @@ function GeneratePreviewPage() {
       socialUrl: String(savedPreviewIntent.socialUrl || ""),
       reviews: String(savedPreviewIntent.reviews || ""),
       biggestProblem: String(savedPreviewIntent.biggestProblem || initialParams.get("problem") || ""),
+      pageCount: Math.min(8, Math.max(5, Number(savedPreviewIntent.pageCount || initialParams.get("pages") || 5))),
     };
   });
   const inferredIndustryId = inferPreviewIndustryId(form.mainService);
@@ -1150,6 +1151,7 @@ function GeneratePreviewPage() {
     form.socialUrl,
     form.reviews,
     form.biggestProblem,
+    form.pageCount,
   ]);
 
   const industry = previewIndustries.find((item) => item.id === effectiveIndustryId) || previewIndustries[0];
@@ -1357,7 +1359,7 @@ function GeneratePreviewPage() {
         nicheId: resolvedTemplateId,
         nicheName: resolvedIndustry.label,
         plan: "business",
-        maxPages: 5,
+        maxPages: Math.min(8, Math.max(5, Number(form.pageCount || 5))),
         mainService: resolvedMainService,
         targetCustomer: previewTargetCustomers[resolvedIndustryId] || "customers",
         location: resolvedLocation,
@@ -1641,6 +1643,30 @@ function GeneratePreviewPage() {
                 </div>
               </section>
 
+              <section className="border border-[#dfe2ea] bg-white p-5 sm:p-7">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Preview size</p>
+                    <h3 className="mt-1 text-xl font-semibold text-[#141821]">Choose 5–8 pages.</h3>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2" role="group" aria-label="Preview page count">
+                    {[5, 6, 7, 8].map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        aria-pressed={form.pageCount === count}
+                        onClick={() => setForm((current) => ({ ...current, pageCount: count }))}
+                        className={form.pageCount === count
+                          ? "h-11 min-w-12 border-2 border-[#5746e8] bg-[#eeebff] px-3 text-sm font-bold text-[#141821]"
+                          : "h-11 min-w-12 border border-[#dfe2ea] bg-[#f9f8f4] px-3 text-sm font-semibold text-[#526071] hover:border-[#aaa4dc]"}
+                      >
+                        {count}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
               {previewMode === "website" ? (
                 <section className="border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7">
                   <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
@@ -1851,6 +1877,7 @@ function GeneratePreviewPage() {
                     ["Industry", industry.label],
                     ["Service", serviceLabel],
                     ["Location", locationLabel],
+                    ["Pages", `${form.pageCount} pages`],
                     ["Goal", goal],
                     ["Style", form.brandStyle],
                   ].map(([label, value]) => (
