@@ -83,7 +83,25 @@ const footerGroups = [
 
 export function PublicSiteHeader() {
   const { user } = useAuth();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const isActive = React.useCallback((href: string) =>
+    href === "/" ? location.pathname === "/" : location.pathname === href || location.pathname.startsWith(`${href}/`),
+  [location.pathname]);
+
+  React.useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileOpen]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#dfe2ea] bg-white/92 backdrop-blur-xl">
@@ -99,7 +117,12 @@ export function PublicSiteHeader() {
               {item.label}
             </a>
           ) : (
-            <Link key={item.href} to={item.href} className="text-sm font-semibold text-black/50 transition hover:text-[#5b4bff]">
+            <Link
+              key={item.href}
+              to={item.href}
+              aria-current={isActive(item.href) ? "page" : undefined}
+              className={isActive(item.href) ? "text-sm font-semibold text-[#141821]" : "text-sm font-semibold text-black/50 transition hover:text-[#5b4bff]"}
+            >
               {item.label}
             </Link>
           ))}
@@ -115,14 +138,14 @@ export function PublicSiteHeader() {
           </Link>
         </div>
 
-        <Button type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="shrink-0 lg:hidden" aria-label="Open navigation menu">
+        <Button type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="shrink-0 lg:hidden" aria-label="Open navigation menu" aria-expanded={mobileOpen} aria-controls="public-mobile-navigation">
           <Menu className="h-5 w-5" />
         </Button>
       </nav>
 
       {mobileOpen ? (
         <div className="fixed inset-0 z-[100] bg-[#0c1224]/50 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
-          <div className="absolute right-0 top-0 flex h-dvh w-[min(90vw,360px)] flex-col bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div id="public-mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="absolute right-0 top-0 flex h-dvh w-[min(90vw,360px)] flex-col bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-[#dfe2ea] pb-5">
               <span className="text-lg font-semibold tracking-[-0.03em] text-[#10131c]">Bennie Studio</span>
               <Button type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Close navigation menu"><X className="h-5 w-5" /></Button>
@@ -131,7 +154,7 @@ export function PublicSiteHeader() {
               {publicNavItems.map((item) => item.external ? (
                 <a key={item.href} href={item.href} target="_blank" rel="noreferrer" onClick={() => setMobileOpen(false)} className="border-b border-[#dfe2ea] py-4 text-lg font-semibold text-[#10131c]">{item.label}</a>
               ) : (
-                <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="border-b border-[#dfe2ea] py-4 text-lg font-semibold text-[#10131c]">{item.label}</Link>
+                <Link key={item.href} to={item.href} aria-current={isActive(item.href) ? "page" : undefined} onClick={() => setMobileOpen(false)} className={isActive(item.href) ? "border-b border-[#dfe2ea] py-4 text-lg font-semibold text-[#5746e8]" : "border-b border-[#dfe2ea] py-4 text-lg font-semibold text-[#10131c]"}>{item.label}</Link>
               ))}
             </div>
             <div className="mt-auto grid gap-3 border-t border-[#dfe2ea] pt-5">

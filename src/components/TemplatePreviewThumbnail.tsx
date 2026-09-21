@@ -61,8 +61,6 @@ type PreviewModel = {
 };
 
 const configCache = new Map<string, TemplateConfig>();
-const PREVIEW_FONT_STYLESHEET_ID = "bt-template-preview-fonts";
-
 const FAMILY_LABELS: Record<PreviewLayoutFamily, string> = {
   clinic_trust: "Clinic",
   local_quote: "Local service",
@@ -72,36 +70,20 @@ const FAMILY_LABELS: Record<PreviewLayoutFamily, string> = {
   media_story: "Media-focused",
 };
 
-function ensurePreviewFonts() {
-  if (typeof document === "undefined" || document.getElementById(PREVIEW_FONT_STYLESHEET_ID)) return;
-  const link = document.createElement("link");
-  link.id = PREVIEW_FONT_STYLESHEET_ID;
-  link.rel = "stylesheet";
-  link.href =
-    "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..700&family=Plus+Jakarta+Sans:wght@400..700&family=Space+Grotesk:wght@500..700&display=swap";
-  document.head.appendChild(link);
-}
-
 function isSerifFamily(fontFamily = "") {
   return /serif|playfair|lora|fraunces|merriweather/i.test(fontFamily);
 }
 
 function getPreviewFonts(theme: Record<string, any>, family: PreviewLayoutFamily) {
   const configured = String(theme?.fontFamily || "").trim();
-  if (family === "editorial_b2b" && isSerifFamily(configured)) {
-    return { display: configured, body: "'Plus Jakarta Sans', sans-serif" };
-  }
-  if (family === "education_program") {
-    return { display: "'Plus Jakarta Sans', sans-serif", body: "'Plus Jakarta Sans', sans-serif" };
-  }
-  if (family === "local_quote") {
-    return { display: "'Space Grotesk', sans-serif", body: "'Plus Jakarta Sans', sans-serif" };
+  const sans = '"Geist Variable", Inter, "Helvetica Neue", Arial, sans-serif';
+  const serif = 'Georgia, "Times New Roman", serif';
+  if (family === "editorial_b2b") {
+    return { display: isSerifFamily(configured) ? configured : serif, body: sans };
   }
   return {
-    display: configured && !/inter|arial|system-ui/i.test(configured)
-      ? configured
-      : "'Plus Jakarta Sans', sans-serif",
-    body: "'Plus Jakarta Sans', sans-serif",
+    display: configured && !/inter|arial|system-ui|sans-serif/i.test(configured) ? configured : sans,
+    body: sans,
   };
 }
 
@@ -461,7 +443,7 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
                 <div className="text-[5px] font-semibold uppercase tracking-[0.12em] text-black/60">Editorial point of view</div>
                 <div
                   className="mt-3 max-w-[18ch] text-[22px] font-medium leading-[1.02] tracking-[-0.03em] text-[#171717]"
-                  style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+                  style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
                 >
                   {model.headline}
                 </div>
@@ -476,7 +458,7 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
 
             <div className="flex flex-col justify-between border-l border-black/15 bg-[#d9d0bf] p-4">
               <div className="text-[5px] font-semibold uppercase tracking-[0.1em] text-black/60">Issue 01</div>
-              <div className="text-[11px] font-medium leading-[1.1]" style={{ fontFamily: "'Fraunces', Georgia, serif" }}>
+              <div className="text-[11px] font-medium leading-[1.1]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
                 Insight before interface.
               </div>
               <div className="text-[5px] font-semibold text-black/60">{name}</div>
@@ -661,10 +643,6 @@ export function TemplatePreviewThumbnail({
   const [isVisible, setIsVisible] = useState(false);
   const [config, setConfig] = useState<TemplateConfig | null>(() => configCache.get(templateId) || getBuiltInTemplateConfig(templateId));
   const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    ensurePreviewFonts();
-  }, []);
 
   useEffect(() => {
     const container = containerRef.current;

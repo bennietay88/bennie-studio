@@ -1046,7 +1046,7 @@ export function WebsiteRenderer({
       <div className="flex h-screen flex-col items-center justify-center bg-slate-50">
         <Loader2 className="h-12 w-12 animate-spin text-indigo-600 mb-4" />
         <p className="text-slate-500 font-medium animate-pulse text-sm uppercase tracking-widest">
-          Crafting Experience...
+          Loading website…
         </p>
       </div>
     );
@@ -1058,7 +1058,7 @@ export function WebsiteRenderer({
           <AlertCircle className="h-10 w-10 text-red-300" />
         </div>
         <h1 className="text-3xl font-bold text-slate-900 mb-2">
-          Synthesis Interrupt
+          We couldn’t load this website
         </h1>
         <p className="text-slate-500 max-w-md mb-8">
           {error}
@@ -1068,7 +1068,7 @@ export function WebsiteRenderer({
           variant="outline"
           className="rounded-xl"
         >
-          Back to Terminal
+          Back to home
         </Button>
       </div>
     );
@@ -1148,6 +1148,7 @@ export function WebsiteRenderer({
     ? `https://wa.me/${whatsappPhone}?text=${whatsappMessage}`
     : "";
   const cookieBannerEnabled = complianceSettings?.cookieBannerEnabled !== false;
+  const cookiePromptVisible = !isThumbnail && cookieBannerEnabled && (!cookieConsent || showCookiePrefs);
   const secureFormsEnabled = complianceSettings?.secureFormsEnabled !== false;
   const marketingConsentEnabled = complianceSettings?.marketingConsentEnabled !== false;
   const canLoadAnalytics =
@@ -1197,15 +1198,14 @@ export function WebsiteRenderer({
           No Content Available
         </h2>
         <p className="text-slate-500 max-w-sm mb-8 italic">
-          "The architecture is currently undergoing synthesis. Please check back
-          shortly for the full deployment."
+          "This website content is still being prepared. Please check back shortly."
         </p>
         <Button
           onClick={() => window.location.reload()}
           variant="outline"
           className="rounded-xl border-slate-200"
         >
-          Sync Ecosystem
+          Refresh
         </Button>
       </div>
     );
@@ -1421,29 +1421,18 @@ export function WebsiteRenderer({
     }
   };
 
-  const getGoogleFontUrl = (fontFamily: string) => {
-    const fontName = fontFamily
-      .split(",")[0]
-      .replace(/'/g, "")
-      .replace(/"/g, "")
-      .trim();
-    // Pre-fetch all fonts from the FONTS constant to ensure they are visible
-    const allFonts = [
-      "Inter:wght@100..900",
-      "Outfit:wght@100..900",
-      "Playfair+Display:ital,wght@0,400..900;1,400..900",
-      "JetBrains+Mono:wght@100..800",
-      "Public+Sans:ital,wght@0,100..900;1,100..900",
-      "Bricolage+Grotesque:opsz,wght@12..96,200..800",
-      "Syne:wght@400..800",
-      "Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900",
-      "Space+Grotesque:wght@300..700",
-      "Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800",
-      "Roboto+Condensed:wght@100..900",
-    ].join("|");
-
-    return `https://fonts.googleapis.com/css2?family=${fontName.replace(/ /g, "+")}:wght@400;500;600;700;800&family=${allFonts}&display=swap`;
+  const getGoogleFontUrl = (...fontFamilies: Array<string | undefined>) => {
+    const systemFonts = /^(inter|arial|helvetica|system-ui|ui-sans-serif|sans-serif|geist variable)$/i;
+    const names = Array.from(new Set(fontFamilies
+      .map((family) => String(family || "").split(",")[0].replace(/['"]/g, "").trim())
+      .filter((name) => name && !systemFonts.test(name))));
+    if (names.length === 0) return "";
+    const families = names
+      .map((name) => `family=${encodeURIComponent(name).replace(/%20/g, "+")}:wght@400;500;600;700;800`)
+      .join("&");
+    return `https://fonts.googleapis.com/css2?${families}&display=swap`;
   };
+  const googleFontUrl = getGoogleFontUrl(theme.fontFamily, theme.displayFont || designProfile.displayFont);
 
   return (
     <HelmetProvider>
@@ -1455,7 +1444,7 @@ export function WebsiteRenderer({
         data-motion-profile={theme.motionProfile || designProfile.motion}
         data-image-profile={theme.imageProfile || designProfile.imageTreatment}
         className={cn(
-          "bt-website-renderer min-h-screen w-full max-w-full overflow-x-hidden flex flex-col transition-colors duration-500",
+          "bt-website-renderer min-h-screen w-full max-w-full overflow-x-hidden flex flex-col transition-colors duration-300",
           theme.style === "glassmorphic" || theme.style === "immersive"
             ? "bg-slate-950 text-white"
             : "bg-white text-slate-900",
@@ -1485,14 +1474,14 @@ export function WebsiteRenderer({
             </>
           )}
 
-          {/* Dynamic Fonts */}
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link
-            rel="preconnect"
-            href="https://fonts.gstatic.com"
-            crossOrigin="anonymous"
-          />
-          <link href={getGoogleFontUrl(theme.fontFamily)} rel="stylesheet" />
+          {/* Dynamic fonts: load only the families this website actually uses. */}
+          {googleFontUrl ? (
+            <>
+              <link rel="preconnect" href="https://fonts.googleapis.com" />
+              <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+              <link href={googleFontUrl} rel="stylesheet" />
+            </>
+          ) : null}
 
           {/* OG Tags - Part of Advanced SEO */}
           {isFeatureEnabled("advanced_seo") && (
@@ -1598,7 +1587,7 @@ export function WebsiteRenderer({
               </script>
               <noscript>
                 {`
-                  <img height="1" width="1" style="display:none"
+                  <img height="1" width="1" alt="" style="display:none"
                   src="https://www.facebook.com/tr?id=${businessInfo.meta_pixel_id}&ev=PageView&noscript=1" />
                 `}
               </noscript>
@@ -1982,14 +1971,14 @@ export function WebsiteRenderer({
                 <Button className="h-11 rounded-none px-6 text-[10px] font-black uppercase tracking-[0.18em]" onClick={() => handleButtonAction("Contact Us")}>Get in touch</Button>
               </div>
 
-              <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-none lg:hidden" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+              <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-none lg:hidden" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-expanded={isMobileMenuOpen} aria-controls="customer-brand-mobile-menu">
                 <span className="sr-only">{isMobileMenuOpen ? "Close Menu" : "Open Menu"}</span>
                 <div className="space-y-1.5"><span className="block h-px w-6 bg-slate-950" /><span className="block h-px w-6 bg-slate-950" /><span className="block h-px w-4 bg-slate-950" /></div>
               </Button>
             </div>
             <AnimatePresence>
               {isMobileMenuOpen && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="border-t border-slate-200 bg-white lg:hidden">
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} id="customer-brand-mobile-menu" className="border-t border-slate-200 bg-white lg:hidden">
                   <div className="mx-auto max-w-[90rem] space-y-1 px-5 py-5">
                     {pages.map((page) => (
                       <button key={page.id} onClick={() => { trackInteraction("nav_click", page.title, { target: page.slug || "home" }); setActivePageSlug(page.slug); setSelectedPost(null); setIsMobileMenuOpen(false); scrollPreviewToTop(); }} className="flex w-full items-center justify-between border-b border-slate-100 py-4 text-left text-base font-semibold text-slate-950">
@@ -2034,7 +2023,7 @@ export function WebsiteRenderer({
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <Globe className="h-6 w-6" />
+                  <span className="text-lg font-bold">{displayBusinessName.charAt(0).toUpperCase()}</span>
                 )}
               </div>
               <div className="flex flex-col">
@@ -2054,7 +2043,7 @@ export function WebsiteRenderer({
               </div>
             </button>
 
-            <div className="hidden md:flex items-center gap-10">
+            <div className="hidden lg:flex items-center gap-8">
               {pages.map((page) => (
                 <button
                   key={page.id}
@@ -2065,7 +2054,7 @@ export function WebsiteRenderer({
                     scrollPreviewToTop();
                   }}
                   className={cn(
-                    "text-sm font-bold uppercase tracking-widest transition-all relative py-2 group",
+                    "text-sm font-semibold tracking-tight transition-all relative py-2 group",
                     activePageSlug === page.slug
                       ? "text-primary"
                       : theme.style === "luxury_dark" ||
@@ -2087,19 +2076,21 @@ export function WebsiteRenderer({
                 </button>
               ))}
               <Button
-                className="btn-primary rounded-full px-8 h-12 font-bold uppercase tracking-widest text-[11px] shadow-2xl shadow-primary/30"
+                className="btn-primary rounded-xl px-6 h-11 text-sm font-semibold shadow-xl shadow-primary/20"
                 onClick={() => handleButtonAction("Get Started")}
               >
-                Get Started
+                Get in touch
               </Button>
             </div>
 
-            <div className="md:hidden">
+            <div className="lg:hidden">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-12 w-12 shrink-0 rounded-2xl hover:bg-slate-100"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-expanded={isMobileMenuOpen}
+                aria-controls="customer-mobile-menu"
               >
                 <span className="sr-only">
                   {isMobileMenuOpen ? "Close Menu" : "Open Menu"}
@@ -2155,11 +2146,12 @@ export function WebsiteRenderer({
           <AnimatePresence>
             {isMobileMenuOpen && (
               <motion.div
+                id="customer-mobile-menu"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 className={cn(
-                  "md:hidden border-t overflow-hidden shadow-2xl",
+                  "lg:hidden border-t overflow-hidden shadow-2xl",
                   theme.style === "luxury_dark" ||
                     theme.style === "immersive" ||
                     theme.style === "glassmorphic"
@@ -2179,7 +2171,7 @@ export function WebsiteRenderer({
                         scrollPreviewToTop();
                       }}
                       className={cn(
-                        "w-full text-left p-4 rounded-2xl text-lg font-black uppercase tracking-widest flex items-center justify-between group",
+                        "w-full text-left p-4 rounded-xl text-base font-semibold flex items-center justify-between group",
                         activePageSlug === page.slug
                           ? "bg-primary text-primary-foreground"
                           : theme.style === "luxury_dark" ||
@@ -2202,13 +2194,13 @@ export function WebsiteRenderer({
                   ))}
                   <div className="pt-4">
                     <Button
-                      className="w-full h-16 btn-primary rounded-2xl text-sm font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20"
+                      className="w-full h-14 btn-primary rounded-xl text-sm font-semibold shadow-xl shadow-primary/20"
                       onClick={() => {
                         setIsMobileMenuOpen(false);
                         handleButtonAction("Get Started");
                       }}
                     >
-                      Get Started Now
+                      Get in touch
                     </Button>
                   </div>
                 </div>
@@ -5213,12 +5205,13 @@ export function WebsiteRenderer({
           )}
         </AnimatePresence>
 
-        {!isThumbnail && whatsappHref && (
+        {!isThumbnail && !cookiePromptVisible && whatsappHref && (
           <a
             href={whatsappHref}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackContactAction("whatsapp_click", "Floating WhatsApp", whatsappHref)}
+            aria-label="Contact us on WhatsApp"
             className="fixed bottom-4 left-4 z-[95] inline-flex h-12 w-12 items-center justify-center gap-3 rounded-2xl bg-emerald-500 px-0 text-sm font-black uppercase tracking-widest text-white shadow-2xl shadow-emerald-900/20 transition-all hover:-translate-y-1 hover:bg-emerald-600 sm:bottom-6 sm:left-6 sm:h-14 sm:w-auto sm:px-5"
           >
             <MessageSquare className="h-5 w-5" />
@@ -5227,7 +5220,7 @@ export function WebsiteRenderer({
         )}
 
         {/* AI Chatbot Widget */}
-        {!isThumbnail && <div className="fixed bottom-4 right-4 z-[100] sm:bottom-6 sm:right-6">
+        {!isThumbnail && !cookiePromptVisible && <div className="fixed bottom-4 right-4 z-[100] sm:bottom-6 sm:right-6">
           <AnimatePresence>
             {isChatOpen && (
               <motion.div
@@ -5242,15 +5235,16 @@ export function WebsiteRenderer({
                       <Sparkles className="h-5 w-5" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm">AI Assistant</h4>
+                      <h4 className="font-bold text-sm">Website assistant</h4>
                       <p className="text-[10px] text-indigo-100 uppercase tracking-widest">
-                        Powered by Gemini
+                        Quick answers
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setIsChatOpen(false)}
-                    className="hover:rotate-90 transition-transform duration-300"
+                    aria-label="Close website assistant"
+                    className="transition-opacity hover:opacity-70"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -5358,6 +5352,7 @@ export function WebsiteRenderer({
                     />
                     <button
                       type="submit"
+                      aria-label="Send message"
                       disabled={!chatInput.trim() || isChatLoading}
                       className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center disabled:opacity-50 hover:bg-indigo-700 transition-colors"
                     >
@@ -5370,10 +5365,12 @@ export function WebsiteRenderer({
           </AnimatePresence>
 
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.97 }}
             onClick={() => setIsChatOpen(!isChatOpen)}
-            className="h-16 w-16 bg-indigo-600 text-white rounded-3xl shadow-2xl flex items-center justify-center hover:bg-indigo-700 transition-all duration-300 group relative"
+            aria-label={isChatOpen ? "Close website assistant" : "Open website assistant"}
+            aria-expanded={isChatOpen}
+            className="h-14 w-14 bg-indigo-600 text-white rounded-2xl shadow-2xl flex items-center justify-center hover:bg-indigo-700 transition-all duration-300 group relative"
           >
             {isChatOpen ? (
               <X className="h-6 w-6" />
@@ -5386,7 +5383,7 @@ export function WebsiteRenderer({
           </motion.button>
         </div>}
 
-        {!isThumbnail && cookieBannerEnabled && (!cookieConsent || showCookiePrefs) && (
+        {cookiePromptVisible && (
           <div className="fixed inset-x-4 bottom-4 z-[140] mx-auto max-w-5xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex gap-4">

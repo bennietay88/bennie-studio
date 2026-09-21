@@ -399,8 +399,8 @@ test("presents Managed Website as the primary homepage offer", async ({ page }) 
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /A serious website, without building an in-house web team/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Start with the website\. Add growth when the business needs it\./i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Your website, fully managed\./i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Start with the website\. Add growth later\./i })).toBeVisible();
   await expect(page.getByRole("button", { name: /Build my free preview/i }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true }).first()).toBeVisible();
   await expect(page.getByText(/\$49/)).toHaveCount(0);
@@ -472,8 +472,10 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
     claimToken: "claim-token-e2e-abcdefghijklmnopqrstuvwxyz-1234567890",
   }));
 
-  await page.goto("/pricing?market=INTL");
-  await page.getByRole("button", { name: /Choose plan/i }).nth(1).click();
+  await page.goto("/pricing?market=INTL", { waitUntil: "networkidle" });
+  const growthCard = page.getByRole("heading", { name: "Website Growth", exact: true }).locator("xpath=ancestor::article[1]");
+  await expect(growthCard).toBeVisible();
+  await growthCard.getByRole("button", { name: /Choose plan/i }).click();
   await expect(page.getByRole("dialog", { name: "Order summary" })).toBeVisible();
   await expect(page.getByText(/No account is required before payment/i)).toBeVisible();
   await page.getByRole("button", { name: /Continue to secure checkout/i }).click();

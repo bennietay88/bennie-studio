@@ -26,7 +26,7 @@ const samples = {
   dental: {
     name: "SmileHaus Dental Clinic",
     eyebrow: "Dental Clinic Concept Case Study",
-    headline: "Gentle dental care for confident smiles in Kuala Lumpur.",
+    headline: "Gentle dental care, built for bookings.",
     description:
       "A clinic-ready website demo with treatment explanations, dentist trust sections, WhatsApp booking, patient FAQs, operating hours, and local search structure for Kuala Lumpur patients.",
     challenge: "Patients need treatment clarity, practitioner reassurance, and location confidence before they are ready to book.",
@@ -59,7 +59,7 @@ const samples = {
   consultant: {
     name: "NorthStar Growth Advisory",
     eyebrow: "Consultant Concept Case Study",
-    headline: "A sharper website for consultants who sell strategy and trust.",
+    headline: "Sharper positioning for trusted consultants.",
     description:
       "A consultant-ready website demo with authority positioning, service offer pages, proof sections, case-study prompts, lead capture, and a strategy-call conversion flow.",
     challenge: "Prospects cannot assess expertise when the offer, outcomes, and engagement model are vague.",
@@ -92,7 +92,7 @@ const samples = {
   beauty: {
     name: "Lumi Beauty Studio",
     eyebrow: "Beauty Salon Concept Case Study",
-    headline: "Premium beauty treatments with a simple booking path.",
+    headline: "Premium treatments. Simple booking.",
     description:
       "A salon-ready website demo with service menus, package highlights, gallery sections, WhatsApp booking, promotion blocks, and local search structure for beauty studios.",
     challenge: "Mobile visitors need to compare treatments, packages, visual quality, and availability quickly.",
@@ -125,7 +125,7 @@ const samples = {
   contractor: {
     name: "PrimeBuild Renovation",
     eyebrow: "Contractor Concept Case Study",
-    headline: "A quote-focused renovation website for serious enquiries.",
+    headline: "Renovation websites built for quotes.",
     description:
       "A contractor-ready website demo with service pages, project highlights, quote request flow, service areas, trust points, and local SEO sections.",
     challenge: "Unstructured contact forms create weak leads without project type, budget, location, or timeline context.",
@@ -158,7 +158,7 @@ const samples = {
   restaurant: {
     name: "Kopi Yard Cafe",
     eyebrow: "Restaurant Concept Case Study",
-    headline: "A local cafe website built for menus, bookings, and discovery.",
+    headline: "Menus, bookings and local discovery.",
     description:
       "A restaurant-ready website demo with menu highlights, food gallery, reservation CTA, location details, delivery links, promotions, and local search content.",
     challenge: "Diners want menu, photos, location, hours, and booking options without searching across several platforms.",
@@ -191,7 +191,7 @@ const samples = {
   education: {
     name: "BrightPath Tuition Centre",
     eyebrow: "Education Concept Case Study",
-    headline: "A tuition centre website for trial class enquiries.",
+    headline: "Trial-class enquiries made easier.",
     description:
       "An education-ready website demo with programme pages, teacher trust sections, parent FAQs, trial-class CTA, timetable prompts, and enrolment lead capture.",
     challenge: "Parents need clear programmes, levels, teachers, schedules, and outcomes before making contact.",
@@ -225,6 +225,15 @@ const samples = {
 
 type SampleKey = keyof typeof samples;
 
+const previewIndustryBySample: Record<SampleKey, string> = {
+  dental: "clinic",
+  consultant: "consultant",
+  beauty: "beauty",
+  contractor: "contractor",
+  restaurant: "restaurant",
+  education: "education",
+};
+
 export default function WaasSamplePage() {
   const navigate = useNavigate();
   const params = useParams();
@@ -238,7 +247,7 @@ export default function WaasSamplePage() {
   }, [sample.name]);
 
   return (
-    <div className="min-h-screen bg-white text-slate-950">
+    <div className="brand-public min-h-screen bg-white text-slate-950">
       <Helmet>
         <title>{sample.name} | Concept Case Study</title>
         <meta
@@ -251,7 +260,7 @@ export default function WaasSamplePage() {
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-8">
           <button
             onClick={() => navigate("/case-studies")}
-            className="flex items-center gap-2 border-none bg-transparent text-left text-sm font-black uppercase tracking-widest text-slate-600 hover:text-slate-950"
+            className="flex items-center gap-2 border-none bg-transparent text-left text-sm font-semibold text-slate-600 hover:text-slate-950"
           >
             <ArrowLeft className="h-4 w-4" />
             Case Studies
@@ -280,7 +289,7 @@ export default function WaasSamplePage() {
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <Button
                 onClick={() => navigate("/generate-preview")}
-                className={`h-14 rounded-2xl px-8 font-black uppercase tracking-widest text-white ${sample.button}`}
+                className={`h-14 rounded-2xl px-8 font-semibold text-white ${sample.button}`}
               >
                 <MessageCircle className="mr-2 h-5 w-5" />
                 Generate Similar Website
@@ -288,7 +297,7 @@ export default function WaasSamplePage() {
               <Button
                 variant="outline"
                 onClick={() => document.getElementById("case-study-solution")?.scrollIntoView({ behavior: "smooth" })}
-                className="h-14 rounded-2xl px-8 font-black uppercase tracking-widest"
+                className="h-14 rounded-2xl px-8 font-semibold"
               >
                 Explore Case Study
               </Button>
@@ -332,7 +341,7 @@ export default function WaasSamplePage() {
             {sample.stats.map((stat) => (
               <div key={stat} className="rounded-2xl border border-slate-200 bg-white p-6">
                 <CheckCircle2 className={`mb-4 h-6 w-6 ${sample.accent}`} />
-                <p className="text-sm font-black uppercase tracking-widest text-slate-900">{stat}</p>
+                <p className="text-sm font-semibold text-slate-900">{stat}</p>
               </div>
             ))}
           </div>
@@ -359,8 +368,12 @@ export default function WaasSamplePage() {
                 <Star className={`mb-6 h-6 w-6 ${sample.accent}`} />
                 <h3 className="text-2xl font-black tracking-tight">{title}</h3>
                 <p className="mt-4 text-sm font-medium leading-7 text-slate-600">{text}</p>
-                <Button variant="ghost" className={`mt-6 px-0 font-black ${sample.accent}`}>
-                  Enquire Now
+                <Button
+                  variant="ghost"
+                  onClick={() => navigate(`/generate-preview?industry=${previewIndustryBySample[sampleKey]}`)}
+                  className={`mt-6 px-0 font-semibold ${sample.accent}`}
+                >
+                  Build this direction
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </article>
@@ -415,7 +428,7 @@ export default function WaasSamplePage() {
               <Button
                 size="lg"
                 onClick={() => navigate("/generate-preview")}
-                className={`h-14 rounded-2xl px-8 font-black uppercase tracking-widest text-white ${sample.button}`}
+                className={`h-14 rounded-2xl px-8 font-semibold text-white ${sample.button}`}
               >
                 Generate Similar Preview
               </Button>

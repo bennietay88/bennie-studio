@@ -118,7 +118,6 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   }, [loading, activeMarket, products]);
   const annualAvailable = false;
   React.useEffect(() => { if (!annualAvailable && billingCycle === "yearly") setBillingCycle("monthly"); }, [annualAvailable, billingCycle]);
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
   const pendingPrice = pendingProduct ? getCommercialPrice(pendingProduct, activeMarket) : null;
   const pendingMonthly = pendingPrice?.monthlyPrice || 0;
   const dueToday = pendingPrice?.billingInterval === "one_time" ? (pendingPrice?.monthlyPrice || 0) : ((pendingPrice?.setupFee || 0) + (billingCycle === "monthly" ? pendingMonthly : (pendingPrice?.annualPrice || 0)));
@@ -136,7 +135,8 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
     ["Growth support", ["—", "Limited", "Ongoing"]],
   ];
 
-  return <div id="plans" className={cn("brand-shell scroll-mt-24", hideIntro ? "py-14 sm:py-20" : "py-14 sm:py-20")}>
+  return <div id="plans" aria-busy={loading} className={cn("brand-shell scroll-mt-24", hideIntro ? "py-14 sm:py-20" : "py-14 sm:py-20")}>
+    {loading ? <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-slate-500" aria-live="polite"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Updating local pricing…</div> : null}
     <div className="relative h-0 overflow-visible" aria-hidden="true">
       {planSet.map(([product]) => (
         <span key={product.slug} id={`plan-${product.slug}`} className="absolute -top-24" data-plan-anchor={product.slug} />
@@ -205,7 +205,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
       <div className="grid gap-7 lg:grid-cols-[0.75fr_1.25fr] lg:items-start">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.1em] text-[#5746e8]">Before your site goes live</p>
-          <h3 className="mt-3 text-2xl font-semibold text-slate-950">Payment starts a managed delivery process, not an automatic publish button.</h3>
+          <h3 className="mt-3 text-2xl font-semibold text-slate-950">Payment starts the managed build.</h3>
           <p className="mt-3 text-sm leading-6 text-slate-600">
             You see the direction before buying, then approve the finished website before launch.
           </p>

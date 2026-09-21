@@ -41,7 +41,7 @@ const isFinePointer = () =>
  *
  * The existing component-level Motion animations keep control of layout/UI state.
  * This director only adds non-conflicting art-direction details: scroll progress,
- * hero word reveals, ambient spotlight/parallax, and subtle CTA attraction.
+ * restrained hero reveals and ambient spotlight/parallax.
  */
 export function AgencyMotionDirector() {
   useEffect(() => {
@@ -114,13 +114,25 @@ export function AgencyMotionDirector() {
         renderer.prepend(spotlight);
         cleanups.push(() => spotlight.remove());
 
+        let pointerRaf = 0;
+        let pointerX = 0;
+        let pointerY = 0;
+        const applyPointer = () => {
+          renderer.style.setProperty("--agency-pointer-x", `${pointerX}px`);
+          renderer.style.setProperty("--agency-pointer-y", `${pointerY}px`);
+          pointerRaf = 0;
+        };
         const onPointerMove = (event: PointerEvent) => {
-          renderer.style.setProperty("--agency-pointer-x", `${event.clientX}px`);
-          renderer.style.setProperty("--agency-pointer-y", `${event.clientY}px`);
+          pointerX = event.clientX;
+          pointerY = event.clientY;
+          if (!pointerRaf) pointerRaf = requestAnimationFrame(applyPointer);
         };
         if (isFinePointer()) {
           window.addEventListener("pointermove", onPointerMove, { passive: true });
-          cleanups.push(() => window.removeEventListener("pointermove", onPointerMove));
+          cleanups.push(() => {
+            window.removeEventListener("pointermove", onPointerMove);
+            if (pointerRaf) cancelAnimationFrame(pointerRaf);
+          });
         }
 
         // Hero word reveal. The generated hero already renders words as spans, so we
@@ -132,12 +144,12 @@ export function AgencyMotionDirector() {
           word.style.display = "inline-block";
           const animation = word.animate(
             [
-              { opacity: 0, transform: "translate3d(0, 0.72em, 0)", filter: "blur(10px)" },
+              { opacity: 0, transform: "translate3d(0, 0.35em, 0)", filter: "blur(4px)" },
               { opacity: 1, transform: "translate3d(0, 0, 0)", filter: "blur(0px)" },
             ],
             {
-              duration: cinematic ? 820 : 560,
-              delay: 90 + index * (cinematic ? 58 : 38),
+              duration: cinematic ? 620 : 480,
+              delay: 60 + index * (cinematic ? 38 : 28),
               easing: "cubic-bezier(.16,1,.3,1)",
               fill: "both",
             },
@@ -154,7 +166,7 @@ export function AgencyMotionDirector() {
           const y = window.scrollY;
           ambientNodes.forEach((node, index) => {
             const direction = index % 2 === 0 ? 1 : -1;
-            const distance = Math.min(42, y * 0.025) * direction;
+            const distance = Math.min(28, y * 0.018) * direction;
             node.style.translate = `0 ${distance}px`;
           });
           raf = 0;
@@ -172,31 +184,6 @@ export function AgencyMotionDirector() {
           });
         }
 
-        // Very small magnetic pull on primary CTAs for desktop pointers only.
-        // The effect is intentionally capped so conversion controls never feel slippery.
-        if (cinematic && isFinePointer()) {
-          const buttons = Array.from(
-            renderer.querySelectorAll<HTMLElement>(".btn-primary"),
-          );
-          buttons.forEach((button) => {
-            const onMove = (event: PointerEvent) => {
-              const rect = button.getBoundingClientRect();
-              const x = ((event.clientX - rect.left) / rect.width - 0.5) * 6;
-              const y = ((event.clientY - rect.top) / rect.height - 0.5) * 6;
-              button.style.translate = `${x}px ${y}px`;
-            };
-            const onLeave = () => {
-              button.style.translate = "0 0";
-            };
-            button.addEventListener("pointermove", onMove);
-            button.addEventListener("pointerleave", onLeave);
-            cleanups.push(() => {
-              button.removeEventListener("pointermove", onMove);
-              button.removeEventListener("pointerleave", onLeave);
-              button.style.removeProperty("translate");
-            });
-          });
-        }
       }
 
       cleanupCurrent = () => cleanups.reverse().forEach((cleanup) => cleanup());

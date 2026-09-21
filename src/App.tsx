@@ -21,6 +21,7 @@ import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingFallback } from "./components/LoadingFallback";
 import "./styles/publicBrand.css";
+import { AgencyMotionDirector } from "./components/AgencyMotionDirector";
 import { classifyTenantHost } from "./lib/tenantDomains";
 
 const CHUNK_RETRY_KEY = "bt_chunk_retry_once";
@@ -365,6 +366,7 @@ export default function App() {
         <ErrorBoundary>
           <Router>
             <ScrollToTop />
+            <AgencyMotionDirector />
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 <Route path="*" element={<CustomDomainWebsiteRoute />} />
@@ -405,6 +407,7 @@ export default function App() {
           <ScrollToTop />
           <RouteRobotsMeta />
           <TrafficTracker />
+          <AgencyMotionDirector />
           <Helmet>
             <title>{defaultSiteTitle}</title>
             <meta

@@ -564,7 +564,7 @@ function Hero({
         <div className="relative lg:col-span-7 lg:-mr-8 xl:-mr-14">
           <div className="pointer-events-none absolute -inset-8 bg-[#5746e8]/10 blur-3xl" />
           <div className="relative overflow-hidden rounded-[1.15rem] border border-white/10 bg-[#080b15] shadow-[0_55px_140px_-55px_rgba(0,0,0,.95)]">
-            <img src="/images/bennie-studio-hero.webp" alt="" className="aspect-[16/9] w-full object-cover" loading="eager" decoding="async" />
+            <img src="/images/bennie-studio-hero.webp" alt="" width="1600" height="900" sizes="(min-width: 1024px) 44vw, 100vw" className="aspect-[16/9] w-full object-cover" loading="eager" decoding="async" />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#080b15] via-[#080b15]/75 to-transparent px-5 pb-5 pt-16">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Managed website direction</p>
               <p className="mt-2 max-w-md text-sm font-semibold !text-white">The visual direction changes. The operating system underneath stays disciplined.</p>
@@ -580,7 +580,7 @@ function TemplatesPage() {
   return (
     <>
       <Hero
-        title="Website directions built around your business."
+        title="Website directions for real buyer journeys."
         copy="Start with the buyer journey, the evidence available, the main enquiry action and the business category. The design direction follows those decisions."
         icon={LayoutTemplate}
       />
@@ -588,7 +588,7 @@ function TemplatesPage() {
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <p className="brand-kicker">Flagship directions</p>
-            <h2 className="mt-4">Inspect working design families.</h2>
+            <h2 className="mt-4">Explore the design families.</h2>
             <p className="brand-copy mt-5">These examples are for composition and enquiry strategy. They are starting directions, not rigid skins that every customer inherits.</p>
           </div>
           <div className="lg:col-span-8">
@@ -602,7 +602,7 @@ function TemplatesPage() {
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
               <p className="brand-kicker">Niche planning</p>
-              <h2 className="mt-4">The same design system adapts to different buying behaviour.</h2>
+              <h2 className="mt-4">One system, adapted to each buyer.</h2>
             </div>
             <div className="lg:col-span-8">
               <div className="brand-rule-list">
@@ -628,7 +628,7 @@ function TemplatesPage() {
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
               <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#aaa0ff]">Industry paths</p>
-              <h2 className="mt-4 text-white">Start with the business type, then choose the right direction.</h2>
+              <h2 className="mt-4 text-white">Start with the buyer journey.</h2>
               <p className="mt-5 text-base leading-7 text-white/60">Each route explains the offer, evidence and enquiry structure that matters for that market.</p>
             </div>
             <div className="border-t border-white/15 lg:col-span-8">
@@ -654,7 +654,7 @@ function PricingPage() {
   return (
     <>
       <Hero
-        title="Managed website plans that grow with you."
+        title="Plans that grow with your website."
         copy="Start with a serious managed website. Add deeper conversion, local SEO and growth support when the commercial need is there."
         icon={Sparkles}
         primaryLabel="Generate my preview"
@@ -671,7 +671,7 @@ function HowItWorksPage() {
   return (
     <>
       <Hero
-        title="A managed website, not a project handoff."
+        title="Managed from brief to launch."
         copy="You provide accurate business information and approvals. Bennie Studio handles strategy, production, hosting, maintenance and the improvement included in your plan."
         icon={Rocket}
       />
@@ -827,7 +827,7 @@ function CaseStudiesPage() {
   return (
     <>
       <Hero
-        title="See the system across different buyer journeys."
+        title="See the system in action."
         copy="Verified customer proof is shown separately from demonstration builds so you can tell the difference between measured evidence and a design example."
         icon={Sparkles}
       />
@@ -1080,7 +1080,7 @@ function GeneratePreviewPage() {
     String(savedPreviewIntent.shareablePreviewUrl || ""),
   );
   const [previewExpanded, setPreviewExpanded] = React.useState(false);
-  const [previewDevice, setPreviewDevice] = React.useState<"desktop" | "mobile">("desktop");
+  const [previewDevice, setPreviewDevice] = React.useState<"desktop" | "tablet" | "mobile">("desktop");
   const [previewMode, setPreviewMode] = React.useState<"website" | "business">(
     savedPreviewIntent.previewMode === "business" ? "business" : "website",
   );
@@ -1573,7 +1573,7 @@ function GeneratePreviewPage() {
         <div className="brand-shell py-12 sm:py-16">
           <div className="mb-10 max-w-3xl">
             <p className="brand-kicker">Build your direction</p>
-            <h2 className="mt-4">A useful preview needs a sharp brief, not a 27-field interrogation.</h2>
+            <h2 className="mt-4">A sharp brief is enough.</h2>
             <p className="brand-copy mt-4">Complete the essentials below. Optional proof and brand details can improve the direction, but they are not required to get started.</p>
           </div>
 
@@ -1621,7 +1621,7 @@ function GeneratePreviewPage() {
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">1</span>
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Existing website</p>
-                      <h3 className="mt-1 text-2xl font-semibold text-[#141821]">Paste the URL. That is enough for the business brief.</h3>
+                      <h3 className="mt-1 text-2xl font-semibold text-[#141821]">Paste your website URL.</h3>
                     </div>
                   </div>
                   <label htmlFor="preview-url-first" className="mb-2 block text-sm font-semibold text-[#374151]">Website URL</label>
@@ -1667,7 +1667,7 @@ function GeneratePreviewPage() {
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">2</span>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Customer action</p>
-                    <h3 className="mt-1 text-2xl font-semibold text-[#141821]">What should a good visitor do next?</h3>
+                    <h3 className="mt-1 text-2xl font-semibold text-[#141821]">Choose the next action.</h3>
                   </div>
                 </div>
 
@@ -1718,7 +1718,7 @@ function GeneratePreviewPage() {
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">3</span>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Design direction</p>
-                    <h3 className="mt-1 text-2xl font-semibold text-[#141821]">Choose the personality, not a template colour.</h3>
+                    <h3 className="mt-1 text-2xl font-semibold text-[#141821]">Choose the brand personality.</h3>
                   </div>
                 </div>
 
@@ -1768,7 +1768,7 @@ function GeneratePreviewPage() {
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-[#141821]">{previewMode === "website" ? "2" : "4"}</span>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#b9b1ff]">Send the preview</p>
-                    <h3 className="mt-1 text-2xl font-semibold text-white">Where should we connect this direction?</h3>
+                    <h3 className="mt-1 text-2xl font-semibold text-white">Where should we send it?</h3>
                   </div>
                 </div>
 
@@ -1802,7 +1802,7 @@ function GeneratePreviewPage() {
                   />
                 </div>
 
-                {error ? <div className="mt-5 border border-rose-300/40 bg-rose-400/10 p-4 text-sm font-semibold text-rose-100">{error}</div> : null}
+                {error ? <div role="alert" className="mt-5 border border-rose-300/40 bg-rose-400/10 p-4 text-sm font-semibold text-rose-100">{error}</div> : null}
 
                 <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
                   <Button type="submit" disabled={generating} className="min-h-14 rounded-none bg-[#6758ff] px-7 text-base font-bold text-white hover:bg-[#7a6cff]">
@@ -1819,7 +1819,7 @@ function GeneratePreviewPage() {
                   <LayoutTemplate className="h-5 w-5 text-[#5746e8]" />
                   <p className="text-sm font-bold uppercase tracking-[0.1em] text-[#5746e8]">Live brief</p>
                 </div>
-                <h3 className="mt-4 text-2xl font-semibold text-[#141821]">{businessLabel === "your business" ? "Your preview will adapt as you fill this in." : businessLabel}</h3>
+                <h3 className="mt-4 text-2xl font-semibold text-[#141821]">{businessLabel === "your business" ? "Your preview adapts live." : businessLabel}</h3>
                 <div className="mt-6 divide-y divide-[#dfe2ea] border-y border-[#dfe2ea]">
                   {[
                     ["Industry", industry.label],
@@ -1882,10 +1882,18 @@ function GeneratePreviewPage() {
                 <p className="mt-2 text-[#526071]">{industry.label} · {locationLabel} · {previewGenerationMode === "brand_led" ? "Brand-led direction" : "Premium direction"}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {(["desktop","mobile"] as const).map((device)=>(
-                  <button key={device} type="button" onClick={()=>setPreviewDevice(device)} className={previewDevice===device ? "border border-[#5746e8] bg-[#5746e8] px-4 py-2 text-sm font-semibold text-white" : "border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold"}>{device==="desktop"?"Desktop":"Mobile"}</button>
+                {(["desktop","tablet","mobile"] as const).map((device)=>(
+                  <button
+                    key={device}
+                    type="button"
+                    aria-pressed={previewDevice === device}
+                    onClick={()=>setPreviewDevice(device)}
+                    className={previewDevice===device ? "border border-[#5746e8] bg-[#5746e8] px-4 py-2 text-sm font-semibold text-white" : "border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold"}
+                  >
+                    {device==="desktop" ? "Desktop" : device==="tablet" ? "Tablet" : "Mobile"}
+                  </button>
                 ))}
-                <button type="button" onClick={()=>setPreviewExpanded((value)=>!value)} className="border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold">{previewExpanded?"Compact":"Expand preview"}</button>
+                <button type="button" aria-expanded={previewExpanded} onClick={()=>setPreviewExpanded((value)=>!value)} className="border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold">{previewExpanded?"Compact":"Expand preview"}</button>
               </div>
             </div>
 
@@ -1906,7 +1914,7 @@ function GeneratePreviewPage() {
                 <span className="h-2 w-2 rounded-full bg-[#dfe2ea]" />
                 <span className="ml-2 truncate">Preview · {businessLabel}</span>
               </div>
-              <div className={(previewDevice==="mobile" ? "max-w-[430px] " : "max-w-full ") + (previewExpanded ? "max-h-[90vh] " : "max-h-[900px] ") + "bt-static-preview mx-auto overflow-y-auto border border-[#dfe2ea] bg-white shadow-[0_20px_60px_-45px_rgba(15,23,42,.55)] transition-all"}>
+              <div className={(previewDevice==="mobile" ? "max-w-[430px] " : previewDevice==="tablet" ? "max-w-[820px] " : "max-w-full ") + (previewExpanded ? "max-h-[90vh] " : "max-h-[900px] ") + "bt-static-preview mx-auto overflow-y-auto border border-[#dfe2ea] bg-white shadow-[0_20px_60px_-45px_rgba(15,23,42,.55)] transition-all"}>
                 <React.Suspense fallback={<div className="grid min-h-[40rem] place-items-center text-[#526071]">Rendering website…</div>}>
                   <PublicWebsiteRenderer initialData={generatedWebsite} />
                 </React.Suspense>
@@ -2507,7 +2515,7 @@ export default function PublicMarketingPages() {
         <div className="brand-shell relative grid gap-8 py-16 md:grid-cols-[1fr_auto] md:items-center">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.1em] !text-white/65">Next step</p>
-            <h2 className="mt-3 max-w-2xl !text-white">See the website system applied to your business.</h2>
+            <h2 className="mt-3 max-w-2xl !text-white">See it applied to your business.</h2>
             <p className="mt-4 max-w-2xl text-base !text-white/75">Generate a real website direction first. Use the 30-minute review when you want help confirming scope and fit.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row md:flex-col">

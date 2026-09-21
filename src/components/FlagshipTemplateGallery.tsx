@@ -1,6 +1,6 @@
 import React from "react";
 import { ArrowRight, Check, Eye, MonitorSmartphone, Sparkles } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { Link } from "react-router-dom";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { Badge } from "./ui/badge";
@@ -121,18 +121,21 @@ export const FLAGSHIP_TEMPLATES: FlagshipTemplate[] = [
 ];
 
 export function FlagshipTemplateGallery() {
+  const reduceMotion = useReducedMotion();
   const [activeId, setActiveId] = React.useState(FLAGSHIP_TEMPLATES[0].id);
   const active = FLAGSHIP_TEMPLATES.find((template) => template.id === activeId) || FLAGSHIP_TEMPLATES[0];
 
   return (
     <div className="space-y-10">
-      <div className="flex flex-wrap gap-2" aria-label="Template family selector">
+      <div data-testid="template-family-scroller" className="-mx-1 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Template family selector">
+        <div className="flex w-max min-w-full gap-2">
         {FLAGSHIP_TEMPLATES.map((template) => (
           <button
             key={template.id}
             type="button"
+            aria-pressed={active.id === template.id}
             onClick={() => setActiveId(template.id)}
-            className={`min-h-11 rounded-full border px-4 py-2 text-sm font-black transition ${
+            className={`min-h-11 shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition ${
               active.id === template.id
                 ? "border-slate-950 bg-slate-950 text-white shadow-lg"
                 : "border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-700"
@@ -141,14 +144,15 @@ export function FlagshipTemplateGallery() {
             {template.family}
           </button>
         ))}
+        </div>
       </div>
 
       <motion.article
         key={active.id}
-        initial={{ opacity: 0, y: 12 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white shadow-[0_30px_80px_-45px_rgba(15,23,42,0.45)]"
+        transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.16, 1, 0.3, 1] }}
+        className="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-[0_30px_80px_-45px_rgba(15,23,42,0.45)]"
       >
         <div className="grid lg:grid-cols-[1.25fr_0.75fr]">
           <div className="relative min-h-[320px] overflow-hidden border-b border-slate-200 bg-slate-100 lg:min-h-[560px] lg:border-b-0 lg:border-r">

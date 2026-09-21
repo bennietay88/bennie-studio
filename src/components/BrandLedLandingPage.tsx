@@ -430,7 +430,7 @@ export default function BrandLedLandingPage() {
           <div className="brand-shell relative grid gap-14 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
             <div className="lg:col-span-5">
               <p className="brand-kicker !text-[#b9b1ff]">Managed website system for service businesses</p>
-              <h1 className="mt-5 !max-w-[13ch] !text-white">Your website, fully managed.</h1>
+              <h1 className="mt-5 !max-w-[12ch] !text-white">Your website, fully managed.</h1>
               <p className="brand-copy brand-muted-on-dark mt-7 !max-w-xl">
                 Strategy, design, lead capture, hosting and ongoing improvement in one managed service.
               </p>
@@ -450,9 +450,9 @@ export default function BrandLedLandingPage() {
             </div>
 
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: "easeOut" }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               className="relative lg:col-span-7 lg:-mr-8 xl:-mr-14"
             >
               <div className="pointer-events-none absolute -inset-10 bg-[#5746e8]/10 blur-3xl" />
@@ -460,6 +460,9 @@ export default function BrandLedLandingPage() {
                 <img
                   src="/images/bennie-studio-hero.webp"
                   alt="Premium Bennie Studio website direction shown on desktop and mobile"
+                  width="1600"
+                  height="900"
+                  sizes="(min-width: 1024px) 58vw, 100vw"
                   className="aspect-[16/9] w-full object-cover"
                   loading="eager"
                   decoding="async"
