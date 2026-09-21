@@ -89,6 +89,7 @@ export async function callOpenAI(
     temperature: request.temperature ?? 0.2,
     store: false,
     reasoning: model.startsWith("gpt-5") ? { effort: "none" } : undefined,
+    text: request.isJson ? { format: { type: "json_object" } } : undefined,
   });
 
   return {
