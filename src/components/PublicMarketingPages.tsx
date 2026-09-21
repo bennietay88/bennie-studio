@@ -1799,7 +1799,7 @@ function GeneratePreviewPage() {
                 </div>
                 <div className="mt-6 border-t border-[#dfe2ea] pt-5">
                   <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8b93a0]">Recommended after preview</p>
-                  <p className="mt-2 font-semibold text-[#141821]">{commercialRecommendation.name}</p>
+                  <p className="mt-2 font-semibold text-[#141821]">{commercialRecommendation.label}</p>
                   <p className="mt-1 text-sm leading-5 text-[#687386]">The recommendation is based on the website goal and business brief, not a forced upsell.</p>
                 </div>
               </div>
