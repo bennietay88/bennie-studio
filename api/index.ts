@@ -4266,7 +4266,7 @@ async function startServer() {
         prompt_tokens: aiResponse.usage.promptTokens,
         output_tokens: aiResponse.usage.completionTokens,
         estimated_cost_usd:
-          provider === "openai" && model === "gpt-5.6-luna"
+          selectedProvider === "openai" && selectedModel === "gpt-5.6-luna"
             ? ((aiResponse.usage.promptTokens * 0.20) + (aiResponse.usage.completionTokens * 1.20)) / 1_000_000
             : null,
         credits_charged: deductionResult.credits_charged,
