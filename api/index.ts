@@ -1445,11 +1445,17 @@ async function startServer() {
               }).eq("id", publicOrderId);
             }
             if (publicLeadId && UUID_SCHEMA.safeParse(publicLeadId).success) {
+              const { data: paidLead } = await supabaseAdmin
+                .from("leads")
+                .select("raw_fields")
+                .eq("id", publicLeadId)
+                .maybeSingle();
               await supabaseAdmin.from("leads").update({
                 status: "won",
                 automation_next_action: "Payment received — activate customer account and begin onboarding",
                 next_follow_up_at: paidAt,
                 raw_fields: {
+                  ...(paidLead?.raw_fields || {}),
                   payment: {
                     stripeSessionId: session.id,
                     stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
