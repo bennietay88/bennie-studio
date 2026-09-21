@@ -2468,6 +2468,155 @@ async function startServer() {
     },
   );
 
+  app.post(
+    "/api/public/preview-site",
+    rateLimit({ windowMs: 60 * 60 * 1000, max: 4, keyPrefix: "preview-site" }),
+    async (req: any, res: any) => {
+      const body = validateBody(z.object({
+        previewId: z.string().trim().min(8).max(160),
+        leadId: UUID_SCHEMA,
+        email: EMAIL_SCHEMA,
+        website: z.object({
+          theme: z.record(z.string(), z.any()),
+          pages: z.array(z.any()).min(1).max(5),
+          seo: z.record(z.string(), z.any()),
+        }),
+      }), req, res);
+      if (!body) return;
+
+      const serialized = JSON.stringify(body.website);
+      if (Buffer.byteLength(serialized, "utf8") > 400_000) {
+        return res.status(413).json({ error: "Preview payload is too large." });
+      }
+
+      try {
+        const { data: lead, error: leadError } = await supabaseAdmin
+          .from("leads")
+          .select("id,name,email,phone,business_id,preview_id,raw_fields")
+          .eq("id", body.leadId)
+          .ilike("email", body.email)
+          .maybeSingle();
+        if (leadError) throw leadError;
+        if (!lead || lead.preview_id !== body.previewId) {
+          return res.status(403).json({ error: "This preview could not be verified." });
+        }
+
+        const raw = lead.raw_fields && typeof lead.raw_fields === "object" ? lead.raw_fields : {};
+        const profile = raw.previewProfile && typeof raw.previewProfile === "object" ? raw.previewProfile : {};
+        const businessName = String(profile.businessName || raw.businessName || lead.name || "Website preview").trim().slice(0, 160);
+        const industry = String(raw.industry || raw.service || "Professional Services").trim().slice(0, 160);
+        const location = String(profile.location || raw.location || "").trim().slice(0, 160);
+
+        let businessId = lead.business_id as string | null;
+        if (businessId) {
+          const { data: existingBusiness } = await supabaseAdmin
+            .from("businesses")
+            .select("id,owner_id")
+            .eq("id", businessId)
+            .maybeSingle();
+          if (!existingBusiness || existingBusiness.owner_id) businessId = null;
+        }
+
+        if (!businessId) {
+          const { data: business, error: businessError } = await supabaseAdmin
+            .from("businesses")
+            .insert({
+              name: businessName,
+              owner_id: null,
+              plan: "business",
+              status: "pending",
+              subscription_status: "incomplete",
+              industry,
+              location: location || null,
+              business_nature: String(profile.description || raw.mainService || industry).slice(0, 500),
+              platform_type: "waas",
+              business_type: "local_service",
+              lifecycle_stage: "prospect",
+              lifecycle_stage_changed_at: new Date().toISOString(),
+              admin_notes: `Shareable public preview generated from lead preview ${body.previewId}. No domain attached.`,
+            })
+            .select("id")
+            .single();
+          if (businessError || !business) throw businessError || new Error("BUSINESS_CREATE_FAILED");
+          businessId = business.id;
+          const { error: linkError } = await supabaseAdmin
+            .from("leads")
+            .update({ business_id: businessId })
+            .eq("id", lead.id);
+          if (linkError) throw linkError;
+        }
+
+        const { data: currentWebsite, error: currentWebsiteError } = await supabaseAdmin
+          .from("websites")
+          .select("id")
+          .eq("business_id", businessId)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (currentWebsiteError) throw currentWebsiteError;
+
+        const websitePayload = {
+          business_id: businessId,
+          theme: body.website.theme,
+          pages: body.website.pages,
+          seo: body.website.seo,
+          status: "published",
+          slug: `preview-${body.previewId.replace(/[^a-zA-Z0-9_-]/g, "").slice(-48)}`,
+          generation_status: "complete",
+          preview_status: "ready",
+          design_profile: String(body.website.theme?.designProfile || "modern").slice(0, 120),
+          design_profile_version: "1",
+          template_version: "1",
+          renderer_version: "1",
+          content_schema_version: "1",
+          updated_at: new Date().toISOString(),
+        };
+
+        let websiteId: string;
+        if (currentWebsite?.id) {
+          const { data: updated, error: updateError } = await supabaseAdmin
+            .from("websites")
+            .update(websitePayload)
+            .eq("id", currentWebsite.id)
+            .select("id")
+            .single();
+          if (updateError || !updated) throw updateError || new Error("WEBSITE_UPDATE_FAILED");
+          websiteId = updated.id;
+        } else {
+          const { data: created, error: createError } = await supabaseAdmin
+            .from("websites")
+            .insert(websitePayload)
+            .select("id")
+            .single();
+          if (createError || !created) throw createError || new Error("WEBSITE_CREATE_FAILED");
+          websiteId = created.id;
+        }
+
+        const shareUrl = `${publicAppUrl()}/w/${businessId}`;
+        await supabaseAdmin.from("leads").update({
+          raw_fields: {
+            ...raw,
+            previewBusinessId: businessId,
+            previewWebsiteId: websiteId,
+            shareablePreviewUrl: shareUrl,
+            previewPublishedAt: new Date().toISOString(),
+          },
+        }).eq("id", lead.id);
+
+        return res.json({
+          success: true,
+          businessId,
+          websiteId,
+          shareUrl,
+          noindex: true,
+        });
+      } catch (error: any) {
+        console.error("Shareable preview persistence failed", error?.message || error);
+        return res.status(500).json({ error: "The preview was generated, but the shareable link could not be saved yet." });
+      }
+    },
+  );
+
   const runSeoAudit = async (payload: {
     auditRunId: string;
     projectId: string;
@@ -4057,26 +4206,20 @@ async function startServer() {
 
       const providerKeys: Record<string, string> = {
         openai: firstUsableKey(process.env.OPENAI_API_KEY),
-        deepseek: firstUsableKey(process.env.DEEPSEEK_API_KEY),
       };
       const fallbackModels: Record<string, string> = {
         openai: "gpt-5.6-luna",
-        deepseek: "deepseek-chat",
       };
 
-      let selectedProvider = String(route?.provider || feature.default_provider || "deepseek").toLowerCase();
-      if (!["openai", "deepseek"].includes(selectedProvider)) selectedProvider = "deepseek";
-      let selectedModel = route?.model || feature.default_model || fallbackModels[selectedProvider];
-      let apiKey = providerKeys[selectedProvider] || "";
-
-      if (!apiKey) {
-        const availableProvider = ["openai", "deepseek"].find((name) => providerKeys[name]);
-        if (availableProvider) {
-          selectedProvider = availableProvider;
-          selectedModel = fallbackModels[availableProvider];
-          apiKey = providerKeys[availableProvider];
-        }
-      }
+      // Bennie Studio uses OpenAI for authenticated AI work. Public free previews
+      // deliberately do not call any paid model.
+      const selectedProvider = "openai";
+      let selectedModel = String(route?.provider || "").toLowerCase() === "openai" && route?.model
+        ? route.model
+        : String(feature.default_provider || "").toLowerCase() === "openai" && feature.default_model
+          ? feature.default_model
+          : fallbackModels.openai;
+      const apiKey = providerKeys.openai || "";
 
       if (!apiKey) {
         if (shouldFallback) {
@@ -6363,7 +6506,7 @@ async function startServer() {
   });
 
   // Founding-customer commitment override. The public catalogue remains
-  // 12 months; only a super admin can explicitly set a customer's term to
+  // 90 days; only a super admin can explicitly set a customer's term to
   // one of the approved launch exceptions. Null restores the catalogue term.
   app.patch("/api/admin/businesses/:businessId/contract-term", authenticate, superAdminOnly, async (req: any, res: any) => {
     const businessId = String(req.params.businessId || "");
@@ -7413,7 +7556,7 @@ async function startServer() {
           isOneTimeCheckout = false;
           minimumTermMonths = Number(currentPrice.minimum_term_months || COMMERCIAL_RECURRING_COMMITMENT_MONTHS);
           if (minimumTermMonths !== COMMERCIAL_RECURRING_COMMITMENT_MONTHS) {
-            return res.status(400).json({ error: "This product is missing the required 12-month commitment configuration." });
+            return res.status(400).json({ error: "This product is missing the required 90-day commitment configuration." });
           }
           // Founding-customer terms are an internal, server-side override;
           // the browser cannot choose a shorter commitment.
