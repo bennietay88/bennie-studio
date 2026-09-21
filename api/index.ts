@@ -63,6 +63,7 @@ import {
 } from "../server/salesCallSlots.js";
 import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
+import { buildPublicPreviewProfile } from "../server/publicPreview.js";
 import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, suppressSalesRecipient } from "../server/salesOperations.js";
 import { parseProspectCsv } from "../src/lib/prospectImport.js";
 import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS } from "../src/lib/commercialPricing.js";
@@ -538,6 +539,36 @@ function rateLimit(options: {
 
     return next();
   };
+}
+
+async function verifyPreviewTurnstile(req: any, token?: string | null) {
+  const secret = String(process.env.TURNSTILE_SECRET_KEY || "").trim();
+  const required = String(process.env.PREVIEW_TURNSTILE_REQUIRED || "").toLowerCase() === "true";
+
+  if (!secret) {
+    if (required && (process.env.NODE_ENV === "production" || process.env.VERCEL)) {
+      throw new Error("PREVIEW_PROTECTION_NOT_CONFIGURED");
+    }
+    return { success: true, skipped: true };
+  }
+
+  if (!token) throw new Error("PREVIEW_HUMAN_VERIFICATION_REQUIRED");
+
+  const form = new URLSearchParams();
+  form.set("secret", secret);
+  form.set("response", token);
+  const ip = getClientIp(req);
+  if (ip && ip !== "unknown") form.set("remoteip", ip);
+
+  const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: form.toString(),
+    signal: AbortSignal.timeout(8_000),
+  });
+  const result = await response.json().catch(() => null) as any;
+  if (!response.ok || result?.success !== true) throw new Error("PREVIEW_HUMAN_VERIFICATION_FAILED");
+  return { success: true, skipped: false };
 }
 
 function validateBody<T extends z.ZodTypeAny>(schema: T, req: any, res: any) {
@@ -2237,6 +2268,112 @@ async function startServer() {
     }
     return report;
   };
+
+  app.post(
+    "/api/public/preview-intake",
+    rateLimit({ windowMs: 60 * 60 * 1000, max: 4, keyPrefix: "preview-intake" }),
+    rateLimit({
+      windowMs: 24 * 60 * 60 * 1000,
+      max: 3,
+      keyPrefix: "preview-intake-email",
+      key: (req) => String(req.body?.leadEmail || getClientIp(req)).trim().toLowerCase(),
+    }),
+    async (req: any, res: any) => {
+      const body = validateBody(z.object({
+        mode: z.enum(["website", "business"]),
+        previewId: z.string().trim().min(8).max(160),
+        leadId: UUID_SCHEMA,
+        leadEmail: EMAIL_SCHEMA,
+        websiteUrl: PUBLIC_URL_SCHEMA.optional().nullable(),
+        businessName: z.string().trim().max(160).optional().nullable(),
+        industry: z.string().trim().max(160).optional().nullable(),
+        location: z.string().trim().max(160).optional().nullable(),
+        mainService: z.string().trim().max(300).optional().nullable(),
+      }), req, res);
+      if (!body) return;
+
+      const { data: lead, error: leadError } = await supabaseAdmin
+        .from("leads")
+        .select("id,email,preview_id,raw_fields")
+        .eq("id", body.leadId)
+        .ilike("email", body.leadEmail)
+        .maybeSingle();
+
+      if (leadError) return res.status(503).json({ error: "Preview verification is temporarily unavailable." });
+      if (!lead || lead.preview_id !== body.previewId) return res.status(403).json({ error: "Preview verification failed." });
+
+      const cached = lead.raw_fields?.previewProfile;
+      if (cached && lead.raw_fields?.previewMode === body.mode && (body.mode !== "website" || cached.sourceUrl === body.websiteUrl)) {
+        return res.json({ success: true, profile: cached, cached: true, aiUsed: false, estimatedAiCostUsd: 0 });
+      }
+
+      try {
+        let profile: any;
+        if (body.mode === "website") {
+          if (!body.websiteUrl) return res.status(400).json({ error: "A website URL is required." });
+          const { response, finalUrl } = await fetchAuditResource(body.websiteUrl);
+          const contentType = response.headers.get("content-type") || "";
+          if (!response.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml"))) {
+            return res.status(422).json({ error: "That URL did not return a public website page." });
+          }
+          const declaredLength = Number(response.headers.get("content-length") || 0);
+          if (declaredLength > 1_500_000) return res.status(422).json({ error: "The website page is too large to preview safely." });
+          const html = await response.text();
+          if (!html.trim() || new TextEncoder().encode(html).length > 1_500_000) {
+            return res.status(422).json({ error: "The website returned no usable page content." });
+          }
+
+          profile = buildPublicPreviewProfile({
+            html,
+            finalUrl,
+            fallbackBusinessName: body.businessName,
+            fallbackLocation: body.location,
+            fallbackMainService: body.mainService,
+          });
+        } else {
+          profile = {
+            sourceUrl: "",
+            businessName: body.businessName || "",
+            description: "",
+            location: body.location || "",
+            contactEmail: "",
+            contactPhone: "",
+            services: body.mainService
+              ? body.mainService.split(/[,/\n]+/).map((item) => item.trim()).filter(Boolean).slice(0, 8)
+              : [],
+            heroImage: "",
+            sourceTitle: "",
+            aiUsed: false,
+            estimatedAiCostUsd: 0,
+          };
+        }
+
+        const nextRawFields = {
+          ...(lead.raw_fields || {}),
+          previewMode: body.mode,
+          previewProfile: profile,
+          previewProfileCapturedAt: new Date().toISOString(),
+          previewGenerationMethod: "deterministic",
+          previewAiCostUsd: 0,
+        };
+        await supabaseAdmin.from("leads").update({ raw_fields: nextRawFields }).eq("id", lead.id);
+
+        return res.json({
+          success: true,
+          profile,
+          cached: false,
+          aiUsed: false,
+          estimatedAiCostUsd: 0,
+        });
+      } catch (error: any) {
+        const code = String(error?.message || "");
+        if (code === "PRIVATE_AUDIT_URL") return res.status(422).json({ error: "Private or local URLs cannot be previewed." });
+        if (code === "INVALID_AUDIT_URL") return res.status(422).json({ error: "Enter a valid public website URL." });
+        console.warn("[PublicPreviewIntake]", code || error);
+        return res.status(422).json({ error: "We could not read that website. You can still build a preview from business details." });
+      }
+    },
+  );
 
   const runSeoAudit = async (payload: {
     auditRunId: string;
@@ -4303,7 +4440,13 @@ async function startServer() {
 
   app.post(
     "/api/platform-leads",
-    rateLimit({ windowMs: 60 * 1000, max: 20, keyPrefix: "platform-leads" }),
+    rateLimit({ windowMs: 60 * 1000, max: 12, keyPrefix: "platform-leads" }),
+    rateLimit({
+      windowMs: 60 * 60 * 1000,
+      max: 5,
+      keyPrefix: "platform-leads-email",
+      key: (req) => String(req.body?.email || getClientIp(req)).trim().toLowerCase(),
+    }),
     async (req, res) => {
       const leadBody = validateBody(
         z.object({
@@ -4331,6 +4474,8 @@ async function startServer() {
           landingPage: z.string().trim().max(500).optional().nullable(),
           service: z.string().trim().max(160).optional().nullable(),
           selectedProduct: z.string().trim().max(80).optional().nullable(),
+          turnstileToken: z.string().trim().max(4096).optional().nullable(),
+          website: z.string().trim().max(200).optional().nullable(),
           firstTouch: z.record(z.string(), z.any()).optional(),
           lastTouch: z.record(z.string(), z.any()).optional(),
         }),
@@ -4364,9 +4509,32 @@ async function startServer() {
         landingPage,
         service,
         selectedProduct,
+        turnstileToken,
+        website: honeypot,
         firstTouch,
         lastTouch,
       } = leadBody;
+
+      if (honeypot) {
+        // Honeypot submissions are acknowledged but deliberately discarded.
+        return res.status(200).json({ success: true, filtered: true });
+      }
+
+      if ((leadType || "").includes("preview")) {
+        try {
+          await verifyPreviewTurnstile(req, turnstileToken);
+        } catch (verificationError: any) {
+          const code = String(verificationError?.message || "");
+          const status = code === "PREVIEW_PROTECTION_NOT_CONFIGURED" ? 503 : 403;
+          return res.status(status).json({
+            success: false,
+            message: status === 503
+              ? "Preview protection is temporarily unavailable."
+              : "Please complete the human verification and try again.",
+          });
+        }
+      }
+
       const automationSnapshot = buildInboundLeadSnapshot({ message, leadType, source: sourcePage, phone });
 
       const salesMessage = [
