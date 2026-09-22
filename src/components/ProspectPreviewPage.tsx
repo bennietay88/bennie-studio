@@ -89,7 +89,7 @@ export default function ProspectPreviewPage() {
   const ctaHref = selfServe
     ? `/pricing?product=${encodeURIComponent(product!.slug)}#plan-${product!.slug}`
     : `/book-demo?preview_id=${encodeURIComponent(preview.previewId)}`;
-  const ctaLabel = selfServe ? "Use this website direction" : "Discuss this website";
+  const ctaLabel = selfServe ? "Launch this website" : "Build this website";
   const frameWidth = device === "mobile" ? "max-w-[430px]" : device === "tablet" ? "max-w-[820px]" : "max-w-[1600px]";
   const originalUrl = safeExternalUrl(preview.sourceUrl);
   const cleanPreviewUrl = safeExternalUrl(preview.websiteOnlyUrl);
