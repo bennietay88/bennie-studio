@@ -1056,6 +1056,16 @@ const resolvePreviewCta = (goal: string) => {
   return "Request a Consultation";
 };
 
+const resolveWebsitePreviewGoal = (industryId: string) => {
+  if (["agency", "accounting", "consultant", "clinic", "beauty", "education"].includes(industryId)) {
+    return "Get bookings";
+  }
+  if (["cleaning", "contractor", "local-service"].includes(industryId)) {
+    return "Generate local service leads";
+  }
+  return "Get contact form submissions";
+};
+
 const inferPreviewIndustryId = (service: string): string | null => {
   const value = service.toLowerCase();
   if (/website|web design|web development|seo|lead generation|digital marketing|marketing agency/.test(value)) return "agency";
@@ -1329,8 +1339,8 @@ function GeneratePreviewPage() {
       );
       const resolvedBrandPersonality = resolvePreviewBrandPersonality(form.brandStyle);
       const resolvedBusinessMaturity: BusinessMaturity = previewMode === "website" ? "established" : "growing";
-      const resolvedGoal = previewMode === "website" && goal === previewGoals[0]
-        ? "Generate local service leads"
+      const resolvedGoal = previewMode === "website"
+        ? resolveWebsitePreviewGoal(resolvedIndustryId)
         : goal;
       const resolvedCta = resolvePreviewCta(resolvedGoal);
       const resolvedReviewStrategy = buildReviewWebsiteStrategy({
