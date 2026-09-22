@@ -274,6 +274,7 @@ export function buildPublicPreviewProfile(input: {
     ...(inferredPrimaryService ? [canonicalizeServiceLabel(inferredPrimaryService)] : []),
   ].filter((item, index, items) => items.findIndex((candidate) => candidate.toLowerCase() === item.toLowerCase()) === index);
   if (!services.length && input.fallbackMainService?.trim()) services.push(input.fallbackMainService.trim());
+  const testimonials = extractTestimonials(html);
 
   const schemaImageRaw = (() => {
     for (const object of schemaObjects) {
