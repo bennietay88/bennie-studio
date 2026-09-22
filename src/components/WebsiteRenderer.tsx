@@ -225,8 +225,10 @@ export function WebsiteRenderer({
 
   useEffect(() => {
     scrollPreviewToTop("auto");
-    trackPinterestPageVisit(window.location.pathname + window.location.search);
-  }, [activePageSlug, selectedPost?.id]);
+    if (!website?.theme?.previewPurpose) {
+      trackPinterestPageVisit(window.location.pathname + window.location.search);
+    }
+  }, [activePageSlug, selectedPost?.id, website?.theme?.previewPurpose]);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -263,7 +265,7 @@ export function WebsiteRenderer({
     label: string,
     metadata: Record<string, any> = {},
   ) => {
-    if (!website || website.id === "preview") return;
+    if (!website || website.id === "preview" || website.theme?.previewPurpose) return;
 
     try {
       const { visitorId, sessionId } = getTrackingIds();
@@ -1469,6 +1471,7 @@ export function WebsiteRenderer({
           <title>{displayTitle}</title>
           <meta name="description" content={displayDescription} />
           <meta name="keywords" content={displayKeywords.join(", ")} />
+          {website.theme?.previewPurpose ? <meta name="robots" content="noindex,nofollow" /> : null}
 
           {isFeatureEnabled("advanced_seo") && (
             <>
