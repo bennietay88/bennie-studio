@@ -728,10 +728,10 @@ const getTestimonials = (input: BlueprintBusinessInput) => {
   const custom = (input.testimonials || []).map((text) => text.trim()).filter(Boolean);
   return custom.slice(0, 3).map((text) => ({
     name: "Customer review",
-    role: "Review supplied by the business",
+    role: input.sourceDriven ? "Review found on the public website" : "Review supplied by the business",
     text,
     verified: true,
-    sourceLabel: "Business-supplied review",
+    sourceLabel: input.sourceDriven ? "Public website review" : "Business-supplied review",
   }));
 };
 
@@ -764,9 +764,14 @@ const buildSectionContent = (
             ? generatedHeadline(`${pageBlueprint.name} Built Around ${generatedServiceTitle(service)}`)
             : generatedHeadline(pageBlueprint.name),
       subheadline: generatedBody(
-        (pageBlueprint.slug === "" ? suppliedHeroSubheadline : "")
-        || input.description
-        || `${tone} ${generatedServiceTitle(service)} in ${location}, designed to help ${target} take the next step with confidence.`,
+        pageBlueprint.slug === ""
+          ? suppliedHeroSubheadline
+            || input.description
+            || (input.sourceDriven ? "" : `${tone} ${generatedServiceTitle(service)} in ${location}, designed to help ${target} take the next step with confidence.`)
+          : input.sourceDriven
+            ? ""
+            : input.description
+              || `${tone} ${generatedServiceTitle(service)} in ${location}, designed to help ${target} take the next step with confidence.`,
       ),
       ctaText: cta,
       trustItems: pageBlueprint.slug === "" ? (input.heroTrustItems || []).filter(Boolean).slice(0, 3) : [],
@@ -795,7 +800,9 @@ const buildSectionContent = (
               : pageBlueprint.name.includes("Treatment")
                 ? "Treatments & Services"
                 : "Services Built Around Your Needs",
-      description: `Clear options for ${target} looking for ${service} in ${location}.`,
+      description: input.sourceDriven
+        ? undefined
+        : `Clear options for ${target} looking for ${service} in ${location}.`,
       items: getServiceItems(input),
       assetSlots: input.generationMode === "fast" ? undefined : {
         serviceImages: {
@@ -1022,6 +1029,116 @@ const buildSectionContent = (
   return section;
 };
 
+const makeSourceBlueprintPage = (
+  name: string,
+  slug: string,
+  purpose: string,
+  ctaType: string,
+  navLabel = name,
+): BlueprintPage => ({
+  name,
+  slug,
+  purpose,
+  sections: ["hero"],
+  ctaType,
+  navLabel,
+  seoTitle: `${name} | {businessName}`,
+  metaDescription: `${purpose} Serving {targetCustomer} in {location}.`,
+});
+
+const resolveSourceDrivenBlueprintPages = (
+  blueprint: PageBlueprint,
+  input: BlueprintBusinessInput,
+  limit: number,
+): BlueprintPage[] => {
+  const hasAbout = Boolean(String(input.aboutText || input.description || "").trim());
+  const hasFaqs = (input.faqItems || []).some((item) => item?.question && item?.answer);
+  const hasTestimonials = (input.testimonials || []).filter(Boolean).length > 0;
+  const hasServices = (input.services || []).filter(Boolean).length > 0 || Boolean(input.mainService);
+  const ctaType = input.ctaPreference || blueprint.pages[blueprint.pages.length - 1]?.ctaType || "Contact Us";
+
+  const home = makeSourceBlueprintPage(
+    "Home",
+    "",
+    "Present the clearest business proposition, services, proof and next step.",
+    ctaType,
+  );
+  const about = makeSourceBlueprintPage(
+    "About",
+    "about",
+    "Explain the business, team and approach using verified source content.",
+    ctaType,
+  );
+  const reviews = makeSourceBlueprintPage(
+    "Reviews",
+    "reviews",
+    "Show genuine customer feedback already published by the business.",
+    ctaType,
+  );
+  const faq = makeSourceBlueprintPage(
+    blueprint.niche === "clinic" ? "Patient Info" : "FAQ",
+    blueprint.niche === "clinic" ? "patient-info" : "faq",
+    "Answer common questions using verified source information.",
+    ctaType,
+    blueprint.niche === "clinic" ? "Patient Info" : "FAQ",
+  );
+
+  let pages: BlueprintPage[] = [home];
+
+  if (hasServices) {
+    const serviceName =
+      blueprint.niche === "clinic"
+        ? "Treatments"
+        : blueprint.niche === "restaurant"
+          ? "Menu"
+          : "Services";
+    pages.push(makeSourceBlueprintPage(
+      serviceName,
+      blueprint.niche === "clinic" ? "treatments" : blueprint.niche === "restaurant" ? "menu" : "services",
+      "Present the real services or offers already identified from the source website.",
+      ctaType,
+    ));
+  }
+
+  if (hasAbout) pages.push(about);
+  if (hasFaqs) pages.push(faq);
+  else if (hasTestimonials) pages.push(reviews);
+
+  const contactName =
+    blueprint.niche === "clinic"
+      ? "Appointment"
+      : blueprint.niche === "contractor"
+        ? "Request a Quote"
+        : blueprint.niche === "restaurant"
+          ? "Contact"
+          : "Contact";
+  const contactSlug =
+    blueprint.niche === "clinic"
+      ? "appointment"
+      : blueprint.niche === "contractor"
+        ? "quote"
+        : "contact";
+  const contactNav =
+    blueprint.niche === "clinic"
+      ? "Book"
+      : blueprint.niche === "contractor"
+        ? "Quote"
+        : "Contact";
+
+  pages.push(makeSourceBlueprintPage(
+    contactName,
+    contactSlug,
+    "Give visitors a direct, credible way to contact the business.",
+    ctaType,
+    contactNav,
+  ));
+
+  // A strong preview is allowed to have fewer than five pages when the source
+  // website does not contain enough trustworthy material. Empty pages sell
+  // templates; concise evidence-led pages sell redesigns.
+  return pages.slice(0, Math.max(1, limit));
+};
+
 const resolveSourceDrivenBlockPlan = (
   page: BlueprintPage,
   input: BlueprintBusinessInput,
@@ -1037,28 +1154,31 @@ const resolveSourceDrivenBlockPlan = (
       ...(hasAbout ? ["about" as SectionBlockType] : []),
       ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []),
       ...(hasFaqs ? ["faq" as SectionBlockType] : []),
-      "contact_form",
       "final_cta",
     ];
   }
 
-  if (/^(treatments?|services?|programs?|practice-areas?)$/.test(page.slug)) {
-    return ["hero", "services", ...(hasFaqs ? ["faq" as SectionBlockType] : []), "contact_form", "final_cta"];
+  if (/^(treatments?|services?|menu|programs?|practice-areas?)$/.test(page.slug)) {
+    return ["hero", "services", ...(hasFaqs ? ["faq" as SectionBlockType] : []), "final_cta"];
   }
 
   if (/^(about|practitioners?|team|our-team)$/.test(page.slug)) {
-    return ["hero", ...(hasAbout ? ["about" as SectionBlockType] : []), ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []), "contact_form", "final_cta"];
+    return ["hero", ...(hasAbout ? ["about" as SectionBlockType] : []), ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []), "final_cta"];
+  }
+
+  if (/^(reviews|results|testimonials)$/.test(page.slug)) {
+    return ["hero", ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []), "final_cta"];
   }
 
   if (/^(faq|patient-info|info|process)$/.test(page.slug)) {
-    return ["hero", ...(hasFaqs ? ["faq" as SectionBlockType] : []), "contact_form", "final_cta"];
+    return ["hero", ...(hasFaqs ? ["faq" as SectionBlockType] : []), "final_cta"];
   }
 
   if (/^(appointment|contact|quote|book-call|consultation|reservation)$/.test(page.slug)) {
-    return ["hero", "contact_form", "final_cta"];
+    return ["hero", "contact_form"];
   }
 
-  return ["hero", "services", "contact_form", "final_cta"];
+  return ["hero", "services", "final_cta"];
 };
 
 export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsitePage[] => {
@@ -1073,7 +1193,11 @@ export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsiteP
     assetReadiness: input.assetReadiness,
   });
 
-  return blueprint.pages.slice(0, limit).map((blueprintPage) => {
+  const effectivePages = input.sourceDriven
+    ? resolveSourceDrivenBlueprintPages(blueprint, input, limit)
+    : blueprint.pages.slice(0, limit);
+
+  return effectivePages.map((blueprintPage) => {
     const blockPlan = input.sourceDriven
       ? resolveSourceDrivenBlockPlan(blueprintPage, input)
       : blueprintPage.slug === ""
@@ -1083,8 +1207,26 @@ export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsiteP
       const sectionType = sectionTypeMap[block];
       const section = cloneSection(sectionType);
       const configured = buildSectionContent(section, block, blueprintPage, input);
+      const sourceVariant = input.sourceDriven
+        ? sectionType === "hero"
+          ? (blueprintPage.slug === "" ? (input.preferredHeroVariant || "source_brand_hero") : "page_masthead")
+          : sectionType === "services"
+            ? "source_services"
+            : sectionType === "about"
+              ? "source_about"
+              : sectionType === "testimonials"
+                ? "editorial_quote"
+                : sectionType === "faq"
+                  ? "two_column"
+                  : sectionType === "contact"
+                    ? "source_contact"
+                    : sectionType === "cta"
+                      ? "brand_band"
+                      : undefined
+        : undefined;
       const variant =
-        sectionType === "proof" && (input.proofLogos?.length || 0) > 0
+        sourceVariant
+        || (sectionType === "proof" && (input.proofLogos?.length || 0) > 0
           ? "logo_marquee"
           : sectionType === "hero" && blueprintPage.slug === "" && input.preferredHeroVariant
             ? input.preferredHeroVariant
@@ -1094,7 +1236,7 @@ export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsiteP
                   brandPersonality: input.brandPersonality,
                   businessMaturity: input.businessMaturity,
                   assetReadiness: input.assetReadiness,
-                });
+                }));
       return variant
         ? {
             ...configured,
@@ -1104,6 +1246,7 @@ export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsiteP
               designProfile: profile.id,
               motionProfile: profile.motion,
               textAlign: generationMode === "fast" ? configured.settings?.textAlign : "left",
+              ...(input.sourceDriven ? { sourceDriven: true } : {}),
             },
           }
         : configured;
