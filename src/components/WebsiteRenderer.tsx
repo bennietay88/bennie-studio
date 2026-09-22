@@ -1696,19 +1696,28 @@ export function WebsiteRenderer({
           max-width: 72ch;
         }
 
-        /* Generated-site readability guardrails. Keep supporting copy legible
-           even when a visual profile requests very light utility text. */
-        .bt-website-renderer main > section:not(.bg-slate-950) p.text-slate-400,
-        .bt-website-renderer main > section:not(.bg-slate-950) p.text-gray-400,
-        .bt-website-renderer main > section:not(.bg-slate-950) p.text-neutral-400,
-        .bt-website-renderer main > section:not(.bg-slate-950) .text-slate-400:not(svg),
-        .bt-website-renderer main > section:not(.bg-slate-950) .text-gray-400:not(svg),
-        .bt-website-renderer main > section:not(.bg-slate-950) .text-neutral-400:not(svg) {
+        /* Generated-site readability guardrails. The renderer may use many
+           visual profiles, but muted text must still clear AA on light and dark
+           surfaces. Brand colour is decoration; readable copy gets safe ink. */
+        .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-slate-300:not(svg),
+        .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-slate-400:not(svg),
+        .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-gray-300:not(svg),
+        .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-gray-400:not(svg),
+        .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-neutral-300:not(svg),
+        .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-neutral-400:not(svg) {
           color: #64748b !important;
         }
 
+        .bt-website-renderer nav .text-slate-300:not(svg),
+        .bt-website-renderer nav .text-slate-400:not(svg) {
+          color: #475569 !important;
+        }
+
+        .bt-website-renderer footer .text-slate-500:not(svg) {
+          color: #94a3b8 !important;
+        }
+
         .bt-website-renderer main > section p {
-          font-size: max(0.9375rem, 1em);
           line-height: 1.65;
         }
 
@@ -1979,7 +1988,7 @@ export function WebsiteRenderer({
                 ) : (
                   <span className="truncate text-xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-2xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{displayBusinessName}</span>
                 )}
-                <span className="hidden border-l border-slate-200 pl-4 text-[9px] font-black uppercase tracking-[0.22em] text-slate-400 xl:block">{displayBusinessDescriptor}</span>
+                <span className="hidden border-l border-slate-200 pl-4 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-600 xl:block">{displayBusinessDescriptor}</span>
               </button>
 
               <div className="hidden items-center gap-7 lg:flex">
@@ -2725,16 +2734,25 @@ export function WebsiteRenderer({
                         <div className="mx-auto grid min-h-[72vh] max-w-[90rem] grid-cols-1 items-stretch lg:grid-cols-12">
                           <motion.div variants={fadeInUp} className="flex flex-col justify-center px-6 py-20 sm:px-10 lg:col-span-7 lg:px-16 lg:py-28">
                             <div className={cn("mb-8 h-px w-16", brandHero ? "bg-white/70" : "bg-primary")} />
-                            <p className={cn("mb-5 text-[10px] font-black uppercase tracking-[0.32em]", brandHero ? "text-current" : "text-primary")}>
+                            <p
+                              className={cn("mb-5 text-xs font-bold uppercase tracking-[0.22em]", brandHero ? "text-current" : "text-primary")}
+                              style={brandHero ? { color: accessibleTheme.primaryForeground } : undefined}
+                            >
                               {displayBusinessDescriptor}
                             </p>
                             <h1
                               className="max-w-4xl break-words text-[clamp(2.7rem,6cqw,6.4rem)] font-semibold leading-[0.94] tracking-[-0.045em] [text-wrap:balance]"
-                              style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
+                              style={{
+                                fontFamily: theme.displayFont || designProfile.displayFont,
+                                color: brandHero ? accessibleTheme.primaryForeground : undefined,
+                              }}
                             >
                               {section.content.headline || displayBusinessName}
                             </h1>
-                            <p className={cn("mt-8 max-w-2xl text-lg font-medium leading-8 sm:text-xl", brandHero ? "text-current" : "text-slate-600")}>
+                            <p
+                              className={cn("mt-8 max-w-2xl text-lg font-medium leading-8 sm:text-xl", brandHero ? "text-current" : "text-slate-600")}
+                              style={brandHero ? { color: accessibleTheme.primaryForeground } : undefined}
+                            >
                               {section.content.subheadline}
                             </p>
                             <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -4717,7 +4735,7 @@ export function WebsiteRenderer({
             <div className="mx-auto max-w-[90rem] px-6 sm:px-8">
               <div className="grid gap-10 border-b border-white/10 py-14 sm:py-20 lg:grid-cols-12 lg:items-end">
                 <div className="lg:col-span-8">
-                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/55">Next step</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-white/75">Next step</p>
                   <h2 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>Start a conversation with {displayBusinessName}.</h2>
                 </div>
                 <div className="lg:col-span-4 lg:justify-self-end">
@@ -4735,11 +4753,11 @@ export function WebsiteRenderer({
                   <p className="mt-5 max-w-sm text-sm leading-7 text-slate-400">{theme.footer.customText || displayBusinessDescriptor}</p>
                 </div>
                 <div className="lg:col-span-2">
-                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-500">Pages</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Pages</p>
                   <div className="mt-5 space-y-3">{pages.map((page) => (<button key={page.id} onClick={() => { setActivePageSlug(page.slug); setSelectedPost(null); scrollPreviewToTop(); }} className="block text-sm font-medium text-slate-300 transition-colors hover:text-white">{page.title}</button>))}</div>
                 </div>
                 <div className="lg:col-span-3">
-                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-500">Contact</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Contact</p>
                   <div className="mt-5 space-y-3 text-sm">
                     {contactEmail && <a href={`mailto:${contactEmail}`} onClick={() => trackContactAction("email_click", "Footer email", contactEmail)} className="block text-slate-300 hover:text-white">{contactEmail}</a>}
                     {contactPhone && <a href={normalizedPhone ? `tel:${normalizedPhone}` : undefined} onClick={() => normalizedPhone && trackContactAction("call_click", "Footer phone", normalizedPhone)} className="block text-slate-300 hover:text-white">{contactPhone}</a>}
@@ -4747,12 +4765,12 @@ export function WebsiteRenderer({
                   </div>
                 </div>
                 <div className="lg:col-span-3">
-                  <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-500">Legal</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Legal</p>
                   <div className="mt-5 space-y-3">{(legalPolicyLinks || []).map((policy) => (<button key={policy.slug} onClick={() => { setActivePageSlug(policy.slug); setSelectedPost(null); scrollPreviewToTop(); }} className="block text-sm font-medium text-slate-300 hover:text-white">{policy.title}</button>))}</div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4 border-t border-white/10 py-7 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-4 border-t border-white/10 py-7 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400 sm:flex-row sm:items-center sm:justify-between">
                 <span>© {new Date().getFullYear()} {displayBusinessName}</span>
                 <div className="flex flex-wrap gap-4">{(theme.footer.socialLinks || []).filter((link) => link.url && link.isVisible !== false).map((link) => (<a key={link.platform} href={link.url} target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-white">{link.platform}</a>))}</div>
               </div>
