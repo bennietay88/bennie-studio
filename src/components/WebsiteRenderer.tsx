@@ -2701,7 +2701,7 @@ export function WebsiteRenderer({
                           <div className="mx-auto grid max-w-[90rem] lg:min-h-[43rem] lg:grid-cols-12">
                             <motion.div
                               variants={fadeInUp}
-                              className="relative flex flex-col justify-center px-6 py-14 sm:px-10 sm:py-18 lg:col-span-5 lg:px-16 lg:py-20"
+                              className="relative flex flex-col justify-center px-6 py-14 sm:px-10 sm:py-16 lg:col-span-5 lg:px-16 lg:py-20"
                             >
                               <div className="absolute left-0 top-0 hidden h-full w-1 lg:block" style={{ backgroundColor: accessibleTheme.primarySurface }} />
                               <div className="flex items-center gap-3">
@@ -2747,7 +2747,7 @@ export function WebsiteRenderer({
                               </div>
 
                               {heroTrustItems.length ? (
-                                <div className="mt-9 grid gap-3 border-t border-slate-200 pt-6 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                                <div className="mt-9 space-y-3 border-t border-slate-200 pt-6">
                                   {heroTrustItems.map((item: string, itemIndex: number) => (
                                     <div key={`${item}-${itemIndex}`} className="flex items-start gap-2 text-xs font-semibold leading-5 text-slate-600">
                                       <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: accessibleTheme.primaryInk }} />
