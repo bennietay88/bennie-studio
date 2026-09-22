@@ -1436,6 +1436,15 @@ export default function SuperAdminDashboard() {
                         </TableHeader>
                         <TableBody>
                           {businesses
+                            .filter((business) => {
+                              const notes = String(business.admin_notes || "");
+                              const isPreviewArtifact = /(?:shareable public|private prospect) preview generated/i.test(notes);
+                              const isUnactivatedCheckout =
+                                business.subscription_status === "incomplete"
+                                && !business.owner_id
+                                && /created from public pricing checkout/i.test(notes);
+                              return !isPreviewArtifact && !isUnactivatedCheckout;
+                            })
                             .filter(
                               (b) =>
                                 b.name
