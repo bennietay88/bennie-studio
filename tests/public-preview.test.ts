@@ -166,3 +166,45 @@ test("public preview extracts explicit conversion evidence without inventing cla
   assert.ok(profile.guarantees.some((item) => /warranty/i.test(item)));
   assert.equal(profile.primaryCta, "Request a Quote");
 });
+
+
+test("public preview preserves useful source branding and hero content", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <!doctype html>
+      <html>
+        <head>
+          <title>Harbour Dental | Family Dentist</title>
+          <meta name="description" content="Gentle family dental care with clear treatment options and online appointments.">
+          <meta name="theme-color" content="#167c8c">
+          <meta property="og:image" content="/images/clinic-hero.jpg">
+          <style>:root { --accent-color: #e2b96f; }</style>
+          <script type="application/ld+json">
+            {
+              "@context":"https://schema.org",
+              "@type":"Dentist",
+              "name":"Harbour Dental",
+              "logo":"/images/logo.svg"
+            }
+          </script>
+        </head>
+        <body>
+          <h1>Comfortable Dentistry for the Whole Family</h1>
+          <p>Modern treatment, a calm clinic experience, and straightforward advice from your first visit.</p>
+          <img src="/images/logo.svg" alt="Harbour Dental logo">
+          <img src="/images/clinic-hero.jpg" alt="Treatment room">
+          <img src="/images/team.jpg" alt="Dental team">
+        </body>
+      </html>
+    `,
+    finalUrl: "https://harbour.example/",
+  });
+
+  assert.equal(profile.logoUrl, "https://harbour.example/images/logo.svg");
+  assert.equal(profile.brandColor, "#167c8c");
+  assert.equal(profile.accentColor, "#e2b96f");
+  assert.equal(profile.heroHeadline, "Comfortable Dentistry for the Whole Family");
+  assert.match(profile.heroSubheadline, /Modern treatment/);
+  assert.equal(profile.heroImage, "https://harbour.example/images/clinic-hero.jpg");
+  assert.equal(profile.secondaryImage, "https://harbour.example/images/team.jpg");
+});
