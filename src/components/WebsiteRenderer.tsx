@@ -3920,7 +3920,9 @@ export function WebsiteRenderer({
                                 {member.imageUrl ? (
                                   <div className="aspect-[4/5] overflow-hidden bg-slate-200"><img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" /></div>
                                 ) : (
-                                  <div className="flex aspect-[4/5] items-end border border-slate-300 bg-white/60 p-5 text-[9px] font-black uppercase tracking-widest text-slate-400">Customer portrait needed</div>
+                                  <div className="flex aspect-[4/5] items-end border border-slate-300 bg-slate-950 p-6 text-white">
+                                    <span className="text-5xl font-semibold tracking-[-0.04em]">{String(member.name || "Team").split(/\s+/).slice(0, 2).map((part: string) => part.charAt(0)).join("").toUpperCase()}</span>
+                                  </div>
                                 )}
                                 <div className="p-6">
                                   <h3 className="text-lg font-semibold text-slate-950">{member.name}</h3>
@@ -3974,8 +3976,8 @@ export function WebsiteRenderer({
                                       referrerPolicy="no-referrer"
                                     />
                                   ) : (
-                                    <div className="flex h-full w-full items-end bg-slate-100 p-5 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                      Customer portrait needed
+                                    <div className="flex h-full w-full items-end bg-slate-950 p-6 text-white">
+                                      <span className="text-5xl font-semibold tracking-[-0.04em]">{String(member.name || "Team").split(/\s+/).slice(0, 2).map((part: string) => part.charAt(0)).join("").toUpperCase()}</span>
                                     </div>
                                   )}
                                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -4280,7 +4282,7 @@ export function WebsiteRenderer({
                           {featuredPost && (
                             <motion.article variants={fadeInUp} className="grid cursor-pointer gap-0 border border-slate-200 lg:grid-cols-12" onClick={() => { setSelectedPost(featuredPost); scrollPreviewToTop(); }}>
                               <div className="min-h-[18rem] bg-slate-100 lg:col-span-7">
-                                {featuredPost.imageUrl ? <img src={featuredPost.imageUrl} alt={featuredPost.title} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" /> : <div className="flex h-full min-h-[18rem] items-end p-8 text-[10px] font-black uppercase tracking-widest text-slate-400">Customer article image</div>}
+                                {featuredPost.imageUrl ? <img src={featuredPost.imageUrl} alt={featuredPost.title} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" /> : <div className="relative flex h-full min-h-[18rem] items-end overflow-hidden bg-slate-950 p-8 text-white"><div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/25 blur-3xl" aria-hidden="true" /><p className="relative text-xs font-bold uppercase tracking-[0.18em] text-slate-300">Ideas & updates</p></div>}
                               </div>
                               <div className="flex flex-col justify-end p-8 lg:col-span-5 lg:p-12">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-primary">{formatDate(featuredPost.createdAt)}</p>
