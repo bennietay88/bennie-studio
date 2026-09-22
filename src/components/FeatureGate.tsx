@@ -1,5 +1,6 @@
 import React from "react";
 import { useFeatures, FeatureId } from "../hooks/useFeatures";
+import type { MarketingCapabilityId } from "../constants/marketingPro";
 import {
   Card,
   CardContent,
@@ -16,14 +17,16 @@ interface FeatureGateProps {
   featureId: FeatureId;
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  marketingCapabilityId?: MarketingCapabilityId;
 }
 
 export function FeatureGate({
   featureId,
   children,
   fallback,
+  marketingCapabilityId,
 }: FeatureGateProps) {
-  const { isFeatureEnabled, loading } = useFeatures();
+  const { isFeatureEnabled, isMarketingCapabilityEnabled, getMarketingCapabilityStatus, loading } = useFeatures();
   const { profile } = useAuth();
   const navigate = useNavigate();
 
@@ -33,7 +36,10 @@ export function FeatureGate({
     );
   }
 
-  if (isFeatureEnabled(featureId)) {
+  const featureAllowed = isFeatureEnabled(featureId);
+  const marketingAllowed = !marketingCapabilityId || isMarketingCapabilityEnabled(marketingCapabilityId);
+
+  if (featureAllowed && marketingAllowed) {
     return <>{children}</>;
   }
 
@@ -51,17 +57,25 @@ export function FeatureGate({
           </div>
           <CardTitle className="text-2xl font-bold">Premium Feature</CardTitle>
           <CardDescription className="text-slate-500 dark:text-slate-400">
-            This feature is not available on your current package.
+            {marketingCapabilityId && getMarketingCapabilityStatus(marketingCapabilityId) !== "enabled"
+              ? "This capability is currently unavailable at platform level."
+              : "This feature is not available on your current package."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 pt-4">
           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              Upgrade your package to unlock{" "}
-              <span className="font-bold text-indigo-600">
-                {featureId.replace("_", " ").toUpperCase()}
-              </span>{" "}
-              and other advanced tools to grow your business.
+              {marketingCapabilityId && getMarketingCapabilityStatus(marketingCapabilityId) !== "enabled" ? (
+                <>Bennie Studio has temporarily disabled this capability.</>
+              ) : (
+                <>
+                  Upgrade your package to unlock{" "}
+                  <span className="font-bold text-indigo-600">
+                    {featureId.replace(/_/g, " ").toUpperCase()}
+                  </span>{" "}
+                  and other managed growth tools.
+                </>
+              )}
             </p>
           </div>
           <div className="flex flex-col gap-3">
