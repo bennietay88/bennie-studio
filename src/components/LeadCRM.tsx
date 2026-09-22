@@ -39,6 +39,7 @@ import {
   Flame,
   Target,
   Zap,
+  Lock,
 } from "lucide-react";
 import { Lead, LeadRemark } from "../types";
 import { format } from "date-fns";
@@ -48,6 +49,7 @@ import { Skeleton } from "./ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { ScrollArea } from "./ui/scroll-area";
 import { buildMonthlyLeadEngineReport, getLeadAutomationPlan, normalizeLeadStatus } from "../constants/leadAutomation";
+import { useFeatures } from "../hooks/useFeatures";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -58,6 +60,8 @@ const fadeInUp = {
 export function LeadCRM() {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const { isMarketingCapabilityEnabled, getMarketingCapabilityStatus } = useFeatures();
+  const followUpEnabled = isMarketingCapabilityEnabled("leadFollowUp");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -360,7 +364,7 @@ export function LeadCRM() {
     return matchesSearch && matchesStatus;
   });
   const leadEngineReport = buildMonthlyLeadEngineReport(leads);
-  const selectedLeadAutomation = selectedLead ? getLeadAutomationPlan(selectedLead, leadHistory) : null;
+  const selectedLeadAutomation = followUpEnabled && selectedLead ? getLeadAutomationPlan(selectedLead, leadHistory) : null;
 
   const copyText = async (text: string, label = "Copied") => {
     try {
@@ -373,6 +377,15 @@ export function LeadCRM() {
   };
 
   const saveAutomationSnapshot = async (lead: Lead, plan = getLeadAutomationPlan(lead, leadHistory), action = "automation_snapshot") => {
+    if (!followUpEnabled) {
+      toast.error(
+        getMarketingCapabilityStatus("leadFollowUp") === "coming_soon"
+          ? "Lead follow-up tools are not live yet."
+          : "Lead follow-up tools are currently unavailable.",
+      );
+      return;
+    }
+
     const payload = {
       leadAutomation: {
         score: plan.score,
@@ -936,7 +949,20 @@ export function LeadCRM() {
                   </TabsContent>
 
                   <TabsContent value="automation" className="mt-0 h-full">
-                    {selectedLeadAutomation && (
+                    {!followUpEnabled && (
+                      <div className="flex h-full items-center justify-center p-6">
+                        <div className="max-w-md rounded-[2rem] border border-slate-200 bg-slate-50 p-6 text-center">
+                          <Lock className="mx-auto h-8 w-8 text-slate-400" />
+                          <h4 className="mt-4 text-lg font-black text-slate-950">Follow-up tools unavailable</h4>
+                          <p className="mt-2 text-sm leading-6 text-slate-500">
+                            {getMarketingCapabilityStatus("leadFollowUp") === "coming_soon"
+                              ? "This Marketing Pro capability is not live yet."
+                              : "Bennie Studio has paused this Marketing Pro capability. Your lead inbox and CRM remain available."}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {followUpEnabled && selectedLeadAutomation && (
                       <ScrollArea className="h-full pr-4">
                         <div className="space-y-5">
                           <div className="grid gap-3 sm:grid-cols-3">
