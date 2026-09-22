@@ -58,20 +58,14 @@ export function MarketingHub() {
     loading,
     planSettings,
     isMarketingCapabilityEnabled,
-    getMarketingCapabilityStatus,
   } = useFeatures();
 
   const [isAdModalOpen, setIsAdModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [adResult, setAdResult] = useState<any>(null);
 
-  const checkAccess = (capabilityId: MarketingCapabilityId) => {
-    const status = getMarketingCapabilityStatus(capabilityId);
-    if (status === "disabled") return false;
-    if (status === "coming_soon") return "coming_soon";
-    if (!isMarketingCapabilityEnabled(capabilityId)) return "upsell";
-    return true;
-  };
+  const checkAccess = (capabilityId: MarketingCapabilityId) =>
+    isMarketingCapabilityEnabled(capabilityId) ? true : "upsell";
 
   const handleToolAction = (tool: { id: MarketingCapabilityId; action: () => void }) => {
     const access = checkAccess(tool.id);
@@ -80,15 +74,6 @@ export function MarketingHub() {
       navigate("/dashboard/billing");
       return;
     }
-    if (access === "coming_soon") {
-      toast.info("This Marketing Pro capability is not live yet.");
-      return;
-    }
-    if (!access) {
-      toast.error("This Marketing Pro capability is disabled by Bennie Studio.");
-      return;
-    }
-
     if (tool.id === "adGenerator") {
       setIsAdModalOpen(true);
     } else {
@@ -194,7 +179,7 @@ export function MarketingHub() {
 
   const currentPlan = planSettings.find((plan) => plan.id === business?.plan);
   const unlockedCount = tools.filter(
-    (tool) => getMarketingCapabilityStatus(tool.id) === "enabled" && isMarketingCapabilityEnabled(tool.id),
+    (tool) => isMarketingCapabilityEnabled(tool.id),
   ).length;
 
   if (loading) {
@@ -231,7 +216,7 @@ export function MarketingHub() {
           <Badge className="mb-4 border-0 bg-indigo-50 text-indigo-700">Included capability module</Badge>
           <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Marketing Pro</h1>
           <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-400">
-            Growth tools inside Bennie Studio. Access comes from your main plan and Bennie Studio can pause individual capabilities globally when needed.
+            Growth tools inside Bennie Studio. Access is determined only by the features included in your main Bennie Studio plan.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -247,9 +232,7 @@ export function MarketingHub() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         {tools.map((tool) => {
           const access = checkAccess(tool.id);
-          const status = getMarketingCapabilityStatus(tool.id);
           const locked = access === "upsell";
-          const unavailable = status === "disabled" || status === "coming_soon";
 
           return (
             <motion.div
@@ -270,32 +253,22 @@ export function MarketingHub() {
                 </div>
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white">{tool.title}</h3>
-                  {status === "coming_soon" && <Badge variant="outline">Coming soon</Badge>}
-                  {status === "disabled" && <Badge variant="outline">Paused</Badge>}
+                  <Badge variant="outline">{locked ? "Not in plan" : "Included"}</Badge>
                 </div>
                 <p className="mb-8 text-sm leading-6 text-slate-500 dark:text-slate-400">{tool.desc}</p>
               </div>
 
               <Button
                 onClick={() => handleToolAction(tool)}
-                disabled={unavailable}
-                variant={unavailable ? "outline" : "default"}
+                variant={locked ? "outline" : "default"}
                 className={`h-12 w-full rounded-2xl font-bold ${
-                  unavailable
-                    ? "bg-slate-100 text-slate-400"
-                    : locked
-                      ? "bg-slate-900 text-white hover:bg-slate-800"
-                      : "bg-indigo-600 text-white hover:bg-indigo-700"
+                  locked
+                    ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    : "bg-indigo-600 text-white hover:bg-indigo-700"
                 }`}
               >
-                {status === "coming_soon"
-                  ? "Coming soon"
-                  : status === "disabled"
-                    ? "Temporarily paused"
-                    : locked
-                      ? "View plan access"
-                      : "Open tool"}
-                {!unavailable && <ArrowRight className="ml-2 h-4 w-4" />}
+                {locked ? "View plan access" : "Open tool"}
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </motion.div>
           );
@@ -308,7 +281,7 @@ export function MarketingHub() {
             <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Entitlement model</p>
             <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white">One Bennie Studio plan. Feature-level access.</h2>
             <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-              Marketing Pro is not a second subscription. Your main plan decides which capabilities are included; global controls let Bennie Studio pause a feature without changing billing or customer plan records.
+              Marketing Pro is not a second subscription. Your main plan is the single source of truth for which capabilities are enabled.
             </p>
           </div>
           <Button variant="outline" onClick={() => navigate("/dashboard/billing")} className="h-12 rounded-2xl bg-white px-6 font-bold">
