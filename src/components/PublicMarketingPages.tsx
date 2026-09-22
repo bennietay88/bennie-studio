@@ -873,7 +873,7 @@ function CaseStudiesPage() {
   );
 }
 
-const PREVIEW_GENERATION_VERSION = 5;
+const PREVIEW_GENERATION_VERSION = 6;
 
 const previewIndustries = [
   {
@@ -995,6 +995,56 @@ const previewTargetCustomers: Record<string, string> = {
   beauty: "clients",
 };
 
+type PreviewBusinessType = {
+  id: string;
+  label: string;
+  group: string;
+  industryId: string;
+  templateId: string;
+  targetCustomer: string;
+  websiteGoal: string;
+};
+
+const previewBusinessTypes: PreviewBusinessType[] = [
+  { id: "dental-clinic", label: "Dental Clinic", group: "Health & Wellness", industryId: "clinic", templateId: "dental-clinic-v1", targetCustomer: "patients", websiteGoal: "Get bookings" },
+  { id: "aesthetic-clinic", label: "Aesthetic Clinic", group: "Health & Wellness", industryId: "clinic", templateId: "aesthetic-clinic-v1", targetCustomer: "patients and aesthetic clients", websiteGoal: "Get bookings" },
+  { id: "physiotherapy-clinic", label: "Physiotherapy Clinic", group: "Health & Wellness", industryId: "clinic", templateId: "physiotherapy-clinic-v1", targetCustomer: "patients", websiteGoal: "Get bookings" },
+  { id: "chiropractor", label: "Chiropractor", group: "Health & Wellness", industryId: "clinic", templateId: "chiropractor-v1", targetCustomer: "patients", websiteGoal: "Get bookings" },
+  { id: "medical-clinic", label: "Medical / General Clinic", group: "Health & Wellness", industryId: "clinic", templateId: "wellness-v1", targetCustomer: "patients", websiteGoal: "Get bookings" },
+  { id: "wellness-spa", label: "Wellness / Spa", group: "Health & Wellness", industryId: "beauty", templateId: "wellness-v1", targetCustomer: "clients", websiteGoal: "Get bookings" },
+  { id: "salon-spa", label: "Beauty Salon / Spa", group: "Health & Wellness", industryId: "beauty", templateId: "salon-spa-v1", targetCustomer: "clients", websiteGoal: "Get bookings" },
+
+  { id: "cleaning-company", label: "Cleaning Company", group: "Local Services", industryId: "cleaning", templateId: "cleaning-company-v1", targetCustomer: "homes and businesses", websiteGoal: "Generate local service leads" },
+  { id: "renovation-contractor", label: "Renovation Contractor", group: "Local Services", industryId: "contractor", templateId: "renovation-contractor-v1", targetCustomer: "homeowners and property teams", websiteGoal: "Generate local service leads" },
+  { id: "pest-control", label: "Pest Control", group: "Local Services", industryId: "local-service", templateId: "pest-control-v1", targetCustomer: "local homeowners and businesses", websiteGoal: "Generate local service leads" },
+  { id: "electrician", label: "Electrician", group: "Local Services", industryId: "local-service", templateId: "electrician-v1", targetCustomer: "local homeowners and businesses", websiteGoal: "Generate local service leads" },
+  { id: "roofing", label: "Roofing Company", group: "Local Services", industryId: "local-service", templateId: "roofing-v1", targetCustomer: "property owners", websiteGoal: "Generate local service leads" },
+  { id: "interior-designer", label: "Interior Designer", group: "Local Services", industryId: "contractor", templateId: "interior-designer-v1", targetCustomer: "homeowners and property teams", websiteGoal: "Generate local service leads" },
+  { id: "other-local-service", label: "Other Local Service Business", group: "Local Services", industryId: "local-service", templateId: "service-pro-v1", targetCustomer: "local customers", websiteGoal: "Generate local service leads" },
+
+  { id: "accounting-firm", label: "Accounting / Bookkeeping Firm", group: "Professional Services", industryId: "accounting", templateId: "accounting-firm-v1", targetCustomer: "business owners", websiteGoal: "Get bookings" },
+  { id: "law-firm", label: "Law Firm", group: "Professional Services", industryId: "consultant", templateId: "law-firm-v1", targetCustomer: "clients seeking legal help", websiteGoal: "Get bookings" },
+  { id: "consultant-coach", label: "Consultant / Coach", group: "Professional Services", industryId: "consultant", templateId: "corporate-v1", targetCustomer: "businesses ready to move forward", websiteGoal: "Get bookings" },
+  { id: "real-estate-agent", label: "Real Estate Agent", group: "Professional Services", industryId: "consultant", templateId: "real-estate-v1", targetCustomer: "property buyers and sellers", websiteGoal: "Get contact form submissions" },
+  { id: "mortgage-advisor", label: "Mortgage Advisor", group: "Professional Services", industryId: "consultant", templateId: "mortgage-advisor-v1", targetCustomer: "home buyers and property owners", websiteGoal: "Get bookings" },
+  { id: "insurance-agent", label: "Insurance Agent", group: "Professional Services", industryId: "consultant", templateId: "insurance-agent-v1", targetCustomer: "people and businesses comparing cover", websiteGoal: "Get contact form submissions" },
+  { id: "recruitment-agency", label: "Recruitment Agency", group: "Professional Services", industryId: "consultant", templateId: "recruitment-agency-v1", targetCustomer: "employers and candidates", websiteGoal: "Get contact form submissions" },
+  { id: "it-support-company", label: "IT Support Company", group: "Professional Services", industryId: "consultant", templateId: "it-support-company-v1", targetCustomer: "businesses needing reliable IT support", websiteGoal: "Get contact form submissions" },
+  { id: "web-marketing-agency", label: "Web / Marketing Agency", group: "Professional Services", industryId: "agency", templateId: "managed-website-agency-v1", targetCustomer: "service businesses and growing teams", websiteGoal: "Get bookings" },
+  { id: "other-professional-service", label: "Other Professional Service", group: "Professional Services", industryId: "consultant", templateId: "corporate-v1", targetCustomer: "prospective clients", websiteGoal: "Get contact form submissions" },
+
+  { id: "tuition-centre", label: "Tuition / Education Centre", group: "Education", industryId: "education", templateId: "tuition-centre-v1", targetCustomer: "parents and students", websiteGoal: "Get bookings" },
+  { id: "childcare-centre", label: "Childcare Centre", group: "Education", industryId: "education", templateId: "childcare-centre-v1", targetCustomer: "parents and families", websiteGoal: "Get contact form submissions" },
+
+  { id: "restaurant", label: "Restaurant / Cafe", group: "Hospitality & Lifestyle", industryId: "local-service", templateId: "restaurant-v1", targetCustomer: "diners and local customers", websiteGoal: "Get bookings" },
+  { id: "catering", label: "Catering Business", group: "Hospitality & Lifestyle", industryId: "local-service", templateId: "catering-v1", targetCustomer: "event organisers and local customers", websiteGoal: "Get contact form submissions" },
+  { id: "boutique", label: "Boutique / Retail Shop", group: "Hospitality & Lifestyle", industryId: "local-service", templateId: "boutique-v1", targetCustomer: "shoppers", websiteGoal: "Get WhatsApp enquiries" },
+  { id: "local-shop", label: "Local Shop", group: "Hospitality & Lifestyle", industryId: "local-service", templateId: "local-shop-v1", targetCustomer: "local shoppers", websiteGoal: "Get WhatsApp enquiries" },
+  { id: "florist", label: "Florist", group: "Hospitality & Lifestyle", industryId: "local-service", templateId: "florist-v1", targetCustomer: "gift and event customers", websiteGoal: "Get WhatsApp enquiries" },
+  { id: "photographer", label: "Photographer", group: "Hospitality & Lifestyle", industryId: "consultant", templateId: "photographer-v1", targetCustomer: "people and businesses planning a shoot", websiteGoal: "Get contact form submissions" },
+  { id: "personal-brand", label: "Personal Brand / Creator", group: "Hospitality & Lifestyle", industryId: "consultant", templateId: "personal-brand-v1", targetCustomer: "followers, clients and partners", websiteGoal: "Get contact form submissions" },
+];
+
 const resolvePreviewBrandPersonality = (brandStyle: string): BrandPersonality => {
   const value = brandStyle.toLowerCase();
   if (value.includes("luxury")) return "elegant";
@@ -1063,9 +1113,18 @@ function GeneratePreviewPage() {
     catch { return {} as Record<string, any>; }
   }, []);
   const savedPreviewIsCurrent = Number(savedPreviewIntent.previewGenerationVersion || 0) === PREVIEW_GENERATION_VERSION;
-  const initialIndustry = initialParams.get("industry") || (savedPreviewIsCurrent ? savedPreviewIntent.industryId : "") || previewIndustries[0].id;
   const explicitTemplateId = initialParams.get("template");
-  const [industryId, setIndustryId] = React.useState(previewIndustries.some((item) => item.id === initialIndustry) ? initialIndustry : previewIndustries[0].id);
+  const requestedBusinessTypeId = initialParams.get("businessType")
+    || (savedPreviewIsCurrent ? String(savedPreviewIntent.businessTypeId || "") : "")
+    || previewBusinessTypes.find((item) => item.templateId === explicitTemplateId)?.id
+    || "";
+  const initialBusinessType = previewBusinessTypes.find((item) => item.id === requestedBusinessTypeId) || null;
+  const [businessTypeId, setBusinessTypeId] = React.useState(initialBusinessType?.id || "");
+  const initialIndustry = initialParams.get("industry")
+    || initialBusinessType?.industryId
+    || (savedPreviewIsCurrent ? savedPreviewIntent.industryId : "")
+    || "local-service";
+  const [industryId, setIndustryId] = React.useState(previewIndustries.some((item) => item.id === initialIndustry) ? initialIndustry : "local-service");
   const initialGoal = initialParams.get("goal") || savedPreviewIntent.goal || previewGoals[0];
   const [goal, setGoal] = React.useState(previewGoals.includes(initialGoal) ? initialGoal : previewGoals[0]);
   const [generated, setGenerated] = React.useState(savedPreviewIsCurrent && Boolean(savedPreviewIntent.generatedWebsite));
@@ -1108,10 +1167,12 @@ function GeneratePreviewPage() {
     };
   });
   const inferredIndustryId = inferPreviewIndustryId(form.mainService);
-  const effectiveIndustryId = inferredIndustryId || industryId;
-  const selectedTemplateId = explicitTemplateId && effectiveIndustryId === initialIndustry
-    ? explicitTemplateId
-    : previewTemplateIds[effectiveIndustryId] || "service-pro-v1";
+  const selectedBusinessType = previewBusinessTypes.find((item) => item.id === businessTypeId) || null;
+  const effectiveIndustryId = selectedBusinessType?.industryId || industryId;
+  const selectedTemplateId = selectedBusinessType?.templateId
+    || (explicitTemplateId && effectiveIndustryId === initialIndustry ? explicitTemplateId : "")
+    || previewTemplateIds[effectiveIndustryId]
+    || "service-pro-v1";
 
   const previewFormMounted = React.useRef(false);
   React.useEffect(() => {
@@ -1138,11 +1199,12 @@ function GeneratePreviewPage() {
     form.pageCount,
   ]);
 
-  const industry = previewIndustries.find((item) => item.id === effectiveIndustryId) || previewIndustries[0];
+  const industry = previewIndustries.find((item) => item.id === effectiveIndustryId) || previewIndustries.find((item) => item.id === "local-service") || previewIndustries[0];
+  const businessTypeLabel = selectedBusinessType?.label || "Select business type";
   const businessLabel = form.businessName.trim() || "your business";
   const locationLabel = form.location.trim() || "your service area";
   const serviceLabel = form.mainService.trim() || "your main service";
-  const previewTitle = `${industry.template} for ${businessLabel}`;
+  const previewTitle = `${selectedBusinessType?.label || industry.template} for ${businessLabel}`;
   const reviewQuality = assessManualReviewInput(form.reviews);
   const reviewStrategy = buildReviewWebsiteStrategy({
     businessName: form.businessName,
@@ -1182,16 +1244,23 @@ function GeneratePreviewPage() {
     trackPublicEvent({ eventType: "start_preview_flow", label: "Generate Preview Page Loaded", target: "/generate-preview" });
   }, []);
 
-  const selectIndustry = (id: string) => {
-    setIndustryId(id);
+  const selectBusinessType = (id: string) => {
+    const selected = previewBusinessTypes.find((item) => item.id === id) || null;
+    setBusinessTypeId(id);
+    if (selected) setIndustryId(selected.industryId);
     setGenerated(false);
     setGeneratedWebsite(null);
-    const selected = previewIndustries.find((item) => item.id === id);
+    setShareablePreviewUrl("");
+    setPreviewExpanded(false);
     trackPublicEvent({
-      eventType: "select_industry",
+      eventType: "select_business_type",
       label: selected?.label || id,
       target: "/generate-preview",
-      metadata: { industryId: id },
+      metadata: {
+        businessTypeId: id,
+        industryId: selected?.industryId || null,
+        templateId: selected?.templateId || null,
+      },
     });
   };
 
@@ -1208,6 +1277,10 @@ function GeneratePreviewPage() {
 
     if (!salesMode && !form.email.trim()) {
       setError("Enter an email so we can connect the preview to your enquiry.");
+      return;
+    }
+    if (!selectedBusinessType) {
+      setError("Select your business type so we can use the right website structure.");
       return;
     }
     if (previewMode === "website" && !form.websiteUrl.trim()) {
