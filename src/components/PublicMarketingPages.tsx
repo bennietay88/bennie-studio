@@ -873,7 +873,7 @@ function CaseStudiesPage() {
   );
 }
 
-const PREVIEW_GENERATION_VERSION = 9;
+const PREVIEW_GENERATION_VERSION = 10;
 
 const previewIndustries = [
   {
@@ -1592,6 +1592,8 @@ function GeneratePreviewPage() {
       });
       const previewTheme: Website["theme"] = {
         ...basePreviewTheme,
+        previewPurpose: salesMode ? "sales_preview" : "generated_preview",
+        sourceDriven: previewMode === "website",
         ...(previewMode === "website" && profile.brandColor ? { primaryColor: profile.brandColor } : {}),
         ...(previewMode === "website" && profile.accentColor ? { secondaryColor: profile.accentColor } : {}),
         ...(previewMode === "website" && profile.logoUrl ? { logoUrl: profile.logoUrl } : {}),
@@ -2203,95 +2205,138 @@ function GeneratePreviewPage() {
       ) : null}
 
       {generated && generatedWebsite ? (
-        <section className="border-y border-[#dfe2ea] bg-white">
-          <div className="brand-shell py-10">
-            <div className="flex flex-col gap-5 border-b border-[#dfe2ea] pb-5 md:flex-row md:items-center md:justify-between">
+        <section className="border-y border-[#dfe2ea] bg-[#0b1020] text-white">
+          <div className="brand-shell py-10 sm:py-12">
+            <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
               <div>
-                <p className="brand-kicker">Generated website</p>
-                <h2 className="mt-2">{businessLabel}</h2>
-                <p className="mt-2 text-[#526071]">{businessTypeLabel} · {locationLabel} · {previewGenerationMode === "brand_led" ? "Brand-led direction" : "Premium direction"}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#c9c4ff]">
+                    <Sparkles className="h-3.5 w-3.5" /> Website direction ready
+                  </span>
+                  {previewMode === "website" ? (
+                    <span className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-slate-300">
+                      Built from the current website
+                    </span>
+                  ) : null}
+                  <span className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-slate-300">
+                    {businessTypeLabel}
+                  </span>
+                </div>
+                <h2 className="mt-5 max-w-4xl text-3xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">
+                  {businessLabel}, redesigned to make the next step clearer.
+                </h2>
+                <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
+                  {previewMode === "website"
+                    ? "The preview keeps useful brand assets and verified business content, then applies a stronger page hierarchy and enquiry path for the selected business type."
+                    : "The preview turns the business brief into a focused page structure, clear offer and conversion path."}
+                </p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {(["desktop","tablet","mobile"] as const).map((device)=>(
-                  <button
-                    key={device}
-                    type="button"
-                    aria-pressed={previewDevice === device}
-                    onClick={()=>setPreviewDevice(device)}
-                    className={previewDevice===device ? "border border-[#5746e8] bg-[#5746e8] px-4 py-2 text-sm font-semibold text-white" : "border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold"}
+
+              <div className="flex flex-wrap gap-2 lg:justify-end">
+                {shareablePreviewUrl ? (
+                  <Button
+                    onClick={() => {
+                      trackPublicEvent({
+                        eventType: "open_preview_new_tab",
+                        label: businessLabel,
+                        target: shareablePreviewUrl,
+                        metadata: { salesMode, businessType: businessTypeLabel },
+                      });
+                      window.open(shareablePreviewUrl, "_blank", "noopener,noreferrer");
+                    }}
+                    className="min-h-12 bg-white px-5 font-semibold text-[#141821] hover:bg-[#eceafe]"
                   >
-                    {device==="desktop" ? "Desktop" : device==="tablet" ? "Tablet" : "Mobile"}
+                    {salesMode ? "Open prospect preview" : "Open full preview"} <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : null}
+                {previewMode === "website" && form.websiteUrl ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      trackPublicEvent({
+                        eventType: "open_original_website",
+                        label: businessLabel,
+                        target: form.websiteUrl,
+                      });
+                      window.open(form.websiteUrl, "_blank", "noopener,noreferrer");
+                    }}
+                    className="min-h-12 border-white/20 bg-transparent px-5 font-semibold text-white hover:bg-white/10 hover:text-white"
+                  >
+                    Current website <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-[#f6f7fb] shadow-[0_30px_90px_-45px_rgba(0,0,0,.85)]">
+              <div className="flex flex-col gap-3 border-b border-[#dfe2ea] bg-white px-4 py-3 text-[#141821] sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex shrink-0 gap-1.5" aria-hidden="true">
+                    <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+                  </div>
+                  <span className="truncate text-xs font-semibold text-[#526071]">Preview · {businessLabel}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {(["desktop","tablet","mobile"] as const).map((device)=>(
+                    <button
+                      key={device}
+                      type="button"
+                      aria-pressed={previewDevice === device}
+                      onClick={()=>setPreviewDevice(device)}
+                      className={previewDevice===device
+                        ? "rounded-md bg-[#141821] px-3 py-2 text-xs font-semibold text-white"
+                        : "rounded-md border border-[#dfe2ea] bg-white px-3 py-2 text-xs font-semibold text-[#374151]"}
+                    >
+                      {device==="desktop" ? "Desktop" : device==="tablet" ? "Tablet" : "Mobile"}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    aria-expanded={previewExpanded}
+                    onClick={()=>setPreviewExpanded((value)=>!value)}
+                    className="rounded-md border border-[#dfe2ea] bg-white px-3 py-2 text-xs font-semibold text-[#374151]"
+                  >
+                    {previewExpanded ? "Compact" : "Expand"}
                   </button>
-                ))}
-                <button type="button" aria-expanded={previewExpanded} onClick={()=>setPreviewExpanded((value)=>!value)} className="border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold">{previewExpanded?"Compact":"Expand preview"}</button>
+                </div>
+              </div>
+
+              <div className="bg-[#edf0f5] p-2 sm:p-4">
+                <div className={(previewDevice==="mobile" ? "max-w-[430px] " : previewDevice==="tablet" ? "max-w-[820px] " : "max-w-full ") + (previewExpanded ? "max-h-[92vh] " : "max-h-[980px] ") + "bt-static-preview mx-auto overflow-y-auto bg-white shadow-[0_20px_55px_-35px_rgba(15,23,42,.5)] transition-all"}>
+                  <React.Suspense fallback={<div className="grid min-h-[40rem] place-items-center text-[#526071]">Rendering website…</div>}>
+                    <PublicWebsiteRenderer initialData={generatedWebsite} />
+                  </React.Suspense>
+                </div>
               </div>
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              <span className="mr-1 text-xs font-bold uppercase tracking-[0.12em] text-[#526071]">Interactive {generatedWebsite.pages.length}-page preview</span>
-              {generatedWebsite.pages.map((page, index) => (
-                <span key={page.id || page.slug || page.title} className="border border-[#dfe2ea] bg-[#f6f7fb] px-3 py-1.5 text-xs font-semibold text-[#374151]">
-                  {String(index + 1).padStart(2, "0")} {page.title}
-                </span>
+            <div className="mt-6 grid gap-3 md:grid-cols-3">
+              {[
+                ["01", previewMode === "website" ? "Keep what is already working" : "Start with the right structure", previewMode === "website" ? "Useful branding, photography and verified content are preserved rather than discarded." : "The selected business type drives the page architecture instead of a one-size-fits-all template."],
+                ["02", "Remove template noise", "Unsupported claims, fake availability, filler sections and internal design language are kept out of the prospect-facing site."],
+                ["03", "Make action obvious", `The website is organised around the primary next step: ${resolvedCta || "contact the business"}.`],
+              ].map(([number,title,copy])=>(
+                <div key={number} className="border-t border-white/15 pt-4">
+                  <p className="text-[10px] font-black tracking-[0.22em] text-[#c9c4ff]">{number}</p>
+                  <p className="mt-2 font-semibold text-white">{title}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{copy}</p>
+                </div>
               ))}
-              <span className="text-xs text-[#5f6673]">Use the navigation inside the preview to inspect every page.</span>
             </div>
 
-            <div className="mt-4 border border-[#dfe2ea] bg-[#f6f7fb] p-2 sm:p-3">
-              <div className="mb-2 flex items-center gap-2 border-b border-[#dfe2ea] bg-white px-3 py-2 text-[11px] font-semibold text-[#5f6673]">
-                <span className="h-2 w-2 rounded-full bg-[#dfe2ea]" />
-                <span className="h-2 w-2 rounded-full bg-[#dfe2ea]" />
-                <span className="h-2 w-2 rounded-full bg-[#dfe2ea]" />
-                <span className="ml-2 truncate">Preview · {businessLabel}</span>
-              </div>
-              <div className={(previewDevice==="mobile" ? "max-w-[430px] " : previewDevice==="tablet" ? "max-w-[820px] " : "max-w-full ") + (previewExpanded ? "max-h-[90vh] " : "max-h-[900px] ") + "bt-static-preview mx-auto overflow-y-auto border border-[#dfe2ea] bg-white shadow-[0_20px_60px_-45px_rgba(15,23,42,.55)] transition-all"}>
-                <React.Suspense fallback={<div className="grid min-h-[40rem] place-items-center text-[#526071]">Rendering website…</div>}>
-                  <PublicWebsiteRenderer initialData={generatedWebsite} />
-                </React.Suspense>
-              </div>
-            </div>
-
-            <div className="mt-7 flex flex-col gap-3 border-t border-[#dfe2ea] pt-6 sm:flex-row sm:flex-wrap">
-              {shareablePreviewUrl ? (
-                <Button
-                  onClick={() => {
-                    trackPublicEvent({
-                      eventType: "open_preview_new_tab",
-                      label: businessLabel,
-                      target: shareablePreviewUrl,
-                      metadata: { salesMode, businessType: businessTypeLabel },
-                    });
-                    window.open(shareablePreviewUrl, "_blank", "noopener,noreferrer");
-                  }}
-                  className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]"
-                >
-                  {salesMode ? "Open prospect preview" : "Open preview in new tab"} <ExternalLink className="ml-2 h-4 w-4" />
-                </Button>
-              ) : (
-                <p className="self-center text-sm font-semibold text-[#526071]">Preview ready. The separate preview link is still being prepared.</p>
-              )}
-              {previewMode === "website" && form.websiteUrl ? (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    trackPublicEvent({
-                      eventType: "open_original_website",
-                      label: businessLabel,
-                      target: form.websiteUrl,
-                    });
-                    window.open(form.websiteUrl, "_blank", "noopener,noreferrer");
-                  }}
-                  className="min-h-12 border-[#dfe2ea] px-6 font-semibold text-[#141821]"
-                >
-                  Open original website <ExternalLink className="ml-2 h-4 w-4" />
-                </Button>
-              ) : null}
-              {!salesMode ? (
+            {!salesMode ? (
+              <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-7 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold text-white">Want this direction turned into your managed website?</p>
+                  <p className="mt-1 text-sm text-slate-400">Your preview details carry into the next step, so you do not start from zero again.</p>
+                </div>
                 <Button onClick={() => action("click_launch_after_preview","Launch This Website","/preview-order")} className="min-h-12 bg-[#5746e8] px-6 font-semibold text-white hover:bg-[#4938db]">
-                  Launch this website <ArrowRight className="ml-2 h-4 w-4" />
+                  Continue with this website <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </div>
         </section>
       ) : !generating ? (
