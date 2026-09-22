@@ -9,11 +9,13 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
-type Transaction = { id: string; transaction_type: string; source_type: string; description: string; currency: string; amount: number; base_currency_amount: number | null; category: string | null; reconciliation_status: string; review_status: string; transaction_date: string };\ntype Summary = { base_currency: string; gross_revenue: number; refunds: number; net_revenue: number; processor_fees: number; operating_expenses: number; tax_collected: number; net_cash_movement: number; operating_profit_estimate: number; unresolved_fx_value: number; unresolved_fx_count: number; unreconciled_count: number; review_needed_count: number; transaction_count: number };
+type Transaction = { id: string; transaction_type: string; source_type: string; description: string; currency: string; amount: number; base_currency_amount: number | null; category: string | null; reconciliation_status: string; review_status: string; transaction_date: string };
+type Summary = { base_currency: string; gross_revenue: number; refunds: number; net_revenue: number; processor_fees: number; operating_expenses: number; tax_collected: number; net_cash_movement: number; operating_profit_estimate: number; unresolved_fx_value: number; unresolved_fx_count: number; unreconciled_count: number; review_needed_count: number; transaction_count: number };
 
 export function FinanceDashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [attention, setAttention] = useState<any[]>([]);\n  const [summary, setSummary] = useState<Summary | null>(null);
+  const [attention, setAttention] = useState<any[]>([]);
+  const [summary, setSummary] = useState<Summary | null>(null);
   const [baseCurrency, setBaseCurrency] = useState("USD");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
