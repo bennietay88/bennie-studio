@@ -46,6 +46,7 @@ test("sales API rejects unauthorized callers and malformed privileged actions", 
   const base = `http://127.0.0.1:${port}`;
   const paths = [
     ["POST", "/api/admin/prospects/import"], ["POST", `/api/admin/prospects/${id}/outreach`],
+    ["POST", "/api/admin/sales-preview-intake"], ["POST", "/api/admin/sales-preview-site"],
     ["POST", "/api/admin/sales-automation/enroll"], ["POST", "/api/admin/sales-automation/run"],
     ["POST", `/api/admin/sales-automation/messages/${id}/approve`], ["PATCH", `/api/admin/sales-automation/bookings/${id}`],
   ];

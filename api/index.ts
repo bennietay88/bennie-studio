@@ -2630,6 +2630,221 @@ async function startServer() {
   );
 
   app.post(
+    "/api/admin/sales-preview-site",
+    authenticate,
+    async (req: any, res: any) => {
+      const caller = await getProfileForUser(req.user.id);
+      if (!caller || !["super_admin", "platform_staff"].includes(String(caller.role))) {
+        return res.status(403).json({ error: "Bennie Studio staff access required." });
+      }
+      const body = validateBody(z.object({
+        previewId: z.string().trim().min(8).max(160),
+        leadId: UUID_SCHEMA,
+        summary: z.object({
+          headline: z.string().trim().min(1).max(220),
+          opportunitySummary: z.string().trim().min(1).max(700),
+          proposedStructure: z.array(z.string().trim().min(1).max(120)).min(1).max(5),
+          proofSignals: z.array(z.string().trim().min(1).max(160)).max(8),
+          primaryConversionPath: z.string().trim().min(1).max(160),
+          recommendedProduct: z.object({
+            slug: z.enum(["managed-website", "website-growth", "growth-partner", "custom-website"]),
+            label: z.string().trim().min(1).max(120),
+            reason: z.string().trim().min(1).max(400),
+            salesMotion: z.enum(["self_serve", "review"]),
+          }),
+        }),
+        website: z.object({
+          theme: z.record(z.string(), z.any()),
+          pages: z.array(z.any()).min(1).max(5),
+          seo: z.record(z.string(), z.any()),
+        }),
+      }), req, res);
+      if (!body) return;
+
+      const serialized = JSON.stringify(body.website);
+      if (Buffer.byteLength(serialized, "utf8") > 400_000) {
+        return res.status(413).json({ error: "Preview payload is too large." });
+      }
+
+      try {
+        const { data: lead, error: leadError } = await supabaseAdmin
+          .from("leads")
+          .select("id,name,email,business_id,preview_id,raw_fields,source")
+          .eq("id", body.leadId)
+          .eq("preview_id", body.previewId)
+          .eq("source", "sales_preview")
+          .maybeSingle();
+        if (leadError) throw leadError;
+        if (!lead) return res.status(403).json({ error: "This sales preview could not be verified." });
+
+        const raw = lead.raw_fields && typeof lead.raw_fields === "object" ? lead.raw_fields : {};
+        const profile = raw.previewProfile && typeof raw.previewProfile === "object" ? raw.previewProfile : {};
+        const businessName = String(profile.businessName || raw.businessName || lead.name || "Website preview").trim().slice(0, 160);
+        const industry = String(raw.industry || raw.service || "Professional Services").trim().slice(0, 160);
+        const location = String(profile.location || raw.location || "").trim().slice(0, 160);
+
+        let businessId = lead.business_id as string | null;
+        if (businessId) {
+          const { data: existingBusiness } = await supabaseAdmin
+            .from("businesses")
+            .select("id,owner_id")
+            .eq("id", businessId)
+            .maybeSingle();
+          if (!existingBusiness || existingBusiness.owner_id) businessId = null;
+        }
+        if (!businessId) {
+          const { data: business, error: businessError } = await supabaseAdmin
+            .from("businesses")
+            .insert({
+              name: businessName,
+              owner_id: null,
+              plan: "business",
+              status: "pending",
+              subscription_status: "incomplete",
+              industry,
+              location: location || null,
+              business_nature: String(profile.description || raw.mainService || industry).slice(0, 500),
+              platform_type: "waas",
+              business_type: "local_service",
+              lifecycle_stage: "prospect",
+              lifecycle_stage_changed_at: new Date().toISOString(),
+              admin_notes: `Internal sales preview ${body.previewId}. No domain attached.`,
+            })
+            .select("id")
+            .single();
+          if (businessError || !business) throw businessError || new Error("BUSINESS_CREATE_FAILED");
+          businessId = business.id;
+        }
+
+        const { data: currentWebsite, error: currentWebsiteError } = await supabaseAdmin
+          .from("websites")
+          .select("id")
+          .eq("business_id", businessId)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (currentWebsiteError) throw currentWebsiteError;
+
+        const websitePayload = {
+          business_id: businessId,
+          theme: body.website.theme,
+          pages: body.website.pages,
+          seo: body.website.seo,
+          status: "published",
+          slug: `prospect-${body.previewId.replace(/[^a-zA-Z0-9_-]/g, "").slice(-48)}`,
+          generation_status: "complete",
+          preview_status: "ready",
+          design_profile: String(body.website.theme?.designProfile || "modern").slice(0, 120),
+          design_profile_version: "1",
+          template_version: "1",
+          renderer_version: "1",
+          content_schema_version: "1",
+          updated_at: new Date().toISOString(),
+        };
+
+        let websiteId: string;
+        if (currentWebsite?.id) {
+          const { data: updated, error: updateError } = await supabaseAdmin
+            .from("websites")
+            .update(websitePayload)
+            .eq("id", currentWebsite.id)
+            .select("id")
+            .single();
+          if (updateError || !updated) throw updateError || new Error("WEBSITE_UPDATE_FAILED");
+          websiteId = updated.id;
+        } else {
+          const { data: created, error: createError } = await supabaseAdmin
+            .from("websites")
+            .insert(websitePayload)
+            .select("id")
+            .single();
+          if (createError || !created) throw createError || new Error("WEBSITE_CREATE_FAILED");
+          websiteId = created.id;
+        }
+
+        const shareUrl = `${publicAppUrl()}/preview/prospect/${encodeURIComponent(body.previewId)}`;
+        const { error: leadUpdateError } = await supabaseAdmin.from("leads").update({
+          business_id: businessId,
+          raw_fields: {
+            ...raw,
+            salesPreviewSummary: body.summary,
+            previewBusinessId: businessId,
+            previewWebsiteId: websiteId,
+            shareablePreviewUrl: shareUrl,
+            previewPublishedAt: new Date().toISOString(),
+          },
+        }).eq("id", lead.id);
+        if (leadUpdateError) throw leadUpdateError;
+
+        return res.json({ success: true, businessId, websiteId, shareUrl, noindex: true });
+      } catch (error: any) {
+        console.error("Sales preview persistence failed", error?.message || error);
+        return res.status(500).json({ error: "The prospect preview could not be saved." });
+      }
+    },
+  );
+
+  app.get(
+    "/api/public/prospect-preview/:previewId",
+    rateLimit({ windowMs: 60 * 60 * 1000, max: 120, keyPrefix: "prospect-preview-read" }),
+    async (req: any, res: any) => {
+      const previewId = String(req.params.previewId || "").trim();
+      if (previewId.length < 8 || previewId.length > 160) return res.status(404).json({ error: "Preview not found." });
+      try {
+        const { data: lead, error: leadError } = await supabaseAdmin
+          .from("leads")
+          .select("id,name,business_id,preview_id,raw_fields,source")
+          .eq("preview_id", previewId)
+          .eq("source", "sales_preview")
+          .maybeSingle();
+        if (leadError) throw leadError;
+        if (!lead?.business_id) return res.status(404).json({ error: "Preview not found." });
+
+        const raw = lead.raw_fields && typeof lead.raw_fields === "object" ? lead.raw_fields : {};
+        const summary = raw.salesPreviewSummary && typeof raw.salesPreviewSummary === "object" ? raw.salesPreviewSummary : null;
+        if (!summary) return res.status(404).json({ error: "Preview not found." });
+
+        let websiteQuery = supabaseAdmin
+          .from("websites")
+          .select("id,business_id,theme,pages,seo,status,updated_at")
+          .eq("business_id", lead.business_id);
+        if (raw.previewWebsiteId) websiteQuery = websiteQuery.eq("id", raw.previewWebsiteId);
+        const { data: website, error: websiteError } = await websiteQuery
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (websiteError) throw websiteError;
+        if (!website) return res.status(404).json({ error: "Preview not found." });
+
+        return res.json({
+          preview: {
+            previewId,
+            businessName: String(raw.previewProfile?.businessName || raw.businessName || lead.name || "Your business").slice(0, 160),
+            headline: String(summary.headline || "").slice(0, 220),
+            opportunitySummary: String(summary.opportunitySummary || "").slice(0, 700),
+            proposedStructure: Array.isArray(summary.proposedStructure) ? summary.proposedStructure.slice(0, 5) : [],
+            proofSignals: Array.isArray(summary.proofSignals) ? summary.proofSignals.slice(0, 8) : [],
+            primaryConversionPath: String(summary.primaryConversionPath || "").slice(0, 160),
+            recommendedProduct: summary.recommendedProduct || null,
+            website: {
+              id: website.id,
+              businessId: website.business_id,
+              theme: website.theme || {},
+              pages: Array.isArray(website.pages) ? website.pages.slice(0, 5) : [],
+              seo: website.seo || {},
+              status: website.status || "draft",
+              updatedAt: website.updated_at ? new Date(website.updated_at).getTime() : Date.now(),
+            },
+          },
+        });
+      } catch (error: any) {
+        console.error("Prospect preview read failed", error?.message || error);
+        return res.status(500).json({ error: "Preview could not be loaded." });
+      }
+    },
+  );
+
+  app.post(
     "/api/public/preview-site",
     rateLimit({
       windowMs: 60 * 1000,
@@ -2649,7 +2864,7 @@ async function startServer() {
         email: EMAIL_SCHEMA,
         website: z.object({
           theme: z.record(z.string(), z.any()),
-          pages: z.array(z.any()).min(1).max(8),
+          pages: z.array(z.any()).min(1).max(5),
           seo: z.record(z.string(), z.any()),
         }),
       }), req, res);

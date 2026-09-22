@@ -5,7 +5,7 @@ import { ArrowRight, Check, Globe, MessageSquare, Rocket, Shield, Sparkles, MapP
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { findOwnSalesSeoPage } from "../constants/ownSalesSeoPages";
-import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKETS, formatCommercialMoney, getCommercialPrice, type CommercialMarket } from "../lib/commercialPricing";
+import { COMMERCIAL_FALLBACK_PRODUCTS, formatCommercialMoney, getCommercialPrice, type CommercialMarket } from "../lib/commercialPricing";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 
 const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
@@ -88,7 +88,7 @@ export default function OwnSalesSeoPage() {
   const isCityPage = page.path.startsWith("/website-design/");
   const isCountryPage = page.path.startsWith("/website-subscription-service/") && ["UK", "Malaysia", "Singapore"].includes(marketLabel);
   const cityName = isCityPage ? page.h1.replace(/^Website Design\s+/i, "") : marketLabel;
-  const revenueMarket: CommercialMarket = isUk ? "GB" : isMalaysia ? "MY" : isSingapore ? "SG" : "INTL";
+  const revenueMarket: CommercialMarket = "INTL";
   const managedProduct = COMMERCIAL_FALLBACK_PRODUCTS.find((product) => product.slug === "managed-website")!;
   const managedPrice = getCommercialPrice(managedProduct, revenueMarket)!;
   const coreOffer = { name: managedProduct.name, description: managedProduct.description, monthlyLabel: formatCommercialMoney(managedPrice.monthlyPrice, managedPrice.currency), setupLabel: formatCommercialMoney(managedPrice.setupFee, managedPrice.currency), prices: { [revenueMarket]: { currency: managedPrice.currency } } } as any;
@@ -219,32 +219,23 @@ export default function OwnSalesSeoPage() {
       value: "Generate the first preview, then choose the managed package",
     },
   ];
-  const marketSwitcherLinks = [
-    { label: "UK", href: "/website-subscription-service/uk" },
-    { label: "Malaysia", href: "/website-subscription-service/malaysia" },
-    { label: "Singapore", href: "/website-subscription-service/singapore" },
-  ];
+  const marketSwitcherLinks: Array<{ label: string; href: string }> = [];
   const footerColumns = [
     {
       title: "Services",
       links: [
         { label: "Website Subscription Service", href: "/website-subscription-service" },
-        { label: "Managed Website Plans", href: "/pay-monthly-websites" },
+        { label: "Managed Website Plans", href: "/pricing" },
+        { label: "Website Preview", href: "/generate-preview" },
         { label: "Portfolio", href: "/portfolio" },
       ],
     },
     {
-      title: "Markets",
-      links: marketSwitcherLinks,
-    },
-    {
-      title: "Local SEO Pages",
+      title: "Explore",
       links: [
-        { label: "Website Design London", href: "/website-design/london" },
-        { label: "Website Design Kuala Lumpur", href: "/website-design/kuala-lumpur" },
-        { label: "Website Design Singapore", href: "/website-design/singapore" },
-        { label: "Website Design Petaling Jaya", href: "/website-design/petaling-jaya" },
-        { label: "Website Design Orchard", href: "/website-design/singapore/orchard" },
+        { label: "How It Works", href: "/how-it-works" },
+        { label: "Case Studies", href: "/case-studies" },
+        { label: "Website Audit", href: "/website-audit" },
       ],
     },
     {

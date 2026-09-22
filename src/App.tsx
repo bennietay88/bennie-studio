@@ -71,6 +71,7 @@ const WaasSamplePage = lazy(() => import("./components/WaasSamplePage"));
 const BookDemo = lazy(() => import("./components/BookDemo"));
 const ManageCallBooking = lazy(() => import("./components/ManageCallBooking"));
 const PublicProposalPage = lazy(() => import("./components/PublicProposalPage"));
+const ProspectPreviewPage = lazy(() => import("./components/ProspectPreviewPage"));
 const ForgotPasswordPage = lazy(
   () => import("./components/ForgotPasswordPage"),
 );
@@ -211,6 +212,7 @@ const PRIVATE_ROUTE_PREFIXES = [
   "/proposal",
   "/manage-call",
   "/preview/template",
+  "/preview/prospect",
   "/w/",
   "/affiliate",
 ];
@@ -236,7 +238,7 @@ function RouteRobotsMeta() {
   const { pathname } = useLocation();
   const privateRoute =
     /^\/(admin|dashboard|checkout|login|signup|forgot-password|reset-password|profile)(\/|$)/.test(pathname) ||
-    /^\/(manage-call|proposal|preview\/template|w)(\/|$)/.test(pathname) ||
+    /^\/(manage-call|proposal|preview\/(?:template|prospect)|w)(\/|$)/.test(pathname) ||
     /^\/affiliate\/(login|signup)(\/|$)/.test(pathname);
   // Canonicals belong to each public page so route-specific metadata can own
   // the URL. A global canonical creates duplicate tags and can incorrectly
@@ -444,10 +446,10 @@ export default function App() {
               <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/pay-monthly-websites" element={<OwnSalesSeoPage />} />
-              <Route path="/pay-monthly-websites/:market" element={<OwnSalesSeoPage />} />
-              <Route path="/website-design/*" element={<OwnSalesSeoPage />} />
+              <Route path="/pay-monthly-websites/:market" element={<Navigate to="/pay-monthly-websites" replace />} />
+              <Route path="/website-design/*" element={<Navigate to="/website-subscription-service" replace />} />
               <Route path="/website-subscription-service" element={<OwnSalesSeoPage />} />
-              <Route path="/website-subscription-service/:market" element={<OwnSalesSeoPage />} />
+              <Route path="/website-subscription-service/:market" element={<Navigate to="/website-subscription-service" replace />} />
               <Route path="/portfolio" element={<PortfolioPage />} />
               <Route path="/templates" element={<PublicMarketingPages />} />
               <Route path="/pricing" element={<PublicMarketingPages />} />
@@ -460,7 +462,8 @@ export default function App() {
               <Route path="/generate-preview" element={<PublicMarketingPages />} />
               <Route path="/preview-order" element={<PublicMarketingPages />} />
               <Route path="/blog/:slug" element={<PublicBlogPostPage />} />
-              <Route path="/clinic-website-design-malaysia" element={<PublicMarketingPages />} />
+              <Route path="/clinic-website-design" element={<PublicMarketingPages />} />
+              <Route path="/clinic-website-design-malaysia" element={<Navigate to="/clinic-website-design" replace />} />
               <Route path="/renovation-contractor-website-design" element={<PublicMarketingPages />} />
               <Route path="/beauty-salon-website-design" element={<PublicMarketingPages />} />
               <Route path="/tuition-centre-website-design" element={<PublicMarketingPages />} />
@@ -474,6 +477,7 @@ export default function App() {
               <Route path="/apply-custom" element={<Navigate to="/book-demo" replace />} />
               <Route path="/manage-call/:token" element={<ManageCallBooking />} />
               <Route path="/proposal/:token" element={<PublicProposalPage />} />
+              <Route path="/preview/prospect/:previewId" element={<ProspectPreviewPage />} />
               <Route path="/privacy" element={<PolicyPage type="privacy" />} />
               <Route path="/privacy-policy" element={<PolicyPage type="privacy" />} />
               <Route path="/terms" element={<PolicyPage type="terms" />} />

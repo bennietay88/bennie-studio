@@ -27,7 +27,7 @@ const footerGroups = [
   ]],
   ["Industries", [
     { label: "Professional Services", href: "/professional-services-website-design" },
-    { label: "Clinics & Healthcare", href: "/clinic-website-design-malaysia" },
+    { label: "Clinics & Healthcare", href: "/clinic-website-design" },
     { label: "Contractors", href: "/renovation-contractor-website-design" },
     { label: "Education", href: "/tuition-centre-website-design" },
   ]],

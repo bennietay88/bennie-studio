@@ -127,3 +127,30 @@ test("preview recommendation respects requested page count and current plan name
   assert.equal(expanded.slug, "website-growth");
   assert.equal(expanded.label, "Website Growth");
 });
+
+
+test("recommendation uses scope signals instead of keywords alone", () => {
+  const multiLocation = recommendCommercialProduct({
+    goal: "Get enquiries",
+    notes: "plumbing",
+    industry: "Local services",
+    requestedPages: 5,
+    serviceCount: 5,
+    locationCount: 3,
+    seoIntent: true,
+    landingPageNeeds: true,
+    ongoingGrowth: true,
+  });
+  assert.equal(multiLocation.slug, "growth-partner");
+  assert.equal(multiLocation.label, "Growth Partner");
+
+  const integration = recommendCommercialProduct({
+    goal: "Get bookings",
+    notes: "clinic",
+    industry: "Healthcare",
+    requestedPages: 5,
+    integrations: true,
+  });
+  assert.equal(integration.slug, "custom-website");
+  assert.equal(integration.label, "Custom Website");
+});

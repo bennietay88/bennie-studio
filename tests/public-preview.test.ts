@@ -143,3 +143,26 @@ test("public preview extracts testimonials from evidence HTML", () => {
   assert.match(profile.testimonials[0], /arrived quickly/i);
   assert.match(profile.testimonials[1], /Professional service/i);
 });
+
+
+test("public preview extracts explicit conversion evidence without inventing claims", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <html><head><title>Northside Heating</title>
+      <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"LocalBusiness","name":"Northside Heating","foundingDate":"2008","areaServed":[{"@type":"City","name":"Leeds"},{"@type":"City","name":"Bradford"}]}
+      </script>
+      </head><body>
+        <h1>Boiler repair and installation</h1>
+        <p>Gas Safe registered engineers. 10-year workmanship warranty.</p>
+        <a href="/contact">Request a Quote</a>
+      </body></html>
+    `,
+    finalUrl: "https://northside.example/",
+  });
+  assert.deepEqual(profile.serviceAreas, ["Leeds", "Bradford"]);
+  assert.ok(profile.credentials.some((item) => /registered/i.test(item)));
+  assert.match(profile.yearsInBusiness, /2008/);
+  assert.ok(profile.guarantees.some((item) => /warranty/i.test(item)));
+  assert.equal(profile.primaryCta, "Request a Quote");
+});

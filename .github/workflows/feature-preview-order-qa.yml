@@ -9,7 +9,7 @@ on:
 jobs:
   qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,8 +17,30 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm run test:sales
-      - run: node --import tsx --test tests/public-preview.test.ts
-      - run: npm run test:design
-      - run: npm run build
+      - name: TypeScript
+        run: npm run lint
+      - name: Sales and commercial tests
+        run: npm run test:sales
+      - name: Billing hardening
+        run: npm run test:billing
+      - name: Preview extraction tests
+        run: node --import tsx --test tests/public-preview.test.ts
+      - name: Design and accessibility unit tests
+        run: npm run test:design
+      - name: Full unit and domain regression suite
+        run: |
+          npm run test:seo
+          npm run test:prospects
+          npm run test:permissions
+          npm run test:operating-system
+          npm run test:fulfilment
+          npm run test:delivery
+          npm run test:fixtures
+      - name: Production build
+        run: npm run build
+      - name: Sales API boundaries
+        run: npm run test:sales:api
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Browser E2E
+        run: npm run e2e

@@ -480,6 +480,9 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
   await growthCard.getByRole("button", { name: /Choose plan/i }).click();
   await expect(page.getByRole("dialog", { name: "Order summary" })).toBeVisible();
   await expect(page.getByText(/No account is required before payment/i)).toBeVisible();
+  await page.getByLabel("Billing currency").selectOption("GBP");
+  await expect(page.getByLabel("Billing currency")).toHaveValue("GBP");
+  await page.getByLabel("Billing currency").selectOption("USD");
   await page.getByRole("button", { name: /Continue to secure checkout/i }).click();
   await expect(page).toHaveURL(/\/checkout\/success\?/);
   await expect(page).not.toHaveURL(/\/signup/);
@@ -532,4 +535,98 @@ test("shows and accepts a public proposal without exposing checkout secrets", as
   await page.getByLabel("Confirm your email").fill("jane@example.test");
   await page.getByRole("button", { name: /Accept proposal/i }).click();
   await expect(page.getByRole("heading", { name: "Proposal accepted" })).toBeVisible();
+});
+
+test("prospect sales preview presents one plan-aware CTA and responsive device controls", async ({ page }) => {
+  await mockSupabaseAndStripe(page);
+  const previewId = "preview_sales_e2e_12345678";
+  const consoleErrors: string[] = [];
+  page.on("console", (message) => { if (message.type() === "error") consoleErrors.push(message.text()); });
+
+  await page.route("**/api/platform-events", (route) => json(route, { success: true }));
+  await page.route(`**/api/public/prospect-preview/${previewId}`, (route) => json(route, {
+    preview: {
+      previewId,
+      businessName: "Example Plumbing",
+      headline: "Example Plumbing, presented with a clearer website direction",
+      opportunitySummary: "Your business is stronger than the current website communicates. This direction makes the services, proof and next action easier to understand.",
+      proposedStructure: ["Home", "Services", "About", "Reviews", "Contact"],
+      proofSignals: ["Founded 2008", "Licensed and insured"],
+      primaryConversionPath: "Request a Quote",
+      recommendedProduct: {
+        slug: "website-growth",
+        label: "Website Growth",
+        reason: "The brief needs broader local-search and service-page support.",
+        salesMotion: "self_serve",
+      },
+      website: {
+        id: "00000000-0000-4000-8000-000000000777",
+        businessId: "00000000-0000-4000-8000-000000000778",
+        status: "draft",
+        updatedAt: Date.now(),
+        theme: { primaryColor: "#4f46e5", secondaryColor: "#0f172a", backgroundColor: "#ffffff", textColor: "#0f172a" },
+        seo: { title: "Example Plumbing", description: "Plumbing services", keywords: ["plumbing"] },
+        pages: [{
+          id: "page-home",
+          title: "Home",
+          slug: "home",
+          sections: [{
+            id: "hero",
+            type: "hero",
+            content: {
+              headline: "Reliable plumbing for local homes",
+              subheadline: "Clear service, trusted proof and a simple quotation path.",
+              primaryCta: "Request a Quote",
+            },
+          }],
+        }],
+      },
+    },
+  }));
+
+  await page.goto(`/preview/prospect/${previewId}`);
+  await expect(page.getByRole("heading", { name: /Example Plumbing, presented with a clearer website direction/i })).toBeVisible();
+  await expect(page.getByText("Website Growth", { exact: true })).toBeVisible();
+  const primaryCta = page.getByRole("link", { name: "Review plan & continue" });
+  await expect(primaryCta).toHaveCount(1);
+  await expect(primaryCta).toHaveAttribute("href", /\/pricing\?product=website-growth/);
+
+  await page.getByRole("button", { name: "Mobile" }).click();
+  await expect(page.getByRole("button", { name: "Mobile" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Tablet" }).click();
+  await expect(page.getByRole("button", { name: "Tablet" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Desktop" }).click();
+  await expect(page.getByRole("button", { name: "Desktop" })).toHaveAttribute("aria-pressed", "true");
+
+  expect(consoleErrors).toEqual([]);
+});
+
+
+test("legacy market URLs resolve into the geographically generic public journey", async ({ page }) => {
+  await page.goto("/website-subscription-service/malaysia");
+  await expect(page).toHaveURL(/\/website-subscription-service$/);
+  await expect(page.locator("body")).not.toContainText("Compare website subscription pages by market");
+
+  await page.goto("/clinic-website-design-malaysia");
+  await expect(page).toHaveURL(/\/clinic-website-design$/);
+  await expect(page.locator("body")).not.toContainText("Malaysia");
+
+  await page.goto("/");
+  await expect(page.locator("body")).not.toContainText("MYR");
+  await expect(page.locator("body")).not.toContainText("United Kingdom");
+  await expect(page.locator("body")).not.toContainText("Singapore");
+});
+
+
+test("internal sales preview asks for company and URL without requiring prospect contact details", async ({ page }) => {
+  await mockSupabaseAndStripe(page);
+  await page.goto("/generate-preview?sales=1");
+  await expect(page.getByText(/Internal mode · prospect email not required/i)).toBeVisible();
+  await expect(page.getByLabel("Company name")).toBeVisible();
+  await expect(page.getByLabel("Website URL").first()).toBeVisible();
+
+  const email = page.getByLabel("Email");
+  expect(await email.getAttribute("required")).toBeNull();
+  const phone = page.getByLabel(/WhatsApp \/ phone/);
+  expect(await phone.getAttribute("required")).toBeNull();
 });

@@ -18,10 +18,8 @@ import { trackPublicEvent } from "../lib/publicTracking";
 import { supabase } from "../lib/supabase";
 import {
   COMMERCIAL_FALLBACK_PRODUCTS,
-  COMMERCIAL_MARKET_CHANGED_EVENT,
   formatCommercialMoney,
   getCommercialPrice,
-  getStoredMarket,
 } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { DELIVERY_STANDARD_VERSION, PUBLIC_DELIVERY_PROMISES } from "../constants/deliveryStandards";
@@ -93,7 +91,7 @@ const workDirections = [
 
 const industries = [
   { label: "Professional services", path: "/professional-services-website-design", description: "Credibility, expertise and qualified consultation enquiries." },
-  { label: "Clinics & healthcare", path: "/clinic-website-design-malaysia", description: "Patient trust, treatment clarity and appointment paths." },
+  { label: "Clinics & healthcare", path: "/clinic-website-design", description: "Patient trust, treatment clarity and appointment paths." },
   { label: "Consultants", path: "/consultant-website-design", description: "Authority positioning, offers, proof and book-call journeys." },
   { label: "Contractors", path: "/renovation-contractor-website-design", description: "Projects, service areas, quote requests and local trust." },
   { label: "Accounting & finance", path: "/accounting-firm-website-design", description: "Service clarity, credentials and consultation conversion." },
@@ -112,7 +110,7 @@ const process = [
 const faqs = [
   ["Is this a template website?", "No. The system uses reusable design rules and components, but the composition, hierarchy, copy structure and conversion path are selected around the business brief."],
   ["Who reviews my website before launch?", "Every paid build goes through Bennie Studio's internal creative review, responsive QA, production-quality checks and customer approval before it can be published."],
-  ["Why is there a 12-month initial commitment?", "Managed plans combine the initial strategy and build with hosting, maintenance, tracking and plan-based improvements after launch. The exact commitment, renewal, cancellation and transfer terms are shown in writing before payment."],
+  ["Why is there a 90-day initial commitment?", "Managed plans combine the initial strategy and build with hosting, maintenance, tracking and plan-based improvements after launch. After the initial 90 days, service continues month-to-month under the written renewal, cancellation and transfer terms shown before payment."],
   ["What stays mine?", "Your domain and the business assets you supply remain yours. Any managed transfer, export or platform arrangements are confirmed in the written terms before payment."],
   ["Do I need professional photography before we start?", "No. Brand-led layouts can work without customer photography at first. When real imagery is supplied, it is placed into deliberate media slots rather than replaced with fake AI photos."],
   ["What happens after launch?", "Managed plans include hosting and ongoing website management. Higher tiers add deeper conversion, landing-page and growth support."],
@@ -296,7 +294,7 @@ function WorkShowcase() {
 
 export default function BrandLedLandingPage() {
   const navigate = useNavigate();
-  const [market, setMarket] = React.useState(() => getStoredMarket());
+  const market = "INTL" as const;
   const { products } = usePublicCommercialPricing(market);
   const [platformSettings, setPlatformSettings] = React.useState<any>(null);
   const [verifiedProof, setVerifiedProof] = React.useState<any[]>([]);
@@ -310,12 +308,6 @@ export default function BrandLedLandingPage() {
       return null;
     }
   });
-
-  React.useEffect(() => {
-    const onMarketChanged = () => setMarket(getStoredMarket());
-    window.addEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
-    return () => window.removeEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
-  }, []);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -681,8 +673,8 @@ export default function BrandLedLandingPage() {
                           <p className={isGrowth ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{isGrowth ? "Recommended" : planBestFor[index]}</p>
                           <h3 className={isGrowth ? "mt-2 !text-white" : "mt-2"}>{product.name}</h3>
                         </div>
-                        <p className={isGrowth ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
-                        <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
+                        <p className={isGrowth ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
+                        <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "USD")} setup</p>
                         <div className={isGrowth ? "mt-6 space-y-3 border-t border-white/25 pt-5" : "mt-6 space-y-3 border-t border-[#dfe2ea] pt-5"}>
                           {planComparisonRows.map(([label, values]) => (
                             <div key={label} className="flex items-start justify-between gap-4 text-sm">
@@ -691,7 +683,7 @@ export default function BrandLedLandingPage() {
                             </div>
                           ))}
                         </div>
-                        <button onClick={() => go("/pricing?market=" + market + "#plan-" + product.slug, "Pricing " + product.name)} className={isGrowth ? "mt-6 inline-flex min-h-12 w-full items-center justify-center bg-white px-5 font-semibold text-[#101827]" : "mt-6 inline-flex min-h-12 w-full items-center justify-center bg-[#141821] px-5 font-semibold text-white"}>
+                        <button onClick={() => go("/pricing#plan-" + product.slug, "Pricing " + product.name)} className={isGrowth ? "mt-6 inline-flex min-h-12 w-full items-center justify-center bg-white px-5 font-semibold text-[#101827]" : "mt-6 inline-flex min-h-12 w-full items-center justify-center bg-[#141821] px-5 font-semibold text-white"}>
                           View plan <ArrowRight className="ml-2 h-4 w-4" />
                         </button>
                       </article>

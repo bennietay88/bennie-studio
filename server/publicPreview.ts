@@ -6,7 +6,12 @@ export type PublicPreviewProfile = {
   contactEmail: string;
   contactPhone: string;
   services: string[];
+  serviceAreas: string[];
   testimonials: string[];
+  credentials: string[];
+  yearsInBusiness: string;
+  guarantees: string[];
+  primaryCta: string;
   heroImage: string;
   sourceTitle: string;
   aiUsed: false;
@@ -212,10 +217,87 @@ const extractTestimonials = (html: string) => {
   for (const pattern of patterns) {
     for (const match of html.matchAll(pattern)) {
       const value = text(match[1]);
-      if (value.length >= 25 && value.length <= 320 && !/privacy|cookie|terms/i.test(value)) candidates.push(value);
+      if (value.length >= 25 && value.length <= 180 && !/privacy|cookie|terms/i.test(value)) candidates.push(value);
     }
   }
   return [...new Set(candidates)].slice(0, 6);
+};
+
+const pageText = (html: string) => text(html).slice(0, 40_000);
+
+const extractServiceAreas = (objects: any[], html: string) => {
+  const values: string[] = [];
+  for (const object of objects) {
+    const area = object?.areaServed;
+    const entries = Array.isArray(area) ? area : area ? [area] : [];
+    for (const entry of entries) {
+      const value = typeof entry === "string"
+        ? entry
+        : typeof entry?.name === "string"
+          ? entry.name
+          : "";
+      if (value.trim()) values.push(value.trim().slice(0, 100));
+    }
+  }
+  const body = pageText(html);
+  for (const match of body.matchAll(/\b(?:serving|service areas?|areas? served)\s*[:\-]?\s*([^.!?]{3,120})/gi)) {
+    const value = String(match[1] || "").trim().replace(/\s+/g, " ");
+    if (value && !/privacy|cookie|terms/i.test(value)) values.push(value.slice(0, 100));
+  }
+  return [...new Set(values.map((value) => value.replace(/[;,]\s*$/, "").trim()))].filter(Boolean).slice(0, 8);
+};
+
+const extractCredentials = (html: string) => {
+  const body = pageText(html);
+  const values: string[] = [];
+  const patterns = [
+    /\b(?:fully\s+)?licensed(?:\s+and\s+insured)?\b/gi,
+    /\b(?:certified|accredited|registered)\s+(?:by|with|member|professional)?\s*[^.!?]{0,80}/gi,
+    /\bmember\s+of\s+[^.!?]{2,80}/gi,
+    /\b(?:award[- ]winning|winner\s+of)\s+[^.!?]{0,80}/gi,
+  ];
+  for (const pattern of patterns) {
+    for (const match of body.matchAll(pattern)) {
+      const value = String(match[0] || "").trim().replace(/\s+/g, " ");
+      if (value.length >= 6 && value.length <= 120) values.push(value);
+    }
+  }
+  return [...new Set(values)].slice(0, 6);
+};
+
+const extractYearsInBusiness = (objects: any[], html: string) => {
+  const body = pageText(html);
+  const explicit = /\b(?:over\s+|more\s+than\s+)?(\d{1,3})\+?\s+years?(?:\s+of\s+experience|\s+in\s+business|\s+serving|\s+established)?\b/i.exec(body);
+  if (explicit) return explicit[0].replace(/\s+/g, " ").trim().slice(0, 80);
+  const established = /\b(?:established|founded|since)\s+(?:in\s+)?((?:19|20)\d{2})\b/i.exec(body);
+  if (established) return `${established[0].replace(/\s+/g, " ").trim()}`.slice(0, 80);
+  for (const object of objects) {
+    const founded = String(object?.foundingDate || "").trim();
+    const year = /(?:19|20)\d{2}/.exec(founded)?.[0];
+    if (year) return `Founded ${year}`;
+  }
+  return "";
+};
+
+const extractGuarantees = (html: string) => {
+  const body = pageText(html);
+  const values: string[] = [];
+  const pattern = /\b(?:money[- ]back|satisfaction|workmanship|lifetime)\s+(?:guarantee|warranty)\b|\b\d{1,3}[- ](?:day|month|year)(?:\s+[a-z][a-z-]*){0,2}\s+(?:guarantee|warranty)\b|\bguaranteed\s+[^.!?]{0,70}/gi;
+  for (const match of body.matchAll(pattern)) {
+    const value = String(match[0] || "").trim().replace(/\s+/g, " ");
+    if (value.length >= 8 && value.length <= 110) values.push(value);
+  }
+  return [...new Set(values)].slice(0, 4);
+};
+
+const extractPrimaryCta = (html: string) => {
+  const preferred = /\b(book|request|contact|call|quote|schedule|consultation|appointment|enquire|inquire|get started|whatsapp)\b/i;
+  const candidates: string[] = [];
+  for (const match of html.matchAll(/<(?:a|button)\b[^>]*>([\s\S]*?)<\/(?:a|button)>/gi)) {
+    const value = text(match[1]);
+    if (value && value.length <= 70 && preferred.test(value)) candidates.push(value);
+  }
+  return candidates[0] || "";
 };
 
 export function buildPublicPreviewProfile(input: {
@@ -275,6 +357,11 @@ export function buildPublicPreviewProfile(input: {
   ].filter((item, index, items) => items.findIndex((candidate) => candidate.toLowerCase() === item.toLowerCase()) === index);
   if (!services.length && input.fallbackMainService?.trim()) services.push(input.fallbackMainService.trim());
   const testimonials = extractTestimonials(html);
+  const serviceAreas = extractServiceAreas(schemaObjects, html);
+  const credentials = extractCredentials(html);
+  const yearsInBusiness = extractYearsInBusiness(schemaObjects, html);
+  const guarantees = extractGuarantees(html);
+  const primaryCta = extractPrimaryCta(html);
 
   const schemaImageRaw = (() => {
     for (const object of schemaObjects) {
@@ -301,7 +388,12 @@ export function buildPublicPreviewProfile(input: {
     contactEmail,
     contactPhone,
     services,
+    serviceAreas,
     testimonials,
+    credentials,
+    yearsInBusiness,
+    guarantees,
+    primaryCta,
     heroImage,
     sourceTitle: title.slice(0, 220),
     aiUsed: false,

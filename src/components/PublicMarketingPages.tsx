@@ -72,7 +72,7 @@ type PublicPageKind =
   | "generate-preview"
   | "preview-order"
   | "dental-clinics"
-  | "clinic-website-design-malaysia"
+  | "clinic-website-design"
   | "renovation-contractor-website-design"
   | "beauty-salon-website-design"
   | "tuition-centre-website-design"
@@ -126,7 +126,7 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
     description:
       "Dental clinic websites built around treatment pages, patient trust, Google visibility, WhatsApp enquiries, calls, and appointment requests.",
   },
-  "clinic-website-design-malaysia": {
+  "clinic-website-design": {
     title: "Clinic Website Design | Appointment Enquiry Websites",
     description:
       "Lead-generation clinic websites with treatment pages, patient trust, local SEO structure and appointment CTAs.",
@@ -287,7 +287,7 @@ const nichePages: Record<
   Extract<
     PublicPageKind,
     | "dental-clinics"
-    | "clinic-website-design-malaysia"
+    | "clinic-website-design"
     | "renovation-contractor-website-design"
     | "beauty-salon-website-design"
     | "tuition-centre-website-design"
@@ -320,7 +320,7 @@ const nichePages: Record<
     leadCapture: "WhatsApp enquiry, appointment form, phone call, treatment-specific CTA, and local SEO landing pages.",
     sections: ["Appointment-focused hero", "Treatment pages", "Dentist and clinic trust", "Patient reviews", "Treatment FAQs", "Location and map", "WhatsApp and appointment CTAs"],
   },
-  "clinic-website-design-malaysia": {
+  "clinic-website-design": {
     label: "Clinic lead websites",
     title: "Clinic Websites Built for Patient Enquiries",
     subtitle:
@@ -1104,7 +1104,7 @@ function GeneratePreviewPage() {
       socialUrl: String(savedPreviewIntent.socialUrl || ""),
       reviews: String(savedPreviewIntent.reviews || ""),
       biggestProblem: String(savedPreviewIntent.biggestProblem || initialParams.get("problem") || ""),
-      pageCount: Math.min(8, Math.max(5, Number(savedPreviewIntent.pageCount || initialParams.get("pages") || 5))),
+      pageCount: 5,
     };
   });
   const inferredIndustryId = inferPreviewIndustryId(form.mainService);
@@ -1159,7 +1159,17 @@ function GeneratePreviewPage() {
     googleBusinessUrl: form.socialUrl,
     reviews: form.reviews,
   });
-  const commercialRecommendation = recommendCommercialProduct({ goal, notes: form.mainService, industry: industry.label, requestedPages: form.pageCount });
+  const commercialRecommendation = recommendCommercialProduct({
+    goal,
+    notes: `${form.mainService} ${form.biggestProblem}`,
+    industry: industry.label,
+    requestedPages: 5,
+    serviceCount: form.mainService.split(/[,/\n]+/).map((item) => item.trim()).filter(Boolean).length,
+    locationCount: form.location.split(/[,/\n]+/).map((item) => item.trim()).filter(Boolean).length,
+    seoIntent: /seo|search|google|organic/i.test(`${goal} ${form.biggestProblem}`),
+    landingPageNeeds: /landing|campaign|service page|location page/i.test(form.biggestProblem),
+    ongoingGrowth: /growth|scale|ongoing|monthly/i.test(`${goal} ${form.biggestProblem}`),
+  });
   const previewGenerationMode = resolvePreviewGenerationMode(effectiveIndustryId, form.brandStyle, form.websiteStatus);
   const previewBrandPersonality = resolvePreviewBrandPersonality(form.brandStyle);
   const previewBusinessMaturity: BusinessMaturity = form.websiteStatus === "yes" ? "established" : "growing";
@@ -1317,8 +1327,13 @@ function GeneratePreviewPage() {
         contactEmail?: string;
         contactPhone?: string;
         services?: string[];
+        serviceAreas?: string[];
         heroImage?: string;
         testimonials?: string[];
+        credentials?: string[];
+        yearsInBusiness?: string;
+        guarantees?: string[];
+        primaryCta?: string;
       };
 
       const resolvedBusinessName = String(profile.businessName || form.businessName || "Your Business").trim();
@@ -1371,7 +1386,7 @@ function GeneratePreviewPage() {
         nicheId: resolvedTemplateId,
         nicheName: resolvedIndustry.label,
         plan: "business",
-        maxPages: Math.min(8, Math.max(5, Number(form.pageCount || 5))),
+        maxPages: 5,
         mainService: resolvedMainService,
         targetCustomer: previewTargetCustomers[resolvedIndustryId] || "customers",
         location: resolvedLocation,
@@ -1432,9 +1447,16 @@ function GeneratePreviewPage() {
       const selectedPreview = previewCandidates.sort((a, b) => b.rank - a.rank)[0];
       const resolvedRecommendation = recommendCommercialProduct({
         goal: resolvedGoal,
-        notes: resolvedMainService,
+        notes: `${resolvedMainService} ${form.biggestProblem}`,
         industry: resolvedIndustry.label,
-        requestedPages: form.pageCount,
+        requestedPages: 5,
+        serviceCount: resolvedServices.length,
+        locationCount: Array.isArray(profile.serviceAreas) ? profile.serviceAreas.length : 0,
+        seoIntent: /seo|search|google|organic/i.test(`${resolvedGoal} ${form.biggestProblem}`),
+        landingPageNeeds: /landing|campaign|service page|location page/i.test(form.biggestProblem),
+        customFunctionality: /portal|membership|e-?commerce|custom function|booking engine/i.test(`${form.biggestProblem} ${resolvedMainService}`),
+        integrations: /integration|crm|api|hubspot|salesforce|shopify|woocommerce/i.test(`${form.biggestProblem} ${resolvedMainService}`),
+        ongoingGrowth: /growth|scale|ongoing|monthly|continuous/i.test(`${resolvedGoal} ${form.biggestProblem}`),
       });
 
       const resolvedForm = {
@@ -1451,13 +1473,42 @@ function GeneratePreviewPage() {
 
       let persistedPreview: { shareUrl?: string; businessId?: string; websiteId?: string } = {};
       try {
-        const persistResponse = await fetch("/api/public/preview-site", {
+        const salesProofSignals = [
+          String(profile.yearsInBusiness || "").trim(),
+          ...(Array.isArray(profile.credentials) ? profile.credentials : []),
+          ...(Array.isArray(profile.guarantees) ? profile.guarantees : []),
+          ...(Array.isArray(profile.serviceAreas) && profile.serviceAreas.length ? [`Serves ${profile.serviceAreas.slice(0, 3).join(", ")}`] : []),
+          ...(previewTestimonials.length ? ["Customer review evidence found"] : []),
+        ].filter(Boolean).slice(0, 6);
+        const persistHeaders: Record<string, string> = { "Content-Type": "application/json" };
+        if (salesMode) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.access_token) throw new Error("Sign in as Bennie Studio staff to save a prospect preview.");
+          persistHeaders.Authorization = `Bearer ${session.access_token}`;
+        }
+        const persistResponse = await fetch(salesMode ? "/api/admin/sales-preview-site" : "/api/public/preview-site", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: persistHeaders,
           body: JSON.stringify({
             previewId,
             leadId: leadResult.leadId,
-            email: effectiveLeadEmail,
+            ...(salesMode ? {
+              summary: {
+                headline: `${resolvedBusinessName}, presented with a clearer website direction`,
+                opportunitySummary: previewMode === "website"
+                  ? "Your business is stronger than the current website communicates. This direction makes the services, proof and next action easier for a prospective customer to understand."
+                  : "This direction turns the business brief into a clearer service story, trust path and next action for prospective customers.",
+                proposedStructure: selectedPreview.website.pages.map((page) => page.title).slice(0, 5),
+                proofSignals: salesProofSignals,
+                primaryConversionPath: profile.primaryCta || resolvedCta,
+                recommendedProduct: {
+                  slug: resolvedRecommendation.slug,
+                  label: resolvedRecommendation.label,
+                  reason: resolvedRecommendation.reason,
+                  salesMotion: resolvedRecommendation.salesMotion,
+                },
+              },
+            } : { email: effectiveLeadEmail }),
             website: {
               theme: selectedPreview.website.theme,
               pages: selectedPreview.website.pages,
@@ -1578,7 +1629,7 @@ function GeneratePreviewPage() {
               Give us the essentials. We turn them into a tailored website direction built around your service, location, trust signals and preferred enquiry action.
             </p>
             <div className="mt-8 flex flex-wrap gap-2">
-              {["No card required", "Nothing is published", "Uses your real business details"].map((item) => (
+              {([salesMode ? "Internal sales workflow" : "No card required", "Nothing is published publicly", "Uses verified business details"]).map((item) => (
                 <span key={item} className="inline-flex items-center gap-2 rounded-full border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold text-[#374151]">
                   <Check className="h-4 w-4 text-[#5746e8]" /> {item}
                 </span>
@@ -1660,27 +1711,9 @@ function GeneratePreviewPage() {
               </section>
 
               <section className="border border-[#dfe2ea] bg-white p-5 sm:p-7">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Preview size</p>
-                    <h3 className="mt-1 text-xl font-semibold text-[#141821]">Choose 5–8 pages.</h3>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2" role="group" aria-label="Preview page count">
-                    {[5, 6, 7, 8].map((count) => (
-                      <button
-                        key={count}
-                        type="button"
-                        aria-pressed={form.pageCount === count}
-                        onClick={() => setForm((current) => ({ ...current, pageCount: count }))}
-                        className={form.pageCount === count
-                          ? "h-11 min-w-12 border-2 border-[#5746e8] bg-[#eeebff] px-3 text-sm font-bold text-[#141821]"
-                          : "h-11 min-w-12 border border-[#dfe2ea] bg-[#f9f8f4] px-3 text-sm font-semibold text-[#526071] hover:border-[#aaa4dc]"}
-                      >
-                        {count}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Preview scope</p>
+                <h3 className="mt-1 text-xl font-semibold text-[#141821]">A focused direction for up to 5 core pages.</h3>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5f6673]">The free preview demonstrates structure, messaging and conversion direction. The Managed Website plan includes up to five core pages. Additional service, location or campaign pages belong in a broader growth scope.</p>
               </section>
 
               {previewMode === "website" ? (
@@ -1692,6 +1725,12 @@ function GeneratePreviewPage() {
                       <h3 className="mt-1 text-2xl font-semibold text-[#141821]">Paste your website URL.</h3>
                     </div>
                   </div>
+                  {salesMode ? (
+                    <div className="mb-5">
+                      <label htmlFor="preview-sales-business" className="mb-2 block text-sm font-semibold text-[#374151]">Company name</label>
+                      <Input id="preview-sales-business" required value={form.businessName} onChange={(e) => setForm({...form, businessName:e.target.value})} placeholder="Prospect company name" className="h-12 rounded-none border-[#dfe2ea] bg-white" />
+                    </div>
+                  ) : null}
                   <label htmlFor="preview-url-first" className="mb-2 block text-sm font-semibold text-[#374151]">Website URL</label>
                   <Input id="preview-url-first" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://yourbusiness.com" className="h-14 rounded-none border-[#dfe2ea] bg-white text-base" />
                   <p className="mt-3 text-sm leading-6 text-[#5f6673]">We read the key public pages we can safely access, reuse verified business facts and trust signals, and generate the layout from Bennie Studio's design system. No ChatGPT call is used for the free preview.</p>
@@ -1847,13 +1886,13 @@ function GeneratePreviewPage() {
                   </div>
                   <div>
                     <label htmlFor="preview-email" className="mb-2 block text-sm font-semibold text-slate-200">Email</label>
-                    <Input id="preview-email" required autoComplete="email" type="email" value={form.email} onChange={(e) => setForm({...form, email:e.target.value})} placeholder="you@business.com" className="h-12 rounded-none border-white/15 bg-white text-[#141821]" />
+                    <Input id="preview-email" required={!salesMode} autoComplete="email" type="email" value={form.email} onChange={(e) => setForm({...form, email:e.target.value})} placeholder="you@business.com" className="h-12 rounded-none border-white/15 bg-white text-[#141821]" />
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor="preview-phone" className="mb-2 block text-sm font-semibold text-slate-200">
                       WhatsApp / phone {goal.toLowerCase().includes("whatsapp") ? null : <span className="font-normal text-slate-400">optional</span>}
                     </label>
-                    <Input id="preview-phone" required={goal.toLowerCase().includes("whatsapp")} autoComplete="tel" value={form.phone} onChange={(e) => setForm({...form, phone:e.target.value})} placeholder="Phone or WhatsApp number" className="h-12 rounded-none border-white/15 bg-white text-[#141821]" />
+                    <Input id="preview-phone" required={!salesMode && goal.toLowerCase().includes("whatsapp")} autoComplete="tel" value={form.phone} onChange={(e) => setForm({...form, phone:e.target.value})} placeholder="Phone or WhatsApp number" className="h-12 rounded-none border-white/15 bg-white text-[#141821]" />
                   </div>
                 </div>
 
@@ -1893,7 +1932,7 @@ function GeneratePreviewPage() {
                     ["Industry", industry.label],
                     ["Service", serviceLabel],
                     ["Location", locationLabel],
-                    ["Pages", `${form.pageCount} pages`],
+                    ["Scope", "Up to 5 core pages"],
                     ["Goal", goal],
                     ["Style", form.brandStyle],
                   ].map(([label, value]) => (
