@@ -1973,100 +1973,125 @@ export default function SuperAdminDashboard() {
 
           {activeTab === "ecosystem_architect" && (
             <div className="space-y-8">
-              <div className="flex justify-between items-start">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <h1 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 dark:text-white">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">Platform structure</p>
+                  <h1 className="mt-2 text-4xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">
                     Ecosystem <span className="text-indigo-600">Architect</span>
                   </h1>
-                  <p className="text-slate-400 font-bold tracking-tight text-sm uppercase mt-1">Platform-wide infrastructure and scaling health</p>
+                  <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+                    A live structural view of customers, users, delivery work, and the admin modules that operate Bennie Studio. No simulated latency or uptime numbers.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={() => navigate("/admin/status")} className="rounded-xl bg-white">
+                    <Shield className="mr-2 h-4 w-4" />
+                    System Status
+                  </Button>
+                  <Button onClick={() => navigate("/admin/growth_os_config")} className="rounded-xl bg-indigo-600">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Feature Controls
+                  </Button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {[
-                  { label: "Active Tenants", value: businesses.length, color: "text-indigo-600" },
-                  { label: "Growth Nodes", value: users.length, color: "text-blue-600" },
-                  { label: "System Latency", value: "84ms", color: "text-emerald-600" },
-                  { label: "Uptime", value: "99.98%", color: "text-amber-600" },
-                ].map((stat, i) => (
-                  <Card key={i} className="p-6 rounded-3xl border-slate-100 shadow-sm text-center">
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">{stat.label}</p>
-                    <p className={cn("text-3xl font-black italic tracking-tight", stat.color)}>{stat.value}</p>
+                  {
+                    label: "Active Businesses",
+                    value: businesses.filter((business) => String(business.status || "").toLowerCase() === "active").length,
+                    helper: `${businesses.length} total business records`,
+                  },
+                  {
+                    label: "Platform Users",
+                    value: users.length,
+                    helper: "Authenticated profiles",
+                  },
+                  {
+                    label: "Open Projects",
+                    value: projects.filter((project) => !["completed", "cancelled", "canceled", "archived"].includes(String(project.status || "").toLowerCase())).length,
+                    helper: `${projects.length} total delivery projects`,
+                  },
+                  {
+                    label: "Upcoming Appointments",
+                    value: appointments.length,
+                    helper: "Current future appointment queue",
+                  },
+                ].map((stat) => (
+                  <Card key={stat.label} className="rounded-3xl border-slate-200 p-6 shadow-sm">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{stat.label}</p>
+                    <p className="mt-2 text-3xl font-black tracking-tight text-slate-950">{stat.value}</p>
+                    <p className="mt-2 text-xs font-semibold text-slate-500">{stat.helper}</p>
                   </Card>
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Card className="lg:col-span-2 rounded-[2rem] border-slate-100 overflow-hidden">
-                  <div className="p-8 space-y-6">
-                    <div className="flex items-center justify-between">
-                       <h2 className="text-lg font-black uppercase italic tracking-tight">Ecosystem Growth Nodes</h2>
-                       <Layout className="h-5 w-5 text-indigo-600" />
+              <div className="grid gap-6 xl:grid-cols-[1.4fr_0.6fr]">
+                <Card className="rounded-[2rem] border-slate-200 p-7">
+                  <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
+                    <div>
+                      <h2 className="text-lg font-black tracking-tight text-slate-950">Operational module topology</h2>
+                      <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                        Visibility reflects the saved Super Admin module configuration. All formerly deferred modules are now wired to working surfaces.
+                      </p>
                     </div>
-                    <div className="relative h-64 bg-slate-50 rounded-2xl overflow-hidden border border-slate-100">
-                       <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                          <Globe className="h-48 w-48 text-indigo-600 animate-spin-slow" />
-                       </div>
-                       <div className="absolute inset-0 p-8 grid grid-cols-3 gap-4">
-                          {[...Array(6)].map((_, i) => (
-                            <motion.div 
-                              key={i}
-                              animate={{ 
-                                scale: [1, 1.05, 1],
-                                opacity: [0.3, 0.6, 0.3]
-                              }}
-                              transition={{ 
-                                duration: 2 + i,
-                                repeat: Infinity,
-                                ease: "easeInOut"
-                              }}
-                              className="rounded-xl bg-white border border-slate-200 shadow-sm p-4 flex flex-col items-center justify-center"
-                            >
-                               <div className="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mb-2">
-                                  <Cpu className="h-4 w-4" />
-                               </div>
-                               <div className="h-1 w-8 bg-indigo-200 rounded-full" />
-                            </motion.div>
-                          ))}
-                       </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                       <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100">
-                          <p className="text-[10px] font-black uppercase text-indigo-600 mb-1">Architecture integrity</p>
-                          <p className="text-xl font-black italic text-indigo-900 tracking-tight">Verified (94.2%)</p>
-                       </div>
-                       <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100">
-                          <p className="text-[10px] font-black uppercase text-emerald-600 mb-1">Security Shielding</p>
-                          <p className="text-xl font-black italic text-emerald-900 tracking-tight">Maximum Active</p>
-                       </div>
-                    </div>
+                    <Layout className="h-5 w-5 text-indigo-600" />
+                  </div>
+
+                  <div className="mt-6 grid gap-5 md:grid-cols-2">
+                    {Array.from(new Set(ADMIN_MODULES.map((module) => module.group))).map((group) => (
+                      <div key={group} className="rounded-2xl border border-slate-200 p-5">
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{group}</p>
+                        <div className="mt-4 space-y-3">
+                          {ADMIN_MODULES.filter((module) => module.group === group).map((module) => {
+                            const enabled = platformSettings.adminModules?.[module.id] !== false;
+                            return (
+                              <div key={module.id} className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-bold text-slate-900">{module.label}</p>
+                                  <p className="mt-1 text-xs leading-5 text-slate-500">{module.description}</p>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className={enabled
+                                    ? "shrink-0 border-emerald-200 bg-emerald-50 text-emerald-700"
+                                    : "shrink-0 border-slate-200 bg-slate-50 text-slate-500"}
+                                >
+                                  {enabled ? "Visible" : "Hidden"}
+                                </Badge>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </Card>
 
-                <Card className="rounded-[2rem] border-slate-100 p-8 space-y-6 bg-slate-900 text-white">
-                   <h2 className="text-lg font-black uppercase italic tracking-tight text-white mb-4">Architecture Tools</h2>
-                    <div className="space-y-4">
-                      {[
-                        { label: "Sync Ecosystem", icon: RefreshCw, action: () => toast.success("Ecosystem nodes synchronized.") },
-                        { label: "Neural Audit", icon: Shield, action: () => navigate("/admin/neural_auditor") },
-                        { label: "Redeploy Nodes", icon: Rocket, action: () => toast.info("Redeploying infrastructure nodes...") },
-                        { label: "Export Blueprint", icon: FileText, action: () => toast.info("Platform blueprint exported to administrative secure core.") },
-                      ].map((tool, i) => (
-                        <Button 
-                          key={i} 
-                          variant="ghost" 
-                          onClick={tool.action}
-                          className="w-full justify-start h-12 rounded-xl border border-white/10 text-white hover:bg-white/10 font-bold uppercase tracking-widest text-[10px]"
-                        >
-                           <tool.icon className="h-4 w-4 mr-3 text-indigo-400" />
-                           {tool.label}
-                        </Button>
-                      ))}
-                    </div>
-                   <div className="mt-8 pt-8 border-t border-white/10">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Internal Version</p>
-                      <p className="text-xs font-mono text-indigo-400">GrowthOS-v2.8.4-PROD</p>
-                   </div>
+                <Card className="rounded-[2rem] border-slate-200 p-7">
+                  <h2 className="text-lg font-black tracking-tight text-slate-950">Architecture actions</h2>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                    Jump to the real control surface for each platform layer.
+                  </p>
+                  <div className="mt-6 space-y-3">
+                    {[
+                      { label: "Active Sites", path: "/admin/businesses", icon: Globe },
+                      { label: "Service Projects", path: "/admin/projects", icon: Briefcase },
+                      { label: "Plans & Pricing", path: "/admin/plans", icon: CreditCard },
+                      { label: "Finance", path: "/admin/finance", icon: CircleDollarSign },
+                      { label: "System Status", path: "/admin/status", icon: ShieldCheck },
+                    ].map((action) => (
+                      <Button
+                        key={action.path}
+                        variant="outline"
+                        onClick={() => navigate(action.path)}
+                        className="h-12 w-full justify-start rounded-xl bg-white font-bold"
+                      >
+                        <action.icon className="mr-3 h-4 w-4 text-indigo-600" />
+                        {action.label}
+                      </Button>
+                    ))}
+                  </div>
                 </Card>
               </div>
             </div>
