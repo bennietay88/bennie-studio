@@ -575,7 +575,7 @@ export default function BrandLedLandingPage() {
                 <article key={category} className="bg-white p-5 sm:p-6">
                   <div className="flex items-start justify-between gap-4">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#5746e8]">{category}</p>
-                    <span className="text-[10px] font-semibold text-[#a0a7b3]">0{index + 1}</span>
+                    <span className="text-[10px] font-semibold text-[#526071]">0{index + 1}</span>
                   </div>
                   <h3 className="mt-4 text-xl">{direction}</h3>
                   <p className="mt-3 text-sm leading-6 text-[#687386]">{copy}</p>
