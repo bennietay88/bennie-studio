@@ -9,6 +9,7 @@ export type PublicPreviewProfile = {
   serviceAreas: string[];
   testimonials: string[];
   faqs: string[];
+  faqItems: Array<{ question: string; answer: string }>;
   aboutText: string;
   credentials: string[];
   yearsInBusiness: string;
@@ -399,25 +400,47 @@ const extractTestimonials = (html: string) => {
   return [...new Set(candidates)].slice(0, 6);
 };
 
-const extractFaqs = (objects: any[], html: string) => {
-  const questions: string[] = [];
+const extractFaqItems = (objects: any[], html: string) => {
+  const items: Array<{ question: string; answer: string }> = [];
 
   for (const object of objects) {
     const types = Array.isArray(object?.["@type"]) ? object["@type"] : [object?.["@type"]];
     if (!types.some((type: unknown) => String(type || "").toLowerCase() === "faqpage")) continue;
     const entities = Array.isArray(object?.mainEntity) ? object.mainEntity : [];
     for (const entity of entities) {
-      const question = typeof entity?.name === "string" ? entity.name.trim() : "";
-      if (question) questions.push(question.endsWith("?") ? question : `${question}?`);
+      const rawQuestion = typeof entity?.name === "string" ? entity.name.trim() : "";
+      const rawAnswer = typeof entity?.acceptedAnswer?.text === "string"
+        ? text(entity.acceptedAnswer.text)
+        : "";
+      if (!rawQuestion || rawAnswer.length < 8) continue;
+      items.push({
+        question: rawQuestion.endsWith("?") ? rawQuestion : `${rawQuestion}?`,
+        answer: rawAnswer.slice(0, 500),
+      });
     }
   }
 
   for (const match of html.matchAll(/<(?:h2|h3|h4|button)[^>]*>([\s\S]*?)<\/(?:h2|h3|h4|button)>/gi)) {
     const question = text(match[1]);
-    if (question.length >= 12 && question.length <= 160 && question.endsWith("?")) questions.push(question);
+    if (question.length < 12 || question.length > 160 || !question.endsWith("?")) continue;
+    const endIndex = (match.index || 0) + match[0].length;
+    const after = html.slice(endIndex, endIndex + 1800);
+    const answer = firstMatch(after, [
+      /<p\b[^>]*>([\s\S]*?)<\/p>/i,
+      /<div\b[^>]*class=["'][^"']*(?:answer|accordion|content)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+    ]);
+    if (answer.length >= 12 && answer.length <= 500) {
+      items.push({ question, answer });
+    }
   }
 
-  return [...new Set(questions)].slice(0, 6);
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.question.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 6);
 };
 
 const extractAboutText = (html: string, description: string) => {
@@ -566,7 +589,8 @@ export function buildPublicPreviewProfile(input: {
   ].filter((item, index, items) => items.findIndex((candidate) => candidate.toLowerCase() === item.toLowerCase()) === index);
   if (!services.length && input.fallbackMainService?.trim()) services.push(input.fallbackMainService.trim());
   const testimonials = extractTestimonials(html);
-  const faqs = extractFaqs(schemaObjects, html);
+  const faqItems = extractFaqItems(schemaObjects, html);
+  const faqs = faqItems.map((item) => item.question);
   const aboutText = extractAboutText(html, description);
   const serviceAreas = extractServiceAreas(schemaObjects, html);
   const credentials = extractCredentials(html);
@@ -601,6 +625,7 @@ export function buildPublicPreviewProfile(input: {
     serviceAreas,
     testimonials,
     faqs,
+    faqItems,
     aboutText,
     credentials,
     yearsInBusiness,
