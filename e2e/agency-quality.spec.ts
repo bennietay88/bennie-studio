@@ -184,3 +184,155 @@ test("sales journey exposes delivery safeguards and defined scope", async ({ pag
   await expect(fees.getByText(/Know exactly what you are buying/i)).toBeVisible();
   await expect(page.getByText(/90-day initial commitment/i).first()).toBeVisible();
 });
+
+
+test("generated managed website preview uses agency architecture and AA-readable text", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await mockAnonymousPublicDependencies(page);
+
+  const leadId = "11111111-1111-4111-8111-111111111111";
+  await page.route("**/api/platform-leads", (request: any) => request.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ success: true, leadId }),
+  }));
+  await page.route("**/api/public/preview-intake", (request: any) => request.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      success: true,
+      profile: {
+        sourceUrl: "https://bennietay.com/",
+        businessName: "Bennie Studio",
+        description: "Bennie Studio builds and manages conversion-focused websites for service businesses, helping turn visits into enquiries.",
+        location: "Kuala Lumpur",
+        contactEmail: "hello@example.com",
+        contactPhone: "+60123456789",
+        services: [
+          "Managed website services",
+          "Managed Lead-Generation Website",
+          "Custom WordPress Website",
+          "Website Audit",
+        ],
+        heroImage: "/brand-template-preview.svg",
+        sourceTitle: "Bennie Studio",
+        aiUsed: false,
+        estimatedAiCostUsd: 0,
+      },
+    }),
+  }));
+  await page.route("**/api/public/preview-site", (request: any) => request.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      success: true,
+      businessId: "22222222-2222-4222-8222-222222222222",
+      websiteId: "33333333-3333-4333-8333-333333333333",
+      shareUrl: "/w/22222222-2222-4222-8222-222222222222",
+    }),
+  }));
+
+  await page.goto("/generate-preview", { waitUntil: "networkidle" });
+  await page.getByLabel("Website URL").fill("https://bennietay.com");
+  await page.getByLabel(/Your name/i).fill("Bennie Tay");
+  await page.getByLabel("Email", { exact: true }).fill("bennie@example.com");
+  await page.getByLabel(/WhatsApp \/ phone/i).fill("+60123456789");
+  await page.getByRole("button", { name: /Build preview from my URL/i }).click();
+
+  await expect(page.getByText(/Interactive 5-page preview/i)).toBeVisible({ timeout: 15000 });
+  const renderer = page.locator(".bt-website-renderer").last();
+  await expect(renderer).toBeVisible();
+
+  const primary = await renderer.evaluate((node) => getComputedStyle(node).getPropertyValue("--primary").trim());
+  expect(primary.toLowerCase()).toBe("#5746e8");
+
+  const pageLabels = await renderer.locator("nav button").allTextContents();
+  const normalizedLabels = pageLabels.map((label) => label.trim()).filter(Boolean);
+  for (const required of ["Home", "Services", "Work", "About", "Contact"]) {
+    expect(normalizedLabels).toContain(required);
+  }
+  expect(normalizedLabels).not.toContain("Programs");
+
+  const auditVisibleTextContrast = async () => renderer.locator("main").evaluate((root) => {
+    const parseColor = (value: string) => {
+      const match = value.match(/rgba?\(([^)]+)\)/i);
+      if (!match) return null;
+      const parts = match[1].split(",").map((part) => Number.parseFloat(part.trim()));
+      if (parts.length < 3 || parts.some((part, index) => index < 3 && !Number.isFinite(part))) return null;
+      return { r: parts[0], g: parts[1], b: parts[2], a: Number.isFinite(parts[3]) ? parts[3] : 1 };
+    };
+    const channel = (value: number) => {
+      const normalized = value / 255;
+      return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = (color: { r: number; g: number; b: number }) =>
+      0.2126 * channel(color.r) + 0.7152 * channel(color.g) + 0.0722 * channel(color.b);
+    const ratio = (foreground: { r: number; g: number; b: number }, background: { r: number; g: number; b: number }) => {
+      const a = luminance(foreground);
+      const b = luminance(background);
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    };
+
+    const candidates = Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6,p,li,label,a,button,span"))
+      .filter((node) => {
+        const element = node as HTMLElement;
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return Boolean(element.innerText?.trim()) && rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+      });
+
+    const failures: Array<{ text: string; ratio: number; threshold: number; color: string; background: string }> = [];
+    for (const node of candidates) {
+      const element = node as HTMLElement;
+      const style = getComputedStyle(element);
+      const foreground = parseColor(style.color);
+      if (!foreground || foreground.a < 0.95) continue;
+
+      let cursor: HTMLElement | null = element;
+      let background: ReturnType<typeof parseColor> = null;
+      let complexSurface = false;
+      while (cursor && root.contains(cursor)) {
+        const cursorStyle = getComputedStyle(cursor);
+        if (cursorStyle.backgroundImage && cursorStyle.backgroundImage !== "none") {
+          complexSurface = true;
+          break;
+        }
+        const candidate = parseColor(cursorStyle.backgroundColor);
+        if (candidate && candidate.a >= 0.98) {
+          background = candidate;
+          break;
+        }
+        if (candidate && candidate.a > 0 && candidate.a < 0.98) {
+          complexSurface = true;
+          break;
+        }
+        cursor = cursor.parentElement;
+      }
+      if (complexSurface || !background) continue;
+
+      const fontSize = Number.parseFloat(style.fontSize);
+      const fontWeight = Number.parseInt(style.fontWeight, 10) || 400;
+      const large = fontSize >= 24 || (fontSize >= 18.66 && fontWeight >= 700);
+      const threshold = large ? 3 : 4.5;
+      const measured = ratio(foreground, background);
+      if (measured + 0.01 < threshold) {
+        failures.push({
+          text: element.innerText.trim().slice(0, 100),
+          ratio: Number(measured.toFixed(2)),
+          threshold,
+          color: style.color,
+          background: "rgb(" + background.r + ", " + background.g + ", " + background.b + ")",
+        });
+      }
+    }
+    return failures.slice(0, 20);
+  });
+
+  for (const title of ["Home", "Services", "Work", "About", "Contact"]) {
+    const navButton = renderer.locator("nav button").filter({ hasText: title }).first();
+    if (title !== "Home") await navButton.click();
+    await expect(renderer.locator("main h1").first()).toBeVisible();
+    const failures = await auditVisibleTextContrast();
+    expect(failures, title + " generated preview has low-contrast visible text").toEqual([]);
+  }
+});
