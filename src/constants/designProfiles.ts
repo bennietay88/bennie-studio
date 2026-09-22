@@ -231,7 +231,7 @@ export const DESIGN_TOKENS = {
 } as const;
 
 export const APPROVED_VARIANTS = {
-  hero: ["brand_media", "editorial_split", "full_bleed_editorial", "statement_media", "service_conversion", "full_bleed", "minimal_statement", "media_split"],
+  hero: ["brand_media", "editorial_split", "full_bleed_editorial", "statement_media", "source_brand_hero", "page_masthead", "service_conversion", "full_bleed", "minimal_statement", "media_split"],
   services: ["brand_families", "editorial_list", "image_grid", "alternating", "minimal", "cards"],
   about: ["split_media_left", "split_media_right", "editorial_story", "founder_feature"],
   features: ["editorial_strip", "capability_matrix", "media_cards", "bento"],
