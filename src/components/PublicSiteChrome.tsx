@@ -108,7 +108,7 @@ export function PublicSiteHeader() {
       <nav className="mx-auto flex h-[72px] max-w-[92rem] items-center justify-between gap-3 px-4 sm:gap-5 sm:px-8 lg:px-14" aria-label="Main navigation">
         <Link to="/" className="flex min-w-0 shrink items-center gap-3 text-[#10131c]">
           <span className="grid h-9 w-9 place-items-center bg-[#5b4bff] text-sm font-black text-white">B.</span>
-          <span className="min-w-0"><span className="block max-w-[10rem] truncate text-base font-semibold tracking-[-0.035em] sm:max-w-none">Bennie Studio</span><span className="hidden text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 xl:block">Managed website system</span></span>
+          <span className="min-w-0"><span className="block max-w-[10rem] truncate text-base font-semibold tracking-[-0.035em] sm:max-w-none">Bennie Studio</span><span className="hidden text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600 xl:block">Managed website system</span></span>
         </Link>
 
         <div className="hidden items-center gap-8 lg:flex">
@@ -178,12 +178,12 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
             <span className="grid h-9 w-9 place-items-center bg-[#5b4bff] text-sm font-black">B.</span>
             <span className="text-xl font-semibold tracking-[-0.035em]">Bennie Studio</span>
           </div>
-          <p className="max-w-sm text-sm font-medium leading-7 text-white/55">{tagline || "A managed website system for service businesses that need stronger trust, clearer enquiries, and a site that stays useful after launch."}</p>
+          <p className="max-w-sm text-sm font-medium leading-7 text-white/70">{tagline || "A managed website system for service businesses that need stronger trust, clearer enquiries, and a site that stays useful after launch."}</p>
           {email ? <a href={`mailto:${email}`} className="mt-5 inline-flex text-sm font-black text-[#aaa0ff] hover:text-white">Contact us</a> : null}
         </div>
         {footerGroups.map(([title, links]) => (
           <div key={title}>
-            <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/55">{title}</p>
+            <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/70">{title}</p>
             <div className="space-y-3">
               {links.map((link) => "external" in link && link.external ? (
                 <a key={link.href} href={link.href} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Footer ${link.label}`, target: link.href })} className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white">{link.label}<ExternalLink className="h-3 w-3" /></a>
@@ -195,12 +195,12 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
           </div>
         ))}
         <div>
-          <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/55">Pricing market</p>
-          <p className="mb-4 text-sm font-medium leading-6 text-white/55">Switch market to view matching local pricing.</p>
+          <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/70">Pricing market</p>
+          <p className="mb-4 text-sm font-medium leading-6 text-white/70">Switch market to view matching local pricing.</p>
           <MarketSwitcher />
         </div>
       </div>
-      <div className="border-t border-white/10 px-6 py-6 text-center text-xs font-semibold text-white/55">© {new Date().getFullYear()} Bennie Studio. All rights reserved.</div>
+      <div className="border-t border-white/10 px-6 py-6 text-center text-xs font-semibold text-white/70">© {new Date().getFullYear()} Bennie Studio. All rights reserved.</div>
     </footer>
   );
 }
