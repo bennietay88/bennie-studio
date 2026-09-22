@@ -263,6 +263,77 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
       },
     ],
   },
+  "Managed Website Agency System": {
+    id: "managed-website-agency-v1",
+    name: "Managed Website Studio",
+    premiumName: "Managed Website Agency System",
+    category: "Corporate",
+    bestFor: "Managed website studios, web design agencies, lead-generation website providers, and digital partners.",
+    businessGoal: "Generate Leads",
+    visualStyle: "Brand-Led Digital Studio",
+    targetMarket: "Service businesses and growing teams",
+    ctaType: "Book a Consultation",
+    premiumLevel: "Agency Grade",
+    description: "A studio-style website system built around managed websites, selected work, delivery process, ongoing improvement, and qualified enquiries.",
+    thumbnail: "/brand-template-preview.svg",
+    theme: {
+      primaryColor: "#5746e8",
+      secondaryColor: "#f6f7fb",
+      fontFamily: "'Inter', sans-serif",
+      style: "corporate",
+    },
+    conversionFeatures: ["Managed website services", "Selected work", "Delivery process", "Consultation CTA"],
+    seoFocus: "Managed websites, web design, lead generation, website management",
+    trustElements: ["Real project work", "Process clarity", "Customer-supplied reviews", "Service scope"],
+    leadCapture: "Consultation / Website Preview Enquiry",
+    automation: "CRM lead capture + enquiry follow-up",
+    pages: [
+      {
+        title: "Home",
+        slug: "",
+        sections: [
+          createSection("hero", {
+            headline: "Managed Websites Built to Generate Enquiries",
+            subheadline: "Strategy, build, hosting, lead capture, and ongoing website improvement in one managed service.",
+            ctaText: "Book a Consultation",
+          }),
+          createSection("problem", {
+            title: "A Website Should Keep Working After Launch",
+            description: "The structure connects positioning, proof, services, and a clear enquiry path instead of stopping at visual design.",
+            painPoints: ["Unclear offer", "Weak proof hierarchy", "No obvious next step", "Website becomes stale after launch"],
+          }),
+          createSection("solution", {
+            title: "A Managed Website System",
+            description: "A conversion-focused website paired with ongoing management and improvement.",
+            features: ["Clear positioning", "Lead-generation structure", "Managed hosting and updates"],
+          }),
+          createSection("services", {
+            title: "Managed Website Services",
+            description: "The website, enquiry path, and ongoing improvements are designed to work as one system.",
+            items: [
+              { title: "Website Strategy", description: "Clarify the offer, audience, proof, and primary action." },
+              { title: "Managed Website Build", description: "Build a responsive, conversion-focused website around the buyer journey." },
+              { title: "Ongoing Improvement", description: "Keep the site useful with managed updates and growth support." },
+            ],
+          }),
+          createSection("features", {
+            title: "Built Around the Buyer Journey",
+            items: ["Clear proposition", "Relevant proof", "Selected work", "Direct enquiry path"],
+          }),
+          createSection("testimonials", { title: "Customer Feedback", items: [] }),
+          createSection("contact", {
+            title: "Start With a Website Conversation",
+            description: "Share the business, current website, and growth goal to plan the right direction.",
+          }),
+          createSection("cta", {
+            title: "See the Right Website Direction",
+            description: "Start with a tailored preview or consultation.",
+            buttonText: "Generate a Preview",
+          }),
+        ],
+      },
+    ],
+  },
   "Enterprise Authority Website": {
     id: "corporate-v1",
     name: "Corporate",
