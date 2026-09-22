@@ -1075,6 +1075,15 @@ async function startServer() {
     return res.send(csv);
   });
 
+  app.get("/api/admin/finance/summary", authenticate, financeAccess, async (req: any, res: any) => {
+    const from = req.query.from ? new Date(String(req.query.from)) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const to = req.query.to ? new Date(String(req.query.to)) : new Date();
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from > to) return res.status(400).json({ error: "Invalid date range" });
+    const { data, error } = await supabaseAdmin.rpc("finance_period_summary", { p_from: from.toISOString(), p_to: to.toISOString() });
+    if (error) return res.status(503).json({ error: "Finance summary unavailable" });
+    return res.json({ period: { from: from.toISOString(), to: to.toISOString() }, summary: Array.isArray(data) ? (data[0] || null) : data });
+  });
+
   app.post("/api/admin/finance/bank-import/preview", authenticate, financeAccess, async (req: any, res: any) => {
     const csv = String(req.body?.csv || "");
     if (!csv || csv.length > 500000) return res.status(400).json({ error: "CSV is required and must be under 500KB" });
@@ -1092,7 +1101,7 @@ async function startServer() {
   app.post("/api/admin/finance/bank-import/commit", authenticate, financeAccess, async (req: any, res: any) => {
     const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
     if (!rows.length || rows.length > 2000) return res.status(400).json({ error: "Provide between 1 and 2,000 validated rows" });
-    const payload = rows.filter((row: any) => row.valid !== false && row.date && !Number.isNaN(new Date(row.date).getTime()) && row.description && Number.isFinite(Number(row.amount))).map((row: any) => ({ source_type: "BANK_TRANSACTION", source_id: String(row.reference || `${row.date}:${row.description}:${row.amount}:${row.currency}`), transaction_type: Number(row.amount) >= 0 ? "income" : "expense", transaction_date: new Date(row.date).toISOString(), posted_date: new Date(row.date).toISOString(), description: String(row.description).slice(0, 500), currency: String(row.currency || "USD").toUpperCase(), amount: Math.abs(Number(row.amount)), status: "posted", reconciliation_status: "UNRECONCILED", document_status: "MISSING", review_status: "NOT_REVIEWED", category: Number(row.amount) >= 0 ? "Other business income" : null, metadata: { importedBy: req.user.id, importType: "bank_csv" } }));
+    const payload = rows.filter((row: any) => row.valid !== false && row.date && !Number.isNaN(new Date(row.date).getTime()) && row.description && Number.isFinite(Number(row.amount))).map((row: any) => ({ source_type: "BANK_TRANSACTION", source_id: String(row.reference || `${row.date}:${row.description}:${row.amount}:${row.currency}`), transaction_type: "other", transaction_date: new Date(row.date).toISOString(), posted_date: new Date(row.date).toISOString(), description: String(row.description).slice(0, 500), currency: String(row.currency || "USD").toUpperCase(), amount: Math.abs(Number(row.amount)), status: "posted", reconciliation_status: "REVIEW_REQUIRED", document_status: "MISSING", review_status: "REVIEW_REQUIRED", category: null, metadata: { importedBy: req.user.id, importType: "bank_csv", bankSign: Number(row.amount) >= 0 ? "credit" : "debit", classificationRequired: true } }));
     const { data, error } = await supabaseAdmin.from("finance_transactions").upsert(payload, { onConflict: "source_type,source_id", ignoreDuplicates: true }).select("id");
     if (error) return res.status(400).json({ error: "Bank transactions could not be imported" });
     return res.json({ imported: data?.length || 0, skippedDuplicates: payload.length - (data?.length || 0) });
@@ -1313,16 +1322,18 @@ async function startServer() {
   const insertFinanceTransaction = async (payload: Record<string, any>) => {
     const { data: settings } = await supabaseAdmin.from("finance_settings").select("base_currency").eq("id", "platform").maybeSingle();
     const currency = String(payload.currency || "USD").toUpperCase();
-    const baseCurrency = String(settings?.base_currency || "USD").toUpperCase();
+    const baseCurrency = String(settings?.base_currency || "MYR").toUpperCase();
     const sameCurrency = currency === baseCurrency;
+    const suppliedBaseAmount = payload.base_currency_amount == null ? null : Number(payload.base_currency_amount);
+    const baseAmount = sameCurrency ? Number(payload.amount) : (Number.isFinite(suppliedBaseAmount) ? suppliedBaseAmount : null);
     const { error } = await supabaseAdmin.from("finance_transactions").upsert({
       ...payload,
       currency,
-      base_currency: sameCurrency ? baseCurrency : null,
-      base_currency_amount: sameCurrency ? payload.amount : null,
-      reconciliation_status: sameCurrency ? "UNRECONCILED" : "REVIEW_REQUIRED",
-      review_status: sameCurrency ? "NOT_REVIEWED" : "REVIEW_REQUIRED",
-      document_status: "MISSING",
+      base_currency: baseAmount == null ? null : baseCurrency,
+      base_currency_amount: baseAmount,
+      reconciliation_status: baseAmount == null ? "REVIEW_REQUIRED" : (payload.reconciliation_status || "UNRECONCILED"),
+      review_status: baseAmount == null ? "REVIEW_REQUIRED" : (payload.review_status || "NOT_REVIEWED"),
+      document_status: payload.document_status || "MISSING",
     }, { onConflict: "source_type,source_id", ignoreDuplicates: true });
     if (error) console.warn("Finance transaction skipped:", error.message);
   };
@@ -1563,10 +1574,43 @@ async function startServer() {
               `Processing successful checkout for business: ${businessId} (Type: ${type || "subscription"})`,
             );
 
+            let stripePaymentFacts: any = {};
+            try {
+              const paymentStripe = await getStripe(businessId);
+              const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+              if (paymentIntentId) {
+                const paymentIntent = await paymentStripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge.balance_transaction"] });
+                const latestCharge: any = typeof paymentIntent.latest_charge === "object" ? paymentIntent.latest_charge : null;
+                const balanceTransaction: any = latestCharge && typeof latestCharge.balance_transaction === "object" ? latestCharge.balance_transaction : null;
+                stripePaymentFacts = {
+                  stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
+                  stripePaymentIntentId: paymentIntent.id,
+                  stripeChargeId: latestCharge?.id || null,
+                  stripeBalanceTransactionId: balanceTransaction?.id || null,
+                  stripeFeeAmount: balanceTransaction?.fee != null ? Number(balanceTransaction.fee) / 100 : null,
+                  stripeFeeCurrency: balanceTransaction?.fee_currency || balanceTransaction?.currency || null,
+                  stripeExchangeRate: balanceTransaction?.exchange_rate || null,
+                  settlementCurrency: balanceTransaction?.currency || null,
+                  netAmount: balanceTransaction?.net != null ? Number(balanceTransaction.net) / 100 : Number(session.amount_total || 0) / 100,
+                };
+              }
+            } catch (paymentLookupError) {
+              console.warn("Stripe settlement detail lookup failed:", paymentLookupError);
+            }
+
             await insertFinanceTransaction({
               business_id: businessId,
               source_type: "STRIPE_PAYMENT",
               source_id: session.id,
+              source_event_id: event.id,
+              stripe_customer_id: stripePaymentFacts.stripeCustomerId || (typeof session.customer === "string" ? session.customer : null),
+              stripe_payment_intent_id: stripePaymentFacts.stripePaymentIntentId || (typeof session.payment_intent === "string" ? session.payment_intent : null),
+              stripe_charge_id: stripePaymentFacts.stripeChargeId || null,
+              stripe_balance_transaction_id: stripePaymentFacts.stripeBalanceTransactionId || null,
+              stripe_fee_amount: stripePaymentFacts.stripeFeeAmount,
+              stripe_fee_currency: stripePaymentFacts.stripeFeeCurrency,
+              stripe_exchange_rate: stripePaymentFacts.stripeExchangeRate,
+              settlement_currency: stripePaymentFacts.settlementCurrency,
               transaction_type: "income",
               transaction_date: new Date((session.created || Math.floor(Date.now() / 1000)) * 1000).toISOString(),
               posted_date: new Date().toISOString(),
@@ -1577,7 +1621,7 @@ async function startServer() {
               amount: Number(session.amount_total || 0) / 100,
               payment_method: "stripe_checkout",
               payment_processor: "stripe",
-              net_amount: Number(session.amount_total || 0) / 100,
+              net_amount: stripePaymentFacts.netAmount ?? Number(session.amount_total || 0) / 100,
               status: "posted",
               category: type === "one_time_package" ? "Website services" : "Subscription revenue",
               metadata: { stripeSessionId: session.id, checkoutType: type || "subscription" },
@@ -2085,24 +2129,39 @@ async function startServer() {
           const customerId = typeof charge.customer === "string" ? charge.customer : charge.customer?.id;
           const business = await resolveBusinessForStripe({ customerId });
           if (business && Number(charge.amount_refunded || 0) > 0) {
-            await insertFinanceTransaction({
-              business_id: business.id,
-              source_type: "STRIPE_REFUND",
-              source_id: charge.id,
-              transaction_type: "refund",
-              transaction_date: stripeTimestampToIso(charge.created) || new Date().toISOString(),
-              posted_date: new Date().toISOString(),
-              description: `Stripe refund ${charge.id}`,
-              counterparty: customerId,
-              currency: charge.currency || "USD",
-              amount: Number(charge.amount_refunded || 0) / 100,
-              payment_method: "stripe",
-              payment_processor: "stripe",
-              net_amount: -Number(charge.amount_refunded || 0) / 100,
-              status: "posted",
-              category: "Refunds",
-              metadata: { stripeEventId: event.id, chargeId: charge.id, paymentIntentId: charge.payment_intent || null },
-            });
+            let refunds = Array.isArray(charge.refunds?.data) ? charge.refunds.data : [];
+            if (!refunds.length) {
+              try {
+                const expandedCharge = await stripe.charges.retrieve(charge.id, { expand: ["refunds.data"] });
+                refunds = Array.isArray(expandedCharge.refunds?.data) ? expandedCharge.refunds.data : [];
+              } catch (refundLookupError) {
+                console.warn("Stripe refund detail lookup failed:", refundLookupError);
+              }
+            }
+            if (!refunds.length) refunds = [{ id: `event_${event.id}`, amount: Number(charge.amount_refunded || 0), created: charge.created, currency: charge.currency, metadata: {} }];
+            for (const refund of refunds) {
+              await insertFinanceTransaction({
+                business_id: business.id,
+                source_type: "STRIPE_REFUND",
+                source_id: String(refund.id),
+                source_event_id: event.id,
+                stripe_charge_id: charge.id,
+                stripe_payment_intent_id: typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id || null,
+                transaction_type: "refund",
+                transaction_date: stripeTimestampToIso(refund.created || charge.created) || new Date().toISOString(),
+                posted_date: new Date().toISOString(),
+                description: `Stripe refund ${refund.id}`,
+                counterparty: customerId,
+                currency: String(refund.currency || charge.currency || "USD").toUpperCase(),
+                amount: Number(refund.amount || 0) / 100,
+                payment_method: "stripe",
+                payment_processor: "stripe",
+                net_amount: -Number(refund.amount || 0) / 100,
+                status: "posted",
+                category: "Refunds",
+                metadata: { stripeEventId: event.id, chargeId: charge.id, refundId: refund.id, paymentIntentId: charge.payment_intent || null, reason: refund.reason || null },
+              });
+            }
           }
           break;
         }
