@@ -25,7 +25,14 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
   const hasAltText = !sections.some((section) => Array.isArray(section.content?.images) && section.content.images.some((image: any) => image?.url && !image?.alt));
   const duplicateTypes = sections.length > 5 && new Set(sections.map((section) => section.type)).size < Math.ceil(sections.length / 2);
   const aiFingerprint = /transform your|elevate your|unlock the power|trusted partner|tailored solutions|bringing your vision|take your business to the next level|next-level/i.test(text);
-  const hasHeadline = sections.some((section) => typeof section.content?.headline === "string" && section.content.headline.trim().length >= 12);
+  const heroHeadlines = sections
+    .filter((section) => section.type === "hero")
+    .map((section) => String(section.content?.headline || "").trim())
+    .filter(Boolean);
+  const hasHeadline = heroHeadlines.some((headline) => headline.length >= 12);
+  const conciseHeroHeadlines = heroHeadlines.every((headline) =>
+    headline.length <= 72 && headline.split(/\s+/).filter(Boolean).length <= 9
+  );
   const generationMode = website.theme?.generationMode || "fast";
   const hasPlaceholder = /lorem ipsum|your business name|replace this|sample text|coming soon|example\.com/i.test(text);
   const hasPlaceholderMedia = /brand-template-preview\.svg/i.test(text) && generationMode !== "fast";
@@ -52,6 +59,7 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
   const checks: DesignQaCheck[] = [
     { key: "hero", label: "Clear hero", pass: hasHero, severity: "high", note: hasHero ? "Hero section is present." : "Add a clear primary hero." },
     { key: "headline", label: "Readable headline", pass: hasHeadline, severity: "high", note: hasHeadline ? "A meaningful headline is present." : "Add a specific, customer-facing headline." },
+    { key: "headline_length", label: "Concise hero headline", pass: conciseHeroHeadlines, severity: "high", note: conciseHeroHeadlines ? "Hero headlines stay within readable responsive limits." : "Shorten hero headlines before publishing; generated hero copy should fit the layout without excessive wrapping." },
     { key: "cta", label: "Conversion path", pass: hasCta, severity: "high", note: hasCta ? "A conversion section is present." : "Add contact, booking, or CTA path." },
     { key: "proof", label: "Proof", pass: hasProof, severity: "medium", note: hasProof ? "Trust/proof section is present." : "Add verified proof or a factual trust section." },
     { key: "proof_integrity", label: "Proof integrity", pass: !hasPlaceholderProof, severity: "high", note: hasPlaceholderProof ? "Placeholder client/testimonial labels detected. Replace with verified proof or remove the testimonial block." : "No placeholder client proof detected." },
