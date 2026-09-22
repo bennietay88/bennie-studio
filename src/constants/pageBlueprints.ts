@@ -72,6 +72,8 @@ export interface BlueprintBusinessInput {
   tone?: string;
   services?: string[];
   description?: string;
+  aboutText?: string;
+  sourceDriven?: boolean;
   contactEmail?: string;
   contactPhone?: string;
   whatsappNumber?: string;
@@ -668,12 +670,18 @@ export const getBlueprint = (nicheValue: string | undefined, plan: WebsitePlanId
 const getServiceItems = (input: BlueprintBusinessInput) => {
   const fallbackService = input.mainService || "Professional Service";
   const raw = (input.services || []).filter(Boolean);
-  const services = raw.length > 0 ? raw : [fallbackService, "Consultation", "Ongoing Support"];
-  return services.slice(0, 6).map((service) => {
+  const services = raw.length > 0
+    ? raw
+    : input.sourceDriven
+      ? [fallbackService]
+      : [fallbackService, "Consultation", "Ongoing Support"];
+  return services.slice(0, input.sourceDriven ? 5 : 6).map((service) => {
     const title = generatedServiceTitle(service);
     return {
       title,
-      description: generatedBody(`${title} designed for ${input.targetCustomer || "your customers"} in ${input.location || "your area"}.`),
+      description: input.sourceDriven
+        ? ""
+        : generatedBody(`${title} designed for ${input.targetCustomer || "your customers"} in ${input.location || "your area"}.`),
       imageUrl: undefined,
     };
   });
@@ -687,6 +695,8 @@ const getFaqItems = (input: BlueprintBusinessInput) => {
       answer: `Contact ${input.businessName} for a clear answer based on your needs.`,
     }));
   }
+
+  if (input.sourceDriven) return [];
 
   return [
     {
@@ -811,10 +821,13 @@ const buildSectionContent = (
   }
 
   if (section.type === "about") {
+    const sourceAboutText = String(input.aboutText || input.description || "").trim();
     section.content = {
       ...section.content,
       title: `About ${businessName}`,
-      text: `${businessName} helps ${target} in ${location} with ${service}. The approach is clear, practical, and focused on helping every customer understand their options before taking action.\n\nThe website structure is designed to answer common questions and make it easy to enquire without inventing claims the business has not supplied.`,
+      text: input.sourceDriven
+        ? sourceAboutText
+        : `${businessName} helps ${target} in ${location} with ${service}. The approach is clear, practical, and focused on helping every customer understand their options before taking action.\n\nThe website structure is designed to answer common questions and make it easy to enquire without inventing claims the business has not supplied.`,
       imageUrl: input.storyImageUrl || undefined,
       assetSlots: {
         storyImage: {
@@ -824,6 +837,7 @@ const buildSectionContent = (
         },
       },
     };
+    if (input.sourceDriven && !sourceAboutText) section.isVisible = false;
   }
 
   if (section.type === "features") {
@@ -917,11 +931,13 @@ const buildSectionContent = (
   }
 
   if (section.type === "faq") {
+    const items = getFaqItems(input);
     section.content = {
       ...section.content,
       title: "Common Questions",
-      items: getFaqItems(input),
+      items,
     };
+    if (input.sourceDriven && items.length === 0) section.isVisible = false;
   }
 
   if (section.type === "pricing") {
@@ -946,7 +962,9 @@ const buildSectionContent = (
           : pageBlueprint.ctaType.includes("Appointment")
             ? "Book an Appointment"
             : "Contact Us",
-      description: `Send your details and ${businessName} will follow up about ${service}.`,
+      description: input.sourceDriven
+        ? `Send your details and ${businessName} will follow up.`
+        : `Send your details and ${businessName} will follow up about ${service}.`,
       email: input.contactEmail,
       phone: input.contactPhone,
       whatsapp: input.whatsappNumber,
@@ -963,21 +981,74 @@ const buildSectionContent = (
       workingHours: "Local business hours",
       location,
     };
+    if (input.sourceDriven) section.isVisible = false;
   }
 
   if (section.type === "cta") {
+    const sourceCtaTitle = /appointment/i.test(cta)
+      ? "Ready to book an appointment?"
+      : /quote/i.test(cta)
+        ? "Ready to request a quote?"
+        : /whatsapp/i.test(cta)
+          ? "Prefer to chat on WhatsApp?"
+          : /call/i.test(cta)
+            ? "Ready to speak with the team?"
+            : "Ready to get in touch?";
     section.content = {
       ...section.content,
       title:
         block === "whatsapp_cta"
           ? "Prefer WhatsApp?"
-          : generatedHeadline(`Ready to talk about ${generatedServiceTitle(service)}?`),
-      description: generatedBody(`Take the next step with ${businessName} in ${location}.`),
+          : input.sourceDriven
+            ? sourceCtaTitle
+            : generatedHeadline(`Ready to talk about ${generatedServiceTitle(service)}?`),
+      description: input.sourceDriven
+        ? generatedBody(`Contact ${businessName} when you are ready to take the next step.`)
+        : generatedBody(`Take the next step with ${businessName} in ${location}.`),
       buttonText: cta,
     };
   }
 
   return section;
+};
+
+const resolveSourceDrivenBlockPlan = (
+  page: BlueprintPage,
+  input: BlueprintBusinessInput,
+): SectionBlockType[] => {
+  const hasAbout = Boolean(String(input.aboutText || input.description || "").trim());
+  const hasTestimonials = (input.testimonials || []).filter(Boolean).length > 0;
+  const hasFaqs = (input.faqs || []).filter(Boolean).length > 0;
+
+  if (page.slug === "") {
+    return [
+      "hero",
+      "services",
+      ...(hasAbout ? ["about" as SectionBlockType] : []),
+      ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []),
+      ...(hasFaqs ? ["faq" as SectionBlockType] : []),
+      "contact_form",
+      "final_cta",
+    ];
+  }
+
+  if (/^(treatments?|services?|programs?|practice-areas?)$/.test(page.slug)) {
+    return ["hero", "services", ...(hasFaqs ? ["faq" as SectionBlockType] : []), "contact_form", "final_cta"];
+  }
+
+  if (/^(about|practitioners?|team|our-team)$/.test(page.slug)) {
+    return ["hero", ...(hasAbout ? ["about" as SectionBlockType] : []), ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []), "contact_form", "final_cta"];
+  }
+
+  if (/^(faq|patient-info|info|process)$/.test(page.slug)) {
+    return ["hero", ...(hasFaqs ? ["faq" as SectionBlockType] : []), "contact_form", "final_cta"];
+  }
+
+  if (/^(appointment|contact|quote|book-call|consultation|reservation)$/.test(page.slug)) {
+    return ["hero", "contact_form", "final_cta"];
+  }
+
+  return ["hero", "services", "contact_form", "final_cta"];
 };
 
 export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsitePage[] => {
@@ -993,9 +1064,11 @@ export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsiteP
   });
 
   return blueprint.pages.slice(0, limit).map((blueprintPage) => {
-    const blockPlan = blueprintPage.slug === ""
-      ? resolveHomeComposition(blueprint.niche, generationMode, blueprintPage.sections, input.compositionSeed || 0, input.businessMaturity)
-      : blueprintPage.sections;
+    const blockPlan = input.sourceDriven
+      ? resolveSourceDrivenBlockPlan(blueprintPage, input)
+      : blueprintPage.slug === ""
+        ? resolveHomeComposition(blueprint.niche, generationMode, blueprintPage.sections, input.compositionSeed || 0, input.businessMaturity)
+        : blueprintPage.sections;
     const sections = blockPlan.map((block, blockIndex) => {
       const sectionType = sectionTypeMap[block];
       const section = cloneSection(sectionType);
