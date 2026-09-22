@@ -707,7 +707,7 @@ test("source-driven previews remove generic agency copy and fake booking widgets
   assert.deepEqual(visibleSections.map((section) => section.type), ["hero", "services", "about", "testimonials", "cta"]);
   assert.equal(visibleSections.find((section) => section.type === "services")?.settings?.variant, "source_services");
   assert.equal(visibleSections.find((section) => section.type === "about")?.settings?.variant, "source_about");
-  assert.equal(visibleSections.find((section) => section.type === "testimonials")?.settings?.variant, "editorial_quote");
+  assert.equal(visibleSections.find((section) => section.type === "testimonials")?.settings?.variant, "source_testimonials");
   assert.equal(visibleSections.find((section) => section.type === "cta")?.settings?.variant, "brand_band");
 });
 
@@ -742,7 +742,7 @@ test("source-driven clinic previews use verified FAQ evidence instead of a fille
   assert.ok(patientInfo);
   const faq = patientInfo!.sections.find((section) => section.type === "faq");
   assert.ok(faq);
-  assert.equal(faq!.settings?.variant, "two_column");
+  assert.equal(faq!.settings?.variant, "source_faq");
   assert.deepEqual(faq!.content.items, [
     { question: "Do you accept new patients?", answer: "Yes. Contact the clinic to arrange your first appointment." },
     { question: "How do I book?", answer: "Use the appointment form or call the clinic." },
