@@ -1584,7 +1584,7 @@ function GeneratePreviewPage() {
                   ["Primary action", resolvePreviewCta(goal)],
                 ].map(([label, value]) => (
                   <div key={label} className="grid grid-cols-[110px_1fr] gap-4 py-4 text-sm">
-                    <span className="font-semibold text-[#7b8491]">{label}</span>
+                    <span className="font-semibold text-[#526071]">{label}</span>
                     <span className="font-semibold text-[#141821]">{value}</span>
                   </div>
                 ))}
@@ -1623,7 +1623,7 @@ function GeneratePreviewPage() {
                       : "border border-[#dfe2ea] bg-[#f9f8f4] p-5 text-left hover:border-[#aaa4dc]"}
                   >
                     <p className="font-semibold text-[#141821]">I already have a website</p>
-                    <p className="mt-2 text-sm leading-5 text-[#687386]">Paste one URL. We extract the public business facts and build the preview without AI-generation cost.</p>
+                    <p className="mt-2 text-sm leading-5 text-[#5f6673]">Paste one URL. We extract the public business facts and build the preview without AI-generation cost.</p>
                   </button>
                   <button
                     type="button"
@@ -1638,7 +1638,7 @@ function GeneratePreviewPage() {
                       : "border border-[#dfe2ea] bg-[#f9f8f4] p-5 text-left hover:border-[#aaa4dc]"}
                   >
                     <p className="font-semibold text-[#141821]">I need a website from scratch</p>
-                    <p className="mt-2 text-sm leading-5 text-[#687386]">Tell us the business, service and location. No existing site required.</p>
+                    <p className="mt-2 text-sm leading-5 text-[#5f6673]">Tell us the business, service and location. No existing site required.</p>
                   </button>
                 </div>
               </section>
@@ -1678,7 +1678,7 @@ function GeneratePreviewPage() {
                   </div>
                   <label htmlFor="preview-url-first" className="mb-2 block text-sm font-semibold text-[#374151]">Website URL</label>
                   <Input id="preview-url-first" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://yourbusiness.com" className="h-14 rounded-none border-[#dfe2ea] bg-white text-base" />
-                  <p className="mt-3 text-sm leading-6 text-[#687386]">We read one public page, reuse the business facts we can verify, and generate the layout from Bennie Studio's existing design system. No ChatGPT call is used for the free preview.</p>
+                  <p className="mt-3 text-sm leading-6 text-[#5f6673]">We read one public page, reuse the business facts we can verify, and generate the layout from Bennie Studio's existing design system. No ChatGPT call is used for the free preview.</p>
                 </section>
               ) : (
               <section className="border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7">
@@ -1759,7 +1759,7 @@ function GeneratePreviewPage() {
                     </div>
                   ) : (
                     <div className="flex items-end">
-                      <div className="w-full border border-[#dfe2ea] bg-[#f9f8f4] px-4 py-3 text-sm font-semibold text-[#687386]">We will start from your business brief instead.</div>
+                      <div className="w-full border border-[#dfe2ea] bg-[#f9f8f4] px-4 py-3 text-sm font-semibold text-[#5f6673]">We will start from your business brief instead.</div>
                     </div>
                   )}
                 </div>
@@ -1795,8 +1795,8 @@ function GeneratePreviewPage() {
                           <span className={style === "Premium corporate" ? "h-7 w-10 bg-[#dfe2ea]" : style === "Friendly local business" ? "h-7 w-10 rounded-full bg-[#fde7c7]" : "h-7 w-10 bg-[#eeebff]"} />
                         </div>
                         <p className="font-semibold text-[#141821]">{style}</p>
-                        <p className="mt-2 text-sm leading-5 text-[#687386]">{description}</p>
-                        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#8b93a0]">{fit}</p>
+                        <p className="mt-2 text-sm leading-5 text-[#5f6673]">{description}</p>
+                        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#526071]">{fit}</p>
                       </button>
                     );
                   })}
@@ -1882,13 +1882,13 @@ function GeneratePreviewPage() {
                     ["Style", form.brandStyle],
                   ].map(([label, value]) => (
                     <div key={label} className="grid grid-cols-[82px_1fr] gap-3 py-3 text-sm">
-                      <span className="font-semibold text-[#8b93a0]">{label}</span>
+                      <span className="font-semibold text-[#526071]">{label}</span>
                       <span className="font-semibold text-[#141821]">{value}</span>
                     </div>
                   ))}
                 </div>
                 <div className="mt-6">
-                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8b93a0]">Likely homepage structure</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#526071]">Likely homepage structure</p>
                   <div className="mt-3 space-y-2">
                     {industry.sections.slice(0, 5).map((sectionName, index) => (
                       <div key={sectionName} className="flex items-center gap-3 bg-white px-3 py-3 text-sm font-semibold text-[#374151]">
@@ -1899,9 +1899,9 @@ function GeneratePreviewPage() {
                   </div>
                 </div>
                 <div className="mt-6 border-t border-[#dfe2ea] pt-5">
-                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8b93a0]">Recommended after preview</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#526071]">Recommended after preview</p>
                   <p className="mt-2 font-semibold text-[#141821]">{commercialRecommendation.label}</p>
-                  <p className="mt-1 text-sm leading-5 text-[#687386]">The recommendation is based on the website goal and business brief, not a forced upsell.</p>
+                  <p className="mt-1 text-sm leading-5 text-[#5f6673]">The recommendation is based on the website goal and business brief, not a forced upsell.</p>
                 </div>
               </div>
             </aside>
@@ -1951,17 +1951,17 @@ function GeneratePreviewPage() {
             </div>
 
             <div className="mt-5 flex flex-wrap items-center gap-2">
-              <span className="mr-1 text-xs font-bold uppercase tracking-[0.12em] text-[#8b93a0]">Interactive {generatedWebsite.pages.length}-page preview</span>
+              <span className="mr-1 text-xs font-bold uppercase tracking-[0.12em] text-[#526071]">Interactive {generatedWebsite.pages.length}-page preview</span>
               {generatedWebsite.pages.map((page, index) => (
                 <span key={page.id || page.slug || page.title} className="border border-[#dfe2ea] bg-[#f6f7fb] px-3 py-1.5 text-xs font-semibold text-[#374151]">
                   {String(index + 1).padStart(2, "0")} {page.title}
                 </span>
               ))}
-              <span className="text-xs text-[#687386]">Use the navigation inside the preview to inspect every page.</span>
+              <span className="text-xs text-[#5f6673]">Use the navigation inside the preview to inspect every page.</span>
             </div>
 
             <div className="mt-4 border border-[#dfe2ea] bg-[#f6f7fb] p-2 sm:p-3">
-              <div className="mb-2 flex items-center gap-2 border-b border-[#dfe2ea] bg-white px-3 py-2 text-[11px] font-semibold text-[#687386]">
+              <div className="mb-2 flex items-center gap-2 border-b border-[#dfe2ea] bg-white px-3 py-2 text-[11px] font-semibold text-[#5f6673]">
                 <span className="h-2 w-2 rounded-full bg-[#dfe2ea]" />
                 <span className="h-2 w-2 rounded-full bg-[#dfe2ea]" />
                 <span className="h-2 w-2 rounded-full bg-[#dfe2ea]" />
