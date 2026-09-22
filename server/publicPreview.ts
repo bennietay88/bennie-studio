@@ -379,7 +379,7 @@ const extractServices = (html: string) => {
 const extractServiceDetails = (html: string) => {
   const items: Array<{ title: string; description: string }> = [];
 
-  for (const match of html.matchAll(/<(h2|h3|h4)\\b[^>]*>([\\s\\S]*?)<\\/\\1>/gi)) {
+  for (const match of html.matchAll(/<(h2|h3|h4)\b[^>]*>([\s\S]*?)<\/\1>/gi)) {
     const title = canonicalizeServiceLabel(text(match[2]));
     if (
       !title
@@ -392,13 +392,13 @@ const extractServiceDetails = (html: string) => {
 
     const endIndex = (match.index || 0) + match[0].length;
     const after = html.slice(endIndex, endIndex + 1600);
-    const nextHeadingIndex = after.search(/<(?:h1|h2|h3|h4)\\b/i);
+    const nextHeadingIndex = after.search(/<(?:h1|h2|h3|h4)\b/i);
     const local = nextHeadingIndex >= 0 ? after.slice(0, nextHeadingIndex) : after;
     const description = firstMatch(local, [
-      /<p\\b[^>]*>([\\s\\S]*?)<\\/p>/i,
-      /<(?:div|span)\\b[^>]*class=["'][^"']*(?:description|copy|text|summary)[^"']*["'][^>]*>([\\s\\S]*?)<\\/(?:div|span)>/i,
+      /<p\b[^>]*>([\s\S]*?)<\/p>/i,
+      /<(?:div|span)\b[^>]*class=["\'][^"\']*(?:description|copy|text|summary)[^"\']*["\'][^>]*>([\s\S]*?)<\/(?:div|span)>/i,
     ]);
-    const cleaned = String(description || "").replace(/\\s+/g, " ").trim();
+    const cleaned = String(description || "").replace(/\s+/g, " ").trim();
 
     if (
       cleaned.length >= 25
