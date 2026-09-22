@@ -1001,7 +1001,7 @@ const previewProblems = [
 const previewTemplateIds: Record<string, string> = {
   cleaning: "cleaning-company-v1",
   accounting: "accounting-firm-v1",
-  agency: "corporate-v1",
+  agency: "managed-website-agency-v1",
   "local-service": "service-pro-v1",
   clinic: "dental-clinic-v1",
   contractor: "renovation-contractor-v1",
