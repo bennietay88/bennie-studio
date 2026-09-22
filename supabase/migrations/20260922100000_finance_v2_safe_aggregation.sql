@@ -107,7 +107,6 @@ as $$
       coalesce(sum(safe_amount) filter (where transaction_type = 'fee'), 0) as processor_fees,
       coalesce(sum(safe_amount) filter (where transaction_type = 'expense'), 0) as operating_expenses,
       coalesce(sum(tax_amount) filter (where tax_amount is not null), 0) as tax_collected,
-      coalesce(sum(safe_amount) filter (where transaction_type in ('income','refund','expense','fee')), 0) as net_cash_movement,
       coalesce(sum(safe_amount) filter (where transaction_type in ('income','refund','expense','fee')), 0) as safe_operating_sum,
       coalesce(sum(abs(amount)) filter (where safe_amount is null and currency <> configured_base_currency), 0) as unresolved_fx_value,
       count(*) filter (where safe_amount is null and currency <> configured_base_currency) as unresolved_fx_count,
