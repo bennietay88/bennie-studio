@@ -178,6 +178,27 @@ test("blueprints do not fabricate testimonials or prices when proof is absent", 
 });
 
 
+test("source-site hero copy is preserved on redesign previews", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Harbour Dental",
+    nicheId: "dental-clinic-v1",
+    nicheName: "Dental Clinic",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Family dentistry",
+    targetCustomer: "patients",
+    location: "Kuala Lumpur",
+    ctaPreference: "Book Appointment",
+    generationMode: "brand_led",
+    heroHeadline: "Comfortable Dentistry for the Whole Family",
+    heroSubheadline: "Modern treatment, a calm clinic experience, and straightforward advice from your first visit.",
+  });
+
+  const homeHero = pages[0]?.sections.find((section) => section.type === "hero");
+  assert.equal(homeHero?.content?.headline, "Comfortable Dentistry for the Whole Family");
+  assert.match(String(homeHero?.content?.subheadline || ""), /calm clinic experience/i);
+});
+
 test("five-page managed previews use the full five-page website architecture", () => {
   const pages = buildPagesFromBlueprint({
     businessName: "Example Dental",
