@@ -3060,11 +3060,12 @@ export function WebsiteRenderer({
                                 </p>
                                 <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-white/5">
                                   <span className="text-sm font-black text-primary uppercase tracking-widest">
-                                    {item.price || "Consulting"}
+                                    {item.price || "Service"}
                                   </span>
                                   <Button
                                     variant="ghost"
                                     size="sm"
+                                    aria-label={`Learn more about ${item.title || "this service"}`}
                                     className="rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                                     onClick={() =>
                                       trackInteraction("service_click", item.title || "Service", {
