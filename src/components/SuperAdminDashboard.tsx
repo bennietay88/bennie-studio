@@ -912,12 +912,16 @@ export default function SuperAdminDashboard() {
         if (projectsRes.data) setProjects(projectsRes.data);
         if (apptRes.data) setAppointments(apptRes.data);
         if (settingsRes.data) {
+          const {
+            marketingFeatures: _legacyMarketingFeatures,
+            ...platformContent
+          } = settingsRes.data.content || {};
           setPlatformSettings((prev) => ({
             ...prev,
-            ...settingsRes.data.content,
+            ...platformContent,
             adminModules: {
               ...DEFAULT_ADMIN_MODULE_VISIBILITY,
-              ...(settingsRes.data.content?.adminModules || {}),
+              ...(platformContent?.adminModules || {}),
             },
           }));
         }
