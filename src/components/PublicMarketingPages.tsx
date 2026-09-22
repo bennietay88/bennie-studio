@@ -873,7 +873,7 @@ function CaseStudiesPage() {
   );
 }
 
-const PREVIEW_GENERATION_VERSION = 7;
+const PREVIEW_GENERATION_VERSION = 8;
 
 const previewIndustries = [
   {
@@ -1447,7 +1447,9 @@ function GeneratePreviewPage() {
       const resolvedGoal = previewMode === "website"
         ? resolvedBusinessType.websiteGoal
         : goal;
-      const resolvedCta = resolvePreviewCta(resolvedGoal);
+      const resolvedCta = previewMode === "website" && profile.primaryCta
+        ? String(profile.primaryCta).trim().slice(0, 48)
+        : resolvePreviewCta(resolvedGoal);
       const resolvedReviewStrategy = buildReviewWebsiteStrategy({
         businessName: resolvedBusinessName,
         industry: resolvedBusinessType.label,
@@ -1492,9 +1494,20 @@ function GeneratePreviewPage() {
         brandPersonality: resolvedBrandPersonality,
         businessMaturity: resolvedBusinessMaturity,
         assetReadiness: profile.heroImage ? "some" : "pending",
+        heroImageUrl: previewMode === "website" ? profile.heroImage || undefined : undefined,
         storyImageUrl: previewMode === "website" ? profile.secondaryImage || undefined : undefined,
         heroHeadline: previewMode === "website" ? profile.heroHeadline || undefined : undefined,
         heroSubheadline: previewMode === "website" ? profile.heroSubheadline || undefined : undefined,
+        heroTrustItems: previewMode === "website"
+          ? [
+              String(profile.yearsInBusiness || "").trim(),
+              ...(Array.isArray(profile.credentials) ? profile.credentials : []),
+              ...(Array.isArray(profile.guarantees) ? profile.guarantees : []),
+              ...(previewTestimonials.length ? ["Customer reviews"] : []),
+            ].filter(Boolean).slice(0, 3)
+          : [],
+        preferredHeroVariant: previewMode === "website" ? "source_brand_hero" : undefined,
+        compactSubpageHeroes: previewMode === "website",
       };
 
       const basePreviewTheme = getBlueprintTheme(resolvedTemplateId, resolvedGenerationMode, {
