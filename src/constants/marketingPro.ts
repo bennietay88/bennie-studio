@@ -1,5 +1,3 @@
-export type MarketingFeatureStatus = "enabled" | "disabled" | "coming_soon";
-
 export type MarketingCapabilityId =
   | "seoAudit"
   | "adGenerator"
@@ -8,7 +6,7 @@ export type MarketingCapabilityId =
   | "leadFollowUp"
   | "blog";
 
-export type MarketingPlatformControlId =
+export type MarketingPlanCapabilityId =
   | MarketingCapabilityId
   | "wordpressIntegration";
 
@@ -26,22 +24,13 @@ export interface MarketingCapabilityDefinition {
   route?: string;
 }
 
-export const DEFAULT_MARKETING_FEATURES: Record<MarketingPlatformControlId, MarketingFeatureStatus> = {
-  seoAudit: "enabled",
-  adGenerator: "enabled",
-  reviews: "enabled",
-  localSeo: "enabled",
-  leadFollowUp: "enabled",
-  blog: "enabled",
-  wordpressIntegration: "disabled",
-};
-
 export const MARKETING_PRO_CAPABILITIES: MarketingCapabilityDefinition[] = [
   {
     id: "seoAudit",
     title: "SEO Audit",
     description: "Review observable SEO and content gaps in the current website and turn them into prioritized improvements.",
     entitlementFeatureId: "advanced_seo",
+    route: "/dashboard/seo",
   },
   {
     id: "adGenerator",
@@ -79,29 +68,16 @@ export const MARKETING_PRO_CAPABILITIES: MarketingCapabilityDefinition[] = [
   },
 ];
 
-export const MARKETING_PRO_PLATFORM_CONTROLS = [
+export const MARKETING_PRO_PLAN_CONTROLS = [
   ...MARKETING_PRO_CAPABILITIES,
   {
     id: "wordpressIntegration" as const,
     title: "WordPress Integration",
-    description: "Allow the optional WordPress synchronization capability where separately configured.",
+    description: "Synchronize supported WordPress projects when the customer's Bennie Studio plan includes the integration.",
     entitlementFeatureId: "wordpress_sync" as const,
+    route: undefined,
   },
 ];
-
-export function normalizeMarketingFeatures(input: unknown): Record<MarketingPlatformControlId, MarketingFeatureStatus> {
-  const raw = input && typeof input === "object" ? input as Record<string, unknown> : {};
-  const normalized = { ...DEFAULT_MARKETING_FEATURES };
-
-  for (const key of Object.keys(DEFAULT_MARKETING_FEATURES) as MarketingPlatformControlId[]) {
-    const value = raw[key];
-    if (value === "enabled" || value === "disabled" || value === "coming_soon") {
-      normalized[key] = value;
-    }
-  }
-
-  return normalized;
-}
 
 export function getMarketingCapability(id: MarketingCapabilityId) {
   return MARKETING_PRO_CAPABILITIES.find((capability) => capability.id === id);
