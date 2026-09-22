@@ -355,22 +355,27 @@ export function WebsiteRenderer({
 
     if (action.actionType === "section_anchor" || action.actionType === "contact_form") {
       const target = (action.target || "#contact").replace("#", "");
-      const targetElement = document.getElementById(target);
-      if (targetElement) {
-        targetElement.scrollIntoView({ behavior: "smooth" });
-        return;
-      }
 
       if (action.actionType === "contact_form") {
         const contactPage = pages.find((page) =>
           (page.sections || []).some((section) => section.isVisible !== false && section.type === "contact")
         );
+
+        // Source-driven previews use a dedicated enquiry page. Route there
+        // first instead of trusting an incidental #contact element elsewhere
+        // in the preview shell.
         if (contactPage && contactPage.slug !== activePageSlug) {
           setActivePageSlug(contactPage.slug);
           setSelectedPost(null);
-          window.setTimeout(() => scrollToSection(target), 80);
+          window.setTimeout(() => scrollToSection(target), 120);
           return;
         }
+      }
+
+      const targetElement = document.getElementById(target);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: "smooth" });
+        return;
       }
 
       scrollToSection(target);
@@ -3662,17 +3667,17 @@ export function WebsiteRenderer({
                             {section.content.description ? <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">{section.content.description}</p> : null}
                             <div className="mt-8 space-y-3">
                               {contactEmail ? (
-                                <a href={`mailto:${contactEmail}`} className="flex items-center gap-3 border-t border-slate-200 py-4 text-sm font-semibold text-slate-900">
+                                <a href={`mailto:${contactEmail}`} onClick={() => trackContactAction("email_click", "Preview contact email", contactEmail)} className="flex items-center gap-3 border-t border-slate-200 py-4 text-sm font-semibold text-slate-900">
                                   <Mail className="h-4 w-4 text-primary" /> {contactEmail}
                                 </a>
                               ) : null}
                               {normalizedPhone ? (
-                                <a href={`tel:${normalizedPhone}`} className="flex items-center gap-3 border-t border-slate-200 py-4 text-sm font-semibold text-slate-900">
+                                <a href={`tel:${normalizedPhone}`} onClick={() => trackContactAction("phone_clicked", "Preview contact phone", normalizedPhone)} className="flex items-center gap-3 border-t border-slate-200 py-4 text-sm font-semibold text-slate-900">
                                   <Phone className="h-4 w-4 text-primary" /> {contactPhone}
                                 </a>
                               ) : null}
                               {whatsappHref ? (
-                                <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 border-y border-slate-200 py-4 text-sm font-semibold text-slate-900">
+                                <a href={whatsappHref} target="_blank" rel="noopener noreferrer" onClick={() => trackContactAction("whatsapp_click", "Preview WhatsApp", whatsappHref)} className="flex items-center gap-3 border-y border-slate-200 py-4 text-sm font-semibold text-slate-900">
                                   <MessageSquare className="h-4 w-4 text-primary" /> WhatsApp
                                 </a>
                               ) : null}
@@ -3686,11 +3691,11 @@ export function WebsiteRenderer({
                                   <CheckCircle2 className="h-6 w-6" />
                                 </div>
                                 <h3 className="mt-5 text-2xl font-semibold text-slate-950">
-                                  {website.theme?.previewPurpose ? "Form preview complete" : "Thank you"}
+                                  {website.theme?.previewPurpose ? "Enquiry flow preview" : "Thank you"}
                                 </h3>
                                 <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-600">
                                   {website.theme?.previewPurpose
-                                    ? "On the live website, this enquiry would be sent to the business."
+                                    ? "On the live website, this enquiry would go directly to the business."
                                     : "Your enquiry has been sent. The team will get back to you soon."}
                                 </p>
                                 <Button variant="outline" className="mt-6" onClick={() => setFormSuccess(false)}>Back to form</Button>
@@ -3713,7 +3718,13 @@ export function WebsiteRenderer({
                                 </div>
                                 <div>
                                   <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Message</label>
-                                  <Textarea required value={leadForm.message} onChange={(e)=>setLeadForm({...leadForm,message:e.target.value})} placeholder="How can we help?" className="mt-2 min-h-28 rounded-lg border-slate-200 bg-white" />
+                                  <textarea
+                                    required
+                                    value={leadForm.message}
+                                    onChange={(e)=>setLeadForm({...leadForm,message:e.target.value})}
+                                    placeholder="How can we help?"
+                                    className="mt-2 min-h-28 w-full rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-950 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                                  />
                                 </div>
                                 <Button type="submit" isLoading={formLoading} className="min-h-12 w-full rounded-lg font-bold">
                                   Send enquiry <ArrowRight className="ml-2 h-4 w-4" />
