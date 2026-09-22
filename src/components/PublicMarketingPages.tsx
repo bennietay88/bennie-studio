@@ -1466,6 +1466,7 @@ function GeneratePreviewPage() {
         heroSubheadline?: string;
         testimonials?: string[];
         faqs?: string[];
+        faqItems?: Array<{ question: string; answer: string }>;
         aboutText?: string;
         credentials?: string[];
         yearsInBusiness?: string;
@@ -1560,6 +1561,9 @@ function GeneratePreviewPage() {
         faqs: previewMode === "website"
           ? (Array.isArray(profile.faqs) ? profile.faqs : [])
           : resolvedReviewStrategy.intelligence.faqs,
+        faqItems: previewMode === "website" && Array.isArray(profile.faqItems)
+          ? profile.faqItems
+          : undefined,
         testimonials: previewTestimonials,
         generationMode: resolvedGenerationMode,
         brandPersonality: resolvedBrandPersonality,
