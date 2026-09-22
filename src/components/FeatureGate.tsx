@@ -37,6 +37,10 @@ export function FeatureGate({
   }
 
   const featureAllowed = isFeatureEnabled(featureId);
+  const marketingStatus = marketingCapabilityId
+    ? getMarketingCapabilityStatus(marketingCapabilityId)
+    : "enabled";
+  const platformUnavailable = Boolean(marketingCapabilityId && marketingStatus !== "enabled");
   const marketingAllowed = !marketingCapabilityId || isMarketingCapabilityEnabled(marketingCapabilityId);
 
   if (featureAllowed && marketingAllowed) {
@@ -57,7 +61,7 @@ export function FeatureGate({
           </div>
           <CardTitle className="text-2xl font-bold">Premium Feature</CardTitle>
           <CardDescription className="text-slate-500 dark:text-slate-400">
-            {marketingCapabilityId && getMarketingCapabilityStatus(marketingCapabilityId) !== "enabled"
+            {platformUnavailable
               ? "This capability is currently unavailable at platform level."
               : "This feature is not available on your current package."}
           </CardDescription>
@@ -65,7 +69,7 @@ export function FeatureGate({
         <CardContent className="space-y-6 pt-4">
           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              {marketingCapabilityId && getMarketingCapabilityStatus(marketingCapabilityId) !== "enabled" ? (
+              {platformUnavailable ? (
                 <>Bennie Studio has temporarily disabled this capability.</>
               ) : (
                 <>
@@ -79,7 +83,7 @@ export function FeatureGate({
             </p>
           </div>
           <div className="flex flex-col gap-3">
-            {profile?.role === "business_admin" ? (
+            {!platformUnavailable && profile?.role === "business_admin" ? (
               <Button
                 onClick={() => navigate("/dashboard/billing")}
                 className="w-full rounded-xl h-12 bg-indigo-600 hover:bg-indigo-700 gap-2 shadow-lg shadow-indigo-200 dark:shadow-none"
@@ -87,11 +91,11 @@ export function FeatureGate({
                 <Zap className="h-4 w-4 fill-current" />
                 View Upgrade Options
               </Button>
-            ) : (
+            ) : !platformUnavailable ? (
               <p className="rounded-xl bg-slate-100 px-4 py-3 text-center text-sm font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                Ask your business admin to enable this feature.
+                Ask your business admin to review plan access.
               </p>
-            )}
+            ) : null}
             <Button
               variant="ghost"
               onClick={() => {
