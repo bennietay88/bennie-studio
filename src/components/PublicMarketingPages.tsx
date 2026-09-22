@@ -1852,7 +1852,7 @@ function GeneratePreviewPage() {
               Give us the essentials. We turn them into a tailored website direction built around your service, location, trust signals and preferred enquiry action.
             </p>
             <div className="mt-8 flex flex-wrap gap-2">
-              {([salesMode ? "Internal sales workflow" : "No card required", "Nothing is published publicly", "Uses verified business details"]).map((item) => (
+              {([salesMode ? "Internal sales workflow" : "No card required", "No changes to your live website", "Uses verified business details"]).map((item) => (
                 <span key={item} className="inline-flex items-center gap-2 rounded-full border border-[#dfe2ea] bg-white px-4 py-2 text-sm font-semibold text-[#374151]">
                   <Check className="h-4 w-4 text-[#5746e8]" /> {item}
                 </span>
@@ -1913,7 +1913,7 @@ function GeneratePreviewPage() {
                       : "border border-[#dfe2ea] bg-[#f9f8f4] p-5 text-left hover:border-[#aaa4dc]"}
                   >
                     <p className="font-semibold text-[#141821]">I already have a website</p>
-                    <p className="mt-2 text-sm leading-5 text-[#5f6673]">Paste one URL. We extract the public business facts and build the preview without AI-generation cost.</p>
+                    <p className="mt-2 text-sm leading-5 text-[#5f6673]">Paste one URL. We use the current website as source material and rebuild the presentation around a stronger buyer journey.</p>
                   </button>
                   <button
                     type="button"
@@ -1976,7 +1976,7 @@ function GeneratePreviewPage() {
                     </select>
                     <p className="mt-2 text-xs leading-5 text-[#5f6673]">Your business type chooses the website structure and template family. The URL supplies the real services, proof and contact details.</p>
                   </div>
-                  <p className="mt-4 text-sm leading-6 text-[#5f6673]">We read the key public pages we can safely access, reuse verified business facts and trust signals, and generate the layout from Bennie Studio's design system. No ChatGPT call is used for the free preview.</p>
+                  <p className="mt-4 text-sm leading-6 text-[#5f6673]">We keep useful business facts, brand assets and proof from the current site, then improve the hierarchy, page structure and path to enquiry.</p>
                 </section>
               ) : (
               <section className="border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7">
