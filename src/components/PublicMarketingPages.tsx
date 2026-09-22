@@ -52,7 +52,6 @@ import {
   DELIVERY_STANDARD_VERSION,
 } from "../constants/deliveryStandards";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
-import { normalizeCommercialMarket } from "../lib/commercialPricing";
 import { FlagshipTemplateGallery } from "./FlagshipTemplateGallery";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { TurnstileWidget } from "./TurnstileWidget";
@@ -81,7 +80,6 @@ type PublicPageKind =
   | "professional-services-website-design"
   | "accounting-firm-website-design"
   | "local-service-website-design";
-type PricingMarket = "MY" | "SG" | "GB" | "US";
 
 const PublicWebsiteRenderer = React.lazy(() =>
   import("./WebsiteRenderer").then((module) => ({ default: module.WebsiteRenderer })),
@@ -96,7 +94,7 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
   pricing: {
     title: "Website Growth Pricing | Bennie Studio",
     description:
-      "Premium Website Growth System and Website Growth Partner engagements for service businesses in Malaysia, Singapore, the United Kingdom, and internationally.",
+      "Managed website plans for service businesses that need clearer enquiries, stronger trust and ongoing improvement.",
   },
   "how-it-works": {
     title: "How It Works | Bennie Studio",
@@ -124,14 +122,14 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
       "Turn your Bennie Studio website preview into a managed website with a simple setup fee, monthly service, and 90-day initial commitment.",
   },
   "dental-clinics": {
-    title: "Dental Clinic Website Design Malaysia | More Patient Enquiries",
+    title: "Dental Clinic Website Design | More Patient Enquiries",
     description:
       "Dental clinic websites built around treatment pages, patient trust, Google visibility, WhatsApp enquiries, calls, and appointment requests.",
   },
   "clinic-website-design-malaysia": {
-    title: "Clinic Website Design Malaysia | Appointment Enquiry Websites",
+    title: "Clinic Website Design | Appointment Enquiry Websites",
     description:
-      "Lead-generation clinic websites for Malaysia clinics that need treatment pages, patient trust, local SEO structure, WhatsApp enquiries, and appointment CTAs.",
+      "Lead-generation clinic websites with treatment pages, patient trust, local SEO structure and appointment CTAs.",
   },
   "renovation-contractor-website-design": {
     title: "Renovation Contractor Website Design | Quote Request Websites",
@@ -189,29 +187,6 @@ const industries = [
   ["Accounting Firm", "Packages, who-we-help, consultation CTA, compliance-friendly copy."],
   ["IT Support Company", "Service plans, response promise, support request CTA, B2B trust."],
 ];
-
-const pricingMarkets: Record<PricingMarket, { label: string; country: string; note: string }> = {
-  MY: {
-    label: "Malaysia",
-    country: "Malaysia",
-    note: "Prices shown in Malaysian Ringgit for Malaysia-based businesses.",
-  },
-  SG: {
-    label: "Singapore",
-    country: "Singapore",
-    note: "Prices shown in Singapore Dollars for Singapore-based businesses.",
-  },
-  GB: {
-    label: "United Kingdom",
-    country: "UK",
-    note: "Prices shown in GBP for UK businesses.",
-  },
-  US: {
-    label: "United States / Global",
-    country: "Global",
-    note: "Prices shown in USD for international buyers.",
-  },
-};
 
 const deliveryStages = [
   {
@@ -338,7 +313,7 @@ const nichePages: Record<
     title: "Dental Websites Built for Patient Enquiries",
     subtitle:
       "For dental clinics that want clearer treatment pages, stronger patient trust, local search visibility, and a faster path into WhatsApp, calls, or appointment requests.",
-    positioning: "Patient-enquiry websites for dental clinics in Malaysia.",
+    positioning: "Patient-enquiry websites for dental clinics.",
     pain: "Patients compare treatments, reviews, dentist credibility, location, pricing confidence, and booking convenience before choosing a clinic.",
     promise: "We structure your dental website around the treatments you want to grow, the proof patients need, and the shortest path from Google search to an appointment conversation.",
     cta: "Get My Free Dental Website Preview",
@@ -350,7 +325,7 @@ const nichePages: Record<
     title: "Clinic Websites Built for Patient Enquiries",
     subtitle:
       "For dental, aesthetic, wellness, and healthcare clinics that need treatment pages, doctor trust, local visibility, and appointment CTAs.",
-    positioning: "Appointment-focused websites for clinics in Malaysia.",
+    positioning: "Appointment-focused websites for clinics.",
     pain: "Patients compare treatments, trust, reviews, location, and booking convenience before contacting a clinic.",
     promise: "We structure your website so treatments are clear, trust is visible, FAQs reduce hesitation, and WhatsApp or appointment CTAs are easy to act on.",
     cta: "Get a Free Clinic Website Audit",
@@ -649,8 +624,6 @@ function TemplatesPage() {
 
 function PricingPage() {
   const location = useLocation();
-  const requestedMarket = new URLSearchParams(location.search).get("market");
-  const marketOverride = requestedMarket ? normalizeCommercialMarket(requestedMarket) : undefined;
   return (
     <>
       <Hero
@@ -662,7 +635,7 @@ function PricingPage() {
         secondaryLabel="See how it works"
         secondaryHref="/how-it-works"
       />
-      <CommercialPricing marketOverride={marketOverride} hideIntro />
+      <CommercialPricing hideIntro />
     </>
   );
 }
@@ -1084,6 +1057,7 @@ function GeneratePreviewPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const initialParams = React.useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const salesMode = initialParams.get("sales") === "1";
   const savedPreviewIntent = React.useMemo(() => {
     try { return JSON.parse(localStorage.getItem("bt_preview_intent") || "{}") as Record<string, any>; }
     catch { return {} as Record<string, any>; }
@@ -1185,7 +1159,7 @@ function GeneratePreviewPage() {
     googleBusinessUrl: form.socialUrl,
     reviews: form.reviews,
   });
-  const commercialRecommendation = recommendCommercialProduct({ goal, notes: form.mainService, industry: industry.label });
+  const commercialRecommendation = recommendCommercialProduct({ goal, notes: form.mainService, industry: industry.label, requestedPages: form.pageCount });
   const previewGenerationMode = resolvePreviewGenerationMode(effectiveIndustryId, form.brandStyle, form.websiteStatus);
   const previewBrandPersonality = resolvePreviewBrandPersonality(form.brandStyle);
   const previewBusinessMaturity: BusinessMaturity = form.websiteStatus === "yes" ? "established" : "growing";
@@ -1222,7 +1196,7 @@ function GeneratePreviewPage() {
     event.preventDefault();
     setError("");
 
-    if (!form.email.trim()) {
+    if (!salesMode && !form.email.trim()) {
       setError("Enter an email so we can connect the preview to your enquiry.");
       return;
     }
@@ -1256,56 +1230,84 @@ function GeneratePreviewPage() {
         ? existingPreview.previewId
         : `preview_${globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
 
-      // Reuse the verified lead when regenerating the same preview. Re-submitting
-      // the lead form on every design refresh wastes rate-limit capacity and can
-      // block a legitimate user who is simply rebuilding a stale preview.
-      const existingLeadId = typeof existingPreview.leadId === "string" && /^[0-9a-f-]{36}$/i.test(existingPreview.leadId)
-        ? existingPreview.leadId
-        : "";
-      const existingLeadEmail = String(existingPreview.email || "").trim().toLowerCase();
-      const canReuseExistingLead = Boolean(existingLeadId) && existingLeadEmail === form.email.trim().toLowerCase();
-
-      const leadResult = canReuseExistingLead
-        ? { leadId: existingLeadId, reused: true }
-        : await submitPlatformLead({
-            name: form.contactName || form.businessName || form.email.split("@")[0] || "Website preview lead",
-            email: form.email,
-            phone: form.phone,
-            businessName: form.businessName,
-            industry: industry.label,
-            websiteUrl: form.websiteUrl,
-            service: form.mainService,
-            message: previewMode === "website"
-              ? `URL-first website preview requested for ${form.websiteUrl}.`
-              : `Business-info preview: ${form.mainService} in ${form.location}. Goal: ${goal}.`,
-            formName: "Personalized website preview",
-            leadType: previewMode === "website" ? "free_website_rebuild_preview" : "free_website_preview",
+      // Public previews attach to the prospect's verified enquiry. Authenticated
+      // sales previews create an internal prospect record without asking the prospect
+      // for an email address first.
+      let leadResult: { leadId: string; reused?: boolean; leadEmail?: string };
+      let intake: any;
+      if (salesMode) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Sign in as Bennie Studio staff to use sales preview mode.");
+        const response = await fetch("/api/admin/sales-preview-intake", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            mode: previewMode,
             previewId,
-            market: initialParams.get("market") || "INTL",
-            turnstileToken,
-            website: honeypot,
-          });
-      if (!leadResult?.leadId) throw new Error("We could not connect this preview to your enquiry. Please retry.");
+            websiteUrl: previewMode === "website" ? form.websiteUrl : null,
+            businessName: form.businessName || null,
+            industry: industry.label,
+            location: form.location || null,
+            mainService: form.mainService || null,
+          }),
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.profile || !payload?.leadId || !payload?.leadEmail) {
+          throw new Error(payload?.error || "Sales preview could not be prepared.");
+        }
+        leadResult = { leadId: payload.leadId, leadEmail: payload.leadEmail };
+        intake = payload;
+      } else {
+        const existingLeadId = typeof existingPreview.leadId === "string" && /^[0-9a-f-]{36}$/i.test(existingPreview.leadId)
+          ? existingPreview.leadId
+          : "";
+        const existingLeadEmail = String(existingPreview.email || "").trim().toLowerCase();
+        const canReuseExistingLead = Boolean(existingLeadId) && existingLeadEmail === form.email.trim().toLowerCase();
 
-      const intakeResponse = await fetch("/api/public/preview-intake", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode: previewMode,
-          previewId,
-          leadId: leadResult.leadId,
-          leadEmail: form.email,
-          websiteUrl: previewMode === "website" ? form.websiteUrl : null,
-          businessName: form.businessName || null,
-          industry: industry.label,
-          location: form.location || null,
-          mainService: form.mainService || null,
-        }),
-      });
-      const intake = await intakeResponse.json().catch(() => null);
-      if (!intakeResponse.ok || !intake?.profile) {
-        throw new Error(intake?.error || "We could not prepare that preview. Try business information instead.");
+        leadResult = canReuseExistingLead
+          ? { leadId: existingLeadId, reused: true, leadEmail: form.email }
+          : await submitPlatformLead({
+              name: form.contactName || form.businessName || form.email.split("@")[0] || "Website preview lead",
+              email: form.email,
+              phone: form.phone,
+              businessName: form.businessName,
+              industry: industry.label,
+              websiteUrl: form.websiteUrl,
+              service: form.mainService,
+              message: previewMode === "website"
+                ? `URL-first website preview requested for ${form.websiteUrl}.`
+                : `Business-info preview: ${form.mainService} in ${form.location}. Goal: ${goal}.`,
+              formName: "Personalized website preview",
+              leadType: previewMode === "website" ? "free_website_rebuild_preview" : "free_website_preview",
+              previewId,
+              market: "INTL",
+              turnstileToken,
+              website: honeypot,
+            });
+        if (!leadResult?.leadId) throw new Error("We could not connect this preview to your enquiry. Please retry.");
+        leadResult.leadEmail = form.email;
+
+        const intakeResponse = await fetch("/api/public/preview-intake", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: previewMode,
+            previewId,
+            leadId: leadResult.leadId,
+            leadEmail: form.email,
+            websiteUrl: previewMode === "website" ? form.websiteUrl : null,
+            businessName: form.businessName || null,
+            industry: industry.label,
+            location: form.location || null,
+            mainService: form.mainService || null,
+          }),
+        });
+        intake = await intakeResponse.json().catch(() => null);
+        if (!intakeResponse.ok || !intake?.profile) {
+          throw new Error(intake?.error || "We could not prepare that preview. Try business information instead.");
+        }
       }
+      const effectiveLeadEmail = leadResult.leadEmail || form.email;
 
       const profile = intake.profile as {
         sourceUrl?: string;
@@ -1316,6 +1318,7 @@ function GeneratePreviewPage() {
         contactPhone?: string;
         services?: string[];
         heroImage?: string;
+        testimonials?: string[];
       };
 
       const resolvedBusinessName = String(profile.businessName || form.businessName || "Your Business").trim();
@@ -1358,11 +1361,10 @@ function GeneratePreviewPage() {
         googleBusinessUrl: form.socialUrl,
         reviews: form.reviews,
       });
-      const previewTestimonials = form.reviews
-        .split(/\n+/)
-        .map((review) => review.trim())
-        .filter(Boolean)
-        .slice(0, 4);
+      const previewTestimonials = [
+        ...(Array.isArray(profile.testimonials) ? profile.testimonials : []),
+        ...form.reviews.split(/\n+/).map((review) => review.trim()).filter(Boolean),
+      ].filter((review, index, values) => values.indexOf(review) === index).slice(0, 4);
 
       const blueprintInput: BlueprintBusinessInput = {
         businessName: resolvedBusinessName,
@@ -1432,6 +1434,7 @@ function GeneratePreviewPage() {
         goal: resolvedGoal,
         notes: resolvedMainService,
         industry: resolvedIndustry.label,
+        requestedPages: form.pageCount,
       });
 
       const resolvedForm = {
@@ -1454,7 +1457,7 @@ function GeneratePreviewPage() {
           body: JSON.stringify({
             previewId,
             leadId: leadResult.leadId,
-            email: form.email,
+            email: effectiveLeadEmail,
             website: {
               theme: selectedPreview.website.theme,
               pages: selectedPreview.website.pages,
@@ -1480,12 +1483,14 @@ function GeneratePreviewPage() {
         previewMode,
         previewId,
         leadId: leadResult.leadId,
+        email: effectiveLeadEmail,
+        salesMode,
         industryId: resolvedIndustryId,
         industry: resolvedIndustry.label,
         goal: resolvedGoal,
         recommendedProduct: resolvedRecommendation.slug,
         attribution: getTrackingContext(),
-        market: initialParams.get("market") || "INTL",
+        market: "INTL",
         source: initialParams.get("source") || "",
         campaign: initialParams.get("campaign") || initialParams.get("utm_campaign") || "",
         templateId: resolvedTemplateId,
@@ -1563,8 +1568,9 @@ function GeneratePreviewPage() {
         <div className="brand-shell grid gap-10 py-14 sm:py-16 lg:grid-cols-12 lg:items-center lg:py-20">
           <div className="lg:col-span-7">
             <p className="brand-kicker flex items-center gap-2">
-              <Sparkles className="h-4 w-4" /> Free website preview
+              <Sparkles className="h-4 w-4" /> {salesMode ? "Bennie Studio sales preview" : "Free website preview"}
             </p>
+            {salesMode ? <p className="mt-3 inline-flex border border-[#b9b1ff] bg-[#eeebff] px-3 py-2 text-xs font-semibold text-[#5746e8]">Internal mode · prospect email not required</p> : null}
             <h1 className="mt-5 !max-w-[15ch] text-[#141821]">
               See your website before you build.
             </h1>
@@ -1688,7 +1694,7 @@ function GeneratePreviewPage() {
                   </div>
                   <label htmlFor="preview-url-first" className="mb-2 block text-sm font-semibold text-[#374151]">Website URL</label>
                   <Input id="preview-url-first" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://yourbusiness.com" className="h-14 rounded-none border-[#dfe2ea] bg-white text-base" />
-                  <p className="mt-3 text-sm leading-6 text-[#5f6673]">We read one public page, reuse the business facts we can verify, and generate the layout from Bennie Studio's existing design system. No ChatGPT call is used for the free preview.</p>
+                  <p className="mt-3 text-sm leading-6 text-[#5f6673]">We read the key public pages we can safely access, reuse verified business facts and trust signals, and generate the layout from Bennie Studio's design system. No ChatGPT call is used for the free preview.</p>
                 </section>
               ) : (
               <section className="border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7">
@@ -1829,12 +1835,12 @@ function GeneratePreviewPage() {
                 <div className="mb-6 flex items-start gap-4 border-b border-white/15 pb-5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-[#141821]">{previewMode === "website" ? "2" : "4"}</span>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#b9b1ff]">Send the preview</p>
-                    <h3 className="mt-1 text-2xl font-semibold text-white">Where should we send it?</h3>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#b9b1ff]">{salesMode ? "Build prospect preview" : "Send the preview"}</p>
+                    <h3 className="mt-1 text-2xl font-semibold text-white">{salesMode ? "Generate a shareable direction." : "Where should we send it?"}</h3>
                   </div>
                 </div>
 
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className={salesMode ? "hidden" : "grid gap-5 sm:grid-cols-2"}>
                   <div>
                     <label htmlFor="preview-name" className="mb-2 block text-sm font-semibold text-slate-200">Your name <span className="font-normal text-slate-400">optional</span></label>
                     <Input id="preview-name" autoComplete="name" value={form.contactName} onChange={(e) => setForm({...form, contactName:e.target.value})} placeholder="Your name" className="h-12 rounded-none border-white/15 bg-white text-[#141821]" />
@@ -1856,7 +1862,7 @@ function GeneratePreviewPage() {
                   <input id="preview-company-website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(event) => setHoneypot(event.target.value)} />
                 </div>
 
-                <div className="mt-5">
+                <div className={salesMode ? "hidden" : "mt-5"}>
                   <TurnstileWidget
                     siteKey={String(import.meta.env.VITE_TURNSTILE_SITE_KEY || "")}
                     onToken={setTurnstileToken}
@@ -1985,17 +1991,15 @@ function GeneratePreviewPage() {
             </div>
 
             <div className="mt-7 flex flex-col gap-3 border-t border-[#dfe2ea] pt-6 sm:flex-row sm:flex-wrap">
-              <Button onClick={() => action("click_launch_after_preview","Launch This Website","/preview-order")} className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]">Launch this website <ArrowRight className="ml-2 h-4 w-4" /></Button>
-              {shareablePreviewUrl ? (
-                <Button
-                  variant="outline"
-                  onClick={() => window.open(shareablePreviewUrl, "_blank", "noopener,noreferrer")}
-                  className="min-h-12 rounded-xl px-6 font-semibold"
-                >
-                  Open shareable preview <ExternalLink className="ml-2 h-4 w-4" />
-                </Button>
-              ) : null}
-              <Button variant="outline" onClick={() => navigate("/pricing?market=INTL#plan-" + (JSON.parse(localStorage.getItem("bt_preview_intent") || "{}").recommendedProduct || commercialRecommendation.slug))} className="min-h-12 rounded-xl px-6 font-semibold">Compare plans</Button>
+              {salesMode ? (
+                shareablePreviewUrl ? (
+                  <Button onClick={() => window.open(shareablePreviewUrl, "_blank", "noopener,noreferrer")} className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]">
+                    Open prospect preview <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : <p className="text-sm font-semibold text-[#526071]">Preview ready. Share link persistence needs attention.</p>
+              ) : (
+                <Button onClick={() => action("click_launch_after_preview","Launch This Website","/preview-order")} className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]">Launch this website <ArrowRight className="ml-2 h-4 w-4" /></Button>
+              )}
             </div>
           </div>
         </section>
@@ -2199,7 +2203,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">Recommended product</p>
             <p className="mt-2 text-2xl font-bold">{recommendedProduct}</p>
-            <p className="mt-1 text-sm font-bold text-slate-600">View local pricing and the exact setup fee for your market before checkout.</p>
+            <p className="mt-1 text-sm font-bold text-slate-600">Choose your billing currency during checkout.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Link to="/generate-preview" onClick={savePreviewContext} className={primaryCtaClass}>See My Website Preview</Link>

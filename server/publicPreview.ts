@@ -6,6 +6,7 @@ export type PublicPreviewProfile = {
   contactEmail: string;
   contactPhone: string;
   services: string[];
+  testimonials: string[];
   heroImage: string;
   sourceTitle: string;
   aiUsed: false;
@@ -202,6 +203,21 @@ const extractServices = (html: string) => {
     .slice(0, 8);
 };
 
+const extractTestimonials = (html: string) => {
+  const candidates: string[] = [];
+  const patterns = [
+    /<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi,
+    /<(?:p|div)[^>]+class=["'][^"']*(?:testimonial|review|quote)[^"']*["'][^>]*>([\s\S]*?)<\/(?:p|div)>/gi,
+  ];
+  for (const pattern of patterns) {
+    for (const match of html.matchAll(pattern)) {
+      const value = text(match[1]);
+      if (value.length >= 25 && value.length <= 320 && !/privacy|cookie|terms/i.test(value)) candidates.push(value);
+    }
+  }
+  return [...new Set(candidates)].slice(0, 6);
+};
+
 export function buildPublicPreviewProfile(input: {
   html: string;
   finalUrl: string;
@@ -284,9 +300,35 @@ export function buildPublicPreviewProfile(input: {
     contactEmail,
     contactPhone,
     services,
+    testimonials,
     heroImage,
     sourceTitle: title.slice(0, 220),
     aiUsed: false,
     estimatedAiCostUsd: 0,
   };
+}
+
+
+export function extractPreviewEvidenceUrls(html: string, baseUrl: string, limit = 4) {
+  const urls: string[] = [];
+  const seen = new Set<string>();
+  let base: URL;
+  try { base = new URL(baseUrl); } catch { return urls; }
+  const priority = /\b(reviews?|testimonials?|services?|about|contact|projects?|gallery|case-studies?|treatments?|solutions?)\b/i;
+  for (const match of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    const href = String(match[1] || "").trim();
+    const label = text(match[2]);
+    if (!priority.test(href) && !priority.test(label)) continue;
+    try {
+      const url = new URL(href, base);
+      if (url.origin !== base.origin || !["http:", "https:"].includes(url.protocol)) continue;
+      url.hash = "";
+      const normalized = url.toString();
+      if (seen.has(normalized) || normalized === base.toString()) continue;
+      seen.add(normalized);
+      urls.push(normalized);
+      if (urls.length >= limit) break;
+    } catch {}
+  }
+  return urls;
 }

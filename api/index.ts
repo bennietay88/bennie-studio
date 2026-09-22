@@ -63,7 +63,7 @@ import {
 } from "../server/salesCallSlots.js";
 import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
-import { buildPublicPreviewProfile } from "../server/publicPreview.js";
+import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
 import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, suppressSalesRecipient } from "../server/salesOperations.js";
 import { parseProspectCsv } from "../src/lib/prospectImport.js";
 import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS } from "../src/lib/commercialPricing.js";
@@ -411,6 +411,13 @@ const normalizeCommercialMarket = (value: unknown) => {
   return "INTL";
 };
 const commercialCurrencyForMarket = (market: string) => ({ MY: "MYR", SG: "SGD", GB: "GBP", INTL: "USD" } as Record<string, string>)[market] || "USD";
+const commercialMarketForCurrency = (currency: unknown) => {
+  const normalized = String(currency || "USD").toUpperCase();
+  if (normalized === "MYR") return "MY";
+  if (normalized === "SGD") return "SG";
+  if (normalized === "GBP") return "GB";
+  return "INTL";
+};
 app.use(compression());
 app.disable("x-powered-by");
 app.use((req, res, next) => {
@@ -2362,6 +2369,47 @@ async function startServer() {
     return report;
   };
 
+  const buildPreviewProfileFromWebsite = async (input: {
+    websiteUrl: string;
+    businessName?: string | null;
+    location?: string | null;
+    mainService?: string | null;
+  }) => {
+    const { response, finalUrl } = await fetchAuditResource(input.websiteUrl);
+    const contentType = response.headers.get("content-type") || "";
+    if (!response.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml"))) {
+      throw new Error("PREVIEW_NOT_HTML");
+    }
+    const declaredLength = Number(response.headers.get("content-length") || 0);
+    if (declaredLength > 1_500_000) throw new Error("PREVIEW_TOO_LARGE");
+    const homeHtml = await response.text();
+    if (!homeHtml.trim() || new TextEncoder().encode(homeHtml).length > 1_500_000) {
+      throw new Error("PREVIEW_EMPTY");
+    }
+
+    const evidenceHtml: string[] = [homeHtml];
+    const evidenceUrls = extractPreviewEvidenceUrls(homeHtml, finalUrl, 4);
+    for (const url of evidenceUrls) {
+      try {
+        const result = await fetchAuditResource(url);
+        const type = result.response.headers.get("content-type") || "";
+        if (!result.response.ok || (!type.includes("text/html") && !type.includes("application/xhtml+xml"))) continue;
+        const page = await result.response.text();
+        if (page && new TextEncoder().encode(page).length <= 750_000) evidenceHtml.push(page);
+      } catch {
+        // A secondary evidence page must never block the preview.
+      }
+    }
+
+    return buildPublicPreviewProfile({
+      html: evidenceHtml.join("\n<!-- preview-evidence-page -->\n"),
+      finalUrl,
+      fallbackBusinessName: input.businessName,
+      fallbackLocation: input.location,
+      fallbackMainService: input.mainService,
+    });
+  };
+
   app.post(
     "/api/public/preview-intake",
     // Preview regeneration is an interactive design workflow, not a one-shot
@@ -2424,24 +2472,11 @@ async function startServer() {
         let profile: any;
         if (body.mode === "website") {
           if (!body.websiteUrl) return res.status(400).json({ error: "A website URL is required." });
-          const { response, finalUrl } = await fetchAuditResource(body.websiteUrl);
-          const contentType = response.headers.get("content-type") || "";
-          if (!response.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml"))) {
-            return res.status(422).json({ error: "That URL did not return a public website page." });
-          }
-          const declaredLength = Number(response.headers.get("content-length") || 0);
-          if (declaredLength > 1_500_000) return res.status(422).json({ error: "The website page is too large to preview safely." });
-          const html = await response.text();
-          if (!html.trim() || new TextEncoder().encode(html).length > 1_500_000) {
-            return res.status(422).json({ error: "The website returned no usable page content." });
-          }
-
-          profile = buildPublicPreviewProfile({
-            html,
-            finalUrl,
-            fallbackBusinessName: body.businessName,
-            fallbackLocation: body.location,
-            fallbackMainService: body.mainService,
+          profile = await buildPreviewProfileFromWebsite({
+            websiteUrl: body.websiteUrl,
+            businessName: body.businessName,
+            location: body.location,
+            mainService: body.mainService,
           });
         } else {
           profile = {
@@ -2485,6 +2520,111 @@ async function startServer() {
         if (code === "INVALID_AUDIT_URL") return res.status(422).json({ error: "Enter a valid public website URL." });
         console.warn("[PublicPreviewIntake]", code || error);
         return res.status(422).json({ error: "We could not read that website. You can still build a preview from business details." });
+      }
+    },
+  );
+
+  app.post(
+    "/api/admin/sales-preview-intake",
+    authenticate,
+    async (req: any, res: any) => {
+      const caller = await getProfileForUser(req.user.id);
+      if (!caller || !["super_admin", "platform_staff"].includes(String(caller.role))) {
+        return res.status(403).json({ error: "Bennie Studio staff access required." });
+      }
+      const body = validateBody(z.object({
+        mode: z.enum(["website", "business"]),
+        previewId: z.string().trim().min(8).max(160),
+        websiteUrl: PUBLIC_URL_SCHEMA.optional().nullable(),
+        businessName: z.string().trim().max(160).optional().nullable(),
+        industry: z.string().trim().max(160).optional().nullable(),
+        location: z.string().trim().max(160).optional().nullable(),
+        mainService: z.string().trim().max(300).optional().nullable(),
+      }), req, res);
+      if (!body) return;
+
+      try {
+        const profile = body.mode === "website"
+          ? await buildPreviewProfileFromWebsite({
+              websiteUrl: body.websiteUrl || "",
+              businessName: body.businessName,
+              location: body.location,
+              mainService: body.mainService,
+            })
+          : {
+              sourceUrl: "",
+              businessName: body.businessName || "",
+              description: "",
+              location: body.location || "",
+              contactEmail: "",
+              contactPhone: "",
+              services: body.mainService ? body.mainService.split(/[,/\n]+/).map((item) => item.trim()).filter(Boolean).slice(0, 8) : [],
+              heroImage: "",
+              sourceTitle: "",
+              aiUsed: false,
+              estimatedAiCostUsd: 0,
+            };
+
+        const rawFields = {
+          businessName: profile.businessName || body.businessName || null,
+          industry: body.industry || null,
+          location: profile.location || body.location || null,
+          mainService: body.mainService || profile.services?.[0] || null,
+          previewMode: body.mode,
+          previewProfile: profile,
+          previewProfileVersion: 3,
+          previewProfileCapturedAt: new Date().toISOString(),
+          previewGenerationMethod: "deterministic",
+          previewAiCostUsd: 0,
+          internalSalesPreview: true,
+          createdBy: req.user.id,
+        };
+        const { data: existingLead } = await supabaseAdmin
+          .from("leads")
+          .select("id,email,raw_fields")
+          .eq("preview_id", body.previewId)
+          .eq("source", "sales_preview")
+          .maybeSingle();
+
+        const internalEmail = String(existingLead?.email || `sales-preview+${crypto.randomUUID()}@bennietay.com`);
+        let leadId = existingLead?.id || "";
+        if (existingLead?.id) {
+          const { error: updateError } = await supabaseAdmin.from("leads").update({
+            name: profile.businessName || body.businessName || "Sales preview prospect",
+            message: `Internal Bennie Studio sales preview for ${profile.sourceUrl || body.businessName || "prospect"}`,
+            raw_fields: { ...(existingLead.raw_fields || {}), ...rawFields },
+          }).eq("id", existingLead.id);
+          if (updateError) throw updateError;
+        } else {
+          const { data: lead, error } = await supabaseAdmin.from("leads").insert({
+            name: profile.businessName || body.businessName || "Sales preview prospect",
+            email: internalEmail,
+            message: `Internal Bennie Studio sales preview for ${profile.sourceUrl || body.businessName || "prospect"}`,
+            source: "sales_preview",
+            source_page: "/generate-preview?sales=1",
+            form_name: "Internal sales preview",
+            status: "new",
+            preview_id: body.previewId,
+            raw_fields: rawFields,
+          }).select("id").single();
+          if (error || !lead) throw error || new Error("SALES_PREVIEW_LEAD_CREATE_FAILED");
+          leadId = lead.id;
+        }
+
+        return res.json({
+          success: true,
+          leadId,
+          leadEmail: internalEmail,
+          previewId: body.previewId,
+          profile,
+          internal: true,
+        });
+      } catch (error: any) {
+        const code = String(error?.message || "");
+        if (code === "PRIVATE_AUDIT_URL" || code === "INVALID_AUDIT_URL") return res.status(422).json({ error: "Enter a valid public website URL." });
+        if (code === "PREVIEW_NOT_HTML") return res.status(422).json({ error: "That URL did not return a public website page." });
+        console.error("Sales preview intake failed", code || error);
+        return res.status(422).json({ error: "The sales preview could not be prepared." });
       }
     },
   );
@@ -7015,12 +7155,12 @@ async function startServer() {
       const body = validateBody(z.object({
         productSlug: z.enum(["managed-website", "website-growth", "growth-partner"]),
         billingCycle: z.literal("monthly").optional().default("monthly"),
-        market: z.enum(["MY", "SG", "GB", "INTL"]).optional().default("INTL"),
+        currency: z.enum(["USD", "GBP", "MYR", "SGD"]).optional().default("USD"),
         customerEmail: EMAIL_SCHEMA.optional().nullable(),
       }), req, res);
       if (!body) return;
 
-      const market = normalizeCommercialMarket(body.market);
+      const market = commercialMarketForCurrency(body.currency);
       try {
         const { data: product, error: productError } = await supabaseAdmin
           .from("commercial_products")
@@ -7116,7 +7256,7 @@ async function startServer() {
           ...(body.customerEmail ? { customer_email: body.customerEmail } : {}),
           line_items: lineItems,
           success_url: `${publicAppUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}&public_order=1&preview_id=${encodeURIComponent(checkoutRef)}&direct_checkout=1`,
-          cancel_url: `${publicAppUrl()}/pricing?product=${encodeURIComponent(product.slug)}&market=${encodeURIComponent(market)}&cancelled=1`,
+          cancel_url: `${publicAppUrl()}/pricing?product=${encodeURIComponent(product.slug)}&cancelled=1`,
           metadata: {
             businessId: business.id,
             productSlug: product.slug,
@@ -7184,6 +7324,7 @@ async function startServer() {
         leadId: UUID_SCHEMA,
         email: EMAIL_SCHEMA,
         productSlug: z.enum(["managed-website", "website-growth", "growth-partner"]),
+        currency: z.enum(["USD", "GBP", "MYR", "SGD"]).optional().default("USD"),
       }), req, res);
       if (!body) return;
 
@@ -7213,9 +7354,7 @@ async function startServer() {
         ).trim().slice(0, 160);
         const location = String(previewProfile.location || "").trim().slice(0, 160);
 
-        // Public preview checkout is USD-first. Stripe can localize the payment
-        // experience separately; the Bennie Studio catalogue remains canonical.
-        const market = "INTL";
+        const market = commercialMarketForCurrency(body.currency);
         const { data: product, error: productError } = await supabaseAdmin
           .from("commercial_products")
           .select("id,slug,name,description,sales_motion,entitlement_plan_slug,active,commercial_market_prices!inner(market,currency,recurring_monthly_price,recurring_setup_fee,minimum_term_months,recurring_stripe_monthly_price_id,recurring_stripe_setup_price_id,recurring_config_status,active)")

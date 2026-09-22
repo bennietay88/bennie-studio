@@ -1,46 +1,10 @@
 import React from "react";
-import { ExternalLink, Globe, Menu, X } from "lucide-react";
+import { ExternalLink, Menu, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { Button } from "./ui/button";
-import { COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, CommercialMarket, getStoredMarket, normalizeCommercialMarket, persistCommercialMarket } from "../lib/commercialPricing";
-
-function MarketSwitcher({ compact = false }: { compact?: boolean }) {
-  const location = useLocation();
-  const [market, setMarket] = React.useState<CommercialMarket>(getStoredMarket());
-
-  React.useEffect(() => {
-    const requestedMarket = new URLSearchParams(location.search).get("market");
-    if (requestedMarket) setMarket(normalizeCommercialMarket(requestedMarket));
-  }, [location.search]);
-
-  React.useEffect(() => {
-    const onMarketChanged = (event: Event) => {
-      const next = (event as CustomEvent<string>).detail;
-      setMarket(normalizeCommercialMarket(next));
-    };
-    window.addEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
-    return () => window.removeEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
-  }, []);
-
-  React.useEffect(() => { persistCommercialMarket(market); }, [market]);
-
-  const changeMarket = (value: string) => {
-    const next = normalizeCommercialMarket(value);
-    setMarket(next);
-    persistCommercialMarket(next);
-    window.dispatchEvent(new CustomEvent(COMMERCIAL_MARKET_CHANGED_EVENT, { detail: next }));
-  };
-
-  return <label className={compact ? "flex items-center gap-2 text-xs font-semibold text-slate-500" : "flex items-center gap-3 text-sm font-semibold text-slate-600"}>
-    {compact ? <Globe className="h-4 w-4 text-slate-400" /> : <span>Pricing market</span>}
-    <select aria-label="Pricing market" value={market} onChange={(event) => changeMarket(event.target.value)} className={compact ? "max-w-[118px] min-w-0 border-0 bg-transparent py-2 pr-1 text-xs font-semibold text-slate-700 outline-none" : "w-[min(100%,170px)] max-w-full min-w-0 border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-900 shadow-sm transition hover:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"}>
-      {Object.entries(COMMERCIAL_MARKETS).map(([value, item]) => <option key={value} value={value}>{item.currency} · {item.label}</option>)}
-    </select>
-  </label>;
-}
 
 const publicNavItems = [
   { label: "System", href: "/how-it-works" },
@@ -66,11 +30,6 @@ const footerGroups = [
     { label: "Clinics & Healthcare", href: "/clinic-website-design-malaysia" },
     { label: "Contractors", href: "/renovation-contractor-website-design" },
     { label: "Education", href: "/tuition-centre-website-design" },
-  ]],
-  ["Markets", [
-    { label: "Malaysia", href: "/website-subscription-service/malaysia" },
-    { label: "United Kingdom", href: "/website-subscription-service/uk" },
-    { label: "Singapore", href: "/website-subscription-service/singapore" },
   ]],
   ["Legal", [
     { label: "Privacy Policy", href: "/privacy" },
@@ -129,7 +88,6 @@ export function PublicSiteHeader() {
         </div>
 
         <div className="hidden items-center gap-4 lg:flex">
-          <MarketSwitcher compact />
           <Link to={user ? "/dashboard" : "/login"} className="text-sm font-semibold text-black/50 transition hover:text-[#5b4bff]">
             {user ? "Dashboard" : "Client login"}
           </Link>
@@ -158,7 +116,6 @@ export function PublicSiteHeader() {
               ))}
             </div>
             <div className="mt-auto grid gap-3 border-t border-[#dfe2ea] pt-5">
-              <MarketSwitcher />
               <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center border border-[#10131c] px-5 text-sm font-bold text-[#10131c]">{user ? "Dashboard" : "Client login"}</Link>
               <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-12 items-center justify-center bg-[#10131c] px-5 text-sm font-black text-white">{user ? "Open Studio" : "Generate preview"}</Link>
             </div>
@@ -172,7 +129,7 @@ export function PublicSiteHeader() {
 export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?: string; email?: string; onManageCookies?: () => void }) {
   return (
     <footer className="bg-[#0c1224] text-white">
-      <div className="mx-auto grid max-w-[90rem] gap-10 px-6 py-16 sm:px-10 md:grid-cols-2 lg:grid-cols-6 lg:px-16 lg:py-20">
+      <div className="mx-auto grid max-w-[90rem] gap-10 px-6 py-16 sm:px-10 md:grid-cols-2 lg:grid-cols-5 lg:px-16 lg:py-20">
         <div className="lg:col-span-2">
           <div className="mb-5 flex items-center gap-3">
             <span className="grid h-9 w-9 place-items-center bg-[#5b4bff] text-sm font-black">B.</span>
@@ -194,11 +151,6 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
             </div>
           </div>
         ))}
-        <div>
-          <p className="mb-4 text-[9px] font-black uppercase tracking-[0.22em] text-white/70">Pricing market</p>
-          <p className="mb-4 text-sm font-medium leading-6 text-white/70">Switch market to view matching local pricing.</p>
-          <MarketSwitcher />
-        </div>
       </div>
       <div className="border-t border-white/10 px-6 py-6 text-center text-xs font-semibold text-white/70">© {new Date().getFullYear()} Bennie Studio. All rights reserved.</div>
     </footer>

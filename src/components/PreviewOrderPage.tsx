@@ -3,9 +3,12 @@ import { ArrowLeft, ArrowRight, Check, CreditCard, ShieldCheck } from "lucide-re
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
 import {
+  CHECKOUT_CURRENCIES,
   COMMERCIAL_FALLBACK_PRODUCTS,
   formatCommercialMoney,
   getCommercialPrice,
+  marketForCurrency,
+  type CommercialCurrency,
   type CommercialProduct,
 } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
@@ -73,7 +76,9 @@ function readPreviewIntent(): PreviewIntent {
 export function PreviewOrderPage() {
   const location = useLocation();
   const [intent] = React.useState<PreviewIntent>(() => readPreviewIntent());
-  const { products, loading } = usePublicCommercialPricing("INTL");
+  const [checkoutCurrency, setCheckoutCurrency] = React.useState<CommercialCurrency>("USD");
+  const checkoutMarket = marketForCurrency(checkoutCurrency);
+  const { products, loading } = usePublicCommercialPricing(checkoutMarket);
   const [selectedSlug, setSelectedSlug] = React.useState(
     intent.recommendedProduct && productPriority.includes(intent.recommendedProduct as any)
       ? intent.recommendedProduct
@@ -91,7 +96,7 @@ export function PreviewOrderPage() {
   const selected = availableProducts.find((product) => product.slug === selectedSlug)
     || availableProducts[1]
     || availableProducts[0];
-  const price = selected ? getCommercialPrice(selected, "INTL") : null;
+  const price = selected ? getCommercialPrice(selected, checkoutMarket) : null;
   const monthly = Number(price?.monthlyPrice || 0);
   const setup = Number(price?.setupFee || 0);
   const dueToday = monthly + setup;
@@ -108,10 +113,10 @@ export function PreviewOrderPage() {
         previewId: intent.previewId || null,
         productSlug: selected?.slug || null,
         dueToday,
-        currency: price?.currency || "USD",
+        currency: checkoutCurrency,
       },
     });
-  }, [dueToday, intent.previewId, price?.currency, selected?.name, selected?.slug]);
+  }, [checkoutCurrency, dueToday, intent.previewId, selected?.name, selected?.slug]);
 
   const startCheckout = async () => {
     if (!intent.previewId || !intent.leadId || !intent.email || !selected) {
@@ -136,6 +141,7 @@ export function PreviewOrderPage() {
           leadId: intent.leadId,
           email: intent.email,
           productSlug: selected.slug,
+          currency: checkoutCurrency,
         }),
       });
       const payload = await response.json().catch(() => null);
@@ -185,7 +191,7 @@ export function PreviewOrderPage() {
               </p>
             </div>
             <div className="lg:col-span-4 lg:text-right">
-              <p className="text-sm font-semibold text-[#526071]">USD pricing · 90-day initial commitment</p>
+              <p className="text-sm font-semibold text-[#526071]">Choose billing currency at checkout · 90-day initial commitment</p>
               <p className="mt-1 text-sm text-[#707b8a]">Month-to-month after the initial 90 days.</p>
             </div>
           </div>
@@ -232,7 +238,7 @@ export function PreviewOrderPage() {
               {showAlternatives ? (
                 <div className="mt-5 divide-y divide-[#dfe2ea] border-y border-[#dfe2ea]">
                   {availableProducts.map((product) => {
-                    const productPrice = getCommercialPrice(product, "INTL");
+                    const productPrice = getCommercialPrice(product, checkoutMarket);
                     const active = product.slug === selected?.slug;
                     return (
                       <button
@@ -278,6 +284,10 @@ export function PreviewOrderPage() {
           <aside className="lg:col-span-5">
             <div className="border border-[#141821] bg-[#141821] p-6 text-white sm:p-8 lg:sticky lg:top-24">
               <p className="text-xs font-bold uppercase tracking-[0.13em] !text-[#b9b1ff]">Order summary</p>
+              <label htmlFor="preview-checkout-currency" className="mt-5 block text-xs font-semibold uppercase tracking-[0.08em] !text-white/60">Billing currency</label>
+              <select id="preview-checkout-currency" value={checkoutCurrency} onChange={(event) => setCheckoutCurrency(event.target.value as CommercialCurrency)} className="mt-2 h-11 w-full border border-white/20 bg-white px-3 text-sm font-semibold text-[#141821]">
+                {CHECKOUT_CURRENCIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
               <h2 className="mt-3 text-3xl font-semibold !text-white">{selected?.name || "Website Growth"}</h2>
 
               {loading ? <p className="mt-6 !text-white/70">Loading current price…</p> : (

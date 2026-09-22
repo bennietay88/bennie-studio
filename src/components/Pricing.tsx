@@ -8,49 +8,36 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
-import { COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_MARKETS, COMMERCIAL_MARKET_CHANGED_EVENT, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, CommercialMarket, CommercialProduct, formatCommercialMoney, getCommercialPrice, getStoredMarket, normalizeCommercialMarket, persistCommercialMarket } from "../lib/commercialPricing";
+import { CHECKOUT_CURRENCIES, COMMERCIAL_FALLBACK_PRODUCTS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, CommercialMarket, CommercialProduct, type CommercialCurrency, formatCommercialMoney, getCommercialPrice, marketForCurrency } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { PLAN_DELIVERY_STANDARDS, PUBLIC_DELIVERY_PROMISES, type PublicPlanSlug } from "../constants/deliveryStandards";
 
-interface PricingProps { currentPlan?: string; onSelectPlan?: (plan: any) => void; isDashboard?: boolean; onDark?: boolean; hideIntro?: boolean; marketOverride?: CommercialMarket; }
+interface PricingProps { currentPlan?: string; onSelectPlan?: (plan: any) => void; isDashboard?: boolean; onDark?: boolean; hideIntro?: boolean; }
 const outcomes = ["Website planned and built around your offer", "Managed hosting, updates and launch support", "WhatsApp, call, booking and quotation enquiry paths", "Trust proof, local SEO foundation and analytics"];
 
-export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onDark = false, hideIntro = false, marketOverride }) => {
+export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onDark = false, hideIntro = false }) => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [market, setMarket] = React.useState<CommercialMarket>(getStoredMarket());
-  // The marketing route can be opened directly with ?market=INTL (or another
-  // explicit market). Use the browser URL as the final source of truth so a
-  // previously persisted local market cannot override a shared campaign link.
-  const urlMarket = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("market") : null;
-  const activeMarket = marketOverride || (urlMarket ? normalizeCommercialMarket(urlMarket) : market);
-  const { products, loading } = usePublicCommercialPricing(activeMarket);
+  const publicMarket: CommercialMarket = "INTL";
+  const { products, loading } = usePublicCommercialPricing(publicMarket);
   const [billingCycle, setBillingCycle] = React.useState<"monthly" | "yearly">("monthly");
   const [pendingProduct, setPendingProduct] = React.useState<CommercialProduct | null>(null);
-  React.useEffect(() => {
-    const requestedMarket = new URLSearchParams(location.search).get("market");
-    if (requestedMarket) setMarket(normalizeCommercialMarket(requestedMarket));
-  }, [location.search]);
-  React.useEffect(() => {
-    const onMarketChanged = () => setMarket(getStoredMarket());
-    window.addEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
-    return () => window.removeEventListener(COMMERCIAL_MARKET_CHANGED_EVENT, onMarketChanged);
-  }, []);
-  React.useEffect(() => {
-    persistCommercialMarket(market);
-  }, [market]);
+  const [checkoutCurrency, setCheckoutCurrency] = React.useState<CommercialCurrency>("USD");
+  const checkoutMarket = marketForCurrency(checkoutCurrency);
+  const { products: checkoutProducts, loading: checkoutPricingLoading } = usePublicCommercialPricing(checkoutMarket);
 
   const startCheckout = async (product: CommercialProduct) => {
     let previewId: string | null = null;
     try { previewId = JSON.parse(localStorage.getItem("bt_preview_intent") || "{}").previewId || null; } catch { /* ignore malformed preview state */ }
-    trackPublicEvent({ eventType: "checkout_started", label: product.name, target: "/pricing", metadata: { product: product.slug, market: activeMarket, billingCycle, previewId } });
-    const price = getCommercialPrice(product, activeMarket);
+    trackPublicEvent({ eventType: "checkout_started", label: product.name, target: "/pricing", metadata: { product: product.slug, currency: checkoutCurrency, billingCycle, previewId } });
+    const checkoutProduct = checkoutProducts.find((item) => item.slug === product.slug) || product;
+    const price = getCommercialPrice(checkoutProduct, checkoutMarket);
     if (onSelectPlan) return onSelectPlan({ ...product, price });
-    if (product.slug === "custom-website") { navigate(`/apply-custom?product=${product.slug}&market=${activeMarket}`); return; }
-    if (product.salesMotion !== "self_serve") { navigate(`/book-demo?product=${product.slug}&market=${activeMarket}`); return; }
-    localStorage.setItem("bt_checkout_intent", JSON.stringify({ productSlug: product.slug, market: activeMarket, currency: price?.currency, billingCycle, savedAt: new Date().toISOString() }));
+    if (product.slug === "custom-website") { navigate(`/apply-custom?product=${product.slug}`); return; }
+    if (product.salesMotion !== "self_serve") { navigate(`/book-demo?product=${product.slug}`); return; }
+    localStorage.setItem("bt_checkout_intent", JSON.stringify({ productSlug: product.slug, currency: checkoutCurrency, billingCycle, savedAt: new Date().toISOString() }));
 
     // New customers pay first. Bennie Studio creates/claims the portal only
     // after Stripe confirms payment, matching the existing public preview flow.
@@ -59,7 +46,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
         const response = await fetch("/api/public/plan-checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ productSlug: product.slug, billingCycle, market: activeMarket, customerEmail: profile?.email || undefined }),
+          body: JSON.stringify({ productSlug: product.slug, billingCycle, currency: checkoutCurrency, customerEmail: profile?.email || undefined }),
         });
         const result = await response.json().catch(() => ({}));
         if (!response.ok || !result.url) throw new Error(result.error || "Unable to start secure checkout.");
@@ -73,7 +60,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("You must be logged in to start checkout.");
-      const response = await fetch("/api/create-checkout-session", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ businessId: profile.businessId, customerEmail: profile.email, type: "subscription", productSlug: product.slug, billingCycle, market: activeMarket, upgradeFrom: currentPlan === "managed-website" ? "managed-website" : undefined }) });
+      const response = await fetch("/api/create-checkout-session", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ businessId: profile.businessId, customerEmail: profile.email, type: "subscription", productSlug: product.slug, billingCycle, market: checkoutMarket, upgradeFrom: currentPlan === "managed-website" ? "managed-website" : undefined }) });
       const result = await response.json();
       if (!response.ok || !result.url) throw new Error(result.error || "Unable to start checkout.");
       window.location.href = result.url;
@@ -110,15 +97,16 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   const managed = products.find((product) => product.slug === "managed-website") || COMMERCIAL_FALLBACK_PRODUCTS[0];
   const growth = products.find((product) => product.slug === "website-growth") || COMMERCIAL_FALLBACK_PRODUCTS[1];
   const premium = products.find((product) => product.slug === "growth-partner") || COMMERCIAL_FALLBACK_PRODUCTS[2];
-  const managedPrice = getCommercialPrice(managed, activeMarket); const growthPrice = getCommercialPrice(growth, activeMarket); const premiumPrice = getCommercialPrice(premium, activeMarket);
+  const managedPrice = getCommercialPrice(managed, publicMarket); const growthPrice = getCommercialPrice(growth, publicMarket); const premiumPrice = getCommercialPrice(premium, publicMarket);
   React.useEffect(() => {
     if (!loading) {
-      trackPublicEvent({ eventType: "plan_viewed", label: "Managed website plan comparison", target: "/pricing", metadata: { market: activeMarket, products: products.map((product) => product.slug) } });
+      trackPublicEvent({ eventType: "plan_viewed", label: "Managed website plan comparison", target: "/pricing", metadata: { currency: "USD", products: products.map((product) => product.slug) } });
     }
-  }, [loading, activeMarket, products]);
+  }, [loading, products]);
   const annualAvailable = false;
   React.useEffect(() => { if (!annualAvailable && billingCycle === "yearly") setBillingCycle("monthly"); }, [annualAvailable, billingCycle]);
-  const pendingPrice = pendingProduct ? getCommercialPrice(pendingProduct, activeMarket) : null;
+  const pendingCheckoutProduct = pendingProduct ? (checkoutProducts.find((item) => item.slug === pendingProduct.slug) || pendingProduct) : null;
+  const pendingPrice = pendingCheckoutProduct ? getCommercialPrice(pendingCheckoutProduct, checkoutMarket) : null;
   const pendingMonthly = pendingPrice?.monthlyPrice || 0;
   const dueToday = pendingPrice?.billingInterval === "one_time" ? (pendingPrice?.monthlyPrice || 0) : ((pendingPrice?.setupFee || 0) + (billingCycle === "monthly" ? pendingMonthly : (pendingPrice?.annualPrice || 0)));
   const planSet = [
@@ -136,7 +124,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   ];
 
   return <div id="plans" aria-busy={loading} className={cn("brand-shell scroll-mt-24", hideIntro ? "py-14 sm:py-20" : "py-14 sm:py-20")}>
-    {loading ? <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-slate-500" aria-live="polite"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Updating local pricing…</div> : null}
+    {loading ? <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-slate-500" aria-live="polite"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading pricing…</div> : null}
     <div className="relative h-0 overflow-visible" aria-hidden="true">
       {planSet.map(([product]) => (
         <span key={product.slug} id={`plan-${product.slug}`} className="absolute -top-24" data-plan-anchor={product.slug} />
@@ -149,7 +137,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
           <h2 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Three plans. One managed website system.</h2>
           <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Start with a professionally managed website, then add deeper conversion, SEO and growth support as the business needs it.</p>
         </div>
-        <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">{COMMERCIAL_MARKETS[activeMarket].label} · {COMMERCIAL_MARKETS[activeMarket].currency} · 90-day initial commitment, then month-to-month</p>
+        <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">USD base pricing · choose billing currency at checkout · 90-day initial commitment</p>
       </div>
     )}
 
@@ -164,8 +152,8 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
                 <h3 className={isGrowth ? "mt-2 text-2xl font-semibold !text-white" : "mt-2 text-2xl font-semibold text-[#141821]"}>{product.name}</h3>
               </div>
             </div>
-            <p className={isGrowth ? "mt-5 text-3xl font-semibold !text-white" : "mt-5 text-3xl font-semibold text-[#141821]"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#526071]"}>/month</span></p>
-            <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#526071]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
+            <p className={isGrowth ? "mt-5 text-3xl font-semibold !text-white" : "mt-5 text-3xl font-semibold text-[#141821]"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#526071]"}>/month</span></p>
+            <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#526071]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "USD")} setup</p>
             <p className={isGrowth ? "mt-4 text-sm leading-6 !text-white/70" : "mt-4 text-sm leading-6 text-[#526071]"}>{product.description}</p>
             {PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug] && (
               <div className={isGrowth ? "mt-5 border-t border-white/20 pt-4" : "mt-5 border-t border-[#dfe2ea] pt-4"}>
@@ -236,13 +224,13 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
         ].map(([title, body]) => <div key={title} className="border-t border-slate-200 pt-4"><p className="font-semibold text-slate-950">{title}</p><p className="mt-2 text-sm leading-6 text-slate-600">{body}</p></div>)}
       </div>
       <div className="lg:col-start-5 lg:col-span-8">
-        <Button variant="outline" onClick={() => navigate("/book-demo?market=" + activeMarket)}>Discuss my scope first</Button>
+        <Button variant="outline" onClick={() => navigate("/book-demo")}>Discuss my scope first</Button>
       </div>
     </section>
 
     {currentPlan && <p className="mt-8 text-center text-xs font-semibold text-slate-500">Current account entitlement: {currentPlan}. Existing subscriptions remain on their original plan.</p>}
 
-    {pendingProduct && pendingPrice && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Order summary" onClick={(event) => { if (event.target === event.currentTarget) closeOrderSummary(); }}><div className="w-full max-w-lg rounded-xl bg-white p-5 shadow-2xl sm:p-7" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">Order summary</p><h3 className="mt-2 text-2xl font-semibold text-slate-950">{pendingProduct.name}</h3></div><button type="button" onClick={closeOrderSummary} className="relative z-10 grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border border-transparent text-2xl leading-none text-slate-500 transition hover:border-slate-200 hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" aria-label="Close order summary" data-order-summary-close="true">×</button></div><div className="mt-6 space-y-3 border-y border-slate-200 py-5 text-sm font-semibold text-slate-700"><div className="flex flex-col gap-1 sm:flex-row sm:justify-between"><span>Market / currency</span><span>{COMMERCIAL_MARKETS[activeMarket].label} · {pendingPrice.currency}</span></div><div className="flex justify-between"><span>Setup fee</span><span>{formatCommercialMoney(pendingPrice.setupFee || 0, pendingPrice.currency)}</span></div><div className="flex justify-between"><span>First month</span><span>{formatCommercialMoney(billingCycle === "monthly" ? pendingMonthly : (pendingPrice.annualPrice || 0), pendingPrice.currency)}</span></div><div className="flex justify-between border-t border-slate-200 pt-3 text-slate-950"><span>Due today</span><span>{formatCommercialMoney(dueToday, pendingPrice.currency)}</span></div></div><p className="mt-4 text-xs leading-5 text-slate-500">Your first payment includes the one-time setup fee and the first month of managed service.</p><p className="mt-2 text-xs font-semibold leading-5 text-emerald-700">No account is required before payment. New customers activate their Bennie Studio portal after Stripe confirms the payment.</p><Button onClick={() => { const product = pendingProduct; setPendingProduct(null); void startCheckout(product); }} className="mt-6 min-h-12 w-full bg-indigo-600 font-semibold text-white hover:bg-indigo-500">Continue to secure checkout <ArrowRight className="ml-2 h-4 w-4" /></Button></div></div>}
+    {pendingProduct && pendingPrice && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Order summary" onClick={(event) => { if (event.target === event.currentTarget) closeOrderSummary(); }}><div className="w-full max-w-lg rounded-xl bg-white p-5 shadow-2xl sm:p-7" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">Order summary</p><h3 className="mt-2 text-2xl font-semibold text-slate-950">{pendingProduct.name}</h3></div><button type="button" onClick={closeOrderSummary} className="relative z-10 grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border border-transparent text-2xl leading-none text-slate-500 transition hover:border-slate-200 hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" aria-label="Close order summary" data-order-summary-close="true">×</button></div><div className="mt-6 space-y-3 border-y border-slate-200 py-5 text-sm font-semibold text-slate-700"><div className="flex flex-col gap-1 sm:flex-row sm:justify-between"><label htmlFor="checkout-currency">Billing currency</label><select id="checkout-currency" value={checkoutCurrency} onChange={(event) => setCheckoutCurrency(event.target.value as CommercialCurrency)} className="border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900">{CHECKOUT_CURRENCIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div><div className="flex justify-between"><span>Setup fee</span><span>{formatCommercialMoney(pendingPrice.setupFee || 0, pendingPrice.currency)}</span></div><div className="flex justify-between"><span>First month</span><span>{formatCommercialMoney(billingCycle === "monthly" ? pendingMonthly : (pendingPrice.annualPrice || 0), pendingPrice.currency)}</span></div><div className="flex justify-between border-t border-slate-200 pt-3 text-slate-950"><span>Due today</span><span>{formatCommercialMoney(dueToday, pendingPrice.currency)}</span></div></div><p className="mt-4 text-xs leading-5 text-slate-500">Your first payment includes the one-time setup fee and the first month of managed service.</p><p className="mt-2 text-xs font-semibold leading-5 text-emerald-700">No account is required before payment. New customers activate their Bennie Studio portal after Stripe confirms the payment.</p><Button onClick={() => { const product = pendingProduct; setPendingProduct(null); void startCheckout(product); }} className="mt-6 min-h-12 w-full bg-indigo-600 font-semibold text-white hover:bg-indigo-500">Continue to secure checkout <ArrowRight className="ml-2 h-4 w-4" /></Button></div></div>}
   </div>;
 };
 export default Pricing;

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildPublicPreviewProfile } from "../server/publicPreview.ts";
+import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.ts";
 
 test("public preview intake extracts business facts without AI", () => {
   const html = `
@@ -107,4 +107,39 @@ test("public preview ignores audience headings and keeps a concise website servi
   assert.ok(!profile.services.some((service) => /better website for a growing business/i.test(service)));
   assert.ok(profile.services.some((service) => /managed lead-generation website/i.test(service)));
   assert.ok(profile.services.some((service) => /website audit/i.test(service)));
+});
+
+
+test("preview evidence discovery follows useful same-origin pages only", () => {
+  const html = `
+    <a href="/services">Services</a>
+    <a href="/reviews">Customer Reviews</a>
+    <a href="/about">About us</a>
+    <a href="https://example.test/contact">Contact</a>
+    <a href="https://other.test/reviews">External Reviews</a>
+    <a href="/blog">Blog</a>
+  `;
+  assert.deepEqual(extractPreviewEvidenceUrls(html, "https://example.test/", 4), [
+    "https://example.test/services",
+    "https://example.test/reviews",
+    "https://example.test/about",
+    "https://example.test/contact",
+  ]);
+});
+
+
+test("public preview extracts testimonials from evidence HTML", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <html><head><title>Example Plumbing</title></head><body>
+        <h1>Emergency Plumbing</h1>
+        <blockquote>They arrived quickly, explained the repair clearly, and fixed the leak the same day.</blockquote>
+        <div class="customer-review">Professional service from first call through completion. We would use them again.</div>
+      </body></html>
+    `,
+    finalUrl: "https://example.test/",
+  });
+  assert.equal(profile.testimonials.length, 2);
+  assert.match(profile.testimonials[0], /arrived quickly/i);
+  assert.match(profile.testimonials[1], /Professional service/i);
 });

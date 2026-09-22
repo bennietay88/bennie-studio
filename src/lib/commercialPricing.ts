@@ -53,6 +53,21 @@ export const normalizeCommercialMarket = (value?: string | null): CommercialMark
 
 export const marketForCountry = normalizeCommercialMarket;
 
+export const CHECKOUT_CURRENCIES: Array<{ value: CommercialCurrency; label: string }> = [
+  { value: "USD", label: "USD" },
+  { value: "GBP", label: "GBP" },
+  { value: "MYR", label: "MYR" },
+  { value: "SGD", label: "SGD" },
+];
+
+export const marketForCurrency = (currency?: string | null): CommercialMarket => {
+  const normalized = String(currency || "USD").toUpperCase();
+  if (normalized === "MYR") return "MY";
+  if (normalized === "SGD") return "SG";
+  if (normalized === "GBP") return "GB";
+  return "INTL";
+};
+
 export const formatCommercialMoney = (amount: number | null | undefined, currency: CommercialCurrency) => {
   if (amount === null || amount === undefined) return "Quote required";
   return new Intl.NumberFormat(currency === "MYR" ? "en-MY" : currency === "SGD" ? "en-SG" : currency === "GBP" ? "en-GB" : "en-US", {

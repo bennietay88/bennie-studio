@@ -1,14 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, isRecurringCheckoutEnabled, normalizeCommercialMarket } from "../src/lib/commercialPricing.ts";
+import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, isRecurringCheckoutEnabled, marketForCurrency, normalizeCommercialMarket } from "../src/lib/commercialPricing.ts";
 import { OWN_SALES_SEO_PAGES } from "../src/constants/ownSalesSeoPages.ts";
 import { getTemplateReadiness, NICHE_TEMPLATES } from "../src/constants/nicheTemplates.ts";
 import { REVIEW_POWERED_PLANS } from "../src/constants/reviewPoweredWaas.ts";
+import { recommendCommercialProduct } from "../src/lib/recommendCommercialProduct.ts";
 
 test("market detection uses fixed commercial markets", () => {
   assert.equal(normalizeCommercialMarket("MY"), "MY");
   assert.equal(normalizeCommercialMarket("UK"), "GB");
   assert.equal(normalizeCommercialMarket("CA"), "INTL");
+});
+
+test("checkout currency resolves to internal price books without exposing country labels", () => {
+  assert.equal(marketForCurrency("USD"), "INTL");
+  assert.equal(marketForCurrency("GBP"), "GB");
+  assert.equal(marketForCurrency("MYR"), "MY");
+  assert.equal(marketForCurrency("SGD"), "SG");
 });
 
 test("checkout stays closed for draft international markets", () => {
@@ -110,4 +118,12 @@ test("review-powered public offers use the current product language", () => {
   assert.equal(partner?.publicName, "Growth Partner");
   assert.equal(partner?.price, "US$799/month");
   assert.doesNotMatch(JSON.stringify(REVIEW_POWERED_PLANS), /\$49|\bLaunch\b|\bScale\b|\bBusiness\b/);
+});
+
+
+test("preview recommendation respects requested page count and current plan names", () => {
+  assert.equal(recommendCommercialProduct({ goal: "Get enquiries", notes: "plumbing", industry: "Local services", requestedPages: 5 }).label, "Managed Website");
+  const expanded = recommendCommercialProduct({ goal: "Get enquiries", notes: "plumbing", industry: "Local services", requestedPages: 7 });
+  assert.equal(expanded.slug, "website-growth");
+  assert.equal(expanded.label, "Website Growth");
 });

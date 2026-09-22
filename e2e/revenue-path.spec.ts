@@ -415,7 +415,7 @@ test("routes homepage industry links and pricing details to the intended destina
 
   await page.goto("/");
   await page.getByRole("button", { name: "View plan" }).nth(1).click();
-  await expect(page).toHaveURL(/\/pricing\?market=INTL#plan-website-growth$/);
+  await expect(page).toHaveURL(/\/pricing#plan-website-growth$/);
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
 });
 
@@ -456,7 +456,7 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
   await page.route("**/api/public/plan-checkout", async (route) => {
     const payload = await route.request().postDataJSON();
     expect(payload.productSlug).toBe("website-growth");
-    expect(payload.market).toBe("INTL");
+    expect(payload.currency).toBe("USD");
     await json(route, {
       success: true,
       url: "/checkout/success?session_id=cs_e2e_public&public_order=1&preview_id=checkout_e2e_12345678&direct_checkout=1",
@@ -472,7 +472,7 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
     claimToken: "claim-token-e2e-abcdefghijklmnopqrstuvwxyz-1234567890",
   }));
 
-  await page.goto("/pricing?market=INTL", { waitUntil: "networkidle" });
+  await page.goto("/pricing", { waitUntil: "networkidle" });
   const plansSection = page.locator("#plans");
   await expect(plansSection).toBeVisible();
   const growthCard = plansSection.locator("article").filter({ hasText: "Website Growth" });
