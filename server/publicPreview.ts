@@ -99,6 +99,13 @@ const extractBusinessSchemaName = (objects: any[]) => {
   }
   for (const object of objects) {
     const types = Array.isArray(object?.["@type"]) ? object["@type"] : [object?.["@type"]];
+    const normalizedTypes = types.map((type: unknown) => String(type || "").toLowerCase());
+    if (normalizedTypes.some((type: string) => ["website", "webpage", "breadcrumblist", "listitem"].includes(type))) continue;
+    const value = typeof object?.name === "string" ? object.name.trim() : "";
+    if (value) return value;
+  }
+  for (const object of objects) {
+    const types = Array.isArray(object?.["@type"]) ? object["@type"] : [object?.["@type"]];
     if (!types.some((type: unknown) => String(type || "").toLowerCase() === "website")) continue;
     const value = typeof object?.name === "string" ? object.name.trim() : "";
     if (value) return value;
@@ -162,6 +169,12 @@ const extractLocation = (objects: any[]) => {
   return "";
 };
 
+const canonicalizeServiceLabel = (value: string) => {
+  const label = value.replace(/\s+/g, " ").trim();
+  if (/^managed websites?$/i.test(label)) return "Managed website services";
+  return label;
+};
+
 const extractServices = (html: string) => {
   const candidates: string[] = [];
 
@@ -184,7 +197,7 @@ const extractServices = (html: string) => {
     }
   }
 
-  return [...new Set(candidates.map((item) => item.replace(/\s+/g, " ").trim()))]
+  return [...new Set(candidates.map((item) => canonicalizeServiceLabel(item)))]
     .filter((item) => item.length >= 3 && !isGenericServiceLabel(item) && !isAudienceOrMarketingLabel(item))
     .slice(0, 8);
 };
@@ -241,8 +254,8 @@ export function buildPublicPreviewProfile(input: {
 
   const inferredPrimaryService = inferPrimaryService(title, description, h1);
   const services = [
-    ...(inferredPrimaryService ? [inferredPrimaryService] : []),
     ...extractServices(html),
+    ...(inferredPrimaryService ? [canonicalizeServiceLabel(inferredPrimaryService)] : []),
   ].filter((item, index, items) => items.findIndex((candidate) => candidate.toLowerCase() === item.toLowerCase()) === index);
   if (!services.length && input.fallbackMainService?.trim()) services.push(input.fallbackMainService.trim());
 
