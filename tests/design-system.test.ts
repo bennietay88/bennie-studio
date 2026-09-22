@@ -694,12 +694,117 @@ test("source-driven previews remove generic agency copy and fake booking widgets
   assert.doesNotMatch(serialized, /Evidence before claims|Responsive by design|Useful restraint|Action without pressure|Treatment Process|Surface Cleaning/);
   assert.doesNotMatch(serialized, /Available Times|Local business hours/);
 
+  assert.deepEqual(pages.map((page) => page.title), ["Home", "Treatments", "About", "Reviews", "Appointment"]);
+
   const appointmentPage = pages.find((page) => page.slug === "appointment");
   assert.ok(appointmentPage);
-  const visibleAppointmentSections = appointmentPage!.sections.filter((section) => section.type === "appointment" && section.isVisible !== false);
-  assert.equal(visibleAppointmentSections.length, 0);
+  const visibleAppointmentSections = appointmentPage!.sections.filter((section) => section.isVisible !== false);
+  assert.deepEqual(visibleAppointmentSections.map((section) => section.type), ["hero", "contact"]);
+  assert.equal(visibleAppointmentSections.find((section) => section.type === "contact")?.settings?.variant, "source_contact");
 
   const home = pages[0];
-  const visibleTypes = home.sections.filter((section) => section.isVisible !== false).map((section) => section.type);
-  assert.deepEqual(visibleTypes, ["hero", "services", "about", "testimonials", "contact", "cta"]);
+  const visibleSections = home.sections.filter((section) => section.isVisible !== false);
+  assert.deepEqual(visibleSections.map((section) => section.type), ["hero", "services", "about", "testimonials", "cta"]);
+  assert.equal(visibleSections.find((section) => section.type === "services")?.settings?.variant, "source_services");
+  assert.equal(visibleSections.find((section) => section.type === "about")?.settings?.variant, "source_about");
+  assert.equal(visibleSections.find((section) => section.type === "testimonials")?.settings?.variant, "editorial_quote");
+  assert.equal(visibleSections.find((section) => section.type === "cta")?.settings?.variant, "brand_band");
+});
+
+test("source-driven clinic previews use verified FAQ evidence instead of a filler reviews page", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Harbour Dental",
+    nicheId: "dental-clinic-v1",
+    nicheName: "Dental Clinic",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Family Dentistry",
+    targetCustomer: "patients",
+    location: "Kuala Lumpur",
+    ctaPreference: "Book Appointment",
+    generationMode: "brand_led",
+    sourceDriven: true,
+    services: ["Family Dentistry", "Teeth Whitening"],
+    aboutText: "Harbour Dental provides preventive and restorative care.",
+    testimonials: ["A calm and professional visit from start to finish."],
+    faqItems: [
+      { question: "Do you accept new patients?", answer: "Yes. Contact the clinic to arrange your first appointment." },
+      { question: "How do I book?", answer: "Use the appointment form or call the clinic." },
+    ],
+    heroHeadline: "Comfortable Dentistry for the Whole Family",
+    heroImageUrl: "https://example.test/hero.jpg",
+    preferredHeroVariant: "source_brand_hero",
+    compactSubpageHeroes: true,
+  });
+
+  assert.deepEqual(pages.map((page) => page.title), ["Home", "Treatments", "About", "Patient Info", "Appointment"]);
+  const patientInfo = pages.find((page) => page.slug === "patient-info");
+  assert.ok(patientInfo);
+  const faq = patientInfo!.sections.find((section) => section.type === "faq");
+  assert.ok(faq);
+  assert.equal(faq!.settings?.variant, "two_column");
+  assert.deepEqual(faq!.content.items, [
+    { question: "Do you accept new patients?", answer: "Yes. Contact the clinic to arrange your first appointment." },
+    { question: "How do I book?", answer: "Use the appointment form or call the clinic." },
+  ]);
+});
+
+test("source-driven preview QA blocks fake availability and internal design language", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Harbour Dental",
+    nicheId: "dental-clinic-v1",
+    nicheName: "Dental Clinic",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Dental care",
+    targetCustomer: "patients",
+    ctaPreference: "Book Appointment",
+    generationMode: "brand_led",
+    sourceDriven: true,
+    services: ["Dental care"],
+    heroHeadline: "Care designed around you",
+    preferredHeroVariant: "source_brand_hero",
+    compactSubpageHeroes: true,
+  });
+  pages[0].sections.push({
+    id: "bad-preview-copy",
+    type: "features",
+    isVisible: true,
+    content: { title: "Evidence before claims", description: "Available Times during Local business hours" },
+  } as any);
+
+  const result = assessWebsiteDesign({
+    id: "preview-quality",
+    businessId: "preview-quality",
+    theme: {
+      ...getBlueprintTheme("dental-clinic-v1", "brand_led"),
+      sourceDriven: true,
+      previewPurpose: "sales_preview",
+    },
+    pages,
+    seo: { title: "Harbour Dental", description: "Dental care", keywords: [] },
+    status: "draft",
+    updatedAt: Date.now(),
+  } as any);
+
+  assert.equal(result.checks.find((check) => check.key === "source_preview_language")?.pass, false);
+  assert.equal(result.checks.find((check) => check.key === "source_preview_availability")?.pass, false);
+  assert.equal(result.productionReady, false);
+});
+
+test("prospect preview chrome keeps the website visually primary and comparison-ready", async () => {
+  const [page, renderer] = await Promise.all([
+    import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/ProspectPreviewPage.tsx", import.meta.url), "utf8")),
+    import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/WebsiteRenderer.tsx", import.meta.url), "utf8")),
+  ]);
+
+  assert.match(page, /Website preview for/);
+  assert.match(page, /Original site/);
+  assert.match(page, /Open website only/);
+  assert.match(page, /Interactive preview/);
+  assert.match(page, /WebsiteRenderer initialData=\{preview\.website\}/);
+  assert.doesNotMatch(renderer, /Initialize Connection|Synthesis Successful|Strategic Initiative|Execution Strategy/);
+  assert.match(renderer, /source_services/);
+  assert.match(renderer, /source_about/);
+  assert.match(renderer, /source_contact/);
 });
