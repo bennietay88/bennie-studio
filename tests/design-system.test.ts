@@ -531,3 +531,10 @@ test("brand-led corporate preview theme resolves AA-safe foregrounds", () => {
   assert.ok(contrastRatio(colors.primaryInk, CONTRAST_TEST_LIGHT_SURFACE) >= WCAG_AA_NORMAL_TEXT_RATIO);
   assert.ok(contrastRatio(colors.primaryOnDark, CONTRAST_TEST_DARK_SURFACE) >= WCAG_AA_NORMAL_TEXT_RATIO);
 });
+
+
+test("generated renderer readability guard colors clear WCAG AA", () => {
+  assert.ok(contrastRatio("#64748b", "#f8fafc") >= WCAG_AA_NORMAL_TEXT_RATIO, "light-surface muted copy must clear AA");
+  assert.ok(contrastRatio("#475569", "#ffffff") >= WCAG_AA_NORMAL_TEXT_RATIO, "preview navigation copy must clear AA");
+  assert.ok(contrastRatio("#94a3b8", "#020617") >= WCAG_AA_NORMAL_TEXT_RATIO, "dark footer utility copy must clear AA");
+});
