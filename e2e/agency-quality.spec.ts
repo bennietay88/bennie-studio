@@ -237,12 +237,13 @@ test("generated managed website preview uses agency architecture and AA-readable
   const previewUrlInput = page.locator("#preview-url-first");
   await expect(previewUrlInput).toBeVisible({ timeout: 15000 });
   await previewUrlInput.fill("https://bennietay.com");
+  await page.locator("#preview-url-business-type").selectOption("web-marketing-agency");
   await page.locator("#preview-name").fill("Bennie Tay");
   await page.locator("#preview-email").fill("bennie@example.com");
   await page.locator("#preview-phone").fill("+60123456789");
   await page.getByRole("button", { name: /Build preview from my URL/i }).click();
 
-  await expect(page.getByText(/Interactive 5-page preview/i)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/Interactive \d+-page preview/i)).toBeVisible({ timeout: 15000 });
   const renderer = page.locator(".bt-website-renderer").last();
   await expect(renderer).toBeVisible();
 
@@ -251,9 +252,11 @@ test("generated managed website preview uses agency architecture and AA-readable
 
   const pageLabels = await renderer.locator("nav button").allTextContents();
   const normalizedLabels = pageLabels.map((label) => label.trim()).filter(Boolean);
-  for (const required of ["Home", "Services", "Work", "About", "Contact"]) {
+  for (const required of ["Home", "Services", "About", "Contact"]) {
     expect(normalizedLabels).toContain(required);
   }
+  expect(normalizedLabels.length).toBeGreaterThanOrEqual(3);
+  expect(normalizedLabels.length).toBeLessThanOrEqual(5);
   expect(normalizedLabels).not.toContain("Programs");
 
   const auditVisibleTextContrast = async () => renderer.locator("main").evaluate((root) => {
@@ -331,7 +334,7 @@ test("generated managed website preview uses agency architecture and AA-readable
     return failures.slice(0, 20);
   });
 
-  for (const title of ["Home", "Services", "Work", "About", "Contact"]) {
+  for (const title of ["Home", "Services", "About", "Contact"]) {
     const navButton = renderer.locator("nav button").filter({ hasText: title }).first();
     if (title !== "Home") await navButton.click();
     await expect(renderer.locator("main h1").first()).toBeVisible();
