@@ -293,7 +293,7 @@ const BASE_NICHE_TEMPLATES: Record<string, NicheTemplate> = {
         slug: "",
         sections: [
           createSection("hero", {
-            headline: "Managed Websites Built to Generate Enquiries",
+            headline: "Managed Websites. More Enquiries.",
             subheadline: "Strategy, build, hosting, lead capture, and ongoing website improvement in one managed service.",
             ctaText: "Book a Consultation",
           }),
