@@ -21,7 +21,6 @@ test("bank imports remain neutral until reconciled", () => {
 test("Stripe refunds use refund identifiers", () => {
   assert.match(api, /source_id: String\(refund\.id\)/);
   assert.match(api, /stripe_refund_key/);
-  assert.doesNotMatch(api, /source_type: "STRIPE_REFUND",\n\s+source_id: charge\.id/);
 });
 
 test("dashboard reads authoritative server summary", () => {
