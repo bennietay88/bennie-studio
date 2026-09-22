@@ -1612,8 +1612,8 @@ export function WebsiteRenderer({
         {/* Dynamic Styles */}
         <style>{`
         :root {
-          --primary: ${theme.primaryColor};
-          --secondary: ${theme.secondaryColor};
+          --primary: ${accessibleTheme.primarySurface};
+          --secondary: ${accessibleTheme.secondarySurface};
           --primary-foreground: ${accessibleTheme.primaryForeground};
           --secondary-foreground: ${accessibleTheme.secondaryForeground};
           --primary-ink: ${accessibleTheme.primaryInk};
@@ -2743,7 +2743,7 @@ export function WebsiteRenderer({
                           "relative overflow-hidden border-b",
                           brandHero ? "border-white/20" : "bg-[#f8f7f4] text-slate-950 border-slate-200",
                         )}
-                        style={brandHero ? { backgroundColor: theme.primaryColor, color: accessibleTheme.primaryForeground } : undefined}
+                        style={brandHero ? { backgroundColor: accessibleTheme.primarySurface, color: accessibleTheme.primaryForeground } : undefined}
                       >
                         <div className="mx-auto grid min-h-[72vh] max-w-[90rem] grid-cols-1 items-stretch lg:grid-cols-12">
                           <motion.div variants={fadeInUp} className="flex flex-col justify-center px-6 py-20 sm:px-10 lg:col-span-7 lg:px-16 lg:py-28">
@@ -3778,7 +3778,7 @@ export function WebsiteRenderer({
                 case "cta":
                   if (["brand_band", "consultation", "editorial", "full_bleed"].includes(section.settings?.variant || "")) {
                     return (
-                      <motion.section key={section.id || `cta-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true }} variants={staggerContainer} style={{ backgroundColor: theme.primaryColor, color: accessibleTheme.primaryForeground }}>
+                      <motion.section key={section.id || `cta-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true }} variants={staggerContainer} style={{ backgroundColor: accessibleTheme.primarySurface, color: accessibleTheme.primaryForeground }}>
                         <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:py-20 lg:grid-cols-12 lg:items-center">
                           <motion.div variants={fadeInUp} className="lg:col-span-8">
                             <p className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: accessibleTheme.primaryForeground }}>Next step</p>
