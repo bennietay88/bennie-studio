@@ -44,7 +44,7 @@ import { cn, formatDate } from "../lib/utils";
 
 export default function WordPressIntegration() {
   const { business } = useAuth();
-  const { platformSettings, isFeatureEnabled, isFeatureVisible } = useFeatures();
+  const { isFeatureEnabled, isFeatureVisible } = useFeatures();
   const [integrations, setIntegrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -281,12 +281,12 @@ export default function WordPressIntegration() {
     );
   }
 
-  // Global, plan, and tenant visibility checks. Superadmin controls tenant visibility
-  // from the business edit modal; hidden/admin-only businesses should not see setup.
+  // WordPress access is controlled by the customer's Bennie Studio plan plus
+  // the normal tenant-level dashboard visibility rules. There is no second
+  // Marketing Pro enable/disable switch.
   if (
     !isFeatureEnabled("wordpress_sync") ||
-    !isFeatureVisible("wordpress_sync") ||
-    platformSettings?.marketingFeatures?.wordpressIntegration === "disabled"
+    !isFeatureVisible("wordpress_sync")
   ) {
     return (
       <Card className="p-12 text-center max-w-2xl mx-auto rounded-[2.5rem] border-dashed border-2 border-slate-100">
@@ -295,7 +295,7 @@ export default function WordPressIntegration() {
         </div>
         <h2 className="text-3xl font-black uppercase tracking-tight text-slate-900 mb-4">WordPress Setup <span className="text-purple-600">Disabled</span></h2>
         <p className="text-slate-500 font-medium leading-relaxed mb-8">
-           WordPress setup is currently managed by the platform administrator or disabled for this account. Contact support if this customer needs a WordPress connection.
+           WordPress setup is not included in this account's current Bennie Studio plan. Contact the business administrator if this customer needs a WordPress connection.
         </p>
         <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => window.history.back()}>
            Go Back
