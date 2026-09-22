@@ -2781,6 +2781,8 @@ async function startServer() {
         websiteUrl: PUBLIC_URL_SCHEMA.optional().nullable(),
         businessName: z.string().trim().max(160).optional().nullable(),
         industry: z.string().trim().max(160).optional().nullable(),
+        businessTypeId: z.string().trim().max(160).optional().nullable(),
+        templateId: z.string().trim().max(160).optional().nullable(),
         location: z.string().trim().max(160).optional().nullable(),
         mainService: z.string().trim().max(300).optional().nullable(),
       }), req, res);
@@ -2796,7 +2798,7 @@ async function startServer() {
       if (leadError) return res.status(503).json({ error: "Preview verification is temporarily unavailable." });
       if (!lead || lead.preview_id !== body.previewId) return res.status(403).json({ error: "Preview verification failed." });
 
-      const PREVIEW_PROFILE_VERSION = 3;
+      const PREVIEW_PROFILE_VERSION = 4;
       const cached = lead.raw_fields?.previewProfile;
       const cachedVersion = Number(lead.raw_fields?.previewProfileVersion || 0);
       const cachedAt = Date.parse(String(lead.raw_fields?.previewProfileCapturedAt || ""));
@@ -2805,6 +2807,8 @@ async function startServer() {
         Boolean(cached)
         && cachedVersion === PREVIEW_PROFILE_VERSION
         && lead.raw_fields?.previewMode === body.mode
+        && String(lead.raw_fields?.businessTypeId || "") === String(body.businessTypeId || "")
+        && String(lead.raw_fields?.templateId || "") === String(body.templateId || "")
         && (
           body.mode !== "website"
           || (websiteCacheFresh && cached.sourceUrl === body.websiteUrl)
@@ -2845,6 +2849,9 @@ async function startServer() {
         const nextRawFields = {
           ...(lead.raw_fields || {}),
           previewMode: body.mode,
+          industry: body.industry || null,
+          businessTypeId: body.businessTypeId || null,
+          templateId: body.templateId || null,
           previewProfile: profile,
           previewProfileVersion: PREVIEW_PROFILE_VERSION,
           previewProfileCapturedAt: new Date().toISOString(),
@@ -2884,6 +2891,8 @@ async function startServer() {
         websiteUrl: PUBLIC_URL_SCHEMA.optional().nullable(),
         businessName: z.string().trim().max(160).optional().nullable(),
         industry: z.string().trim().max(160).optional().nullable(),
+        businessTypeId: z.string().trim().max(160).optional().nullable(),
+        templateId: z.string().trim().max(160).optional().nullable(),
         location: z.string().trim().max(160).optional().nullable(),
         mainService: z.string().trim().max(300).optional().nullable(),
       }), req, res);
@@ -2914,11 +2923,13 @@ async function startServer() {
         const rawFields = {
           businessName: profile.businessName || body.businessName || null,
           industry: body.industry || null,
+          businessTypeId: body.businessTypeId || null,
+          templateId: body.templateId || null,
           location: profile.location || body.location || null,
           mainService: body.mainService || profile.services?.[0] || null,
           previewMode: body.mode,
           previewProfile: profile,
-          previewProfileVersion: 3,
+          previewProfileVersion: 4,
           previewProfileCapturedAt: new Date().toISOString(),
           previewGenerationMethod: "deterministic",
           previewAiCostUsd: 0,
