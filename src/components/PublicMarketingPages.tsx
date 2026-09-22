@@ -1141,7 +1141,15 @@ const resolveSourceServices = (
   const generic = /^(?:treatment process|process|surface cleaning|services?|our services|about|patient info|practitioners?|appointment|contact|faq|home)$/i;
   const candidates = [...values, ...extraCandidates]
     .map((value) => cleanPreviewLabel(String(value || "")))
-    .filter((value) => value.length >= 3 && value.length <= 96 && !generic.test(value));
+    .filter((value) => {
+      const wordCount = value.split(/\s+/).filter(Boolean).length;
+      const sentenceLike = /[.!?]$/.test(value) || /\b(?:we|our|you|your|patients?|customers?|clients?)\b/i.test(value) && wordCount > 7;
+      return value.length >= 3
+        && value.length <= 72
+        && wordCount <= 8
+        && !sentenceLike
+        && !generic.test(value);
+    });
 
   const unique = candidates.filter((value, index, all) =>
     all.findIndex((candidate) => candidate.toLowerCase() === value.toLowerCase()) === index
