@@ -482,3 +482,52 @@ test("preview generation enforces concise hero copy and supports eight pages", (
   assert.ok(headline.length <= 58, `Hero exceeded 58 characters: ${headline}`);
   assert.ok(headline.split(/\s+/).filter(Boolean).length <= 7, `Hero exceeded 7 words: ${headline}`);
 });
+
+
+test("managed website agency previews use agency architecture instead of consultant programs", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Bennie Studio",
+    nicheId: "corporate-v1",
+    nicheName: "Web / Marketing Agency",
+    plan: "business",
+    maxPages: 8,
+    mainService: "Managed website services",
+    targetCustomer: "service businesses and growing teams",
+    location: "Kuala Lumpur",
+    ctaPreference: "Book a Consultation",
+    generationMode: "brand_led",
+    brandPersonality: "premium",
+    businessMaturity: "established",
+    assetReadiness: "some",
+  });
+
+  const titles = pages.map((page) => page.title);
+  assert.equal(pages.length, 8);
+  assert.ok(titles.includes("Services"));
+  assert.ok(titles.includes("Work"));
+  assert.ok(titles.includes("About"));
+  assert.ok(titles.includes("Process"));
+  assert.ok(titles.includes("Insights"));
+  assert.ok(titles.includes("FAQ"));
+  assert.equal(titles[titles.length - 1], "Contact");
+  assert.ok(!titles.includes("Programs"));
+
+  const home = pages[0];
+  const visibleTypes = home.sections.filter((section) => section.isVisible !== false).map((section) => section.type);
+  assert.ok(visibleTypes.includes("services"));
+  assert.ok(visibleTypes.includes("features"));
+  assert.ok(visibleTypes.includes("cta"));
+});
+
+test("brand-led corporate preview theme resolves AA-safe foregrounds", () => {
+  const theme = getBlueprintTheme("corporate-v1", "brand_led", {
+    brandPersonality: "premium",
+    businessMaturity: "established",
+    assetReadiness: "some",
+  });
+  const colors = resolveAccessibleThemeColors(theme.primaryColor, theme.secondaryColor);
+  assert.ok(contrastRatio(colors.primaryForeground, colors.primary) >= WCAG_AA_NORMAL_TEXT_RATIO);
+  assert.ok(contrastRatio(colors.secondaryForeground, colors.secondary) >= WCAG_AA_NORMAL_TEXT_RATIO);
+  assert.ok(contrastRatio(colors.primaryInk, CONTRAST_TEST_LIGHT_SURFACE) >= WCAG_AA_NORMAL_TEXT_RATIO);
+  assert.ok(contrastRatio(colors.primaryOnDark, CONTRAST_TEST_DARK_SURFACE) >= WCAG_AA_NORMAL_TEXT_RATIO);
+});
