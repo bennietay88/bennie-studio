@@ -873,7 +873,7 @@ function CaseStudiesPage() {
   );
 }
 
-const PREVIEW_GENERATION_VERSION = 12;
+const PREVIEW_GENERATION_VERSION = 13;
 
 const previewIndustries = [
   {
