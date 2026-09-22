@@ -129,9 +129,6 @@ export interface Business {
   trackingScriptsHeader?: string;
   trackingScriptsFooter?: string;
   aiModelConfig?: Record<string, string>;
-  marketingStatus?: "none" | "trialing" | "active" | "expired";
-  marketingTrialEndsAt?: number;
-  marketingPlan?: "none" | "active";
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
   stripeSecretKey?: string;
