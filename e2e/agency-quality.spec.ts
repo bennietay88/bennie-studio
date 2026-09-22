@@ -233,8 +233,10 @@ test("generated managed website preview uses agency architecture and AA-readable
     }),
   }));
 
-  await page.goto("/generate-preview", { waitUntil: "networkidle" });
-  await page.locator("#preview-url-first").fill("https://bennietay.com");
+  await page.goto("/generate-preview", { waitUntil: "domcontentloaded" });
+  const previewUrlInput = page.locator("#preview-url-first");
+  await expect(previewUrlInput).toBeVisible({ timeout: 15000 });
+  await previewUrlInput.fill("https://bennietay.com");
   await page.locator("#preview-name").fill("Bennie Tay");
   await page.locator("#preview-email").fill("bennie@example.com");
   await page.locator("#preview-phone").fill("+60123456789");
