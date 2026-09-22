@@ -4119,7 +4119,7 @@ export function WebsiteRenderer({
                         <div className="mx-auto max-w-7xl px-6">
                           <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-start">
                             <div className="lg:col-span-4">
-                              <p className="text-[10px] font-black uppercase tracking-[0.26em] text-white/55">Customer feedback</p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-300">Customer feedback</p>
                               <h2 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-white sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
                                 {section.content.title || "What customers say"}
                               </h2>
@@ -4132,7 +4132,7 @@ export function WebsiteRenderer({
                               {(featured.name || featured.role) ? (
                                 <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                                   <span className="font-semibold text-white">{featured.name || "Customer review"}</span>
-                                  {featured.role ? <span className="text-white/45">{featured.role}</span> : null}
+                                  {featured.role ? <span className="text-slate-400">{featured.role}</span> : null}
                                 </div>
                               ) : null}
                             </motion.article>
@@ -4144,7 +4144,7 @@ export function WebsiteRenderer({
                                 <motion.article key={item.id || itemIndex} variants={fadeInUp} className="bg-slate-950 p-6 sm:p-8">
                                   <p className="text-base font-medium leading-7 text-white/80">“{item.text}”</p>
                                   {(item.name || item.role) ? (
-                                    <p className="mt-5 text-xs font-semibold text-white/55">{item.name || "Customer review"}{item.role ? ` · ${item.role}` : ""}</p>
+                                    <p className="mt-5 text-xs font-semibold text-slate-300">{item.name || "Customer review"}{item.role ? ` · ${item.role}` : ""}</p>
                                   ) : null}
                                 </motion.article>
                               ))}
