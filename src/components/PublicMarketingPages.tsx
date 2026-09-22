@@ -2206,9 +2206,27 @@ function GeneratePreviewPage() {
       {generating ? (
         <section className="border-y border-[#dfe2ea] bg-white">
           <div className="brand-shell py-12">
-            <p className="brand-kicker">Building your website direction</p>
-            <div className="mt-6 grid gap-4 md:grid-cols-4">
-              {["Understanding the business","Selecting the layout family","Structuring the buyer journey","Preparing the preview"].map((step,index)=>(
+            <p className="brand-kicker">Building the redesign</p>
+            <h2 className="mt-3 max-w-3xl text-2xl font-semibold tracking-[-0.025em] text-[#141821] sm:text-3xl">
+              {previewMode === "website"
+                ? "Keeping the useful parts of the current site and rebuilding the weak ones."
+                : "Turning the business brief into a focused website direction."}
+            </h2>
+            <div className="mt-7 grid gap-4 md:grid-cols-4">
+              {(previewMode === "website"
+                ? [
+                    "Reading the current website",
+                    "Preserving useful brand assets",
+                    `Applying the ${businessTypeLabel} structure`,
+                    "Checking the enquiry path",
+                  ]
+                : [
+                    "Understanding the business",
+                    `Applying the ${businessTypeLabel} structure`,
+                    "Building the buyer journey",
+                    "Checking the enquiry path",
+                  ]
+              ).map((step,index)=>(
                 <div key={step} className="border-t border-[#dfe2ea] pt-4">
                   <span className="text-sm font-semibold text-[#5746e8]">0{index+1}</span>
                   <p className="mt-2 font-semibold">{step}</p>
@@ -2360,10 +2378,17 @@ function GeneratePreviewPage() {
             <div className="grid overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50 lg:grid-cols-12">
               <div className="p-6 sm:p-8 lg:col-span-5">
                 <p className="brand-kicker">What you will see</p>
-                <h2 className="mt-4">A website direction, not a generic template screenshot.</h2>
-                <p className="brand-copy mt-4">The preview uses your service, location, business family and enquiry goal to choose the page structure and design direction.</p>
+                <h2 className="mt-4">A prospect-ready redesign, not a template with your logo pasted on it.</h2>
+                <p className="brand-copy mt-4">
+                  {previewMode === "website"
+                    ? "Your URL supplies the useful brand, content and proof. Your selected business type supplies the right page architecture. The preview combines both without inventing claims or fake functionality."
+                    : "Your selected business type supplies the page architecture, while your business brief drives the offer, content hierarchy and enquiry path."}
+                </p>
                 <div className="mt-6 space-y-3">
-                  {["Page structure around the buyer journey","Desktop and mobile preview","Recommended next plan based on your goal"].map((item) => (
+                  {(previewMode === "website"
+                    ? ["Current brand and real business content retained where useful","Business-type-specific page structure","Desktop, tablet and mobile preview with a clear enquiry path"]
+                    : ["Business-type-specific page structure","Desktop, tablet and mobile preview","Clear primary enquiry path"]
+                  ).map((item) => (
                     <div key={item} className="flex items-start gap-3 text-sm font-semibold text-slate-700">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" /> {item}
                     </div>
