@@ -39,3 +39,24 @@ export function claimWebhookInMemory(
   }
   return { claimed: true, status: "processing" as const, attempt_count: (record.attempt_count || 0) + 1, reason: "claimed" };
 }
+
+
+export const HANDOVER_GRACE_DAYS = 14;
+
+export function handoverGraceUntil(effectiveAt: string | Date, days = HANDOVER_GRACE_DAYS) {
+  const start = effectiveAt instanceof Date ? new Date(effectiveAt.getTime()) : new Date(effectiveAt);
+  if (Number.isNaN(start.getTime())) throw new Error("INVALID_HANDOVER_EFFECTIVE_DATE");
+  start.setUTCDate(start.getUTCDate() + days);
+  return start.toISOString();
+}
+
+export function isHandoverGraceActive(graceUntil: string | null | undefined, now = new Date()) {
+  if (!graceUntil) return false;
+  const expiresAt = new Date(graceUntil).getTime();
+  return Number.isFinite(expiresAt) && expiresAt > now.getTime();
+}
+
+export function subscriptionAllowsPermanentDeletion(status: string | null | undefined) {
+  const normalized = String(status || "").toLowerCase();
+  return !["active", "trialing", "past_due", "unpaid"].includes(normalized);
+}
