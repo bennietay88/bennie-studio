@@ -3177,6 +3177,9 @@ async function startServer() {
           preview: {
             previewId,
             businessName: String(raw.previewProfile?.businessName || raw.businessName || lead.name || "Your business").slice(0, 160),
+            businessType: String(raw.industry || raw.businessTypeId || "").slice(0, 160),
+            sourceUrl: String(raw.previewProfile?.sourceUrl || raw.websiteUrl || "").slice(0, 500),
+            websiteOnlyUrl: `${publicAppUrl()}/w/${lead.business_id}`,
             headline: String(summary.headline || "").slice(0, 220),
             opportunitySummary: String(summary.opportunitySummary || "").slice(0, 700),
             proposedStructure: Array.isArray(summary.proposedStructure) ? summary.proposedStructure.slice(0, 5) : [],
