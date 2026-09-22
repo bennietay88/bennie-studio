@@ -355,6 +355,24 @@ export function WebsiteRenderer({
 
     if (action.actionType === "section_anchor" || action.actionType === "contact_form") {
       const target = (action.target || "#contact").replace("#", "");
+      const targetElement = document.getElementById(target);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: "smooth" });
+        return;
+      }
+
+      if (action.actionType === "contact_form") {
+        const contactPage = pages.find((page) =>
+          (page.sections || []).some((section) => section.isVisible !== false && section.type === "contact")
+        );
+        if (contactPage && contactPage.slug !== activePageSlug) {
+          setActivePageSlug(contactPage.slug);
+          setSelectedPost(null);
+          window.setTimeout(() => scrollToSection(target), 80);
+          return;
+        }
+      }
+
       scrollToSection(target);
       return;
     }
