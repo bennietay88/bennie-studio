@@ -538,3 +538,19 @@ test("generated renderer readability guard colors clear WCAG AA", () => {
   assert.ok(contrastRatio("#475569", "#ffffff") >= WCAG_AA_NORMAL_TEXT_RATIO, "preview navigation copy must clear AA");
   assert.ok(contrastRatio("#94a3b8", "#020617") >= WCAG_AA_NORMAL_TEXT_RATIO, "dark footer utility copy must clear AA");
 });
+
+
+test("public preview chrome avoids known low-contrast text tokens", async () => {
+  const [previewPages, landing, chrome, renderer] = await Promise.all([
+    import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/PublicMarketingPages.tsx", import.meta.url), "utf8")),
+    import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/BrandLedLandingPage.tsx", import.meta.url), "utf8")),
+    import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/PublicSiteChrome.tsx", import.meta.url), "utf8")),
+    import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/WebsiteRenderer.tsx", import.meta.url), "utf8")),
+  ]);
+
+  assert.doesNotMatch(previewPages, /#8b93a0|#7b8491/i);
+  assert.doesNotMatch(landing, /text-white\/(?:35|40|48)/);
+  assert.doesNotMatch(chrome, /text-slate-400 xl:block/);
+  assert.match(renderer, /color: brandHero \? accessibleTheme\.primaryForeground/);
+  assert.match(renderer, /footer \.text-slate-500/);
+});
