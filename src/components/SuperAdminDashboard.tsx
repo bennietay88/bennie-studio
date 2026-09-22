@@ -150,11 +150,9 @@ import {
 } from "../constants/adminModules";
 import { ADMIN_TAB_PERMISSIONS, DEFAULT_PLATFORM_STAFF_PERMISSIONS } from "../constants/staffPermissions";
 import SeoAdmin from "../modules/seo/components/SeoAdmin";
-import {
-  MARKETING_PRO_PLATFORM_CONTROLS,
-  normalizeMarketingFeatures,
-  type MarketingFeatureStatus,
-} from "../constants/marketingPro";
+import { BlogCMS } from "./BlogCMS";
+import { AdminLocalSeo } from "./SuperAdmin/AdminLocalSeo";
+import { MarketingPlanEntitlements } from "./SuperAdmin/MarketingPlanEntitlements";
 
 const CUSTOMER_DASHBOARD_FEATURES = [
   { id: "ai_synthesis", label: "Website Generator" },
@@ -228,11 +226,12 @@ export default function SuperAdminDashboard() {
     if (last === "projects") return "projects";
     if (last === "launch_audit") return "daily_operations";
     if (last === "client_onboarding") return "client_onboarding";
-    if (last === "operations") return "daily_operations";
-    if (last === "growth_operations") return "daily_operations";
+    if (last === "operations") return "operations_control";
+    if (last === "operations_control") return "operations_control";
+    if (last === "growth_operations") return "growth_operations";
     if (last === "custom-applications") return "projects";
     if (last === "seo_management") return "seo_management";
-    if (last === "local_seo") return "seo_management";
+    if (last === "local_seo") return "local_seo";
     if (last === "templates") return "templates";
     if (last === "plans") return "plans";
     if (last === "compliance_market") return "plans";
@@ -242,10 +241,10 @@ export default function SuperAdminDashboard() {
     if (last === "traffic") return "traffic";
     if (last === "support") return "support";
     if (last === "update_requests") return "update_requests";
-    if (last === "blog") return "templates";
+    if (last === "blog") return "blog";
     if (last === "policies") return "policies";
     if (last === "revenue_command") return "revenue_command";
-    if (last === "ecosystem_architect") return "status";
+    if (last === "ecosystem_architect") return "ecosystem_architect";
     
     return last || "overview";
   };
@@ -329,7 +328,6 @@ export default function SuperAdminDashboard() {
     metaPixelId: "",
     trackingScriptsHeader: "",
     trackingScriptsFooter: "",
-    marketingFeatures: normalizeMarketingFeatures(null),
     adminModules: DEFAULT_ADMIN_MODULE_VISIBILITY,
   });
   const [savingSettings, setSavingSettings] = useState(false);
@@ -880,7 +878,11 @@ export default function SuperAdminDashboard() {
             .order("created_at", { ascending: false }),
           supabase.from("profiles").select("*").eq("role", "affiliate").order("created_at", { ascending: false }),
           supabase.from("projects").select("*"),
-          supabase.from("settings").select("content").eq("id", "marketing_hub_config").maybeSingle(),
+          supabase
+            .from("plans")
+            .select("*")
+            .eq("is_active", true)
+            .order("sort_order", { ascending: true }),
         ]);
 
         const readSettled = <T,>(index: number, label: string, fallback: T): T => {
@@ -901,7 +903,7 @@ export default function SuperAdminDashboard() {
         const allPayoutsRes = readSettled<any>(8, "affiliate payouts", { data: [] });
         const partnersRes = readSettled<any>(9, "affiliate partners", { data: [] });
         const projectsRes = readSettled<any>(10, "projects", { data: [] });
-        const marketingConfigRes = readSettled<any>(11, "marketing configuration", { data: null });
+        const planTableRes = readSettled<any>(11, "plan table", { data: [] });
 
         if (bizRes.data) setBusinesses(bizRes.data);
         if (userRes.data) setUsers(userRes.data);
@@ -911,17 +913,40 @@ export default function SuperAdminDashboard() {
           setPlatformSettings((prev) => ({
             ...prev,
             ...settingsRes.data.content,
-            marketingFeatures: normalizeMarketingFeatures(
-              marketingConfigRes.data?.content?.marketingFeatures ||
-                settingsRes.data.content?.marketingFeatures,
-            ),
             adminModules: {
               ...DEFAULT_ADMIN_MODULE_VISIBILITY,
               ...(settingsRes.data.content?.adminModules || {}),
             },
           }));
         }
-        if (Array.isArray(plansRes.data?.content?.pricing) && plansRes.data.content.pricing.length > 0) {
+        if (Array.isArray(planTableRes.data) && planTableRes.data.length > 0) {
+          setAvailablePlans(
+            normalizePlans(
+              planTableRes.data.map((plan: any) => ({
+                id: String(plan.slug || plan.id || "").trim().toLowerCase(),
+                name: plan.name,
+                description: plan.description || "",
+                price: `${Number(plan.price_usd || 0).toFixed(0)}`,
+                priceId: plan.stripe_price_id || "",
+                productId: plan.stripe_product_id || "",
+                features: Array.isArray(plan.features) ? plan.features : [],
+                enabled_features: Array.isArray(plan.enabled_features) ? plan.enabled_features : [],
+                aiCredits: Number(plan.monthly_credit_limit || 0),
+                maxPages: Number(plan.project_limit || 1),
+                maxLocationPages: Number(plan.location_page_limit || 0),
+                monthlyUpdates: plan.monthly_update_allowance || "Monthly update support",
+                monthlyUpdateLimit: Number(plan.monthly_update_limit || 0),
+                commitmentMonths: Number(plan.commitment_months || 0),
+                setupFee: Number(plan.setup_fee || 0),
+                marketPrices: plan.market_prices || {},
+                marketPriceIds: plan.market_price_ids || {},
+                upgradePrompt: plan.upgrade_prompt || "Upgrade to unlock more managed growth tools.",
+                isPopular: Boolean(plan.is_popular),
+                isActive: plan.is_active !== false,
+              })),
+            ),
+          );
+        } else if (Array.isArray(plansRes.data?.content?.pricing) && plansRes.data.content.pricing.length > 0) {
           setAvailablePlans(normalizePlans(plansRes.data.content.pricing));
         }
         if (affiliateProgsRes.data)
@@ -991,29 +1016,15 @@ export default function SuperAdminDashboard() {
         updated_at: new Date().toISOString(),
       });
 
-      // 2. Save public marketing config to a separate record accessible by all businesses
-      const marketingPromise = supabase.from("settings").upsert({
-        id: "marketing_hub_config",
-        content: {
-          marketingFeatures: platformSettings.marketingFeatures,
-        },
-        updated_at: new Date().toISOString(),
-      });
-
-      const [platformRes, marketingRes] = await Promise.all([
-        platformPromise,
-        marketingPromise,
-      ]);
-
+      const platformRes = await platformPromise;
       if (platformRes.error) throw platformRes.error;
-      if (marketingRes.error) throw marketingRes.error;
 
       await recordAdminAction("settings.platform_updated", {
         type: "settings",
         id: "platform",
         label: "Platform Settings",
       });
-      toast.success("Platform settings and marketing configuration updated");
+      toast.success("Platform settings updated");
     } catch (error) {
       console.error("Update failed:", error);
       toast.error("Failed to update settings");
@@ -1364,8 +1375,10 @@ export default function SuperAdminDashboard() {
       {activeTab === "finance" && <FinanceDashboard />}
 
       {activeTab === "sales_home" && <SalesHome />}
+      {activeTab === "growth_operations" && <SalesHome />}
 
       {activeTab === "daily_operations" && <DailyOperations />}
+      {activeTab === "operations_control" && <DailyOperations />}
 
       {activeTab === "inbound_leads" && <AdminLeadInbox />}
       {activeTab === "prospect_explorer" && <ProspectExplorer />}
@@ -1375,6 +1388,8 @@ export default function SuperAdminDashboard() {
       {activeTab === "projects" && <Projects />}
       {activeTab === "client_onboarding" && <ClientOnboarding />}
       {activeTab === "seo_management" && <SeoAdmin />}
+      {activeTab === "local_seo" && <AdminLocalSeo />}
+      {activeTab === "blog" && <BlogCMS isPlatform />}
       
       {(activeTab === "businesses" || activeTab === "admin") && editingWebsiteBusinessId && (
         <div className="space-y-6">
@@ -1796,62 +1811,7 @@ export default function SuperAdminDashboard() {
                       </div>
                    </Card>
 
-                   <Card className="rounded-[2rem] p-8">
-                      <div className="flex flex-col gap-3 border-b border-slate-100 pb-6 md:flex-row md:items-start md:justify-between">
-                         <div>
-                            <h3 className="font-black italic uppercase tracking-tight text-slate-900">Marketing Pro Controls</h3>
-                            <p className="mt-1 max-w-2xl text-xs font-medium leading-5 text-slate-500">
-                              Global operational switches. Customer access still requires the matching Bennie Studio plan entitlement; these controls never create a separate subscription.
-                            </p>
-                         </div>
-                         <Badge className="w-fit border-0 bg-violet-50 text-violet-700">
-                           {MARKETING_PRO_PLATFORM_CONTROLS.filter((capability) => platformSettings.marketingFeatures?.[capability.id] === "enabled").length} enabled
-                         </Badge>
-                      </div>
-
-                      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-                        {MARKETING_PRO_PLATFORM_CONTROLS.map((capability) => {
-                          const status = (platformSettings.marketingFeatures?.[capability.id] || "disabled") as MarketingFeatureStatus;
-                          return (
-                            <div key={capability.id} className="flex items-start gap-4 rounded-2xl border border-slate-200 p-5">
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="text-sm font-bold text-slate-900">{capability.title}</p>
-                                  <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
-                                    {status.replace("_", " ")}
-                                  </Badge>
-                                </div>
-                                <p className="mt-1 text-xs leading-5 text-slate-500">{capability.description}</p>
-                                <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                  Plan entitlement: {String(capability.entitlementFeatureId).replace(/_/g, " ")}
-                                </p>
-                              </div>
-                              <Select
-                                value={status}
-                                onValueChange={(value: MarketingFeatureStatus) =>
-                                  setPlatformSettings({
-                                    ...platformSettings,
-                                    marketingFeatures: {
-                                      ...normalizeMarketingFeatures(platformSettings.marketingFeatures),
-                                      [capability.id]: value,
-                                    },
-                                  })
-                                }
-                              >
-                                <SelectTrigger className="w-36 rounded-xl">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="enabled">Enabled</SelectItem>
-                                  <SelectItem value="disabled">Disabled</SelectItem>
-                                  <SelectItem value="coming_soon">Coming soon</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          );
-                        })}
-                      </div>
-                   </Card>
+                   <MarketingPlanEntitlements />
 
                 </div>
                 )}
@@ -2250,7 +2210,7 @@ export default function SuperAdminDashboard() {
           {activeTab === "update_requests" && <MonthlyUpdateQueue />}
 
           {/* Catch-all for tabs that might not have specialized rendering yet or are in development */}
-          {!['overview', 'revenue_command', 'sales_home', 'daily_operations', 'inbound_leads', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'proposals_deals', 'projects', 'client_onboarding', 'seo_management', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'templates', 'plans', 'status', 'traffic', 'settings', 'support', 'update_requests', 'policies', 'admin'].includes(activeTab) && (
+          {!['overview', 'revenue_command', 'sales_home', 'growth_operations', 'daily_operations', 'operations_control', 'inbound_leads', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'proposals_deals', 'projects', 'client_onboarding', 'seo_management', 'local_seo', 'blog', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'templates', 'plans', 'status', 'ecosystem_architect', 'traffic', 'settings', 'support', 'update_requests', 'policies', 'admin'].includes(activeTab) && (
             <div className="h-full flex items-center justify-center p-12">
                <Card className="p-24 flex flex-col items-center justify-center text-center rounded-[3rem] border-slate-100 bg-slate-50/50 max-w-2xl">
                   <div className="h-20 w-20 rounded-[2rem] bg-white shadow-xl shadow-slate-200 flex items-center justify-center text-indigo-600 mb-6">
