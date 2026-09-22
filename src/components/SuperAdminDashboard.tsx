@@ -29,6 +29,7 @@ import {
   Save,
   CreditCard,
   Shield,
+  ShieldCheck,
   FileText,
   Gift,
   Award,
