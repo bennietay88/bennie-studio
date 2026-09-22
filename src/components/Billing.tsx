@@ -470,8 +470,9 @@ export const Billing = () => {
                     <Button
                       variant="outline"
                       className="w-full h-10 text-xs font-bold border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                      onClick={() => navigate("/dashboard/support")}
                     >
-                      Manage Subscription
+                      Contact Support
                     </Button>
                   </div>
                 ) : business?.marketingStatus === "trialing" ? (
@@ -494,12 +495,11 @@ export const Billing = () => {
                       </p>
                     </div>
                     <Button
-                      className="w-full h-10 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100"
-                      onClick={() =>
-                        toast.info("Checkout for Marketing Hub coming soon!")
-                      }
+                      variant="outline"
+                      className="w-full h-10 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50"
+                      onClick={() => navigate("/dashboard/support")}
                     >
-                      Upgrade to Marketing Pro
+                      Ask About Legacy Access
                     </Button>
                   </div>
                 ) : (
