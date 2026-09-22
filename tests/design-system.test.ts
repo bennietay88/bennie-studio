@@ -580,3 +580,31 @@ test("managed website agency template exists without fabricated proof", () => {
   const serialized = JSON.stringify(template?.pages || []);
   assert.doesNotMatch(serialized, /99\.99%|1M\+|50,000\+|Maya Chen|Daniel Wong|Aisha Rahman/i);
 });
+
+
+test("managed website agency preview keeps the right 5 to 8 page architecture", () => {
+  for (const count of [5, 6, 7, 8]) {
+    const pages = buildPagesFromBlueprint({
+      businessName: "Bennie Studio",
+      nicheId: "managed-website-agency-v1",
+      nicheName: "Web / Marketing Agency",
+      plan: "business",
+      maxPages: count,
+      mainService: "Managed website services",
+      targetCustomer: "service businesses and growing teams",
+      location: "Kuala Lumpur",
+      ctaPreference: "Book a Consultation",
+      generationMode: "brand_led",
+      brandPersonality: "premium",
+      businessMaturity: "established",
+      assetReadiness: "some",
+    });
+    const titles = pages.map((page) => page.title);
+    assert.equal(pages.length, count);
+    assert.equal(titles[0], "Home");
+    assert.equal(titles[titles.length - 1], "Contact");
+    assert.ok(titles.includes("Services"));
+    assert.ok(titles.includes("Work"));
+    assert.ok(!titles.includes("Programs"));
+  }
+});
