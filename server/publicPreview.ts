@@ -238,7 +238,7 @@ const normalizePhone = (value: string) =>
 const isGenericServiceLabel = (value: string) =>
   /^(home|about|about us|contact|contact us|blog|news|gallery|reviews?|testimonials?|faq|privacy|terms|login|sign in|book now|get started|learn more|read more)$/i.test(value.trim());
 
-const serviceSignal = /\b(service|repair|install|installation|maintenance|servicing|cleaning|plumb|heating|boiler|gas|electrical|roof|renovation|dental|dentist|clinic|treatment|accounting|bookkeeping|tax|payroll|consult|therapy|tuition|training|marketing|design|development|website|web design|web development|seo|lead generation|hosting|legal|law|insurance|recruit|pest|landlord|commercial|residential|emergency|cylinder|flushing)\b/i;
+const serviceSignal = /\b(service|repair|install|installation|maintenance|servicing|cleaning|plumb|heating|boiler|gas|electrical|roof|renovation|dental|dentist|clinic|treatment|whitening|implant|implants|veneer|veneers|orthodontics|braces|root canal|crown|crowns|filling|fillings|extraction|extractions|scaling|polishing|physiotherapy|rehabilitation|chiropractic|aesthetic|facial|laser|massage|salon|hair|nail|accounting|bookkeeping|tax|payroll|consult|therapy|tuition|training|marketing|design|development|website|web design|web development|seo|lead generation|hosting|legal|law|insurance|recruit|pest|termite|rodent|landlord|commercial|residential|emergency|cylinder|flushing|catering|photography|florist)\b/i;
 
 const isAudienceOrMarketingLabel = (value: string) => {
   const label = value.trim();
