@@ -120,18 +120,50 @@ export const ensureTextContrast = (
   return pickReadableTextColor(normalizedBackground, minimumRatio);
 };
 
+const resolveBrandSurface = (color: string, fallback: string) => {
+  const normalized = normalizeHex(color, fallback);
+  const luminance = relativeLuminance(normalized);
+
+  // Visually dark brand fills should read as dark surfaces, even when pure
+  // black technically has a higher WCAG ratio on a mid-tone colour. Preserve
+  // the hue, darken only as much as necessary, and use white type.
+  if (luminance <= 0.32) {
+    if (contrastRatio(LIGHT_TEXT, normalized) >= AA_NORMAL_TEXT) {
+      return { surface: normalized, foreground: LIGHT_TEXT };
+    }
+
+    for (let step = 1; step <= 100; step += 1) {
+      const candidate = mixHexColors(normalized, BLACK_TEXT, step / 100);
+      if (contrastRatio(LIGHT_TEXT, candidate) >= AA_NORMAL_TEXT) {
+        return { surface: candidate, foreground: LIGHT_TEXT };
+      }
+    }
+
+    return { surface: DARK_SURFACE, foreground: LIGHT_TEXT };
+  }
+
+  return {
+    surface: normalized,
+    foreground: pickReadableTextColor(normalized),
+  };
+};
+
 export const resolveAccessibleThemeColors = (
   primaryColor?: string,
   secondaryColor?: string,
 ) => {
   const primary = normalizeHex(primaryColor, DEFAULT_PRIMARY);
   const secondary = normalizeHex(secondaryColor, DEFAULT_SECONDARY);
+  const primarySurface = resolveBrandSurface(primary, DEFAULT_PRIMARY);
+  const secondarySurface = resolveBrandSurface(secondary, DEFAULT_SECONDARY);
 
   return {
     primary,
     secondary,
-    primaryForeground: pickReadableTextColor(primary),
-    secondaryForeground: pickReadableTextColor(secondary),
+    primarySurface: primarySurface.surface,
+    secondarySurface: secondarySurface.surface,
+    primaryForeground: primarySurface.foreground,
+    secondaryForeground: secondarySurface.foreground,
     primaryInk: ensureTextContrast(primary, LIGHT_SURFACE),
     secondaryInk: ensureTextContrast(secondary, LIGHT_SURFACE),
     primaryOnDark: ensureTextContrast(primary, DARK_SURFACE),
