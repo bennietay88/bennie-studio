@@ -49,6 +49,7 @@ test("sales API rejects unauthorized callers and malformed privileged actions", 
     ["POST", "/api/admin/sales-preview-intake"], ["POST", "/api/admin/sales-preview-site"],
     ["POST", "/api/admin/sales-automation/enroll"], ["POST", "/api/admin/sales-automation/run"],
     ["POST", `/api/admin/sales-automation/messages/${id}/approve`], ["PATCH", `/api/admin/sales-automation/bookings/${id}`],
+    ["DELETE", `/api/admin/businesses/${id}`],
   ];
   try {
     for (let attempt = 0; ; attempt++) {
@@ -64,7 +65,7 @@ test("sales API rejects unauthorized callers and malformed privileged actions", 
     }
     assert.equal((await fetch(`${base}/api/cron/sales-automation`)).status, 401);
     role = "super_admin";
-    for (const [method, route] of paths.filter(([, route]) => !route.endsWith("/run"))) {
+    for (const [method, route] of paths.filter(([, route]) => !route.endsWith("/run") && !route.startsWith("/api/admin/businesses/"))) {
       const response = await fetch(base + route, { method, headers: { "Content-Type": "application/json", Authorization: "Bearer fixture-admin" }, body: JSON.stringify({ csv: 'name,email\nExample,invalid', bodyText: "" }) });
       assert.equal(response.status, 400, `Invalid action: ${route}`);
     }
