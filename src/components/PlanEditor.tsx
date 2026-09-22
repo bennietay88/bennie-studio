@@ -94,7 +94,7 @@ const PlanEditor = () => {
         { id: "ai_chatbot", label: "Sales AI Copilot (Chatbot)" },
         { id: "ecommerce", label: "E-commerce Storefront" },
         { id: "affiliate_system", label: "Affiliate & Partner Ecosystem" },
-        { id: "local_seo_geo", label: "Global Geo-Pricing" },
+        { id: "local_seo_geo", label: "Local SEO & Location Pages" },
         { id: "priority_support", label: "Priority Human Support" },
       ]
     }
