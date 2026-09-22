@@ -179,7 +179,13 @@ export function useFeatures() {
   const isFeatureEnabled = (featureId: FeatureId): boolean => {
     if (profile?.role === "super_admin") return true;
 
-    if (!business || !planSettings.length) return false;
+    if (!business) return false;
+
+    if (featureId === "blog") {
+      return ["business_admin", "staff", "client"].includes(String(profile?.role || ""));
+    }
+
+    if (!planSettings.length) return false;
 
     const currentPlan = planSettings.find((plan) => plan.id === business.plan);
     if (!currentPlan) return false;
@@ -190,7 +196,8 @@ export function useFeatures() {
   const isMarketingCapabilityEnabled = (capabilityId: MarketingCapabilityId): boolean => {
     const capability = getMarketingCapability(capabilityId);
     if (!capability) return false;
-    return isFeatureEnabled(capability.entitlementFeatureId as FeatureId);
+    const featureId = capability.entitlementFeatureId as FeatureId;
+    return isFeatureEnabled(featureId) && isFeatureVisible(featureId);
   };
 
   const getMarketingCapabilityStatus = (capabilityId: MarketingCapabilityId): "enabled" | "disabled" =>

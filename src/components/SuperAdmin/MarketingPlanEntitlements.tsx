@@ -63,7 +63,7 @@ export function MarketingPlanEntitlements() {
             Marketing Pro plan entitlements
           </h3>
           <p className="mt-1 max-w-3xl text-xs font-medium leading-5 text-slate-500">
-            Marketing Pro has no separate enable/disable layer. A capability is enabled for a customer only when their Bennie Studio plan includes the matching feature entitlement.
+            Most Marketing Pro capabilities follow the customer's Bennie Studio plan. Blog CMS is the exception: Super Admin controls it per customer account from the Business dashboard.
           </p>
         </div>
         <Button
@@ -74,6 +74,16 @@ export function MarketingPlanEntitlements() {
           Manage Plans & Pricing
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
+      </div>
+
+      <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-black text-slate-950">Blog CMS</p>
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">
+            Available to business admins, staff, and client accounts when Super Admin enables Blog CMS for that business.
+          </p>
+        </div>
+        <Badge className="w-fit border-0 bg-indigo-600 text-white">Managed per customer</Badge>
       </div>
 
       {loading ? (

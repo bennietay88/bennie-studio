@@ -232,6 +232,7 @@ export function Sidebar({
           { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
           { to: "/dashboard/leads", icon: Users, label: "Leads", featureId: "lead_crm" },
           { to: "/dashboard/appointments", icon: CalendarIcon, label: "Appointments", featureId: "booking" },
+          { to: "/dashboard/blog", icon: FileText, label: "Blog CMS", featureId: "blog" },
           { to: "/dashboard/update-requests", icon: FileText, label: "Update Requests" },
           { to: "/dashboard/support", icon: Headphones, label: "Support" },
         ]},
@@ -251,6 +252,7 @@ export function Sidebar({
           { to: "/dashboard/appointments", icon: CalendarIcon, label: "Appointments", featureId: "booking" },
         ]},
         { label: "Growth", items: [
+          { to: "/dashboard/blog", icon: FileText, label: "Blog CMS", featureId: "blog" },
           { to: "/dashboard/marketing-hub", icon: Megaphone, label: "Marketing Pro" },
         ]},
         { label: "Service", items: [

@@ -26,7 +26,7 @@ export function FeatureGate({
   fallback,
   marketingCapabilityId,
 }: FeatureGateProps) {
-  const { isFeatureEnabled, isMarketingCapabilityEnabled, loading } = useFeatures();
+  const { isFeatureEnabled, isFeatureVisible, isMarketingCapabilityEnabled, loading } = useFeatures();
   const { profile } = useAuth();
   const navigate = useNavigate();
 
@@ -37,9 +37,10 @@ export function FeatureGate({
   }
 
   const featureAllowed = isFeatureEnabled(featureId);
+  const featureVisible = isFeatureVisible(featureId);
   const marketingAllowed = !marketingCapabilityId || isMarketingCapabilityEnabled(marketingCapabilityId);
 
-  if (featureAllowed && marketingAllowed) {
+  if (featureAllowed && featureVisible && marketingAllowed) {
     return <>{children}</>;
   }
 

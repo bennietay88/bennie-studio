@@ -22,6 +22,7 @@ export interface MarketingCapabilityDefinition {
     | "lead_crm"
     | "blog";
   route?: string;
+  accessModel?: "plan" | "business";
 }
 
 export const MARKETING_PRO_CAPABILITIES: MarketingCapabilityDefinition[] = [
@@ -65,11 +66,12 @@ export const MARKETING_PRO_CAPABILITIES: MarketingCapabilityDefinition[] = [
     description: "Draft, edit and publish website articles, including AI-assisted first drafts where the plan includes content tools.",
     entitlementFeatureId: "blog",
     route: "/dashboard/blog",
+    accessModel: "business",
   },
 ];
 
 export const MARKETING_PRO_PLAN_CONTROLS = [
-  ...MARKETING_PRO_CAPABILITIES,
+  ...MARKETING_PRO_CAPABILITIES.filter((capability) => capability.accessModel !== "business"),
   {
     id: "wordpressIntegration" as const,
     title: "WordPress Integration",

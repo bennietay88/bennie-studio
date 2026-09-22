@@ -741,7 +741,7 @@ export default function App() {
                             <Route
                               path="blog"
                               element={
-                                <ProtectedRoute allowedRoles={["business_admin", "staff"]}>
+                                <ProtectedRoute allowedRoles={["business_admin", "staff", "client"]}>
                                   <FeatureGate featureId="blog" marketingCapabilityId="blog">
                                     <BlogCMS />
                                   </FeatureGate>

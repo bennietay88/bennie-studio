@@ -163,6 +163,7 @@ const CUSTOMER_DASHBOARD_FEATURES = [
   { id: "lead_crm", label: "Leads & CRM" },
   { id: "booking", label: "Booking Calendar" },
   { id: "review_management", label: "Reviews & Reputation" },
+  { id: "blog", label: "Blog CMS" },
   { id: "industry_content", label: "Listings & Content" },
   { id: "analytics", label: "Business Insights" },
   { id: "whatsapp_enquiry_kit", label: "WhatsApp Enquiry Kit" },
