@@ -13,6 +13,12 @@ export type PublicPreviewProfile = {
   guarantees: string[];
   primaryCta: string;
   heroImage: string;
+  secondaryImage: string;
+  logoUrl: string;
+  brandColor: string;
+  accentColor: string;
+  heroHeadline: string;
+  heroSubheadline: string;
   sourceTitle: string;
   aiUsed: false;
   estimatedAiCostUsd: 0;
@@ -51,6 +57,108 @@ const absoluteUrl = (value: string, baseUrl: string) => {
   } catch {
     return "";
   }
+};
+
+
+const normalizeCssColor = (value: string) => {
+  const raw = String(value || "").trim().toLowerCase();
+  const short = /^#([0-9a-f]{3})$/i.exec(raw);
+  if (short) return "#" + short[1].split("").map((char) => char + char).join("");
+  const full = /^#([0-9a-f]{6})$/i.exec(raw);
+  if (full) return "#" + full[1].toLowerCase();
+  const rgb = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i.exec(raw);
+  if (rgb) {
+    const channels = rgb.slice(1, 4).map((part) => Math.max(0, Math.min(255, Number(part))));
+    return "#" + channels.map((channel) => channel.toString(16).padStart(2, "0")).join("");
+  }
+  return "";
+};
+
+const isUsefulBrandColor = (value: string) => {
+  const color = normalizeCssColor(value);
+  if (!color) return false;
+  return !["#ffffff", "#000000", "#f8fafc", "#f9fafb", "#f5f5f5", "#eeeeee"].includes(color);
+};
+
+const extractBrandColors = (html: string) => {
+  const candidates: string[] = [];
+  const metaPatterns = [
+    /<meta[^>]+name=["']theme-color["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']theme-color["']/i,
+    /<meta[^>]+name=["']msapplication-TileColor["'][^>]+content=["']([^"']+)["']/i,
+  ];
+  for (const pattern of metaPatterns) {
+    const match = pattern.exec(html);
+    if (match?.[1]) candidates.push(match[1]);
+  }
+
+  for (const match of html.matchAll(/--(?:primary|brand|accent|theme|color-primary|color-brand)[\w-]*\s*:\s*(#[0-9a-f]{3,8}|rgba?\([^;)]+\))/gi)) {
+    candidates.push(match[1]);
+  }
+
+  for (const match of html.matchAll(/(?:background-color|color)\s*:\s*(#[0-9a-f]{3,8}|rgba?\([^;)]+\))/gi)) {
+    candidates.push(match[1]);
+    if (candidates.length >= 16) break;
+  }
+
+  const normalized = [...new Set(candidates.map(normalizeCssColor).filter(isUsefulBrandColor))];
+  return {
+    brandColor: normalized[0] || "",
+    accentColor: normalized.find((color) => color !== normalized[0]) || "",
+  };
+};
+
+const extractSchemaAsset = (objects: any[], key: "logo" | "image") => {
+  for (const object of objects) {
+    const asset = object?.[key];
+    if (typeof asset === "string" && asset.trim()) return asset.trim();
+    if (Array.isArray(asset)) {
+      const first = asset.find((item) => typeof item === "string" || (item && typeof item?.url === "string"));
+      if (typeof first === "string") return first.trim();
+      if (first && typeof first?.url === "string") return first.url.trim();
+    }
+    if (asset && typeof asset === "object" && typeof asset.url === "string") return asset.url.trim();
+  }
+  return "";
+};
+
+const extractLogoUrl = (objects: any[], html: string, baseUrl: string) => {
+  const schemaLogo = extractSchemaAsset(objects, "logo");
+  if (schemaLogo) return absoluteUrl(schemaLogo, baseUrl);
+
+  for (const match of html.matchAll(/<img\b([^>]+)>/gi)) {
+    const attrs = String(match[1] || "");
+    if (!/(?:class|id|alt)=["'][^"']*logo[^"']*["']/i.test(attrs)) continue;
+    const src = /\bsrc=["']([^"']+)["']/i.exec(attrs)?.[1] || "";
+    const resolved = absoluteUrl(src, baseUrl);
+    if (resolved) return resolved;
+  }
+  return "";
+};
+
+const extractImageCandidates = (html: string, baseUrl: string) => {
+  const results: string[] = [];
+  for (const match of html.matchAll(/<img\b([^>]+)>/gi)) {
+    const attrs = String(match[1] || "");
+    if (/(?:logo|icon|avatar|badge|sprite|favicon)/i.test(attrs)) continue;
+    const src = /\b(?:src|data-src|data-lazy-src)=["']([^"']+)["']/i.exec(attrs)?.[1] || "";
+    if (!src || /^data:/i.test(src)) continue;
+    const resolved = absoluteUrl(src, baseUrl);
+    if (!resolved) continue;
+    results.push(resolved);
+    if (results.length >= 12) break;
+  }
+  return [...new Set(results)];
+};
+
+const extractHeroSubheadline = (html: string, description: string) => {
+  const h1Match = /<h1\b[^>]*>[\s\S]*?<\/h1>/i.exec(html);
+  if (h1Match?.index !== undefined) {
+    const after = html.slice(h1Match.index + h1Match[0].length, h1Match.index + h1Match[0].length + 2400);
+    const paragraph = firstMatch(after, [/<p\b[^>]*>([\s\S]*?)<\/p>/i]);
+    if (paragraph && paragraph.length >= 20 && paragraph.length <= 260) return paragraph;
+  }
+  return description;
 };
 
 const cleanBusinessName = (value: string) =>
@@ -363,22 +471,20 @@ export function buildPublicPreviewProfile(input: {
   const guarantees = extractGuarantees(html);
   const primaryCta = extractPrimaryCta(html);
 
-  const schemaImageRaw = (() => {
-    for (const object of schemaObjects) {
-      const image = object?.image;
-      if (typeof image === "string") return image;
-      if (Array.isArray(image) && typeof image[0] === "string") return image[0];
-      if (image && typeof image === "object" && typeof image.url === "string") return image.url;
-    }
-    return "";
-  })();
+  const schemaImageRaw = extractSchemaAsset(schemaObjects, "image");
 
   const ogImage = firstMatch(html, [
     /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
     /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
   ]);
-  const firstImage = /<img\b[^>]+src=["']([^"']+)["']/i.exec(html)?.[1] || "";
+  const imageCandidates = extractImageCandidates(html, finalUrl);
+  const firstImage = imageCandidates[0] || "";
   const heroImage = absoluteUrl(schemaImageRaw || ogImage || firstImage, finalUrl);
+  const secondaryImage = imageCandidates.find((image) => image !== heroImage) || "";
+  const logoUrl = extractLogoUrl(schemaObjects, html, finalUrl);
+  const { brandColor, accentColor } = extractBrandColors(html);
+  const heroHeadline = h1.slice(0, 120);
+  const heroSubheadline = extractHeroSubheadline(html, description).slice(0, 320);
 
   return {
     sourceUrl: finalUrl,
@@ -395,6 +501,12 @@ export function buildPublicPreviewProfile(input: {
     guarantees,
     primaryCta,
     heroImage,
+    secondaryImage,
+    logoUrl,
+    brandColor,
+    accentColor,
+    heroHeadline,
+    heroSubheadline,
     sourceTitle: title.slice(0, 220),
     aiUsed: false,
     estimatedAiCostUsd: 0,
