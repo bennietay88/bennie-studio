@@ -69,11 +69,11 @@ test("all catalogue templates resolve to WCAG AA text contrast", () => {
     );
 
     assert.ok(
-      contrastRatio(colors.primaryForeground, colors.primary) >= WCAG_AA_NORMAL_TEXT_RATIO,
+      contrastRatio(colors.primaryForeground, colors.primarySurface) >= WCAG_AA_NORMAL_TEXT_RATIO,
       `${template.id}: primary fill foreground fails AA`,
     );
     assert.ok(
-      contrastRatio(colors.secondaryForeground, colors.secondary) >= WCAG_AA_NORMAL_TEXT_RATIO,
+      contrastRatio(colors.secondaryForeground, colors.secondarySurface) >= WCAG_AA_NORMAL_TEXT_RATIO,
       `${template.id}: secondary fill foreground fails AA`,
     );
     assert.ok(
