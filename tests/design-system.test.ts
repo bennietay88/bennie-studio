@@ -833,3 +833,35 @@ test("source-driven previews do not invent pages when source evidence is sparse"
   assert.equal(pages.some((page) => page.title === "Reviews"), false);
   assert.equal(pages.some((page) => page.title === "Patient Info"), false);
 });
+
+
+test("source-driven services use source descriptions without inventing filler", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Harbour Dental",
+    nicheId: "dental-clinic-v1",
+    nicheName: "Dental Clinic",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Teeth Whitening",
+    targetCustomer: "patients",
+    ctaPreference: "Book Appointment",
+    generationMode: "brand_led",
+    sourceDriven: true,
+    services: ["Teeth Whitening", "Dental Implants"],
+    serviceDetails: [
+      { title: "Teeth Whitening", description: "Professional whitening options are explained after an assessment." },
+      { title: "Dental Implants", description: "Implant consultations cover suitability and treatment stages." },
+    ],
+    heroHeadline: "Comfortable dentistry",
+    preferredHeroVariant: "source_brand_hero",
+    compactSubpageHeroes: true,
+  });
+
+  const homeServices = pages[0].sections.find((section) => section.type === "services");
+  assert.ok(homeServices);
+  assert.deepEqual(homeServices!.content.items, [
+    { title: "Teeth Whitening", description: "Professional whitening options are explained after an assessment.", imageUrl: undefined },
+    { title: "Dental Implants", description: "Implant consultations cover suitability and treatment stages.", imageUrl: undefined },
+  ]);
+  assert.doesNotMatch(JSON.stringify(homeServices), /designed for patients|your customers|your area/i);
+});
