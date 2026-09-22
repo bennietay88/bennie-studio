@@ -34,6 +34,8 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
     headline.length <= 72 && headline.split(/\s+/).filter(Boolean).length <= 9
   );
   const generationMode = website.theme?.generationMode || "fast";
+  const sourceDriven = website.theme?.sourceDriven === true;
+  const previewPurpose = website.theme?.previewPurpose;
   const hasPlaceholder = /lorem ipsum|your business name|replace this|sample text|coming soon|example\.com/i.test(text);
   const hasPlaceholderMedia = /brand-template-preview\.svg/i.test(text) && generationMode !== "fast";
   const hasSeo = Boolean(website.seo?.title?.trim() && website.seo?.description?.trim());
@@ -52,14 +54,28 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
   const cardHeavyVariants = variants.filter((variant) => ["cards", "review_grid", "icon_grid"].includes(String(variant))).length;
   const cardHeavyRatio = variants.length ? cardHeavyVariants / variants.length : 0;
   const customerAssetSlots = sections.filter((section) => section.content?.assetSlots || section.content?.imageSlot).length;
-  const premiumAssetPlan = generationMode === "fast" || customerAssetSlots >= Math.min(2, Math.max(1, sections.length));
+  const premiumAssetPlan = sourceDriven || generationMode === "fast" || customerAssetSlots >= Math.min(2, Math.max(1, sections.length));
   const homeSections = pages[0]?.sections?.filter((section) => section.isVisible !== false) || [];
-  const compositionDepth = homeSections.length >= (generationMode === "brand_led" ? 7 : generationMode === "premium" ? 6 : 4);
+  const compositionDepth = sourceDriven
+    ? homeSections.length >= 3 && homeSections.length <= 7
+    : homeSections.length >= (generationMode === "brand_led" ? 7 : generationMode === "premium" ? 6 : 4);
+  const sourceForbiddenLanguage = /evidence before claims|useful restraint|action without pressure|responsive by design|execution strategy|strategic initiative|initialize connection|synthesis successful/i.test(text);
+  const fakeAvailability = sourceDriven && /available times|local business hours/i.test(text);
+  const contactSectionCount = sections.filter((section) => section.type === "contact").length;
+  const sourceContactDiscipline = !sourceDriven || contactSectionCount <= 1;
+  const sourceHeroVariant = pages[0]?.sections?.find((section) => section.type === "hero")?.settings?.variant;
+  const sourceHeroReady = !sourceDriven || sourceHeroVariant === "source_brand_hero";
+  const sourcePageCountReady = !sourceDriven || (pages.length >= 3 && pages.length <= 5);
 
   const checks: DesignQaCheck[] = [
     { key: "hero", label: "Clear hero", pass: hasHero, severity: "high", note: hasHero ? "Hero section is present." : "Add a clear primary hero." },
     { key: "headline", label: "Readable headline", pass: hasHeadline, severity: "high", note: hasHeadline ? "A meaningful headline is present." : "Add a specific, customer-facing headline." },
     { key: "headline_length", label: "Concise hero headline", pass: conciseHeroHeadlines, severity: "high", note: conciseHeroHeadlines ? "Hero headlines stay within readable responsive limits." : "Shorten hero headlines before publishing; generated hero copy should fit the layout without excessive wrapping." },
+    { key: "source_preview_language", label: "Prospect-facing language", pass: !sourceDriven || !sourceForbiddenLanguage, severity: "high", note: sourceForbiddenLanguage ? "Internal design-system or agency language leaked into the prospect preview." : "No internal design-system language is exposed." },
+    { key: "source_preview_availability", label: "No fake availability", pass: !fakeAvailability, severity: "high", note: fakeAvailability ? "A generated preview must not imply live appointment availability without an integration." : "No unsupported live availability is shown." },
+    { key: "source_preview_contact", label: "Contact form discipline", pass: sourceContactDiscipline, severity: "high", note: sourceContactDiscipline ? "Contact capture is concentrated on the conversion page." : "Too many contact forms are repeated across the preview." },
+    { key: "source_preview_hero", label: "Source-aware hero", pass: sourceHeroReady, severity: "high", note: sourceHeroReady ? "URL-based previews use the source-aware hero." : "Use the source-aware hero for URL-based redesign previews." },
+    { key: "source_preview_pages", label: "Evidence-led page count", pass: sourcePageCountReady, severity: "medium", note: sourcePageCountReady ? "The source preview uses a focused three-to-five page architecture." : "Do not force empty pages into a source-driven prospect preview." },
     { key: "cta", label: "Conversion path", pass: hasCta, severity: "high", note: hasCta ? "A conversion section is present." : "Add contact, booking, or CTA path." },
     { key: "proof", label: "Proof", pass: hasProof, severity: "medium", note: hasProof ? "Trust/proof section is present." : "Add verified proof or a factual trust section." },
     { key: "proof_integrity", label: "Proof integrity", pass: !hasPlaceholderProof, severity: "high", note: hasPlaceholderProof ? "Placeholder client/testimonial labels detected. Replace with verified proof or remove the testimonial block." : "No placeholder client proof detected." },
@@ -97,8 +113,16 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
     (hasPlaceholderMedia ? 20 : 0)
   ));
   const metrics = { visualVariety, hierarchy, proofQuality, conversionClarity, aiTemplateRisk };
-  const threshold = generationMode === "brand_led" ? 86 : generationMode === "premium" ? 83 : 80;
-  const productionReady = score >= threshold && highFailures === 0 && aiTemplateRisk <= (generationMode === "brand_led" ? 35 : 45);
+  const threshold = previewPurpose
+    ? (sourceDriven ? 88 : 85)
+    : generationMode === "brand_led"
+      ? 86
+      : generationMode === "premium"
+        ? 83
+        : 80;
+  const productionReady = score >= threshold
+    && highFailures === 0
+    && aiTemplateRisk <= (sourceDriven ? 30 : generationMode === "brand_led" ? 35 : 45);
   return { score, productionReady, checks, metrics };
 }
 
