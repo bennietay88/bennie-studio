@@ -150,6 +150,11 @@ import {
 } from "../constants/adminModules";
 import { ADMIN_TAB_PERMISSIONS, DEFAULT_PLATFORM_STAFF_PERMISSIONS } from "../constants/staffPermissions";
 import SeoAdmin from "../modules/seo/components/SeoAdmin";
+import {
+  MARKETING_PRO_PLATFORM_CONTROLS,
+  normalizeMarketingFeatures,
+  type MarketingFeatureStatus,
+} from "../constants/marketingPro";
 
 const CUSTOMER_DASHBOARD_FEATURES = [
   { id: "ai_synthesis", label: "Website Generator" },
@@ -324,11 +329,7 @@ export default function SuperAdminDashboard() {
     metaPixelId: "",
     trackingScriptsHeader: "",
     trackingScriptsFooter: "",
-    marketingFeatures: {
-      seoAudit: "coming_soon" as "enabled" | "disabled" | "coming_soon",
-      adGenerator: "coming_soon" as "enabled" | "disabled" | "coming_soon",
-      wordpressIntegration: "disabled" as "enabled" | "disabled" | "coming_soon",
-    },
+    marketingFeatures: normalizeMarketingFeatures(null),
     adminModules: DEFAULT_ADMIN_MODULE_VISIBILITY,
   });
   const [savingSettings, setSavingSettings] = useState(false);
@@ -879,6 +880,7 @@ export default function SuperAdminDashboard() {
             .order("created_at", { ascending: false }),
           supabase.from("profiles").select("*").eq("role", "affiliate").order("created_at", { ascending: false }),
           supabase.from("projects").select("*"),
+          supabase.from("settings").select("content").eq("id", "marketing_hub_config").maybeSingle(),
         ]);
 
         const readSettled = <T,>(index: number, label: string, fallback: T): T => {
@@ -899,6 +901,7 @@ export default function SuperAdminDashboard() {
         const allPayoutsRes = readSettled<any>(8, "affiliate payouts", { data: [] });
         const partnersRes = readSettled<any>(9, "affiliate partners", { data: [] });
         const projectsRes = readSettled<any>(10, "projects", { data: [] });
+        const marketingConfigRes = readSettled<any>(11, "marketing configuration", { data: null });
 
         if (bizRes.data) setBusinesses(bizRes.data);
         if (userRes.data) setUsers(userRes.data);
@@ -908,10 +911,10 @@ export default function SuperAdminDashboard() {
           setPlatformSettings((prev) => ({
             ...prev,
             ...settingsRes.data.content,
-            marketingFeatures: {
-              ...prev.marketingFeatures,
-              ...(settingsRes.data.content?.marketingFeatures || {}),
-            },
+            marketingFeatures: normalizeMarketingFeatures(
+              marketingConfigRes.data?.content?.marketingFeatures ||
+                settingsRes.data.content?.marketingFeatures,
+            ),
             adminModules: {
               ...DEFAULT_ADMIN_MODULE_VISIBILITY,
               ...(settingsRes.data.content?.adminModules || {}),
@@ -1790,6 +1793,63 @@ export default function SuperAdminDashboard() {
                             </div>
                           </div>
                         ))}
+                      </div>
+                   </Card>
+
+                   <Card className="rounded-[2rem] p-8">
+                      <div className="flex flex-col gap-3 border-b border-slate-100 pb-6 md:flex-row md:items-start md:justify-between">
+                         <div>
+                            <h3 className="font-black italic uppercase tracking-tight text-slate-900">Marketing Pro Controls</h3>
+                            <p className="mt-1 max-w-2xl text-xs font-medium leading-5 text-slate-500">
+                              Global operational switches. Customer access still requires the matching Bennie Studio plan entitlement; these controls never create a separate subscription.
+                            </p>
+                         </div>
+                         <Badge className="w-fit border-0 bg-violet-50 text-violet-700">
+                           {MARKETING_PRO_PLATFORM_CONTROLS.filter((capability) => platformSettings.marketingFeatures?.[capability.id] === "enabled").length} enabled
+                         </Badge>
+                      </div>
+
+                      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                        {MARKETING_PRO_PLATFORM_CONTROLS.map((capability) => {
+                          const status = (platformSettings.marketingFeatures?.[capability.id] || "disabled") as MarketingFeatureStatus;
+                          return (
+                            <div key={capability.id} className="flex items-start gap-4 rounded-2xl border border-slate-200 p-5">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-sm font-bold text-slate-900">{capability.title}</p>
+                                  <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                                    {status.replace("_", " ")}
+                                  </Badge>
+                                </div>
+                                <p className="mt-1 text-xs leading-5 text-slate-500">{capability.description}</p>
+                                <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                  Plan entitlement: {String(capability.entitlementFeatureId).replace(/_/g, " ")}
+                                </p>
+                              </div>
+                              <Select
+                                value={status}
+                                onValueChange={(value: MarketingFeatureStatus) =>
+                                  setPlatformSettings({
+                                    ...platformSettings,
+                                    marketingFeatures: {
+                                      ...normalizeMarketingFeatures(platformSettings.marketingFeatures),
+                                      [capability.id]: value,
+                                    },
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="w-36 rounded-xl">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="enabled">Enabled</SelectItem>
+                                  <SelectItem value="disabled">Disabled</SelectItem>
+                                  <SelectItem value="coming_soon">Coming soon</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          );
+                        })}
                       </div>
                    </Card>
 
