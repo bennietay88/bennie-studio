@@ -537,7 +537,7 @@ test("shows and accepts a public proposal without exposing checkout secrets", as
   await expect(page.getByRole("heading", { name: "Proposal accepted" })).toBeVisible();
 });
 
-test("prospect sales preview presents one plan-aware CTA and responsive device controls", async ({ page }) => {
+test("prospect sales preview presents consistent plan-aware CTAs and responsive device controls", async ({ page }) => {
   await mockSupabaseAndStripe(page);
   const previewId = "preview_sales_e2e_12345678";
   const consoleErrors: string[] = [];
@@ -587,9 +587,10 @@ test("prospect sales preview presents one plan-aware CTA and responsive device c
   await page.goto(`/preview/prospect/${previewId}`);
   await expect(page.getByRole("heading", { name: /Example Plumbing, presented with a clearer website direction/i })).toBeVisible();
   await expect(page.getByText("Website Growth", { exact: true })).toBeVisible();
-  const primaryCta = page.getByRole("link", { name: "Review plan & continue" });
-  await expect(primaryCta).toHaveCount(1);
-  await expect(primaryCta).toHaveAttribute("href", /\/pricing\?product=website-growth/);
+  const primaryCtas = page.getByRole("link", { name: "Launch this website" });
+  expect(await primaryCtas.count()).toBeGreaterThanOrEqual(2);
+  const primaryHrefs = await primaryCtas.evaluateAll((links) => links.map((link) => link.getAttribute("href") || ""));
+  expect(primaryHrefs.every((href) => /\/pricing\?product=website-growth/.test(href))).toBe(true);
 
   await page.getByRole("button", { name: "Mobile" }).click();
   await expect(page.getByRole("button", { name: "Mobile" })).toHaveAttribute("aria-pressed", "true");
