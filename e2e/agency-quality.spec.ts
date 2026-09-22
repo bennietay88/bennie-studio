@@ -7,6 +7,7 @@ const publicRoutes = [
   "/templates",
   "/generate-preview",
   "/preview/template/dental-clinic-v1",
+  "/preview/template/managed-website-agency-v1",
   "/portfolio/sample/dental",
 ];
 
