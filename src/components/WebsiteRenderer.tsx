@@ -2779,10 +2779,16 @@ export function WebsiteRenderer({
                                 referrerPolicy="no-referrer"
                               />
                             ) : (
-                              <div className={cn("absolute inset-6 flex flex-col justify-end border p-8 sm:inset-10", brandHero ? "border-white/25 bg-white/[0.04]" : "border-slate-200 bg-slate-50")}>
-                                <div className={cn("mb-auto h-16 w-16 border", brandHero ? "border-white/30" : "border-primary/30")} />
-                                <p className={cn("text-[10px] font-black uppercase tracking-[0.28em]", brandHero ? "text-current" : "text-slate-500")}>Customer media slot</p>
-                                <p className={cn("mt-3 max-w-sm text-xl font-semibold leading-7", brandHero ? "text-current" : "text-slate-900")}>Add real photography, product UI, projects or brand artwork here.</p>
+                              <div className={cn("absolute inset-6 overflow-hidden border p-8 sm:inset-10", brandHero ? "border-white/25 bg-white/[0.04]" : "border-slate-200 bg-slate-50")}>
+                                <div className={cn("absolute -right-16 -top-16 h-56 w-56 rounded-full blur-3xl", brandHero ? "bg-white/10" : "bg-primary/10")} aria-hidden="true" />
+                                <div className={cn("absolute bottom-8 right-8 h-28 w-28 rounded-full border", brandHero ? "border-white/20" : "border-primary/20")} aria-hidden="true" />
+                                <div className="relative flex h-full flex-col justify-between">
+                                  <div className={cn("h-px w-14", brandHero ? "bg-white/60" : "bg-primary")} />
+                                  <div>
+                                    <p className={cn("text-xs font-bold uppercase tracking-[0.18em]", brandHero ? "text-current" : "text-slate-600")}>{displayBusinessDescriptor}</p>
+                                    <p className={cn("mt-3 max-w-sm text-2xl font-semibold leading-tight", brandHero ? "text-current" : "text-slate-950")} style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{displayBusinessName}</p>
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </motion.div>
@@ -2899,8 +2905,8 @@ export function WebsiteRenderer({
                                 <div className="absolute -bottom-24 -left-10 h-80 w-80 rounded-full border border-primary/40" />
                                 <div className="relative h-12 w-12 border border-white/25" />
                                 <div className="relative">
-                                  <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/50">Customer media slot</p>
-                                  <p className="mt-3 max-w-xs text-2xl font-semibold leading-tight">Real business photography or product media goes here.</p>
+                                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">{displayBusinessDescriptor}</p>
+                                  <p className="mt-3 max-w-xs text-2xl font-semibold leading-tight text-white" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{displayBusinessName}</p>
                                 </div>
                               </div>
                             )}
@@ -2949,10 +2955,11 @@ export function WebsiteRenderer({
                                       <img src={item.imageUrl} alt={item.imageAlt || item.title || "Service"} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                                     </div>
                                   ) : (
-                                    <div className="flex h-full min-h-[16rem] items-end border border-slate-200 bg-[#f8f7f4] p-7">
-                                      <div>
-                                        <p className="text-[9px] font-black uppercase tracking-[0.28em] text-slate-400">Optional customer media</p>
-                                        <button onClick={() => trackInteraction("service_click", item.title || "Service", { target: section.id || "services" })} className="mt-4 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-950">
+                                    <div className="relative flex h-full min-h-[16rem] overflow-hidden border border-slate-200 bg-[#f8f7f4] p-7">
+                                      <div className="absolute -right-14 -top-14 h-44 w-44 rounded-full bg-primary/10 blur-3xl" aria-hidden="true" />
+                                      <div className="relative flex w-full flex-col justify-between">
+                                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-600">Capability {String(itemIndex + 1).padStart(2, "0")}</p>
+                                        <button onClick={() => trackInteraction("service_click", item.title || "Service", { target: section.id || "services" })} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-950">
                                           Explore capability <ArrowRight className="h-4 w-4 text-primary" />
                                         </button>
                                       </div>
