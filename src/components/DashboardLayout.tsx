@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Sidebar } from "./Sidebar";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { UserRole } from "../types";
@@ -53,6 +54,7 @@ export function DashboardLayout({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     let timeoutId: number;
@@ -414,7 +416,18 @@ export function DashboardLayout({
           <main className={cn("flex-1 overflow-x-hidden overflow-y-auto p-3 pb-24 transition-colors duration-300 sm:p-10 sm:pb-10", isAdminRole && "bg-slate-50/70 dark:bg-slate-950/40")}>
             <div className="mx-auto min-w-0 max-w-7xl">
               <Breadcrumbs />
-              {children}
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={location.pathname}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={prefersReducedMotion ? undefined : { opacity: 0, y: -4 }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                  className="min-w-0"
+                >
+                  {children}
+                </motion.div>
+              </AnimatePresence>
             </div>
           </main>
         </div>
