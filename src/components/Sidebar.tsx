@@ -139,6 +139,7 @@ export function Sidebar({
           label: "Sales & Leads",
           items: [
             { to: "/admin", icon: LayoutDashboard, label: "Sales Command Center", className: "tour-dashboard" },
+            { to: "/admin/growth_operations", icon: Rocket, label: "Growth Operations", moduleId: "growth_operations" },
             { to: "/admin/daily_operations", icon: CalendarIcon, label: "Daily Operations" },
             { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox" },
             { to: "/admin/prospect_explorer", icon: Users, label: "Prospects", moduleId: "prospects" },
@@ -152,6 +153,7 @@ export function Sidebar({
           items: [
             { to: "/admin/businesses", icon: Globe, label: "Active Sites", className: "tour-businesses" },
             { to: "/admin/users", icon: Users, label: "Users & Access" },
+            { to: "/admin/operations_control", icon: BriefcaseBusiness, label: "Operations Control", moduleId: "operations_control" },
             { to: "/admin/projects", icon: Briefcase, label: "Service Projects", moduleId: "service_projects" },
             { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover", moduleId: "client_handover" },
             { to: "/admin/seo_management", icon: Search, label: "SEO Operations", moduleId: "seo_management" },
@@ -163,6 +165,8 @@ export function Sidebar({
           label: "Content & CMS",
           items: [
             { to: "/admin/templates", icon: Layout, label: "Website Templates", moduleId: "website_templates" },
+            { to: "/admin/blog", icon: FileText, label: "Blog CMS", moduleId: "blog_cms" },
+            { to: "/admin/local_seo", icon: MapPin, label: "Local SEO", moduleId: "local_seo" },
             { to: "/admin/policies", icon: FileText, label: "Policies CMS", moduleId: "policies_cms" },
           ]
         },
@@ -171,6 +175,7 @@ export function Sidebar({
           items: [
             { to: "/admin/plans", icon: CreditCard, label: "Plans & Pricing", moduleId: "plans_pricing" },
             { to: "/admin/revenue", icon: CreditCard, label: "Revenue", moduleId: "revenue" },
+            { to: "/admin/affiliates", icon: Gift, label: "Partners & Affiliates", moduleId: "partners_affiliates" },
             { to: "/admin/finance", icon: CircleDollarSign, label: "Finance", permission: "finance" },
           ]
         },
@@ -180,6 +185,7 @@ export function Sidebar({
             { to: "/admin/growth_os_config", icon: Settings, label: "Feature Controls" },
             { to: "/admin/traffic", icon: BarChart3, label: "Traffic Analytics", moduleId: "traffic_analytics" },
             { to: "/admin/status", icon: Shield, label: "System Status" },
+            { to: "/admin/ecosystem_architect", icon: ShieldCheck, label: "Ecosystem Architect", moduleId: "ecosystem_architect" },
             { to: "/admin/settings", icon: Settings, label: "Platform Settings" },
           ]
         }
