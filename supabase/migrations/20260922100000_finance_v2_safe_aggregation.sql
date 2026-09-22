@@ -154,3 +154,6 @@ on public.finance_transactions for each row execute function public.finance_exce
 update public.finance_settings set base_currency = 'MYR', updated_at = now()
 where id = 'platform' and base_currency = 'USD'
   and not exists (select 1 from public.finance_transactions);
+
+alter function public.finance_period_summary(timestamptz, timestamptz) set search_path = public, pg_catalog;
+alter function public.finance_exception_trigger() set search_path = public, pg_catalog;
