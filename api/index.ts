@@ -1251,6 +1251,40 @@ async function startServer() {
     }
   });
 
+  app.get("/api/account/offboarding-status", authenticate, async (req: any, res: any) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!profile.business_id) return res.json({ business: null, subscription: null, canDeleteAccount: true });
+      await assertBusinessAccess(req.user.id, profile.business_id);
+      const [{ data: business, error: businessError }, { data: subscription, error: subscriptionError }] = await Promise.all([
+        supabaseAdmin
+          .from("businesses")
+          .select("id,name,subscription_status,managed_service_cancellation_requested_at,managed_service_cancellation_effective_at,handover_grace_until,last_handover_export_at")
+          .eq("id", profile.business_id)
+          .maybeSingle(),
+        supabaseAdmin
+          .from("user_subscriptions")
+          .select("status,renewal_state,minimum_term_end_date,current_period_end,cancel_at_period_end,cancellation_requested_at,cancellation_scheduled_at,cancellation_effective_at")
+          .eq("user_id", req.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      if (businessError) throw businessError;
+      if (subscriptionError) throw subscriptionError;
+      const billingStatus = subscription?.status || business?.subscription_status || null;
+      return res.json({
+        business: business || null,
+        subscription: subscription || null,
+        canDeleteAccount: subscriptionAllowsPermanentDeletion(billingStatus),
+        handoverGraceDays: HANDOVER_GRACE_DAYS,
+      });
+    } catch (error: any) {
+      console.error("[Offboarding Status] Failed:", error);
+      return res.status(500).json({ error: "Unable to load offboarding status" });
+    }
+  });
+
   app.post("/api/account/cancel-managed-service", authenticate, async (req: any, res: any) => {
     try {
       const profile = await getProfileForUser(req.user.id);
