@@ -34,6 +34,7 @@ import {
   Gift,
   Award,
   CircleDollarSign,
+  Briefcase,
   Layout,
   Cpu,
   BrainCircuit,
