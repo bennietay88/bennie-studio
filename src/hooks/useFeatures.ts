@@ -5,7 +5,6 @@ import { Business } from "../types";
 import { PLANS, normalizePlans } from "../constants/plans";
 import {
   getMarketingCapability,
-  normalizeMarketingFeatures,
   type MarketingCapabilityId,
 } from "../constants/marketingPro";
 
@@ -84,9 +83,6 @@ export function useFeatures() {
   const { profile } = useAuth();
   const [business, setBusiness] = useState<Business | null>(null);
   const [planSettings, setPlanSettings] = useState<any[]>(normalizePlans(PLANS));
-  const [platformSettings, setPlatformSettings] = useState<any>({
-    marketingFeatures: normalizeMarketingFeatures(null),
-  });
   const [hasWordPressIntegration, setHasWordPressIntegration] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -141,7 +137,7 @@ export function useFeatures() {
 
         // The plans table is the same source edited by Super Admin. The legacy
         // settings record is kept as a fallback for older deployments.
-        const [planTableRes, plansFallbackRes, platformRes] = await Promise.all([
+        const [planTableRes, plansFallbackRes] = await Promise.all([
           supabase
             .from("plans")
             .select(
@@ -154,11 +150,6 @@ export function useFeatures() {
             .select("content")
             .eq("id", "plans")
             .maybeSingle(),
-          supabase
-            .from("settings")
-            .select("content")
-            .eq("id", "marketing_hub_config")
-            .maybeSingle(),
         ]);
 
         if (!planTableRes.error && Array.isArray(planTableRes.data) && planTableRes.data.length > 0) {
@@ -168,13 +159,6 @@ export function useFeatures() {
         } else {
           setPlanSettings(normalizePlans(PLANS));
         }
-
-        setPlatformSettings({
-          ...(platformRes.data?.content || {}),
-          marketingFeatures: normalizeMarketingFeatures(
-            platformRes.data?.content?.marketingFeatures,
-          ),
-        });
 
         const { count } = await supabase
           .from("wordpress_integrations")
@@ -195,13 +179,6 @@ export function useFeatures() {
   const isFeatureEnabled = (featureId: FeatureId): boolean => {
     if (profile?.role === "super_admin") return true;
 
-    if (featureId === "wordpress_sync") {
-      const globalStatus = normalizeMarketingFeatures(
-        platformSettings?.marketingFeatures,
-      ).wordpressIntegration;
-      if (globalStatus !== "enabled") return false;
-    }
-
     if (!business || !planSettings.length) return false;
 
     const currentPlan = planSettings.find((plan) => plan.id === business.plan);
@@ -210,18 +187,14 @@ export function useFeatures() {
     return (currentPlan.enabled_features || []).includes(featureId);
   };
 
-  const getMarketingCapabilityStatus = (capabilityId: MarketingCapabilityId) =>
-    normalizeMarketingFeatures(platformSettings?.marketingFeatures)[capabilityId];
-
   const isMarketingCapabilityEnabled = (capabilityId: MarketingCapabilityId): boolean => {
-    if (getMarketingCapabilityStatus(capabilityId) !== "enabled") return false;
-    if (profile?.role === "super_admin") return true;
-
     const capability = getMarketingCapability(capabilityId);
     if (!capability) return false;
-
     return isFeatureEnabled(capability.entitlementFeatureId as FeatureId);
   };
+
+  const getMarketingCapabilityStatus = (capabilityId: MarketingCapabilityId): "enabled" | "disabled" =>
+    isMarketingCapabilityEnabled(capabilityId) ? "enabled" : "disabled";
 
   const isFeatureVisible = (featureId: FeatureId): boolean => {
     if (profile?.role === "super_admin") return true;
@@ -247,7 +220,6 @@ export function useFeatures() {
     loading,
     business,
     planSettings,
-    platformSettings,
     hasWordPressIntegration,
   };
 }
