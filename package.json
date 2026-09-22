@@ -23,7 +23,7 @@
     "test:sales:api": "node --import tsx --test tests/sales-api-boundaries.test.ts",
     "test:billing": "node --import tsx --test tests/billing-hardening.test.ts tests/handover-export.test.ts",
     "test:prospects": "node --import tsx --test tests/prospect-scoring.test.ts",
-    "test:design": "node --import tsx --test tests/design-system.test.ts tests/public-preview.test.ts",
+    "test:design": "node --import tsx --test tests/design-system.test.ts tests/public-preview.test.ts tests/color-contrast.test.ts",
     "test:permissions": "node --import tsx --test tests/permissions.test.ts",
     "test:operating-system": "node --import tsx --test tests/operating-system.test.ts",
     "test:fulfilment": "node --import tsx --test tests/fulfilment-timing.test.ts",
