@@ -116,6 +116,10 @@ export function MarketingHub() {
   };
 
   const handleGenerateAd = async () => {
+    if (!business) {
+      toast.error("Business context is not available yet.");
+      return;
+    }
     setIsGenerating(true);
     try {
       // Fetch website info for better prompt
@@ -143,6 +147,10 @@ export function MarketingHub() {
   };
 
   const handleApplyFix = async (issueIndex: number, issue: any) => {
+    if (!business) {
+      toast.error("Business context is not available yet.");
+      return;
+    }
     setIsApplyingFix(`fix-${issueIndex}`);
     try {
       // 1. Fetch current website config
@@ -196,6 +204,10 @@ export function MarketingHub() {
   };
 
   const handleRunSeoAudit = async () => {
+    if (!business) {
+      toast.error("Business context is not available yet.");
+      return;
+    }
     setIsGenerating(true);
     setFixedIssues([]);
     try {
