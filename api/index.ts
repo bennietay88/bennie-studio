@@ -77,6 +77,8 @@ import {
 import { buildInternalContentPrompt, INTERNAL_CONTENT_SYSTEM_PROMPT, InternalContentBriefSchema, parseInternalContentDraft, buildHumaniseContentPrompt, HUMANISE_CONTENT_SYSTEM_PROMPT, parseHumaniseContentDraft } from "../src/lib/internalAiContentEngine.js";
 import { buildDesignDirectionPrompt, DESIGN_DIRECTOR_SYSTEM_PROMPT, parseDesignDirection } from "../src/lib/designDirector.js";
 import { isMarketingRoute, renderMarketingDocument } from "../server/marketingSsr.js";
+import { buildPortableWebsiteFiles } from "../src/lib/websiteHandover.js";
+import { HANDOVER_GRACE_DAYS, handoverGraceUntil, subscriptionAllowsPermanentDeletion } from "../src/lib/billingLifecycle.js";
 
 dotenv.config();
 initServerObservability();
@@ -1169,51 +1171,74 @@ async function startServer() {
         { data: websites, error: websitesError },
         { data: leads, error: leadsError },
         { data: appointments, error: appointmentsError },
+        { data: posts, error: postsError },
+        { data: products, error: productsError },
       ] = await Promise.all([
-        supabaseAdmin.from("businesses").select("id,name,subdomain,custom_domain,custom_domain_status,site_url,seo_settings").eq("id", profile.business_id).single(),
-        supabaseAdmin.from("websites").select("id,slug,status,pages,theme,seo,updated_at").eq("business_id", profile.business_id).eq("status", "published"),
+        supabaseAdmin.from("businesses").select("id,name,subdomain,custom_domain,custom_domain_status,site_url,seo_settings,handover_grace_until").eq("id", profile.business_id).single(),
+        supabaseAdmin.from("websites").select("id,slug,status,pages,theme,seo,updated_at").eq("business_id", profile.business_id).eq("status", "published").order("updated_at", { ascending: false }),
         supabaseAdmin.from("leads").select("id,name,email,phone,message,status,source,score,notes,raw_fields,automation_score,automation_next_action,automation_temperature,last_follow_up_at,next_follow_up_at,first_response_at,response_channel,last_active_at,created_at").eq("business_id", profile.business_id).order("created_at", { ascending: true }),
         supabaseAdmin.from("appointments").select("id,customer_name,customer_email,service,date,time,status,created_at,updated_at").eq("business_id", profile.business_id).order("date", { ascending: true }).order("time", { ascending: true }),
+        supabaseAdmin.from("posts").select("*").eq("business_id", profile.business_id).order("created_at", { ascending: true }),
+        supabaseAdmin.from("products").select("*").eq("business_id", profile.business_id).order("created_at", { ascending: true }),
       ]);
       if (businessError || !business) return res.status(404).json({ error: "Business not found" });
       if (websitesError) throw websitesError;
       if (leadsError) throw leadsError;
       if (appointmentsError) throw appointmentsError;
+      if (postsError) throw postsError;
+      if (productsError) throw productsError;
 
       const publishedWebsites = websites || [];
       const exportedAt = new Date().toISOString();
-      const files: Array<{ name: string; content: string }> = [];
-      publishedWebsites.forEach((website: any, index: number) => {
-        const filename = index === 0 ? "index.html" : `pages/${sanitizeFileName(website.slug || website.id)}.html`;
-        files.push({ name: filename, content: buildWebsiteHtmlSnapshot(website, business) });
+      const files: Array<{ name: string; content: string }> = buildPortableWebsiteFiles({
+        business,
+        websites: publishedWebsites,
+        posts: posts || [],
+        products: products || [],
+        exportedAt,
       });
-      if (files.length === 0) files.push({ name: "index.html", content: buildWebsiteHtmlSnapshot({ pages: [] }, business) });
+
       files.push({
         name: "bennie-studio-export.json",
-        content: JSON.stringify({ exportVersion: "1.2", exportedAt, business, websites: publishedWebsites, crm: { leads: leads || [], appointments: appointments || [] } }, null, 2),
+        content: JSON.stringify({
+          exportVersion: "2.0",
+          exportedAt,
+          business,
+          websites: publishedWebsites,
+          posts: posts || [],
+          products: products || [],
+          crm: { leads: leads || [], appointments: appointments || [] },
+        }, null, 2),
       });
       files.push({ name: "crm/leads.json", content: JSON.stringify(leads || [], null, 2) });
       files.push({ name: "crm/appointments.json", content: JSON.stringify(appointments || [], null, 2) });
       files.push({
-        name: "README.md",
-        content: `# ${business.name || "Website"}\n\nThis is a static handover export from Bennie Studio. Upload index.html and the pages/ folder to any static host (for example Netlify, Vercel, GitHub Pages, or your own server).\n\n## Before going live\n\n1. Connect forms and booking actions to services you control.\n2. Confirm WhatsApp, phone, email, map, image, and external links.\n3. Reconnect analytics and consent tooling.\n4. Point your domain only after the independent host is verified.\n5. Keep the original archive as a dated backup.\n\nCRM data is included in crm/leads.json and crm/appointments.json for your records or migration. The exported pages do not include Bennie Studio-hosted CRM submission endpoints, private credentials, billing data, API keys, or third-party service configuration.\n`,
-      });
-      files.push({
         name: "manifest.json",
         content: JSON.stringify({
-          exportVersion: "1.2",
+          exportVersion: "2.0",
           exportedAt,
           businessId: business.id,
           websiteCount: publishedWebsites.length,
           leadCount: (leads || []).length,
           appointmentCount: (appointments || []).length,
+          postCount: (posts || []).length,
+          productCount: (products || []).length,
+          handoverGraceUntil: business.handover_grace_until || null,
           files: [...files.map((file) => file.name), "manifest.json"],
-          reconnectRequired: ["forms", "bookings", "analytics", "consent tooling", "hosted integrations"],
+          reconnectRequired: ["forms", "bookings", "analytics", "consent tooling", "Bennie Studio CRM", "managed automations"],
         }, null, 2),
       });
 
       const archive = buildTarGz(files);
-      const filename = `${sanitizeFileName(business.name || "website")}-website-export.tar.gz`;
+      await supabaseAdmin
+        .from("businesses")
+        .update({ last_handover_export_at: exportedAt })
+        .eq("id", business.id)
+        .then(({ error }) => {
+          if (error) console.warn("[Website Export] Could not record export timestamp:", error.message);
+        });
+
+      const filename = `${sanitizeFileName(business.name || "website")}-website-handover.tar.gz`;
       res.setHeader("Content-Type", "application/gzip");
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
       res.setHeader("Cache-Control", "private, no-store, max-age=0");
@@ -1222,7 +1247,203 @@ async function startServer() {
       return res.status(200).send(archive);
     } catch (error: any) {
       console.error("[Website Export] Failed:", error);
-      return res.status(500).json({ error: "Unable to prepare website export" });
+      return res.status(500).json({ error: "Unable to prepare website handover" });
+    }
+  });
+
+  app.post("/api/account/cancel-managed-service", authenticate, async (req: any, res: any) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!profile.business_id) return res.status(404).json({ error: "No business found for this account" });
+      await assertBusinessAccess(req.user.id, profile.business_id);
+
+      const reason = typeof req.body?.reason === "string" ? req.body.reason.trim().slice(0, 500) : null;
+      const [{ data: business, error: businessError }, { data: subscription, error: subscriptionError }] = await Promise.all([
+        supabaseAdmin
+          .from("businesses")
+          .select("id,name,subscription_status,stripe_subscription_id,handover_grace_until,managed_service_cancellation_requested_at")
+          .eq("id", profile.business_id)
+          .single(),
+        supabaseAdmin
+          .from("user_subscriptions")
+          .select("id,status,renewal_state,minimum_term_end_date,cancel_at_period_end,stripe_subscription_id,current_period_end")
+          .eq("user_id", req.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      if (businessError || !business) return res.status(404).json({ error: "Business not found" });
+      if (subscriptionError) throw subscriptionError;
+
+      if (String(business.subscription_status || "").toLowerCase() === "canceled") {
+        return res.json({
+          state: "cancelled",
+          handoverGraceUntil: business.handover_grace_until || null,
+          handoverGraceDays: HANDOVER_GRACE_DAYS,
+        });
+      }
+
+      const stripeSubscriptionId = subscription?.stripe_subscription_id || business.stripe_subscription_id;
+      if (!stripeSubscriptionId) {
+        return res.status(409).json({ error: "No managed Stripe subscription is attached to this account. Please contact support before deleting the account." });
+      }
+
+      const now = new Date();
+      const nowIso = now.toISOString();
+      const today = nowIso.slice(0, 10);
+      const minimumTermEndDate = subscription?.minimum_term_end_date || null;
+      const minimumTermMature = !minimumTermEndDate || minimumTermEndDate <= today;
+
+      await supabaseAdmin
+        .from("businesses")
+        .update({ managed_service_cancellation_requested_at: nowIso })
+        .eq("id", business.id);
+
+      if (!minimumTermMature) {
+        if (subscription?.id) {
+          const { error } = await supabaseAdmin
+            .from("user_subscriptions")
+            .update({
+              renewal_state: "cancellation_requested",
+              cancellation_requested_at: nowIso,
+              cancellation_reason: reason,
+              cancel_at_period_end: false,
+            })
+            .eq("id", subscription.id);
+          if (error) throw error;
+        }
+        await insertBillingLifecycleEvent({
+          business_id: business.id,
+          event_type: "cancellation_requested",
+          status: "open",
+          source: "customer",
+          metadata: { minimumTermEndDate, reason: reason || null },
+        });
+        return res.json({
+          state: "cancellation_requested",
+          minimumTermEndDate,
+          message: `Cancellation recorded. The subscription cannot end before ${minimumTermEndDate}.`,
+        });
+      }
+
+      const stripe = await getStripe();
+      const current = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+      if (current.status === "canceled") {
+        const graceUntil = handoverGraceUntil(now);
+        await supabaseAdmin
+          .from("businesses")
+          .update({
+            subscription_status: "canceled",
+            status: "inactive",
+            managed_service_cancellation_effective_at: nowIso,
+            handover_grace_until: graceUntil,
+          })
+          .eq("id", business.id);
+        if (subscription?.id) {
+          await supabaseAdmin
+            .from("user_subscriptions")
+            .update({
+              status: "canceled",
+              renewal_state: "cancelled",
+              cancel_at_period_end: true,
+              cancellation_effective_at: nowIso,
+              cancellation_reason: reason,
+              last_stripe_sync_at: nowIso,
+            })
+            .eq("id", subscription.id);
+        }
+        return res.json({ state: "cancelled", handoverGraceUntil: graceUntil, handoverGraceDays: HANDOVER_GRACE_DAYS });
+      }
+
+      const scheduled = current.cancel_at_period_end
+        ? current
+        : await stripe.subscriptions.update(stripeSubscriptionId, { cancel_at_period_end: true });
+      if (!scheduled.cancel_at_period_end) throw new Error("STRIPE_CANCELLATION_NOT_CONFIRMED");
+
+      if (subscription?.id) {
+        const { error } = await supabaseAdmin
+          .from("user_subscriptions")
+          .update({
+            renewal_state: "cancellation_scheduled",
+            cancel_at_period_end: true,
+            cancellation_requested_at: subscription.cancellation_requested_at || nowIso,
+            cancellation_scheduled_at: nowIso,
+            cancellation_reason: reason,
+            last_stripe_sync_at: nowIso,
+          })
+          .eq("id", subscription.id);
+        if (error) throw error;
+      }
+
+      await insertBillingLifecycleEvent({
+        business_id: business.id,
+        event_type: "cancellation_scheduled",
+        status: "resolved",
+        source: "customer",
+        metadata: {
+          stripeSubscriptionId,
+          currentPeriodEnd: stripeTimestampToIso(scheduled.current_period_end),
+          reason: reason || null,
+        },
+        resolved_at: nowIso,
+      });
+
+      return res.json({
+        state: "cancellation_scheduled",
+        currentPeriodEnd: stripeTimestampToIso(scheduled.current_period_end),
+        handoverGraceDays: HANDOVER_GRACE_DAYS,
+        message: "Managed service will end at the close of the current eligible billing period. A 14-day website migration window begins when the subscription ends.",
+      });
+    } catch (error: any) {
+      console.error("[Managed Service Cancellation] Failed:", error);
+      return res.status(500).json({ error: safeErrorMessage(error) || "Unable to schedule managed-service cancellation" });
+    }
+  });
+
+  app.delete("/api/account", authenticate, async (req: any, res: any) => {
+    try {
+      if (req.body?.confirmation !== "DELETE") {
+        return res.status(400).json({ error: "Type DELETE to confirm permanent account deletion." });
+      }
+      const profile = await getProfileForUser(req.user.id);
+      const businessId = profile.business_id || null;
+
+      if (businessId) {
+        await assertBusinessAccess(req.user.id, businessId);
+        const [{ data: business }, { data: subscription }] = await Promise.all([
+          supabaseAdmin.from("businesses").select("id,subscription_status").eq("id", businessId).maybeSingle(),
+          supabaseAdmin
+            .from("user_subscriptions")
+            .select("status,renewal_state")
+            .eq("user_id", req.user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
+
+        const billingStatus = subscription?.status || business?.subscription_status || null;
+        if (!subscriptionAllowsPermanentDeletion(billingStatus)) {
+          return res.status(409).json({
+            error: "Managed service is still active. Cancel the managed service first; permanent deletion is available after the subscription ends.",
+            subscriptionStatus: billingStatus,
+            renewalState: subscription?.renewal_state || null,
+          });
+        }
+
+        const { error: businessDeleteError } = await supabaseAdmin
+          .from("businesses")
+          .delete()
+          .eq("id", businessId);
+        if (businessDeleteError) throw businessDeleteError;
+      }
+
+      await supabaseAdmin.from("profiles").delete().eq("id", req.user.id);
+      const { error: userDeleteError } = await supabaseAdmin.auth.admin.deleteUser(req.user.id);
+      if (userDeleteError) throw userDeleteError;
+      return res.status(204).send();
+    } catch (error: any) {
+      console.error("[Account Deletion] Failed:", error);
+      return res.status(500).json({ error: safeErrorMessage(error) || "Unable to permanently delete account" });
     }
   });
 
