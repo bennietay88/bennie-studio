@@ -230,3 +230,44 @@ test("public preview prefers an actual hero image over generic social imagery", 
 
   assert.equal(profile.heroImage, "https://clinic.example/real-hero.jpg");
 });
+
+
+test("public preview rejects reviewer metadata masquerading as a testimonial", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <html><head><title>Smile Clinic</title></head><body>
+        <h1>Gentle dental care</h1>
+        <div class="customer-review">Crystal Wong 7 months ago</div>
+        <div class="customer-review">The dentist explained every step clearly and the whole visit felt calm and professional.</div>
+      </body></html>
+    `,
+    finalUrl: "https://smile.example/",
+  });
+
+  assert.equal(profile.testimonials.length, 1);
+  assert.match(profile.testimonials[0], /explained every step/i);
+});
+
+test("public preview extracts source FAQ questions and about copy", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <html>
+        <head><title>Harbour Dental</title><meta name="description" content="Family dental care."></head>
+        <body>
+          <h1>Family dentistry</h1>
+          <h2>About our clinic</h2>
+          <p>Harbour Dental provides preventive and restorative dental care with a calm, patient-first approach.</p>
+          <h3>Do you accept new patients?</h3>
+          <h3>How do I book an appointment?</h3>
+        </body>
+      </html>
+    `,
+    finalUrl: "https://harbour.example/",
+  });
+
+  assert.match(profile.aboutText, /preventive and restorative dental care/i);
+  assert.deepEqual(profile.faqs, [
+    "Do you accept new patients?",
+    "How do I book an appointment?",
+  ]);
+});
