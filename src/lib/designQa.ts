@@ -110,7 +110,11 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
     (duplicateTypes ? 20 : 0) +
     Math.round(cardHeavyRatio * 25) +
     (centeredRatio > 0.6 ? 15 : 0) +
-    (hasPlaceholderMedia ? 20 : 0)
+    (hasPlaceholderMedia ? 20 : 0) +
+    (sourceDriven && sourceForbiddenLanguage ? 35 : 0) +
+    (fakeAvailability ? 35 : 0) +
+    (!sourceContactDiscipline ? 20 : 0) +
+    (!sourceHeroReady ? 25 : 0)
   ));
   const metrics = { visualVariety, hierarchy, proofQuality, conversionClarity, aiTemplateRisk };
   const threshold = previewPurpose
