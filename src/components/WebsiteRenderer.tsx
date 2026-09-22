@@ -2657,28 +2657,25 @@ export function WebsiteRenderer({
                           initial="initial"
                           animate="animate"
                           variants={staggerContainer}
-                          className="relative overflow-hidden border-b border-slate-200 bg-[#f8f7f4]"
+                          className="relative overflow-hidden border-b border-slate-200 bg-white"
                         >
-                          <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[38%] lg:block" aria-hidden="true">
-                            <div className="absolute inset-0 bg-primary/[0.055]" />
-                            <div className="absolute right-[18%] top-1/2 h-44 w-44 -translate-y-1/2 rounded-full border border-primary/15" />
-                          </div>
-                          <div className="relative mx-auto max-w-[90rem] px-6 py-12 sm:px-10 sm:py-14 lg:px-16 lg:py-16">
-                            <motion.div variants={fadeInUp} className="max-w-4xl">
+                          <div className="pointer-events-none absolute inset-y-0 right-0 w-[28%] bg-primary/[0.035]" aria-hidden="true" />
+                          <div className="relative mx-auto max-w-[90rem] px-6 py-10 sm:px-10 sm:py-12 lg:px-16 lg:py-14">
+                            <motion.div variants={fadeInUp} className="max-w-5xl">
                               <div className="flex items-center gap-3">
-                                <span className="h-px w-9" style={{ backgroundColor: accessibleTheme.primaryInk }} />
-                                <p className="text-[10px] font-black uppercase tracking-[0.26em]" style={{ color: accessibleTheme.primaryInk }}>
-                                  {displayBusinessDescriptor}
+                                <span className="h-px w-8" style={{ backgroundColor: accessibleTheme.primaryInk }} />
+                                <p className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: accessibleTheme.primaryInk }}>
+                                  {displayBusinessName}
                                 </p>
                               </div>
                               <h1
-                                className="mt-6 max-w-[22ch] break-normal hyphens-none text-[clamp(2.35rem,4vw,4.15rem)] font-semibold leading-[1.01] tracking-[-0.04em] text-slate-950 [overflow-wrap:normal] [text-wrap:balance]"
+                                className="mt-5 max-w-[22ch] break-normal hyphens-none text-[clamp(2.25rem,3.6vw,3.9rem)] font-semibold leading-[1] tracking-[-0.04em] text-slate-950 [overflow-wrap:normal] [text-wrap:balance]"
                                 style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
                               >
                                 {section.content.headline || displayBusinessName}
                               </h1>
                               {section.content.subheadline ? (
-                                <p className="mt-6 max-w-2xl text-base font-medium leading-7 text-slate-600 sm:text-lg">
+                                <p className="mt-5 max-w-2xl text-base font-medium leading-7 text-slate-600 sm:text-lg">
                                   {section.content.subheadline}
                                 </p>
                               ) : null}
@@ -2696,38 +2693,43 @@ export function WebsiteRenderer({
                           initial="initial"
                           animate="animate"
                           variants={staggerContainer}
-                          className="relative overflow-hidden border-b border-slate-200 bg-white"
+                          className="relative overflow-hidden border-b border-slate-200 bg-[#fbfaf7]"
                         >
-                          <div className="mx-auto grid max-w-[90rem] lg:min-h-[36rem] lg:grid-cols-12">
+                          <div className={cn(
+                            "mx-auto max-w-[90rem]",
+                            hasHeroImage ? "grid lg:grid-cols-12 lg:items-stretch" : "relative"
+                          )}>
                             <motion.div
                               variants={fadeInUp}
-                              className="relative flex flex-col justify-center px-6 py-12 sm:px-10 sm:py-14 lg:col-span-6 lg:px-16 lg:py-16"
+                              className={cn(
+                                "relative flex flex-col justify-center px-6 py-14 sm:px-10 sm:py-16 lg:px-16 lg:py-20",
+                                hasHeroImage ? "lg:col-span-6" : "max-w-5xl"
+                              )}
                             >
-                              <div className="absolute left-0 top-0 hidden h-full w-1 lg:block" style={{ backgroundColor: accessibleTheme.primarySurface }} />
                               <div className="flex items-center gap-3">
                                 <span className="h-px w-10" style={{ backgroundColor: accessibleTheme.primaryInk }} />
-                                <p className="text-[10px] font-black uppercase tracking-[0.26em]" style={{ color: accessibleTheme.primaryInk }}>
+                                <p className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: accessibleTheme.primaryInk }}>
                                   {displayBusinessDescriptor}
                                 </p>
                               </div>
 
                               <h1
-                                className="mt-6 max-w-[16ch] break-normal hyphens-none text-[clamp(2.6rem,4.6vw,4.8rem)] font-semibold leading-[0.98] tracking-[-0.045em] text-slate-950 [overflow-wrap:normal] [text-wrap:balance]"
+                                className="mt-6 max-w-[15ch] break-normal hyphens-none text-[clamp(2.75rem,4.4vw,4.75rem)] font-semibold leading-[0.98] tracking-[-0.045em] text-slate-950 [overflow-wrap:normal] [text-wrap:balance]"
                                 style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
                               >
                                 {section.content.headline || displayBusinessName}
                               </h1>
 
                               {section.content.subheadline ? (
-                                <p className="mt-7 max-w-[38rem] text-base font-medium leading-7 text-slate-600 sm:text-lg sm:leading-8">
+                                <p className="mt-6 max-w-[40rem] text-base font-medium leading-7 text-slate-600 sm:text-lg sm:leading-8">
                                   {section.content.subheadline}
                                 </p>
                               ) : null}
 
-                              <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                                 <Button
                                   size="lg"
-                                  className="min-h-14 rounded-xl px-7 text-sm font-bold shadow-sm"
+                                  className="min-h-13 rounded-lg px-7 text-sm font-bold shadow-sm"
                                   style={{ backgroundColor: accessibleTheme.primarySurface, color: accessibleTheme.primaryForeground }}
                                   onClick={() => handleButtonAction(section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "hero_cta_clicked", sectionId: section.id })}
                                 >
@@ -2738,7 +2740,7 @@ export function WebsiteRenderer({
                                   <Button
                                     variant="outline"
                                     size="lg"
-                                    className="min-h-14 rounded-xl border-slate-300 bg-white px-6 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                                    className="min-h-13 rounded-lg border-slate-300 bg-white px-6 text-sm font-bold text-slate-900 hover:bg-slate-50"
                                     onClick={() => handleButtonAction("Call Us", undefined, { eventType: "hero_phone_clicked", sectionId: section.id })}
                                   >
                                     <Phone className="mr-2 h-4 w-4" /> Call us
@@ -2747,7 +2749,7 @@ export function WebsiteRenderer({
                               </div>
 
                               {heroTrustItems.length ? (
-                                <div className="mt-9 space-y-3 border-t border-slate-200 pt-6">
+                                <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 border-t border-slate-200 pt-5">
                                   {heroTrustItems.map((item: string, itemIndex: number) => (
                                     <div key={`${item}-${itemIndex}`} className="flex items-start gap-2 text-xs font-semibold leading-5 text-slate-600">
                                       <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: accessibleTheme.primaryInk }} />
@@ -2758,35 +2760,28 @@ export function WebsiteRenderer({
                               ) : null}
                             </motion.div>
 
-                            <motion.div
-                              variants={fadeInUp}
-                              className="relative min-h-[22rem] overflow-hidden bg-slate-100 sm:min-h-[28rem] lg:col-span-6 lg:min-h-full"
-                            >
-                              {hasHeroImage ? (
-                                <>
-                                  <img
-                                    src={section.content.imageUrl}
-                                    alt={section.content.imageAlt || displayBusinessName}
-                                    className="absolute inset-0 h-full w-full object-cover object-[center_38%]"
-                                    loading="eager"
-                                    fetchPriority="high"
-                                    referrerPolicy="no-referrer"
-                                  />
-                                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent" />
-                                </>
-                              ) : (
-                                <div className="absolute inset-0 flex items-end overflow-hidden p-8 sm:p-12 lg:p-14" style={{ backgroundColor: accessibleTheme.primarySurface, color: accessibleTheme.primaryForeground }}>
-                                  <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full border border-white/20" />
-                                  <div className="absolute right-[18%] top-[22%] h-48 w-48 rounded-full bg-white/10" />
-                                  <div className="relative max-w-md">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.26em] opacity-80">{displayBusinessDescriptor}</p>
-                                    <p className="mt-4 text-3xl font-semibold leading-tight sm:text-4xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
-                                      {displayBusinessName}
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-                            </motion.div>
+                            {hasHeroImage ? (
+                              <motion.div
+                                variants={fadeInUp}
+                                className="relative min-h-[24rem] overflow-hidden bg-slate-100 sm:min-h-[30rem] lg:col-span-6 lg:min-h-[34rem]"
+                              >
+                                <img
+                                  src={section.content.imageUrl}
+                                  alt={section.content.imageAlt || displayBusinessName}
+                                  className="absolute inset-0 h-full w-full object-cover object-[center_38%]"
+                                  loading="eager"
+                                  fetchPriority="high"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/15 via-transparent to-transparent" />
+                              </motion.div>
+                            ) : (
+                              <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[30%] lg:block" aria-hidden="true">
+                                <div className="absolute inset-0 bg-primary/[0.04]" />
+                                <div className="absolute right-[18%] top-[22%] h-48 w-48 rounded-full border border-primary/10" />
+                                <div className="absolute bottom-[18%] right-[8%] h-28 w-28 rounded-full bg-primary/[0.06]" />
+                              </div>
+                            )}
                           </div>
                         </motion.section>
                       );
