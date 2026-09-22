@@ -26,7 +26,7 @@
     "test:prospects": "node --import tsx --test tests/prospect-scoring.test.ts",
     "test:design": "node --import tsx --test tests/design-system.test.ts tests/public-preview.test.ts tests/color-contrast.test.ts",
     "test:permissions": "node --import tsx --test tests/permissions.test.ts",
-    "test:operating-system": "node --import tsx --test tests/operating-system.test.ts",
+    "test:operating-system": "node --import tsx --test tests/operating-system.test.ts tests/admin-modules-readiness.test.ts",
     "test:fulfilment": "node --import tsx --test tests/fulfilment-timing.test.ts",
     "test:delivery": "node --import tsx --test tests/delivery-standards.test.ts tests/production-quality.test.ts tests/design-system.test.ts tests/operating-system.test.ts",
     "test:fixtures": "node --import tsx --test tests/e2e-fixtures.test.ts",
