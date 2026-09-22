@@ -20,7 +20,7 @@ test("bank imports remain neutral until reconciled", () => {
 
 test("Stripe refunds use refund identifiers", () => {
   assert.match(api, /source_id: String\(refund\.id\)/);
-  assert.match(api, /stripe_refund_key/);
+  assert.match(migration, /stripe_refund_key/);
 });
 
 test("dashboard reads authoritative server summary", () => {
