@@ -916,10 +916,10 @@ const previewIndustries = [
     cta: "Request a Consultation", proof: "Verified qualifications, team profiles, client-approved testimonials and clear service boundaries.",
   },
   {
-    id: "agency", label: "Web / Marketing Agency", template: "Agency Lead Website", recommendedPlan: "Business",
+    id: "agency", label: "Web / Marketing Agency", template: "Managed Website Studio", recommendedPlan: "Business",
     pages: ["Home", "Services", "Work", "About", "Contact"],
-    sections: ["Outcome-led hero", "Website and growth services", "Selected work", "How delivery works", "Consultation CTA"],
-    cta: "Book a Consultation", proof: "Real client work, delivery process, testimonials, service scope and clear commercial positioning.",
+    sections: ["Managed website proposition", "Website and lead-generation services", "Selected work", "Managed delivery process", "Consultation CTA"],
+    cta: "Book a Consultation", proof: "Real client work, delivery process, customer-supplied reviews, service scope and clear commercial positioning.",
   },
   {
     id: "clinic",
