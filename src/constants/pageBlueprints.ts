@@ -85,6 +85,9 @@ export interface BlueprintBusinessInput {
   storyImageUrl?: string;
   heroHeadline?: string;
   heroSubheadline?: string;
+  heroTrustItems?: string[];
+  preferredHeroVariant?: string;
+  compactSubpageHeroes?: boolean;
   teamMembers?: Array<{ name: string; role?: string; bio?: string; imageUrl?: string }>;
   compositionSeed?: number;
 }
@@ -746,6 +749,7 @@ const buildSectionContent = (
         || `${tone} ${generatedServiceTitle(service)} in ${location}, designed to help ${target} take the next step with confidence.`,
       ),
       ctaText: cta,
+      trustItems: pageBlueprint.slug === "" ? (input.heroTrustItems || []).filter(Boolean).slice(0, 3) : [],
       imageUrl: input.heroImageUrl || undefined,
       imageAlt: input.heroImageUrl ? `${businessName} - ${service}` : undefined,
       assetSlots: {
@@ -999,11 +1003,15 @@ export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsiteP
       const variant =
         sectionType === "proof" && (input.proofLogos?.length || 0) > 0
           ? "logo_marquee"
-          : getVariantForMode(sectionType, profile.id, generationMode, blockIndex + (input.compositionSeed || 0), {
-              brandPersonality: input.brandPersonality,
-              businessMaturity: input.businessMaturity,
-              assetReadiness: input.assetReadiness,
-            });
+          : sectionType === "hero" && blueprintPage.slug === "" && input.preferredHeroVariant
+            ? input.preferredHeroVariant
+            : sectionType === "hero" && blueprintPage.slug !== "" && input.compactSubpageHeroes
+              ? "page_masthead"
+              : getVariantForMode(sectionType, profile.id, generationMode, blockIndex + (input.compositionSeed || 0), {
+                  brandPersonality: input.brandPersonality,
+                  businessMaturity: input.businessMaturity,
+                  assetReadiness: input.assetReadiness,
+                });
       return variant
         ? {
             ...configured,
