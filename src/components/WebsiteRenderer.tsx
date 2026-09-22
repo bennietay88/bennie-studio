@@ -1128,6 +1128,8 @@ export function WebsiteRenderer({
   const accessibleTheme = resolveAccessibleThemeColors(theme.primaryColor, theme.secondaryColor);
   const designProfile = resolveDesignProfile(theme.designProfile, businessInfo?.industry || website?.seo?.businessType);
   const generationMode = theme.generationMode || "fast";
+  const isPreviewPresentation = Boolean(website.theme?.previewPurpose);
+  const isSourceDrivenPresentation = Boolean(website.theme?.sourceDriven);
   const spacingTokens = DESIGN_TOKENS.spacing[theme.spacingProfile || designProfile.spacing];
   const motionTokens = DESIGN_TOKENS.motion[theme.motionProfile || designProfile.motion];
   const pages = website?.pages || [];
@@ -1154,7 +1156,7 @@ export function WebsiteRenderer({
     ? `https://wa.me/${whatsappPhone}?text=${whatsappMessage}`
     : "";
   const cookieBannerEnabled = complianceSettings?.cookieBannerEnabled !== false;
-  const cookiePromptVisible = !isThumbnail && cookieBannerEnabled && (!cookieConsent || showCookiePrefs);
+  const cookiePromptVisible = !isPreviewPresentation && !isThumbnail && cookieBannerEnabled && (!cookieConsent || showCookiePrefs);
   const secureFormsEnabled = complianceSettings?.secureFormsEnabled !== false;
   const marketingConsentEnabled = complianceSettings?.marketingConsentEnabled !== false;
   const canLoadAnalytics =
