@@ -46,6 +46,7 @@ import {
   Inbox,
   Search,
   CircleDollarSign,
+  Megaphone,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -242,6 +243,9 @@ export function Sidebar({
         { label: "Enquiries", items: [
           { to: "/dashboard/leads", icon: Users, label: "Leads", featureId: "lead_crm" },
           { to: "/dashboard/appointments", icon: CalendarIcon, label: "Appointments", featureId: "booking" },
+        ]},
+        { label: "Growth", items: [
+          { to: "/dashboard/marketing-hub", icon: Megaphone, label: "Marketing Pro" },
         ]},
         { label: "Service", items: [
           { to: "/dashboard/update-requests", icon: FileText, label: "Update Requests" },
