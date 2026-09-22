@@ -164,8 +164,8 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
                 <h3 className={isGrowth ? "mt-2 text-2xl font-semibold !text-white" : "mt-2 text-2xl font-semibold text-[#141821]"}>{product.name}</h3>
               </div>
             </div>
-            <p className={isGrowth ? "mt-5 text-3xl font-semibold !text-white" : "mt-5 text-3xl font-semibold text-[#141821]"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#707b8a]"}>/month</span></p>
-            <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#707b8a]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
+            <p className={isGrowth ? "mt-5 text-3xl font-semibold !text-white" : "mt-5 text-3xl font-semibold text-[#141821]"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#526071]"}>/month</span></p>
+            <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#526071]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
             <p className={isGrowth ? "mt-4 text-sm leading-6 !text-white/70" : "mt-4 text-sm leading-6 text-[#526071]"}>{product.description}</p>
             {PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug] && (
               <div className={isGrowth ? "mt-5 border-t border-white/20 pt-4" : "mt-5 border-t border-[#dfe2ea] pt-4"}>
