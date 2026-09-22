@@ -1289,6 +1289,11 @@ function GeneratePreviewPage() {
     () => (generatedWebsite ? evaluateGeneratedDesign(generatedWebsite) : null),
     [generatedWebsite],
   );
+  const generatedPrimaryCta = React.useMemo(() => {
+    const home = generatedWebsite?.pages?.find((page) => page.slug === "" || page.slug === "home") || generatedWebsite?.pages?.[0];
+    const hero = home?.sections?.find((section) => section.type === "hero");
+    return String(hero?.content?.ctaText || resolvePreviewCta(goal) || "Contact the business");
+  }, [generatedWebsite, goal]);
 
   React.useEffect(() => {
     trackPublicEvent({ eventType: "start_preview_flow", label: "Generate Preview Page Loaded", target: "/generate-preview" });
@@ -2316,7 +2321,7 @@ function GeneratePreviewPage() {
               {[
                 ["01", previewMode === "website" ? "Keep what is already working" : "Start with the right structure", previewMode === "website" ? "Useful branding, photography and verified content are preserved rather than discarded." : "The selected business type drives the page architecture instead of a one-size-fits-all template."],
                 ["02", "Remove template noise", "Unsupported claims, fake availability, filler sections and internal design language are kept out of the prospect-facing site."],
-                ["03", "Make action obvious", `The website is organised around the primary next step: ${resolvedCta || "contact the business"}.`],
+                ["03", "Make action obvious", `The website is organised around the primary next step: ${generatedPrimaryCta || "contact the business"}.`],
               ].map(([number,title,copy])=>(
                 <div key={number} className="border-t border-white/15 pt-4">
                   <p className="text-[10px] font-black tracking-[0.22em] text-[#c9c4ff]">{number}</p>
