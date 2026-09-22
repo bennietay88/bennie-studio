@@ -193,6 +193,7 @@ const extractSecondaryImageCandidate = (html: string, baseUrl: string, heroImage
     if (!src || /^data:/i.test(src) || /\.svg(?:\?|$)/i.test(src)) continue;
     const resolved = absoluteUrl(src, baseUrl);
     if (!resolved || resolved === heroImage) continue;
+    if (/(?:icon|illustration|vector|drawing|placeholder|symbol|clipart)/i.test(`${attrs} ${resolved}`)) continue;
 
     let score = 0;
     if (/(?:about|team|clinic|office|studio|project|gallery|environment|interior|staff)/i.test(attrs)) score += 6;
@@ -206,7 +207,7 @@ const extractSecondaryImageCandidate = (html: string, baseUrl: string, heroImage
     index += 1;
     if (index >= 24) break;
   }
-  return best.score >= 3 ? best.url : "";
+  return best.score >= 5 ? best.url : "";
 };
 
 const extractHeroSubheadline = (html: string, description: string) => {
