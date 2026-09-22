@@ -258,7 +258,9 @@ test("public preview extracts source FAQ questions and about copy", () => {
           <h2>About our clinic</h2>
           <p>Harbour Dental provides preventive and restorative dental care with a calm, patient-first approach.</p>
           <h3>Do you accept new patients?</h3>
+          <p>Yes. New patients can contact the clinic to arrange a first appointment.</p>
           <h3>How do I book an appointment?</h3>
+          <p>Use the appointment request form or call the clinic during opening hours.</p>
         </body>
       </html>
     `,
@@ -270,4 +272,6 @@ test("public preview extracts source FAQ questions and about copy", () => {
     "Do you accept new patients?",
     "How do I book an appointment?",
   ]);
+  assert.equal(profile.faqItems.length, 2);
+  assert.match(profile.faqItems[0].answer, /New patients can contact/i);
 });
