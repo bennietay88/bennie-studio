@@ -8,21 +8,16 @@ import {
   MessageSquare,
   Star,
   ArrowRight,
-  Zap,
   Target,
   Search,
   Megaphone,
   Loader2,
   Lock,
-  CheckCircle2,
-  AlertTriangle,
-  RefreshCcw,
   MapPin,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   Card,
-  CardHeader,
   CardTitle,
   CardDescription,
   CardContent,
@@ -35,16 +30,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "./ui/dialog";
 import { Label } from "./ui/label";
-import {
-  Select as UiSelect,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 import { useFeatures } from "../hooks/useFeatures";
 import type { MarketingCapabilityId } from "../constants/marketingPro";
 import { generateMarketingContent } from "../lib/gemini";
@@ -74,13 +61,9 @@ export function MarketingHub() {
     getMarketingCapabilityStatus,
   } = useFeatures();
 
-  const [isSeoModalOpen, setIsSeoModalOpen] = useState(false);
   const [isAdModalOpen, setIsAdModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [seoResult, setSeoResult] = useState<any>(null);
   const [adResult, setAdResult] = useState<any>(null);
-  const [isApplyingFix, setIsApplyingFix] = useState<string | null>(null);
-  const [fixedIssues, setFixedIssues] = useState<number[]>([]);
 
   const checkAccess = (capabilityId: MarketingCapabilityId) => {
     const status = getMarketingCapabilityStatus(capabilityId);
@@ -106,9 +89,7 @@ export function MarketingHub() {
       return;
     }
 
-    if (tool.id === "seoAudit") {
-      setIsSeoModalOpen(true);
-    } else if (tool.id === "adGenerator") {
+    if (tool.id === "adGenerator") {
       setIsAdModalOpen(true);
     } else {
       tool.action();
@@ -146,96 +127,6 @@ export function MarketingHub() {
     }
   };
 
-  const handleApplyFix = async (issueIndex: number, issue: any) => {
-    if (!business) {
-      toast.error("Business context is not available yet.");
-      return;
-    }
-    setIsApplyingFix(`fix-${issueIndex}`);
-    try {
-      // 1. Fetch current website config
-      const { data: website, error: fetchError } = await supabase
-        .from("websites")
-        .select("*")
-        .eq("business_id", business.id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // 2. Prepare updated SEO object
-      const updatedSeo = { ...(website.seo || {}) };
-
-      if (issue.fixType === "title") {
-        updatedSeo.title = issue.solution;
-      } else if (issue.fixType === "description") {
-        updatedSeo.description = issue.solution;
-      } else if (issue.fixType === "keywords") {
-        // Simple append or replace? Let's intelligently merge or replace if it's a list
-        if (
-          typeof issue.solution === "string" &&
-          issue.solution.includes(",")
-        ) {
-          updatedSeo.keywords = issue.solution
-            .split(",")
-            .map((s: string) => s.trim());
-        } else {
-          updatedSeo.keywords = Array.isArray(updatedSeo.keywords)
-            ? [...new Set([...updatedSeo.keywords, issue.solution])]
-            : [issue.solution];
-        }
-      }
-
-      // 3. Update the website
-      const { error: updateError } = await supabase
-        .from("websites")
-        .update({ seo: updatedSeo })
-        .eq("id", website.id);
-
-      if (updateError) throw updateError;
-
-      setFixedIssues((prev) => [...prev, issueIndex]);
-      toast.success("SEO fix applied successfully!");
-    } catch (err: any) {
-      console.error("Failed to apply SEO fix:", err);
-      toast.error("Failed to apply fix: " + err.message);
-    } finally {
-      setIsApplyingFix(null);
-    }
-  };
-
-  const handleRunSeoAudit = async () => {
-    if (!business) {
-      toast.error("Business context is not available yet.");
-      return;
-    }
-    setIsGenerating(true);
-    setFixedIssues([]);
-    try {
-      // Fetch website info
-      const { data: website } = await supabase
-        .from("websites")
-        .select("*")
-        .eq("business_id", business.id)
-        .single();
-
-      const result = await generateMarketingContent("seo_audit", {
-        name: business.name,
-        industry: business.industry,
-        description: business.businessNature || "",
-        location: business.location || "",
-        targetAudience: website?.seo?.targetAudience || "General Public",
-        currentSeo: website?.seo || {},
-      });
-
-      setSeoResult(result);
-      toast.success("SEO Audit complete!");
-    } catch (err: any) {
-      toast.error("Failed to run SEO audit: " + err.message);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   const tools: Array<{
     id: MarketingCapabilityId;
     title: string;
@@ -252,7 +143,7 @@ export function MarketingHub() {
       icon: Search,
       color: "text-purple-600",
       bg: "bg-purple-50",
-      action: () => {},
+      action: () => navigate("/dashboard/seo"),
     },
     {
       id: "adGenerator",
@@ -425,160 +316,6 @@ export function MarketingHub() {
           </Button>
         </div>
       </motion.div>
-
-      {/* SEO Audit Modal */}
-      <Dialog open={isSeoModalOpen} onOpenChange={setIsSeoModalOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-none">
-          <DialogHeader className="p-8 bg-purple-600 text-white shrink-0">
-            <div className="flex justify-between items-start">
-              <div>
-                <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-                  <Search className="h-7 w-7" /> SEO Growth Review
-                </DialogTitle>
-                <DialogDescription className="text-purple-100/80 font-medium">
-                  Review the supplied page context for observable search and content opportunities.
-                </DialogDescription>
-              </div>
-              {!seoResult && !isGenerating && (
-                <Button
-                  onClick={handleRunSeoAudit}
-                  className="rounded-xl bg-white text-purple-600 hover:bg-purple-50 font-bold"
-                >
-                  Start Scan
-                </Button>
-              )}
-              {seoResult && !isGenerating && (
-                <Button
-                  onClick={handleRunSeoAudit}
-                  className="rounded-xl bg-purple-700 text-white hover:bg-purple-800 font-bold"
-                >
-                  <RefreshCcw className="h-4 w-4 mr-2" />
-                  Scan Again
-                </Button>
-              )}
-            </div>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white dark:bg-slate-950">
-            {isGenerating ? (
-              <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
-                <div className="relative mb-8">
-                  <div className="h-24 w-24 rounded-full border-4 border-purple-100 dark:border-purple-900 border-t-purple-600 animate-spin" />
-                  <Search className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 text-purple-600 animate-pulse" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                  Reviewing Page Context...
-                </h3>
-                <p className="text-slate-500 mt-2">
-                  Checking the supplied metadata, content structure, and enquiry messaging.
-                </p>
-              </div>
-            ) : seoResult ? (
-              <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                <div>
-                  <Card className="rounded-3xl p-8 border-slate-100 dark:border-slate-800">
-                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">
-                      Executive Summary
-                    </h4>
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed italic border-l-4 border-purple-200 pl-6">
-                      "{seoResult.summary}"
-                    </p>
-                  </Card>
-                </div>
-
-                <div>
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <AlertTriangle className="h-5 w-5 text-red-500" />
-                      <h4 className="text-lg font-bold">What We Found</h4>
-                    </div>
-                    {seoResult.criticalIssues.map((item: any, i: number) => (
-                      <div
-                        key={i}
-                        className="flex flex-col gap-3 p-5 bg-red-50 dark:bg-red-900/10 rounded-3xl border border-red-100 dark:border-red-900/20 relative overflow-hidden group"
-                      >
-                        {fixedIssues.includes(i) && (
-                          <div className="absolute inset-0 bg-emerald-500/10 backdrop-blur-[2px] flex items-center justify-center z-10 animate-in fade-in">
-                            <div className="bg-emerald-500 text-white rounded-full p-2 shadow-lg">
-                              <CheckCircle2 className="h-6 w-6" />
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex gap-4 items-start">
-                          <Badge
-                            variant="destructive"
-                            className="h-6 w-6 rounded-full flex items-center justify-center p-0 shrink-0"
-                          >
-                            {i + 1}
-                          </Badge>
-                          <div className="space-y-1">
-                            <p className="text-sm font-bold text-red-700 dark:text-red-400">
-                              {item.issue}
-                            </p>
-                            <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">What we found</p>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{item.whatWeFound || "The supplied website context does not make this clear."}</p>
-                            <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Why it matters</p>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{item.impact}</p>
-                            <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-indigo-600">Recommended improvement</p>
-                            <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300 leading-relaxed">{item.solution}</p>
-                          </div>
-                        </div>
-
-                        {["title", "description", "keywords"].includes(item.fixType) && !fixedIssues.includes(i) && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleApplyFix(i, item)}
-                            disabled={isApplyingFix === `fix-${i}`}
-                            className="w-full rounded-xl bg-red-600 hover:bg-red-700 text-white h-9 text-xs font-bold shadow-sm"
-                          >
-                            {isApplyingFix === `fix-${i}` ? (
-                              <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                            ) : (
-                              <Zap className="h-3 w-3 mr-2" />
-                            )}
-                            Auto-Fix Issue
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                </div>
-
-                <Card className="rounded-3xl p-8 bg-slate-900 text-white overflow-hidden relative">
-                  <div className="relative z-10">
-                    <h4 className="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-6">
-                      Recommended Next Improvement
-                    </h4>
-                    <p className="text-base font-bold leading-7 text-slate-200">{seoResult.nextRecommendation || "Review the highest-priority finding and request one focused improvement."}</p>
-                  </div>
-                  <Search className="absolute bottom-[-20px] right-[-20px] h-48 w-48 text-white opacity-5 rotate-12" />
-                </Card>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
-                <div className="h-24 w-24 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-200">
-                  <Search className="h-10 w-10" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold">Website SEO Scan Ready</h3>
-                  <p className="text-slate-500 max-w-sm">
-                    We'll review the current website context for observable
-                    SEO and content improvement opportunities.
-                  </p>
-                </div>
-                <Button
-                  onClick={handleRunSeoAudit}
-                  className="rounded-2xl h-14 px-10 bg-purple-600 hover:bg-purple-700 font-bold"
-                >
-                  Launch Scan Now
-                </Button>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Ad Generator Modal */}
       <Dialog open={isAdModalOpen} onOpenChange={setIsAdModalOpen}>
