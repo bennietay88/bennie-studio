@@ -1485,6 +1485,109 @@ async function startServer() {
     }
   });
 
+  app.delete(
+    "/api/admin/businesses/:businessId",
+    authenticate,
+    superAdminOnly,
+    async (req: any, res: any) => {
+      try {
+        const businessId = String(req.params.businessId || "").trim();
+        if (!businessId) return res.status(400).json({ error: "Business ID is required." });
+
+        const { data: business, error: businessError } = await supabaseAdmin
+          .from("businesses")
+          .select("id,name,status,subscription_status")
+          .eq("id", businessId)
+          .maybeSingle();
+
+        if (businessError) throw businessError;
+        if (!business) return res.status(404).json({ error: "Business not found." });
+
+        const confirmation = String(req.body?.confirmation || "").trim();
+        if (!confirmation || confirmation !== String(business.name || "").trim()) {
+          return res.status(400).json({ error: "Type the exact business name to confirm permanent deletion." });
+        }
+
+        const businessStatus = String(business.status || "").toLowerCase();
+        const subscriptionStatus = String(business.subscription_status || "").toLowerCase();
+        if (
+          ["active", "trial", "trialing"].includes(businessStatus)
+          || !subscriptionAllowsPermanentDeletion(subscriptionStatus)
+        ) {
+          return res.status(409).json({
+            error: "This business still has an active or protected managed-service state. Deactivate/cancel it before permanent deletion.",
+            businessStatus: business.status || null,
+            subscriptionStatus: business.subscription_status || null,
+          });
+        }
+
+        const { data: attachedProfiles, error: profileError } = await supabaseAdmin
+          .from("profiles")
+          .select("id")
+          .eq("business_id", businessId);
+        if (profileError) throw profileError;
+
+        const profileIds = (attachedProfiles || []).map((profile: any) => profile.id).filter(Boolean);
+        if (profileIds.length) {
+          const { data: subscriptions, error: subscriptionsError } = await supabaseAdmin
+            .from("user_subscriptions")
+            .select("user_id,status,renewal_state")
+            .in("user_id", profileIds);
+          if (subscriptionsError) throw subscriptionsError;
+
+          const protectedSubscription = (subscriptions || []).find(
+            (subscription: any) => !subscriptionAllowsPermanentDeletion(subscription.status),
+          );
+          if (protectedSubscription) {
+            return res.status(409).json({
+              error: "A user attached to this business still has an active subscription. End that subscription before deleting the business.",
+              subscriptionStatus: protectedSubscription.status || null,
+              renewalState: protectedSubscription.renewal_state || null,
+            });
+          }
+
+          const { error: detachError } = await supabaseAdmin
+            .from("profiles")
+            .update({ business_id: null })
+            .eq("business_id", businessId);
+          if (detachError) throw detachError;
+        }
+
+        const { error: deleteError } = await supabaseAdmin
+          .from("businesses")
+          .delete()
+          .eq("id", businessId);
+        if (deleteError) throw deleteError;
+
+        const { error: auditError } = await supabaseAdmin
+          .from("admin_action_audit_logs")
+          .insert({
+            actor_user_id: req.user.id,
+            actor_email: req.user.email || null,
+            action_type: "business.deleted",
+            target_type: "business",
+            target_id: businessId,
+            target_label: business.name,
+            metadata: {
+              previousStatus: business.status || null,
+              previousSubscriptionStatus: business.subscription_status || null,
+              detachedProfiles: profileIds.length,
+            },
+          });
+        if (auditError) console.warn("Business deletion audit log skipped:", auditError.message);
+
+        return res.status(200).json({
+          deleted: true,
+          businessId,
+          detachedProfiles: profileIds.length,
+        });
+      } catch (error: any) {
+        console.error("[Admin Business Deletion] Failed:", error);
+        return res.status(500).json({ error: safeErrorMessage(error) || "Unable to delete business" });
+      }
+    },
+  );
+
   app.patch(
     "/api/admin/businesses/:businessId/platform-type",
     authenticate,
