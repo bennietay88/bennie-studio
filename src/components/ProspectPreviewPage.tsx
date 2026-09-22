@@ -5,7 +5,6 @@ import {
   ExternalLink,
   Monitor,
   Smartphone,
-  Sparkles,
   Tablet,
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
@@ -33,6 +32,16 @@ type ProspectPreviewPayload = {
     } | null;
     website: Website;
   };
+};
+
+const safeExternalUrl = (value?: string) => {
+  if (!value) return "";
+  try {
+    const parsed = new URL(value);
+    return ["http:", "https:"].includes(parsed.protocol) ? parsed.toString() : "";
+  } catch {
+    return "";
+  }
 };
 
 export default function ProspectPreviewPage() {
@@ -68,8 +77,8 @@ export default function ProspectPreviewPage() {
 
   if (!payload) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#0b1020] text-slate-300">
-        Preparing the website direction…
+      <main className="grid min-h-screen place-items-center bg-[#f6f7fb] text-[#526071]">
+        Preparing your website preview…
       </main>
     );
   }
@@ -80,33 +89,33 @@ export default function ProspectPreviewPage() {
   const ctaHref = selfServe
     ? `/pricing?product=${encodeURIComponent(product!.slug)}#plan-${product!.slug}`
     : `/book-demo?preview_id=${encodeURIComponent(preview.previewId)}`;
-  const ctaLabel = selfServe
-    ? `Continue with ${product?.label || "this direction"}`
-    : "Book a scope review";
-  const frameWidth = device === "mobile"
-    ? "max-w-[430px]"
-    : device === "tablet"
-      ? "max-w-[820px]"
-      : "max-w-[1440px]";
+  const ctaLabel = selfServe ? "Use this website direction" : "Discuss this website";
+  const frameWidth = device === "mobile" ? "max-w-[430px]" : device === "tablet" ? "max-w-[820px]" : "max-w-[1600px]";
+  const originalUrl = safeExternalUrl(preview.sourceUrl);
+  const cleanPreviewUrl = safeExternalUrl(preview.websiteOnlyUrl);
 
   return (
-    <main className="min-h-screen bg-[#edf0f5] text-[#141821]">
+    <main className="min-h-screen bg-[#f4f5f7] text-[#141821]">
       <Helmet>
-        <title>{preview.businessName} Website Direction | Bennie Studio</title>
+        <title>{preview.businessName} Website Preview | Bennie Studio</title>
         <meta name="robots" content="noindex,nofollow" />
       </Helmet>
 
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0b1020]/95 text-white backdrop-blur">
-        <div className="mx-auto flex max-w-[96rem] flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+      <header className="sticky top-0 z-[120] border-b border-[#dfe2ea] bg-white/95 backdrop-blur-xl">
+        <div className="mx-auto flex min-h-16 max-w-[100rem] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#c9c4ff]">
-              <Sparkles className="h-3.5 w-3.5" /> Bennie Studio website direction
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="text-xs font-black uppercase tracking-[0.18em] text-[#5746e8]">Bennie Studio</span>
+              <span className="hidden h-3 w-px bg-[#dfe2ea] sm:block" />
+              <span className="truncate text-sm font-semibold text-[#141821]">Website preview for {preview.businessName}</span>
             </div>
-            <p className="mt-1 truncate text-sm font-semibold text-white">{preview.businessName}</p>
+            <p className="mt-1 hidden text-xs text-[#687180] md:block">
+              Built from the business information and brand assets available on the current website.
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex rounded-lg border border-white/10 bg-white/5 p-1" role="group" aria-label="Preview device">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="hidden rounded-lg border border-[#dfe2ea] bg-[#f6f7fb] p-1 sm:flex" role="group" aria-label="Preview device">
               {([
                 ["desktop", Monitor, "Desktop"],
                 ["tablet", Tablet, "Tablet"],
@@ -118,158 +127,141 @@ export default function ProspectPreviewPage() {
                   aria-pressed={device === value}
                   onClick={() => setDevice(value)}
                   className={device === value
-                    ? "inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-xs font-semibold text-[#141821]"
-                    : "inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10"}
+                    ? "inline-flex h-9 items-center gap-2 rounded-md bg-white px-3 text-xs font-bold text-[#141821] shadow-sm"
+                    : "inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-semibold text-[#687180] hover:text-[#141821]"}
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{label}</span>
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden lg:inline">{label}</span>
                 </button>
               ))}
             </div>
 
-            {preview.sourceUrl ? (
+            {originalUrl ? (
               <a
-                href={preview.sourceUrl}
+                href={originalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-10 items-center rounded-lg border border-white/15 px-3 text-xs font-semibold text-white hover:bg-white/10"
+                className="hidden min-h-10 items-center border border-[#dfe2ea] bg-white px-4 text-xs font-bold text-[#374151] transition hover:border-[#b8bdc8] md:inline-flex"
               >
-                Current website <ExternalLink className="ml-2 h-3.5 w-3.5" />
-              </a>
-            ) : null}
-
-            {preview.websiteOnlyUrl ? (
-              <a
-                href={preview.websiteOnlyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-10 items-center rounded-lg border border-white/15 px-3 text-xs font-semibold text-white hover:bg-white/10"
-              >
-                Website only <ExternalLink className="ml-2 h-3.5 w-3.5" />
+                Original site <ExternalLink className="ml-2 h-3.5 w-3.5" />
               </a>
             ) : null}
 
             <Link
               to={ctaHref}
-              className="inline-flex min-h-10 items-center rounded-lg bg-[#5746e8] px-4 text-xs font-bold text-white transition hover:bg-[#4938db]"
-            >
-              {ctaLabel}<ArrowRight className="ml-2 h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <section className="bg-[#0b1020] px-4 pb-8 pt-6 text-white sm:px-8 sm:pb-10">
-        <div className="mx-auto max-w-[96rem]">
-          <div className="mb-5 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#c9c4ff]">
-                Redesigned preview
-              </p>
-              <h1 className="mt-3 max-w-4xl text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">
-                {preview.headline || `${preview.businessName}, presented more clearly online.`}
-              </h1>
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
-                {preview.opportunitySummary}
-              </p>
-            </div>
-            {preview.businessType ? (
-              <div className="rounded-full border border-white/10 px-4 py-2 text-xs font-semibold text-slate-300">
-                {preview.businessType}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#f6f7fb] shadow-[0_35px_100px_-50px_rgba(0,0,0,.9)]">
-            <div className="flex items-center gap-2 border-b border-[#dfe2ea] bg-white px-4 py-3">
-              <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
-              <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
-              <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
-              <span className="ml-2 truncate text-xs font-semibold text-[#526071]">Preview · {preview.businessName}</span>
-            </div>
-            <div className="bg-[#edf0f5] p-2 sm:p-4">
-              <div className={`${frameWidth} mx-auto max-h-[82vh] overflow-y-auto bg-white shadow-[0_24px_70px_-45px_rgba(15,23,42,.55)] transition-[max-width] duration-300`}>
-                <WebsiteRenderer initialData={preview.website} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-white">
-        <div className="mx-auto max-w-[90rem] px-6 py-14 sm:px-10 lg:px-16 lg:py-20">
-          <div className="grid gap-12 lg:grid-cols-12">
-            <div className="lg:col-span-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5746e8]">Why this direction</p>
-              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
-                The preview is built to make the business easier to trust, understand and contact.
-              </h2>
-              <p className="mt-5 text-base leading-7 text-[#526071]">
-                The strongest parts of the existing brand are kept where useful. The structure is then tightened around the services, proof and next action a prospective customer actually needs.
-              </p>
-            </div>
-
-            <div className="grid gap-8 lg:col-span-7 sm:grid-cols-2">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#5746e8]">Page structure</p>
-                <div className="mt-4 divide-y divide-[#dfe2ea] border-y border-[#dfe2ea]">
-                  {preview.proposedStructure.map((item, index) => (
-                    <div key={`${item}-${index}`} className="flex items-center gap-4 py-3 text-sm font-semibold">
-                      <span className="text-xs font-black text-[#5746e8]">{String(index + 1).padStart(2, "0")}</span>
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#5746e8]">Verified proof retained</p>
-                <div className="mt-4 space-y-3">
-                  {preview.proofSignals.length ? preview.proofSignals.map((item) => (
-                    <div key={item} className="flex items-start gap-2 text-sm leading-6 text-[#374151]">
-                      <Check className="mt-1 h-4 w-4 shrink-0 text-[#5746e8]" />
-                      {item}
-                    </div>
-                  )) : (
-                    <p className="text-sm leading-6 text-[#5f6673]">
-                      No unsupported proof was added. The final build can become stronger as verified reviews, credentials and business photography are supplied.
-                    </p>
-                  )}
-                </div>
-                <div className="mt-6 border-t border-[#dfe2ea] pt-5">
-                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#526071]">Primary action</p>
-                  <p className="mt-2 font-semibold">{preview.primaryConversionPath || "Contact the business"}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-t border-white/10 bg-[#0b1020] text-white">
-        <div className="mx-auto grid max-w-[90rem] gap-8 px-6 py-14 sm:px-10 lg:grid-cols-12 lg:items-center lg:px-16 lg:py-16">
-          <div className="lg:col-span-8">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#c9c4ff]">Next step</p>
-            <h2 className="mt-4 max-w-3xl text-3xl font-semibold tracking-[-0.03em] sm:text-5xl">
-              Turn this direction into the live website.
-            </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-              {product?.reason || "We will confirm the scope, replace any remaining placeholders with approved business content, complete mobile QA and prepare the site for launch."}
-            </p>
-            <p className="mt-4 text-sm font-semibold text-white">
-              Recommended: {product?.label || "Scope review"}
-            </p>
-          </div>
-          <div className="lg:col-span-4 lg:justify-self-end">
-            <Link
-              to={ctaHref}
-              className="inline-flex min-h-12 items-center rounded-lg bg-white px-6 font-bold text-[#141821] transition hover:bg-[#eceafe]"
+              className="inline-flex min-h-10 items-center bg-[#141821] px-4 text-xs font-bold text-white transition hover:bg-[#5746e8] sm:px-5"
             >
               {ctaLabel}<ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </div>
         </div>
+      </header>
+
+      <section className="border-b border-[#dfe2ea] bg-white">
+        <div className="mx-auto flex max-w-[100rem] flex-col gap-4 px-4 py-5 sm:px-6 md:flex-row md:items-end md:justify-between lg:px-8">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5746e8]">Your redesigned website direction</p>
+            <h1 className="mt-2 max-w-4xl text-2xl font-semibold tracking-[-0.025em] text-[#141821] sm:text-3xl">
+              {preview.headline || `${preview.businessName}, made clearer online.`}
+            </h1>
+          </div>
+          <p className="max-w-xl text-sm leading-6 text-[#687180]">
+            This concept preserves the strongest parts of the existing brand while improving hierarchy, trust and the path to {preview.primaryConversionPath || "contact"}.
+          </p>
+        </div>
       </section>
+
+      <section className="px-2 py-3 sm:px-4 sm:py-5">
+        <div className="mx-auto max-w-[100rem]">
+          <div className="mb-3 flex items-center justify-between gap-3 px-1">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#687180]">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              Interactive preview
+            </div>
+            {cleanPreviewUrl ? (
+              <a
+                href={cleanPreviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-xs font-bold text-[#374151] hover:text-[#5746e8]"
+              >
+                Open website only <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+              </a>
+            ) : null}
+          </div>
+
+          <div className={`${frameWidth} mx-auto overflow-hidden border border-[#cfd3da] bg-white shadow-[0_30px_90px_-50px_rgba(15,23,42,.45)] transition-[max-width] duration-300`}>
+            <div className="flex h-9 items-center gap-2 border-b border-[#e4e7ec] bg-[#f7f8fa] px-3">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#d8dbe1]" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[#d8dbe1]" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[#d8dbe1]" />
+              <span className="ml-2 truncate text-[10px] font-semibold text-[#7a8391]">{preview.businessName}</span>
+            </div>
+            <WebsiteRenderer initialData={preview.website} />
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-[#dfe2ea] bg-[#111827] text-white">
+        <div className="mx-auto max-w-[90rem] px-6 py-14 sm:px-10 sm:py-16 lg:px-16">
+          <div className="grid gap-10 lg:grid-cols-12">
+            <div className="lg:col-span-7">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#b9b1ff]">Why this direction</p>
+              <h2 className="mt-4 max-w-3xl text-3xl font-semibold tracking-[-0.03em] sm:text-5xl">
+                The redesign should make the business easier to understand and easier to contact.
+              </h2>
+              <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300">{preview.opportunitySummary}</p>
+
+              {preview.proofSignals.length ? (
+                <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                  {preview.proofSignals.slice(0, 6).map((item) => (
+                    <div key={item} className="flex items-start gap-3 border-t border-white/10 pt-3 text-sm text-slate-200">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#b9b1ff]" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="lg:col-span-5">
+              <div className="border border-white/10 bg-white/[0.04] p-6 sm:p-7">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Website structure</p>
+                <div className="mt-5 space-y-3">
+                  {preview.proposedStructure.map((item, index) => (
+                    <div key={`${item}-${index}`} className="flex items-center gap-4 border-b border-white/10 pb-3 text-sm font-semibold">
+                      <span className="text-[#b9b1ff]">{String(index + 1).padStart(2, "0")}</span>
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-7 border-t border-white/10 pt-6">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Recommended next step</p>
+                  <p className="mt-2 text-xl font-semibold">{product?.label || "Website build"}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{product?.reason || "Review the direction and confirm the final build scope."}</p>
+                  <Link to={ctaHref} className="mt-6 inline-flex min-h-12 items-center bg-white px-5 font-bold text-[#141821] transition hover:bg-[#eeebff]">
+                    {ctaLabel}<ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="fixed inset-x-0 bottom-0 z-[130] border-t border-[#dfe2ea] bg-white/95 p-3 backdrop-blur-xl sm:hidden">
+        <div className="flex gap-2">
+          {originalUrl ? (
+            <a href={originalUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 flex-1 items-center justify-center border border-[#dfe2ea] px-3 text-xs font-bold text-[#374151]">
+              Original
+            </a>
+          ) : null}
+          <Link to={ctaHref} className="inline-flex min-h-11 flex-[1.5] items-center justify-center bg-[#141821] px-3 text-xs font-bold text-white">
+            {ctaLabel}<ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </div>
+      </div>
     </main>
   );
 }
