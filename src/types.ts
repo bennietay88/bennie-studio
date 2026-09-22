@@ -294,6 +294,7 @@ export interface WebsiteSection {
     backgroundImage?: string;
     isContained?: boolean;
     textAlign?: "left" | "center" | "right";
+    sourceDriven?: boolean;
   };
   seo?: {
     title?: string;
@@ -413,6 +414,8 @@ export interface Website {
     brandPersonality?: BrandPersonality;
     businessMaturity?: BusinessMaturity;
     assetReadiness?: AssetReadiness;
+    previewPurpose?: "generated_preview" | "sales_preview";
+    sourceDriven?: boolean;
     displayFont?: string;
     bodyFont?: string;
     customSelectors?: {
