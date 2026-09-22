@@ -554,3 +554,17 @@ test("public preview chrome avoids known low-contrast text tokens", async () => 
   assert.match(renderer, /color: brandHero \? accessibleTheme\.primaryForeground/);
   assert.match(renderer, /footer \.text-slate-500/);
 });
+
+
+test("public brand muted text tokens remain AA-safe on light and dark surfaces", async () => {
+  const css = await import("node:fs/promises").then((fs) =>
+    fs.readFile(new URL("../src/styles/publicBrand.css", import.meta.url), "utf8"),
+  );
+
+  assert.ok(contrastRatio("#5f6673", "#f6f7fb") >= WCAG_AA_NORMAL_TEXT_RATIO);
+  assert.ok(contrastRatio("#94a3b8", "#0b1020") >= WCAG_AA_NORMAL_TEXT_RATIO);
+  assert.ok(contrastRatio("#5746e8", "#f6f7fb") >= WCAG_AA_NORMAL_TEXT_RATIO);
+  assert.ok(contrastRatio("#c9c4ff", "#0b1020") >= WCAG_AA_NORMAL_TEXT_RATIO);
+  assert.doesNotMatch(css, /--brand-soft:\s*#707b8a/i);
+  assert.doesNotMatch(css, /brand-logo-detail[\s\S]{0,180}color:\s*#7a8493/i);
+});
