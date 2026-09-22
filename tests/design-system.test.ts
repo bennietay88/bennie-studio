@@ -7,6 +7,7 @@ import { assessWebsiteDesign } from "../src/lib/designQa.ts";
 import { SECTION_TEMPLATES } from "../src/constants/sectionTemplates.ts";
 import { NICHE_TEMPLATES } from "../src/constants/nicheTemplates.ts";
 import { CUSTOMER_SITE_CAPABILITIES } from "../src/constants/customerSiteCapabilities.ts";
+import { inferButtonAction } from "../src/lib/websiteButtons.ts";
 import {
   CONTRAST_TEST_DARK_SURFACE,
   CONTRAST_TEST_LIGHT_SURFACE,
@@ -793,9 +794,10 @@ test("source-driven preview QA blocks fake availability and internal design lang
 });
 
 test("prospect preview chrome keeps the website visually primary and comparison-ready", async () => {
-  const [page, renderer] = await Promise.all([
+  const [page, renderer, generator] = await Promise.all([
     import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/ProspectPreviewPage.tsx", import.meta.url), "utf8")),
     import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/WebsiteRenderer.tsx", import.meta.url), "utf8")),
+    import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/PublicMarketingPages.tsx", import.meta.url), "utf8")),
   ]);
 
   assert.match(page, /Website preview for/);
@@ -807,6 +809,15 @@ test("prospect preview chrome keeps the website visually primary and comparison-
   assert.match(renderer, /source_services/);
   assert.match(renderer, /source_about/);
   assert.match(renderer, /source_contact/);
+
+  const sourceContactStart = renderer.indexOf('section.settings?.variant === "source_contact"');
+  assert.ok(sourceContactStart >= 0);
+  const sourceContactBlock = renderer.slice(sourceContactStart, sourceContactStart + 9000);
+  assert.match(sourceContactBlock, /<textarea/);
+  assert.doesNotMatch(sourceContactBlock, /<Textarea\b/);
+
+  assert.match(generator, /text-sm leading-6 text-slate-300">\{copy\}/);
+  assert.match(generator, /text-sm leading-6 text-slate-300">Your preview details carry into the next step/);
 });
 
 
@@ -864,4 +875,30 @@ test("source-driven services use source descriptions without inventing filler", 
     { title: "Dental Implants", description: "Implant consultations cover suitability and treatment stages.", imageUrl: undefined },
   ]);
   assert.doesNotMatch(JSON.stringify(homeServices), /designed for patients|your customers|your area/i);
+});
+
+
+test("appointment and contact CTAs fall back to the preview enquiry page", () => {
+  const pages = [
+    {
+      id: "home",
+      title: "Home",
+      slug: "",
+      sections: [{ id: "hero", type: "hero", content: {}, settings: {}, isVisible: true }],
+    },
+    {
+      id: "appointment",
+      title: "Appointment",
+      slug: "appointment",
+      sections: [{ id: "contact", type: "contact", content: {}, settings: {}, isVisible: true }],
+    },
+  ] as any;
+
+  const appointment = inferButtonAction("Book Appointment", {}, pages);
+  const contact = inferButtonAction("Get in touch", {}, pages);
+
+  assert.equal(appointment.actionType, "contact_form");
+  assert.equal(appointment.target, "#contact");
+  assert.equal(contact.actionType, "contact_form");
+  assert.equal(contact.target, "#contact");
 });
