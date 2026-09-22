@@ -1266,7 +1266,7 @@ async function startServer() {
           .single(),
         supabaseAdmin
           .from("user_subscriptions")
-          .select("id,status,renewal_state,minimum_term_end_date,cancel_at_period_end,stripe_subscription_id,current_period_end")
+          .select("id,status,renewal_state,minimum_term_end_date,cancel_at_period_end,stripe_subscription_id,current_period_end,cancellation_requested_at")
           .eq("user_id", req.user.id)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -2250,6 +2250,14 @@ async function startServer() {
               status: isActiveAccess || isPastDue ? "active" : "inactive",
               subscription_grace_until: graceUntil,
             };
+            if (isTerminal) {
+              updateData.handover_grace_until = handoverGraceUntil(new Date());
+              updateData.managed_service_cancellation_effective_at = new Date().toISOString();
+            } else if (isActiveAccess) {
+              updateData.handover_grace_until = null;
+              updateData.managed_service_cancellation_effective_at = null;
+              updateData.managed_service_cancellation_requested_at = null;
+            }
 
             if (plan) {
               updateData.plan = planSlug;
@@ -2301,12 +2309,16 @@ async function startServer() {
 
           try {
             const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id;
+            const cancelledAt = new Date().toISOString();
+            const migrationGraceUntil = handoverGraceUntil(cancelledAt);
             const { data: cancelledBusiness } = await supabaseAdmin
               .from("businesses")
               .update({
                 subscription_status: "canceled",
                 status: "inactive",
                 subscription_grace_until: null,
+                managed_service_cancellation_effective_at: cancelledAt,
+                handover_grace_until: migrationGraceUntil,
               })
               .eq("stripe_subscription_id", subscription.id)
               .select("id, owner_id")
@@ -2337,7 +2349,7 @@ async function startServer() {
                 event_type: "subscription_cancelled",
                 status: "open",
                 source: "stripe",
-                metadata: { stripeEventId: event.id, stripeSubscriptionId: subscription.id },
+                metadata: { stripeEventId: event.id, stripeSubscriptionId: subscription.id, handoverGraceUntil: migrationGraceUntil },
               });
             }
           } catch (err) {
