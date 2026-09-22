@@ -21,7 +21,7 @@
     "test:seo": "node --import tsx --test tests/seo-audit.test.ts",
     "test:sales": "node --import tsx --test tests/commercial-pricing.test.ts tests/sales-call-slots.test.ts tests/sales-automation.test.ts tests/sales-operations.test.ts tests/onboarding.test.ts tests/launch-foundation.test.ts",
     "test:sales:api": "node --import tsx --test tests/sales-api-boundaries.test.ts",
-    "test:billing": "node --import tsx --test tests/billing-hardening.test.ts",
+    "test:billing": "node --import tsx --test tests/billing-hardening.test.ts tests/handover-export.test.ts",
     "test:prospects": "node --import tsx --test tests/prospect-scoring.test.ts",
     "test:design": "node --import tsx --test tests/design-system.test.ts tests/public-preview.test.ts",
     "test:permissions": "node --import tsx --test tests/permissions.test.ts",
