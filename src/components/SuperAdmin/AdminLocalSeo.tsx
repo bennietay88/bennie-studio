@@ -18,6 +18,9 @@ type BusinessOption = {
   plan?: string | null;
   status?: string | null;
   location?: string | null;
+  admin_notes?: string | null;
+  owner_id?: string | null;
+  subscription_status?: string | null;
 };
 
 export function AdminLocalSeo() {
@@ -33,7 +36,7 @@ export function AdminLocalSeo() {
         const [businessRes, planRes] = await Promise.all([
           supabase
             .from("businesses")
-            .select("id,name,plan,status,location")
+            .select("id,name,plan,status,location,admin_notes,owner_id,subscription_status")
             .order("name", { ascending: true }),
           supabase
             .from("plans")
@@ -41,7 +44,15 @@ export function AdminLocalSeo() {
             .eq("is_active", true),
         ]);
 
-        const nextBusinesses = (businessRes.data || []) as BusinessOption[];
+        const nextBusinesses = ((businessRes.data || []) as BusinessOption[]).filter((business) => {
+          const notes = String(business.admin_notes || "");
+          const isPreviewArtifact = /(?:shareable public|private prospect) preview generated/i.test(notes);
+          const isUnactivatedCheckout =
+            business.subscription_status === "incomplete"
+            && !business.owner_id
+            && /created from public pricing checkout/i.test(notes);
+          return !isPreviewArtifact && !isUnactivatedCheckout;
+        });
         setBusinesses(nextBusinesses);
         setSelectedBusinessId((current) =>
           current && nextBusinesses.some((business) => business.id === current)
