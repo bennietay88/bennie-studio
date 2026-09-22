@@ -2254,6 +2254,9 @@ function GeneratePreviewPage() {
                   <span className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-slate-300">
                     {businessTypeLabel}
                   </span>
+                  <span className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-slate-300">
+                    Interactive {generatedWebsite.pages.length}-page preview
+                  </span>
                 </div>
                 <h2 className="mt-5 max-w-4xl text-3xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">
                   {businessLabel}, redesigned to make the next step clearer.
