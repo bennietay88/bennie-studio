@@ -71,6 +71,7 @@ export interface BlueprintBusinessInput {
   ctaPreference?: string;
   tone?: string;
   services?: string[];
+  serviceDetails?: Array<{ title: string; description: string }>;
   description?: string;
   aboutText?: string;
   sourceDriven?: boolean;
@@ -676,12 +677,21 @@ const getServiceItems = (input: BlueprintBusinessInput) => {
     : input.sourceDriven
       ? [fallbackService]
       : [fallbackService, "Consultation", "Ongoing Support"];
+  const details = (input.serviceDetails || []).filter((item) => item?.title && item?.description);
+
   return services.slice(0, input.sourceDriven ? 5 : 6).map((service) => {
     const title = generatedServiceTitle(service);
+    const sourceDetail = details.find((item) => {
+      const itemTitle = String(item.title || "").trim().toLowerCase();
+      const serviceTitle = String(service || "").trim().toLowerCase();
+      return itemTitle === serviceTitle
+        || itemTitle.includes(serviceTitle)
+        || serviceTitle.includes(itemTitle);
+    });
     return {
       title,
       description: input.sourceDriven
-        ? ""
+        ? String(sourceDetail?.description || "").trim()
         : generatedBody(`${title} designed for ${input.targetCustomer || "your customers"} in ${input.location || "your area"}.`),
       imageUrl: undefined,
     };
