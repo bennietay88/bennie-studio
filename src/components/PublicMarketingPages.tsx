@@ -1469,6 +1469,7 @@ function GeneratePreviewPage() {
         contactEmail?: string;
         contactPhone?: string;
         services?: string[];
+        serviceDetails?: Array<{ title: string; description: string }>;
         serviceAreas?: string[];
         heroImage?: string;
         secondaryImage?: string;
@@ -1556,6 +1557,9 @@ function GeneratePreviewPage() {
         ctaPreference: resolvedCta,
         tone: form.brandStyle,
         services: resolvedServices.length ? resolvedServices : [resolvedMainService],
+        serviceDetails: previewMode === "website" && Array.isArray(profile.serviceDetails)
+          ? profile.serviceDetails
+          : undefined,
         description: previewMode === "website"
           ? String(profile.description || "").trim()
           : profile.description || resolvedReviewStrategy.subheadline,
