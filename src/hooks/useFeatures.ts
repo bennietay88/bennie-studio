@@ -3,6 +3,11 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { Business } from "../types";
 import { PLANS, normalizePlans } from "../constants/plans";
+import {
+  getMarketingCapability,
+  normalizeMarketingFeatures,
+  type MarketingCapabilityId,
+} from "../constants/marketingPro";
 
 export type FeatureId =
   | "ai_synthesis"
@@ -47,11 +52,41 @@ export type FeatureId =
   | "affiliate_system"
   | "wordpress_sync";
 
+const planTableRowsToSettings = (rows: any[]) =>
+  normalizePlans(
+    [...rows]
+      .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0))
+      .map((plan) => ({
+        id: String(plan.slug || plan.id || "").trim().toLowerCase(),
+        name: plan.name,
+        description: plan.description || "",
+        price: `$${Number(plan.price_usd || 0).toFixed(0)}`,
+        priceId: plan.stripe_price_id || "",
+        productId: plan.stripe_product_id || "",
+        features: Array.isArray(plan.features) ? plan.features : [],
+        enabled_features: Array.isArray(plan.enabled_features) ? plan.enabled_features : [],
+        aiCredits: Number(plan.monthly_credit_limit || 0),
+        maxPages: Number(plan.project_limit || 1),
+        maxLocationPages: Number(plan.location_page_limit || 0),
+        monthlyUpdates: plan.monthly_update_allowance || "Monthly update support",
+        monthlyUpdateLimit: Number(plan.monthly_update_limit || 0),
+        commitmentMonths: Number(plan.commitment_months || 0),
+        setupFee: Number(plan.setup_fee || 0),
+        marketPrices: plan.market_prices || {},
+        marketPriceIds: plan.market_price_ids || {},
+        upgradePrompt: plan.upgrade_prompt || "Upgrade to unlock more managed growth tools.",
+        isPopular: Boolean(plan.is_popular),
+        isActive: plan.is_active !== false,
+      })),
+  );
+
 export function useFeatures() {
-  const { profile, user } = useAuth();
+  const { profile } = useAuth();
   const [business, setBusiness] = useState<Business | null>(null);
   const [planSettings, setPlanSettings] = useState<any[]>(normalizePlans(PLANS));
-  const [platformSettings, setPlatformSettings] = useState<any>(null);
+  const [platformSettings, setPlatformSettings] = useState<any>({
+    marketingFeatures: normalizeMarketingFeatures(null),
+  });
   const [hasWordPressIntegration, setHasWordPressIntegration] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -63,7 +98,6 @@ export function useFeatures() {
       }
 
       try {
-        // Fetch business to get current plan
         const { data: bData } = await supabase
           .from("businesses")
           .select("*")
@@ -105,34 +139,48 @@ export function useFeatures() {
           });
         }
 
-        // Fetch plan settings and platform settings
-        const [plansRes, platformRes] = await Promise.all([
+        // The plans table is the same source edited by Super Admin. The legacy
+        // settings record is kept as a fallback for older deployments.
+        const [planTableRes, plansFallbackRes, platformRes] = await Promise.all([
+          supabase
+            .from("plans")
+            .select(
+              "id,slug,name,description,price_usd,stripe_price_id,stripe_product_id,features,enabled_features,monthly_credit_limit,project_limit,location_page_limit,monthly_update_allowance,monthly_update_limit,commitment_months,setup_fee,market_prices,market_price_ids,upgrade_prompt,is_popular,is_active,sort_order",
+            )
+            .eq("is_active", true)
+            .order("sort_order", { ascending: true }),
           supabase
             .from("settings")
             .select("content")
             .eq("id", "plans")
-            .single(),
+            .maybeSingle(),
           supabase
             .from("settings")
             .select("content")
             .eq("id", "marketing_hub_config")
-            .single()
+            .maybeSingle(),
         ]);
 
-        if (plansRes.data) {
-          setPlanSettings(normalizePlans(plansRes.data.content.pricing || PLANS));
-        }
-        
-        if (platformRes.data) {
-          setPlatformSettings(platformRes.data.content);
+        if (!planTableRes.error && Array.isArray(planTableRes.data) && planTableRes.data.length > 0) {
+          setPlanSettings(planTableRowsToSettings(planTableRes.data));
+        } else if (plansFallbackRes.data?.content?.pricing) {
+          setPlanSettings(normalizePlans(plansFallbackRes.data.content.pricing));
+        } else {
+          setPlanSettings(normalizePlans(PLANS));
         }
 
-        // Check for wordpress integrations
+        setPlatformSettings({
+          ...(platformRes.data?.content || {}),
+          marketingFeatures: normalizeMarketingFeatures(
+            platformRes.data?.content?.marketingFeatures,
+          ),
+        });
+
         const { count } = await supabase
           .from("wordpress_integrations")
           .select("id", { count: "exact", head: true })
           .eq("business_id", profile.businessId);
-        
+
         setHasWordPressIntegration((count || 0) > 0);
       } catch (error) {
         console.error("Error fetching feature data:", error);
@@ -147,23 +195,36 @@ export function useFeatures() {
   const isFeatureEnabled = (featureId: FeatureId): boolean => {
     if (profile?.role === "super_admin") return true;
 
-    // Check platform-wide override for WordPress
     if (featureId === "wordpress_sync") {
-      const globalStatus = platformSettings?.marketingFeatures?.wordpressIntegration;
+      const globalStatus = normalizeMarketingFeatures(
+        platformSettings?.marketingFeatures,
+      ).wordpressIntegration;
       if (globalStatus !== "enabled") return false;
     }
 
     if (!business || !planSettings.length) return false;
 
-    const currentPlan = planSettings.find((p) => p.id === business.plan);
+    const currentPlan = planSettings.find((plan) => plan.id === business.plan);
     if (!currentPlan) return false;
 
     return (currentPlan.enabled_features || []).includes(featureId);
   };
 
-  const isFeatureVisible = (featureId: FeatureId): boolean => {
+  const getMarketingCapabilityStatus = (capabilityId: MarketingCapabilityId) =>
+    normalizeMarketingFeatures(platformSettings?.marketingFeatures)[capabilityId];
+
+  const isMarketingCapabilityEnabled = (capabilityId: MarketingCapabilityId): boolean => {
+    if (getMarketingCapabilityStatus(capabilityId) !== "enabled") return false;
     if (profile?.role === "super_admin") return true;
 
+    const capability = getMarketingCapability(capabilityId);
+    if (!capability) return false;
+
+    return isFeatureEnabled(capability.entitlementFeatureId as FeatureId);
+  };
+
+  const isFeatureVisible = (featureId: FeatureId): boolean => {
+    if (profile?.role === "super_admin") return true;
     if (!business) return true;
 
     const hidden = business.dashboardHiddenFeatures || [];
@@ -178,5 +239,15 @@ export function useFeatures() {
     return true;
   };
 
-  return { isFeatureEnabled, isFeatureVisible, loading, business, planSettings, platformSettings, hasWordPressIntegration };
+  return {
+    isFeatureEnabled,
+    isFeatureVisible,
+    isMarketingCapabilityEnabled,
+    getMarketingCapabilityStatus,
+    loading,
+    business,
+    planSettings,
+    platformSettings,
+    hasWordPressIntegration,
+  };
 }
