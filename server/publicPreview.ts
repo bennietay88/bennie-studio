@@ -8,6 +8,8 @@ export type PublicPreviewProfile = {
   services: string[];
   serviceAreas: string[];
   testimonials: string[];
+  faqs: string[];
+  aboutText: string;
   credentials: string[];
   yearsInBusiness: string;
   guarantees: string[];
@@ -172,6 +174,32 @@ const extractHeroImageCandidate = (html: string, baseUrl: string) => {
     if (width >= 700) score += 2;
     if (height >= 400) score += 1;
     if (index <= 2) score += 1;
+
+    if (score > best.score) best = { url: resolved, score };
+    index += 1;
+    if (index >= 24) break;
+  }
+  return best.score >= 3 ? best.url : "";
+};
+
+const extractSecondaryImageCandidate = (html: string, baseUrl: string, heroImage: string) => {
+  let best = { url: "", score: 0 };
+  let index = 0;
+  for (const match of html.matchAll(/<img\b([^>]+)>/gi)) {
+    const attrs = String(match[1] || "");
+    if (/(?:logo|icon|avatar|badge|sprite|favicon)/i.test(attrs)) continue;
+    const src = /\b(?:src|data-src|data-lazy-src)=["']([^"']+)["']/i.exec(attrs)?.[1] || "";
+    if (!src || /^data:/i.test(src) || /\.svg(?:\?|$)/i.test(src)) continue;
+    const resolved = absoluteUrl(src, baseUrl);
+    if (!resolved || resolved === heroImage) continue;
+
+    let score = 0;
+    if (/(?:about|team|clinic|office|studio|project|gallery|environment|interior|staff)/i.test(attrs)) score += 6;
+    const width = Number(/\bwidth=["']?(\d{2,5})/i.exec(attrs)?.[1] || 0);
+    const height = Number(/\bheight=["']?(\d{2,5})/i.exec(attrs)?.[1] || 0);
+    if (width >= 700) score += 3;
+    if (height >= 400) score += 2;
+    if (index <= 5) score += 1;
 
     if (score > best.score) best = { url: resolved, score };
     index += 1;
@@ -354,10 +382,54 @@ const extractTestimonials = (html: string) => {
   for (const pattern of patterns) {
     for (const match of html.matchAll(pattern)) {
       const value = text(match[1]);
-      if (value.length >= 25 && value.length <= 180 && !/privacy|cookie|terms/i.test(value)) candidates.push(value);
+      const wordCount = value.split(/\s+/).filter(Boolean).length;
+      const looksLikeReviewerMetadata =
+        /\b(?:day|week|month|year)s?\s+ago\b/i.test(value)
+        && wordCount < 12
+        && !/[.!?]/.test(value);
+      if (
+        value.length >= 35
+        && value.length <= 280
+        && wordCount >= 6
+        && !looksLikeReviewerMetadata
+        && !/privacy|cookie|terms/i.test(value)
+      ) candidates.push(value);
     }
   }
   return [...new Set(candidates)].slice(0, 6);
+};
+
+const extractFaqs = (objects: any[], html: string) => {
+  const questions: string[] = [];
+
+  for (const object of objects) {
+    const types = Array.isArray(object?.["@type"]) ? object["@type"] : [object?.["@type"]];
+    if (!types.some((type: unknown) => String(type || "").toLowerCase() === "faqpage")) continue;
+    const entities = Array.isArray(object?.mainEntity) ? object.mainEntity : [];
+    for (const entity of entities) {
+      const question = typeof entity?.name === "string" ? entity.name.trim() : "";
+      if (question) questions.push(question.endsWith("?") ? question : `${question}?`);
+    }
+  }
+
+  for (const match of html.matchAll(/<(?:h2|h3|h4|button)[^>]*>([\s\S]*?)<\/(?:h2|h3|h4|button)>/gi)) {
+    const question = text(match[1]);
+    if (question.length >= 12 && question.length <= 160 && question.endsWith("?")) questions.push(question);
+  }
+
+  return [...new Set(questions)].slice(0, 6);
+};
+
+const extractAboutText = (html: string, description: string) => {
+  const aboutHeading = /<(?:h2|h3)[^>]*>[^<]*(?:about|our story|who we are|our clinic|our practice)[^<]*<\/(?:h2|h3)>/i.exec(html);
+  if (aboutHeading?.index !== undefined) {
+    const after = html.slice(aboutHeading.index + aboutHeading[0].length, aboutHeading.index + aboutHeading[0].length + 3200);
+    const paragraphs = [...after.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)]
+      .map((match) => text(match[1]))
+      .filter((value) => value.length >= 45 && value.length <= 700 && !/cookie|privacy|terms/i.test(value));
+    if (paragraphs.length) return paragraphs.slice(0, 2).join(" ").slice(0, 900);
+  }
+  return String(description || "").trim().slice(0, 700);
 };
 
 const pageText = (html: string) => text(html).slice(0, 40_000);
@@ -494,6 +566,8 @@ export function buildPublicPreviewProfile(input: {
   ].filter((item, index, items) => items.findIndex((candidate) => candidate.toLowerCase() === item.toLowerCase()) === index);
   if (!services.length && input.fallbackMainService?.trim()) services.push(input.fallbackMainService.trim());
   const testimonials = extractTestimonials(html);
+  const faqs = extractFaqs(schemaObjects, html);
+  const aboutText = extractAboutText(html, description);
   const serviceAreas = extractServiceAreas(schemaObjects, html);
   const credentials = extractCredentials(html);
   const yearsInBusiness = extractYearsInBusiness(schemaObjects, html);
@@ -510,7 +584,7 @@ export function buildPublicPreviewProfile(input: {
   const firstImage = imageCandidates[0] || "";
   const pageHeroImage = extractHeroImageCandidate(html, finalUrl);
   const heroImage = absoluteUrl(pageHeroImage || schemaImageRaw || ogImage || firstImage, finalUrl);
-  const secondaryImage = imageCandidates.find((image) => image !== heroImage) || "";
+  const secondaryImage = extractSecondaryImageCandidate(html, finalUrl, heroImage);
   const logoUrl = extractLogoUrl(schemaObjects, html, finalUrl);
   const { brandColor, accentColor } = extractBrandColors(html);
   const heroHeadline = h1.slice(0, 120);
@@ -526,6 +600,8 @@ export function buildPublicPreviewProfile(input: {
     services,
     serviceAreas,
     testimonials,
+    faqs,
+    aboutText,
     credentials,
     yearsInBusiness,
     guarantees,
