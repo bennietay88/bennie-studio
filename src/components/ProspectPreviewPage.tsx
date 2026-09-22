@@ -210,7 +210,7 @@ export default function ProspectPreviewPage() {
               <h2 className="mt-4 max-w-3xl text-3xl font-semibold tracking-[-0.03em] sm:text-5xl">
                 The redesign should make the business easier to understand and easier to contact.
               </h2>
-              <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300">{preview.opportunitySummary}</p>
+              <p className="mt-5 max-w-3xl text-base leading-7 text-slate-200">{preview.opportunitySummary}</p>
 
               {preview.proofSignals.length ? (
                 <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -226,7 +226,7 @@ export default function ProspectPreviewPage() {
 
             <div className="lg:col-span-5">
               <div className="border border-white/10 bg-white/[0.04] p-6 sm:p-7">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Website structure</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Website structure</p>
                 <div className="mt-5 space-y-3">
                   {preview.proposedStructure.map((item, index) => (
                     <div key={`${item}-${index}`} className="flex items-center gap-4 border-b border-white/10 pb-3 text-sm font-semibold">
@@ -237,9 +237,9 @@ export default function ProspectPreviewPage() {
                 </div>
 
                 <div className="mt-7 border-t border-white/10 pt-6">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Recommended next step</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Recommended next step</p>
                   <p className="mt-2 text-xl font-semibold">{product?.label || "Website build"}</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">{product?.reason || "Review the direction and confirm the final build scope."}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-300">{product?.reason || "Review the direction and confirm the final build scope."}</p>
                   <Link to={ctaHref} className="mt-6 inline-flex min-h-12 items-center bg-white px-5 font-bold text-[#141821] transition hover:bg-[#eeebff]">
                     {ctaLabel}<ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
