@@ -1208,7 +1208,7 @@ function GeneratePreviewPage() {
   const reviewQuality = assessManualReviewInput(form.reviews);
   const reviewStrategy = buildReviewWebsiteStrategy({
     businessName: form.businessName,
-    industry: industry.label,
+    industry: businessTypeLabel,
     city: form.location,
     mainServices: form.mainService,
     preferredCta: goal.toLowerCase().includes("whatsapp")
@@ -1224,7 +1224,7 @@ function GeneratePreviewPage() {
   const commercialRecommendation = recommendCommercialProduct({
     goal,
     notes: `${form.mainService} ${form.biggestProblem}`,
-    industry: industry.label,
+    industry: businessTypeLabel,
     requestedPages: 5,
     serviceCount: form.mainService.split(/[,/\n]+/).map((item) => item.trim()).filter(Boolean).length,
     locationCount: form.location.split(/[,/\n]+/).map((item) => item.trim()).filter(Boolean).length,
@@ -1299,7 +1299,9 @@ function GeneratePreviewPage() {
       target: "/generate-preview",
       metadata: {
         previewMode,
-        industry: industry.label,
+        industry: businessTypeLabel,
+        businessTypeId: selectedBusinessType.id,
+        templateId: selectedTemplateId,
         goal,
         location: form.location,
         hasWebsite: Boolean(form.websiteUrl),
@@ -1329,7 +1331,9 @@ function GeneratePreviewPage() {
             previewId,
             websiteUrl: previewMode === "website" ? form.websiteUrl : null,
             businessName: form.businessName || null,
-            industry: industry.label,
+            industry: selectedBusinessType.label,
+            businessTypeId: selectedBusinessType.id,
+            templateId: selectedTemplateId,
             location: form.location || null,
             mainService: form.mainService || null,
           }),
@@ -1354,7 +1358,7 @@ function GeneratePreviewPage() {
               email: form.email,
               phone: form.phone,
               businessName: form.businessName,
-              industry: industry.label,
+              industry: selectedBusinessType.label,
               websiteUrl: form.websiteUrl,
               service: form.mainService,
               message: previewMode === "website"
@@ -1380,7 +1384,9 @@ function GeneratePreviewPage() {
             leadEmail: form.email,
             websiteUrl: previewMode === "website" ? form.websiteUrl : null,
             businessName: form.businessName || null,
-            industry: industry.label,
+            industry: selectedBusinessType.label,
+            businessTypeId: selectedBusinessType.id,
+            templateId: selectedTemplateId,
             location: form.location || null,
             mainService: form.mainService || null,
           }),
@@ -1418,11 +1424,13 @@ function GeneratePreviewPage() {
         .replace(/\s+/g, " ")
         .trim()
         .slice(0, 96);
-      const resolvedIndustryId = inferPreviewIndustryId(resolvedMainService) || industryId;
-      const resolvedIndustry = previewIndustries.find((item) => item.id === resolvedIndustryId) || previewIndustries[0];
-      const resolvedTemplateId = explicitTemplateId && resolvedIndustryId === initialIndustry
-        ? explicitTemplateId
-        : previewTemplateIds[resolvedIndustryId] || "service-pro-v1";
+      const detectedIndustryId = inferPreviewIndustryId(resolvedMainService);
+      const resolvedBusinessType = selectedBusinessType;
+      const resolvedIndustryId = resolvedBusinessType.industryId;
+      const resolvedIndustry = previewIndustries.find((item) => item.id === resolvedIndustryId)
+        || previewIndustries.find((item) => item.id === "local-service")
+        || previewIndustries[0];
+      const resolvedTemplateId = resolvedBusinessType.templateId;
       const resolvedGenerationMode = resolvePreviewGenerationMode(
         resolvedIndustryId,
         form.brandStyle,
@@ -1431,12 +1439,12 @@ function GeneratePreviewPage() {
       const resolvedBrandPersonality = resolvePreviewBrandPersonality(form.brandStyle);
       const resolvedBusinessMaturity: BusinessMaturity = previewMode === "website" ? "established" : "growing";
       const resolvedGoal = previewMode === "website"
-        ? resolveWebsitePreviewGoal(resolvedIndustryId)
+        ? resolvedBusinessType.websiteGoal
         : goal;
       const resolvedCta = resolvePreviewCta(resolvedGoal);
       const resolvedReviewStrategy = buildReviewWebsiteStrategy({
         businessName: resolvedBusinessName,
-        industry: resolvedIndustry.label,
+        industry: resolvedBusinessType.label,
         city: resolvedLocation,
         mainServices: resolvedMainService,
         preferredCta: resolvedGoal.toLowerCase().includes("whatsapp")
@@ -1457,11 +1465,11 @@ function GeneratePreviewPage() {
       const blueprintInput: BlueprintBusinessInput = {
         businessName: resolvedBusinessName,
         nicheId: resolvedTemplateId,
-        nicheName: resolvedIndustry.label,
+        nicheName: resolvedBusinessType.label,
         plan: "business",
         maxPages: 5,
         mainService: resolvedMainService,
-        targetCustomer: previewTargetCustomers[resolvedIndustryId] || "customers",
+        targetCustomer: resolvedBusinessType.targetCustomer || previewTargetCustomers[resolvedIndustryId] || "customers",
         location: resolvedLocation,
         ctaPreference: resolvedCta,
         tone: form.brandStyle,
@@ -1521,7 +1529,7 @@ function GeneratePreviewPage() {
       const resolvedRecommendation = recommendCommercialProduct({
         goal: resolvedGoal,
         notes: `${resolvedMainService} ${form.biggestProblem}`,
-        industry: resolvedIndustry.label,
+        industry: resolvedBusinessType.label,
         requestedPages: 5,
         serviceCount: resolvedServices.length,
         locationCount: Array.isArray(profile.serviceAreas) ? profile.serviceAreas.length : 0,
@@ -1543,6 +1551,7 @@ function GeneratePreviewPage() {
       setForm(resolvedForm);
       setGoal(resolvedGoal);
       setIndustryId(resolvedIndustryId);
+      setBusinessTypeId(resolvedBusinessType.id);
 
       let persistedPreview: { shareUrl?: string; businessId?: string; websiteId?: string } = {};
       try {
@@ -1611,6 +1620,8 @@ function GeneratePreviewPage() {
         salesMode,
         industryId: resolvedIndustryId,
         industry: resolvedIndustry.label,
+        businessTypeId: resolvedBusinessType.id,
+        businessType: resolvedBusinessType.label,
         goal: resolvedGoal,
         recommendedProduct: resolvedRecommendation.slug,
         attribution: getTrackingContext(),
@@ -1661,6 +1672,8 @@ function GeneratePreviewPage() {
         target: "/generate-preview",
         metadata: {
           industry: resolvedIndustry.label,
+          businessType: resolvedBusinessType.label,
+          detectedIndustryId,
           recommendedProduct: resolvedRecommendation.slug,
           goal: resolvedGoal,
           previewMode,
