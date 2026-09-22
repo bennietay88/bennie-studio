@@ -2378,7 +2378,7 @@ function GeneratePreviewPage() {
                 <div key={number} className="border-t border-white/15 pt-4">
                   <p className="text-[10px] font-black tracking-[0.22em] text-[#c9c4ff]">{number}</p>
                   <p className="mt-2 font-semibold text-white">{title}</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">{copy}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-300">{copy}</p>
                 </div>
               ))}
             </div>
@@ -2387,7 +2387,7 @@ function GeneratePreviewPage() {
               <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-7 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-semibold text-white">Want this direction turned into your managed website?</p>
-                  <p className="mt-1 text-sm text-slate-400">Your preview details carry into the next step, so you do not start from zero again.</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-300">Your preview details carry into the next step, so you do not start from zero again.</p>
                 </div>
                 <Button onClick={() => action("click_launch_after_preview","Launch This Website","/preview-order")} className="min-h-12 bg-[#5746e8] px-6 font-semibold text-white hover:bg-[#4938db]">
                   Continue with this website <ArrowRight className="ml-2 h-4 w-4" />
