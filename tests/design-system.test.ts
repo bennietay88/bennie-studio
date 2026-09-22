@@ -631,3 +631,38 @@ test("managed website agency preview keeps the right 5 to 8 page architecture", 
     assert.ok(!titles.includes("Programs"));
   }
 });
+
+
+test("source-site previews use a premium home hero and compact inner-page mastheads", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Harbour Dental",
+    nicheId: "dental-clinic-v1",
+    nicheName: "Dental Clinic",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Family dentistry",
+    targetCustomer: "patients",
+    location: "Kuala Lumpur",
+    ctaPreference: "Book Appointment",
+    generationMode: "brand_led",
+    assetReadiness: "some",
+    heroImageUrl: "https://example.test/hero.jpg",
+    heroHeadline: "Comfortable Dentistry for the Whole Family",
+    heroSubheadline: "Modern treatment and straightforward advice.",
+    heroTrustItems: ["Established 2012", "Registered clinicians"],
+    preferredHeroVariant: "source_brand_hero",
+    compactSubpageHeroes: true,
+  });
+
+  const homeHero = pages[0]?.sections.find((section) => section.type === "hero");
+  assert.equal(homeHero?.settings?.variant, "source_brand_hero");
+  assert.equal(homeHero?.content?.imageUrl, "https://example.test/hero.jpg");
+  assert.deepEqual(homeHero?.content?.trustItems, ["Established 2012", "Registered clinicians"]);
+
+  for (const page of pages.slice(1)) {
+    const hero = page.sections.find((section) => section.type === "hero");
+    if (!hero) continue;
+    assert.equal(hero.settings?.variant, "page_masthead");
+    assert.equal(hero.content?.imageUrl, undefined);
+  }
+});
