@@ -3104,9 +3104,16 @@ export function WebsiteRenderer({
                               <img src={storyImage} alt={section.content.imageAlt || displayBusinessName} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                             </div>
                           ) : (
-                            <div className="flex aspect-[5/4] flex-col justify-end border border-slate-300 bg-white/60 p-8">
-                              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">Customer story image</p>
-                              <p className="mt-3 max-w-sm text-xl font-semibold leading-7 text-slate-900">Use real founder, team, office, project or service photography.</p>
+                            <div className="relative aspect-[5/4] overflow-hidden border border-slate-800 bg-slate-950 p-8 text-white">
+                              <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-primary/30 blur-3xl" aria-hidden="true" />
+                              <div className="absolute bottom-10 right-10 h-28 w-28 rounded-full border border-white/15" aria-hidden="true" />
+                              <div className="relative flex h-full flex-col justify-between">
+                                <div className="h-px w-14 bg-white/60" />
+                                <div>
+                                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">{displayBusinessDescriptor}</p>
+                                  <p className="mt-3 max-w-sm text-3xl font-semibold leading-tight text-white" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{displayBusinessName}</p>
+                                </div>
+                              </div>
                             </div>
                           )}
                         </motion.div>
@@ -3202,6 +3209,7 @@ export function WebsiteRenderer({
                         viewport={{ once: true, margin: "-80px" }}
                         variants={staggerContainer}
                         className="bg-slate-950 py-20 text-white sm:py-28"
+                        style={{ backgroundColor: "#020617", color: "#f8fafc" }}
                       >
                         <div className="mx-auto max-w-7xl px-6">
                           <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-end">
