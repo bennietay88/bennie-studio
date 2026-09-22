@@ -135,7 +135,7 @@ interface LocalSeoDashboardProps {
 
 export default function LocalSeoDashboard({ businessIdOverride }: LocalSeoDashboardProps = {}) {
   const { profile } = useAuth();
-  const effectiveBusinessId = businessIdOverride || effectiveBusinessId || null;
+  const effectiveBusinessId = businessIdOverride || profile?.businessId || null;
   const [business, setBusiness] = React.useState<any>(null);
   const [planSettings, setPlanSettings] = React.useState<any[]>(normalizePlans(PLANS));
   const [drafts, setDrafts] = React.useState<LocalSeoPageDraft[]>([]);
