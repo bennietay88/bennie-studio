@@ -78,6 +78,7 @@ export interface BlueprintBusinessInput {
   contactPhone?: string;
   whatsappNumber?: string;
   faqs?: string[];
+  faqItems?: Array<{ question: string; answer: string }>;
   testimonials?: string[];
   generationMode?: WebsiteGenerationMode;
   brandPersonality?: BrandPersonality;
@@ -688,6 +689,17 @@ const getServiceItems = (input: BlueprintBusinessInput) => {
 };
 
 const getFaqItems = (input: BlueprintBusinessInput) => {
+  const verifiedFaqItems = (input.faqItems || [])
+    .filter((item) => item?.question && item?.answer)
+    .slice(0, 6)
+    .map((item) => ({
+      question: item.question.includes("?") ? item.question : `${item.question}?`,
+      answer: item.answer,
+    }));
+  if (verifiedFaqItems.length > 0) return verifiedFaqItems;
+
+  if (input.sourceDriven) return [];
+
   const customFaqs = (input.faqs || []).filter(Boolean);
   if (customFaqs.length > 0) {
     return customFaqs.slice(0, 6).map((question) => ({
@@ -695,8 +707,6 @@ const getFaqItems = (input: BlueprintBusinessInput) => {
       answer: `Contact ${input.businessName} for a clear answer based on your needs.`,
     }));
   }
-
-  if (input.sourceDriven) return [];
 
   return [
     {
@@ -1018,7 +1028,7 @@ const resolveSourceDrivenBlockPlan = (
 ): SectionBlockType[] => {
   const hasAbout = Boolean(String(input.aboutText || input.description || "").trim());
   const hasTestimonials = (input.testimonials || []).filter(Boolean).length > 0;
-  const hasFaqs = (input.faqs || []).filter(Boolean).length > 0;
+  const hasFaqs = (input.faqItems || []).some((item) => item?.question && item?.answer);
 
   if (page.slug === "") {
     return [
