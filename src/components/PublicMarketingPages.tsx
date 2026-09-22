@@ -1643,6 +1643,23 @@ function GeneratePreviewPage() {
         return { website, quality, rank };
       });
       const selectedPreview = previewCandidates.sort((a, b) => b.rank - a.rank)[0];
+      if (previewMode === "website") {
+        const salesBlockingChecks = new Set([
+          "source_preview_language",
+          "source_preview_availability",
+          "source_preview_contact",
+          "source_preview_hero",
+          "placeholders",
+          "proof_integrity",
+        ]);
+        const blockingFailures = selectedPreview.quality.checks.filter(
+          (check) => salesBlockingChecks.has(check.key) && !check.pass,
+        );
+        if (blockingFailures.length) {
+          throw new Error("This version did not meet the preview quality bar, so it was not shown. Please rebuild the preview.");
+        }
+      }
+
       const resolvedRecommendation = recommendCommercialProduct({
         goal: resolvedGoal,
         notes: `${resolvedMainService} ${form.biggestProblem}`,
