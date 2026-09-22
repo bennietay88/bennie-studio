@@ -1,12 +1,13 @@
 import { next, rewrite } from "@vercel/functions";
 import { classifyTenantHost, getPlatformHosts, normalizeDomainInput } from "./src/lib/tenantDomains.js";
+import { isHandoverGraceActive } from "./src/lib/billingLifecycle.js";
 
 type TenantResolveResult =
   | { ok: true; businessId: string; websiteId: string; kind: string }
   | { ok: false; status: number; code: string; message: string };
 
 const TENANT_SELECT =
-  "id,name,custom_domain,subdomain,custom_domain_status,custom_domain_verified_at,custom_domain_suspended,custom_domain_permission_confirmed,ssl_status,status,subscription_status,subscription_grace_until";
+  "id,name,custom_domain,subdomain,custom_domain_status,custom_domain_verified_at,custom_domain_suspended,custom_domain_permission_confirmed,ssl_status,status,subscription_status,subscription_grace_until,handover_grace_until";
 
 function jsonError(status: number, code: string, message: string) {
   return new Response(JSON.stringify({ error: message, code }), {
@@ -43,12 +44,13 @@ async function fetchSupabase(path: string) {
 function subscriptionIsAllowed(business: any) {
   const status = String(business.subscription_status || "").toLowerCase();
   const graceUntil = business.subscription_grace_until ? new Date(business.subscription_grace_until).getTime() : 0;
-  return status === "active" || (graceUntil > Date.now() && ["past_due", "trialing", "grace"].includes(status));
+  return status === "active" || (graceUntil > Date.now() && ["past_due", "trialing", "grace"].includes(status)) || isHandoverGraceActive(business.handover_grace_until);
 }
 
 function validateBusinessForHost(business: any, kind: string): TenantResolveResult | null {
   if (!business) return { ok: false, status: 404, code: "DOMAIN_NOT_FOUND", message: "Domain not found." };
-  if (business.status !== "active") {
+  const handoverGraceActive = isHandoverGraceActive(business.handover_grace_until);
+  if (business.status !== "active" && !handoverGraceActive) {
     return { ok: false, status: 403, code: business.status === "suspended" ? "BUSINESS_SUSPENDED" : "BUSINESS_INACTIVE", message: "This website is not available." };
   }
   if (!subscriptionIsAllowed(business)) {
