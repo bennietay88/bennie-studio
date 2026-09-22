@@ -2642,9 +2642,155 @@ export function WebsiteRenderer({
                     </motion.section>
                   );
                 case "hero":
-                  if (["brand_media", "editorial_split", "full_bleed_editorial", "statement_media"].includes(section.settings?.variant || "")) {
+                  if (["brand_media", "editorial_split", "full_bleed_editorial", "statement_media", "source_brand_hero", "page_masthead"].includes(section.settings?.variant || "")) {
                     const heroVariant = section.settings?.variant || "editorial_split";
                     const hasHeroImage = Boolean(section.content.imageUrl);
+                    const heroTrustItems = Array.isArray(section.content.trustItems)
+                      ? section.content.trustItems.map((item: unknown) => String(item || "").trim()).filter(Boolean).slice(0, 3)
+                      : [];
+
+                    if (heroVariant === "page_masthead") {
+                      return (
+                        <motion.section
+                          id={sectionId}
+                          key={section.id || `hero-${idx}`}
+                          initial="initial"
+                          animate="animate"
+                          variants={staggerContainer}
+                          className="relative overflow-hidden border-b border-slate-200 bg-[#f8f7f4]"
+                        >
+                          <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[38%] lg:block" aria-hidden="true">
+                            <div className="absolute inset-0 bg-primary/[0.055]" />
+                            <div className="absolute right-[18%] top-1/2 h-44 w-44 -translate-y-1/2 rounded-full border border-primary/15" />
+                          </div>
+                          <div className="relative mx-auto max-w-[90rem] px-6 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
+                            <motion.div variants={fadeInUp} className="max-w-4xl">
+                              <div className="flex items-center gap-3">
+                                <span className="h-px w-9" style={{ backgroundColor: accessibleTheme.primaryInk }} />
+                                <p className="text-[10px] font-black uppercase tracking-[0.26em]" style={{ color: accessibleTheme.primaryInk }}>
+                                  {displayBusinessDescriptor}
+                                </p>
+                              </div>
+                              <h1
+                                className="mt-7 max-w-[18ch] text-[clamp(2.5rem,5vw,5rem)] font-semibold leading-[0.98] tracking-[-0.045em] text-slate-950 [text-wrap:balance]"
+                                style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
+                              >
+                                {section.content.headline || displayBusinessName}
+                              </h1>
+                              {section.content.subheadline ? (
+                                <p className="mt-6 max-w-2xl text-base font-medium leading-7 text-slate-600 sm:text-lg">
+                                  {section.content.subheadline}
+                                </p>
+                              ) : null}
+                            </motion.div>
+                          </div>
+                        </motion.section>
+                      );
+                    }
+
+                    if (heroVariant === "source_brand_hero") {
+                      return (
+                        <motion.section
+                          id={sectionId}
+                          key={section.id || `hero-${idx}`}
+                          initial="initial"
+                          animate="animate"
+                          variants={staggerContainer}
+                          className="relative overflow-hidden border-b border-slate-200 bg-white"
+                        >
+                          <div className="mx-auto grid max-w-[90rem] lg:min-h-[43rem] lg:grid-cols-12">
+                            <motion.div
+                              variants={fadeInUp}
+                              className="relative flex flex-col justify-center px-6 py-14 sm:px-10 sm:py-18 lg:col-span-5 lg:px-16 lg:py-20"
+                            >
+                              <div className="absolute left-0 top-0 hidden h-full w-1 lg:block" style={{ backgroundColor: accessibleTheme.primarySurface }} />
+                              <div className="flex items-center gap-3">
+                                <span className="h-px w-10" style={{ backgroundColor: accessibleTheme.primaryInk }} />
+                                <p className="text-[10px] font-black uppercase tracking-[0.26em]" style={{ color: accessibleTheme.primaryInk }}>
+                                  {displayBusinessDescriptor}
+                                </p>
+                              </div>
+
+                              <h1
+                                className="mt-7 max-w-[15ch] break-words text-[clamp(2.7rem,5.4vw,5.35rem)] font-semibold leading-[0.97] tracking-[-0.05em] text-slate-950 [text-wrap:balance]"
+                                style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
+                              >
+                                {section.content.headline || displayBusinessName}
+                              </h1>
+
+                              {section.content.subheadline ? (
+                                <p className="mt-7 max-w-[38rem] text-base font-medium leading-7 text-slate-600 sm:text-lg sm:leading-8">
+                                  {section.content.subheadline}
+                                </p>
+                              ) : null}
+
+                              <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                                <Button
+                                  size="lg"
+                                  className="min-h-14 rounded-xl px-7 text-sm font-bold shadow-sm"
+                                  style={{ backgroundColor: accessibleTheme.primarySurface, color: accessibleTheme.primaryForeground }}
+                                  onClick={() => handleButtonAction(section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "hero_cta_clicked", sectionId: section.id })}
+                                >
+                                  {section.content.ctaText || "Contact Us"}
+                                  <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                                {contactPhone ? (
+                                  <Button
+                                    variant="outline"
+                                    size="lg"
+                                    className="min-h-14 rounded-xl border-slate-300 bg-white px-6 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                                    onClick={() => handleButtonAction("Call Us", undefined, { eventType: "hero_phone_clicked", sectionId: section.id })}
+                                  >
+                                    <Phone className="mr-2 h-4 w-4" /> Call us
+                                  </Button>
+                                ) : null}
+                              </div>
+
+                              {heroTrustItems.length ? (
+                                <div className="mt-9 grid gap-3 border-t border-slate-200 pt-6 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                                  {heroTrustItems.map((item: string, itemIndex: number) => (
+                                    <div key={`${item}-${itemIndex}`} className="flex items-start gap-2 text-xs font-semibold leading-5 text-slate-600">
+                                      <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: accessibleTheme.primaryInk }} />
+                                      <span>{item}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </motion.div>
+
+                            <motion.div
+                              variants={fadeInUp}
+                              className="relative min-h-[22rem] overflow-hidden bg-slate-100 sm:min-h-[30rem] lg:col-span-7 lg:min-h-full"
+                            >
+                              {hasHeroImage ? (
+                                <>
+                                  <img
+                                    src={section.content.imageUrl}
+                                    alt={section.content.imageAlt || displayBusinessName}
+                                    className="absolute inset-0 h-full w-full object-cover object-center"
+                                    loading="eager"
+                                    fetchPriority="high"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent" />
+                                </>
+                              ) : (
+                                <div className="absolute inset-0 flex items-end overflow-hidden p-8 sm:p-12 lg:p-14" style={{ backgroundColor: accessibleTheme.primarySurface, color: accessibleTheme.primaryForeground }}>
+                                  <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full border border-white/20" />
+                                  <div className="absolute right-[18%] top-[22%] h-48 w-48 rounded-full bg-white/10" />
+                                  <div className="relative max-w-md">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.26em] opacity-80">{displayBusinessDescriptor}</p>
+                                    <p className="mt-4 text-3xl font-semibold leading-tight sm:text-4xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                      {displayBusinessName}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </motion.div>
+                          </div>
+                        </motion.section>
+                      );
+                    }
 
                     if (heroVariant === "statement_media") {
                       return (
