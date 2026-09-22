@@ -1392,7 +1392,7 @@ async function startServer() {
         return res.json({ state: "cancelled", handoverGraceUntil: graceUntil, handoverGraceDays: HANDOVER_GRACE_DAYS });
       }
 
-      const scheduled = current.cancel_at_period_end
+      const scheduled: any = current.cancel_at_period_end
         ? current
         : await stripe.subscriptions.update(stripeSubscriptionId, { cancel_at_period_end: true });
       if (!scheduled.cancel_at_period_end) throw new Error("STRIPE_CANCELLATION_NOT_CONFIRMED");
