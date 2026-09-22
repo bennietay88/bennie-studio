@@ -2370,6 +2370,14 @@ export function WebsiteRenderer({
 
         {/* Main Content */}
         <main className="flex-1">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={`${activePageSlug || "home"}:${selectedPost?.id || ""}`}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            >
           {activePage?.sections
             ?.filter((s: WebsiteSection) => s.isVisible !== false)
             .map((section: WebsiteSection, idx: number) => {
@@ -5266,6 +5274,8 @@ export function WebsiteRenderer({
               </div>
             </div>
           )}
+            </motion.div>
+          </AnimatePresence>
         </main>
 
         {(isPreviewPresentation || isSourceDrivenPresentation) ? (
