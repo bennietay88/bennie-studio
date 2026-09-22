@@ -516,7 +516,7 @@ export default function BrandLedLandingPage() {
                       <div className="grid grid-cols-[2.75rem_1fr] gap-4">
                         <span className="grid h-11 w-11 place-items-center bg-[#eeebff] text-[#5746e8]"><Icon className="h-5 w-5" /></span>
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8b93a0]">{item.step} · {item.label}</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#526071]">{item.step} · {item.label}</p>
                           <h3 className="mt-2 text-lg">{item.title}</h3>
                           <p className="mt-2 text-sm leading-6 text-[#687386]">{item.copy}</p>
                         </div>
@@ -648,8 +648,8 @@ export default function BrandLedLandingPage() {
             </div>
             <div className="overflow-hidden border border-[#dfe2ea] bg-white lg:col-span-8">
               <div className="grid grid-cols-[1fr_1fr] border-b border-[#dfe2ea] bg-[#f3f4f8] sm:grid-cols-[1.1fr_1fr_1fr]">
-                <div className="hidden px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#8b93a0] sm:block">Area</div>
-                <div className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#8b93a0]">Project-only build</div>
+                <div className="hidden px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#526071] sm:block">Area</div>
+                <div className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#526071]">Project-only build</div>
                 <div className="bg-[#101827] px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#b9b1ff]">Bennie Studio</div>
               </div>
               {managedComparison.map(([area, project, managed]) => (
@@ -681,8 +681,8 @@ export default function BrandLedLandingPage() {
                           <p className={isGrowth ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{isGrowth ? "Recommended" : planBestFor[index]}</p>
                           <h3 className={isGrowth ? "mt-2 !text-white" : "mt-2"}>{product.name}</h3>
                         </div>
-                        <p className={isGrowth ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#707b8a]"}>/month</span></p>
-                        <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#707b8a]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
+                        <p className={isGrowth ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "MYR")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
+                        <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "MYR")} setup</p>
                         <div className={isGrowth ? "mt-6 space-y-3 border-t border-white/25 pt-5" : "mt-6 space-y-3 border-t border-[#dfe2ea] pt-5"}>
                           {planComparisonRows.map(([label, values]) => (
                             <div key={label} className="flex items-start justify-between gap-4 text-sm">
