@@ -1321,6 +1321,9 @@ async function startServer() {
       if (!stripeSubscriptionId) {
         return res.status(409).json({ error: "No managed Stripe subscription is attached to this account. Please contact support before deleting the account." });
       }
+      if (!subscription?.id) {
+        return res.status(409).json({ error: "The billing record is incomplete. Please contact support so cancellation can be reconciled safely." });
+      }
 
       const now = new Date();
       const nowIso = now.toISOString();
@@ -1455,11 +1458,12 @@ async function startServer() {
             .maybeSingle(),
         ]);
 
-        const billingStatus = subscription?.status || business?.subscription_status || null;
-        if (!subscriptionAllowsPermanentDeletion(billingStatus)) {
+        const subscriptionStatus = subscription?.status || null;
+        const businessStatus = business?.subscription_status || null;
+        if (!subscriptionAllowsPermanentDeletion(subscriptionStatus) || !subscriptionAllowsPermanentDeletion(businessStatus)) {
           return res.status(409).json({
             error: "Managed service is still active. Cancel the managed service first; permanent deletion is available after the subscription ends.",
-            subscriptionStatus: billingStatus,
+            subscriptionStatus: subscriptionStatus || businessStatus,
             renewalState: subscription?.renewal_state || null,
           });
         }
@@ -1627,6 +1631,22 @@ async function startServer() {
             status: "canceled", renewal_state: "cancelled", cancel_at_period_end: true,
             cancellation_effective_at: now, last_stripe_sync_at: now,
           }).eq("id", subscription.id);
+          try {
+            const cancelledProfile = await getProfileForUser(subscription.user_id);
+            if (cancelledProfile?.business_id) {
+              await supabaseAdmin.from("businesses").update({
+                subscription_status: "canceled",
+                status: "inactive",
+                managed_service_cancellation_effective_at: now,
+                handover_grace_until: handoverGraceUntil(now),
+              }).eq("id", cancelledProfile.business_id);
+            }
+          } catch (handoverError: any) {
+            console.warn("Cancellation reconciliation could not update handover grace", {
+              userId: subscription.user_id,
+              error: handoverError?.message || handoverError,
+            });
+          }
           results.push({ id: subscription.id, state: "cancelled", reconciled: true });
           continue;
         }
