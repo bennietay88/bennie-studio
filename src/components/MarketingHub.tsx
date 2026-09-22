@@ -1,29 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { supabase } from "../lib/supabase";
-import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 import {
-  Sparkles,
   FileText,
   MessageSquare,
   Star,
   ArrowRight,
   Zap,
   Target,
-  BarChart3,
-  Users,
   Search,
-  Mail,
   Megaphone,
   Loader2,
   Lock,
-  Clock,
   CheckCircle2,
   AlertTriangle,
-  X,
   RefreshCcw,
+  MapPin,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import {
@@ -51,7 +45,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { useFeatures, FeatureId } from "../hooks/useFeatures";
+import { useFeatures } from "../hooks/useFeatures";
+import type { MarketingCapabilityId } from "../constants/marketingPro";
 import { generateMarketingContent } from "../lib/gemini";
 
 const fadeInUp = {
@@ -70,181 +65,50 @@ const staggerContainer = {
 
 export function MarketingHub() {
   const navigate = useNavigate();
-  const { profile } = useAuth();
-  const { isFeatureEnabled } = useFeatures();
+  const reduceMotion = useReducedMotion();
+  const {
+    business,
+    loading,
+    planSettings,
+    isMarketingCapabilityEnabled,
+    getMarketingCapabilityStatus,
+  } = useFeatures();
 
-  const [loading, setLoading] = useState(true);
-  const [business, setBusiness] = useState<any>(null);
-  const [platformConfig, setPlatformConfig] = useState<any>(null);
-  const [activeTool, setActiveTool] = useState<string | null>(null);
-  const [isTrialDialogOpen, setIsTrialDialogOpen] = useState(false);
-
-  // Feature Specific States
   const [isSeoModalOpen, setIsSeoModalOpen] = useState(false);
   const [isAdModalOpen, setIsAdModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [seoResult, setSeoResult] = useState<any>(null);
   const [adResult, setAdResult] = useState<any>(null);
-
   const [isApplyingFix, setIsApplyingFix] = useState<string | null>(null);
   const [fixedIssues, setFixedIssues] = useState<number[]>([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (!profile?.uid) return;
-
-        console.log("Fetching Marketing Hub Config and Business Data...");
-        const results = await Promise.allSettled([
-          supabase
-            .from("settings")
-            .select("*")
-            .eq("id", "marketing_hub_config")
-            .maybeSingle(),
-          supabase
-            .from("businesses")
-            .select("*")
-            .eq("id", profile.businessId)
-            .maybeSingle(),
-        ]);
-
-        const settingsResult = results[0];
-        const bizResult = results[1];
-
-        if (
-          settingsResult.status === "fulfilled" &&
-          settingsResult.value.data
-        ) {
-          console.log(
-            "Marketing Hub Config Found:",
-            settingsResult.value.data.content,
-          );
-          setPlatformConfig(settingsResult.value.data.content);
-        } else {
-          const error =
-            settingsResult.status === "rejected"
-              ? settingsResult.reason
-              : settingsResult.value?.error;
-          console.log("Marketing Hub Config NOT Found or Error:", error);
-          // Fallback
-          setPlatformConfig({
-            marketingFeatures: {
-              seoAudit: "coming_soon",
-              adGenerator: "coming_soon",
-            },
-          });
-        }
-
-        if (bizResult.status === "fulfilled" && bizResult.value.data) {
-          setBusiness(bizResult.value.data);
-        } else {
-          const error =
-            bizResult.status === "rejected"
-              ? bizResult.reason
-              : bizResult.value?.error;
-          console.error(
-            "Error fetching business data (likely missing columns):",
-            error,
-          );
-          // If columns are missing, bizResult.value.data might be null or undefined
-        }
-      } catch (err) {
-        console.error("Unexpected error in Marketing Hub fetchData:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [profile]);
-
-  const handleStartTrial = async () => {
-    try {
-      toast.info("Marketing Hub trials are paused. Contact Bennie Studio to discuss an active growth engagement.");
-      setIsTrialDialogOpen(false);
-    } catch (err: any) {
-      toast.error("Failed to start trial: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getToolStatus = (toolId: string) => {
-    if (
-      toolId === "blog" ||
-      toolId === "leads" ||
-      toolId === "reviews" ||
-      toolId === "seo" ||
-      toolId === "ads"
-    ) {
-      return "active";
-    }
-
-    if (!platformConfig?.marketingFeatures) {
-      console.log(
-        `[getToolStatus] No platformConfig.marketingFeatures for ${toolId}`,
-      );
-      return "coming_soon";
-    }
-
-    const status =
-      platformConfig.marketingFeatures[
-        toolId === "seo" ? "seoAudit" : "adGenerator"
-      ];
-    console.log(`[getToolStatus] toolId: ${toolId}, status: ${status}`);
-    return status || "coming_soon";
-  };
-
-  const checkAccess = (toolId: string) => {
-    // Platform level check
-    const status = getToolStatus(toolId);
+  const checkAccess = (capabilityId: MarketingCapabilityId) => {
+    const status = getMarketingCapabilityStatus(capabilityId);
     if (status === "disabled") return false;
     if (status === "coming_soon") return "coming_soon";
-
-    // Feature gate checks
-    if (toolId === "seo" && !isFeatureEnabled("advanced_seo")) return "upsell";
-    if (toolId === "ads" && !isFeatureEnabled("advanced_seo")) return "upsell";
-    if (toolId === "leads" && !isFeatureEnabled("lead_crm")) return "upsell";
-    if (toolId === "reviews" && !isFeatureEnabled("review_management"))
-      return "upsell";
-    if (toolId === "blog" && !isFeatureEnabled("ai_synthesis")) return "upsell";
-
-    // Business level check for premium features (SEO and Ads are premium automations)
-    if (["seo", "ads"].includes(toolId)) {
-      if (
-        business?.marketing_plan === "active" ||
-        business?.marketing_status === "trialing" ||
-        business?.marketing_status === "active"
-      ) {
-        return true;
-      }
-      return "upsell";
-    }
-
-    return true; // Other tools might be free or part of base plan
+    if (!isMarketingCapabilityEnabled(capabilityId)) return "upsell";
+    return true;
   };
 
-  const handleToolAction = (tool: any) => {
+  const handleToolAction = (tool: { id: MarketingCapabilityId; action: () => void }) => {
     const access = checkAccess(tool.id);
 
     if (access === "upsell") {
-      setIsTrialDialogOpen(true);
+      navigate("/dashboard/billing");
       return;
     }
-
     if (access === "coming_soon") {
-      toast.info("This feature is coming soon!");
+      toast.info("This Marketing Pro capability is not live yet.");
       return;
     }
-
     if (!access) {
-      toast.error("This feature is currently disabled by the administrator.");
+      toast.error("This Marketing Pro capability is disabled by Bennie Studio.");
       return;
     }
 
-    if (tool.id === "seo") {
+    if (tool.id === "seoAudit") {
       setIsSeoModalOpen(true);
-    } else if (tool.id === "ads") {
+    } else if (tool.id === "adGenerator") {
       setIsAdModalOpen(true);
     } else {
       tool.action();
@@ -266,7 +130,7 @@ export function MarketingHub() {
         name: business.name,
         industry: business.industry,
         description:
-          business.business_nature || website?.seo?.description || "",
+          business.businessNature || website?.seo?.description || "",
         location: business.location,
       });
 
@@ -345,7 +209,7 @@ export function MarketingHub() {
       const result = await generateMarketingContent("seo_audit", {
         name: business.name,
         industry: business.industry,
-        description: business.business_nature || "",
+        description: business.businessNature || "",
         location: business.location || "",
         targetAudience: website?.seo?.targetAudience || "General Public",
         currentSeo: website?.seo || {},
@@ -360,58 +224,75 @@ export function MarketingHub() {
     }
   };
 
-  const tools = [
+  const tools: Array<{
+    id: MarketingCapabilityId;
+    title: string;
+    desc: string;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
+    bg: string;
+    action: () => void;
+  }> = [
     {
-      id: "blog",
-      title: "Blog Automation",
-      desc: "Let AI research and draft SEO-optimized articles for your business on a weekly schedule.",
-      icon: FileText,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50",
-      action: () => navigate("/dashboard/blog"),
-      status: "active",
-    },
-    {
-      id: "leads",
-      title: "Email Seeding",
-      desc: "Connect with your captured leads and draft personalized follow-up campaigns automatically.",
-      icon: MessageSquare,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
-      action: () => navigate("/dashboard/leads"),
-      status: "active",
-    },
-    {
-      id: "reviews",
-      title: "Review Booster",
-      desc: "Automatically request reviews from happy customers and boost your Google/Yelp rankings.",
-      icon: Star,
-      color: "text-amber-600",
-      bg: "bg-amber-50",
-      action: () => navigate("/dashboard/reviews"),
-      status: "active",
-    },
-    {
-      id: "seo",
+      id: "seoAudit",
       title: "SEO Audit",
-      desc: "Scan your website for SEO gaps and get a prioritized list of improvements to rank higher.",
+      desc: "Review your current website metadata and content context for concrete search and content improvements.",
       icon: Search,
       color: "text-purple-600",
       bg: "bg-purple-50",
       action: () => {},
-      status: getToolStatus("seo"),
     },
     {
-      id: "ads",
-      title: "Ad Generator",
-      desc: "Create Facebook and Google Ad headlines and descriptions that actually convert.",
+      id: "adGenerator",
+      title: "Campaign Copy",
+      desc: "Draft search and social campaign copy from your real business profile. Media buying and ad management are not included.",
       icon: Megaphone,
-      color: "text-red-600",
-      bg: "bg-red-50",
+      color: "text-rose-600",
+      bg: "bg-rose-50",
       action: () => {},
-      status: getToolStatus("ads"),
+    },
+    {
+      id: "leadFollowUp",
+      title: "Leads & Follow-up",
+      desc: "Work captured enquiries, prioritize follow-up and prepare reusable WhatsApp or email responses.",
+      icon: MessageSquare,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      action: () => navigate("/dashboard/leads"),
+    },
+    {
+      id: "reviews",
+      title: "Reviews & Reputation",
+      desc: "Manage customer review proof and prepare review-request campaigns you can copy into your normal follow-up workflow.",
+      icon: Star,
+      color: "text-amber-600",
+      bg: "bg-amber-50",
+      action: () => navigate("/dashboard/reviews"),
+    },
+    {
+      id: "localSeo",
+      title: "Local SEO",
+      desc: "Prepare location-page drafts with local proof, schema-ready details and publishing quality checks.",
+      icon: MapPin,
+      color: "text-emerald-600",
+      bg: "bg-emerald-50",
+      action: () => navigate("/dashboard/local-seo"),
+    },
+    {
+      id: "blog",
+      title: "Blog & Content",
+      desc: "Draft, edit and publish website articles with AI-assisted first drafts where your main plan includes content tools.",
+      icon: FileText,
+      color: "text-indigo-600",
+      bg: "bg-indigo-50",
+      action: () => navigate("/dashboard/blog"),
     },
   ];
+
+  const currentPlan = planSettings.find((plan) => plan.id === business?.plan);
+  const unlockedCount = tools.filter(
+    (tool) => getMarketingCapabilityStatus(tool.id) === "enabled" && isMarketingCapabilityEnabled(tool.id),
+  ).length;
 
   if (loading) {
     return (
@@ -421,251 +302,117 @@ export function MarketingHub() {
     );
   }
 
-  if (!business && !loading) {
-    return (
-      <div className="max-w-2xl mx-auto py-20 text-center animate-in fade-in duration-700">
-        <div className="h-24 w-24 bg-slate-50 dark:bg-slate-900 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
-          <Megaphone className="h-10 w-10 text-slate-300" />
-        </div>
-        <h2 className="text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-4">
-          Marketing Engine Offline.
-        </h2>
-        <p className="text-slate-500 dark:text-slate-400 text-lg mb-10 max-w-sm mx-auto">
-          To activate AI SEO audits and automated ad generation, you must first
-          initialize your business infrastructure.
-        </p>
-        <Button
-          onClick={() => navigate("/dashboard/website/regenerate")}
-          size="lg"
-          className="h-16 px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-200"
-        >
-          Synthesize Business Ecosystem
-        </Button>
-      </div>
-    );
-  }
-
-  // Marketing Hub is a legacy add-on. Keep access for historical active/trialing
-  // customers, but do not expose a new-customer upsell or trial flow.
-  const legacyMarketingAccess = business?.marketing_status === "active" || business?.marketing_status === "trialing";
-  if (business && !legacyMarketingAccess) {
+  if (!business) {
     return (
       <div className="mx-auto max-w-2xl py-20 text-center">
-        <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-slate-50 shadow-inner">
-          <Sparkles className="h-10 w-10 text-slate-300" />
+        <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-100">
+          <Megaphone className="h-9 w-9 text-slate-400" />
         </div>
-        <h2 className="mb-4 text-4xl font-black uppercase tracking-tighter text-slate-900">Marketing Hub paused</h2>
-        <p className="mx-auto mb-10 max-w-lg text-lg text-slate-500">Marketing Hub is no longer offered as a standalone add-on. Use your managed website and Website Growth service for ongoing conversion and SEO improvements.</p>
-        <Button onClick={() => navigate("/dashboard")} size="lg" className="h-14 rounded-2xl bg-indigo-600 px-8 font-black">Back to dashboard</Button>
+        <h2 className="text-3xl font-black tracking-tight text-slate-900">Marketing Pro needs a business account</h2>
+        <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-500">
+          Marketing Pro uses your Bennie Studio business profile and website context. Complete business setup before using these tools.
+        </p>
       </div>
     );
   }
-
-  const isTrialActive = business?.marketing_status === "trialing";
-  const hasMarketingPlan =
-    business?.marketing_plan === "active" ||
-    business?.marketing_status === "active";
 
   return (
     <motion.div
-      initial="initial"
+      initial={reduceMotion ? false : "initial"}
       animate="animate"
       variants={staggerContainer}
       className="space-y-8 pt-8"
     >
-      <motion.div
-        variants={fadeInUp}
-        className="flex justify-between items-end"
-      >
+      <motion.div variants={fadeInUp} className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-white">
-            Marketing Hub
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            Accelerate your business growth with AI-powered marketing
-            automations.
+          <Badge className="mb-4 border-0 bg-indigo-50 text-indigo-700">Included capability module</Badge>
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Marketing Pro</h1>
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 dark:text-slate-400">
+            Growth tools inside Bennie Studio. Access comes from your main plan and Bennie Studio can pause individual capabilities globally when needed.
           </p>
         </div>
-
-        {isTrialActive && (
-          <Badge className="bg-amber-50 text-amber-600 border-amber-200 px-4 py-2 rounded-full flex items-center gap-2">
-            <Clock className="h-4 w-4" /> Trial active until{" "}
-            {new Date(business.marketing_trial_ends_at).toLocaleDateString()}
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline" className="rounded-full px-4 py-2 text-xs font-bold">
+            {currentPlan?.name || business.plan || "Current plan"}
           </Badge>
-        )}
+          <Badge className="rounded-full border-0 bg-slate-900 px-4 py-2 text-xs font-bold text-white">
+            {unlockedCount}/{tools.length} available
+          </Badge>
+        </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tools.map((tool) => (
-          <motion.div
-            key={tool.id}
-            variants={fadeInUp}
-            whileHover={{ y: -5 }}
-            className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm transition-all group flex flex-col justify-between relative overflow-hidden"
-          >
-            {checkAccess(tool.id) === "upsell" && (
-              <div className="absolute top-0 right-0 p-4">
-                <Lock className="h-5 w-5 text-slate-300" />
-              </div>
-            )}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {tools.map((tool) => {
+          const access = checkAccess(tool.id);
+          const status = getMarketingCapabilityStatus(tool.id);
+          const locked = access === "upsell";
+          const unavailable = status === "disabled" || status === "coming_soon";
 
-            <div>
-              <div className="flex justify-between items-start mb-6">
-                <div
-                  className={`${tool.bg} dark:bg-slate-800 ${tool.color} p-4 rounded-2xl`}
-                >
-                  <tool.icon className="h-8 w-8" />
-                </div>
-                {tool.status === "coming_soon" && (
-                  <Badge
-                    variant="outline"
-                    className="rounded-full border-slate-200 dark:border-slate-800 text-[10px] uppercase font-bold tracking-widest text-slate-400"
-                  >
-                    Coming Soon
-                  </Badge>
-                )}
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                {tool.title}
-              </h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-8">
-                {tool.desc}
-              </p>
-            </div>
-
-            <Button
-              onClick={() => handleToolAction(tool)}
-              disabled={
-                tool.status === "coming_soon" || tool.status === "disabled"
-              }
-              variant={tool.status === "coming_soon" ? "outline" : "default"}
-              className={`w-full rounded-2xl h-14 font-bold border-none transition-all ${
-                tool.status === "coming_soon" || tool.status === "disabled"
-                  ? "bg-slate-100 text-slate-400"
-                  : checkAccess(tool.id) === "upsell"
-                    ? "bg-slate-900 text-white"
-                    : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
-              }`}
+          return (
+            <motion.div
+              key={tool.id}
+              variants={fadeInUp}
+              whileHover={reduceMotion ? undefined : { y: -4 }}
+              className="relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200 bg-white p-7 shadow-sm dark:border-slate-800 dark:bg-slate-900"
             >
-              {tool.status === "coming_soon"
-                ? "Waitlist"
-                : tool.status === "disabled"
-                  ? "Unavailable"
-                  : checkAccess(tool.id) === "upsell"
-                    ? "Unlock Feature"
-                    : "Launch Tool"}{" "}
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </motion.div>
-        ))}
+              {locked && (
+                <div className="absolute right-5 top-5">
+                  <Lock className="h-5 w-5 text-slate-300" />
+                </div>
+              )}
+
+              <div>
+                <div className={`${tool.bg} ${tool.color} mb-6 flex h-14 w-14 items-center justify-center rounded-2xl dark:bg-slate-800`}>
+                  <tool.icon className="h-7 w-7" />
+                </div>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">{tool.title}</h3>
+                  {status === "coming_soon" && <Badge variant="outline">Coming soon</Badge>}
+                  {status === "disabled" && <Badge variant="outline">Paused</Badge>}
+                </div>
+                <p className="mb-8 text-sm leading-6 text-slate-500 dark:text-slate-400">{tool.desc}</p>
+              </div>
+
+              <Button
+                onClick={() => handleToolAction(tool)}
+                disabled={unavailable}
+                variant={unavailable ? "outline" : "default"}
+                className={`h-12 w-full rounded-2xl font-bold ${
+                  unavailable
+                    ? "bg-slate-100 text-slate-400"
+                    : locked
+                      ? "bg-slate-900 text-white hover:bg-slate-800"
+                      : "bg-indigo-600 text-white hover:bg-indigo-700"
+                }`}
+              >
+                {status === "coming_soon"
+                  ? "Coming soon"
+                  : status === "disabled"
+                    ? "Temporarily paused"
+                    : locked
+                      ? "View plan access"
+                      : "Open tool"}
+                {!unavailable && <ArrowRight className="ml-2 h-4 w-4" />}
+              </Button>
+            </motion.div>
+          );
+        })}
       </div>
 
-      <motion.div
-        variants={fadeInUp}
-        className="bg-slate-900 rounded-[2.5rem] p-12 text-white relative overflow-hidden"
-      >
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
-          <div className="max-w-xl space-y-6">
-            <Badge className="bg-indigo-500 text-white border-none px-3 py-1 font-bold text-xs uppercase tracking-widest">
-              Platform Update
-            </Badge>
-            <h2 className="text-3xl sm:text-5xl font-black leading-tight text-white">
-              Master your niche with Automated Sequences
-            </h2>
-            <p className="text-slate-300 text-lg font-medium">
-              Deploy multi-channel marketing sequences that activate your brand
-              and keep your customers engaged 24/7.
+      <motion.div variants={fadeInUp} className="rounded-[2rem] border border-indigo-100 bg-indigo-50/60 p-8 dark:border-indigo-900/30 dark:bg-indigo-950/20">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">Entitlement model</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 dark:text-white">One Bennie Studio plan. Feature-level access.</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              Marketing Pro is not a second subscription. Your main plan decides which capabilities are included; global controls let Bennie Studio pause a feature without changing billing or customer plan records.
             </p>
-            {!hasMarketingPlan && (
-              <Button
-                onClick={() => setIsTrialDialogOpen(true)}
-                className="h-14 px-8 rounded-2xl bg-white text-slate-900 hover:bg-slate-100 font-bold text-lg"
-              >
-                Unlock Full Automation
-              </Button>
-            )}
           </div>
-          <div className="flex gap-4">
-            <div className="h-24 w-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center">
-              <Target className="h-10 w-10 text-indigo-400" />
-            </div>
-            <div className="h-24 w-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center">
-              <Zap className="h-10 w-10 text-amber-400" />
-            </div>
-            <div className="h-24 w-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center">
-              <Users className="h-10 w-10 text-blue-400" />
-            </div>
-          </div>
-        </div>
-        <div className="absolute top-0 right-0 p-8 opacity-5">
-          <Megaphone className="h-64 w-64" />
+          <Button variant="outline" onClick={() => navigate("/dashboard/billing")} className="h-12 rounded-2xl bg-white px-6 font-bold">
+            Review plan access
+          </Button>
         </div>
       </motion.div>
-
-      {/* Paused growth module dialog */}
-      <Dialog open={isTrialDialogOpen} onOpenChange={setIsTrialDialogOpen}>
-        <DialogContent className="rounded-[2.5rem] max-w-xl p-0 overflow-hidden border-none shadow-2xl">
-          <div className="bg-indigo-600 p-12 text-white relative">
-            <div className="absolute top-4 right-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsTrialDialogOpen(false)}
-                className="text-white hover:bg-white/20 rounded-full h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <Sparkles className="h-12 w-12 text-indigo-200 mb-6" />
-            <h2 className="text-3xl font-bold mb-4">
-              Marketing Hub is currently paused
-            </h2>
-            <p className="text-indigo-100 text-lg leading-relaxed">
-              Bennie Studio is focusing on managed website delivery first. Contact us if you need a consultant-led growth engagement.
-            </p>
-          </div>
-          <div className="p-8 space-y-6">
-            <div className="grid grid-cols-1 gap-4">
-              {[
-                { title: "SEO Audit", desc: "Scan your site for improvements" },
-                {
-                  title: "Ad Generator",
-                  desc: "Convert visitors with AI copy",
-                },
-                {
-                  title: "Email Seeding",
-                  desc: "Automated follow-up campaigns",
-                },
-              ].map((benefit, i) => (
-                <div
-                  key={i}
-                  className="flex gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800"
-                >
-                  <CheckCircle2 className="h-6 w-6 text-emerald-500 shrink-0" />
-                  <div>
-                    <h4 className="font-bold text-slate-900 dark:text-white">
-                      {benefit.title}
-                    </h4>
-                    <p className="text-sm text-slate-500">{benefit.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <Button
-                onClick={handleStartTrial}
-                className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 font-bold text-lg"
-              >
-                Contact Bennie Studio
-              </Button>
-              <p className="text-center text-xs text-slate-400 font-medium italic">
-                Growth engagements are scoped and activated separately.
-              </p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* SEO Audit Modal */}
       <Dialog open={isSeoModalOpen} onOpenChange={setIsSeoModalOpen}>
@@ -805,8 +552,8 @@ export function MarketingHub() {
                 <div className="space-y-2">
                   <h3 className="text-xl font-bold">Website SEO Scan Ready</h3>
                   <p className="text-slate-500 max-w-sm">
-                    We'll use your current website content to perform a deep
-                    analysis of your performance.
+                    We'll review the current website context for observable
+                    SEO and content improvement opportunities.
                   </p>
                 </div>
                 <Button
@@ -831,8 +578,7 @@ export function MarketingHub() {
                   <Megaphone className="h-7 w-7" /> AI Ad Generator
                 </DialogTitle>
                 <DialogDescription className="text-red-100/80 font-medium">
-                  Create high-performance social and search campaigns in
-                  seconds.
+                  Draft search and social campaign copy from your current business context.
                 </DialogDescription>
               </div>
               {!adResult && !isGenerating && (
@@ -857,7 +603,7 @@ export function MarketingHub() {
                   Drafting Ad Variations...
                 </h3>
                 <p className="text-slate-500 mt-2">
-                  Optimizing for engagement and click-through rates.
+                  Creating several editable campaign-copy directions.
                 </p>
               </div>
             ) : adResult ? (
