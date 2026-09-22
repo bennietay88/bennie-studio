@@ -358,7 +358,7 @@ export const Billing = () => {
                     Payment Method
                   </p>
                   <p className="text-xs text-slate-500">
-                    Manage your card and billing history in Stripe
+                    Update your default payment method securely in Stripe
                   </p>
                 </div>
               </div>
@@ -373,7 +373,7 @@ export const Billing = () => {
                 ) : (
                   <ExternalLink className="h-4 w-4" />
                 )}
-                Manage in Stripe
+                Update Payment Method
               </Button>
             </div>
           </CardContent>
