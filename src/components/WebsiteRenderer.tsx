@@ -4081,6 +4081,58 @@ export function WebsiteRenderer({
                 case "testimonials": {
                   const testimonialItems = (section.content.items || []).filter((item: any) => item?.text);
                   if (testimonialItems.length === 0) return null;
+
+                  if (section.settings?.variant === "source_testimonials") {
+                    const [featured, ...supporting] = testimonialItems;
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `testimonials-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="border-y border-slate-200 bg-slate-950 py-16 text-white sm:py-20"
+                      >
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-start">
+                            <div className="lg:col-span-4">
+                              <p className="text-[10px] font-black uppercase tracking-[0.26em] text-white/55">Customer feedback</p>
+                              <h2 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-white sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.title || "What customers say"}
+                              </h2>
+                            </div>
+                            <motion.article variants={fadeInUp} className="lg:col-span-8">
+                              <Quote className="h-8 w-8" style={{ color: accessibleTheme.primaryOnDark }} />
+                              <blockquote className="mt-5 max-w-4xl text-2xl font-medium leading-[1.35] tracking-[-0.02em] text-white sm:text-3xl">
+                                “{featured.text}”
+                              </blockquote>
+                              {(featured.name || featured.role) ? (
+                                <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                                  <span className="font-semibold text-white">{featured.name || "Customer review"}</span>
+                                  {featured.role ? <span className="text-white/45">{featured.role}</span> : null}
+                                </div>
+                              ) : null}
+                            </motion.article>
+                          </motion.div>
+
+                          {supporting.length ? (
+                            <div className="mt-10 grid gap-px border border-white/10 bg-white/10 md:grid-cols-2">
+                              {supporting.slice(0, 2).map((item: any, itemIndex: number) => (
+                                <motion.article key={item.id || itemIndex} variants={fadeInUp} className="bg-slate-950 p-6 sm:p-8">
+                                  <p className="text-base font-medium leading-7 text-white/80">“{item.text}”</p>
+                                  {(item.name || item.role) ? (
+                                    <p className="mt-5 text-xs font-semibold text-white/55">{item.name || "Customer review"}{item.role ? ` · ${item.role}` : ""}</p>
+                                  ) : null}
+                                </motion.article>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
                   const editorialTestimonials = ["editorial_quote", "featured", "proof_wall"].includes(section.settings?.variant || "");
                   if (editorialTestimonials) {
                     const [featured, ...supporting] = testimonialItems;
@@ -4236,6 +4288,34 @@ export function WebsiteRenderer({
                     </motion.section>
                   );
                 case "faq":
+                  if (section.settings?.variant === "source_faq") {
+                    const sourceFaqItems = (section.content.items || []).filter((item: any) => item?.question && item?.answer);
+                    if (!sourceFaqItems.length) return null;
+                    return (
+                      <motion.section id={sectionId} key={section.id || `faq-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true, margin: "-80px" }} variants={staggerContainer} className="bg-white py-16 sm:py-20">
+                        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-12">
+                          <motion.div variants={fadeInUp} className="lg:col-span-4">
+                            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-primary">Questions</p>
+                            <h2 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                              {section.content.title || "Common questions"}
+                            </h2>
+                          </motion.div>
+                          <div className="lg:col-span-8">
+                            {sourceFaqItems.map((item: any, itemIndex: number) => (
+                              <motion.details key={itemIndex} variants={fadeInUp} className="group border-t border-slate-200 last:border-b">
+                                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 text-left">
+                                  <h3 className="text-lg font-semibold text-slate-950 sm:text-xl">{item.question}</h3>
+                                  <ChevronRight className="h-5 w-5 shrink-0 text-primary transition-transform group-open:rotate-90" />
+                                </summary>
+                                <p className="max-w-2xl pb-6 text-base leading-7 text-slate-600">{item.answer}</p>
+                              </motion.details>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
                   if (["media_accordion", "two_column"].includes(section.settings?.variant || "")) {
                     return (
                       <motion.section id={sectionId} key={section.id || `faq-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true, margin: "-80px" }} variants={staggerContainer} className="bg-white py-20 sm:py-28">
@@ -5657,7 +5737,7 @@ export function WebsiteRenderer({
           )}
         </AnimatePresence>
 
-        {!isThumbnail && !cookiePromptVisible && whatsappHref && (
+        {!isPreviewPresentation && !isThumbnail && !cookiePromptVisible && whatsappHref && (
           <a
             href={whatsappHref}
             target="_blank"
@@ -5672,7 +5752,7 @@ export function WebsiteRenderer({
         )}
 
         {/* AI Chatbot Widget */}
-        {!isThumbnail && !cookiePromptVisible && <div className="fixed bottom-4 right-4 z-[100] sm:bottom-6 sm:right-6">
+        {!isPreviewPresentation && !isThumbnail && !cookiePromptVisible && <div className="fixed bottom-4 right-4 z-[100] sm:bottom-6 sm:right-6">
           <AnimatePresence>
             {isChatOpen && (
               <motion.div
@@ -5911,7 +5991,7 @@ export function WebsiteRenderer({
 
         {/* Back to Top */}
         <AnimatePresence>
-          {showScrollTop && (
+          {!isPreviewPresentation && showScrollTop && (
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
