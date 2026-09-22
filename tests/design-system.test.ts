@@ -666,3 +666,40 @@ test("source-site previews use a premium home hero and compact inner-page masthe
     assert.equal(hero.content?.imageUrl, undefined);
   }
 });
+
+
+test("source-driven previews remove generic agency copy and fake booking widgets", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Smile Plus Pro Sdn Bhd",
+    nicheId: "dental-clinic-v1",
+    nicheName: "Dental Clinic",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Teeth Whitening",
+    targetCustomer: "patients",
+    ctaPreference: "Book Appointment",
+    generationMode: "brand_led",
+    sourceDriven: true,
+    aboutText: "Smile Plus Pro provides professional dental care with a focus on patient comfort.",
+    services: ["Teeth Whitening"],
+    testimonials: ["The team explained the treatment clearly and made the visit comfortable."],
+    heroHeadline: "Your Smile Is Our Highest Priority",
+    heroSubheadline: "Professional teeth whitening treatment.",
+    heroImageUrl: "https://example.test/hero.jpg",
+    preferredHeroVariant: "source_brand_hero",
+    compactSubpageHeroes: true,
+  });
+
+  const serialized = JSON.stringify(pages);
+  assert.doesNotMatch(serialized, /Evidence before claims|Responsive by design|Useful restraint|Action without pressure|Treatment Process|Surface Cleaning/);
+  assert.doesNotMatch(serialized, /Available Times|Local business hours/);
+
+  const appointmentPage = pages.find((page) => page.slug === "appointment");
+  assert.ok(appointmentPage);
+  const visibleAppointmentSections = appointmentPage!.sections.filter((section) => section.type === "appointment" && section.isVisible !== false);
+  assert.equal(visibleAppointmentSections.length, 0);
+
+  const home = pages[0];
+  const visibleTypes = home.sections.filter((section) => section.isVisible !== false).map((section) => section.type);
+  assert.deepEqual(visibleTypes, ["hero", "services", "about", "testimonials", "contact", "cta"]);
+});
