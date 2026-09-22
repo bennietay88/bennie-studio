@@ -9,6 +9,7 @@ import { supabase } from "../lib/supabase";
 import { Website, WebsiteSection, BlogPost } from "../types";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 import { Label } from "./ui/label";
 import { Badge } from "./ui/badge";
 import {
