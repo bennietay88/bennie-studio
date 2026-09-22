@@ -5235,7 +5235,61 @@ export function WebsiteRenderer({
           )}
         </main>
 
-        {generationMode === "brand_led" ? (
+        {(isPreviewPresentation || isSourceDrivenPresentation) ? (
+          <footer className="border-t border-slate-200 bg-white">
+            <div className="mx-auto max-w-7xl px-6">
+              <div className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-12 lg:items-start">
+                <div className="lg:col-span-5">
+                  <button
+                    onClick={() => {
+                      setActivePageSlug("");
+                      setSelectedPost(null);
+                      scrollPreviewToTop();
+                    }}
+                    className="text-left"
+                  >
+                    {theme.logoUrl ? (
+                      <img src={theme.logoUrl} alt={displayBusinessName} className="max-h-10 max-w-[13rem] object-contain object-left" referrerPolicy="no-referrer" />
+                    ) : (
+                      <p className="text-xl font-semibold tracking-[-0.025em] text-slate-950" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{displayBusinessName}</p>
+                    )}
+                  </button>
+                  <p className="mt-4 max-w-md text-sm leading-6 text-slate-500">{displayBusinessDescriptor}</p>
+                </div>
+                <div className="lg:col-span-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Pages</p>
+                  <div className="mt-4 grid gap-2">
+                    {pages.map((page) => (
+                      <button
+                        key={page.id}
+                        onClick={() => {
+                          setActivePageSlug(page.slug);
+                          setSelectedPost(null);
+                          scrollPreviewToTop();
+                        }}
+                        className={cn("w-fit text-sm font-medium transition-colors", activePageSlug === page.slug ? "text-primary" : "text-slate-600 hover:text-slate-950")}
+                      >
+                        {page.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="lg:col-span-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Contact</p>
+                  <div className="mt-4 space-y-2 text-sm">
+                    {contactEmail ? <a href={`mailto:${contactEmail}`} className="block font-medium text-slate-600 hover:text-slate-950">{contactEmail}</a> : null}
+                    {contactPhone ? <a href={normalizedPhone ? `tel:${normalizedPhone}` : undefined} className="block font-medium text-slate-600 hover:text-slate-950">{contactPhone}</a> : null}
+                    {whatsappHref ? <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="block font-medium text-slate-600 hover:text-slate-950">WhatsApp</a> : null}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 border-t border-slate-200 py-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+                <span>© {new Date().getFullYear()} {displayBusinessName}</span>
+                <span>Website concept based on verified public business information.</span>
+              </div>
+            </div>
+          </footer>
+        ) : generationMode === "brand_led" ? (
           <footer className="bg-slate-950 text-white">
             <div className="mx-auto max-w-[90rem] px-6 sm:px-8">
               <div className="grid gap-10 border-b border-white/10 py-14 sm:py-20 lg:grid-cols-12 lg:items-end">
