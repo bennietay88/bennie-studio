@@ -234,10 +234,10 @@ test("generated managed website preview uses agency architecture and AA-readable
   }));
 
   await page.goto("/generate-preview", { waitUntil: "networkidle" });
-  await page.getByLabel("Website URL").fill("https://bennietay.com");
-  await page.getByLabel(/Your name/i).fill("Bennie Tay");
-  await page.getByLabel("Email", { exact: true }).fill("bennie@example.com");
-  await page.getByLabel(/WhatsApp \/ phone/i).fill("+60123456789");
+  await page.locator("#preview-url-first").fill("https://bennietay.com");
+  await page.locator("#preview-name").fill("Bennie Tay");
+  await page.locator("#preview-email").fill("bennie@example.com");
+  await page.locator("#preview-phone").fill("+60123456789");
   await page.getByRole("button", { name: /Build preview from my URL/i }).click();
 
   await expect(page.getByText(/Interactive 5-page preview/i)).toBeVisible({ timeout: 15000 });
