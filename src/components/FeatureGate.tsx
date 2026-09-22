@@ -59,7 +59,9 @@ export function FeatureGate({
           <div className="mx-auto h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-4">
             <Lock className="h-6 w-6 text-indigo-600" />
           </div>
-          <CardTitle className="text-2xl font-bold">Premium Feature</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            {platformUnavailable ? "Feature Temporarily Unavailable" : "Plan Feature"}
+          </CardTitle>
           <CardDescription className="text-slate-500 dark:text-slate-400">
             {platformUnavailable
               ? "This capability is currently unavailable at platform level."
