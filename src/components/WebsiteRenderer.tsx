@@ -851,6 +851,12 @@ export function WebsiteRenderer({
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!website) return;
+    if (website.theme?.previewPurpose) {
+      setFormSuccess(true);
+      setLeadForm({ name: "", email: "", phone: "", service: "", message: "", marketingConsent: false });
+      toast.info("Preview only. No real enquiry was sent.");
+      return;
+    }
     setFormLoading(true);
     try {
       const refCode = localStorage.getItem(`ref_${website.businessId}`);
@@ -3073,6 +3079,51 @@ export function WebsiteRenderer({
                     </motion.section>
                   );
                 case "services":
+                  if (section.settings?.variant === "source_services") {
+                    const sourceItems = (section.content.items || []).filter((item: any) => item?.title);
+                    if (!sourceItems.length) return null;
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `services-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="bg-white py-16 sm:py-20"
+                      >
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="grid gap-6 border-b border-slate-200 pb-8 lg:grid-cols-12 lg:items-end">
+                            <div className="lg:col-span-8">
+                              <p className="text-[10px] font-black uppercase tracking-[0.26em] text-primary">{displayBusinessName}</p>
+                              <h2 className="mt-3 max-w-4xl text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.title || "Services"}
+                              </h2>
+                            </div>
+                            {section.content.description ? (
+                              <p className="max-w-xl text-sm leading-7 text-slate-600 lg:col-span-4 lg:justify-self-end">
+                                {section.content.description}
+                              </p>
+                            ) : null}
+                          </motion.div>
+                          <div className="divide-y divide-slate-200">
+                            {sourceItems.map((item: any, itemIndex: number) => (
+                              <motion.article key={item.id || itemIndex} variants={fadeInUp} className="grid gap-4 py-7 sm:py-8 lg:grid-cols-12 lg:items-start">
+                                <p className="text-[10px] font-black tracking-[0.22em] text-primary lg:col-span-1">{String(itemIndex + 1).padStart(2, "0")}</p>
+                                <h3 className="text-2xl font-semibold tracking-[-0.02em] text-slate-950 sm:text-3xl lg:col-span-5">{item.title}</h3>
+                                {item.description ? (
+                                  <p className="text-base leading-7 text-slate-600 lg:col-span-6">{item.description}</p>
+                                ) : (
+                                  <div className="hidden lg:col-span-6 lg:block" aria-hidden="true" />
+                                )}
+                              </motion.article>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
                   if (section.settings?.variant === "brand_families") {
                     return (
                       <motion.section
@@ -3190,7 +3241,7 @@ export function WebsiteRenderer({
                         <motion.div variants={fadeInUp} className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
                           <div className="space-y-4">
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
-                              Execution Strategy
+                              Services
                             </span>
                             <h2 className="text-4xl sm:text-6xl font-bold tracking-tight leading-tight dark:text-white">
                               {section.content.title || "Our Services"}
@@ -3198,7 +3249,7 @@ export function WebsiteRenderer({
                           </div>
                           <p className="text-lg text-slate-500 max-w-md">
                             {section.content.description ||
-                              "We deliver specialized solutions tailored to your unique market challenges."}
+                              "Explore the services available and choose the option that fits your needs."}
                           </p>
                         </motion.div>
 
@@ -3248,6 +3299,44 @@ export function WebsiteRenderer({
                   );
                 case "about": {
                   const reverseStory = section.settings?.variant === "split_media_right";
+                  const storyImage = section.content.imageUrl;
+
+                  if (section.settings?.variant === "source_about") {
+                    if (!String(section.content.text || "").trim()) return null;
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `about-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="border-y border-slate-200 bg-[#f8f7f4] py-16 sm:py-20"
+                      >
+                        <div className={cn(
+                          "mx-auto max-w-7xl px-6",
+                          storyImage ? "grid gap-10 lg:grid-cols-12 lg:items-center" : ""
+                        )}>
+                          {storyImage ? (
+                            <motion.div variants={fadeInUp} className="lg:col-span-6">
+                              <div className="aspect-[5/4] overflow-hidden bg-slate-200">
+                                <img src={storyImage} alt={section.content.imageAlt || displayBusinessName} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+                              </div>
+                            </motion.div>
+                          ) : null}
+                          <motion.div variants={fadeInUp} className={storyImage ? "lg:col-span-6 lg:px-6" : "max-w-4xl"}>
+                            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-primary">About</p>
+                            <h2 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                              {section.content.title || `About ${displayBusinessName}`}
+                            </h2>
+                            <div className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-600 prose-p:mb-5">
+                              <ReactMarkdown>{section.content.text || ""}</ReactMarkdown>
+                            </div>
+                          </motion.div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
                   const storyImage = section.content.imageUrl;
                   return (
                     <motion.section
@@ -3450,6 +3539,90 @@ export function WebsiteRenderer({
                     </motion.section>
                   );
                 case "contact":
+                  if (section.settings?.variant === "source_contact") {
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `contact-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="bg-[#f8f7f4] py-16 sm:py-20"
+                      >
+                        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-12 lg:items-start">
+                          <motion.div variants={fadeInUp} className="lg:col-span-5">
+                            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-primary">Contact</p>
+                            <h2 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                              {section.content.title || "Get in touch"}
+                            </h2>
+                            {section.content.description ? <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">{section.content.description}</p> : null}
+                            <div className="mt-8 space-y-3">
+                              {contactEmail ? (
+                                <a href={`mailto:${contactEmail}`} className="flex items-center gap-3 border-t border-slate-200 py-4 text-sm font-semibold text-slate-900">
+                                  <Mail className="h-4 w-4 text-primary" /> {contactEmail}
+                                </a>
+                              ) : null}
+                              {normalizedPhone ? (
+                                <a href={`tel:${normalizedPhone}`} className="flex items-center gap-3 border-t border-slate-200 py-4 text-sm font-semibold text-slate-900">
+                                  <Phone className="h-4 w-4 text-primary" /> {contactPhone}
+                                </a>
+                              ) : null}
+                              {whatsappHref ? (
+                                <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 border-y border-slate-200 py-4 text-sm font-semibold text-slate-900">
+                                  <MessageSquare className="h-4 w-4 text-primary" /> WhatsApp
+                                </a>
+                              ) : null}
+                            </div>
+                          </motion.div>
+
+                          <motion.div variants={fadeInUp} className="border border-slate-200 bg-white p-6 shadow-sm sm:p-8 lg:col-span-7">
+                            {formSuccess ? (
+                              <div className="py-8 text-center">
+                                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                                  <CheckCircle2 className="h-6 w-6" />
+                                </div>
+                                <h3 className="mt-5 text-2xl font-semibold text-slate-950">
+                                  {website.theme?.previewPurpose ? "Form preview complete" : "Thank you"}
+                                </h3>
+                                <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-600">
+                                  {website.theme?.previewPurpose
+                                    ? "On the live website, this enquiry would be sent to the business."
+                                    : "Your enquiry has been sent. The team will get back to you soon."}
+                                </p>
+                                <Button variant="outline" className="mt-6" onClick={() => setFormSuccess(false)}>Back to form</Button>
+                              </div>
+                            ) : (
+                              <form onSubmit={handleLeadSubmit} className="space-y-5">
+                                <div className="grid gap-5 sm:grid-cols-2">
+                                  <div>
+                                    <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Name</label>
+                                    <Input required value={leadForm.name} onChange={(e)=>setLeadForm({...leadForm,name:e.target.value})} placeholder="Your name" className="mt-2 h-12 rounded-lg border-slate-200 bg-white" />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Email</label>
+                                    <Input required type="email" value={leadForm.email} onChange={(e)=>setLeadForm({...leadForm,email:e.target.value})} placeholder="you@example.com" className="mt-2 h-12 rounded-lg border-slate-200 bg-white" />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Phone</label>
+                                  <Input value={leadForm.phone} onChange={(e)=>setLeadForm({...leadForm,phone:e.target.value})} placeholder="Phone number" className="mt-2 h-12 rounded-lg border-slate-200 bg-white" />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Message</label>
+                                  <Textarea required value={leadForm.message} onChange={(e)=>setLeadForm({...leadForm,message:e.target.value})} placeholder="How can we help?" className="mt-2 min-h-28 rounded-lg border-slate-200 bg-white" />
+                                </div>
+                                <Button type="submit" isLoading={formLoading} className="min-h-12 w-full rounded-lg font-bold">
+                                  Send enquiry <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                                {website.theme?.previewPurpose ? <p className="text-center text-xs text-slate-500">Preview form. No message will be sent.</p> : null}
+                              </form>
+                            )}
+                          </motion.div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
                   return (
                     <motion.section
                       id={sectionId}
@@ -3552,11 +3725,10 @@ export function WebsiteRenderer({
                                 <CheckCircle2 className="h-10 w-10" />
                               </div>
                               <h3 className="text-2xl font-black uppercase tracking-tighter">
-                                Synthesis Successful
+                                Thank you
                               </h3>
                               <p className="text-slate-500 font-medium">
-                                Your request has been integrated into our queue.
-                                A strategist will contact you shortly.
+                                Your enquiry has been sent. The team will get back to you soon.
                               </p>
                               <Button
                                 variant="outline"
@@ -3698,7 +3870,7 @@ export function WebsiteRenderer({
                                 isLoading={formLoading}
                                 className="w-full h-16 btn-primary rounded-2xl text-lg font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30"
                               >
-                                Initialize Connection
+                                Send Enquiry
                               </Button>
                             </form>
                           )}
@@ -3956,11 +4128,10 @@ export function WebsiteRenderer({
 
                       <div className="max-w-5xl mx-auto px-6 relative z-10 text-center space-y-12">
                         <motion.span variants={fadeInUp} className="text-xs font-black uppercase tracking-[0.5em] text-primary">
-                          Strategic Initiative
+                          Next step
                         </motion.span>
-                        <motion.h2 variants={fadeInUp} className="text-6xl sm:text-9xl font-bold tracking-tight text-white leading-[0.85]">
-                          Ready to <br />
-                          <span className="text-gradient">Lead?</span>
+                        <motion.h2 variants={fadeInUp} className="text-5xl sm:text-7xl font-bold tracking-tight text-white leading-[0.95]">
+                          {section.content.title || "Ready to get in touch?"}
                         </motion.h2>
                         <motion.p variants={fadeInUp} className="text-2xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
                           {section.content.description ||
