@@ -296,3 +296,30 @@ test("public preview skips illustration-like secondary images", () => {
   assert.equal(profile.secondaryImage, "https://smile.example/team-photo.jpg");
   assert.doesNotMatch(profile.secondaryImage, /illustration/i);
 });
+
+
+test("public preview preserves factual descriptions next to service headings", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <html><head><title>Harbour Dental</title></head><body>
+        <h1>Family dental care</h1>
+        <h2>Teeth Whitening</h2>
+        <p>Professional whitening options are explained after an assessment so patients understand the available approach.</p>
+        <h2>Dental Implants</h2>
+        <p>Implant consultations cover suitability, treatment stages and the next steps before any procedure is planned.</p>
+      </body></html>
+    `,
+    finalUrl: "https://harbour.example/",
+  });
+
+  assert.deepEqual(profile.serviceDetails, [
+    {
+      title: "Teeth Whitening",
+      description: "Professional whitening options are explained after an assessment so patients understand the available approach.",
+    },
+    {
+      title: "Dental Implants",
+      description: "Implant consultations cover suitability, treatment stages and the next steps before any procedure is planned.",
+    },
+  ]);
+});
