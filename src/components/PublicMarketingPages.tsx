@@ -1490,7 +1490,6 @@ function GeneratePreviewPage() {
         ? resolveSourceServices(
             sourceServiceValues,
             selectedBusinessType.id,
-            [profile.heroSubheadline, profile.heroHeadline, profile.description],
           )
         : form.mainService.split(/[,/\n]+/).map((service) => service.trim()).filter(Boolean).slice(0, 8);
       const resolvedMainService = String(resolvedServices[0] || form.mainService.trim() || selectedBusinessType.label || "Professional services")
@@ -1776,6 +1775,9 @@ function GeneratePreviewPage() {
       setGeneratedWebsite(selectedPreview.website);
       setPreviewExpanded(false);
       setGenerated(true);
+      window.setTimeout(() => {
+        document.getElementById("generated-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
       trackPublicEvent({
         eventType: "preview_generated",
         label: resolvedBusinessName,
@@ -2210,7 +2212,7 @@ function GeneratePreviewPage() {
       ) : null}
 
       {generated && generatedWebsite ? (
-        <section className="border-y border-[#dfe2ea] bg-[#0b1020] text-white">
+        <section id="generated-preview" className="scroll-mt-16 border-y border-[#dfe2ea] bg-[#0b1020] text-white">
           <div className="brand-shell py-10 sm:py-12">
             <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
               <div>
