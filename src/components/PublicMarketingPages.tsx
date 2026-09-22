@@ -873,7 +873,7 @@ function CaseStudiesPage() {
   );
 }
 
-const PREVIEW_GENERATION_VERSION = 6;
+const PREVIEW_GENERATION_VERSION = 7;
 
 const previewIndustries = [
   {
@@ -1408,6 +1408,12 @@ function GeneratePreviewPage() {
         services?: string[];
         serviceAreas?: string[];
         heroImage?: string;
+        secondaryImage?: string;
+        logoUrl?: string;
+        brandColor?: string;
+        accentColor?: string;
+        heroHeadline?: string;
+        heroSubheadline?: string;
         testimonials?: string[];
         credentials?: string[];
         yearsInBusiness?: string;
@@ -1486,15 +1492,24 @@ function GeneratePreviewPage() {
         brandPersonality: resolvedBrandPersonality,
         businessMaturity: resolvedBusinessMaturity,
         assetReadiness: profile.heroImage ? "some" : "pending",
+        storyImageUrl: previewMode === "website" ? profile.secondaryImage || undefined : undefined,
+        heroHeadline: previewMode === "website" ? profile.heroHeadline || undefined : undefined,
+        heroSubheadline: previewMode === "website" ? profile.heroSubheadline || undefined : undefined,
       };
 
-      const previewTheme = getBlueprintTheme(resolvedTemplateId, resolvedGenerationMode, {
+      const basePreviewTheme = getBlueprintTheme(resolvedTemplateId, resolvedGenerationMode, {
         brandPersonality: resolvedBrandPersonality,
         businessMaturity: resolvedBusinessMaturity,
         assetReadiness: profile.heroImage ? "some" : "pending",
       });
+      const previewTheme: Website["theme"] = {
+        ...basePreviewTheme,
+        ...(previewMode === "website" && profile.brandColor ? { primaryColor: profile.brandColor } : {}),
+        ...(previewMode === "website" && profile.accentColor ? { secondaryColor: profile.accentColor } : {}),
+        ...(previewMode === "website" && profile.logoUrl ? { logoUrl: profile.logoUrl } : {}),
+      };
       const previewSeo = getBlueprintSeo(blueprintInput);
-      const previewCandidates = [0, 1].map((compositionSeed) => {
+      const previewCandidates = [0, 1, 2, 3].map((compositionSeed) => {
         const pages = buildPagesFromBlueprint({ ...blueprintInput, compositionSeed });
         if (profile.heroImage) {
           const home = pages.find((page) => page.slug === "" || page.slug === "home") || pages[0];
@@ -2149,15 +2164,45 @@ function GeneratePreviewPage() {
             </div>
 
             <div className="mt-7 flex flex-col gap-3 border-t border-[#dfe2ea] pt-6 sm:flex-row sm:flex-wrap">
-              {salesMode ? (
-                shareablePreviewUrl ? (
-                  <Button onClick={() => window.open(shareablePreviewUrl, "_blank", "noopener,noreferrer")} className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]">
-                    Open prospect preview <ExternalLink className="ml-2 h-4 w-4" />
-                  </Button>
-                ) : <p className="text-sm font-semibold text-[#526071]">Preview ready. Share link persistence needs attention.</p>
+              {shareablePreviewUrl ? (
+                <Button
+                  onClick={() => {
+                    trackPublicEvent({
+                      eventType: "open_preview_new_tab",
+                      label: businessLabel,
+                      target: shareablePreviewUrl,
+                      metadata: { salesMode, businessType: businessTypeLabel },
+                    });
+                    window.open(shareablePreviewUrl, "_blank", "noopener,noreferrer");
+                  }}
+                  className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]"
+                >
+                  {salesMode ? "Open prospect preview" : "Open preview in new tab"} <ExternalLink className="ml-2 h-4 w-4" />
+                </Button>
               ) : (
-                <Button onClick={() => action("click_launch_after_preview","Launch This Website","/preview-order")} className="min-h-12 bg-[#141821] px-6 font-semibold text-white hover:bg-[#5746e8]">Launch this website <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                <p className="self-center text-sm font-semibold text-[#526071]">Preview ready. The separate preview link is still being prepared.</p>
               )}
+              {previewMode === "website" && form.websiteUrl ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    trackPublicEvent({
+                      eventType: "open_original_website",
+                      label: businessLabel,
+                      target: form.websiteUrl,
+                    });
+                    window.open(form.websiteUrl, "_blank", "noopener,noreferrer");
+                  }}
+                  className="min-h-12 border-[#dfe2ea] px-6 font-semibold text-[#141821]"
+                >
+                  Open original website <ExternalLink className="ml-2 h-4 w-4" />
+                </Button>
+              ) : null}
+              {!salesMode ? (
+                <Button onClick={() => action("click_launch_after_preview","Launch This Website","/preview-order")} className="min-h-12 bg-[#5746e8] px-6 font-semibold text-white hover:bg-[#4938db]">
+                  Launch this website <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              ) : null}
             </div>
           </div>
         </section>
