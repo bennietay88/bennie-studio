@@ -70,7 +70,9 @@ const isAudienceOrMarketingLabel = (value: string) => {
   const label = value.trim();
   if (!label) return true;
   if (/^(see|view|learn|discover|read|book|get|request|start|explore)\b/i.test(label)) return true;
-  if (/\b(direction|click here|find out more|you can contact|in one service|all in one)\b/i.test(label)) return true;
+  if (/^(your|our|we|why|a better|the better|ready to|built for|designed for)\b/i.test(label)) return true;
+  if (/\b(direction|click here|find out more|you can contact|in one service|all in one|without hiring|more qualified leads?|grow your business)\b/i.test(label)) return true;
+  if (/[.!?]$/.test(label) && label.split(/\s+/).length > 3) return true;
   if (!/\bfor\b/i.test(label) && /\b(companies|businesses|firms|centres?|centers?|parents?|students?|homeowners?|customers?|clients?|founders?|teams?)\s*$/i.test(label)) return true;
   return label.split(/\s+/).length > 8;
 };
