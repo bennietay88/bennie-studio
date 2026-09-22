@@ -3337,7 +3337,6 @@ export function WebsiteRenderer({
                       </motion.section>
                     );
                   }
-                  const storyImage = section.content.imageUrl;
                   return (
                     <motion.section
                       id={sectionId}
