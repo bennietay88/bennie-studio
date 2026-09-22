@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - fix/marketing-pro-entitlements-20260922
 
 permissions:
   contents: read
