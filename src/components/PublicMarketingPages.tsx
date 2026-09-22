@@ -1694,7 +1694,7 @@ function GeneratePreviewPage() {
       eventType,
       label,
       target,
-      metadata: { industry: industry.label, goal, businessName: form.businessName, generated },
+      metadata: { industry: industry.label, businessType: businessTypeLabel, goal, businessName: form.businessName, generated },
     });
     navigate(target);
   };
@@ -1731,7 +1731,7 @@ function GeneratePreviewPage() {
               </div>
               <div className="divide-y divide-[#e4e2dc] px-6">
                 {[
-                  ["Business", industry.label],
+                  ["Business", businessTypeLabel],
                   ["Main service", serviceLabel],
                   ["Location", locationLabel],
                   ["Primary action", resolvePreviewCta(goal)],
@@ -1819,7 +1819,27 @@ function GeneratePreviewPage() {
                   ) : null}
                   <label htmlFor="preview-url-first" className="mb-2 block text-sm font-semibold text-[#374151]">Website URL</label>
                   <Input id="preview-url-first" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://yourbusiness.com" className="h-14 rounded-none border-[#dfe2ea] bg-white text-base" />
-                  <p className="mt-3 text-sm leading-6 text-[#5f6673]">We read the key public pages we can safely access, reuse verified business facts and trust signals, and generate the layout from Bennie Studio's design system. No ChatGPT call is used for the free preview.</p>
+                  <div className="mt-5">
+                    <label htmlFor="preview-url-business-type" className="mb-2 block text-sm font-semibold text-[#374151]">Business type</label>
+                    <select
+                      id="preview-url-business-type"
+                      required
+                      value={businessTypeId}
+                      onChange={(e) => selectBusinessType(e.target.value)}
+                      className="h-14 w-full border border-[#dfe2ea] bg-white px-4 text-[#141821] outline-none transition focus:border-[#5746e8] focus:ring-4 focus:ring-[#5746e8]/10"
+                    >
+                      <option value="" disabled>Select the closest business type</option>
+                      {Array.from(new Set(previewBusinessTypes.map((item) => item.group))).map((group) => (
+                        <optgroup key={group} label={group}>
+                          {previewBusinessTypes.filter((item) => item.group === group).map((item) => (
+                            <option key={item.id} value={item.id}>{item.label}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                    <p className="mt-2 text-xs leading-5 text-[#5f6673]">Your business type chooses the website structure and template family. The URL supplies the real services, proof and contact details.</p>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-[#5f6673]">We read the key public pages we can safely access, reuse verified business facts and trust signals, and generate the layout from Bennie Studio's design system. No ChatGPT call is used for the free preview.</p>
                 </section>
               ) : (
               <section className="border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7">
@@ -1833,15 +1853,28 @@ function GeneratePreviewPage() {
 
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
-                    <label htmlFor="preview-industry" className="mb-2 block text-sm font-semibold text-[#374151]">Business type</label>
-                    <select id="preview-industry" value={industryId} onChange={(e) => selectIndustry(e.target.value)} className="h-12 w-full border border-[#dfe2ea] bg-white px-4 text-[#141821] outline-none transition focus:border-[#5746e8] focus:ring-4 focus:ring-[#5746e8]/10">
-                      {previewIndustries.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                    <label htmlFor="preview-business-type" className="mb-2 block text-sm font-semibold text-[#374151]">Business type</label>
+                    <select
+                      id="preview-business-type"
+                      required
+                      value={businessTypeId}
+                      onChange={(e) => selectBusinessType(e.target.value)}
+                      className="h-12 w-full border border-[#dfe2ea] bg-white px-4 text-[#141821] outline-none transition focus:border-[#5746e8] focus:ring-4 focus:ring-[#5746e8]/10"
+                    >
+                      <option value="" disabled>Select the closest business type</option>
+                      {Array.from(new Set(previewBusinessTypes.map((item) => item.group))).map((group) => (
+                        <optgroup key={group} label={group}>
+                          {previewBusinessTypes.filter((item) => item.group === group).map((item) => (
+                            <option key={item.id} value={item.id}>{item.label}</option>
+                          ))}
+                        </optgroup>
+                      ))}
                     </select>
                   </div>
                   <div>
                     <label htmlFor="preview-service" className="mb-2 block text-sm font-semibold text-[#374151]">Main service</label>
                     <Input id="preview-service" required value={form.mainService} onChange={(e) => setForm({...form, mainService:e.target.value})} placeholder="e.g. Invisalign, bookkeeping, renovation" className="h-12 rounded-none border-[#dfe2ea] bg-white" />
-                    {inferredIndustryId && inferredIndustryId !== industryId ? <p className="mt-2 text-xs font-semibold text-[#5746e8]">Detected: {previewIndustries.find((item) => item.id === inferredIndustryId)?.label}. We will use that website family.</p> : null}
+                    {inferredIndustryId && selectedBusinessType && inferredIndustryId !== selectedBusinessType.industryId ? <p className="mt-2 text-xs font-semibold text-[#5746e8]">The service wording looks like {previewIndustries.find((item) => item.id === inferredIndustryId)?.label}, but your selected business type stays authoritative.</p> : null}
                   </div>
                   <div>
                     <label htmlFor="preview-business" className="mb-2 block text-sm font-semibold text-[#374151]">Business name</label>
@@ -2015,7 +2048,7 @@ function GeneratePreviewPage() {
                 <h3 className="mt-4 text-2xl font-semibold text-[#141821]">{businessLabel === "your business" ? "Your preview adapts live." : businessLabel}</h3>
                 <div className="mt-6 divide-y divide-[#dfe2ea] border-y border-[#dfe2ea]">
                   {[
-                    ["Industry", industry.label],
+                    ["Business", businessTypeLabel],
                     ["Service", serviceLabel],
                     ["Location", locationLabel],
                     ["Scope", "Up to 5 core pages"],
@@ -2073,7 +2106,7 @@ function GeneratePreviewPage() {
               <div>
                 <p className="brand-kicker">Generated website</p>
                 <h2 className="mt-2">{businessLabel}</h2>
-                <p className="mt-2 text-[#526071]">{industry.label} · {locationLabel} · {previewGenerationMode === "brand_led" ? "Brand-led direction" : "Premium direction"}</p>
+                <p className="mt-2 text-[#526071]">{businessTypeLabel} · {locationLabel} · {previewGenerationMode === "brand_led" ? "Brand-led direction" : "Premium direction"}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {(["desktop","tablet","mobile"] as const).map((device)=>(
