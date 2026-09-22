@@ -129,8 +129,13 @@ const draftToRow = (draft: LocalSeoPageDraft, input: LocalSeoInput, businessId: 
   created_by: userId,
 });
 
-export default function LocalSeoDashboard() {
+interface LocalSeoDashboardProps {
+  businessIdOverride?: string | null;
+}
+
+export default function LocalSeoDashboard({ businessIdOverride }: LocalSeoDashboardProps = {}) {
   const { profile } = useAuth();
+  const effectiveBusinessId = businessIdOverride || effectiveBusinessId || null;
   const [business, setBusiness] = React.useState<any>(null);
   const [planSettings, setPlanSettings] = React.useState<any[]>(normalizePlans(PLANS));
   const [drafts, setDrafts] = React.useState<LocalSeoPageDraft[]>([]);
@@ -160,7 +165,7 @@ export default function LocalSeoDashboard() {
 
   React.useEffect(() => {
     const loadBusiness = async () => {
-      if (!profile?.businessId) {
+      if (!effectiveBusinessId) {
         setDrafts(readStoredDrafts("demo"));
         return;
       }
@@ -169,7 +174,7 @@ export default function LocalSeoDashboard() {
         supabase
           .from("businesses")
           .select("*")
-          .eq("id", profile.businessId)
+          .eq("id", effectiveBusinessId)
           .maybeSingle(),
         supabase
           .from("settings")
@@ -214,7 +219,7 @@ export default function LocalSeoDashboard() {
     };
 
     loadBusiness();
-  }, [profile?.businessId]);
+  }, [effectiveBusinessId]);
 
   const plan = business?.plan || "starter";
   const currentPlanConfig = findPlan(planSettings, plan);
@@ -230,7 +235,7 @@ export default function LocalSeoDashboard() {
   });
   const blogIdeas = generateLocalBlogIdeas(input);
   const market = SUPPORTED_LOCATION_MARKETS.find((item) => item.country === input.country);
-  const businessId = business?.id || profile?.businessId || "demo";
+  const businessId = business?.id || effectiveBusinessId || "demo";
   const schemaChecks = [
     { label: "Business name", complete: Boolean(input.businessName) },
     { label: "Main service", complete: Boolean(input.mainService) },
@@ -252,11 +257,11 @@ export default function LocalSeoDashboard() {
   };
 
   const persistDraft = async (draft: LocalSeoPageDraft) => {
-    if (!profile?.businessId) return false;
+    if (!effectiveBusinessId) return false;
 
     const { error } = await supabase
       .from("local_seo_pages")
-      .insert([draftToRow(draft, input, profile.businessId, profile.uid)]);
+      .insert([draftToRow(draft, input, effectiveBusinessId, profile.uid)]);
 
     return !error;
   };
@@ -283,8 +288,8 @@ export default function LocalSeoDashboard() {
     }
     const newDrafts = createBulkLocationDrafts(input, cities, drafts);
     saveDrafts([...newDrafts, ...drafts]);
-    if (profile?.businessId) {
-      const rows = newDrafts.map((draft) => draftToRow(draft, { ...input, city: draft.h1.replace(`${input.mainService} in `, "") }, profile.businessId!, profile.uid));
+    if (effectiveBusinessId) {
+      const rows = newDrafts.map((draft) => draftToRow(draft, { ...input, city: draft.h1.replace(`${input.mainService} in `, "") }, effectiveBusinessId!, profile.uid));
       const { error } = await supabase.from("local_seo_pages").insert(rows);
       toast.success(error ? `${newDrafts.length} drafts saved locally. Apply the migration to store them in Supabase.` : `${newDrafts.length} local page drafts saved.`);
       return;
@@ -319,9 +324,9 @@ export default function LocalSeoDashboard() {
     );
     saveDrafts([...importedDrafts, ...drafts]);
 
-    if (profile?.businessId) {
+    if (effectiveBusinessId) {
       const rowsToInsert = importedDrafts.map((draft) =>
-        draftToRow(draft, { ...input, city: draft.h1.replace(`${input.mainService} in `, "") }, profile.businessId!, profile.uid),
+        draftToRow(draft, { ...input, city: draft.h1.replace(`${input.mainService} in `, "") }, effectiveBusinessId!, profile.uid),
       );
       const { error } = await supabase.from("local_seo_pages").insert(rowsToInsert);
       toast.success(error ? `${importedDrafts.length} CSV drafts saved locally. Apply the migration to store them in Supabase.` : `${importedDrafts.length} CSV drafts saved for review.`);
@@ -337,7 +342,7 @@ export default function LocalSeoDashboard() {
     }
     const nextDrafts = drafts.map((item) => item.id === draft.id ? { ...item, status } : item);
     saveDrafts(nextDrafts);
-    if (profile?.businessId) {
+    if (effectiveBusinessId) {
       await supabase
         .from("local_seo_pages")
         .update({ status, updated_at: new Date().toISOString() })
