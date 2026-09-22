@@ -82,6 +82,10 @@ test("public preview ignores audience headings and keeps a concise website servi
         <h2>Tuition and education centres</h2>
         <h2>Accounting and bookkeeping firms</h2>
         <h3>Managed Website</h3>
+        <h2>Your Managed Website Team, Without Hiring One.</h2>
+        <h2>A better website for a growing business.</h2>
+        <h3>Managed Lead-Generation Website</h3>
+        <h3>Website Audit</h3>
         <a href="/services">See my cleaning website direction</a>
       </body>
     </html>
@@ -99,4 +103,8 @@ test("public preview ignores audience headings and keeps a concise website servi
   assert.ok(!profile.services.some((service) => /education centres/i.test(service)));
   assert.ok(!profile.services.some((service) => /bookkeeping firms/i.test(service)));
   assert.ok(!profile.services.some((service) => /direction/i.test(service)));
+  assert.ok(!profile.services.some((service) => /without hiring/i.test(service)));
+  assert.ok(!profile.services.some((service) => /better website for a growing business/i.test(service)));
+  assert.ok(profile.services.some((service) => /managed lead-generation website/i.test(service)));
+  assert.ok(profile.services.some((service) => /website audit/i.test(service)));
 });
