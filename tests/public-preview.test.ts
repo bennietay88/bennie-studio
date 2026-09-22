@@ -208,3 +208,25 @@ test("public preview preserves useful source branding and hero content", () => {
   assert.equal(profile.heroImage, "https://harbour.example/images/clinic-hero.jpg");
   assert.equal(profile.secondaryImage, "https://harbour.example/images/team.jpg");
 });
+
+
+test("public preview prefers an actual hero image over generic social imagery", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <html>
+        <head>
+          <title>Example Clinic</title>
+          <meta property="og:image" content="/social-card.jpg">
+        </head>
+        <body>
+          <img src="/small-office.jpg" width="480" height="320" alt="Office">
+          <img class="homepage-hero-image" src="/real-hero.jpg" width="1440" height="900" loading="eager" alt="Clinic team">
+          <h1>Care designed around you</h1>
+        </body>
+      </html>
+    `,
+    finalUrl: "https://clinic.example/",
+  });
+
+  assert.equal(profile.heroImage, "https://clinic.example/real-hero.jpg");
+});
