@@ -2663,7 +2663,7 @@ export function WebsiteRenderer({
                             <div className="absolute inset-0 bg-primary/[0.055]" />
                             <div className="absolute right-[18%] top-1/2 h-44 w-44 -translate-y-1/2 rounded-full border border-primary/15" />
                           </div>
-                          <div className="relative mx-auto max-w-[90rem] px-6 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
+                          <div className="relative mx-auto max-w-[90rem] px-6 py-12 sm:px-10 sm:py-14 lg:px-16 lg:py-16">
                             <motion.div variants={fadeInUp} className="max-w-4xl">
                               <div className="flex items-center gap-3">
                                 <span className="h-px w-9" style={{ backgroundColor: accessibleTheme.primaryInk }} />
@@ -2672,7 +2672,7 @@ export function WebsiteRenderer({
                                 </p>
                               </div>
                               <h1
-                                className="mt-7 max-w-[18ch] text-[clamp(2.5rem,5vw,5rem)] font-semibold leading-[0.98] tracking-[-0.045em] text-slate-950 [text-wrap:balance]"
+                                className="mt-6 max-w-[22ch] break-normal hyphens-none text-[clamp(2.35rem,4vw,4.15rem)] font-semibold leading-[1.01] tracking-[-0.04em] text-slate-950 [overflow-wrap:normal] [text-wrap:balance]"
                                 style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
                               >
                                 {section.content.headline || displayBusinessName}
@@ -2698,10 +2698,10 @@ export function WebsiteRenderer({
                           variants={staggerContainer}
                           className="relative overflow-hidden border-b border-slate-200 bg-white"
                         >
-                          <div className="mx-auto grid max-w-[90rem] lg:min-h-[43rem] lg:grid-cols-12">
+                          <div className="mx-auto grid max-w-[90rem] lg:min-h-[36rem] lg:grid-cols-12">
                             <motion.div
                               variants={fadeInUp}
-                              className="relative flex flex-col justify-center px-6 py-14 sm:px-10 sm:py-16 lg:col-span-5 lg:px-16 lg:py-20"
+                              className="relative flex flex-col justify-center px-6 py-12 sm:px-10 sm:py-14 lg:col-span-6 lg:px-16 lg:py-16"
                             >
                               <div className="absolute left-0 top-0 hidden h-full w-1 lg:block" style={{ backgroundColor: accessibleTheme.primarySurface }} />
                               <div className="flex items-center gap-3">
@@ -2712,7 +2712,7 @@ export function WebsiteRenderer({
                               </div>
 
                               <h1
-                                className="mt-7 max-w-[15ch] break-words text-[clamp(2.7rem,5.4vw,5.35rem)] font-semibold leading-[0.97] tracking-[-0.05em] text-slate-950 [text-wrap:balance]"
+                                className="mt-6 max-w-[16ch] break-normal hyphens-none text-[clamp(2.6rem,4.6vw,4.8rem)] font-semibold leading-[0.98] tracking-[-0.045em] text-slate-950 [overflow-wrap:normal] [text-wrap:balance]"
                                 style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
                               >
                                 {section.content.headline || displayBusinessName}
@@ -2760,14 +2760,14 @@ export function WebsiteRenderer({
 
                             <motion.div
                               variants={fadeInUp}
-                              className="relative min-h-[22rem] overflow-hidden bg-slate-100 sm:min-h-[30rem] lg:col-span-7 lg:min-h-full"
+                              className="relative min-h-[22rem] overflow-hidden bg-slate-100 sm:min-h-[28rem] lg:col-span-6 lg:min-h-full"
                             >
                               {hasHeroImage ? (
                                 <>
                                   <img
                                     src={section.content.imageUrl}
                                     alt={section.content.imageAlt || displayBusinessName}
-                                    className="absolute inset-0 h-full w-full object-cover object-center"
+                                    className="absolute inset-0 h-full w-full object-cover object-[center_38%]"
                                     loading="eager"
                                     fetchPriority="high"
                                     referrerPolicy="no-referrer"
