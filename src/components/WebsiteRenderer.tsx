@@ -1701,16 +1701,30 @@ export function WebsiteRenderer({
            surfaces. Brand colour is decoration; readable copy gets safe ink. */
         .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-slate-300:not(svg),
         .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-slate-400:not(svg),
+        .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-slate-500:not(svg),
         .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-gray-300:not(svg),
         .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-gray-400:not(svg),
+        .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-gray-500:not(svg),
         .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-neutral-300:not(svg),
-        .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-neutral-400:not(svg) {
-          color: #64748b !important;
+        .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-neutral-400:not(svg),
+        .bt-website-renderer main > section:not(.bg-slate-950):not(.bg-slate-900) .text-neutral-500:not(svg) {
+          color: #475569 !important;
         }
 
         .bt-website-renderer nav .text-slate-300:not(svg),
-        .bt-website-renderer nav .text-slate-400:not(svg) {
+        .bt-website-renderer nav .text-slate-400:not(svg),
+        .bt-website-renderer nav .text-slate-500:not(svg) {
           color: #475569 !important;
+        }
+
+        /* Tiny uppercase utility labels looked elegant in Figma and microscopic
+           in an actual browser. Generated customer sites keep them at a
+           readable 12px floor with restrained tracking. */
+        .bt-website-renderer [class*="text-[8px]"],
+        .bt-website-renderer [class*="text-[9px]"],
+        .bt-website-renderer [class*="text-[10px]"] {
+          font-size: 0.75rem !important;
+          letter-spacing: 0.14em !important;
         }
 
         .bt-website-renderer footer .text-slate-500:not(svg) {
@@ -2700,7 +2714,7 @@ export function WebsiteRenderer({
                           )}
                           <div className="relative mx-auto flex min-h-[78vh] max-w-[90rem] items-end px-6 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
                             <motion.div variants={fadeInUp} className="max-w-5xl">
-                              <p className="mb-6 text-[10px] font-black uppercase tracking-[0.34em] text-white/55">{displayBusinessDescriptor}</p>
+                              <p className="mb-6 text-[10px] font-black uppercase tracking-[0.34em] text-slate-300">{displayBusinessDescriptor}</p>
                               <h1 className="max-w-full break-words text-[clamp(2.8rem,6.5cqw,6.8rem)] font-semibold leading-[0.92] tracking-[-0.05em] [text-wrap:balance]" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
                                 {section.content.headline || displayBusinessName}
                               </h1>
@@ -3221,7 +3235,7 @@ export function WebsiteRenderer({
                         <div className="mx-auto max-w-7xl px-6">
                           <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-end">
                             <div className="lg:col-span-7">
-                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/55">Capability system</p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Capability system</p>
                               <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{section.content.title || "Built to work together"}</h2>
                             </div>
                             <p className="max-w-xl text-sm leading-7 text-slate-400 lg:col-span-5 lg:justify-self-end">{section.content.description}</p>
@@ -3689,7 +3703,7 @@ export function WebsiteRenderer({
                         <div className="mx-auto max-w-7xl px-6">
                           <motion.div variants={fadeInUp} className="grid gap-8 border-b border-white/10 pb-10 lg:grid-cols-12 lg:items-end">
                             <div className="lg:col-span-5">
-                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/55">Customer perspective</p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Customer perspective</p>
                               <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
                                 {section.content.title || "What customers say"}
                               </h2>
