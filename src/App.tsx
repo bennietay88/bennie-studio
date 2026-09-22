@@ -123,6 +123,12 @@ const ReviewManagement = lazy(() =>
   })),
 );
 const LocalSeoDashboard = lazy(() => import("./components/LocalSeoDashboard"));
+const MarketingHub = lazy(() =>
+  import("./components/MarketingHub").then((m) => ({ default: m.MarketingHub })),
+);
+const BlogCMS = lazy(() =>
+  import("./components/BlogCMS").then((m) => ({ default: m.BlogCMS })),
+);
 const MonthlyUpdateRequests = lazy(() => import("./components/MonthlyUpdateRequests"));
 const TeamManagement = lazy(() => import("./components/TeamManagement"));
 const PlanEditor = lazy(() => import("./components/PlanEditor"));
@@ -602,7 +608,7 @@ export default function App() {
                                 <ProtectedRoute
                                   allowedRoles={["business_admin"]}
                                 >
-                                  <FeatureGate featureId="local_seo_geo">
+                                  <FeatureGate featureId="local_seo_geo" marketingCapabilityId="localSeo">
                                     <LocalSeoDashboard />
                                   </FeatureGate>
                                 </ProtectedRoute>
@@ -612,7 +618,9 @@ export default function App() {
                               path="seo/*"
                               element={
                                 <ProtectedRoute allowedRoles={["business_admin", "staff"]}>
-                                  <SeoGrowthWorkspace />
+                                  <FeatureGate featureId="advanced_seo">
+                                    <SeoGrowthWorkspace />
+                                  </FeatureGate>
                                 </ProtectedRoute>
                               }
                             />
@@ -659,7 +667,7 @@ export default function App() {
                             <Route
                               path="reviews"
                               element={
-                                <FeatureGate featureId="review_management">
+                                <FeatureGate featureId="review_management" marketingCapabilityId="reviews">
                                   <ReviewManagement />
                                 </FeatureGate>
                               }
@@ -683,7 +691,14 @@ export default function App() {
                               element={<AffiliateDashboard />}
                             />
                             <Route path="automations" element={<Navigate to="/dashboard" replace />} />
-                            <Route path="marketing-hub" element={<Navigate to="/dashboard" replace />} />
+                            <Route
+                              path="marketing-hub"
+                              element={
+                                <ProtectedRoute allowedRoles={["business_admin", "staff"]}>
+                                  <MarketingHub />
+                                </ProtectedRoute>
+                              }
+                            />
                             <Route
                               path="analytics"
                               element={
@@ -723,7 +738,16 @@ export default function App() {
                               path="templates"
                               element={<Navigate to="/dashboard/marketplace" replace />}
                             />
-                            <Route path="blog" element={<Navigate to="/dashboard" replace />} />
+                            <Route
+                              path="blog"
+                              element={
+                                <ProtectedRoute allowedRoles={["business_admin", "staff"]}>
+                                  <FeatureGate featureId="blog" marketingCapabilityId="blog">
+                                    <BlogCMS />
+                                  </FeatureGate>
+                                </ProtectedRoute>
+                              }
+                            />
                             <Route
                               path="policies"
                               element={
