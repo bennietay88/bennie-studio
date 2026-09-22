@@ -9190,9 +9190,19 @@ async function startServer() {
       }
 
       const stripe = await getStripe();
+      const returnUrl = `${publicAppUrl()}/dashboard/settings`;
+      // Keep cancellation inside Bennie Studio so minimum-term and handover
+      // rules cannot be bypassed through a generic Stripe portal homepage.
       const session = await stripe.billingPortal.sessions.create({
         customer: customerId,
-        return_url: `${publicAppUrl()}/dashboard/settings`,
+        return_url: returnUrl,
+        flow_data: {
+          type: "payment_method_update",
+          after_completion: {
+            type: "redirect",
+            redirect: { return_url: returnUrl },
+          },
+        },
       });
 
       res.json({ url: session.url });
