@@ -487,7 +487,7 @@ test("preview generation enforces concise hero copy and supports eight pages", (
 test("managed website agency previews use agency architecture instead of consultant programs", () => {
   const pages = buildPagesFromBlueprint({
     businessName: "Bennie Studio",
-    nicheId: "corporate-v1",
+    nicheId: "managed-website-agency-v1",
     nicheName: "Web / Marketing Agency",
     plan: "business",
     maxPages: 8,
@@ -520,11 +520,13 @@ test("managed website agency previews use agency architecture instead of consult
 });
 
 test("brand-led corporate preview theme resolves AA-safe foregrounds", () => {
-  const theme = getBlueprintTheme("corporate-v1", "brand_led", {
+  const theme = getBlueprintTheme("managed-website-agency-v1", "brand_led", {
     brandPersonality: "premium",
     businessMaturity: "established",
     assetReadiness: "some",
   });
+  assert.equal(theme.primaryColor, "#5746e8");
+  assert.equal(theme.designProfile, "brand_corporate");
   const colors = resolveAccessibleThemeColors(theme.primaryColor, theme.secondaryColor);
   assert.ok(contrastRatio(colors.primaryForeground, colors.primary) >= WCAG_AA_NORMAL_TEXT_RATIO);
   assert.ok(contrastRatio(colors.secondaryForeground, colors.secondary) >= WCAG_AA_NORMAL_TEXT_RATIO);
@@ -567,4 +569,14 @@ test("public brand muted text tokens remain AA-safe on light and dark surfaces",
   assert.ok(contrastRatio("#c9c4ff", "#0b1020") >= WCAG_AA_NORMAL_TEXT_RATIO);
   assert.doesNotMatch(css, /--brand-soft:\s*#707b8a/i);
   assert.doesNotMatch(css, /brand-logo-detail[\s\S]{0,180}color:\s*#7a8493/i);
+});
+
+
+test("managed website agency template exists without fabricated proof", () => {
+  const template = Object.values(NICHE_TEMPLATES).find((item) => item.id === "managed-website-agency-v1");
+  assert.ok(template);
+  assert.match(template?.description || "", /managed websites|managed website/i);
+  assert.equal(template?.theme?.primaryColor, "#5746e8");
+  const serialized = JSON.stringify(template?.pages || []);
+  assert.doesNotMatch(serialized, /99\.99%|1M\+|50,000\+|Maya Chen|Daniel Wong|Aisha Rahman/i);
 });
