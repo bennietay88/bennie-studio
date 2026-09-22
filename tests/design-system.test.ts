@@ -808,3 +808,28 @@ test("prospect preview chrome keeps the website visually primary and comparison-
   assert.match(renderer, /source_about/);
   assert.match(renderer, /source_contact/);
 });
+
+
+test("source-driven previews do not invent pages when source evidence is sparse", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Focused Dental",
+    nicheId: "dental-clinic-v1",
+    nicheName: "Dental Clinic",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Teeth Whitening",
+    targetCustomer: "patients",
+    ctaPreference: "Book Appointment",
+    generationMode: "brand_led",
+    sourceDriven: true,
+    services: ["Teeth Whitening"],
+    heroHeadline: "A brighter smile, clearly explained",
+    preferredHeroVariant: "source_brand_hero",
+    compactSubpageHeroes: true,
+  });
+
+  assert.deepEqual(pages.map((page) => page.title), ["Home", "Treatments", "Appointment"]);
+  assert.equal(pages.some((page) => page.title === "About"), false);
+  assert.equal(pages.some((page) => page.title === "Reviews"), false);
+  assert.equal(pages.some((page) => page.title === "Patient Info"), false);
+});
