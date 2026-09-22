@@ -1768,7 +1768,7 @@ export default function SuperAdminDashboard() {
                          <div>
                             <h3 className="font-black italic uppercase tracking-tight text-slate-900">Superadmin Modules</h3>
                             <p className="mt-1 max-w-2xl text-xs font-medium leading-5 text-slate-500">
-                              Active sales and delivery modules are enabled by default. Paused or legacy modules remain off unless deliberately restored for historical operations.
+                              All current Super Admin modules are built and available by default. Use these switches only to hide an operational surface from the admin navigation.
                             </p>
                          </div>
                          <Badge className="w-fit border-0 bg-indigo-50 text-indigo-700">
