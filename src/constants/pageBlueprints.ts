@@ -83,6 +83,8 @@ export interface BlueprintBusinessInput {
   assetReadiness?: AssetReadiness;
   heroImageUrl?: string;
   storyImageUrl?: string;
+  heroHeadline?: string;
+  heroSubheadline?: string;
   teamMembers?: Array<{ name: string; role?: string; bio?: string; imageUrl?: string }>;
   compositionSeed?: number;
 }
@@ -723,21 +725,25 @@ const buildSectionContent = (
   const cta = input.ctaPreference || pageBlueprint.ctaType || "Get Started";
   const tone = input.tone || "Professional";
   const premiumHeroHeadline = buildGeneratedHeroHeadline(service, target, businessName);
+  const suppliedHeroHeadline = clampGeneratedText(input.heroHeadline || "", 10, 82);
+  const suppliedHeroSubheadline = generatedBody(input.heroSubheadline || "");
 
   if (section.type === "hero") {
     section.content = {
       ...section.content,
       headline:
         pageBlueprint.slug === ""
-          ? input.generationMode === "fast"
-            ? buildGeneratedHeroHeadline(businessName, target, businessName)
-            : premiumHeroHeadline
+          ? suppliedHeroHeadline
+            || (input.generationMode === "fast"
+              ? buildGeneratedHeroHeadline(businessName, target, businessName)
+              : premiumHeroHeadline)
           : input.generationMode === "fast"
             ? generatedHeadline(`${pageBlueprint.name} Built Around ${generatedServiceTitle(service)}`)
             : generatedHeadline(pageBlueprint.name),
       subheadline: generatedBody(
-        input.description ||
-        `${tone} ${generatedServiceTitle(service)} in ${location}, designed to help ${target} take the next step with confidence.`,
+        (pageBlueprint.slug === "" ? suppliedHeroSubheadline : "")
+        || input.description
+        || `${tone} ${generatedServiceTitle(service)} in ${location}, designed to help ${target} take the next step with confidence.`,
       ),
       ctaText: cta,
       imageUrl: input.heroImageUrl || undefined,
