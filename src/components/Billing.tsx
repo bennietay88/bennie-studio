@@ -18,14 +18,12 @@ import {
   ExternalLink,
   CheckCircle2,
   AlertCircle,
-  Star,
   Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Business } from "../types";
 import { PLANS } from "../constants/plans";
 import { cn } from "../lib/utils";
-import { motion } from "motion/react";
 import { stripePublishableKey, holdsValidStripeKey } from "../lib/stripe";
 
 export const Billing = () => {
@@ -87,11 +85,6 @@ export const Billing = () => {
           trialEndsAt: data.trial_ends_at
             ? new Date(data.trial_ends_at).getTime()
             : 0,
-          marketingStatus: data.marketing_status,
-          marketingTrialEndsAt: data.marketing_trial_ends_at
-            ? new Date(data.marketing_trial_ends_at).getTime()
-            : undefined,
-          marketingPlan: data.marketing_plan,
           createdAt: data.created_at
             ? new Date(data.created_at).getTime()
             : Date.now(),
@@ -393,138 +386,10 @@ export const Billing = () => {
         </div>
       )}
 
-      {/* Historical Marketing Hub access remains visible only to businesses that already
-          have the legacy add-on active or in an existing trial. It is not sold to new customers. */}
-      {(business?.marketingStatus === "active" || business?.marketingStatus === "trialing") && <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <Card className="border-indigo-100 shadow-sm overflow-hidden">
-          <div className="bg-indigo-50/50 px-6 py-4 border-b border-indigo-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Star className="h-5 w-5 text-indigo-600" />
-                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                  Marketing Hub Add-on
-                </h2>
-              </div>
-              <Badge
-                variant={
-                  business?.marketingStatus === "active"
-                    ? "default"
-                    : business?.marketingStatus === "trialing"
-                      ? "secondary"
-                      : "outline"
-                }
-                className={
-                  business?.marketingStatus === "active"
-                    ? "bg-indigo-600"
-                    : business?.marketingStatus === "trialing"
-                      ? "bg-amber-100 text-amber-700 border-none"
-                      : "text-slate-400"
-                }
-              >
-                {business?.marketingStatus === "active"
-                  ? "Active"
-                  : business?.marketingStatus === "trialing"
-                    ? "Trialing"
-                    : "Not Active"}
-              </Badge>
-            </div>
-          </div>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-              <div className="space-y-4">
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  Supercharge your business with AI-powered marketing
-                  automations, SEO audits, and social media campaign generators.
-                </p>
-                <div className="space-y-2">
-                  {[
-                    "AI SEO Audit & Optimization",
-                    "Smart Ad Generator (FB/Google)",
-                    "Automated Social Media Planner",
-                    "Advanced Lead Filtering",
-                  ].map((feature, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-2 text-[11px] text-slate-500 font-medium"
-                    >
-                      <div className="h-1 w-1 rounded-full bg-indigo-400" />
-                      {feature}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                {business?.marketingStatus === "active" ? (
-                  <div className="text-center space-y-3">
-                    <div className="bg-emerald-100 text-emerald-700 w-fit mx-auto px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2">
-                      Premium Active
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      You have full access to all marketing automation tools.
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="w-full h-10 text-xs font-bold border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                      onClick={() => navigate("/dashboard/support")}
-                    >
-                      Contact Support
-                    </Button>
-                  </div>
-                ) : business?.marketingStatus === "trialing" ? (
-                  <div className="text-center space-y-4">
-                    <div className="space-y-1">
-                      <div className="text-2xl font-bold text-slate-900">
-                        {business.marketingTrialEndsAt
-                          ? Math.max(
-                              0,
-                              Math.ceil(
-                                (business.marketingTrialEndsAt - Date.now()) /
-                                  (1000 * 60 * 60 * 24),
-                              ),
-                            )
-                          : 0}{" "}
-                        Days Left
-                      </div>
-                      <p className="text-[10px] text-amber-600 font-bold uppercase tracking-widest">
-                        Free Trial Period
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      className="w-full h-10 text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50"
-                      onClick={() => navigate("/dashboard/support")}
-                    >
-                      Ask About Legacy Access
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center space-y-4">
-                    <div className="space-y-1">
-                      <div className="text-2xl font-bold text-slate-900">
-                        $49/mo
-                      </div>
-                      <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest italic">
-                        Marketing Hub Pro Add-on
-                      </p>
-                    </div>
-                    <Button
-                      className="w-full h-10 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100"
-                      onClick={() => navigate("/dashboard/marketing-hub")}
-                    >
-                      Start Free Trial
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>}
+      <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 text-sm leading-6 text-slate-600">
+        <span className="font-bold text-slate-900">Marketing Pro is included by plan entitlement.</span>{" "}
+        There is no separate Marketing Pro subscription. Open Marketing Pro from the dashboard to see which growth capabilities are included in your current Bennie Studio plan.
+      </div>
 
       <div id="pricing-plans" className="space-y-6">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white text-center">
