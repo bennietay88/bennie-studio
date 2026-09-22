@@ -151,6 +151,35 @@ const extractImageCandidates = (html: string, baseUrl: string) => {
   return [...new Set(results)];
 };
 
+
+const extractHeroImageCandidate = (html: string, baseUrl: string) => {
+  let best = { url: "", score: 0 };
+  let index = 0;
+  for (const match of html.matchAll(/<img\b([^>]+)>/gi)) {
+    const attrs = String(match[1] || "");
+    if (/(?:logo|icon|avatar|badge|sprite|favicon)/i.test(attrs)) continue;
+    const src = /\b(?:src|data-src|data-lazy-src)=["']([^"']+)["']/i.exec(attrs)?.[1] || "";
+    if (!src || /^data:/i.test(src)) continue;
+    const resolved = absoluteUrl(src, baseUrl);
+    if (!resolved) continue;
+
+    let score = 0;
+    if (/(?:hero|banner|masthead|cover|above[-_ ]?fold|header[-_ ]?image)/i.test(attrs)) score += 8;
+    if (/loading=["']eager["']/i.test(attrs)) score += 2;
+    if (/fetchpriority=["']high["']/i.test(attrs)) score += 2;
+    const width = Number(/\bwidth=["']?(\d{2,5})/i.exec(attrs)?.[1] || 0);
+    const height = Number(/\bheight=["']?(\d{2,5})/i.exec(attrs)?.[1] || 0);
+    if (width >= 700) score += 2;
+    if (height >= 400) score += 1;
+    if (index <= 2) score += 1;
+
+    if (score > best.score) best = { url: resolved, score };
+    index += 1;
+    if (index >= 24) break;
+  }
+  return best.score >= 3 ? best.url : "";
+};
+
 const extractHeroSubheadline = (html: string, description: string) => {
   const h1Match = /<h1\b[^>]*>[\s\S]*?<\/h1>/i.exec(html);
   if (h1Match?.index !== undefined) {
@@ -479,7 +508,8 @@ export function buildPublicPreviewProfile(input: {
   ]);
   const imageCandidates = extractImageCandidates(html, finalUrl);
   const firstImage = imageCandidates[0] || "";
-  const heroImage = absoluteUrl(schemaImageRaw || ogImage || firstImage, finalUrl);
+  const pageHeroImage = extractHeroImageCandidate(html, finalUrl);
+  const heroImage = absoluteUrl(pageHeroImage || schemaImageRaw || ogImage || firstImage, finalUrl);
   const secondaryImage = imageCandidates.find((image) => image !== heroImage) || "";
   const logoUrl = extractLogoUrl(schemaObjects, html, finalUrl);
   const { brandColor, accentColor } = extractBrandColors(html);
