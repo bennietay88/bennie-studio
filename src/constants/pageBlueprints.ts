@@ -127,7 +127,8 @@ export const inferBlueprintNiche = (value?: string) => {
   if (/restaurant|cafe|bistro|dining|food|menu/.test(raw)) return "restaurant";
   if (/clinic|dental|dentist|doctor|medical|health|wellness|spa|physio|therapy/.test(raw)) return "clinic";
   if (/contractor|renovation|repair|cleaning|pest|builder|construction|home service/.test(raw)) return "contractor";
-  if (/coach|consult|consultant|advisor|professional|speaker|trainer|agency|corporate|saas|software/.test(raw)) return "consultant";
+  if (/web agency|website agency|marketing agency|digital agency|web design|website design|web development|lead generation|seo agency|managed website/.test(raw)) return "agency";
+  if (/coach|consult|consultant|advisor|professional|speaker|trainer|corporate|saas|software/.test(raw)) return "consultant";
   if (/real estate|property|realtor|agent|listing/.test(raw)) return "real_estate";
   if (/law|legal|attorney|solicitor/.test(raw)) return "law";
   if (/boutique|retail|shop|fashion|jewelry|commerce/.test(raw)) return "boutique";
@@ -257,6 +258,11 @@ const SUPPLEMENTAL_BLUEPRINT_PAGES: Record<string, BlueprintPageSeed[]> = {
     page("FAQ", "faq", "Answer common fit, scope and engagement questions.", ["hero", "faq", "final_cta"], "Book Call"),
     page("Insights", "insights", "Show useful thinking, guides and point of view.", ["hero", "insights", "final_cta"], "Book Call"),
   ],
+  agency: [
+    page("Process", "process", "Explain how strategy, build, launch and ongoing improvement work.", ["hero", "process", "benefits", "faq", "final_cta"], "Book a Consultation"),
+    page("Insights", "insights", "Create room for practical website and lead-generation guidance.", ["hero", "insights", "final_cta"], "Book a Consultation"),
+    page("FAQ", "faq", "Answer common scope, support, timeline and website questions.", ["hero", "faq", "final_cta"], "Book a Consultation"),
+  ],
   real_estate: [
     page("Process", "process", "Explain the buyer and seller journey.", ["hero", "process", "benefits", "final_cta"], "Contact Agent"),
     page("FAQ", "faq", "Answer common buyer and seller questions.", ["hero", "faq", "final_cta"], "Contact Agent"),
@@ -286,17 +292,26 @@ const expandBlueprintPages = (
   pageLimit: number,
 ) => {
   if (pages.length >= pageLimit) return pages.slice(0, pageLimit);
+
   const expanded = [...pages];
+  const terminalSlugs = new Set(["contact", "book-call", "appointment", "quote", "reservation", "consultation"]);
+  const terminalPage = expanded.length && terminalSlugs.has(expanded[expanded.length - 1].slug)
+    ? expanded.pop()
+    : undefined;
   const usedSlugs = new Set(expanded.map((item) => item.slug));
+  if (terminalPage) usedSlugs.add(terminalPage.slug);
+
   const candidates = SUPPLEMENTAL_BLUEPRINT_PAGES[niche] || SUPPLEMENTAL_BLUEPRINT_PAGES.consultant;
+  const targetBeforeTerminal = pageLimit - (terminalPage ? 1 : 0);
 
   for (const candidate of candidates) {
-    if (expanded.length >= pageLimit) break;
+    if (expanded.length >= targetBeforeTerminal) break;
     if (usedSlugs.has(candidate.slug)) continue;
     expanded.push(candidate);
     usedSlugs.add(candidate.slug);
   }
 
+  if (terminalPage && expanded.length < pageLimit) expanded.push(terminalPage);
   return expanded.slice(0, pageLimit);
 };
 
@@ -390,6 +405,29 @@ const BLUEPRINTS: Record<string, Record<BlueprintPlanId, { pages: BlueprintPageS
         page("Programs", "programs", "Explain services and program fit.", ["hero", "services", "service_detail", "pricing", "final_cta"], "Book Call", "Services"),
         page("Results", "results", "Show case studies, testimonials, and measurable outcomes.", ["hero", "portfolio", "testimonials", "trust", "final_cta"], "Book Call"),
         page("Book a Call", "book-call", "Convert qualified prospects into booked conversations.", ["hero", "contact_form", "booking_cta", "faq"], "Book Call", "Contact"),
+      ],
+    },
+  },
+  agency: {
+    starter: {
+      pages: [
+        page("Home", "", "Explain the managed website offer, proof and enquiry path.", ["hero", "services", "highlights", "process", "final_cta"], "Book a Consultation"),
+      ],
+    },
+    business: {
+      pages: [
+        page("Home", "", "Position the managed website offer around enquiries and ongoing support.", ["hero", "highlights", "services", "process", "final_cta"], "Book a Consultation"),
+        page("Services", "services", "Explain managed website, lead-generation and ongoing improvement services.", ["hero", "services", "service_detail", "faq", "final_cta"], "Book a Consultation"),
+        page("Contact", "contact", "Capture consultation and website preview enquiries.", ["hero", "contact_form", "faq", "final_cta"], "Book a Consultation"),
+      ],
+    },
+    growth: {
+      pages: [
+        page("Home", "", "Lead with the managed website proposition, proof, work and conversion path.", ["hero", "highlights", "services", "portfolio", "process", "final_cta"], "Book a Consultation"),
+        page("Services", "services", "Explain managed websites, lead generation, support and ongoing improvement.", ["hero", "services", "service_detail", "process", "faq", "final_cta"], "Book a Consultation"),
+        page("Work", "work", "Show selected websites, case studies and project outcomes.", ["hero", "portfolio", "testimonials", "final_cta"], "View Work"),
+        page("About", "about", "Explain the studio, approach and managed-service model.", ["hero", "about", "benefits", "trust", "final_cta"], "Book a Consultation"),
+        page("Contact", "contact", "Capture qualified consultations and website enquiries.", ["hero", "contact_form", "faq", "final_cta"], "Book a Consultation"),
       ],
     },
   },
@@ -492,6 +530,7 @@ const PREMIUM_HOME_COMPOSITIONS: Record<string, SectionBlockType[]> = {
   clinic: ["hero", "highlights", "services", "brand_story", "trust", "testimonials", "faq", "booking_cta", "final_cta"],
   contractor: ["hero", "trust", "services", "brand_story", "portfolio", "process", "testimonials", "faq", "final_cta"],
   consultant: ["hero", "highlights", "brand_story", "services", "values", "trust", "insights", "faq", "final_cta"],
+  agency: ["hero", "highlights", "services", "portfolio", "process", "brand_story", "values", "faq", "final_cta"],
   real_estate: ["hero", "highlights", "portfolio", "brand_story", "services", "testimonials", "faq", "final_cta"],
   law: ["hero", "highlights", "services", "brand_story", "values", "trust", "insights", "faq", "final_cta"],
   boutique: ["hero", "highlights", "portfolio", "brand_story", "services", "testimonials", "final_cta"],
@@ -503,6 +542,7 @@ const BRAND_LED_HOME_COMPOSITIONS: Record<string, SectionBlockType[]> = {
   clinic: ["hero", "highlights", "brand_story", "services", "values", "trust", "team", "insights", "faq", "booking_cta", "final_cta"],
   contractor: ["hero", "highlights", "brand_story", "services", "values", "portfolio", "process", "testimonials", "insights", "faq", "final_cta"],
   consultant: ["hero", "highlights", "brand_story", "services", "values", "trust", "team", "insights", "faq", "final_cta"],
+  agency: ["hero", "highlights", "services", "portfolio", "process", "brand_story", "values", "insights", "faq", "final_cta"],
   real_estate: ["hero", "highlights", "brand_story", "portfolio", "services", "values", "team", "insights", "faq", "final_cta"],
   law: ["hero", "highlights", "services", "brand_story", "values", "trust", "team", "insights", "faq", "final_cta"],
   boutique: ["hero", "highlights", "brand_story", "portfolio", "services", "values", "insights", "final_cta"],
@@ -781,7 +821,7 @@ const buildSectionContent = (
       ...section.content,
       title:
         block === "portfolio"
-          ? pageBlueprint.name
+          ? (pageBlueprint.slug === "" ? "Selected Work" : pageBlueprint.name)
           : block === "process"
             ? "How It Works"
             : "What Makes This Different",
