@@ -1,0 +1,108 @@
+export type MarketingFeatureStatus = "enabled" | "disabled" | "coming_soon";
+
+export type MarketingCapabilityId =
+  | "seoAudit"
+  | "adGenerator"
+  | "reviews"
+  | "localSeo"
+  | "leadFollowUp"
+  | "blog";
+
+export type MarketingPlatformControlId =
+  | MarketingCapabilityId
+  | "wordpressIntegration";
+
+export interface MarketingCapabilityDefinition {
+  id: MarketingCapabilityId;
+  title: string;
+  description: string;
+  entitlementFeatureId:
+    | "advanced_seo"
+    | "ai_synthesis"
+    | "review_management"
+    | "local_seo_geo"
+    | "lead_crm"
+    | "blog";
+  route?: string;
+}
+
+export const DEFAULT_MARKETING_FEATURES: Record<MarketingPlatformControlId, MarketingFeatureStatus> = {
+  seoAudit: "enabled",
+  adGenerator: "enabled",
+  reviews: "enabled",
+  localSeo: "enabled",
+  leadFollowUp: "enabled",
+  blog: "enabled",
+  wordpressIntegration: "disabled",
+};
+
+export const MARKETING_PRO_CAPABILITIES: MarketingCapabilityDefinition[] = [
+  {
+    id: "seoAudit",
+    title: "SEO Audit",
+    description: "Review observable SEO and content gaps in the current website and turn them into prioritized improvements.",
+    entitlementFeatureId: "advanced_seo",
+  },
+  {
+    id: "adGenerator",
+    title: "Campaign Copy",
+    description: "Draft search and social campaign copy from the business profile. Ad buying and campaign management are not included.",
+    entitlementFeatureId: "ai_synthesis",
+  },
+  {
+    id: "reviews",
+    title: "Reviews & Reputation",
+    description: "Manage review proof and prepare reusable review-request campaigns for customer follow-up.",
+    entitlementFeatureId: "review_management",
+    route: "/dashboard/reviews",
+  },
+  {
+    id: "localSeo",
+    title: "Local SEO",
+    description: "Prepare location-page drafts with local proof, schema-ready details and publishing quality checks.",
+    entitlementFeatureId: "local_seo_geo",
+    route: "/dashboard/local-seo",
+  },
+  {
+    id: "leadFollowUp",
+    title: "Leads & Follow-up",
+    description: "Work captured leads, score enquiry priority and prepare follow-up actions without pretending queued work was already sent.",
+    entitlementFeatureId: "lead_crm",
+    route: "/dashboard/leads",
+  },
+  {
+    id: "blog",
+    title: "Blog & Content",
+    description: "Draft, edit and publish website articles, including AI-assisted first drafts where the plan includes content tools.",
+    entitlementFeatureId: "blog",
+    route: "/dashboard/blog",
+  },
+];
+
+export const MARKETING_PRO_PLATFORM_CONTROLS = [
+  ...MARKETING_PRO_CAPABILITIES,
+  {
+    id: "wordpressIntegration" as const,
+    title: "WordPress Integration",
+    description: "Allow the optional WordPress synchronization capability where separately configured.",
+    entitlementFeatureId: "wordpress_sync" as const,
+  },
+];
+
+export function normalizeMarketingFeatures(input: unknown): Record<MarketingPlatformControlId, MarketingFeatureStatus> {
+  const raw = input && typeof input === "object" ? input as Record<string, unknown> : {};
+  const normalized = { ...DEFAULT_MARKETING_FEATURES };
+
+  for (const key of Object.keys(DEFAULT_MARKETING_FEATURES) as MarketingPlatformControlId[]) {
+    const value = raw[key];
+    if (value === "enabled" || value === "disabled" || value === "coming_soon") {
+      normalized[key] = value;
+    }
+  }
+
+  return normalized;
+}
+
+export function getMarketingCapability(id: MarketingCapabilityId) {
+  return MARKETING_PRO_CAPABILITIES.find((capability) => capability.id === id);
+}
