@@ -6,6 +6,7 @@ export type PublicPreviewProfile = {
   contactEmail: string;
   contactPhone: string;
   services: string[];
+  serviceDetails: Array<{ title: string; description: string }>;
   serviceAreas: string[];
   testimonials: string[];
   faqs: string[];
@@ -375,6 +376,48 @@ const extractServices = (html: string) => {
     .slice(0, 8);
 };
 
+const extractServiceDetails = (html: string) => {
+  const items: Array<{ title: string; description: string }> = [];
+
+  for (const match of html.matchAll(/<(h2|h3|h4)\\b[^>]*>([\\s\\S]*?)<\\/\\1>/gi)) {
+    const title = canonicalizeServiceLabel(text(match[2]));
+    if (
+      !title
+      || title.length < 3
+      || title.length > 90
+      || isGenericServiceLabel(title)
+      || isAudienceOrMarketingLabel(title)
+      || !serviceSignal.test(title)
+    ) continue;
+
+    const endIndex = (match.index || 0) + match[0].length;
+    const after = html.slice(endIndex, endIndex + 1600);
+    const nextHeadingIndex = after.search(/<(?:h1|h2|h3|h4)\\b/i);
+    const local = nextHeadingIndex >= 0 ? after.slice(0, nextHeadingIndex) : after;
+    const description = firstMatch(local, [
+      /<p\\b[^>]*>([\\s\\S]*?)<\\/p>/i,
+      /<(?:div|span)\\b[^>]*class=["'][^"']*(?:description|copy|text|summary)[^"']*["'][^>]*>([\\s\\S]*?)<\\/(?:div|span)>/i,
+    ]);
+    const cleaned = String(description || "").replace(/\\s+/g, " ").trim();
+
+    if (
+      cleaned.length >= 25
+      && cleaned.length <= 360
+      && !/privacy|cookie|terms|copyright/i.test(cleaned)
+    ) {
+      items.push({ title, description: cleaned.slice(0, 320) });
+    }
+  }
+
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.title.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 8);
+};
+
 const extractTestimonials = (html: string) => {
   const candidates: string[] = [];
   const patterns = [
@@ -589,6 +632,7 @@ export function buildPublicPreviewProfile(input: {
     ...(inferredPrimaryService ? [canonicalizeServiceLabel(inferredPrimaryService)] : []),
   ].filter((item, index, items) => items.findIndex((candidate) => candidate.toLowerCase() === item.toLowerCase()) === index);
   if (!services.length && input.fallbackMainService?.trim()) services.push(input.fallbackMainService.trim());
+  const serviceDetails = extractServiceDetails(html);
   const testimonials = extractTestimonials(html);
   const faqItems = extractFaqItems(schemaObjects, html);
   const faqs = faqItems.map((item) => item.question);
@@ -623,6 +667,7 @@ export function buildPublicPreviewProfile(input: {
     contactEmail,
     contactPhone,
     services,
+    serviceDetails,
     serviceAreas,
     testimonials,
     faqs,
