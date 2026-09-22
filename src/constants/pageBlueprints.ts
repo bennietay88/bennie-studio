@@ -750,15 +750,15 @@ const buildSectionContent = (
       ),
       ctaText: cta,
       trustItems: pageBlueprint.slug === "" ? (input.heroTrustItems || []).filter(Boolean).slice(0, 3) : [],
-      imageUrl: input.heroImageUrl || undefined,
-      imageAlt: input.heroImageUrl ? `${businessName} - ${service}` : undefined,
-      assetSlots: {
+      imageUrl: pageBlueprint.slug === "" ? input.heroImageUrl || undefined : undefined,
+      imageAlt: pageBlueprint.slug === "" && input.heroImageUrl ? `${businessName} - ${service}` : undefined,
+      assetSlots: pageBlueprint.slug === "" ? {
         heroImage: {
           source: "customer",
           status: input.heroImageUrl ? "provided" : "needed",
           guidance: "Customer-supplied hero photography, product screenshot, project image or brand artwork.",
         },
-      },
+      } : undefined,
     };
   }
 
