@@ -53,21 +53,25 @@ export function BlogCMS({ isPlatform = false }: BlogCMSProps) {
   const [aiTopic, setAiTopic] = useState("");
   const [showPreview, setShowPreview] = useState(false);
 
-  const businessId = isPlatform ? "platform" : profile?.businessId;
+  const businessId = isPlatform ? null : profile?.businessId;
 
   useEffect(() => {
-    if (!businessId) {
+    if (!isPlatform && !businessId) {
       setLoading(false);
       return;
     }
 
     const fetchPosts = async () => {
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from("posts")
-          .select("*")
-          .eq("business_id", businessId)
-          .order("created_at", { ascending: false });
+          .select("*");
+
+        query = isPlatform
+          ? query.eq("is_platform_post", true)
+          : query.eq("business_id", businessId);
+
+        const { data, error } = await query.order("created_at", { ascending: false });
 
         if (error) throw error;
         setPosts(data.map(mapPost));
@@ -88,7 +92,7 @@ export function BlogCMS({ isPlatform = false }: BlogCMSProps) {
           event: "*",
           schema: "public",
           table: "posts",
-          filter: `business_id=eq.${businessId}`,
+          filter: isPlatform ? "is_platform_post=eq.true" : `business_id=eq.${businessId}`,
         },
         () => fetchPosts(),
       )
@@ -97,7 +101,7 @@ export function BlogCMS({ isPlatform = false }: BlogCMSProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [businessId]);
+  }, [businessId, isPlatform]);
 
   const mapPost = (dbPost: any): BlogPost => ({
     id: dbPost.id,
@@ -114,7 +118,7 @@ export function BlogCMS({ isPlatform = false }: BlogCMSProps) {
   });
 
   const handleSave = async () => {
-    if (!editingPost || !businessId) return;
+    if (!editingPost || (!isPlatform && !businessId)) return;
 
     const postData: any = {
       title: editingPost.title,
@@ -122,7 +126,8 @@ export function BlogCMS({ isPlatform = false }: BlogCMSProps) {
       excerpt: editingPost.excerpt,
       author: editingPost.author || profile?.email,
       status: editingPost.status || "draft",
-      business_id: businessId,
+      business_id: isPlatform ? null : businessId,
+      is_platform_post: isPlatform,
       image_url: editingPost.imageUrl,
       slug:
         editingPost.slug ||
@@ -155,10 +160,10 @@ export function BlogCMS({ isPlatform = false }: BlogCMSProps) {
   };
 
   const handleGenerateAI = async () => {
-    if (!aiTopic || !businessId) return;
+    if (!aiTopic) return;
     setAiLoading(true);
     try {
-      const aiResponse = await generateBlogPost(aiTopic, businessId);
+      const aiResponse = await generateBlogPost(aiTopic, businessId || undefined);
       setEditingPost({
         title: aiResponse.title,
         excerpt: aiResponse.excerpt,
