@@ -873,7 +873,7 @@ function CaseStudiesPage() {
   );
 }
 
-const PREVIEW_GENERATION_VERSION = 8;
+const PREVIEW_GENERATION_VERSION = 9;
 
 const previewIndustries = [
   {
@@ -1100,6 +1100,56 @@ const inferPreviewIndustryId = (service: string): string | null => {
   if (/salon|beauty|aesthetic|spa|facial|hair|skin/.test(value)) return "beauty";
   if (/consult|coach|advis|strategy/.test(value)) return "consultant";
   return null;
+};
+
+
+const cleanPreviewLabel = (value: string) =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.!?;:])/g, "$1")
+    .trim();
+
+const SOURCE_SERVICE_RULES: Record<string, { signal: RegExp; fallback: string }> = {
+  "dental-clinic": { signal: /dent|teeth|tooth|whiten|implant|veneer|brace|orthodont|root canal|crown|bridge|filling|extraction|scaling|polish/i, fallback: "Dental care" },
+  "aesthetic-clinic": { signal: /aesthetic|skin|facial|laser|inject|botox|filler|treatment/i, fallback: "Aesthetic treatments" },
+  "physiotherapy-clinic": { signal: /physio|rehab|pain|injury|mobility|therapy|sports/i, fallback: "Physiotherapy" },
+  chiropractor: { signal: /chiro|spine|back|neck|adjustment|pain/i, fallback: "Chiropractic care" },
+  "medical-clinic": { signal: /medical|doctor|clinic|screening|health|consult|vaccin|treatment/i, fallback: "Medical care" },
+  "cleaning-company": { signal: /clean|housekeep|janitor|deep clean|office|residential|commercial/i, fallback: "Cleaning services" },
+  "renovation-contractor": { signal: /renov|build|contract|construction|remodel|interior|extension/i, fallback: "Renovation services" },
+  "pest-control": { signal: /pest|termite|rodent|cockroach|mosquito|control/i, fallback: "Pest control" },
+  electrician: { signal: /electric|wiring|power|lighting|socket|rewire/i, fallback: "Electrical services" },
+  roofing: { signal: /roof|gutter|leak|tile|repair/i, fallback: "Roofing services" },
+  "accounting-firm": { signal: /account|bookkeep|tax|audit|payroll|company secretary|finance/i, fallback: "Accounting services" },
+  "law-firm": { signal: /law|legal|litigation|convey|corporate|family law|criminal|solicitor|attorney/i, fallback: "Legal services" },
+  "consultant-coach": { signal: /consult|coach|advis|strategy|training|workshop/i, fallback: "Consulting services" },
+  "tuition-centre": { signal: /tuition|class|course|lesson|learning|exam|subject|student/i, fallback: "Tuition programmes" },
+  "childcare-centre": { signal: /childcare|preschool|kindergarten|nursery|early learning/i, fallback: "Childcare programmes" },
+  restaurant: { signal: /menu|dining|restaurant|food|lunch|dinner|dish|cuisine/i, fallback: "Dining" },
+  catering: { signal: /cater|event|buffet|menu|food/i, fallback: "Catering services" },
+  "salon-spa": { signal: /salon|spa|hair|beauty|facial|nail|massage/i, fallback: "Salon services" },
+  florist: { signal: /flower|floral|bouquet|wedding|arrangement/i, fallback: "Floral services" },
+  photographer: { signal: /photo|portrait|wedding|shoot|photography/i, fallback: "Photography" },
+};
+
+const resolveSourceServices = (
+  values: unknown[],
+  businessTypeId: string,
+  extraCandidates: unknown[] = [],
+) => {
+  const rule = SOURCE_SERVICE_RULES[businessTypeId];
+  const generic = /^(?:treatment process|process|surface cleaning|services?|our services|about|patient info|practitioners?|appointment|contact|faq|home)$/i;
+  const candidates = [...values, ...extraCandidates]
+    .map((value) => cleanPreviewLabel(String(value || "")))
+    .filter((value) => value.length >= 3 && value.length <= 96 && !generic.test(value));
+
+  const unique = candidates.filter((value, index, all) =>
+    all.findIndex((candidate) => candidate.toLowerCase() === value.toLowerCase()) === index
+  );
+  const matched = rule ? unique.filter((value) => rule.signal.test(value)) : unique;
+  const selected = (matched.length ? matched : unique).slice(0, 5);
+
+  return selected.length ? selected : [rule?.fallback || "Professional services"];
 };
 
 
@@ -1415,6 +1465,8 @@ function GeneratePreviewPage() {
         heroHeadline?: string;
         heroSubheadline?: string;
         testimonials?: string[];
+        faqs?: string[];
+        aboutText?: string;
         credentials?: string[];
         yearsInBusiness?: string;
         guarantees?: string[];
@@ -1422,11 +1474,20 @@ function GeneratePreviewPage() {
       };
 
       const resolvedBusinessName = String(profile.businessName || form.businessName || "Your Business").trim();
-      const resolvedLocation = String(profile.location || form.location || "Local area").trim();
-      const resolvedServices = Array.isArray(profile.services) && profile.services.length
-        ? profile.services.map((service) => String(service).trim()).filter(Boolean).slice(0, 8)
+      const resolvedLocation = String(
+        profile.location
+        || form.location
+        || (previewMode === "website" ? "" : "Local area"),
+      ).trim();
+      const sourceServiceValues = Array.isArray(profile.services) ? profile.services : [];
+      const resolvedServices = previewMode === "website"
+        ? resolveSourceServices(
+            sourceServiceValues,
+            selectedBusinessType.id,
+            [profile.heroSubheadline, profile.heroHeadline, profile.description],
+          )
         : form.mainService.split(/[,/\n]+/).map((service) => service.trim()).filter(Boolean).slice(0, 8);
-      const resolvedMainService = String(resolvedServices[0] || form.mainService.trim() || "Professional services")
+      const resolvedMainService = String(resolvedServices[0] || form.mainService.trim() || selectedBusinessType.label || "Professional services")
         .replace(/\s+/g, " ")
         .trim()
         .slice(0, 96);
@@ -1482,13 +1543,23 @@ function GeneratePreviewPage() {
         ctaPreference: resolvedCta,
         tone: form.brandStyle,
         services: resolvedServices.length ? resolvedServices : [resolvedMainService],
-        description: profile.description || resolvedReviewStrategy.subheadline,
-        contactEmail: String(profile.contactEmail || form.email || "").trim(),
-        contactPhone: String(profile.contactPhone || form.phone || "").trim(),
+        description: previewMode === "website"
+          ? String(profile.description || "").trim()
+          : profile.description || resolvedReviewStrategy.subheadline,
+        aboutText: previewMode === "website" ? String(profile.aboutText || "").trim() : undefined,
+        sourceDriven: previewMode === "website",
+        contactEmail: previewMode === "website"
+          ? String(profile.contactEmail || "").trim()
+          : String(profile.contactEmail || form.email || "").trim(),
+        contactPhone: previewMode === "website"
+          ? String(profile.contactPhone || "").trim()
+          : String(profile.contactPhone || form.phone || "").trim(),
         whatsappNumber: resolvedGoal.toLowerCase().includes("whatsapp")
-          ? String(profile.contactPhone || form.phone || "").trim()
+          ? String(previewMode === "website" ? profile.contactPhone || "" : profile.contactPhone || form.phone || "").trim()
           : undefined,
-        faqs: resolvedReviewStrategy.intelligence.faqs,
+        faqs: previewMode === "website"
+          ? (Array.isArray(profile.faqs) ? profile.faqs : [])
+          : resolvedReviewStrategy.intelligence.faqs,
         testimonials: previewTestimonials,
         generationMode: resolvedGenerationMode,
         brandPersonality: resolvedBrandPersonality,
