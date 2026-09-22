@@ -1993,7 +1993,62 @@ export function WebsiteRenderer({
       `}</style>
 
         {/* Navigation */}
-        {generationMode === "brand_led" ? (
+        {theme.sourceDriven ? (
+          <footer className="border-t border-slate-200 bg-white text-slate-950">
+            <div className="mx-auto max-w-[90rem] px-6 py-10 sm:px-8 sm:py-12">
+              <div className="grid gap-10 lg:grid-cols-12">
+                <div className="lg:col-span-5">
+                  <button
+                    onClick={() => {
+                      setActivePageSlug("home");
+                      setSelectedPost(null);
+                      scrollPreviewToTop();
+                    }}
+                    className="text-left"
+                  >
+                    {theme.logoUrl ? (
+                      <img src={theme.logoUrl} alt={displayBusinessName} className="max-h-9 max-w-[12rem] object-contain" referrerPolicy="no-referrer" />
+                    ) : (
+                      <p className="text-xl font-semibold tracking-[-0.03em]" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{displayBusinessName}</p>
+                    )}
+                  </button>
+                  <p className="mt-4 max-w-sm text-sm leading-6 text-slate-600">{displayBusinessDescriptor}</p>
+                </div>
+
+                <div className="lg:col-span-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Pages</p>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                    {pages.map((page) => (
+                      <button
+                        key={page.id}
+                        onClick={() => {
+                          setActivePageSlug(page.slug);
+                          setSelectedPost(null);
+                          scrollPreviewToTop();
+                        }}
+                        className="text-left text-sm font-medium text-slate-600 transition-colors hover:text-slate-950"
+                      >
+                        {page.title}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="lg:col-span-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Contact</p>
+                  <div className="mt-4 space-y-2 text-sm">
+                    {contactEmail ? <a href={`mailto:${contactEmail}`} className="block font-medium text-slate-700 hover:text-slate-950">{contactEmail}</a> : null}
+                    {contactPhone ? <a href={normalizedPhone ? `tel:${normalizedPhone}` : undefined} className="block font-medium text-slate-700 hover:text-slate-950">{contactPhone}</a> : null}
+                    {whatsappHref ? <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="block font-medium text-slate-700 hover:text-slate-950">WhatsApp</a> : null}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-10 border-t border-slate-200 pt-5 text-xs font-medium text-slate-500">
+                © {new Date().getFullYear()} {displayBusinessName}
+              </div>
+            </div>
+          </footer>
+        ) : generationMode === "brand_led" ? (
           <nav role="navigation" aria-label="Main Navigation" className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
             <div className="mx-auto flex h-20 max-w-[90rem] items-center justify-between px-5 sm:px-8">
               <button
@@ -2019,7 +2074,19 @@ export function WebsiteRenderer({
                     {page.title}
                   </button>
                 ))}
-                <Button className="h-11 rounded-none px-6 text-[10px] font-black uppercase tracking-[0.18em]" onClick={() => handleButtonAction("Contact Us")}>Get in touch</Button>
+                <Button
+                  className="h-11 rounded-none px-6 text-[10px] font-black uppercase tracking-[0.18em]"
+                  onClick={() => {
+                    const label = theme.sourceDriven
+                      ? String(pages[0]?.sections?.find((item) => item.type === "hero")?.content?.ctaText || "Get in touch")
+                      : "Contact Us";
+                    handleButtonAction(label);
+                  }}
+                >
+                  {theme.sourceDriven
+                    ? String(pages[0]?.sections?.find((item) => item.type === "hero")?.content?.ctaText || "Get in touch")
+                    : "Get in touch"}
+                </Button>
               </div>
 
               <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-none lg:hidden" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-expanded={isMobileMenuOpen} aria-controls="customer-brand-mobile-menu">
@@ -2036,7 +2103,20 @@ export function WebsiteRenderer({
                         {page.title}<ArrowRight className="h-4 w-4 text-primary" />
                       </button>
                     ))}
-                    <Button className="mt-4 h-12 w-full rounded-none text-[10px] font-black uppercase tracking-[0.18em]" onClick={() => { setIsMobileMenuOpen(false); handleButtonAction("Contact Us"); }}>Get in touch</Button>
+                    <Button
+                      className="mt-4 h-12 w-full rounded-none text-[10px] font-black uppercase tracking-[0.18em]"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        const label = theme.sourceDriven
+                          ? String(pages[0]?.sections?.find((item) => item.type === "hero")?.content?.ctaText || "Get in touch")
+                          : "Contact Us";
+                        handleButtonAction(label);
+                      }}
+                    >
+                      {theme.sourceDriven
+                        ? String(pages[0]?.sections?.find((item) => item.type === "hero")?.content?.ctaText || "Get in touch")
+                        : "Get in touch"}
+                    </Button>
                   </div>
                 </motion.div>
               )}
