@@ -851,7 +851,7 @@ function CaseStudiesPage() {
                         {proof.evidence_reference ? <a href={proof.evidence_reference} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center text-sm font-semibold text-white/70 hover:text-white">Supporting reference <ExternalLink className="ml-2 h-4 w-4" /></a> : null}
                       </div>
                       <div>
-                        {proof.before_summary ? <p className="text-sm leading-6 text-white/55">{proof.before_summary}</p> : null}
+                        {proof.before_summary ? <p className="text-sm leading-6 text-white/75">{proof.before_summary}</p> : null}
                         <p className="mt-4 text-base leading-7 text-white/80">“{proof.testimonial}”</p>
                         {Array.isArray(proof.result_metrics) && proof.result_metrics.length ? (
                           <div className="mt-5 flex flex-wrap gap-4">
@@ -2098,7 +2098,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
             <article key={finding.id} className="rounded-3xl border border-slate-200 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{finding.category}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-600">{finding.category}</p>
                   <h3 className="mt-2 text-xl font-bold">{finding.title}</h3>
                 </div>
                 <Badge className={priorityStyles[finding.priority]}>{finding.priority} priority</Badge>
@@ -2110,7 +2110,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
                   ["Recommended improvement", finding.recommendation],
                 ].map(([label, copy]) => (
                   <div key={label} className="rounded-2xl bg-slate-50 p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-slate-600">{label}</p>
                     <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{copy}</p>
                   </div>
                 ))}
@@ -2144,7 +2144,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
             <div key={change.area} className="overflow-hidden rounded-3xl border border-slate-200">
               <p className="bg-slate-950 px-5 py-3 text-sm font-bold text-white">{change.area}</p>
               <div className="grid gap-3 p-5 sm:grid-cols-2">
-                <div><p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Current</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{change.current}</p></div>
+                <div><p className="text-[11px] font-bold uppercase tracking-widest text-slate-600">Current</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{change.current}</p></div>
                 <div><p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Recommended</p><p className="mt-2 text-sm font-bold leading-6 text-slate-800">{change.recommended}</p></div>
               </div>
             </div>
