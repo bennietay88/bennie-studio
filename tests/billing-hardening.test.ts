@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { claimWebhookInMemory, isMinimumTermMature, shouldReclaimWebhook, webhookFailurePatch } from "../src/lib/billingLifecycle.ts";
+import { claimWebhookInMemory, handoverGraceUntil, isHandoverGraceActive, isMinimumTermMature, shouldReclaimWebhook, subscriptionAllowsPermanentDeletion, webhookFailurePatch } from "../src/lib/billingLifecycle.ts";
 
 test("minimum-term cancellation only matures on or after the contract date", () => {
   const now = new Date("2026-09-14T12:00:00Z");
@@ -37,4 +37,21 @@ test("ten concurrent deliveries produce exactly one active webhook owner", async
   }));
   assert.equal(claims.filter((claim) => claim.claimed).length, 1);
   assert.equal(claims.filter((claim) => claim.reason === "active_processing").length, 9);
+});
+
+
+test("handover grace remains available for fourteen days after service ends", () => {
+  const effectiveAt = "2026-09-22T04:00:00.000Z";
+  const graceUntil = handoverGraceUntil(effectiveAt);
+  assert.equal(graceUntil, "2026-10-06T04:00:00.000Z");
+  assert.equal(isHandoverGraceActive(graceUntil, new Date("2026-10-06T03:59:59.000Z")), true);
+  assert.equal(isHandoverGraceActive(graceUntil, new Date("2026-10-06T04:00:00.000Z")), false);
+});
+
+test("permanent deletion is blocked while billing can still be active", () => {
+  assert.equal(subscriptionAllowsPermanentDeletion("active"), false);
+  assert.equal(subscriptionAllowsPermanentDeletion("trialing"), false);
+  assert.equal(subscriptionAllowsPermanentDeletion("past_due"), false);
+  assert.equal(subscriptionAllowsPermanentDeletion("canceled"), true);
+  assert.equal(subscriptionAllowsPermanentDeletion(null), true);
 });
