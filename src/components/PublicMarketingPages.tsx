@@ -900,7 +900,7 @@ function CaseStudiesPage() {
   );
 }
 
-const PREVIEW_GENERATION_VERSION = 4;
+const PREVIEW_GENERATION_VERSION = 5;
 
 const previewIndustries = [
   {
