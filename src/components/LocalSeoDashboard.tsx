@@ -170,12 +170,17 @@ export default function LocalSeoDashboard({ businessIdOverride }: LocalSeoDashbo
         return;
       }
 
-      const [{ data }, { data: planData }] = await Promise.all([
+      const [businessResult, planTableResult, planFallbackResult] = await Promise.all([
         supabase
           .from("businesses")
           .select("*")
           .eq("id", effectiveBusinessId)
           .maybeSingle(),
+        supabase
+          .from("plans")
+          .select("*")
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true }),
         supabase
           .from("settings")
           .select("content")
@@ -183,9 +188,39 @@ export default function LocalSeoDashboard({ businessIdOverride }: LocalSeoDashbo
           .maybeSingle(),
       ]);
 
-      const configuredPlans = planData?.content?.pricing;
-      if (Array.isArray(configuredPlans) && configuredPlans.length > 0) {
-        setPlanSettings(normalizePlans(configuredPlans));
+      const data = businessResult.data;
+      if (!planTableResult.error && Array.isArray(planTableResult.data) && planTableResult.data.length > 0) {
+        setPlanSettings(
+          normalizePlans(
+            planTableResult.data.map((plan: any) => ({
+              id: String(plan.slug || plan.id || "").trim().toLowerCase(),
+              name: plan.name,
+              description: plan.description || "",
+              price: `${Number(plan.price_usd || 0).toFixed(0)}`,
+              priceId: plan.stripe_price_id || "",
+              productId: plan.stripe_product_id || "",
+              features: Array.isArray(plan.features) ? plan.features : [],
+              enabled_features: Array.isArray(plan.enabled_features) ? plan.enabled_features : [],
+              aiCredits: Number(plan.monthly_credit_limit || 0),
+              maxPages: Number(plan.project_limit || 1),
+              maxLocationPages: Number(plan.location_page_limit || 0),
+              monthlyUpdates: plan.monthly_update_allowance || "Monthly update support",
+              monthlyUpdateLimit: Number(plan.monthly_update_limit || 0),
+              commitmentMonths: Number(plan.commitment_months || 0),
+              setupFee: Number(plan.setup_fee || 0),
+              marketPrices: plan.market_prices || {},
+              marketPriceIds: plan.market_price_ids || {},
+              upgradePrompt: plan.upgrade_prompt || "Upgrade to unlock more managed growth tools.",
+              isPopular: Boolean(plan.is_popular),
+              isActive: plan.is_active !== false,
+            })),
+          ),
+        );
+      } else {
+        const configuredPlans = planFallbackResult.data?.content?.pricing;
+        if (Array.isArray(configuredPlans) && configuredPlans.length > 0) {
+          setPlanSettings(normalizePlans(configuredPlans));
+        }
       }
 
       if (data) {
@@ -390,8 +425,11 @@ export default function LocalSeoDashboard({ businessIdOverride }: LocalSeoDashbo
               <p className="text-sm font-black text-amber-900">Upgrade recommendation: {upgrade.recommendedPlan}</p>
               <p className="mt-1 text-sm font-semibold text-amber-800">{upgrade.reason}</p>
             </div>
-            <Button className="rounded-xl bg-slate-950 font-black" onClick={() => (window.location.href = "/dashboard/billing")}>
-              View Plans
+            <Button
+              className="rounded-xl bg-slate-950 font-black"
+              onClick={() => (window.location.href = businessIdOverride ? "/admin/plans" : "/dashboard/billing")}
+            >
+              {businessIdOverride ? "Manage Plan" : "View Plans"}
             </Button>
           </CardContent>
         </Card>
