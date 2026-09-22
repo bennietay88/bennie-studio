@@ -1155,7 +1155,7 @@ const resolveSourceServices = (
     all.findIndex((candidate) => candidate.toLowerCase() === value.toLowerCase()) === index
   );
   const matched = rule ? unique.filter((value) => rule.signal.test(value)) : unique;
-  const selected = (matched.length ? matched : unique).slice(0, 5);
+  const selected = (rule ? matched : unique).slice(0, 5);
 
   return selected.length ? selected : [rule?.fallback || "Professional services"];
 };
