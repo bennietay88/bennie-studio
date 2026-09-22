@@ -618,7 +618,7 @@ export default function App() {
                               path="seo/*"
                               element={
                                 <ProtectedRoute allowedRoles={["business_admin", "staff"]}>
-                                  <FeatureGate featureId="advanced_seo">
+                                  <FeatureGate featureId="advanced_seo" marketingCapabilityId="seoAudit">
                                     <SeoGrowthWorkspace />
                                   </FeatureGate>
                                 </ProtectedRoute>
