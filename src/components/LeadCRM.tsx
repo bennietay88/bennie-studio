@@ -60,7 +60,7 @@ const fadeInUp = {
 export function LeadCRM() {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const { isMarketingCapabilityEnabled, getMarketingCapabilityStatus } = useFeatures();
+  const { isMarketingCapabilityEnabled } = useFeatures();
   const followUpEnabled = isMarketingCapabilityEnabled("leadFollowUp");
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -378,11 +378,7 @@ export function LeadCRM() {
 
   const saveAutomationSnapshot = async (lead: Lead, plan = getLeadAutomationPlan(lead, leadHistory), action = "automation_snapshot") => {
     if (!followUpEnabled) {
-      toast.error(
-        getMarketingCapabilityStatus("leadFollowUp") === "coming_soon"
-          ? "Lead follow-up tools are not live yet."
-          : "Lead follow-up tools are currently unavailable.",
-      );
+      toast.error("Lead follow-up tools are not included in this business plan.");
       return;
     }
 
@@ -955,9 +951,7 @@ export function LeadCRM() {
                           <Lock className="mx-auto h-8 w-8 text-slate-400" />
                           <h4 className="mt-4 text-lg font-black text-slate-950">Follow-up tools unavailable</h4>
                           <p className="mt-2 text-sm leading-6 text-slate-500">
-                            {getMarketingCapabilityStatus("leadFollowUp") === "coming_soon"
-                              ? "This Marketing Pro capability is not live yet."
-                              : "Bennie Studio has paused this Marketing Pro capability. Your lead inbox and CRM remain available."}
+                            This business plan does not include Marketing Pro follow-up tooling. The lead inbox and core CRM remain available.
                           </p>
                         </div>
                       </div>
