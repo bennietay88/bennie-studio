@@ -536,7 +536,7 @@ test("brand-led corporate preview theme resolves AA-safe foregrounds", () => {
 
 
 test("generated renderer readability guard colors clear WCAG AA", () => {
-  assert.ok(contrastRatio("#64748b", "#f8fafc") >= WCAG_AA_NORMAL_TEXT_RATIO, "light-surface muted copy must clear AA");
+  assert.ok(contrastRatio("#475569", "#f8fafc") >= WCAG_AA_NORMAL_TEXT_RATIO, "light-surface muted copy must clear AA");
   assert.ok(contrastRatio("#475569", "#ffffff") >= WCAG_AA_NORMAL_TEXT_RATIO, "preview navigation copy must clear AA");
   assert.ok(contrastRatio("#94a3b8", "#020617") >= WCAG_AA_NORMAL_TEXT_RATIO, "dark footer utility copy must clear AA");
 });
@@ -555,6 +555,8 @@ test("public preview chrome avoids known low-contrast text tokens", async () => 
   assert.doesNotMatch(chrome, /text-slate-400 xl:block/);
   assert.match(renderer, /color: brandHero \? accessibleTheme\.primaryForeground/);
   assert.match(renderer, /footer \.text-slate-500/);
+  assert.doesNotMatch(renderer, /text-white\/55/);
+  assert.match(renderer, /text-\[8px\][\s\S]{0,220}font-size: 0\.75rem/);
 });
 
 
