@@ -2798,7 +2798,7 @@ async function startServer() {
       if (leadError) return res.status(503).json({ error: "Preview verification is temporarily unavailable." });
       if (!lead || lead.preview_id !== body.previewId) return res.status(403).json({ error: "Preview verification failed." });
 
-      const PREVIEW_PROFILE_VERSION = 8;
+      const PREVIEW_PROFILE_VERSION = 9;
       const cached = lead.raw_fields?.previewProfile;
       const cachedVersion = Number(lead.raw_fields?.previewProfileVersion || 0);
       const cachedAt = Date.parse(String(lead.raw_fields?.previewProfileCapturedAt || ""));
@@ -2929,7 +2929,7 @@ async function startServer() {
           mainService: body.mainService || profile.services?.[0] || null,
           previewMode: body.mode,
           previewProfile: profile,
-          previewProfileVersion: 8,
+          previewProfileVersion: 9,
           previewProfileCapturedAt: new Date().toISOString(),
           previewGenerationMethod: "deterministic",
           previewAiCostUsd: 0,
