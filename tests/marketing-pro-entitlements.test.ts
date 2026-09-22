@@ -1,29 +1,29 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  DEFAULT_MARKETING_FEATURES,
+  MARKETING_PRO_CAPABILITIES,
+  MARKETING_PRO_PLAN_CONTROLS,
   getMarketingCapability,
-  normalizeMarketingFeatures,
 } from "../src/constants/marketingPro";
 
-test("marketing feature config preserves safe defaults while honoring stored overrides", () => {
-  const normalized = normalizeMarketingFeatures({
-    seoAudit: "disabled",
-    adGenerator: "coming_soon",
-    reviews: "definitely-not-a-status",
-  });
-
-  assert.equal(normalized.seoAudit, "disabled");
-  assert.equal(normalized.adGenerator, "coming_soon");
-  assert.equal(normalized.reviews, DEFAULT_MARKETING_FEATURES.reviews);
-  assert.equal(normalized.leadFollowUp, "enabled");
-});
-
-test("marketing capabilities map to the normal Bennie Studio plan entitlements", () => {
+test("Marketing Pro capabilities map directly to Bennie Studio plan entitlements", () => {
   assert.equal(getMarketingCapability("seoAudit")?.entitlementFeatureId, "advanced_seo");
   assert.equal(getMarketingCapability("adGenerator")?.entitlementFeatureId, "ai_synthesis");
   assert.equal(getMarketingCapability("reviews")?.entitlementFeatureId, "review_management");
   assert.equal(getMarketingCapability("localSeo")?.entitlementFeatureId, "local_seo_geo");
   assert.equal(getMarketingCapability("leadFollowUp")?.entitlementFeatureId, "lead_crm");
   assert.equal(getMarketingCapability("blog")?.entitlementFeatureId, "blog");
+});
+
+test("Marketing Pro exposes no second commercial enablement state", () => {
+  assert.equal(MARKETING_PRO_CAPABILITIES.length, 6);
+  assert.equal(MARKETING_PRO_PLAN_CONTROLS.length, 7);
+  assert.equal(
+    MARKETING_PRO_PLAN_CONTROLS.find((item) => item.id === "wordpressIntegration")?.entitlementFeatureId,
+    "wordpress_sync",
+  );
+  for (const capability of MARKETING_PRO_PLAN_CONTROLS) {
+    assert.ok(capability.entitlementFeatureId, `${capability.title} must be controlled by a plan entitlement`);
+    assert.equal("status" in capability, false);
+  }
 });
