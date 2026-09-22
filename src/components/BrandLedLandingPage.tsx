@@ -177,13 +177,13 @@ function SystemVisual() {
         <div className="overflow-hidden rounded-[1rem] border border-white/10 bg-[#111827] shadow-[0_36px_90px_-45px_rgba(0,0,0,.9)]">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
             <div className="flex gap-1.5"><span className="h-2 w-2 rounded-full bg-white/20" /><span className="h-2 w-2 rounded-full bg-white/15" /><span className="h-2 w-2 rounded-full bg-white/10" /></div>
-            <span className="text-[9px] font-semibold uppercase tracking-[0.14em] !text-white/35">Managed website system</span>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.14em] !text-white/70">Managed website system</span>
           </div>
           <div className="grid gap-5 p-5 sm:grid-cols-[1.05fr_.95fr] sm:p-7">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.13em] !text-[#b9b1ff]">Positioning first</p>
               <p className="mt-3 max-w-xs text-3xl font-semibold leading-[1.02] !text-white sm:text-4xl">Clear enough to trust. Built to convert.</p>
-              <p className="mt-4 max-w-sm text-xs leading-5 !text-white/48">Offer, proof and next action are decided before visual polish. The page system follows the buying journey.</p>
+              <p className="mt-4 max-w-sm text-xs leading-5 !text-white/70">Offer, proof and next action are decided before visual polish. The page system follows the buying journey.</p>
               <div className="mt-6 flex gap-2">
                 <span className="bg-white px-3 py-2 text-[10px] font-semibold text-[#101827]">Primary action</span>
                 <span className="border border-white/15 px-3 py-2 text-[10px] font-semibold !text-white/65">Proof path</span>
@@ -202,12 +202,12 @@ function SystemVisual() {
                 <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
                   <MousePointerClick className="h-4 w-4 text-[#b9b1ff]" />
                   <p className="mt-5 text-xs font-semibold !text-white">Lead capture</p>
-                  <p className="mt-1 text-[10px] leading-4 !text-white/40">One useful next step.</p>
+                  <p className="mt-1 text-[10px] leading-4 !text-white/70">One useful next step.</p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
                   <LineChart className="h-4 w-4 text-[#b9b1ff]" />
                   <p className="mt-5 text-xs font-semibold !text-white">Managed growth</p>
-                  <p className="mt-1 text-[10px] leading-4 !text-white/40">Improve after launch.</p>
+                  <p className="mt-1 text-[10px] leading-4 !text-white/70">Improve after launch.</p>
                 </div>
               </div>
             </div>
@@ -217,12 +217,12 @@ function SystemVisual() {
         <div className="absolute left-0 top-0 hidden -translate-x-5 rounded-xl border border-white/10 bg-[#111827]/95 p-4 shadow-xl backdrop-blur md:block">
           <Sparkles className="h-4 w-4 text-[#b9b1ff]" />
           <p className="mt-3 text-xs font-semibold !text-white">Strategy</p>
-          <p className="mt-1 text-[10px] !text-white/40">Audience · offer · proof</p>
+          <p className="mt-1 text-[10px] !text-white/70">Audience · offer · proof</p>
         </div>
         <div className="absolute right-0 top-2 hidden translate-x-5 rounded-xl border border-white/10 bg-[#111827]/95 p-4 shadow-xl backdrop-blur md:block">
           <Layers3 className="h-4 w-4 text-[#b9b1ff]" />
           <p className="mt-3 text-xs font-semibold !text-white">Design system</p>
-          <p className="mt-1 text-[10px] !text-white/40">Hierarchy · media · type</p>
+          <p className="mt-1 text-[10px] !text-white/70">Hierarchy · media · type</p>
         </div>
       </div>
     </div>
@@ -602,7 +602,7 @@ export default function BrandLedLandingPage() {
                     <article key={proof.id} className="border border-white/15 bg-white/[0.035] p-6 sm:p-7">
                       <p className="text-lg leading-8 !text-white/85">“{proof.testimonial}”</p>
                       <div className="mt-6 flex flex-wrap items-end justify-between gap-4 border-t border-white/15 pt-5">
-                        <div><p className="font-semibold !text-white">{proof.customer_name || "Customer"}</p><p className="mt-1 text-sm !text-white/50">{proof.company || proof.title || proof.result_summary}</p></div>
+                        <div><p className="font-semibold !text-white">{proof.customer_name || "Customer"}</p><p className="mt-1 text-sm !text-white/70">{proof.company || proof.title || proof.result_summary}</p></div>
                         {Array.isArray(proof.result_metrics) && proof.result_metrics.length ? <div className="flex flex-wrap gap-2">{proof.result_metrics.slice(0, 3).map((metric: any) => <span key={String(metric.metric) + String(metric.value)} className="border border-white/15 px-3 py-2 text-xs font-semibold !text-[#c7c1ff]">{metric.metric}: {metric.value}</span>)}</div> : null}
                       </div>
                     </article>
@@ -767,7 +767,7 @@ export default function BrandLedLandingPage() {
           <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
             <div>
               <p className="text-sm font-semibold">Cookie preferences</p>
-              <p className="mt-1 max-w-2xl text-xs font-medium leading-5 text-white/55">Necessary cookies keep the site working. Analytics and marketing cookies are optional and only load after consent.</p>
+              <p className="mt-1 max-w-2xl text-xs font-medium leading-5 text-white/75">Necessary cookies keep the site working. Analytics and marketing cookies are optional and only load after consent.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => saveConsent(false, false)} className="border border-white/20 px-4 py-2 text-xs font-black">Necessary only</button>
