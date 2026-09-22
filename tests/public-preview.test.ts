@@ -275,3 +275,24 @@ test("public preview extracts source FAQ questions and about copy", () => {
   assert.equal(profile.faqItems.length, 2);
   assert.match(profile.faqItems[0].answer, /New patients can contact/i);
 });
+
+
+test("public preview skips illustration-like secondary images", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <html>
+        <head><title>Smile Clinic</title></head>
+        <body>
+          <img class="homepage-hero-image" src="/hero.jpg" width="1440" height="900" alt="Clinic team">
+          <img src="/tooth-illustration.png" width="1000" height="700" alt="Tooth illustration">
+          <img class="about-clinic-team" src="/team-photo.jpg" width="1200" height="800" alt="Clinic team">
+          <h1>Comfortable dental care</h1>
+        </body>
+      </html>
+    `,
+    finalUrl: "https://smile.example/",
+  });
+
+  assert.equal(profile.secondaryImage, "https://smile.example/team-photo.jpg");
+  assert.doesNotMatch(profile.secondaryImage, /illustration/i);
+});
