@@ -348,6 +348,10 @@ export default function SuperAdminDashboard() {
   const [businessTerminateText, setBusinessTerminateText] = useState("");
   const [isBusinessTerminateDialogOpen, setIsBusinessTerminateDialogOpen] =
     useState(false);
+  const [deletingBusiness, setDeletingBusiness] = useState<any>(null);
+  const [businessDeleteText, setBusinessDeleteText] = useState("");
+  const [isBusinessDeleteDialogOpen, setIsBusinessDeleteDialogOpen] = useState(false);
+  const [deletingBusinessId, setDeletingBusinessId] = useState<string | null>(null);
   const [isPurgeDialogOpen, setIsPurgeDialogOpen] = useState(false);
   const [purgeConfirmText, setPurgeConfirmText] = useState("");
   const [purgeConfirmEmail, setPurgeConfirmEmail] = useState("");
@@ -482,6 +486,54 @@ export default function SuperAdminDashboard() {
     } catch (err) {
       console.error("Deactivate failed:", err);
       toast.error("Failed to deactivate business");
+    }
+  };
+
+  const permanentlyDeleteBusiness = async () => {
+    if (profile?.role !== "super_admin") {
+      toast.error("Only Super Admins can permanently delete businesses");
+      return;
+    }
+    if (!deletingBusiness) return;
+
+    const requiredText = deletingBusiness?.name?.trim() || "";
+    if (!requiredText || businessDeleteText !== requiredText) {
+      toast.error("Business name confirmation does not match.");
+      return;
+    }
+
+    setDeletingBusinessId(deletingBusiness.id);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Missing admin session");
+
+      const response = await fetch(`/api/admin/businesses/${encodeURIComponent(deletingBusiness.id)}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ confirmation: requiredText }),
+      });
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to permanently delete business");
+      }
+
+      setBusinesses((prev) => prev.filter((business) => business.id !== deletingBusiness.id));
+      toast.success("Business permanently deleted");
+      setIsBusinessDeleteDialogOpen(false);
+      setDeletingBusiness(null);
+      setBusinessDeleteText("");
+    } catch (err: any) {
+      console.error("Permanent business deletion failed:", err);
+      toast.error(err.message || "Failed to permanently delete business");
+    } finally {
+      setDeletingBusinessId(null);
     }
   };
 
@@ -1503,9 +1555,19 @@ export default function SuperAdminDashboard() {
                                           setBusinessTerminateText("");
                                           setIsBusinessTerminateDialogOpen(true);
                                         }}
-                                        className="text-rose-600 rounded-xl p-3 focus:bg-rose-50"
+                                        className="text-amber-700 rounded-xl p-3 focus:bg-amber-50"
                                       >
-                                        <Trash2 className="h-4 w-4 mr-3" /> Deactivate Instance
+                                        <AlertCircle className="h-4 w-4 mr-3" /> Deactivate Instance
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setDeletingBusiness(biz);
+                                          setBusinessDeleteText("");
+                                          setIsBusinessDeleteDialogOpen(true);
+                                        }}
+                                        className="text-rose-700 rounded-xl p-3 focus:bg-rose-50"
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-3" /> Delete Permanently
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
@@ -2537,6 +2599,78 @@ export default function SuperAdminDashboard() {
               className="rounded-xl"
             >
               Deactivate Instance
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isBusinessDeleteDialogOpen}
+        onOpenChange={(open) => {
+          setIsBusinessDeleteDialogOpen(open);
+          if (!open) {
+            setDeletingBusiness(null);
+            setBusinessDeleteText("");
+            setDeletingBusinessId(null);
+          }
+        }}
+      >
+        <DialogContent className="rounded-3xl max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-700">
+              <Trash2 className="h-5 w-5" /> Permanently Delete Business
+            </DialogTitle>
+            <DialogDescription>
+              Use this for duplicate, abandoned, test, inactive, or fully cancelled business records.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+              <p className="font-bold">This cannot be undone.</p>
+              <p className="mt-2 text-xs leading-relaxed">
+                Related website and operational records that are configured to cascade will be removed.
+                Historical finance and audit records configured to retain history will keep their record with
+                the business reference cleared. Active or protected subscriptions are blocked from deletion.
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+              Deleting: <span className="font-bold text-slate-900">{deletingBusiness?.name || "Business"}</span>
+              <span className="ml-2 text-slate-400">{deletingBusiness?.id}</span>
+            </div>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              Type the exact business name to confirm
+            </Label>
+            <Input
+              value={businessDeleteText}
+              onChange={(event) => setBusinessDeleteText(event.target.value)}
+              placeholder={deletingBusiness?.name || "Business name"}
+              className="rounded-xl"
+              autoComplete="off"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsBusinessDeleteDialogOpen(false)}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={permanentlyDeleteBusiness}
+              disabled={
+                deletingBusinessId === deletingBusiness?.id ||
+                businessDeleteText !== (deletingBusiness?.name?.trim() || "")
+              }
+              className="rounded-xl"
+            >
+              {deletingBusinessId === deletingBusiness?.id ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Delete Permanently
             </Button>
           </DialogFooter>
         </DialogContent>
