@@ -197,7 +197,7 @@ export default function ProspectPreviewPage() {
               <span className="h-2.5 w-2.5 rounded-full bg-[#d8dbe1]" />
               <span className="ml-2 truncate text-[10px] font-semibold text-[#7a8391]">{preview.businessName}</span>
             </div>
-            <WebsiteRenderer initialData={preview.website} />
+            <WebsiteRenderer initialData={preview.website} enableRealtime={false} />
           </div>
         </div>
       </section>
