@@ -537,7 +537,7 @@ test("shows and accepts a public proposal without exposing checkout secrets", as
   await expect(page.getByRole("heading", { name: "Proposal accepted" })).toBeVisible();
 });
 
-test("prospect sales preview presents consistent plan-aware CTAs and responsive device controls", async ({ page }) => {
+test("prospect sales preview presents consistent plan-aware CTAs and responsive device controls", async ({ page }, testInfo) => {
   await mockSupabaseAndStripe(page);
   const previewId = "preview_sales_e2e_12345678";
   const consoleErrors: string[] = [];
@@ -592,12 +592,19 @@ test("prospect sales preview presents consistent plan-aware CTAs and responsive 
   const primaryHrefs = await primaryCtas.evaluateAll((links) => links.map((link) => link.getAttribute("href") || ""));
   expect(primaryHrefs.every((href) => /\/pricing\?product=website-growth/.test(href))).toBe(true);
 
-  await page.getByRole("button", { name: "Mobile" }).click();
-  await expect(page.getByRole("button", { name: "Mobile" })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Tablet" }).click();
-  await expect(page.getByRole("button", { name: "Tablet" })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Desktop" }).click();
-  await expect(page.getByRole("button", { name: "Desktop" })).toHaveAttribute("aria-pressed", "true");
+  const deviceControls = page.getByRole("button", { name: /^(Mobile|Tablet|Desktop)$/ });
+  if (testInfo.project.name.includes("mobile")) {
+    // On a real mobile viewport the preview already renders at device width,
+    // so desktop viewport-switch controls are intentionally not shown.
+    await expect(deviceControls).toHaveCount(0);
+  } else {
+    await page.getByRole("button", { name: "Mobile" }).click();
+    await expect(page.getByRole("button", { name: "Mobile" })).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: "Tablet" }).click();
+    await expect(page.getByRole("button", { name: "Tablet" })).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: "Desktop" }).click();
+    await expect(page.getByRole("button", { name: "Desktop" })).toHaveAttribute("aria-pressed", "true");
+  }
 
   expect(consoleErrors).toEqual([]);
 });

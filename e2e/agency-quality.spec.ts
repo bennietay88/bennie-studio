@@ -140,6 +140,7 @@ for (const viewport of viewports) {
 
 test("public navigation uses the app route transition", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await mockAnonymousPublicDependencies(page);
   await page.goto("/", { waitUntil: "networkidle" });
   await page.getByRole("link", { name: "Pricing", exact: true }).first().click();

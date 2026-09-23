@@ -129,6 +129,12 @@ async function installPersonaMocks(
   await page.route("**/rest/v1/**", handleSupabase);
 }
 
+async function navigateTo(page: Page, path: string) {
+  await page.evaluate((target) => {
+    window.location.href = target;
+  }, path);
+}
+
 async function signInAs(page: Page, persona: Persona, state?: CustomerState) {
   await installPersonaMocks(page, persona, state);
   await page.goto("/login");
@@ -141,7 +147,7 @@ async function signInAs(page: Page, persona: Persona, state?: CustomerState) {
 
 test("business admin can open team management", async ({ page }) => {
   await signInAs(page, testPersonas.businessAdmin);
-  await page.goto("/dashboard/team");
+  await navigateTo(page, "/dashboard/team");
   await expect(page.getByRole("heading", { name: "Team Management" })).toBeVisible();
 });
 
@@ -149,10 +155,10 @@ test("active staff can use dashboard but cannot open billing or team administrat
   await signInAs(page, testPersonas.staff);
   await expect(page.getByRole("heading", { name: "Subscription access paused" })).toHaveCount(0);
 
-  await page.goto("/dashboard/billing");
+  await navigateTo(page, "/dashboard/billing");
   await page.waitForURL((url) => url.pathname === "/dashboard");
 
-  await page.goto("/dashboard/team");
+  await navigateTo(page, "/dashboard/team");
   await page.waitForURL((url) => url.pathname === "/dashboard");
 });
 
@@ -166,15 +172,15 @@ test("expired staff is blocked by the business subscription gate", async ({ page
 
 test("client cannot enter the platform admin area", async ({ page }) => {
   await signInAs(page, testPersonas.client);
-  await page.goto("/admin");
+  await navigateTo(page, "/admin");
   await page.waitForURL((url) => url.pathname === "/dashboard");
 });
 
 test("affiliate is isolated from customer business routes", async ({ page }) => {
   await signInAs(page, testPersonas.affiliate);
-  await page.goto("/dashboard/my-website");
+  await navigateTo(page, "/dashboard/my-website");
   await page.waitForURL((url) => url.pathname === "/dashboard/affiliate/dashboard");
-  await page.goto("/dashboard/billing");
+  await navigateTo(page, "/dashboard/billing");
   await page.waitForURL((url) => url.pathname === "/dashboard/affiliate/dashboard");
 });
 
