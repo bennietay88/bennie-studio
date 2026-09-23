@@ -35,6 +35,7 @@ async function installPersonaMocks(
 ) {
   const isInternal = persona.role === "super_admin" || persona.role === "platform_staff";
   const isBusinessMember = ["business_admin", "staff", "client"].includes(persona.role);
+  const calls = { signupKind: null as string | null };
   const user = {
     id: persona.id,
     aud: "authenticated",
@@ -95,6 +96,12 @@ async function installPersonaMocks(
       return;
     }
 
+    if (url.pathname.includes("/auth/v1/signup")) {
+      const payload = request.postDataJSON();
+      calls.signupKind = String(payload?.data?.signup_kind || "");
+      await json(route, { user, session });
+      return;
+    }
     if (url.pathname.includes("/auth/v1/token")) {
       await json(route, session);
       return;
@@ -127,6 +134,7 @@ async function installPersonaMocks(
 
   await page.route("**/auth/v1/**", handleSupabase);
   await page.route("**/rest/v1/**", handleSupabase);
+  return calls;
 }
 
 async function navigateTo(page: Page, path: string) {
@@ -174,6 +182,16 @@ test("client cannot enter the platform admin area", async ({ page }) => {
   await signInAs(page, testPersonas.client);
   await navigateTo(page, "/admin");
   await page.waitForURL((url) => url.pathname === "/dashboard");
+});
+
+test("affiliate signup uses the constrained affiliate provisioning intent", async ({ page }) => {
+  const calls = await installPersonaMocks(page, testPersonas.affiliate);
+  await page.goto("/affiliate/signup");
+  await page.getByPlaceholder("name@company.com").fill(testPersonas.affiliate.email);
+  await page.getByPlaceholder("••••••••").fill("Password123!");
+  await page.locator("#agreed").check();
+  await page.getByRole("button", { name: "Launch My Partnership" }).click();
+  await expect.poll(() => calls.signupKind).toBe("affiliate");
 });
 
 test("affiliate is isolated from customer business routes", async ({ page }) => {
