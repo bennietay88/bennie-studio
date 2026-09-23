@@ -174,14 +174,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     setIsSigningIn(true);
     try {
-      // Public signups always become customer business admins. The optional
-      // role argument is retained for API compatibility but is ignored.
-      void role;
+      // Public signup intent is deliberately constrained to two safe account
+      // classes. The server still owns the actual profile role and never
+      // accepts an arbitrary role supplied by the browser.
+      const signupKind = role === "affiliate" ? "affiliate" : "customer";
       const { error } = await supabase.auth.signUp({
         email,
         password: pass,
         options: {
-          data: {},
+          data: { signup_kind: signupKind },
         },
       });
       if (error) {

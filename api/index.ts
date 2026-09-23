@@ -904,12 +904,14 @@ async function startServer() {
     }
   };
 
-  // Customer profile bootstrap is intentionally server-owned. This endpoint
-  // ignores mutable signup metadata and only creates the least-privileged
-  // customer role when a profile is genuinely absent.
+  // Profile bootstrap is server-owned. Signup metadata may select only the
+  // explicitly safe public account class (customer or affiliate); it can
+  // never request staff, platform, or administrator privileges.
   app.post("/api/auth/ensure-profile", authenticate, async (req: any, res: any) => {
     const userId = String(req.user?.id || "");
     const email = String(req.user?.email || "").trim().toLowerCase();
+    const signupKind = String(req.user?.user_metadata?.signup_kind || "").trim().toLowerCase();
+    const initialRole = signupKind === "affiliate" ? "affiliate" : "business_admin";
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
     try {
       const { data: existing, error: existingError } = await supabaseAdmin
@@ -922,7 +924,7 @@ async function startServer() {
 
       const { data: created, error: createError } = await supabaseAdmin
         .from("profiles")
-        .insert({ id: userId, email, role: "business_admin" })
+        .insert({ id: userId, email, role: initialRole })
         .select("*")
         .single();
       if (createError) {
@@ -975,6 +977,39 @@ async function startServer() {
     return profile;
   };
 
+  const assertBusinessRoleAccess = async (
+    userId: string,
+    businessId: string,
+    options: {
+      customerRoles?: string[];
+      platformPermissions?: string[];
+    } = {},
+  ) => {
+    const profile = await assertBusinessAccess(userId, businessId);
+    if (profile.role === "super_admin") return profile;
+
+    if (profile.role === "platform_staff") {
+      const allowed = options.platformPermissions || [];
+      const permissions = Array.isArray(profile.staff_permissions) ? profile.staff_permissions : [];
+      if (allowed.some((permission) => permissions.includes(permission))) return profile;
+      throw new Error("FORBIDDEN_BUSINESS_ROLE_ACCESS");
+    }
+
+    const customerRoles = options.customerRoles || [];
+    if (customerRoles.includes(profile.role) && profile.business_id === businessId) return profile;
+    throw new Error("FORBIDDEN_BUSINESS_ROLE_ACCESS");
+  };
+
+  const assertBusinessAdminAccess = (
+    userId: string,
+    businessId: string,
+    platformPermissions: string[] = [],
+  ) =>
+    assertBusinessRoleAccess(userId, businessId, {
+      customerRoles: ["business_admin"],
+      platformPermissions,
+    });
+
   const handleAccessError = (res: any, err: any) => {
     if (err?.message === "BUSINESS_ID_REQUIRED") {
       return res.status(400).json({ error: "Missing businessId" });
@@ -987,6 +1022,9 @@ async function startServer() {
     }
     if (err?.message === "FORBIDDEN_BUSINESS_ACCESS") {
       return res.status(403).json({ error: "Forbidden: business access required" });
+    }
+    if (err?.message === "FORBIDDEN_BUSINESS_ROLE_ACCESS") {
+      return res.status(403).json({ error: "Forbidden: this account role is not authorized for this operation" });
     }
     return res.status(500).json({ error: err?.message || "Access check failed" });
   };
@@ -1133,7 +1171,7 @@ async function startServer() {
     try {
       const profile = await getProfileForUser(req.user.id);
       if (!profile.business_id) return res.status(404).json({ error: "No business found for this account" });
-      await assertBusinessAccess(req.user.id, profile.business_id);
+      await assertBusinessAdminAccess(req.user.id, profile.business_id);
 
       const [
         { data: business, error: businessError },
@@ -3797,7 +3835,7 @@ async function startServer() {
       return res.status(400).json({ error: "Invalid business ID" });
     }
     try {
-      await assertBusinessAccess(req.user.id, req.params.businessId);
+      await assertBusinessRoleAccess(req.user.id, req.params.businessId, { customerRoles: ["business_admin", "staff"], platformPermissions: ["delivery"] });
       const workspace = await loadSeoWorkspace(supabaseAdmin, { businessId: req.params.businessId });
       return res.json(workspace);
     } catch (error: any) {
@@ -3823,7 +3861,7 @@ async function startServer() {
           .eq("id", req.params.projectId)
           .single();
         if (projectError || !project) return res.status(404).json({ error: "SEO project not found" });
-        await assertBusinessAccess(req.user.id, project.business_id);
+        await assertBusinessRoleAccess(req.user.id, project.business_id, { customerRoles: ["business_admin", "staff"], platformPermissions: ["delivery"] });
         const { data: business, error: businessError } = await supabaseAdmin
           .from("businesses")
           .select("plan")
@@ -3944,7 +3982,7 @@ async function startServer() {
         .eq("id", req.params.opportunityId)
         .single();
       if (error || !opportunity) return res.status(404).json({ error: "SEO opportunity not found" });
-      await assertBusinessAccess(req.user.id, opportunity.business_id);
+      await assertBusinessRoleAccess(req.user.id, opportunity.business_id, { customerRoles: ["business_admin", "staff"], platformPermissions: ["delivery"] });
       const { data: existingTask } = await supabaseAdmin.from("seo_tasks")
         .select("*")
         .eq("opportunity_id", opportunity.id)
@@ -4900,7 +4938,7 @@ async function startServer() {
     const body = validateBody(z.object({ businessId: UUID_SCHEMA, reason: z.string().trim().min(3).max(1000) }), req, res);
     if (!body) return;
     try {
-      await assertBusinessAccess(req.user.id, body.businessId);
+      await assertBusinessAdminAccess(req.user.id, body.businessId);
       const { data: businessOwner } = await supabaseAdmin.from("businesses").select("owner_id").eq("id", body.businessId).maybeSingle();
       const subscriptionUserId = businessOwner?.owner_id || req.user.id;
       const { data: subscription, error } = await supabaseAdmin.from("user_subscriptions")
@@ -6179,7 +6217,7 @@ async function startServer() {
   app.get("/api/businesses/:businessId/api-keys", authenticate, async (req: any, res) => {
     const { businessId } = req.params;
     try {
-      await assertBusinessAccess(req.user.id, businessId);
+      await assertBusinessAdminAccess(req.user.id, businessId);
       const { data, error } = await supabaseAdmin
         .from("api_keys")
         .select("id, business_id, key_prefix, name, last_used_at, expires_at, created_at, is_active")
@@ -6212,7 +6250,7 @@ async function startServer() {
     }
 
     try {
-      await assertBusinessAccess(req.user.id, businessId);
+      await assertBusinessAdminAccess(req.user.id, businessId);
       const rawKey = generateIntegrationApiKey();
       const prefix = rawKey.split(".")[0];
 
@@ -6250,7 +6288,7 @@ async function startServer() {
   app.delete("/api/businesses/:businessId/api-keys/:keyId", authenticate, async (req: any, res) => {
     const { businessId, keyId } = req.params;
     try {
-      await assertBusinessAccess(req.user.id, businessId);
+      await assertBusinessAdminAccess(req.user.id, businessId);
       const { error } = await supabaseAdmin
         .from("api_keys")
         .update({ is_active: false })
@@ -8389,7 +8427,7 @@ async function startServer() {
     let commercialPriceExpectation: { currency: string; monthlyAmount: number; setupAmount: number; minimumTermMonths: number } | null = null;
 
     try {
-      await assertBusinessAccess(req.user.id, businessId);
+      await assertBusinessAdminAccess(req.user.id, businessId);
       const { data: checkoutBusiness } = await supabaseAdmin
         .from("businesses")
         .select("id,commercial_term_months,commercial_market")
@@ -8895,7 +8933,7 @@ async function startServer() {
         const session = await stripe.checkout.sessions.retrieve(sessionId);
         const businessId = session.metadata?.businessId;
         if (!businessId) return res.status(404).json({ error: "Checkout business reference is missing." });
-        await assertBusinessAccess(req.user.id, businessId);
+        await assertBusinessAdminAccess(req.user.id, businessId);
         return res.json({
           success: true,
           status: session.status,
@@ -8921,7 +8959,7 @@ async function startServer() {
         return res.status(400).json({ error: "Invalid business reference." });
       }
       try {
-        await assertBusinessAccess(req.user.id, businessId);
+        await assertBusinessRoleAccess(req.user.id, businessId, { customerRoles: ["business_admin", "staff"], platformPermissions: ["delivery", "customer_health"] });
         const [
           { data: business, error: businessError },
           { data: website, error: websiteError },
@@ -9040,7 +9078,7 @@ async function startServer() {
       if (!body) return;
       try {
 		        let effectivePlanId = "";
-		        await assertBusinessAccess(req.user.id, body.businessId);
+		        await assertBusinessAdminAccess(req.user.id, body.businessId);
 		        let { data: business } = await supabaseAdmin
 		          .from("businesses")
 		          .select("id,name,plan,subscription_status,stripe_customer_id,stripe_subscription_id")
@@ -10360,7 +10398,7 @@ async function startServer() {
       }
 
       try {
-        await assertBusinessAccess(req.user.id, businessId);
+        await assertBusinessAdminAccess(req.user.id, businessId);
       } catch (err: any) {
         return handleAccessError(res, err);
       }
@@ -10388,7 +10426,7 @@ async function startServer() {
     try {
       const decodedState = verifyStatePayload(state as string);
       const { businessId, userId } = decodedState;
-      await assertBusinessAccess(userId, businessId);
+      await assertBusinessAdminAccess(userId, businessId);
 
       const stripe = await getStripe();
       const response = await stripe.oauth.token({
@@ -10633,7 +10671,7 @@ async function startServer() {
     }
 
     try {
-      await assertBusinessAccess(req.user.id, body.businessId);
+      await assertBusinessAdminAccess(req.user.id, body.businessId, ["delivery"]);
 
       const candidates = getDomainLookupCandidates(domain);
       const { data: existingBusinesses, error: existingError } = await supabaseAdmin
@@ -10745,7 +10783,7 @@ async function startServer() {
     }
 
     try {
-      await assertBusinessAccess(req.user.id, body.businessId);
+      await assertBusinessAdminAccess(req.user.id, body.businessId, ["delivery"]);
       if (isVercelDomainsConfigured()) {
         await removeVercelProjectDomain(domain).catch((error: any) => {
           if (Number(error?.status) !== 404) throw error;

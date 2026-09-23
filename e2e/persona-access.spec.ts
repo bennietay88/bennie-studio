@@ -34,6 +34,7 @@ async function installPersonaMocks(
   customerState: CustomerState = { subscriptionStatus: "active", trialEndsAt: null },
 ) {
   const isInternal = persona.role === "super_admin" || persona.role === "platform_staff";
+  const isBusinessMember = ["business_admin", "staff", "client"].includes(persona.role);
   const user = {
     id: persona.id,
     aud: "authenticated",
@@ -55,7 +56,7 @@ async function installPersonaMocks(
     id: persona.id,
     email: persona.email,
     role: persona.role,
-    business_id: isInternal ? null : businessId,
+    business_id: isBusinessMember ? businessId : null,
     onboarding_completed: true,
     status: "active",
     staff_permissions: persona.role === "platform_staff" ? ["delivery", "customer_health"] : [],
@@ -167,6 +168,14 @@ test("client cannot enter the platform admin area", async ({ page }) => {
   await signInAs(page, testPersonas.client);
   await page.goto("/admin");
   await page.waitForURL((url) => url.pathname === "/dashboard");
+});
+
+test("affiliate is isolated from customer business routes", async ({ page }) => {
+  await signInAs(page, testPersonas.affiliate);
+  await page.goto("/dashboard/my-website");
+  await page.waitForURL((url) => url.pathname === "/dashboard/affiliate/dashboard");
+  await page.goto("/dashboard/billing");
+  await page.waitForURL((url) => url.pathname === "/dashboard/affiliate/dashboard");
 });
 
 test("platform staff can enter the platform admin area", async ({ page }) => {

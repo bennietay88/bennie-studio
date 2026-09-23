@@ -9,6 +9,7 @@ export const testPersonas = {
   businessAdmin: { id: "00000000-0000-4000-8000-000000000013", email: "owner@example.test", role: "business_admin" },
   staff: { id: "00000000-0000-4000-8000-000000000014", email: "staff@example.test", role: "staff" },
   client: { id: "00000000-0000-4000-8000-000000000015", email: "client@example.test", role: "client" },
+  affiliate: { id: "00000000-0000-4000-8000-000000000016", email: "affiliate@example.test", role: "affiliate" },
 } as const;
 
 export const testStripe = {
