@@ -1450,9 +1450,8 @@ async function startServer() {
       const businessId = profile.business_id || null;
 
       if (businessId) {
-        await assertBusinessAdminAccess(req.user.id, businessId);
         const [{ data: business }, { data: subscription }] = await Promise.all([
-          supabaseAdmin.from("businesses").select("id,subscription_status").eq("id", businessId).maybeSingle(),
+          supabaseAdmin.from("businesses").select("id,owner_id,subscription_status").eq("id", businessId).maybeSingle(),
           supabaseAdmin
             .from("user_subscriptions")
             .select("status,renewal_state")
@@ -1462,21 +1461,27 @@ async function startServer() {
             .maybeSingle(),
         ]);
 
-        const subscriptionStatus = subscription?.status || null;
-        const businessStatus = business?.subscription_status || null;
-        if (!subscriptionAllowsPermanentDeletion(subscriptionStatus) || !subscriptionAllowsPermanentDeletion(businessStatus)) {
-          return res.status(409).json({
-            error: "Managed service is still active. Cancel the managed service first; permanent deletion is available after the subscription ends.",
-            subscriptionStatus: subscriptionStatus || businessStatus,
-            renewalState: subscription?.renewal_state || null,
-          });
-        }
+        // Deleting a member account must never delete the tenant. Only the
+        // actual business owner can remove the business as part of self-delete.
+        const ownsBusiness = Boolean(business?.owner_id && business.owner_id === req.user.id);
+        if (ownsBusiness) {
+          const subscriptionStatus = subscription?.status || null;
+          const businessStatus = business?.subscription_status || null;
+          if (!subscriptionAllowsPermanentDeletion(subscriptionStatus) || !subscriptionAllowsPermanentDeletion(businessStatus)) {
+            return res.status(409).json({
+              error: "Managed service is still active. Cancel the managed service first; permanent deletion is available after the subscription ends.",
+              subscriptionStatus: subscriptionStatus || businessStatus,
+              renewalState: subscription?.renewal_state || null,
+            });
+          }
 
-        const { error: businessDeleteError } = await supabaseAdmin
-          .from("businesses")
-          .delete()
-          .eq("id", businessId);
-        if (businessDeleteError) throw businessDeleteError;
+          const { error: businessDeleteError } = await supabaseAdmin
+            .from("businesses")
+            .delete()
+            .eq("id", businessId)
+            .eq("owner_id", req.user.id);
+          if (businessDeleteError) throw businessDeleteError;
+        }
       }
 
       await supabaseAdmin.from("profiles").delete().eq("id", req.user.id);
@@ -9082,12 +9087,30 @@ async function startServer() {
 		          .eq("id", body.businessId)
 		          .single();
 		        effectivePlanId = String((business as any)?.plan || "").trim();
+
+            const { data: onboardingWebsite, error: onboardingWebsiteError } = await supabaseAdmin
+              .from("websites")
+              .select("id,business_id")
+              .eq("id", body.websiteId)
+              .eq("business_id", body.businessId)
+              .maybeSingle();
+            if (onboardingWebsiteError) throw onboardingWebsiteError;
+            if (!onboardingWebsite) {
+              return res.status(404).json({
+                error: "The selected website does not belong to this business.",
+                code: "WEBSITE_BUSINESS_MISMATCH",
+              });
+            }
+
 	        if (body.proposalId) {
 	          const { data: proposal } = await supabaseAdmin
 	            .from("proposals")
 	            .select("id,status,accepted_email,business_id,config,leads(email)")
 	            .eq("id", body.proposalId)
 	            .maybeSingle();
+            if (proposal?.business_id && proposal.business_id !== body.businessId) {
+              return res.status(403).json({ error: "This proposal belongs to another business.", code: "PROPOSAL_BUSINESS_MISMATCH" });
+            }
 	          const buyerEmail = String(proposal?.accepted_email || (proposal?.leads as any)?.email || "").trim().toLowerCase();
 	          const signedInEmail = String(req.user?.email || "").trim().toLowerCase();
 	          const payment = proposal?.config?.payment;
