@@ -992,12 +992,12 @@ async function startServer() {
       const allowed = options.platformPermissions || [];
       const permissions = Array.isArray(profile.staff_permissions) ? profile.staff_permissions : [];
       if (allowed.some((permission) => permissions.includes(permission))) return profile;
-      throw new Error("FORBIDDEN_BUSINESS_ROLE_ACCESS");
+      throw new Error("FORBIDDEN_BUSINESS_ACCESS");
     }
 
     const customerRoles = options.customerRoles || [];
     if (customerRoles.includes(profile.role) && profile.business_id === businessId) return profile;
-    throw new Error("FORBIDDEN_BUSINESS_ROLE_ACCESS");
+    throw new Error("FORBIDDEN_BUSINESS_ACCESS");
   };
 
   const assertBusinessAdminAccess = (
@@ -1023,10 +1023,7 @@ async function startServer() {
     if (err?.message === "FORBIDDEN_BUSINESS_ACCESS") {
       return res.status(403).json({ error: "Forbidden: business access required" });
     }
-    if (err?.message === "FORBIDDEN_BUSINESS_ROLE_ACCESS") {
-      return res.status(403).json({ error: "Forbidden: this account role is not authorized for this operation" });
-    }
-    return res.status(500).json({ error: err?.message || "Access check failed" });
+     return res.status(500).json({ error: err?.message || "Access check failed" });
   };
 
   const superAdminOnly = async (req: any, res: any, next: any) => {
@@ -1262,7 +1259,7 @@ async function startServer() {
     try {
       const profile = await getProfileForUser(req.user.id);
       if (!profile.business_id) return res.json({ business: null, subscription: null, canDeleteAccount: true });
-      await assertBusinessAccess(req.user.id, profile.business_id);
+      await assertBusinessAdminAccess(req.user.id, profile.business_id);
       const [{ data: business, error: businessError }, { data: subscription, error: subscriptionError }] = await Promise.all([
         supabaseAdmin
           .from("businesses")
@@ -1296,7 +1293,7 @@ async function startServer() {
     try {
       const profile = await getProfileForUser(req.user.id);
       if (!profile.business_id) return res.status(404).json({ error: "No business found for this account" });
-      await assertBusinessAccess(req.user.id, profile.business_id);
+      await assertBusinessAdminAccess(req.user.id, profile.business_id);
 
       const reason = typeof req.body?.reason === "string" ? req.body.reason.trim().slice(0, 500) : null;
       const [{ data: business, error: businessError }, { data: subscription, error: subscriptionError }] = await Promise.all([
@@ -1453,7 +1450,7 @@ async function startServer() {
       const businessId = profile.business_id || null;
 
       if (businessId) {
-        await assertBusinessAccess(req.user.id, businessId);
+        await assertBusinessAdminAccess(req.user.id, businessId);
         const [{ data: business }, { data: subscription }] = await Promise.all([
           supabaseAdmin.from("businesses").select("id,subscription_status").eq("id", businessId).maybeSingle(),
           supabaseAdmin
