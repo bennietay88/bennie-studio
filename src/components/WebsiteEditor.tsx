@@ -76,8 +76,6 @@ import {
   Code,
   Layers,
   Activity,
-  Plug,
-  Key,
   Wand2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -615,13 +613,8 @@ export function WebsiteEditor({
   const [missingItems, setMissingItems] = useState<string[]>([]);
   const [improving, setImproving] = useState<string | null>(null);
 
-  const [showWpPushConfirm, setShowWpPushConfirm] = useState(false);
-  const [isPushingToWp, setIsPushingToWp] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [wpIntegrations, setWpIntegrations] = useState<any[]>([]);
-  const [selectedWpIntegration, setSelectedWpIntegration] = useState<string | "">("");
-  const [wpApiKey, setWpApiKey] = useState("");
   const [customerApprovalRecorded, setCustomerApprovalRecorded] = useState(false);
   const isInternalOperator = ["super_admin", "platform_staff", "staff"].includes(String(profile?.role || ""));
   const workflowStatus: WebsiteWorkflowStatus =
@@ -727,90 +720,6 @@ export function WebsiteEditor({
         ? `/w/${businessId}?draft=1${website?.id ? `&website=${website.id}` : ""}`
         : "";
   }, [businessId, isTemplateMode, templateIdOverride, website?.id]);
-
-  const fetchWpIntegrations = useCallback(async () => {
-    if (!businessId) return;
-    try {
-      const { data, error } = await supabase
-        .from("wordpress_integrations")
-        .select("*")
-        .eq("business_id", businessId)
-        .eq("status", "connected");
-      
-      if (error) throw error;
-      setWpIntegrations(data || []);
-      if (data && data.length > 0) {
-        setSelectedWpIntegration(data[0].id);
-      }
-    } catch (err) {
-      console.error("Error fetching WP integrations:", err);
-    }
-  }, [businessId]);
-
-  const handlePushToWordPress = async () => {
-    if (!isInternalOperator) {
-      toast.error("WordPress publishing is managed by the Bennie Studio delivery team.");
-      return;
-    }
-    if (!selectedWpIntegration) {
-      toast.error("Please select a WordPress site");
-      return;
-    }
-    if (!wpApiKey) {
-      toast.error("Please provide your WordPress API Key");
-      return;
-    }
-    
-    setIsPushingToWp(true);
-    try {
-      const activePage = website?.pages.find(p => p.id === activePageId);
-      if (!activePage) throw new Error("No active page to push");
-
-      const session = (await supabase.auth.getSession()).data.session;
-      if (!session) throw new Error("Session expired. Please login again.");
-
-      // 1. Create/Update generated_pages record with current website content
-      const { data: pageRecord, error: pageError } = await supabase
-        .from("generated_pages")
-        .insert({
-          business_id: businessId,
-          integration_id: selectedWpIntegration,
-          page_title: activePage.title,
-          page_slug: activePage.slug,
-          seo_title: website?.seo.title,
-          seo_meta_description: website?.seo.description,
-          sections: activePage.sections,
-        })
-        .select()
-        .single();
-        
-      if (pageError) throw pageError;
-
-      // 2. Call push-page API via fetch
-      const response = await fetch("/api/integrations/wordpress/push-page", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          businessId,
-          generatedPageId: pageRecord.id,
-          apiKey: wpApiKey
-        })
-      });
-      
-      const result = await response.json();
-      if (!result.success) throw new Error(result.error);
-      
-      toast.success("Page pushed successfully as a draft to WordPress!");
-      setShowWpPushConfirm(false);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to push to WordPress");
-    } finally {
-      setIsPushingToWp(false);
-    }
-  };
 
   const handleFieldAIAssist = async (
     field: "headline" | "subheadline" | "faq" | "seo" | "marketing",
@@ -1250,7 +1159,6 @@ export function WebsiteEditor({
     fetchDesignConfig();
 
     if (businessId && !isTemplateMode) {
-      fetchWpIntegrations();
       const channel = supabase
         .channel(`website-editor-${Math.random()}`)
         .on(
@@ -4412,21 +4320,6 @@ export function WebsiteEditor({
                       ? "Publish Site"
                       : "Submit for Review"}
                 </Button>
-                {isInternalOperator && isFeatureEnabled("wordpress_sync") && wpIntegrations.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2 h-10 px-4 rounded-xl font-bold whitespace-nowrap transition-all border-slate-200 text-slate-600 hover:bg-slate-50"
-                    onClick={() => {
-                      fetchWpIntegrations();
-                      setShowWpPushConfirm(true);
-                    }}
-                  >
-                    <Plug className="h-4 w-4" /> 
-                    <span className="hidden xl:inline">Push to WP</span>
-                    <span className="xl:hidden">WP Push</span>
-                  </Button>
-                )}
               </>
             )}
             <div className="flex items-center gap-2">
@@ -4652,91 +4545,6 @@ export function WebsiteEditor({
                   </React.Suspense>
                 </div>
               )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* WordPress Push Confirmation Dialog */}
-        <Dialog open={showWpPushConfirm} onOpenChange={setShowWpPushConfirm}>
-          <DialogContent className="sm:max-w-[450px] rounded-3xl border-none shadow-2xl overflow-hidden p-0">
-            <div className="bg-indigo-600 p-8 text-center">
-              <div className="mx-auto bg-white/20 backdrop-blur-md p-4 rounded-3xl w-fit mb-4">
-                <Plug className="h-10 w-10 text-white" />
-              </div>
-              <DialogTitle className="text-white text-2xl font-bold mb-2">Push to WordPress</DialogTitle>
-              <DialogDescription className="text-indigo-100">
-                Instantly push your latest design draft to your remote WordPress site.
-              </DialogDescription>
-            </div>
-
-            <div className="p-8 space-y-6 bg-white dark:bg-slate-900">
-              <div className="space-y-3">
-                <Label className="text-xs font-bold uppercase tracking-widest text-slate-500">Target Website</Label>
-                {wpIntegrations.length === 0 ? (
-                  <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-xs flex gap-3">
-                    <AlertCircle className="h-5 w-5 shrink-0" />
-                    <p className="leading-relaxed">
-                      No connected WordPress sites found. Visit the <strong>WordPress Setup</strong> page to link your CMS.
-                    </p>
-                  </div>
-                ) : (
-                  <Select value={selectedWpIntegration} onValueChange={setSelectedWpIntegration}>
-                    <SelectTrigger className="h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner">
-                      <SelectValue placeholder="Select connected site" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {wpIntegrations.map((int) => (
-                        <SelectItem key={int.id} value={int.id}>
-                          {int.site_url.replace(/(^\w+:|^)\/\//, "")}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <Label className="text-xs font-bold uppercase tracking-widest text-slate-500">Security Access Key</Label>
-                <div className="relative">
-                  <Key className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                  <Input 
-                    type="password"
-                    placeholder="Enter integration key" 
-                    value={wpApiKey} 
-                    onChange={(e) => setWpApiKey(e.target.value)}
-                    className="h-12 pl-12 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none shadow-inner"
-                  />
-                </div>
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex gap-3">
-                  <Lock className="h-4 w-4 text-slate-400 shrink-0" />
-                  <p className="text-[10px] text-slate-500 leading-relaxed italic">
-                    For your security, keys are never stored. You must provide your unique WAAS Integration Key for each push attempt.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowWpPushConfirm(false)} 
-                  className="flex-1 h-12 rounded-2xl border-slate-200 font-bold hover:bg-slate-50"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={handlePushToWordPress} 
-                  disabled={!selectedWpIntegration || !wpApiKey || isPushingToWp}
-                  className="flex-1 h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 font-bold text-white shadow-lg shadow-indigo-100"
-                >
-                  {isPushingToWp ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Pushing...
-                    </>
-                  ) : (
-                    "Push Draft"
-                  )}
-                </Button>
-              </div>
             </div>
           </DialogContent>
         </Dialog>

@@ -44,7 +44,6 @@ import {
   Trash2,
   RefreshCw,
   Code,
-  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Business, ApiKey } from "../types";
@@ -150,7 +149,7 @@ function getDomainStatusMeta(status?: Business["customDomainStatus"]) {
 export function BusinessSettings() {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const { isFeatureEnabled, hasWordPressIntegration } = useFeatures();
+  const { isFeatureEnabled } = useFeatures();
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -472,92 +471,6 @@ export function BusinessSettings() {
     } finally {
       setGeneratingKey(false);
     }
-  };
-
-  const downloadWordPressPlugin = () => {
-    if (!business?.id) {
-      toast.error("Save your business settings before downloading the plugin.");
-      return;
-    }
-
-    const apiBaseUrl = window.location.origin;
-    const pluginCode = `<?php
-/**
- * Plugin Name: Bennie Studio Lead Sync
- * Description: Sends WordPress form leads into your Bennie Studio CRM.
- * Version: 1.0.0
- */
-
-if (!defined('ABSPATH')) exit;
-
-define('BTS_LEAD_SYNC_API_URL', '${apiBaseUrl}/api/webhooks/leads');
-define('BTS_LEAD_SYNC_BUSINESS_ID', '${business.id}');
-
-add_action('admin_menu', function () {
-  add_options_page('Bennie Studio Lead Sync', 'Bennie Lead Sync', 'manage_options', 'bts-lead-sync', 'bts_lead_sync_settings_page');
-});
-
-add_action('admin_init', function () {
-  register_setting('bts_lead_sync', 'bts_lead_sync_api_key');
-});
-
-function bts_lead_sync_settings_page() {
-  ?>
-  <div class="wrap">
-    <h1>Bennie Studio Lead Sync</h1>
-    <form method="post" action="options.php">
-      <?php settings_fields('bts_lead_sync'); ?>
-      <table class="form-table">
-        <tr>
-          <th scope="row">API Key</th>
-          <td><input type="password" name="bts_lead_sync_api_key" value="<?php echo esc_attr(get_option('bts_lead_sync_api_key')); ?>" class="regular-text" /></td>
-        </tr>
-      </table>
-      <?php submit_button(); ?>
-    </form>
-  </div>
-  <?php
-}
-
-function bts_lead_sync_send_lead($lead) {
-  $api_key = get_option('bts_lead_sync_api_key');
-  if (!$api_key) return new WP_Error('missing_api_key', 'Missing Bennie Studio API key.');
-
-  return wp_remote_post(BTS_LEAD_SYNC_API_URL, array(
-    'timeout' => 15,
-    'headers' => array(
-      'Content-Type' => 'application/json',
-      'X-API-Key' => $api_key,
-    ),
-    'body' => wp_json_encode(array_merge(array(
-      'business_id' => BTS_LEAD_SYNC_BUSINESS_ID,
-      'source' => 'wordpress',
-    ), $lead)),
-  ));
-}
-
-add_action('wp_ajax_bts_lead_sync_test', function () {
-  if (!current_user_can('manage_options')) wp_send_json_error('Unauthorized', 403);
-  $result = bts_lead_sync_send_lead(array(
-    'name' => 'Test Lead',
-    'email' => get_option('admin_email'),
-    'message' => 'WordPress sync test',
-  ));
-  if (is_wp_error($result)) wp_send_json_error($result->get_error_message(), 400);
-  wp_send_json_success('Lead sync test sent.');
-});
-`;
-
-    const blob = new Blob([pluginCode], { type: "application/x-httpd-php" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "bennie-tay-studio-lead-sync.php";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
-    toast.success("WordPress plugin file generated. Add an API key in WordPress after installing it.");
   };
 
   const deleteApiKey = async (id: string) => {
@@ -1161,14 +1074,14 @@ add_action('wp_ajax_bts_lead_sync_test', function () {
           </CardContent>
         </Card>
 
-        {(hasWordPressIntegration || apiKeys.length > 0) && <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-slate-200">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Key className="h-5 w-5 text-indigo-600" />
               API & External Integrations
             </CardTitle>
             <CardDescription>
-              Connect your WordPress site or other external tools.
+              Manage API keys for approved external tools and custom lead sources.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -1179,14 +1092,14 @@ add_action('wp_ajax_bts_lead_sync_test', function () {
                    </div>
                    <div>
                       <h4 className="font-bold text-slate-900">Developer Access</h4>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Connect WordPress, Zapier, and Custom Leads</p>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Connect approved external tools and custom lead sources</p>
                    </div>
                 </div>
 
                 <div className="space-y-4">
                    <div className="flex gap-2">
                       <Input 
-                        placeholder="Key Name (e.g. WordPress Site)" 
+                        placeholder="Key Name (e.g. CRM Integration)" 
                         value={newKeyName}
                         onChange={(e) => setNewKeyName(e.target.value)}
                         className="bg-white"
@@ -1246,37 +1159,8 @@ add_action('wp_ajax_bts_lead_sync_test', function () {
                 </div>
              </div>
 
-             <div className="p-6 rounded-2xl border-2 border-indigo-50 bg-indigo-50/20">
-                <div className="flex items-center gap-3 mb-4">
-                   <div className="h-8 w-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                      <Download className="h-4 w-4 text-indigo-600" />
-                   </div>
-                   <h4 className="text-sm font-bold text-indigo-900">WordPress Lead-Sync Plugin</h4>
-                </div>
-                <p className="text-xs text-indigo-700/70 mb-6 leading-relaxed">
-                   Sync leads from your WordPress site directly into the Growth OS CRM. Just install our plugin, paste your API key, and mapping is automated.
-                </p>
-                <div className="flex gap-3">
-                   <Button
-                    variant="outline"
-                    className="flex-1 gap-2 text-[10px] font-black uppercase tracking-widest border-indigo-200 text-indigo-700 bg-white hover:bg-indigo-50"
-                    onClick={downloadWordPressPlugin}
-                   >
-                      <Download className="h-4 w-4" />
-                      Download Plugin
-                   </Button>
-                   <Button 
-                    variant="outline" 
-                    className="flex-1 gap-2 text-[10px] font-black uppercase tracking-widest border-indigo-200 text-indigo-700 bg-white hover:bg-indigo-50"
-                    onClick={() => toast.info("Check out our docs for API specifications.")}
-                   >
-                      <RefreshCw className="h-4 w-4" />
-                      Webhooks Guide
-                   </Button>
-                </div>
-             </div>
           </CardContent>
-        </Card>}
+        </Card>
 
         {isFeatureEnabled("custom_domain") && (
           <Card className="shadow-sm border-slate-200 relative overflow-hidden">
