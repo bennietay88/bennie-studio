@@ -2947,7 +2947,7 @@ function PreviewRequestPanel() {
 export default function PublicMarketingPages() {
   const location = useLocation();
   const navigate = useNavigate();
-  const pageKind = location.pathname.replace(/^\\/+|\\/+$/g, "") as PublicPageKind;
+  const pageKind = location.pathname.split("/").filter(Boolean).join("/") as PublicPageKind;
   const meta = pageMeta[pageKind] || pageMeta.templates;
   const nichePage = nichePages[pageKind as keyof typeof nichePages];
 
