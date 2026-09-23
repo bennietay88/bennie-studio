@@ -15,6 +15,7 @@ export const ADMIN_MODULES: AdminModuleDefinition[] = [
   { id: "outreach", label: "Outreach", description: "Create personalised outreach from prospect research.", group: "Sales & Leads", priority: "sell_now" },
   { id: "sales_pipeline", label: "Sales Pipeline", description: "Track proposals, deal stages, and won work.", group: "Sales & Leads", priority: "sell_now" },
   { id: "service_projects", label: "Service Projects", description: "Track delivery stages, owners, and blockers.", group: "Customers & Delivery", priority: "operate_now" },
+  { id: "sales_funnels", label: "Sales Funnels", description: "Build and operate custom campaign funnels, automations, attribution, and conversion analytics.", group: "Customers & Delivery", priority: "sell_now" },
   { id: "client_handover", label: "Client Handover", description: "Manage onboarding and launch handover.", group: "Customers & Delivery", priority: "operate_now" },
   { id: "operations_control", label: "Operations Control", description: "Run daily customer delivery, service projects, handover, SEO work, updates, and support from the live operations surface.", group: "Customers & Delivery", priority: "operate_now" },
   { id: "seo_management", label: "SEO Operations", description: "Control SEO delivery, customer activation, jobs, and usage.", group: "Customers & Delivery", priority: "operate_now" },

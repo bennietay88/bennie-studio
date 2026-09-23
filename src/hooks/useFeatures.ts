@@ -49,7 +49,8 @@ export type FeatureId =
   | "ai_receptionist_triage"
   | "before_after_rescue_tool"
   | "affiliate_system"
-  | "wordpress_sync";
+  | "wordpress_sync"
+  | "sales_funnels";
 
 const planTableRowsToSettings = (rows: any[]) =>
   normalizePlans(
@@ -131,6 +132,10 @@ export function useFeatures() {
               : [],
             dashboardVisibilityProfile: bData.dashboard_visibility_profile || "simple_website_client",
             dashboardVisibilityNotes: bData.dashboard_visibility_notes || "",
+            customEnabledFeatures: Array.isArray(bData.custom_enabled_features)
+              ? bData.custom_enabled_features
+              : [],
+            salesFunnelsAccessMode: bData.sales_funnels_access_mode || "managed",
             createdAt: new Date(bData.created_at).getTime(),
           });
         }
@@ -183,6 +188,10 @@ export function useFeatures() {
 
     if (featureId === "blog") {
       return ["business_admin", "staff", "client"].includes(String(profile?.role || ""));
+    }
+
+    if (featureId === "sales_funnels") {
+      return (business.customEnabledFeatures || []).includes("sales_funnels");
     }
 
     if (!planSettings.length) return false;

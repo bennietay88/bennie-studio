@@ -47,6 +47,7 @@ import {
   Search,
   CircleDollarSign,
   Megaphone,
+  Waypoints,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -155,6 +156,7 @@ export function Sidebar({
             { to: "/admin/users", icon: Users, label: "Users & Access" },
             { to: "/admin/operations_control", icon: BriefcaseBusiness, label: "Operations Control", moduleId: "operations_control" },
             { to: "/admin/projects", icon: Briefcase, label: "Service Projects", moduleId: "service_projects" },
+            { to: "/admin/funnels", icon: Waypoints, label: "Sales Funnels", moduleId: "sales_funnels" },
             { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover", moduleId: "client_handover" },
             { to: "/admin/seo_management", icon: Search, label: "SEO Operations", moduleId: "seo_management" },
             { to: "/admin/update_requests", icon: FileText, label: "Update Queue", moduleId: "update_queue" },
@@ -232,6 +234,7 @@ export function Sidebar({
           { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
           { to: "/dashboard/leads", icon: Users, label: "Leads", featureId: "lead_crm" },
           { to: "/dashboard/appointments", icon: CalendarIcon, label: "Appointments", featureId: "booking" },
+          { to: "/dashboard/funnels", icon: Waypoints, label: "Sales Funnels", featureId: "sales_funnels" },
           { to: "/dashboard/blog", icon: FileText, label: "Blog CMS", featureId: "blog" },
           { to: "/dashboard/update-requests", icon: FileText, label: "Update Requests" },
           { to: "/dashboard/support", icon: Headphones, label: "Support" },
@@ -252,6 +255,7 @@ export function Sidebar({
           { to: "/dashboard/appointments", icon: CalendarIcon, label: "Appointments", featureId: "booking" },
         ]},
         { label: "Growth", items: [
+          { to: "/dashboard/funnels", icon: Waypoints, label: "Sales Funnels", featureId: "sales_funnels" },
           { to: "/dashboard/blog", icon: FileText, label: "Blog CMS", featureId: "blog" },
           { to: "/dashboard/marketing-hub", icon: Megaphone, label: "Marketing Pro" },
         ]},

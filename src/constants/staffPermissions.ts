@@ -31,6 +31,7 @@ export const ADMIN_TAB_PERMISSIONS: Record<string, StaffPermissionId> = {
   sales_automation: "sales",
   proposals_deals: "sales",
   projects: "delivery",
+  funnels: "delivery",
   launch_audit: "delivery",
   client_onboarding: "delivery",
   support: "support",

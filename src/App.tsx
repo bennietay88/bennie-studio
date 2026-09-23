@@ -129,6 +129,15 @@ const MarketingHub = lazy(() =>
 const BlogCMS = lazy(() =>
   import("./components/BlogCMS").then((m) => ({ default: m.BlogCMS })),
 );
+const FunnelsDashboard = lazy(() =>
+  import("./components/funnels/FunnelsDashboard").then((m) => ({ default: m.FunnelsDashboard })),
+);
+const FunnelWorkspace = lazy(() =>
+  import("./components/funnels/FunnelWorkspace").then((m) => ({ default: m.FunnelWorkspace })),
+);
+const PublicFunnelPage = lazy(() =>
+  import("./components/funnels/PublicFunnelPage").then((m) => ({ default: m.PublicFunnelPage })),
+);
 const MonthlyUpdateRequests = lazy(() => import("./components/MonthlyUpdateRequests"));
 const TeamManagement = lazy(() => import("./components/TeamManagement"));
 const PlanEditor = lazy(() => import("./components/PlanEditor"));
@@ -493,6 +502,7 @@ export default function App() {
               <Route path="/subprocessors" element={<PolicyPage type="subprocessors" />} />
               <Route path="/acceptable-use-policy" element={<PolicyPage type="acceptable-use" />} />
               <Route path="/w/:businessId" element={<WebsiteRenderer />} />
+              <Route path="/f/:businessId/:funnelSlug/:stepSlug?" element={<PublicFunnelPage />} />
               <Route path="/preview/template/:templateId" element={<WebsiteRenderer isTemplatePreview={true} />} />
               <Route
                 path="/affiliate/join/:businessId"
@@ -691,6 +701,26 @@ export default function App() {
                               element={<AffiliateDashboard />}
                             />
                             <Route path="automations" element={<Navigate to="/dashboard" replace />} />
+                            <Route
+                              path="funnels"
+                              element={
+                                <ProtectedRoute allowedRoles={["business_admin", "staff", "client"]}>
+                                  <FeatureGate featureId="sales_funnels">
+                                    <FunnelsDashboard />
+                                  </FeatureGate>
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="funnels/:funnelId"
+                              element={
+                                <ProtectedRoute allowedRoles={["business_admin", "staff", "client"]}>
+                                  <FeatureGate featureId="sales_funnels">
+                                    <FunnelWorkspace />
+                                  </FeatureGate>
+                                </ProtectedRoute>
+                              }
+                            />
                             <Route
                               path="marketing-hub"
                               element={

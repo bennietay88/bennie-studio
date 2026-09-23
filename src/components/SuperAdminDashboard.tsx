@@ -155,6 +155,7 @@ import SeoAdmin from "../modules/seo/components/SeoAdmin";
 import { BlogCMS } from "./BlogCMS";
 import { AdminLocalSeo } from "./SuperAdmin/AdminLocalSeo";
 import { MarketingPlanEntitlements } from "./SuperAdmin/MarketingPlanEntitlements";
+import { AdminFunnels } from "./SuperAdmin/AdminFunnels";
 
 const CUSTOMER_DASHBOARD_FEATURES = [
   { id: "ai_synthesis", label: "Website Generator" },
@@ -168,6 +169,14 @@ const CUSTOMER_DASHBOARD_FEATURES = [
   { id: "analytics", label: "Business Insights" },
   { id: "whatsapp_enquiry_kit", label: "WhatsApp Enquiry Kit" },
   { id: "monthly_improvement_engine", label: "Monthly Improvement Engine" },
+];
+
+const CUSTOMER_CUSTOM_CAPABILITIES = [
+  {
+    id: "sales_funnels",
+    label: "Sales Funnels",
+    description: "Custom campaign funnels, drag-and-drop workflows, automations, and funnel analytics.",
+  },
 ];
 
 const CUSTOMER_DASHBOARD_PROFILES = [
@@ -245,6 +254,7 @@ export default function SuperAdminDashboard() {
     if (last === "support") return "support";
     if (last === "update_requests") return "update_requests";
     if (last === "blog") return "blog";
+    if (last === "funnels") return "funnels";
     if (last === "policies") return "policies";
     if (last === "revenue_command") return "revenue_command";
     if (last === "ecosystem_architect") return "ecosystem_architect";
@@ -1116,6 +1126,24 @@ export default function SuperAdminDashboard() {
     key: "dashboard_hidden_features" | "dashboard_admin_only_features",
   ) => (Array.isArray(editingBusiness?.[key]) ? editingBusiness[key] : []);
 
+  const getCustomFeatureArray = () =>
+    Array.isArray(editingBusiness?.custom_enabled_features)
+      ? editingBusiness.custom_enabled_features
+      : [];
+
+  const setCustomCapabilityEnabled = (featureId: string, enabled: boolean) => {
+    const current = getCustomFeatureArray();
+    setEditingBusiness({
+      ...editingBusiness,
+      custom_enabled_features: enabled
+        ? Array.from(new Set([...current, featureId]))
+        : current.filter((item: string) => item !== featureId),
+      ...(featureId === "sales_funnels" && !enabled
+        ? { sales_funnels_access_mode: "managed" }
+        : {}),
+    });
+  };
+
   const setDashboardFeatureVisible = (featureId: string, visible: boolean) => {
     const hidden = getVisibilityArray("dashboard_hidden_features");
     const adminOnly = getVisibilityArray("dashboard_admin_only_features");
@@ -1289,6 +1317,18 @@ export default function SuperAdminDashboard() {
         );
       }
 
+      // 5. Save custom-build capabilities independently from commercial plan entitlements.
+      const customCapabilityResult = await updateBusinessStep("Custom capabilities", {
+        custom_enabled_features: getCustomFeatureArray(),
+        sales_funnels_access_mode:
+          editingBusiness.sales_funnels_access_mode || "managed",
+      });
+      if (customCapabilityResult.removedColumns.length > 0) {
+        updateWarnings.push(
+          "Custom capabilities were skipped because businesses.custom_enabled_features is missing.",
+        );
+      }
+
       // Fetch fresh data to ensure we have the correct subscription_status and trial dates
       const { data: freshBiz } = await supabase
         .from("businesses")
@@ -1397,6 +1437,7 @@ export default function SuperAdminDashboard() {
       {activeTab === "seo_management" && <SeoAdmin />}
       {activeTab === "local_seo" && <AdminLocalSeo />}
       {activeTab === "blog" && <BlogCMS isPlatform />}
+      {activeTab === "funnels" && <AdminFunnels />}
       
       {(activeTab === "businesses" || activeTab === "admin") && editingWebsiteBusinessId && (
         <div className="space-y-6">
@@ -2242,7 +2283,7 @@ export default function SuperAdminDashboard() {
           {activeTab === "update_requests" && <MonthlyUpdateQueue />}
 
           {/* Catch-all for tabs that might not have specialized rendering yet or are in development */}
-          {!['overview', 'revenue_command', 'sales_home', 'growth_operations', 'daily_operations', 'operations_control', 'inbound_leads', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'proposals_deals', 'projects', 'client_onboarding', 'seo_management', 'local_seo', 'blog', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'templates', 'plans', 'status', 'ecosystem_architect', 'traffic', 'settings', 'support', 'update_requests', 'policies', 'admin'].includes(activeTab) && (
+          {!['overview', 'revenue_command', 'sales_home', 'growth_operations', 'daily_operations', 'operations_control', 'inbound_leads', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'proposals_deals', 'projects', 'client_onboarding', 'seo_management', 'local_seo', 'blog', 'funnels', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'templates', 'plans', 'status', 'ecosystem_architect', 'traffic', 'settings', 'support', 'update_requests', 'policies', 'admin'].includes(activeTab) && (
             <div className="h-full flex items-center justify-center p-12">
                <Card className="p-24 flex flex-col items-center justify-center text-center rounded-[3rem] border-slate-100 bg-slate-50/50 max-w-2xl">
                   <div className="h-20 w-20 rounded-[2rem] bg-white shadow-xl shadow-slate-200 flex items-center justify-center text-indigo-600 mb-6">
@@ -2336,6 +2377,65 @@ export default function SuperAdminDashboard() {
                 </Select>
               </div>
             </div>
+            <div className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-4">
+              <div className="flex flex-col gap-1">
+                <Label className="text-sm font-black text-slate-950">
+                  Custom Capabilities
+                </Label>
+                <p className="text-xs font-semibold leading-5 text-slate-500">
+                  Custom-build modules live outside the normal plan catalogue. Enable them only for customers who have explicitly purchased or been assigned the capability.
+                </p>
+              </div>
+              <div className="grid gap-2 md:grid-cols-2">
+                {CUSTOMER_CUSTOM_CAPABILITIES.map((capability) => {
+                  const enabled = getCustomFeatureArray().includes(capability.id);
+                  return (
+                    <div key={capability.id} className="rounded-xl border border-indigo-100 bg-white p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-black text-slate-900">{capability.label}</p>
+                          <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{capability.description}</p>
+                        </div>
+                        <Switch
+                          checked={enabled}
+                          onCheckedChange={(checked) => setCustomCapabilityEnabled(capability.id, checked)}
+                          aria-label={`${enabled ? "Disable" : "Enable"} ${capability.label}`}
+                        />
+                      </div>
+                      {capability.id === "sales_funnels" && enabled ? (
+                        <div className="mt-4 border-t border-indigo-100 pt-4">
+                          <Label className="text-xs font-black uppercase tracking-wider text-slate-500">
+                            Customer management mode
+                          </Label>
+                          <Select
+                            value={editingBusiness?.sales_funnels_access_mode || "managed"}
+                            onValueChange={(value) =>
+                              setEditingBusiness({
+                                ...editingBusiness,
+                                sales_funnels_access_mode: value,
+                              })
+                            }
+                          >
+                            <SelectTrigger className="mt-2 h-10 rounded-xl bg-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="managed">Managed · results only</SelectItem>
+                              <SelectItem value="collaborative">Collaborative · business admin can edit</SelectItem>
+                              <SelectItem value="self_managed">Self-managed · business admin controls builder</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="mt-2 text-[11px] font-semibold leading-5 text-slate-500">
+                            Managed mode is enforced in the database. Customers can see funnel performance and leads but cannot mutate funnel structure.
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
               <div className="flex flex-col gap-1">
                 <Label className="text-sm font-black text-slate-950">

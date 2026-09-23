@@ -37,6 +37,7 @@ export function FeatureGate({
   }
 
   const featureAllowed = isFeatureEnabled(featureId);
+  const isCustomCapability = featureId === "sales_funnels";
   const featureVisible = isFeatureVisible(featureId);
   const marketingAllowed = !marketingCapabilityId || isMarketingCapabilityEnabled(marketingCapabilityId);
 
@@ -56,29 +57,39 @@ export function FeatureGate({
           <div className="mx-auto h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-4">
             <Lock className="h-6 w-6 text-indigo-600" />
           </div>
-          <CardTitle className="text-2xl font-bold">Plan Feature</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            {isCustomCapability ? "Custom Capability" : "Plan Feature"}
+          </CardTitle>
           <CardDescription className="text-slate-500 dark:text-slate-400">
-            This feature is not included in your current Bennie Studio plan.
+            {isCustomCapability
+              ? "This custom capability is not enabled for this business account."
+              : "This feature is not included in your current Bennie Studio plan."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 pt-4">
           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              Upgrade your package to unlock{" "}
-              <span className="font-bold text-indigo-600">
-                {featureId.replace(/_/g, " ").toUpperCase()}
-              </span>{" "}
-              and other managed growth tools.
+              {isCustomCapability ? (
+                <>Sales Funnels is enabled by Bennie Studio for specific custom-build customers.</>
+              ) : (
+                <>
+                  Upgrade your package to unlock{" "}
+                  <span className="font-bold text-indigo-600">
+                    {featureId.replace(/_/g, " ").toUpperCase()}
+                  </span>{" "}
+                  and other managed growth tools.
+                </>
+              )}
             </p>
           </div>
           <div className="flex flex-col gap-3">
             {profile?.role === "business_admin" ? (
               <Button
-                onClick={() => navigate("/dashboard/billing")}
+                onClick={() => navigate(isCustomCapability ? "/dashboard/support" : "/dashboard/billing")}
                 className="w-full rounded-xl h-12 bg-indigo-600 hover:bg-indigo-700 gap-2 shadow-lg shadow-indigo-200 dark:shadow-none"
               >
                 <Zap className="h-4 w-4 fill-current" />
-                View Upgrade Options
+                {isCustomCapability ? "Contact Bennie Studio" : "View Upgrade Options"}
               </Button>
             ) : (
               <p className="rounded-xl bg-slate-100 px-4 py-3 text-center text-sm font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">

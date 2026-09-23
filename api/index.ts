@@ -79,6 +79,8 @@ import { buildDesignDirectionPrompt, DESIGN_DIRECTOR_SYSTEM_PROMPT, parseDesignD
 import { isMarketingRoute, renderMarketingDocument } from "../server/marketingSsr.js";
 import { buildPortableWebsiteFiles } from "../src/lib/websiteHandover.js";
 import { HANDOVER_GRACE_DAYS, handoverGraceUntil, subscriptionAllowsPermanentDeletion } from "../src/lib/billingLifecycle.js";
+import { nextStepForSubmission } from "../src/lib/funnelEngine.js";
+import { processDueFunnelWorkflowRuns, runFunnelAutomations } from "../server/funnelAutomation.js";
 
 dotenv.config();
 initServerObservability();
@@ -2001,14 +2003,63 @@ async function startServer() {
               payment_processor: "stripe",
               net_amount: stripePaymentFacts.netAmount ?? Number(session.amount_total || 0) / 100,
               status: "posted",
-              category: type === "one_time_package" ? "Website services" : "Subscription revenue",
+              category: type === "one_time_package" ? "Website services" : type === "funnel_sale" ? "Funnel revenue" : "Subscription revenue",
               metadata: { stripeSessionId: session.id, checkoutType: type || "subscription" },
             });
 
             try {
-              const stripe = type === "product_sale" ? await getStripe(businessId) : await getStripe();
+              const stripe = ["product_sale", "funnel_sale"].includes(type || "") ? await getStripe(businessId) : await getStripe();
 
-              if (type === "product_sale") {
+              if (type === "funnel_sale") {
+                const funnelId = session.metadata?.funnelId;
+                const funnelStepId = session.metadata?.funnelStepId;
+                const funnelSessionId = session.metadata?.funnelSessionId;
+                const offerId = session.metadata?.offerId;
+                let funnelLeadId = session.metadata?.leadId || null;
+                if (funnelSessionId && UUID_SCHEMA.safeParse(funnelSessionId).success) {
+                  const { data: funnelSession } = await supabaseAdmin
+                    .from("funnel_sessions")
+                    .select("lead_id")
+                    .eq("id", funnelSessionId)
+                    .maybeSingle();
+                  funnelLeadId = funnelLeadId || funnelSession?.lead_id || null;
+                }
+                if (funnelId && UUID_SCHEMA.safeParse(funnelId).success) {
+                  await supabaseAdmin.from("funnel_events").insert({
+                    business_id: businessId,
+                    funnel_id: funnelId,
+                    step_id: funnelStepId && UUID_SCHEMA.safeParse(funnelStepId).success ? funnelStepId : null,
+                    session_id: funnelSessionId && UUID_SCHEMA.safeParse(funnelSessionId).success ? funnelSessionId : null,
+                    lead_id: funnelLeadId && UUID_SCHEMA.safeParse(funnelLeadId).success ? funnelLeadId : null,
+                    event_type: "purchase_completed",
+                    revenue: Number(session.amount_total || 0) / 100,
+                    currency: String(session.currency || "usd").toUpperCase(),
+                    metadata: { stripeSessionId: session.id, offerId: offerId || null },
+                  });
+                  if (funnelLeadId && UUID_SCHEMA.safeParse(funnelLeadId).success) {
+                    await supabaseAdmin.from("leads").update({
+                      status: "won",
+                      automation_next_action: "Funnel purchase completed — deliver the purchased offer",
+                      next_follow_up_at: new Date().toISOString(),
+                    }).eq("id", funnelLeadId);
+                  }
+                  void runFunnelAutomations({
+                    db: supabaseAdmin,
+                    sendEmail: sendFunnelEmail,
+                    businessId,
+                    funnelId,
+                    triggerEvent: "purchase_completed",
+                    leadId: funnelLeadId && UUID_SCHEMA.safeParse(funnelLeadId).success ? funnelLeadId : null,
+                    sessionId: funnelSessionId && UUID_SCHEMA.safeParse(funnelSessionId).success ? funnelSessionId : null,
+                    context: {
+                      email: session.customer_details?.email || session.customer_email || null,
+                      amount: Number(session.amount_total || 0) / 100,
+                      currency: String(session.currency || "usd").toUpperCase(),
+                      offerId: offerId || null,
+                    },
+                  }).catch((automationError) => console.warn("Purchase funnel automation failed:", safeErrorMessage(automationError)));
+                }
+              } else if (type === "product_sale") {
                 const orderId = session.metadata?.orderId;
                 if (orderId) {
                   await supabaseAdmin
@@ -7039,10 +7090,12 @@ async function startServer() {
     const cronSecret = process.env.CRON_SECRET;
     if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) return res.status(401).json({ error: "Unauthorized" });
     try {
-      return res.json({ success: true, ...(await processDueSalesMessages()) });
+      const sales = await processDueSalesMessages();
+      const funnelRuns = await processDueFunnelWorkflowRuns({ db: supabaseAdmin, sendEmail: sendFunnelEmail, limit: 50 });
+      return res.json({ success: true, ...sales, funnelWorkflowRuns: funnelRuns.length });
     } catch (error) {
-      console.error("Sales automation cron failed:", error);
-      return res.status(500).json({ error: "Sales automation run failed" });
+      console.error("Sales/funnel automation cron failed:", error);
+      return res.status(500).json({ error: "Automation run failed" });
     }
   });
 
@@ -7654,6 +7707,578 @@ async function startServer() {
   });
 
 
+
+
+  // Sales Funnel Engine public boundary. Public visitors never write directly to
+  // tenant tables; the server validates published state and records events with
+  // the service role.
+  const sendFunnelEmail = async ({ to, subject, html }: { to: string; subject: string; html: string }) => {
+    const resend = getResend();
+    const { error } = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "onboarding@resend.dev",
+      to,
+      subject,
+      html,
+    });
+    if (error) throw new Error("EMAIL_PROVIDER_ERROR");
+  };
+
+  const getOrCreateFunnelSession = async ({
+    funnel,
+    sessionKey,
+    stepId,
+    leadId,
+    source,
+    medium,
+    campaign,
+    referrer,
+    device,
+    metadata = {},
+  }: any) => {
+    const { data: existing } = await supabaseAdmin
+      .from("funnel_sessions")
+      .select("*")
+      .eq("public_session_key", sessionKey)
+      .maybeSingle();
+
+    if (existing) {
+      const { data, error } = await supabaseAdmin
+        .from("funnel_sessions")
+        .update({
+          current_step_id: stepId || existing.current_step_id,
+          lead_id: leadId || existing.lead_id,
+          last_source: source || existing.last_source,
+          last_medium: medium || existing.last_medium,
+          last_campaign: campaign || existing.last_campaign,
+          referrer: referrer || existing.referrer,
+          device: device || existing.device,
+          last_seen_at: new Date().toISOString(),
+          metadata: { ...(existing.metadata || {}), ...(metadata || {}) },
+        })
+        .eq("id", existing.id)
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("funnel_sessions")
+      .insert({
+        public_session_key: sessionKey,
+        business_id: funnel.business_id,
+        funnel_id: funnel.id,
+        lead_id: leadId || null,
+        first_step_id: stepId || null,
+        current_step_id: stepId || null,
+        first_source: source || null,
+        first_medium: medium || null,
+        first_campaign: campaign || null,
+        last_source: source || null,
+        last_medium: medium || null,
+        last_campaign: campaign || null,
+        referrer: referrer || null,
+        device: device || null,
+        metadata,
+      })
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data;
+  };
+
+  app.get(
+    "/api/public/funnels/:businessId/:funnelSlug",
+    rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: "public-funnel-read" }),
+    async (req: any, res: any) => {
+      const businessId = String(req.params.businessId || "");
+      const funnelSlug = String(req.params.funnelSlug || "").trim().toLowerCase();
+      if (!UUID_SCHEMA.safeParse(businessId).success || !/^[a-z0-9-]{1,80}$/.test(funnelSlug)) {
+        return res.status(400).json({ error: "Invalid funnel route." });
+      }
+      try {
+        const { data: funnel, error } = await supabaseAdmin
+          .from("funnels")
+          .select("*")
+          .eq("business_id", businessId)
+          .eq("slug", funnelSlug)
+          .eq("status", "published")
+          .maybeSingle();
+        if (error) throw error;
+        if (!funnel) return res.status(404).json({ error: "This funnel is not published." });
+
+        const [{ data: business }, { data: steps }, { data: connections }, { data: variants }, { data: offers }] = await Promise.all([
+          supabaseAdmin.from("businesses").select("id,name,industry,location").eq("id", businessId).maybeSingle(),
+          supabaseAdmin.from("funnel_steps").select("*").eq("funnel_id", funnel.id).eq("status", "published").order("sort_order"),
+          supabaseAdmin.from("funnel_connections").select("*").eq("funnel_id", funnel.id).order("priority"),
+          supabaseAdmin.from("funnel_variants").select("id,step_id,name,weight,status,page_content").eq("funnel_id", funnel.id).eq("status", "active"),
+          supabaseAdmin.from("funnel_offers").select("id,step_id,offer_type,name,description,amount,currency,active,settings").eq("funnel_id", funnel.id).eq("active", true),
+        ]);
+
+        return res.json({
+          funnel,
+          business,
+          steps: steps || [],
+          connections: connections || [],
+          variants: variants || [],
+          offers: offers || [],
+        });
+      } catch (error: any) {
+        console.error("Public funnel load failed:", error?.message || error);
+        return res.status(503).json({ error: "This funnel is temporarily unavailable." });
+      }
+    },
+  );
+
+  app.post(
+    "/api/public/funnels/:funnelId/events",
+    rateLimit({ windowMs: 60 * 1000, max: 180, keyPrefix: "public-funnel-event" }),
+    async (req: any, res: any) => {
+      const funnelId = String(req.params.funnelId || "");
+      if (!UUID_SCHEMA.safeParse(funnelId).success) return res.status(400).json({ error: "Invalid funnel." });
+      const body = validateBody(z.object({
+        sessionKey: z.string().uuid(),
+        stepId: UUID_SCHEMA.optional().nullable(),
+        variantId: UUID_SCHEMA.optional().nullable(),
+        eventType: z.string().trim().min(1).max(80),
+        source: z.string().trim().max(120).optional(),
+        medium: z.string().trim().max(120).optional(),
+        campaign: z.string().trim().max(180).optional(),
+        content: z.string().trim().max(180).optional(),
+        term: z.string().trim().max(180).optional(),
+        referrer: z.string().trim().max(1000).optional(),
+        device: z.string().trim().max(40).optional(),
+        revenue: z.coerce.number().min(0).max(100000000).optional(),
+        currency: z.string().trim().min(3).max(3).optional(),
+        metadata: z.record(z.string(), z.any()).optional(),
+      }), req, res);
+      if (!body) return;
+      try {
+        const { data: funnel } = await supabaseAdmin.from("funnels").select("id,business_id,status").eq("id", funnelId).maybeSingle();
+        if (!funnel || funnel.status !== "published") return res.status(404).json({ error: "Funnel not found." });
+        if (body.stepId) {
+          const { data: step } = await supabaseAdmin.from("funnel_steps").select("id").eq("id", body.stepId).eq("funnel_id", funnelId).maybeSingle();
+          if (!step) return res.status(400).json({ error: "Invalid funnel step." });
+        }
+        const session = await getOrCreateFunnelSession({ funnel, ...body });
+        const { error } = await supabaseAdmin.from("funnel_events").insert({
+          business_id: funnel.business_id,
+          funnel_id: funnel.id,
+          step_id: body.stepId || null,
+          variant_id: body.variantId || null,
+          session_id: session.id,
+          lead_id: session.lead_id || null,
+          event_type: body.eventType,
+          source: body.source || session.last_source || null,
+          medium: body.medium || session.last_medium || null,
+          campaign: body.campaign || session.last_campaign || null,
+          content: body.content || null,
+          term: body.term || null,
+          referrer: body.referrer || session.referrer || null,
+          device: body.device || session.device || null,
+          revenue: body.revenue ?? null,
+          currency: body.currency || null,
+          metadata: body.metadata || {},
+        });
+        if (error) throw error;
+        return res.status(201).json({ success: true, sessionId: session.id });
+      } catch (error: any) {
+        console.error("Funnel event failed:", error?.message || error);
+        return res.status(503).json({ error: "Event could not be recorded." });
+      }
+    },
+  );
+
+  app.post(
+    "/api/public/funnels/:funnelId/submit",
+    rateLimit({ windowMs: 60 * 60 * 1000, max: 30, keyPrefix: "public-funnel-submit" }),
+    async (req: any, res: any) => {
+      const funnelId = String(req.params.funnelId || "");
+      if (!UUID_SCHEMA.safeParse(funnelId).success) return res.status(400).json({ error: "Invalid funnel." });
+      const body = validateBody(z.object({
+        sessionKey: z.string().uuid(),
+        stepId: UUID_SCHEMA,
+        variantId: UUID_SCHEMA.optional().nullable(),
+        data: z.record(z.string(), z.any()),
+        source: z.string().trim().max(120).optional(),
+        medium: z.string().trim().max(120).optional(),
+        campaign: z.string().trim().max(180).optional(),
+        referrer: z.string().trim().max(1000).optional(),
+        device: z.string().trim().max(40).optional(),
+      }), req, res);
+      if (!body) return;
+      const entries = Object.entries(body.data || {});
+      if (entries.length > 40) return res.status(400).json({ error: "Too many form fields." });
+
+      const cleaned = Object.fromEntries(entries.map(([key, value]) => {
+        const safeKey = String(key).replace(/[^a-zA-Z0-9_\-]/g, "").slice(0, 80);
+        if (Array.isArray(value)) return [safeKey, value.slice(0, 20).map((item) => String(item).slice(0, 500))];
+        if (typeof value === "number" || typeof value === "boolean") return [safeKey, value];
+        return [safeKey, String(value ?? "").slice(0, 3000)];
+      }).filter(([key]) => Boolean(key)));
+
+      try {
+        const { data: funnel } = await supabaseAdmin.from("funnels").select("*").eq("id", funnelId).eq("status", "published").maybeSingle();
+        if (!funnel) return res.status(404).json({ error: "Funnel not found." });
+        const { data: step } = await supabaseAdmin.from("funnel_steps").select("*").eq("id", body.stepId).eq("funnel_id", funnel.id).eq("status", "published").maybeSingle();
+        if (!step) return res.status(400).json({ error: "Invalid funnel step." });
+
+        let session = await getOrCreateFunnelSession({ funnel, ...body, stepId: step.id });
+        const emailValue = String((cleaned as any).email || "").trim().toLowerCase();
+        const email = EMAIL_SCHEMA.safeParse(emailValue).success ? emailValue : null;
+        let lead: any = null;
+
+        if (email) {
+          const { data: existing } = await supabaseAdmin.from("leads").select("*").eq("business_id", funnel.business_id).eq("email", email).order("created_at", { ascending: false }).limit(1).maybeSingle();
+          const rawFields = {
+            ...(existing?.raw_fields || {}),
+            ...cleaned,
+            funnel: {
+              funnelId: funnel.id,
+              funnelName: funnel.name,
+              funnelStepId: step.id,
+              funnelStepName: step.name,
+              sessionKey: body.sessionKey,
+              source: body.source || session.last_source || null,
+              medium: body.medium || session.last_medium || null,
+              campaign: body.campaign || session.last_campaign || null,
+            },
+          };
+          if (existing) {
+            const { data: updated, error } = await supabaseAdmin.from("leads").update({
+              name: String((cleaned as any).name || existing.name || email.split("@")[0]).slice(0, 200),
+              phone: String((cleaned as any).phone || existing.phone || "").slice(0, 100) || null,
+              message: String((cleaned as any).message || existing.message || `Funnel submission: ${step.name}`).slice(0, 5000),
+              source_platform: "funnel",
+              source_page: step.slug,
+              form_name: step.name,
+              raw_fields: rawFields,
+              last_touch_source: body.source || session.last_source || existing.last_touch_source || "funnel",
+              referrer: body.referrer || existing.referrer || null,
+              campaign: body.campaign || session.last_campaign || existing.campaign || null,
+            }).eq("id", existing.id).select("*").single();
+            if (error) throw error;
+            lead = updated;
+          } else {
+            const { data: created, error } = await supabaseAdmin.from("leads").insert({
+              business_id: funnel.business_id,
+              name: String((cleaned as any).name || email.split("@")[0]).slice(0, 200),
+              email,
+              phone: String((cleaned as any).phone || "").slice(0, 100) || null,
+              message: String((cleaned as any).message || `Funnel submission: ${step.name}`).slice(0, 5000),
+              status: "new",
+              source_platform: "funnel",
+              source_page: step.slug,
+              form_name: step.name,
+              raw_fields: rawFields,
+              visitor_id: body.sessionKey,
+              first_touch_source: body.source || session.first_source || "funnel",
+              last_touch_source: body.source || session.last_source || "funnel",
+              referrer: body.referrer || null,
+              campaign: body.campaign || session.last_campaign || null,
+            }).select("*").single();
+            if (error) throw error;
+            lead = created;
+          }
+          session = await getOrCreateFunnelSession({ funnel, ...body, stepId: step.id, leadId: lead.id });
+        }
+
+        const submissionType = step.step_type === "survey" ? "survey" : step.step_type === "appointment" ? "appointment" : step.step_type === "application" ? "application" : "form";
+        const { data: submission, error: submissionError } = await supabaseAdmin.from("funnel_submissions").insert({
+          business_id: funnel.business_id,
+          funnel_id: funnel.id,
+          step_id: step.id,
+          session_id: session.id,
+          lead_id: lead?.id || null,
+          submission_type: submissionType,
+          data: cleaned,
+        }).select("id").single();
+        if (submissionError) throw submissionError;
+
+        let triggerEvent = step.step_type === "survey" ? "survey_completed" : "form_submitted";
+        if (step.step_type === "appointment" && lead && (cleaned as any).date && (cleaned as any).time) {
+          const { error: appointmentError } = await supabaseAdmin.from("appointments").insert({
+            business_id: funnel.business_id,
+            customer_name: String((cleaned as any).name || lead.name || "Funnel lead").slice(0, 200),
+            customer_email: lead.email,
+            service: String((cleaned as any).service || funnel.name).slice(0, 200),
+            date: String((cleaned as any).date),
+            time: String((cleaned as any).time),
+            status: "pending",
+          });
+          if (appointmentError) throw appointmentError;
+          triggerEvent = "appointment_booked";
+        }
+
+        const { data: edges } = await supabaseAdmin.from("funnel_connections").select("*").eq("funnel_id", funnel.id).order("priority");
+        const nextStepId = nextStepForSubmission(edges || [], step.id, cleaned, Number(lead?.automation_score || 0));
+        const nextStep = nextStepId ? (await supabaseAdmin.from("funnel_steps").select("id,slug").eq("id", nextStepId).maybeSingle()).data : null;
+
+        await supabaseAdmin.from("funnel_events").insert({
+          business_id: funnel.business_id,
+          funnel_id: funnel.id,
+          step_id: step.id,
+          variant_id: body.variantId || null,
+          session_id: session.id,
+          lead_id: lead?.id || null,
+          event_type: triggerEvent,
+          source: body.source || session.last_source || null,
+          medium: body.medium || session.last_medium || null,
+          campaign: body.campaign || session.last_campaign || null,
+          referrer: body.referrer || session.referrer || null,
+          device: body.device || session.device || null,
+          metadata: { submissionId: submission.id, nextStepId: nextStep?.id || null },
+        });
+
+        void runFunnelAutomations({
+          db: supabaseAdmin,
+          sendEmail: sendFunnelEmail,
+          businessId: funnel.business_id,
+          funnelId: funnel.id,
+          triggerEvent,
+          leadId: lead?.id || null,
+          sessionId: session.id,
+          context: { ...cleaned, email: lead?.email || email || null, submissionId: submission.id, stepId: step.id },
+        }).catch((automationError) => console.warn("Funnel automation start failed:", safeErrorMessage(automationError)));
+
+        return res.status(201).json({ success: true, leadId: lead?.id || null, submissionId: submission.id, nextStepId: nextStep?.id || null, nextSlug: nextStep?.slug || null });
+      } catch (error: any) {
+        console.error("Funnel submission failed:", error?.message || error);
+        return res.status(503).json({ error: "Your information could not be submitted. Please try again." });
+      }
+    },
+  );
+
+  app.post(
+    "/api/public/funnels/:funnelId/checkout",
+    rateLimit({ windowMs: 60 * 60 * 1000, max: 8, keyPrefix: "public-funnel-checkout" }),
+    async (req: any, res: any) => {
+      const funnelId = String(req.params.funnelId || "");
+      if (!UUID_SCHEMA.safeParse(funnelId).success) return res.status(400).json({ error: "Invalid funnel." });
+      const body = validateBody(z.object({
+        sessionKey: z.string().uuid(),
+        stepId: UUID_SCHEMA,
+        offerId: UUID_SCHEMA,
+      }), req, res);
+      if (!body) return;
+
+      try {
+        const { data: funnel } = await supabaseAdmin.from("funnels").select("*").eq("id", funnelId).eq("status", "published").maybeSingle();
+        if (!funnel) return res.status(404).json({ error: "Funnel not found." });
+        const { data: step } = await supabaseAdmin.from("funnel_steps").select("id,slug").eq("id", body.stepId).eq("funnel_id", funnel.id).maybeSingle();
+        if (!step) return res.status(400).json({ error: "Invalid checkout step." });
+        const { data: offer } = await supabaseAdmin.from("funnel_offers").select("*").eq("id", body.offerId).eq("funnel_id", funnel.id).eq("active", true).maybeSingle();
+        if (!offer) return res.status(409).json({ error: "This funnel offer is not active." });
+        if (Number(offer.amount || 0) <= 0 && !offer.stripe_price_id) return res.status(409).json({ error: "This offer does not have a valid payment amount." });
+
+        const sessionRecord = await getOrCreateFunnelSession({ funnel, sessionKey: body.sessionKey, stepId: step.id });
+        const { data: edges } = await supabaseAdmin.from("funnel_connections").select("*").eq("funnel_id", funnel.id).eq("source_step_id", step.id).order("priority");
+        const nextEdge =
+          (edges || []).find((edge: any) => edge.condition_type === "purchased")
+          || (edges || []).find((edge: any) => edge.condition_type === "always")
+          || (edges || [])[0];
+        const nextStep = nextEdge ? (await supabaseAdmin.from("funnel_steps").select("slug").eq("id", nextEdge.target_step_id).maybeSingle()).data : null;
+        const successSlug = nextStep?.slug || step.slug;
+
+        const stripe = await getStripe(funnel.business_id);
+        const mode = offer.settings?.mode === "subscription" ? "subscription" : "payment";
+        let lineItem: any;
+        if (offer.stripe_price_id) {
+          lineItem = { price: offer.stripe_price_id, quantity: 1 };
+        } else {
+          lineItem = {
+            quantity: 1,
+            price_data: {
+              currency: String(offer.currency || "USD").toLowerCase(),
+              unit_amount: Math.round(Number(offer.amount || 0) * 100),
+              product_data: { name: offer.name, description: offer.description || undefined },
+              ...(mode === "subscription" ? { recurring: { interval: "month" } } : {}),
+            },
+          };
+        }
+
+        const session = await stripe.checkout.sessions.create({
+          mode,
+          payment_method_types: ["card"],
+          line_items: [lineItem],
+          success_url: `${publicAppUrl()}/f/${funnel.business_id}/${funnel.slug}/${successSlug}?paid=1&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${publicAppUrl()}/f/${funnel.business_id}/${funnel.slug}/${step.slug}?checkout_cancelled=1`,
+          metadata: {
+            type: "funnel_sale",
+            businessId: funnel.business_id,
+            funnelId: funnel.id,
+            funnelStepId: step.id,
+            funnelSessionId: sessionRecord.id,
+            offerId: offer.id,
+            leadId: sessionRecord.lead_id || "",
+          },
+          ...(sessionRecord.lead_id ? {} : {}),
+        });
+
+        await supabaseAdmin.from("funnel_events").insert({
+          business_id: funnel.business_id,
+          funnel_id: funnel.id,
+          step_id: step.id,
+          session_id: sessionRecord.id,
+          lead_id: sessionRecord.lead_id || null,
+          event_type: "checkout_started",
+          currency: offer.currency || "USD",
+          metadata: { offerId: offer.id, stripeSessionId: session.id },
+        });
+        return res.json({ url: session.url, id: session.id });
+      } catch (error: any) {
+        console.error("Funnel checkout failed:", error?.message || error);
+        if (["STRIPE_CONFIG_ERROR","STRIPE_SECRET_KEY_REQUIRED_BUT_GOT_PUBLISHABLE","STRIPE_INVALID_KEY_FORMAT"].includes(error?.message)) {
+          return res.status(409).json({ error: "Stripe is not configured for this customer yet." });
+        }
+        return res.status(503).json({ error: "Secure checkout could not be started." });
+      }
+    },
+  );
+
+
+  app.post(
+    "/api/funnels/strategy",
+    authenticate,
+    rateLimit({ windowMs: 60 * 60 * 1000, max: 20, keyPrefix: "funnel-strategy" }),
+    async (req: any, res: any) => {
+      const body = validateBody(z.object({
+        businessId: UUID_SCHEMA,
+        offer: z.string().trim().min(2).max(500),
+        audience: z.string().trim().min(2).max(700),
+        trafficSource: z.string().trim().min(2).max(120),
+        objective: z.enum(["lead","appointment","quote","application","sale","subscription"]),
+        knownObjections: z.string().trim().max(1500).optional(),
+      }), req, res);
+      if (!body) return;
+
+      try {
+        const [caller, businessResult] = await Promise.all([
+          getProfileForUser(req.user.id),
+          supabaseAdmin
+            .from("businesses")
+            .select("id,name,industry,location,business_type,business_nature,custom_enabled_features,sales_funnels_access_mode")
+            .eq("id", body.businessId)
+            .maybeSingle(),
+        ]);
+        const business = businessResult.data;
+        if (!business) return res.status(404).json({ error: "Business not found." });
+
+        const features = Array.isArray(business.custom_enabled_features) ? business.custom_enabled_features : [];
+        const internalAllowed =
+          caller?.role === "super_admin"
+          || (caller?.role === "platform_staff" && (caller?.staff_permissions || []).includes("delivery"));
+        const customerAllowed =
+          caller?.role === "business_admin"
+          && caller?.business_id === body.businessId
+          && features.includes("sales_funnels")
+          && business.sales_funnels_access_mode !== "managed";
+
+        if (!internalAllowed && !customerAllowed) {
+          return res.status(403).json({ error: "Funnel strategy access is not enabled for this account." });
+        }
+
+        const usableKey = (value: unknown) =>
+          typeof value === "string"
+          && value.trim().length >= 10
+          && !/TODO|PLACEHOLDER|YOUR_|^MY_|^GEMINI_/i.test(value.trim());
+        const providers: Array<{ name: "openai" | "deepseek"; key: string }> = [
+          { name: "openai", key: usableKey(process.env.OPENAI_API_KEY) ? String(process.env.OPENAI_API_KEY).trim() : "" },
+          { name: "deepseek", key: usableKey(process.env.DEEPSEEK_API_KEY) ? String(process.env.DEEPSEEK_API_KEY).trim() : "" },
+        ].filter((item): item is { name: "openai" | "deepseek"; key: string } => Boolean(item.key));
+        if (!providers.length) return res.status(503).json({ error: "No AI provider is configured for funnel strategy." });
+
+        const StepType = z.enum(["landing","sales","lead_form","survey","application","appointment","checkout","order_bump","upsell","downsell","confirmation","thank_you","custom"]);
+        const StrategySchema = z.object({
+          name: z.string().trim().min(2).max(140),
+          objective: z.enum(["lead","appointment","quote","application","sale","subscription"]),
+          rationale: z.string().trim().min(10).max(1600),
+          steps: z.array(z.object({
+            type: StepType,
+            name: z.string().trim().min(2).max(120),
+            headline: z.string().trim().min(2).max(220),
+            subheadline: z.string().trim().max(500).optional(),
+            ctaLabel: z.string().trim().max(80).optional(),
+            rationale: z.string().trim().max(700).optional(),
+          })).min(2).max(10),
+          cautions: z.array(z.string().trim().min(2).max(300)).max(8).optional().default([]),
+        });
+
+        const verifiedContext = {
+          businessName: business.name,
+          industry: business.industry || null,
+          location: business.location || null,
+          businessType: business.business_type || null,
+          businessNature: business.business_nature || null,
+          offer: body.offer,
+          audience: body.audience,
+          trafficSource: body.trafficSource,
+          objective: body.objective,
+          knownObjections: body.knownObjections || null,
+        };
+        const systemMessage = [
+          "You are the Bennie Studio funnel strategist.",
+          "Design a concise conversion journey using only the verified context supplied.",
+          "You may propose structure and draft generic conversion copy.",
+          "Never invent prices, discounts, availability, guarantees, testimonials, customers, credentials, performance claims, health claims, quantified results, or business facts.",
+          "If a fact would be useful but is not provided, put it in cautions instead of inventing it.",
+          "Use appointment steps as requests unless verified live availability is explicitly supplied.",
+          "Return JSON only matching the requested schema.",
+        ].join(" ");
+        const prompt = [
+          "VERIFIED CONTEXT:",
+          JSON.stringify(verifiedContext, null, 2),
+          "",
+          "Create a practical sales funnel with 2-10 steps.",
+          "Match the primary objective. Lead/appointment funnels should not force checkout.",
+          "Sale/subscription funnels may use checkout, order bump, upsell or downsell only where commercially coherent.",
+          "End in confirmation or thank_you.",
+          "Return keys: name, objective, rationale, steps[{type,name,headline,subheadline,ctaLabel,rationale}], cautions[].",
+        ].join("\n");
+
+        const provider = providers[0];
+        const request = { prompt, systemMessage, temperature: 0.2, maxTokens: 2200, isJson: true };
+        const response = provider.name === "openai"
+          ? await callOpenAI(provider.key, request, "gpt-5.6-luna")
+          : await callDeepSeek(provider.key, request, "deepseek-chat");
+
+        let parsedJson: unknown;
+        try {
+          parsedJson = JSON.parse(String(response.text || "").trim());
+        } catch {
+          return res.status(502).json({ error: "AI returned an invalid funnel strategy. Try again." });
+        }
+        const strategy = StrategySchema.safeParse(parsedJson);
+        if (!strategy.success) {
+          return res.status(502).json({ error: "AI returned an incomplete funnel strategy. Try again." });
+        }
+
+        await supabaseAdmin.from("ai_generation_logs").insert({
+          user_id: req.user.id,
+          project_id: body.businessId,
+          feature_key: "funnel_strategy",
+          provider: provider.name,
+          model: provider.name === "openai" ? "gpt-5.6-luna" : "deepseek-chat",
+          prompt_tokens: response.usage.promptTokens,
+          output_tokens: response.usage.completionTokens,
+          status: "completed",
+          review_status: "draft",
+          provenance: { verifiedContext, generatedBy: req.user.id },
+        }).then(({ error }) => {
+          if (error) console.warn("Funnel AI provenance log skipped:", error.message);
+        });
+
+        return res.status(201).json({
+          strategy: strategy.data,
+          reviewStatus: "draft",
+          provider: provider.name,
+        });
+      } catch (error: any) {
+        captureServerError(error, { requestId: req.requestId, phase: "funnel_strategy" });
+        return res.status(502).json({ error: "Funnel strategy could not be generated. No funnel was changed." });
+      }
+    },
+  );
 
   // Admin Member Routes
   app.post("/api/admin/create-member", authenticate, async (req, res) => {

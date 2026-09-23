@@ -73,7 +73,8 @@ export type FeatureId =
   | "ai_receptionist_triage"
   | "before_after_rescue_tool"
   | "affiliate_system"
-  | "wordpress_sync";
+  | "wordpress_sync"
+  | "sales_funnels";
 
 export interface UserProfile {
   uid: string;
@@ -144,6 +145,8 @@ export interface Business {
   dashboardAdminOnlyFeatures?: string[];
   dashboardVisibilityProfile?: string;
   dashboardVisibilityNotes?: string;
+  customEnabledFeatures?: string[];
+  salesFunnelsAccessMode?: "managed" | "collaborative" | "self_managed";
   createdAt: number;
 }
 
