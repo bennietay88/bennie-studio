@@ -12,7 +12,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,21 +22,10 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-      - run: npm run test:seo
-      - run: npm run test:sales
-      - run: npm run test:prospects
-      - run: npm run test:sales:api
-      - run: npm run test:billing
-      - run: npm run test:marketing-pro
-      - run: npm run test:platform-cleanup
-      - run: npm run test:funnels
-      - run: npm run test:finance
-      - run: npm run test:design
-      - run: npm run test:permissions
-      - run: npm run test:operating-system
-      - run: npm run test:fulfilment
-      - run: npm run test:fixtures
-      - run: npx playwright test e2e/agency-quality.spec.ts e2e/revenue-path.spec.ts --project=chromium-desktop
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Run complete unit and domain regression suite
+        run: node --import tsx --test tests/*.test.ts
+      - name: Run full browser E2E suite
+        run: npm run e2e
       - run: npm audit --audit-level=high
