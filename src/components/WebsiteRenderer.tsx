@@ -2103,7 +2103,7 @@ export function WebsiteRenderer({
 
               <div className="hidden items-center gap-7 lg:flex">
                 {pages.map((page) => (
-                  <button key={page.id} onClick={() => { trackInteraction("nav_click", page.title, { target: page.slug || "home" }); setActivePageSlug(page.slug); setSelectedPost(null); scrollPreviewToTop(); }} className={cn("border-b py-2 text-[11px] font-semibold tracking-tight transition-colors", activePageSlug === page.slug ? "border-primary text-slate-950" : "border-transparent text-slate-500 hover:text-slate-950")}>
+                  <button key={page.id} data-website-page-nav={page.slug || "home"} onClick={() => { trackInteraction("nav_click", page.title, { target: page.slug || "home" }); setActivePageSlug(page.slug); setSelectedPost(null); scrollPreviewToTop(); }} className={cn("border-b py-2 text-[11px] font-semibold tracking-tight transition-colors", activePageSlug === page.slug ? "border-primary text-slate-950" : "border-transparent text-slate-500 hover:text-slate-950")}>
                     {page.title}
                   </button>
                 ))}
@@ -2132,7 +2132,7 @@ export function WebsiteRenderer({
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} id="customer-brand-mobile-menu" className="border-t border-slate-200 bg-white lg:hidden">
                   <div className="mx-auto max-w-[90rem] space-y-1 px-5 py-5">
                     {pages.map((page) => (
-                      <button key={page.id} onClick={() => { trackInteraction("nav_click", page.title, { target: page.slug || "home" }); setActivePageSlug(page.slug); setSelectedPost(null); setIsMobileMenuOpen(false); scrollPreviewToTop(); }} className="flex w-full items-center justify-between border-b border-slate-100 py-4 text-left text-base font-semibold text-slate-950">
+                      <button key={page.id} data-website-page-nav={page.slug || "home"} onClick={() => { trackInteraction("nav_click", page.title, { target: page.slug || "home" }); setActivePageSlug(page.slug); setSelectedPost(null); setIsMobileMenuOpen(false); scrollPreviewToTop(); }} className="flex w-full items-center justify-between border-b border-slate-100 py-4 text-left text-base font-semibold text-slate-950">
                         {page.title}<ArrowRight className="h-4 w-4 text-primary" />
                       </button>
                     ))}
@@ -2211,6 +2211,7 @@ export function WebsiteRenderer({
               {pages.map((page) => (
                 <button
                   key={page.id}
+                  data-website-page-nav={page.slug || "home"}
                   onClick={() => {
                     trackInteraction("nav_click", page.title, { target: page.slug || "home" });
                     setActivePageSlug(page.slug);
