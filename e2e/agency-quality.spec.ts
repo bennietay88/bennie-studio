@@ -250,7 +250,8 @@ test("generated managed website preview uses agency architecture and AA-readable
   const primary = await renderer.evaluate((node) => getComputedStyle(node).getPropertyValue("--primary").trim());
   expect(primary.toLowerCase()).toBe("#5746e8");
 
-  const pageLabels = await renderer.locator("nav button").allTextContents();
+  const primaryNav = renderer.getByRole("navigation", { name: "Main Navigation" });
+  const pageLabels = await primaryNav.locator("[data-website-page-nav]").allTextContents();
   const normalizedLabels = pageLabels.map((label) => label.trim()).filter(Boolean);
   for (const required of ["Home", "Services", "About", "Contact"]) {
     expect(normalizedLabels).toContain(required);
