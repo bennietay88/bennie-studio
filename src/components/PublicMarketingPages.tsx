@@ -1233,9 +1233,14 @@ function GeneratePreviewPage() {
     || "service-pro-v1";
 
   const previewFormMounted = React.useRef(false);
+  const skipNextPreviewInvalidation = React.useRef(false);
   React.useEffect(() => {
     if (!previewFormMounted.current) {
       previewFormMounted.current = true;
+      return;
+    }
+    if (skipNextPreviewInvalidation.current) {
+      skipNextPreviewInvalidation.current = false;
       return;
     }
     setGenerated(false);
@@ -1686,6 +1691,13 @@ function GeneratePreviewPage() {
         websiteStatus: previewMode === "website" ? "yes" : form.websiteStatus,
         websiteUrl: profile.sourceUrl || form.websiteUrl,
       };
+      const hydratedFormChanged =
+        resolvedForm.businessName !== form.businessName ||
+        resolvedForm.location !== form.location ||
+        resolvedForm.mainService !== form.mainService ||
+        resolvedForm.websiteStatus !== form.websiteStatus ||
+        resolvedForm.websiteUrl !== form.websiteUrl;
+      if (hydratedFormChanged) skipNextPreviewInvalidation.current = true;
       setForm(resolvedForm);
       setGoal(resolvedGoal);
       setIndustryId(resolvedIndustryId);
