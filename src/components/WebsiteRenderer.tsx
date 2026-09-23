@@ -107,11 +107,13 @@ export function WebsiteRenderer({
   activePageSlug: propActivePageSlug,
   businessIdOverride,
   isTemplatePreview = false,
+  enableRealtime = true,
 }: {
   initialData?: Website;
   activePageSlug?: string;
   businessIdOverride?: string;
   isTemplatePreview?: boolean;
+  enableRealtime?: boolean;
 }) {
   const { businessId: businessIdFromParams, templateId } = useParams<{
     businessId: string;
@@ -608,6 +610,8 @@ export function WebsiteRenderer({
       };
       fetchPosts();
 
+      if (!enableRealtime) return;
+
       let channel: ReturnType<typeof supabase.channel> | null = null;
       try {
         channel = supabase
@@ -635,7 +639,7 @@ export function WebsiteRenderer({
         if (channel) supabase.removeChannel(channel);
       };
     }
-  }, [activePageSlug, businessId, website]);
+  }, [activePageSlug, businessId, enableRealtime, website]);
 
   useEffect(() => {
     if (businessId) {
@@ -758,6 +762,8 @@ export function WebsiteRenderer({
       fetchProducts();
       fetchIndustryItems();
 
+      if (!enableRealtime) return;
+
       let channel: ReturnType<typeof supabase.channel> | null = null;
       try {
         channel = supabase
@@ -785,7 +791,7 @@ export function WebsiteRenderer({
         if (channel) supabase.removeChannel(channel);
       };
     }
-  }, [businessId]);
+  }, [businessId, enableRealtime]);
 
   const handleCheckout = async (product: any) => {
     if (!product || !businessId) return;
