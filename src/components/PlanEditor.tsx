@@ -54,7 +54,6 @@ const PlanEditor = () => {
         { id: "booking", label: "Appointment Calendar" },
         { id: "review_management", label: "Reputation & Review Manager" },
         { id: "blog", label: "Blog & Content Hub" },
-        { id: "wordpress_sync", label: "WordPress Integration" },
       ]
     },
     {

@@ -368,41 +368,8 @@ const useCredits = async (
   }
 };
 
-// WordPress Integration Helpers
-function generateApiKey() {
-  return crypto.randomBytes(32).toString("hex");
-}
-
 function hashApiKey(apiKey: string) {
   return crypto.createHash("sha256").update(apiKey).digest("hex");
-}
-
-function verifyApiKey(providedKey: string, storedHash: string) {
-  try {
-    const providedHash = hashApiKey(providedKey);
-    return crypto.timingSafeEqual(
-      Buffer.from(providedHash),
-      Buffer.from(storedHash),
-    );
-  } catch (err) {
-    return false;
-  }
-}
-
-function createHmacSignature(secret: string, data: string) {
-  return crypto.createHmac("sha256", secret).update(data).digest("hex");
-}
-
-async function logSyncEvent(data: {
-  business_id: string;
-  integration_id?: string;
-  direction: "wordpress_to_waas" | "waas_to_wordpress";
-  event_type: string;
-  status: string;
-  message: string;
-  payload?: any;
-}) {
-  await supabaseAdmin.from("sync_logs").insert(data);
 }
 
 const app = express();
@@ -1587,22 +1554,6 @@ async function startServer() {
         console.error("[Admin Business Deletion] Failed:", error);
         return res.status(500).json({ error: safeErrorMessage(error) || "Unable to delete business" });
       }
-    },
-  );
-
-  app.patch(
-    "/api/admin/businesses/:businessId/platform-type",
-    authenticate,
-    superAdminOnly,
-    async (req: any, res: any) => {
-      const { platformType } = req.body || {};
-      if (!platformType) return res.status(400).json({ error: "Platform type is required" });
-      const { error } = await supabaseAdmin.rpc("set_handover_platform_type", {
-        p_business_id: req.params.businessId,
-        p_platform_type: platformType,
-      });
-      if (error) return res.status(400).json({ error: error.message });
-      return res.status(204).send();
     },
   );
 
@@ -3215,7 +3166,6 @@ async function startServer() {
               industry,
               location: location || null,
               business_nature: String(profile.description || raw.mainService || industry).slice(0, 500),
-              platform_type: "waas",
               business_type: "local_service",
               lifecycle_stage: "prospect",
               lifecycle_stage_changed_at: new Date().toISOString(),
@@ -3429,7 +3379,6 @@ async function startServer() {
               industry,
               location: location || null,
               business_nature: String(profile.description || raw.mainService || industry).slice(0, 500),
-              platform_type: "waas",
               business_type: "local_service",
               lifecycle_stage: "prospect",
               lifecycle_stage_changed_at: new Date().toISOString(),
@@ -4168,7 +4117,7 @@ async function startServer() {
     if (!body) return;
     try {
       const [{ data: business, error: businessError }, { data: website, error: websiteError }] = await Promise.all([
-        supabaseAdmin.from("businesses").select("id,name,custom_domain,platform_type").eq("id", body.businessId).single(),
+        supabaseAdmin.from("businesses").select("id,name,custom_domain").eq("id", body.businessId).single(),
         supabaseAdmin.from("websites").select("id,business_id").eq("id", body.websiteId).eq("business_id", body.businessId).single(),
       ]);
       if (businessError || !business) return res.status(404).json({ error: "Business not found" });
@@ -4185,7 +4134,7 @@ async function startServer() {
         website_id: body.websiteId,
         name: `${business.name} SEO`,
         domain: business.custom_domain || null,
-        adapter_type: business.platform_type === "wordpress" ? "wordpress" : "waas",
+        adapter_type: "waas",
         status: "active",
         created_by: req.user.id,
       }, { onConflict: "website_id" }).select("*").single();
@@ -4498,7 +4447,6 @@ async function startServer() {
           notificationsResult,
           campaignsResult,
           projectsResult,
-          wordpressResult,
           apiKeysResult,
         ] = await Promise.all([
           ownerProfilePromise,
@@ -4519,7 +4467,6 @@ async function startServer() {
           readNamedTable("notifications", "notifications"),
           readNamedTable("campaigns", "campaigns"),
           readNamedTable("projects", "projects"),
-          readNamedTable("wordpress_integrations", "wordpress_integrations"),
           readNamedTable("api_keys", "api_keys"),
         ]);
 
@@ -4540,7 +4487,6 @@ async function startServer() {
           notificationsResult,
           campaignsResult,
           projectsResult,
-          wordpressResult,
           apiKeysResult,
         ]);
 
@@ -4621,7 +4567,6 @@ async function startServer() {
             customDomainStatus: business.custom_domain_status || null,
             sslStatus: business.ssl_status || null,
             siteUrl: business.site_url || null,
-            platformType: business.platform_type || "waas",
           },
         };
 
@@ -5333,88 +5278,6 @@ async function startServer() {
         details: err.message,
         stack: process.env.NODE_ENV === "development" ? err.stack : undefined
       });
-    }
-  });
-
-  // WordPress Integration Middleware
-  const verifyWordPressAuth = async (req: any, res: any, next: any) => {
-    const clientId = req.headers["x-growthos-client-id"];
-    const apiKey = req.headers["x-growthos-api-key"];
-    const siteUrl = req.headers["x-growthos-site-url"];
-
-    if (!clientId || !apiKey) {
-      return res.status(401).json({ success: false, message: "Missing Client ID or API Key" });
-    }
-
-    try {
-      const { data: integration, error } = await supabaseAdmin
-        .from("wordpress_integrations")
-        .select("*")
-        .eq("business_id", clientId)
-        .maybeSingle();
-
-      if (error || !integration) {
-        return res.status(401).json({ success: false, message: "Invalid credentials or integration not found" });
-      }
-
-      if (integration.status === "disabled") {
-        return res.status(403).json({ success: false, message: "Integration is disabled" });
-      }
-
-      if (!verifyApiKey(apiKey, integration.api_key_hash)) {
-        // Log auth failure
-        await logSyncEvent({
-          business_id: clientId,
-          integration_id: integration.id,
-          direction: "wordpress_to_waas",
-          event_type: "auth_failed",
-          status: "error",
-          message: "Invalid API key attempt",
-          payload: { siteUrl, ip: req.ip }
-        });
-        return res.status(401).json({ success: false, message: "Invalid API Key" });
-      }
-
-      req.integration = integration;
-      next();
-    } catch (err) {
-      console.error("WP Auth Error:", err);
-      res.status(500).json({ success: false, message: "Server error during authentication" });
-    }
-  };
-
-  // 1. WordPress Health Check
-  app.get("/api/integrations/wordpress/health", verifyWordPressAuth, async (req: any, res: any) => {
-    const integration = req.integration;
-    const siteUrl = req.headers["x-growthos-site-url"];
-
-    try {
-      await supabaseAdmin
-        .from("wordpress_integrations")
-        .update({
-          status: "connected",
-          last_connected_at: new Date().toISOString(),
-          site_url: siteUrl || integration.site_url // Update site URL if provided and not set
-        })
-        .eq("id", integration.id);
-
-      await logSyncEvent({
-        business_id: integration.business_id,
-        integration_id: integration.id,
-        direction: "wordpress_to_waas",
-        event_type: "health_check",
-        status: "success",
-        message: "Health check successful"
-      });
-
-      res.json({
-        success: true,
-        status: "connected",
-        clientId: integration.business_id,
-        siteUrl: siteUrl || integration.site_url
-      });
-    } catch (err: any) {
-      res.status(500).json({ success: false, message: "WordPress health check failed" });
     }
   });
 
@@ -6142,109 +6005,6 @@ async function startServer() {
   );
 
   app.post(
-    "/api/wordpress-project-leads",
-    rateLimit({ windowMs: 60 * 1000, max: 12, keyPrefix: "wordpress-project-leads" }),
-    async (req, res) => {
-      const wordpressLeadBody = validateBody(
-        z.object({
-          contactName: TEXT_SCHEMA,
-          businessName: TEXT_SCHEMA,
-          email: EMAIL_SCHEMA,
-          phone: z.string().trim().min(3).max(80),
-          websiteUrl: z.string().trim().max(500).optional().nullable(),
-          businessType: TEXT_SCHEMA,
-          requiredPages: TEXT_SCHEMA,
-          requiredFunctionality: TEXT_SCHEMA,
-          pageCount: z.string().trim().max(40).optional().nullable(),
-          needsEcommerce: z.enum(["yes", "no"]).optional().default("no"),
-          needsBooking: z.enum(["yes", "no"]).optional().default("no"),
-          needsMembership: z.enum(["yes", "no"]).optional().default("no"),
-          needsMultilingual: z.enum(["yes", "no"]).optional().default("no"),
-          integrations: OPTIONAL_TEXT_SCHEMA,
-          contentReadiness: z.string().trim().max(80).optional().nullable(),
-          preferredLaunchDate: z.string().trim().max(40).optional().nullable(),
-          indicativeBudget: z.string().trim().min(1).max(120),
-          additionalDetails: OPTIONAL_TEXT_SCHEMA,
-          packageName: z.string().trim().max(160).optional().nullable(),
-          pipelineStatus: z.string().trim().max(80).optional().default("new_enquiry"),
-          sourcePage: z.string().trim().max(500).optional().nullable(),
-          estimatedQuoteRange: z.record(z.string(), z.any()).optional(),
-        }),
-        req,
-        res,
-      );
-      if (!wordpressLeadBody) return;
-
-      const rawFields = {
-        ...wordpressLeadBody,
-        submittedAt: new Date().toISOString(),
-        sourceIp: getClientIp(req),
-      };
-
-      try {
-        const { data: lead, error } = await supabaseAdmin
-          .from("wordpress_project_leads")
-          .insert({
-            contact_name: wordpressLeadBody.contactName,
-            company_name: wordpressLeadBody.businessName,
-            email: wordpressLeadBody.email,
-            phone: wordpressLeadBody.phone,
-            existing_website: wordpressLeadBody.websiteUrl || null,
-            business_type: wordpressLeadBody.businessType,
-            required_pages: wordpressLeadBody.requiredPages,
-            required_functionality: wordpressLeadBody.requiredFunctionality,
-            page_count: wordpressLeadBody.pageCount || null,
-            ecommerce_requirement: wordpressLeadBody.needsEcommerce === "yes",
-            booking_requirement: wordpressLeadBody.needsBooking === "yes",
-            membership_requirement: wordpressLeadBody.needsMembership === "yes",
-            multilingual_requirement: wordpressLeadBody.needsMultilingual === "yes",
-            integrations: wordpressLeadBody.integrations || null,
-            content_readiness: wordpressLeadBody.contentReadiness || null,
-            preferred_launch_date: wordpressLeadBody.preferredLaunchDate || null,
-            indicative_budget: wordpressLeadBody.indicativeBudget,
-            additional_details: wordpressLeadBody.additionalDetails || null,
-            package_name: wordpressLeadBody.packageName || "Custom WordPress Website",
-            pipeline_status: "new_enquiry",
-            source_page: wordpressLeadBody.sourcePage || req.get("referer") || "/apply-custom",
-            estimated_quote_range: wordpressLeadBody.estimatedQuoteRange || {},
-            raw_fields: rawFields,
-          })
-          .select("id")
-          .single();
-
-        if (error) throw error;
-
-        await supabaseAdmin.from("tracking_events").insert({
-          event_type: "wordpress_project_lead_submitted",
-          source_platform: "bennie_studio_public",
-          source_page: wordpressLeadBody.sourcePage || req.get("referer") || "/apply-custom",
-          metadata: { leadId: lead?.id, companyName: wordpressLeadBody.businessName },
-        }).then(({ error: trackingError }) => {
-          if (trackingError) console.warn("WordPress lead tracking skipped:", trackingError.message);
-        });
-
-        const { data: admins } = await supabaseAdmin.from("profiles").select("id").in("role", ["super_admin", "platform_staff"]);
-        if (admins?.length) {
-          await supabaseAdmin.from("notifications").insert(admins.map((admin: any) => ({
-            user_id: admin.id,
-            title: "New WordPress quotation request",
-            message: `${wordpressLeadBody.businessName} submitted a custom WordPress website scope.`,
-            type: "system",
-            metadata: { leadId: lead?.id, pipelineStatus: "new_enquiry" },
-          }))).then(({ error: notificationError }) => {
-            if (notificationError) console.warn("WordPress lead notification skipped:", notificationError.message);
-          });
-        }
-
-        return res.json({ success: true, leadId: lead?.id });
-      } catch (error: any) {
-        console.error("WordPress project lead submission failed:", error);
-        return res.status(500).json({ error: "Unable to submit the WordPress quotation request right now." });
-      }
-    },
-  );
-
-  app.post(
     "/api/platform-events",
     rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: "platform-events" }),
     async (req, res) => {
@@ -6286,505 +6046,6 @@ async function startServer() {
       }
     },
   );
-
-  // 2. Receive Leads from WordPress
-  app.post(
-    "/api/leads",
-    rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "wp-leads" }),
-    async (req: any, res: any) => {
-    const clientId = req.headers["x-growthos-client-id"];
-    const apiKey = req.headers["x-growthos-api-key"];
-    
-    let businessId = "";
-    let integrationId = null;
-
-    if (!clientId || !apiKey) {
-      return res.status(401).json({ success: false, message: "Unauthorized integration" });
-    }
-
-    const { data: integration } = await supabaseAdmin
-      .from("wordpress_integrations")
-      .select("*")
-      .eq("business_id", clientId)
-      .maybeSingle();
-
-    if (integration && verifyApiKey(apiKey, integration.api_key_hash)) {
-      businessId = clientId as string;
-      integrationId = integration.id;
-    } else {
-      return res.status(401).json({ success: false, message: "Unauthorized integration" });
-    }
-
-    if (!businessId) {
-      return res.status(400).json({ success: false, message: "Missing businessId" });
-    }
-
-    try {
-      const leadBody = validateBody(
-        z.object({
-          name: TEXT_SCHEMA.optional(),
-          email: EMAIL_SCHEMA.optional(),
-          phone: z.string().trim().max(80).optional().nullable(),
-          message: OPTIONAL_TEXT_SCHEMA,
-          sourcePlatform: z.string().trim().max(80).optional(),
-          sourcePage: z.string().trim().max(500).optional().nullable(),
-          formName: z.string().trim().max(120).optional().nullable(),
-          rawFields: z.record(z.string(), z.any()).optional(),
-        }),
-        req,
-        res,
-      );
-      if (!leadBody) return;
-
-      const { name, email, phone, message, sourcePlatform, sourcePage, formName, rawFields } = leadBody;
-
-      const { data: lead, error } = await supabaseAdmin
-        .from("leads")
-        .insert({
-          business_id: businessId,
-          integration_id: integrationId,
-          name: name || "Unknown",
-          email: email || "unknown@example.com",
-          phone,
-          message,
-          source: sourcePlatform || "wordpress",
-          source_platform: sourcePlatform || "wordpress",
-          source_page: sourcePage,
-          form_name: formName,
-          raw_fields: rawFields,
-          status: "new"
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (integrationId) {
-        await supabaseAdmin
-          .from("wordpress_integrations")
-          .update({ last_lead_received_at: new Date().toISOString() })
-          .eq("id", integrationId);
-
-        await logSyncEvent({
-          business_id: businessId,
-          integration_id: integrationId,
-          direction: "wordpress_to_waas",
-          event_type: "lead_received",
-          status: "success",
-          message: `Lead received from ${formName || "form" }`,
-          payload: { leadId: lead.id }
-        });
-      }
-
-      res.json({ success: true, leadId: lead.id });
-    } catch (err: any) {
-      console.error("Lead submission error:", err);
-      res.status(500).json({ success: false, message: "Failed to submit lead" });
-    }
-  });
-
-  // 3. Receive Events from WordPress
-  app.post("/api/events", async (req: any, res: any) => {
-    const clientId = req.headers["x-growthos-client-id"];
-    const apiKey = req.headers["x-growthos-api-key"];
-
-    if (!clientId || !apiKey) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
-
-    try {
-      const { data: integration } = await supabaseAdmin
-        .from("wordpress_integrations")
-        .select("*")
-        .eq("business_id", clientId)
-        .maybeSingle();
-
-      if (!integration || !verifyApiKey(apiKey, integration.api_key_hash)) {
-        return res.status(401).json({ success: false, message: "Invalid credentials" });
-      }
-
-      const { eventType, sourcePlatform, sourcePage, metadata } = req.body;
-
-      await supabaseAdmin.from("tracking_events").insert({
-        business_id: clientId,
-        integration_id: integration.id,
-        event_type: eventType,
-        source_platform: sourcePlatform || "wordpress",
-        source_page: sourcePage,
-        metadata
-      });
-
-      await supabaseAdmin
-        .from("wordpress_integrations")
-        .update({ last_event_received_at: new Date().toISOString() })
-        .eq("id", integration.id);
-
-      await logSyncEvent({
-        business_id: clientId,
-        integration_id: integration.id,
-        direction: "wordpress_to_waas",
-        event_type: "event_received",
-        status: "success",
-        message: `Event received: ${eventType}`
-      });
-
-      res.json({ success: true });
-    } catch (err: any) {
-      res.status(500).json({ success: false, message: "Failed to record event" });
-    }
-  });
-
-  // 4. Push Page to WordPress
-  app.post("/api/integrations/wordpress/push-page", authenticate, async (req: any, res: any) => {
-    const pushPageBody = validateBody(
-      z.object({
-        businessId: UUID_SCHEMA,
-        generatedPageId: UUID_SCHEMA,
-        apiKey: z.string().trim().min(32).max(256),
-      }),
-      req,
-      res,
-    );
-    if (!pushPageBody) return;
-
-    const { businessId, generatedPageId, apiKey: rawApiKey } = pushPageBody;
-
-    try {
-      await assertBusinessAccess(req.user.id, businessId);
-
-      const { data: integration } = await supabaseAdmin
-        .from("wordpress_integrations")
-        .select("*")
-        .eq("business_id", businessId)
-        .single();
-
-      if (!integration || integration.status === "disabled") {
-        return res.status(404).json({ error: "No active WordPress integration found" });
-      }
-
-      const { data: page } = await supabaseAdmin
-        .from("generated_pages")
-        .select("*")
-        .eq("id", generatedPageId)
-        .eq("business_id", businessId)
-        .single();
-
-      if (!page) {
-        return res.status(404).json({ error: "Generated page not found" });
-      }
-
-      const timestamp = Math.floor(Date.now() / 1000).toString();
-      const payload = {
-        clientId: businessId,
-        pageTitle: page.page_title,
-        pageSlug: page.page_slug,
-        status: "draft",
-        seoTitle: page.seo_title,
-        seoMetaDescription: page.seo_meta_description,
-        sections: page.sections
-      };
-
-      const bodyString = JSON.stringify(payload);
-      const signature = createHmacSignature(rawApiKey, `${timestamp}.${bodyString}`);
-
-      const wpApiUrl = `${integration.site_url.replace(/\/$/, "")}/wp-json/growthos/v1/pages`;
-      
-      try {
-        const response = await axios.post(wpApiUrl, payload, {
-          headers: {
-            "X-GrowthOS-Client-ID": businessId,
-            "X-GrowthOS-Timestamp": timestamp,
-            "X-GrowthOS-Signature": signature,
-            "Content-Type": "application/json"
-          },
-          timeout: 15000
-        });
-
-        if (response.data.success) {
-          const { postId, editUrl, previewUrl } = response.data;
-          await supabaseAdmin
-            .from("generated_pages")
-            .update({
-              wordpress_post_id: postId?.toString(),
-              wordpress_edit_url: editUrl,
-              wordpress_preview_url: previewUrl,
-              push_status: "pushed_to_wordpress",
-              updated_at: new Date().toISOString()
-            })
-            .eq("id", generatedPageId);
-
-          await supabaseAdmin
-            .from("wordpress_integrations")
-            .update({ last_page_pushed_at: new Date().toISOString() })
-            .eq("id", integration.id);
-
-          await logSyncEvent({
-            business_id: businessId,
-            integration_id: integration.id,
-            direction: "waas_to_wordpress",
-            event_type: "page_pushed",
-            status: "success",
-            message: `Page "${page.page_title}" pushed to WordPress`,
-            payload: { postId, editUrl }
-          });
-
-          res.json({ success: true, postId, editUrl, previewUrl });
-        } else {
-          throw new Error(response.data.message || "WordPress rejected the page");
-        }
-      } catch (axiosError: any) {
-        console.error("WP Push Axios Error:", axiosError.response?.data || axiosError.message);
-        
-        await supabaseAdmin
-          .from("generated_pages")
-          .update({ push_status: "failed" })
-          .eq("id", generatedPageId);
-
-        await logSyncEvent({
-          business_id: businessId,
-          integration_id: integration.id,
-          direction: "waas_to_wordpress",
-          event_type: "error",
-          status: "error",
-          message: `Failed to push page: ${axiosError.message}`,
-          payload: axiosError.response?.data
-        });
-
-        res.status(500).json({ error: "Failed to connect to WordPress plugin" });
-      }
-    } catch (err: any) {
-      if (
-        [
-          "BUSINESS_ID_REQUIRED",
-          "BUSINESS_NOT_FOUND",
-          "PROFILE_NOT_FOUND",
-          "FORBIDDEN_BUSINESS_ACCESS",
-        ].includes(err?.message)
-      ) {
-        return handleAccessError(res, err);
-      }
-      res.status(500).json({ error: safeErrorMessage(err) });
-    }
-  });
-  
-  // 5. Test Remote WordPress Connection
-  app.post("/api/integrations/wordpress/test-remote", authenticate, async (req: any, res: any) => {
-    const testRemoteBody = validateBody(
-      z.object({
-        integrationId: UUID_SCHEMA,
-      }),
-      req,
-      res,
-    );
-    if (!testRemoteBody) return;
-
-    const { integrationId } = testRemoteBody;
-    
-    try {
-      const { data: integration } = await supabaseAdmin
-        .from("wordpress_integrations")
-        .select("*")
-        .eq("id", integrationId)
-        .single();
-        
-      if (!integration) {
-        return res.status(404).json({ error: "Integration not found" });
-      }
-
-      await assertBusinessAccess(req.user.id, integration.business_id);
-      
-      const wpApiUrl = `${integration.site_url.replace(/\/$/, "")}/wp-json/growthos/v1/health`;
-      
-      try {
-        const response = await axios.get(wpApiUrl, {
-          headers: {
-            "X-GrowthOS-Client-ID": integration.business_id,
-          },
-          timeout: 5000
-        });
-        
-        if (response.status === 200) {
-          await supabaseAdmin
-            .from("wordpress_integrations")
-            .update({ 
-               status: "connected",
-               last_connected_at: new Date().toISOString() 
-            })
-            .eq("id", integrationId);
-            
-          res.json({ success: true, message: "Remote site responded" });
-        } else {
-          throw new Error(`Remote site returned status ${response.status}`);
-        }
-      } catch (axiosError: any) {
-        await supabaseAdmin
-          .from("wordpress_integrations")
-          .update({ status: "error" })
-          .eq("id", integrationId);
-          
-        res.status(500).json({ 
-          success: false, 
-          error: "Remote WordPress health check failed"
-        });
-      }
-    } catch (err: any) {
-      if (
-        [
-          "BUSINESS_ID_REQUIRED",
-          "BUSINESS_NOT_FOUND",
-          "PROFILE_NOT_FOUND",
-          "FORBIDDEN_BUSINESS_ACCESS",
-        ].includes(err?.message)
-      ) {
-        return handleAccessError(res, err);
-      }
-      res.status(500).json({ success: false, error: safeErrorMessage(err) });
-    }
-  });
-
-  // Admin Integrations Management
-  app.get("/api/integrations/wordpress", authenticate, async (req: any, res: any) => {
-    try {
-      const profile = await getProfileForUser(req.user.id);
-      let query = supabaseAdmin
-        .from("wordpress_integrations")
-        .select("*, businesses(name)")
-        .order("created_at", { ascending: false });
-
-      if (profile.role !== "super_admin") {
-        if (!profile.business_id) {
-          return res.json([]);
-        }
-        query = query.eq("business_id", profile.business_id);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      res.json(data);
-    } catch (err: any) {
-      if (
-        [
-          "BUSINESS_ID_REQUIRED",
-          "BUSINESS_NOT_FOUND",
-          "PROFILE_NOT_FOUND",
-          "FORBIDDEN_BUSINESS_ACCESS",
-        ].includes(err?.message)
-      ) {
-        return handleAccessError(res, err);
-      }
-      res.status(500).json({ error: safeErrorMessage(err) });
-    }
-  });
-
-  app.get("/api/integrations/wordpress/:id", authenticate, async (req: any, res: any) => {
-    try {
-      const { data, error } = await supabaseAdmin
-        .from("wordpress_integrations")
-        .select("*, sync_logs(*)")
-        .eq("id", req.params.id)
-        .single();
-
-      if (error) throw error;
-      await assertBusinessAccess(req.user.id, data.business_id);
-      res.json(data);
-    } catch (err: any) {
-      if (
-        [
-          "BUSINESS_ID_REQUIRED",
-          "BUSINESS_NOT_FOUND",
-          "PROFILE_NOT_FOUND",
-          "FORBIDDEN_BUSINESS_ACCESS",
-        ].includes(err?.message)
-      ) {
-        return handleAccessError(res, err);
-      }
-      res.status(500).json({ error: safeErrorMessage(err) });
-    }
-  });
-
-  app.post("/api/integrations/wordpress", authenticate, async (req: any, res: any) => {
-    const integrationBody = validateBody(
-      z.object({
-        businessId: UUID_SCHEMA,
-        siteUrl: PUBLIC_URL_SCHEMA,
-      }),
-      req,
-      res,
-    );
-    if (!integrationBody) return;
-
-    const { businessId, siteUrl } = integrationBody;
-    
-    try {
-      await assertBusinessAccess(req.user.id, businessId);
-      const apiKey = generateApiKey();
-      const apiKeyHash = hashApiKey(apiKey);
-      const apiKeyPreview = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
-
-      const { data, error } = await supabaseAdmin
-        .from("wordpress_integrations")
-        .insert({
-          business_id: businessId,
-          site_url: siteUrl,
-          api_key_hash: apiKeyHash,
-          api_key_preview: apiKeyPreview,
-          status: "not_connected"
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      res.json({
-        ...data,
-        rawApiKey: apiKey // Only sent once!
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: safeErrorMessage(err) });
-    }
-  });
-
-  app.post("/api/integrations/wordpress/:id/regenerate-key", authenticate, async (req: any, res: any) => {
-    try {
-      const { data: existing, error: existingError } = await supabaseAdmin
-        .from("wordpress_integrations")
-        .select("business_id")
-        .eq("id", req.params.id)
-        .single();
-
-      if (existingError || !existing) {
-        return res.status(404).json({ error: "Integration not found" });
-      }
-
-      await assertBusinessAccess(req.user.id, existing.business_id);
-
-      const apiKey = generateApiKey();
-      const apiKeyHash = hashApiKey(apiKey);
-      const apiKeyPreview = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
-
-      const { data, error } = await supabaseAdmin
-        .from("wordpress_integrations")
-        .update({
-          api_key_hash: apiKeyHash,
-          api_key_preview: apiKeyPreview,
-          status: "not_connected",
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", req.params.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      res.json({
-        ...data,
-        rawApiKey: apiKey
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: safeErrorMessage(err) });
-    }
-  });
 
   // AI Usage Status Route
   app.get("/api/ai/usage", authenticate, aiAccessGuard, async (req: any, res: any) => {
@@ -8538,7 +7799,6 @@ async function startServer() {
             subscription_status: "incomplete",
             industry: "Professional Services",
             business_nature: "Managed website customer awaiting checkout completion",
-            platform_type: "waas",
             business_type: "local_service",
             lifecycle_stage: "checkout",
             lifecycle_stage_changed_at: new Date().toISOString(),
@@ -8711,7 +7971,6 @@ async function startServer() {
               industry,
               location: location || null,
               business_nature: String(previewProfile.description || industry).slice(0, 500),
-              platform_type: "waas",
               business_type: "local_service",
               lifecycle_stage: "checkout",
               lifecycle_stage_changed_at: new Date().toISOString(),
@@ -11163,7 +10422,7 @@ async function startServer() {
     }
   });
 
-  // LEAD WEBHOOK: Receives leads from external sources (WordPress, etc.)
+  // LEAD WEBHOOK: Receives leads from approved external sources
   app.post(
     "/api/webhooks/leads",
     rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: "lead-webhook" }),

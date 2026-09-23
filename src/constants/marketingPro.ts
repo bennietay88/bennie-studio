@@ -6,9 +6,7 @@ export type MarketingCapabilityId =
   | "leadFollowUp"
   | "blog";
 
-export type MarketingPlanCapabilityId =
-  | MarketingCapabilityId
-  | "wordpressIntegration";
+export type MarketingPlanCapabilityId = MarketingCapabilityId;
 
 export interface MarketingCapabilityDefinition {
   id: MarketingCapabilityId;
@@ -70,16 +68,9 @@ export const MARKETING_PRO_CAPABILITIES: MarketingCapabilityDefinition[] = [
   },
 ];
 
-export const MARKETING_PRO_PLAN_CONTROLS = [
-  ...MARKETING_PRO_CAPABILITIES.filter((capability) => capability.accessModel !== "business"),
-  {
-    id: "wordpressIntegration" as const,
-    title: "WordPress Integration",
-    description: "Synchronize supported WordPress projects when the customer's Bennie Studio plan includes the integration.",
-    entitlementFeatureId: "wordpress_sync" as const,
-    route: undefined,
-  },
-];
+export const MARKETING_PRO_PLAN_CONTROLS = MARKETING_PRO_CAPABILITIES.filter(
+  (capability) => capability.accessModel !== "business",
+);
 
 export function getMarketingCapability(id: MarketingCapabilityId) {
   return MARKETING_PRO_CAPABILITIES.find((capability) => capability.id === id);

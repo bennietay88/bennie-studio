@@ -30,6 +30,7 @@ jobs:
       - run: npm run test:sales:api
       - run: npm run test:billing
       - run: npm run test:marketing-pro
+      - run: npm run test:platform-cleanup
       - run: npm run test:funnels
       - run: npm run test:finance
       - run: npm run test:design

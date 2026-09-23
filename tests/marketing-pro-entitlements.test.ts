@@ -18,11 +18,7 @@ test("Marketing Pro capabilities retain their commercial feature mapping", () =>
 
 test("Marketing Pro exposes no second commercial enablement state", () => {
   assert.equal(MARKETING_PRO_CAPABILITIES.length, 6);
-  assert.equal(MARKETING_PRO_PLAN_CONTROLS.length, 6);
-  assert.equal(
-    MARKETING_PRO_PLAN_CONTROLS.find((item) => item.id === "wordpressIntegration")?.entitlementFeatureId,
-    "wordpress_sync",
-  );
+  assert.equal(MARKETING_PRO_PLAN_CONTROLS.length, 5);
   assert.equal(MARKETING_PRO_PLAN_CONTROLS.some((item) => item.id === "blog"), false);
   for (const capability of MARKETING_PRO_PLAN_CONTROLS) {
     assert.ok(capability.entitlementFeatureId, `${capability.title} must be controlled by a plan entitlement`);

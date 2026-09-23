@@ -49,7 +49,6 @@ export type FeatureId =
   | "ai_receptionist_triage"
   | "before_after_rescue_tool"
   | "affiliate_system"
-  | "wordpress_sync"
   | "sales_funnels";
 
 const planTableRowsToSettings = (rows: any[]) =>
@@ -84,7 +83,6 @@ export function useFeatures() {
   const { profile } = useAuth();
   const [business, setBusiness] = useState<Business | null>(null);
   const [planSettings, setPlanSettings] = useState<any[]>(normalizePlans(PLANS));
-  const [hasWordPressIntegration, setHasWordPressIntegration] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -164,13 +162,6 @@ export function useFeatures() {
         } else {
           setPlanSettings(normalizePlans(PLANS));
         }
-
-        const { count } = await supabase
-          .from("wordpress_integrations")
-          .select("id", { count: "exact", head: true })
-          .eq("business_id", profile.businessId);
-
-        setHasWordPressIntegration((count || 0) > 0);
       } catch (error) {
         console.error("Error fetching feature data:", error);
       } finally {
@@ -236,6 +227,5 @@ export function useFeatures() {
     loading,
     business,
     planSettings,
-    hasWordPressIntegration,
   };
 }

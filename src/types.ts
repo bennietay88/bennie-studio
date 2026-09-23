@@ -73,7 +73,6 @@ export type FeatureId =
   | "ai_receptionist_triage"
   | "before_after_rescue_tool"
   | "affiliate_system"
-  | "wordpress_sync"
   | "sales_funnels";
 
 export interface UserProfile {
@@ -139,7 +138,6 @@ export interface Business {
   subscriptionStatus: "trialing" | "active" | "past_due" | "canceled";
   earlySubscriptionDate?: number;
   nextBillingDate?: number;
-  platform_type?: "waas" | "wordpress";
   dashboardVisibleFeatures?: string[] | null;
   dashboardHiddenFeatures?: string[];
   dashboardAdminOnlyFeatures?: string[];
