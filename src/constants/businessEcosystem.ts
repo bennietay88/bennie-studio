@@ -17,7 +17,7 @@ export const BENNIE_ECOSYSTEM_LINKS: EcosystemLink[] = [
     id: "main",
     label: "Bennie Tay Main Website",
     shortLabel: "Main Website",
-    description: "Brand hub, service positioning, audit request, and WordPress sales pages.",
+    description: "Brand hub, service positioning, audit requests, and sales pages.",
     url: cleanUrl(import.meta.env.VITE_MAIN_WEBSITE_URL, "https://bennietay.com"),
   },
   {

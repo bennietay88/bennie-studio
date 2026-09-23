@@ -141,7 +141,7 @@ const makeWebsiteDesignCityPage = (input: CitySalesPageInput) => publish({
     `${input.city} small businesses that need a professional website and clearer ${input.wording.enquiry} flow`,
     `${input.industries.slice(0, 3).join(", ")} and other service businesses serving ${input.city}`,
     `Businesses that want predictable monthly website pricing instead of a large upfront agency cost`,
-    `Teams that want a managed website but do not want to maintain WordPress plugins, hosting, and technical setup themselves`,
+    `Teams that want a managed website without handling hosting, maintenance, and technical setup themselves`,
   ],
   marketWhy: `${input.city} is competitive for local services. Buyers compare trust, speed, proof, pricing clarity, and how easy it is to contact the business. A managed website plan helps your offer look credible and guides visitors towards a ${input.wording.quote}, call, booking, or enquiry.`,
   pricingNote: input.pricing,

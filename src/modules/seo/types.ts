@@ -62,7 +62,7 @@ export interface SeoProject {
   website_id: string;
   name: string;
   domain: string | null;
-  adapter_type: "waas" | "wordpress" | "api_cms" | "manual";
+  adapter_type: "waas" | "api_cms" | "manual";
   status: "active" | "paused" | "disabled" | "archived";
   approval_level: SeoApprovalLevel;
   settings: Record<string, unknown>;

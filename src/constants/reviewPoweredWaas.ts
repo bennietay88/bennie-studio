@@ -1,5 +1,5 @@
 // IDs remain stable for historical records; public names and pricing use the current catalogue.
-export type ReviewPoweredPlanId = "free_preview" | "starter" | "business" | "growth" | "wordpress_custom";
+export type ReviewPoweredPlanId = "free_preview" | "starter" | "business" | "growth";
 
 export interface ReviewPoweredPlan {
   id: ReviewPoweredPlanId;
@@ -105,28 +105,7 @@ export const REVIEW_POWERED_PLANS: ReviewPoweredPlan[] = [
       "Consultant-led growth direction",
     ],
   },
-  {
-    id: "wordpress_custom",
-    publicName: "Scoped Platform Exception",
-    internalName: "Scoped Platform Exception",
-    price: "Custom quote",
-    hostingType: "managed",
-    pageLimit: 999,
-    regenerationLimit: 0,
-    monthlyEditLimit: 0,
-    locationPageLimit: 999,
-    canPublish: false,
-    bestFor: "Requirements outside the standardized managed website platform.",
-    cta: "Request Website Quote",
-    features: [
-      "Full CMS control",
-      "Blog and content publishing",
-      "Advanced SEO page structure",
-      "CMS editing setup",
-      "Custom integrations",
-      "Premium custom design",
-    ],
-  },
+
 ];
 
 export const CUSTOM_WEBSITE_QUOTE_RANGES = [

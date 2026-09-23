@@ -42,7 +42,6 @@ export function OperationsControlCenter() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [websites, setWebsites] = useState<any[]>([]);
   const [updateRequests, setUpdateRequests] = useState<any[]>([]);
-  const [wordpressLeads, setWordpressLeads] = useState<any[]>([]);
   const [isApprovalOpen, setIsApprovalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingTermId, setSavingTermId] = useState<string | null>(null);
@@ -81,11 +80,10 @@ export function OperationsControlCenter() {
       { name: "Support tickets", request: canView("customer_health") ? supabase.from("support_tickets").select("id, business_id, status, created_at") : emptyResult },
       { name: "Websites", request: canView("customer_health") ? supabase.from("websites").select("id, business_id, status, updated_at") : emptyResult },
       { name: "Update requests", request: canView("support") ? supabase.from("monthly_update_requests").select("*, businesses(name, plan)").order("created_at", { ascending: false }).limit(100) : emptyResult },
-      { name: "WordPress enquiries", request: canView("sales") ? supabase.from("wordpress_project_leads").select("*").order("created_at", { ascending: false }).limit(100) : emptyResult },
     ];
     const requests = await Promise.allSettled(sources.map((source) => source.request));
 
-    const setters = [setBusinesses, setProjects, setApprovals, setBillingEvents, setAuditLogs, setStaff, setLeads, setTickets, setWebsites, setUpdateRequests, setWordpressLeads];
+    const setters = [setBusinesses, setProjects, setApprovals, setBillingEvents, setAuditLogs, setStaff, setLeads, setTickets, setWebsites, setUpdateRequests];
     const failures: string[] = [];
     requests.forEach((result: any, index) => {
       if (result.status === "fulfilled" && !result.value.error) setters[index](result.value.data || []);
@@ -253,26 +251,9 @@ export function OperationsControlCenter() {
         });
       });
 
-    wordpressLeads
-      .filter((lead) => !["launched", "maintenance", "lost"].includes(String(lead.pipeline_status || "")))
-      .forEach((lead) => {
-        items.push({
-          id: `wordpress-${lead.id}`,
-          customer: lead.contact_name || lead.email || "Prospect",
-          business: lead.company_name || "WordPress prospect",
-          planOrService: "Custom WordPress",
-          status: lead.pipeline_status || "new_enquiry",
-          owner: ["new_enquiry", "qualified", "preparing_quotation", "quotation_sent"].includes(lead.pipeline_status) ? "Sales" : "Delivery",
-          dueDate: lead.preferred_launch_date || "Set next step",
-          nextAction: lead.pipeline_status === "new_enquiry" ? "Qualify and schedule consultation" : "Advance WordPress project stage",
-          priority: lead.indicative_budget ? "medium" : "normal",
-          href: "/admin/custom-applications",
-        });
-      });
-
     const priorityRank = { high: 0, medium: 1, normal: 2 };
     return items.sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]).slice(0, 25);
-  }, [approvals, billingEvents, businesses, projects, updateRequests, wordpressLeads]);
+  }, [approvals, billingEvents, businesses, projects, updateRequests]);
 
   const togglePermission = async (member: any, permission: string) => {
     if (!isSuperAdmin) return toast.error("Only Super Admins can change staff permissions");
