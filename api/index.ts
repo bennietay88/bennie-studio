@@ -4778,6 +4778,50 @@ async function startServer() {
   });
 
   app.post(
+    "/api/admin/website-audit",
+    authenticate,
+    rateLimit({
+      windowMs: 60 * 60 * 1000,
+      max: 120,
+      keyPrefix: "admin-website-audit",
+      key: (req) => req.user?.id || getClientIp(req),
+    }),
+    async (req: any, res: any) => {
+      const requestId = crypto.randomUUID();
+      const body = validateBody(z.object({
+        url: PUBLIC_URL_SCHEMA,
+        businessName: z.string().trim().max(160).optional().nullable(),
+        industry: z.string().trim().max(160).optional().nullable(),
+      }), req, res);
+      if (!body) return;
+
+      try {
+        const profile = await getProfileForUser(req.user.id);
+        if (!canManageSalesOperations(profile)) {
+          return res.status(403).json({ error: "Sales access required" });
+        }
+
+        const report = await runWebsiteAudit({
+          url: body.url,
+          businessName: body.businessName,
+          industry: body.industry,
+          requestId,
+        });
+
+        return res.json({ success: true, report, requestId });
+      } catch (error: any) {
+        console.warn(`[AdminWebsiteAudit:${requestId}]`, error?.message || error);
+        const userMessage = error?.message === "PRIVATE_AUDIT_URL"
+          ? "Private or local network URLs cannot be analysed."
+          : error?.message === "INVALID_AUDIT_URL"
+            ? "Enter a valid public website URL."
+            : "The website could not be reached or analysed. Check the URL and try again.";
+        return res.status(422).json({ error: userMessage, requestId });
+      }
+    },
+  );
+
+  app.post(
     "/api/public/website-audit",
     rateLimit({ windowMs: 60 * 60 * 1000, max: 8, keyPrefix: "website-audit" }),
     async (req, res) => {

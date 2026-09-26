@@ -81,12 +81,30 @@ export function NeuralAuditor() {
       }
 
       setAuditStep(3);
-      const auditResponse = await fetch("/api/public/website-audit", {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Your admin session has expired. Sign in again and retry.");
+      }
+
+      const auditResponse = await fetch("/api/admin/website-audit", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ url: /^https?:\/\//i.test(url) ? url : `https://${url}` }),
       });
       const auditPayload = await auditResponse.json().catch(() => ({}));
+      if (auditResponse.status === 429) {
+        const retryAfter = auditResponse.headers.get("Retry-After");
+        throw new Error(
+          retryAfter
+            ? `Audit limit reached for this admin account. Retry in about ${Math.max(1, Math.ceil(Number(retryAfter) / 60))} minute(s).`
+            : "Audit limit reached for this admin account. Please retry shortly.",
+        );
+      }
       if (!auditResponse.ok || !auditPayload?.report) throw new Error(auditPayload?.error || "Website analysis failed");
       const report = normalizeWebsiteAuditResult(auditPayload.report);
       setAuditStep(4);

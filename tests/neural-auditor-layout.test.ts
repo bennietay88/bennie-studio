@@ -14,3 +14,17 @@ test("neural auditor report dialog is responsive", () => {
   assert.match(source, /w-\[calc\(100vw-2rem\)\] max-w-4xl/);
   assert.match(source, /lg:flex-row lg:items-center lg:justify-between/);
 });
+
+
+test("neural auditor uses the authenticated admin audit endpoint", () => {
+  assert.match(source, /\/api\/admin\/website-audit/);
+  assert.match(source, /Authorization: `Bearer \$\{session\.access_token\}`/);
+  assert.doesNotMatch(source, /fetch\("\/api\/public\/website-audit"/);
+});
+
+test("public and admin audit rate limits stay separate", () => {
+  const apiSource = readFileSync("api/index.ts", "utf8");
+  assert.match(apiSource, /"\/api\/public\/website-audit"[\s\S]*max: 8/);
+  assert.match(apiSource, /"\/api\/admin\/website-audit"[\s\S]*max: 120/);
+  assert.match(apiSource, /keyPrefix: "admin-website-audit"/);
+});
