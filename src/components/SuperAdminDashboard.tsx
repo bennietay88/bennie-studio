@@ -150,7 +150,7 @@ import {
   ADMIN_MODULE_PRIORITY_LABELS,
   DEFAULT_ADMIN_MODULE_VISIBILITY,
 } from "../constants/adminModules";
-import { ADMIN_TAB_PERMISSIONS, DEFAULT_PLATFORM_STAFF_PERMISSIONS } from "../constants/staffPermissions";
+import { ADMIN_TAB_PERMISSIONS } from "../constants/staffPermissions";
 import SeoAdmin from "../modules/seo/components/SeoAdmin";
 import { BlogCMS } from "./BlogCMS";
 import { AdminLocalSeo } from "./SuperAdmin/AdminLocalSeo";
