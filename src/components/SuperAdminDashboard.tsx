@@ -615,6 +615,31 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const adminUserRequest = async (
+    path: string,
+    init: RequestInit,
+  ) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("Missing admin session");
+
+    const response = await fetch(path, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        ...(init.headers || {}),
+      },
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(payload?.error || "Admin user action failed");
+    }
+    return payload;
+  };
+
   const suspendUser = async (userId: string) => {
     if (profile?.role !== "super_admin") {
       toast.error("Only Super Admins can suspend users");
@@ -623,28 +648,57 @@ export default function SuperAdminDashboard() {
     const user = users.find((u) => u.id === userId);
     if (
       !window.confirm(
-        `Suspend ${user?.email || user?.name || "this user"}? They will lose dashboard access until restored.`,
+        `Suspend ${user?.email || user?.name || "this user"}? They will lose dashboard and API access until restored.`,
       )
     ) {
       return;
     }
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ status: "suspended" })
-        .eq("id", userId);
-      if (error) throw error;
+      await adminUserRequest(
+        `/api/admin/users/${encodeURIComponent(userId)}/status`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status: "suspended" }),
+        },
+      );
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, status: "suspended" } : u)),
       );
-      await recordAdminAction(
-        "user.suspended",
-        { type: "user", id: userId, label: user?.email || user?.name },
-      );
       toast.success("User suspended successfully");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Suspend failed:", err);
-      toast.error("Failed to suspend user");
+      toast.error(err.message || "Failed to suspend user");
+    }
+  };
+
+  const restoreUser = async (userId: string) => {
+    if (profile?.role !== "super_admin") {
+      toast.error("Only Super Admins can restore users");
+      return;
+    }
+    const user = users.find((u) => u.id === userId);
+    if (
+      !window.confirm(
+        `Restore access for ${user?.email || user?.name || "this user"}?`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await adminUserRequest(
+        `/api/admin/users/${encodeURIComponent(userId)}/status`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status: "active" }),
+        },
+      );
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, status: "active" } : u)),
+      );
+      toast.success("User access restored");
+    } catch (err: any) {
+      console.error("Restore failed:", err);
+      toast.error(err.message || "Failed to restore user");
     }
   };
 
@@ -654,27 +708,10 @@ export default function SuperAdminDashboard() {
       return;
     }
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) throw new Error("Missing admin session");
-
-      const response = await fetch(
+      const payload = await adminUserRequest(
         `/api/admin/users/${encodeURIComponent(userId)}/terminate`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        },
+        { method: "POST" },
       );
-
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(payload?.error || "Failed to terminate user");
-      }
 
       setUsers((prev) =>
         prev.map((u) =>
@@ -704,27 +741,27 @@ export default function SuperAdminDashboard() {
     const user = users.find((u) => u.id === userId);
     const requiredText = user?.email || userId;
     const confirmation = window.prompt(
-      `This permanently deletes the user profile record. Type ${requiredText} to continue.`,
+      `This permanently deletes the terminated user's Supabase Auth login and profile. Eligible inactive businesses are preserved and detached. Type ${requiredText} to continue.`,
     );
     if (confirmation !== requiredText) {
       toast.info("User deletion cancelled");
       return;
     }
+
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
-      if (error) throw error;
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
-      await recordAdminAction(
-        "user.deleted",
-        { type: "user", id: userId, label: users.find((u) => u.id === userId)?.email },
+      await adminUserRequest(
+        `/api/admin/users/${encodeURIComponent(userId)}`,
+        {
+          method: "DELETE",
+          body: JSON.stringify({ confirmation }),
+        },
       );
-      toast.success("User record deleted from platform");
-    } catch (err) {
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      setSelectedUsers((prev) => prev.filter((id) => id !== userId));
+      toast.success("User permanently deleted");
+    } catch (err: any) {
       console.error("Delete failed:", err);
-      toast.error("Failed to delete user record");
+      toast.error(err.message || "Failed to permanently delete user");
     }
   };
 
@@ -732,34 +769,40 @@ export default function SuperAdminDashboard() {
     if (selectedUsers.length === 0) return;
     if (
       !window.confirm(
-        `Suspend ${selectedUsers.length} selected user account(s)? They will lose dashboard access until restored.`,
+        `Suspend ${selectedUsers.length} selected user account(s)? They will lose dashboard and API access until restored.`,
       )
     ) {
       return;
     }
     setIsBulkLoading(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ status: "suspended" })
-        .in("id", selectedUsers);
-
-      if (error) throw error;
+      const payload = await adminUserRequest(
+        "/api/admin/users/bulk-suspend",
+        {
+          method: "POST",
+          body: JSON.stringify({ userIds: selectedUsers }),
+        },
+      );
+      const suspendedIds: string[] = Array.isArray(payload?.suspendedIds)
+        ? payload.suspendedIds
+        : [];
       setUsers((prev) =>
         prev.map((u) =>
-          selectedUsers.includes(u.id) ? { ...u, status: "suspended" } : u,
+          suspendedIds.includes(u.id) ? { ...u, status: "suspended" } : u,
         ),
       );
-      await recordAdminAction(
-        "users.bulk_suspended",
-        { type: "user_batch", id: selectedUsers.join(","), label: `${selectedUsers.length} users` },
-        { selectedUsers },
+      const skipped = Array.isArray(payload?.skippedTerminatedIds)
+        ? payload.skippedTerminatedIds.length
+        : 0;
+      toast.success(
+        skipped
+          ? `Suspended ${suspendedIds.length} users; skipped ${skipped} terminated user(s)`
+          : `Suspended ${suspendedIds.length} users`,
       );
-      toast.success(`Suspended ${selectedUsers.length} users`);
       setSelectedUsers([]);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Bulk suspend failed:", err);
-      toast.error("Bulk operation failed");
+      toast.error(err.message || "Bulk operation failed");
     } finally {
       setIsBulkLoading(false);
     }
@@ -796,29 +839,29 @@ export default function SuperAdminDashboard() {
       return;
     }
     try {
-      const rolePatch = {
-        role: newRole,
-        ...(newRole === "platform_staff"
-          ? { staff_permissions: DEFAULT_PLATFORM_STAFF_PERMISSIONS }
-          : {}),
-      };
-      const { error } = await supabase
-        .from("profiles")
-        .update(rolePatch)
-        .eq("id", userId);
-      if (error) throw error;
-      setUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, ...rolePatch } : u)),
+      const payload = await adminUserRequest(
+        `/api/admin/users/${encodeURIComponent(userId)}/role`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ role: newRole }),
+        },
       );
-      await recordAdminAction(
-        "user.role_updated",
-        { type: "user", id: userId, label: users.find((u) => u.id === userId)?.email },
-        { newRole },
+      const updatedUser = payload?.user || {};
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId
+            ? {
+                ...u,
+                role: updatedUser.role || newRole,
+                staff_permissions: updatedUser.staff_permissions || [],
+              }
+            : u,
+        ),
       );
       toast.success(`User role updated to ${newRole}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Update role failed:", err);
-      toast.error("Failed to update user role");
+      toast.error(err.message || "Failed to update user role");
     }
   };
 
@@ -1752,18 +1795,31 @@ export default function SuperAdminDashboard() {
                                           </DropdownMenuSubContent>
                                         </DropdownMenuPortal>
                                       </DropdownMenuSub>
-                                      {user.status !== "suspended" && (
+                                      {user.status === "suspended" ? (
+                                        <DropdownMenuItem onClick={() => restoreUser(user.id)} className="rounded-xl p-3">
+                                          <Shield className="h-4 w-4 mr-3 text-emerald-600" /> Restore Access
+                                        </DropdownMenuItem>
+                                      ) : user.status !== "terminated" ? (
                                         <DropdownMenuItem onClick={() => suspendUser(user.id)} className="rounded-xl p-3">
                                           <AlertCircle className="h-4 w-4 mr-3 text-amber-500" /> Suspend Access
                                         </DropdownMenuItem>
-                                      )}
+                                      ) : null}
                                       <DropdownMenuSeparator className="my-2" />
-                                      <DropdownMenuItem 
-                                        onClick={() => { setTerminatingUser(user); setIsTerminateDialogOpen(true); }} 
-                                        className="text-rose-600 rounded-xl p-3 focus:bg-rose-50"
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-3" /> Terminate User
-                                      </DropdownMenuItem>
+                                      {user.status !== "terminated" ? (
+                                        <DropdownMenuItem 
+                                          onClick={() => { setTerminatingUser(user); setIsTerminateDialogOpen(true); }} 
+                                          className="text-rose-600 rounded-xl p-3 focus:bg-rose-50"
+                                        >
+                                          <Trash2 className="h-4 w-4 mr-3" /> Terminate User
+                                        </DropdownMenuItem>
+                                      ) : (
+                                        <DropdownMenuItem
+                                          onClick={() => deleteUserRecord(user.id)}
+                                          className="text-rose-700 rounded-xl p-3 focus:bg-rose-50"
+                                        >
+                                          <Trash2 className="h-4 w-4 mr-3" /> Permanently Delete User
+                                        </DropdownMenuItem>
+                                      )}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                </TableCell>
