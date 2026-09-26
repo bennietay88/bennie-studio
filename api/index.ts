@@ -944,10 +944,13 @@ async function startServer() {
   const getProfileForUser = async (userId: string) => {
     const { data, error } = await supabaseAdmin
       .from("profiles")
-      .select("id, role, business_id, staff_permissions")
+      .select("id, role, business_id, staff_permissions, status")
       .eq("id", userId)
       .single();
     if (error || !data) throw new Error("PROFILE_NOT_FOUND");
+    if (["suspended", "terminated"].includes(String(data.status || "").toLowerCase())) {
+      throw new Error("ACCOUNT_DISABLED");
+    }
     return data;
   };
 
@@ -1020,6 +1023,9 @@ async function startServer() {
     if (err?.message === "PROFILE_NOT_FOUND") {
       return res.status(403).json({ error: "Profile not found" });
     }
+    if (err?.message === "ACCOUNT_DISABLED") {
+      return res.status(403).json({ error: "Account access is disabled" });
+    }
     if (err?.message === "FORBIDDEN_BUSINESS_ACCESS") {
       return res.status(403).json({ error: "Forbidden: business access required" });
     }
@@ -1036,11 +1042,15 @@ async function startServer() {
 
       const { data: profile, error } = await userSupabase
         .from("profiles")
-        .select("role")
+        .select("role,status")
         .eq("id", req.user.id)
         .single();
 
-      if (error || profile?.role !== "super_admin") {
+      if (
+        error
+        || profile?.role !== "super_admin"
+        || ["suspended", "terminated"].includes(String(profile?.status || "").toLowerCase())
+      ) {
         console.warn(
           `Admin access denied for ${req.user.email}. Role: ${profile?.role || "none"}`,
         );
@@ -1493,6 +1503,383 @@ async function startServer() {
       return res.status(500).json({ error: safeErrorMessage(error) || "Unable to permanently delete account" });
     }
   });
+
+  const DEFAULT_PLATFORM_STAFF_PERMISSIONS_SERVER = [
+    "prospects",
+    "sales",
+    "delivery",
+    "approvals",
+    "support",
+    "customer_health",
+    "finance",
+  ];
+
+  const writeAdminUserAudit = async (
+    req: any,
+    actionType: string,
+    target: { id: string; label?: string | null },
+    metadata: Record<string, unknown> = {},
+  ) => {
+    const { error } = await supabaseAdmin
+      .from("admin_action_audit_logs")
+      .insert({
+        actor_user_id: req.user.id,
+        actor_email: req.user.email || null,
+        action_type: actionType,
+        target_type: "user",
+        target_id: target.id,
+        target_label: target.label || target.id,
+        metadata,
+      });
+    if (error) {
+      console.warn(`[Admin User Lifecycle] Audit log skipped for ${actionType}: ${error.message}`);
+    }
+  };
+
+  app.patch(
+    "/api/admin/users/:userId/status",
+    authenticate,
+    superAdminOnly,
+    async (req: any, res: any) => {
+      const userId = String(req.params.userId || "").trim();
+      if (!UUID_SCHEMA.safeParse(userId).success) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      const body = validateBody(
+        z.object({ status: z.enum(["active", "suspended"]) }).strict(),
+        req,
+        res,
+      );
+      if (!body) return;
+      if (userId === req.user.id && body.status === "suspended") {
+        return res.status(409).json({ error: "You cannot suspend your own super admin account." });
+      }
+
+      try {
+        const { data: targetUser, error: targetError } = await supabaseAdmin
+          .from("profiles")
+          .select("id,email,full_name,role,status")
+          .eq("id", userId)
+          .maybeSingle();
+        if (targetError) throw targetError;
+        if (!targetUser) return res.status(404).json({ error: "User profile not found." });
+        if (String(targetUser.status || "").toLowerCase() === "terminated") {
+          return res.status(409).json({ error: "A terminated user cannot be restored or suspended. Permanently delete the user or leave the record terminated." });
+        }
+
+        const { data: updatedUser, error: updateError } = await supabaseAdmin
+          .from("profiles")
+          .update({ status: body.status })
+          .eq("id", userId)
+          .select("id,status")
+          .single();
+        if (updateError) throw updateError;
+
+        await writeAdminUserAudit(
+          req,
+          body.status === "suspended" ? "user.suspended" : "user.restored",
+          { id: userId, label: targetUser.email || targetUser.full_name || userId },
+          { previousStatus: targetUser.status || null, status: body.status },
+        );
+
+        return res.json({ success: true, user: updatedUser });
+      } catch (error: any) {
+        console.error("[Admin User Status] Failed:", error);
+        return res.status(500).json({ error: safeErrorMessage(error) || "Unable to update user status" });
+      }
+    },
+  );
+
+  app.post(
+    "/api/admin/users/bulk-suspend",
+    authenticate,
+    superAdminOnly,
+    async (req: any, res: any) => {
+      const body = validateBody(
+        z.object({
+          userIds: z.array(UUID_SCHEMA).min(1).max(100),
+        }).strict(),
+        req,
+        res,
+      );
+      if (!body) return;
+
+      const userIds = Array.from(new Set(body.userIds));
+      if (userIds.includes(req.user.id)) {
+        return res.status(409).json({ error: "Bulk suspend cannot include your own super admin account." });
+      }
+
+      try {
+        const { data: targets, error: targetError } = await supabaseAdmin
+          .from("profiles")
+          .select("id,email,full_name,status")
+          .in("id", userIds);
+        if (targetError) throw targetError;
+
+        const rows = targets || [];
+        const terminatedIds = rows
+          .filter((row: any) => String(row.status || "").toLowerCase() === "terminated")
+          .map((row: any) => row.id);
+        const eligibleIds = rows
+          .filter((row: any) => String(row.status || "").toLowerCase() !== "terminated")
+          .map((row: any) => row.id);
+
+        if (!eligibleIds.length) {
+          return res.status(409).json({
+            error: "No selected users can be suspended.",
+            skippedTerminatedIds: terminatedIds,
+          });
+        }
+
+        const { data: updated, error: updateError } = await supabaseAdmin
+          .from("profiles")
+          .update({ status: "suspended" })
+          .in("id", eligibleIds)
+          .select("id");
+        if (updateError) throw updateError;
+
+        const suspendedIds = (updated || []).map((row: any) => row.id);
+        await writeAdminUserAudit(
+          req,
+          "users.bulk_suspended",
+          { id: suspendedIds.join(","), label: `${suspendedIds.length} users` },
+          {
+            selectedUserIds: userIds,
+            suspendedUserIds: suspendedIds,
+            skippedTerminatedIds: terminatedIds,
+          },
+        );
+
+        return res.json({
+          success: true,
+          suspendedIds,
+          skippedTerminatedIds: terminatedIds,
+        });
+      } catch (error: any) {
+        console.error("[Admin Bulk Suspend] Failed:", error);
+        return res.status(500).json({ error: safeErrorMessage(error) || "Unable to suspend selected users" });
+      }
+    },
+  );
+
+  app.patch(
+    "/api/admin/users/:userId/role",
+    authenticate,
+    superAdminOnly,
+    async (req: any, res: any) => {
+      const userId = String(req.params.userId || "").trim();
+      if (!UUID_SCHEMA.safeParse(userId).success) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      const body = validateBody(
+        z.object({
+          role: z.enum(["super_admin", "platform_staff", "business_admin", "staff", "affiliate"]),
+        }).strict(),
+        req,
+        res,
+      );
+      if (!body) return;
+      if (userId === req.user.id) {
+        return res.status(409).json({ error: "Change another super admin first; you cannot change your own role here." });
+      }
+
+      try {
+        const { data: targetUser, error: targetError } = await supabaseAdmin
+          .from("profiles")
+          .select("id,email,full_name,role,status,staff_permissions")
+          .eq("id", userId)
+          .maybeSingle();
+        if (targetError) throw targetError;
+        if (!targetUser) return res.status(404).json({ error: "User profile not found." });
+        if (String(targetUser.status || "").toLowerCase() === "terminated") {
+          return res.status(409).json({ error: "A terminated user's role cannot be changed." });
+        }
+
+        const rolePatch = {
+          role: body.role,
+          staff_permissions:
+            body.role === "platform_staff"
+              ? DEFAULT_PLATFORM_STAFF_PERMISSIONS_SERVER
+              : [],
+        };
+
+        const { data: updatedUser, error: updateError } = await supabaseAdmin
+          .from("profiles")
+          .update(rolePatch)
+          .eq("id", userId)
+          .select("id,role,staff_permissions")
+          .single();
+        if (updateError) throw updateError;
+
+        await writeAdminUserAudit(
+          req,
+          "user.role_updated",
+          { id: userId, label: targetUser.email || targetUser.full_name || userId },
+          {
+            previousRole: targetUser.role || null,
+            role: body.role,
+            previousStaffPermissions: targetUser.staff_permissions || [],
+            staffPermissions: rolePatch.staff_permissions,
+          },
+        );
+
+        return res.json({ success: true, user: updatedUser });
+      } catch (error: any) {
+        console.error("[Admin User Role] Failed:", error);
+        return res.status(500).json({ error: safeErrorMessage(error) || "Unable to update user role" });
+      }
+    },
+  );
+
+  app.delete(
+    "/api/admin/users/:userId",
+    authenticate,
+    superAdminOnly,
+    async (req: any, res: any) => {
+      const userId = String(req.params.userId || "").trim();
+      if (!UUID_SCHEMA.safeParse(userId).success) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      if (userId === req.user.id) {
+        return res.status(409).json({ error: "You cannot permanently delete your own super admin account." });
+      }
+
+      const body = validateBody(
+        z.object({ confirmation: z.string().trim().min(1).max(320) }).strict(),
+        req,
+        res,
+      );
+      if (!body) return;
+
+      try {
+        const { data: targetUser, error: targetError } = await supabaseAdmin
+          .from("profiles")
+          .select("id,email,full_name,role,status")
+          .eq("id", userId)
+          .maybeSingle();
+        if (targetError) throw targetError;
+        if (!targetUser) return res.status(404).json({ error: "User profile not found." });
+
+        if (String(targetUser.status || "").toLowerCase() !== "terminated") {
+          return res.status(409).json({ error: "Terminate this user before permanently deleting the account." });
+        }
+
+        const requiredConfirmation = String(targetUser.email || userId).trim();
+        if (body.confirmation !== requiredConfirmation) {
+          return res.status(400).json({ error: "Type the exact user email to confirm permanent deletion." });
+        }
+
+        const [
+          { data: subscriptions, error: subscriptionError },
+          { data: ownedBusinesses, error: businessError },
+          { data: apiKeys, error: apiKeyError },
+        ] = await Promise.all([
+          supabaseAdmin
+            .from("user_subscriptions")
+            .select("status,renewal_state")
+            .eq("user_id", userId),
+          supabaseAdmin
+            .from("businesses")
+            .select("id,name,status,subscription_status")
+            .eq("owner_id", userId),
+          supabaseAdmin
+            .from("api_keys")
+            .select("id")
+            .eq("created_by", userId),
+        ]);
+        if (subscriptionError) throw subscriptionError;
+        if (businessError) throw businessError;
+        if (apiKeyError) throw apiKeyError;
+
+        const protectedSubscription = (subscriptions || []).find(
+          (subscription: any) => !subscriptionAllowsPermanentDeletion(subscription.status),
+        );
+        if (protectedSubscription) {
+          return res.status(409).json({
+            error: "This user still has an active or protected subscription. End it before permanent deletion.",
+            subscriptionStatus: protectedSubscription.status || null,
+            renewalState: protectedSubscription.renewal_state || null,
+          });
+        }
+
+        const protectedBusiness = (ownedBusinesses || []).find((business: any) => {
+          const businessStatus = String(business.status || "").toLowerCase();
+          return (
+            ["active", "trial", "trialing"].includes(businessStatus)
+            || !subscriptionAllowsPermanentDeletion(business.subscription_status)
+          );
+        });
+        if (protectedBusiness) {
+          return res.status(409).json({
+            error: "This user still owns an active or protected business. Deactivate/cancel or transfer that business before deleting the user.",
+            businessId: protectedBusiness.id,
+            businessName: protectedBusiness.name || null,
+            businessStatus: protectedBusiness.status || null,
+            subscriptionStatus: protectedBusiness.subscription_status || null,
+          });
+        }
+
+        const ownedBusinessIds = (ownedBusinesses || []).map((business: any) => business.id);
+        const apiKeyIds = (apiKeys || []).map((key: any) => key.id);
+
+        if (ownedBusinessIds.length) {
+          const { error: detachBusinessError } = await supabaseAdmin
+            .from("businesses")
+            .update({ owner_id: null })
+            .in("id", ownedBusinessIds);
+          if (detachBusinessError) throw detachBusinessError;
+        }
+
+        if (apiKeyIds.length) {
+          const { error: detachKeysError } = await supabaseAdmin
+            .from("api_keys")
+            .update({ created_by: null })
+            .in("id", apiKeyIds);
+          if (detachKeysError) {
+            if (ownedBusinessIds.length) {
+              await supabaseAdmin.from("businesses").update({ owner_id: userId }).in("id", ownedBusinessIds);
+            }
+            throw detachKeysError;
+          }
+        }
+
+        const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+        if (authDeleteError) {
+          if (ownedBusinessIds.length) {
+            await supabaseAdmin.from("businesses").update({ owner_id: userId }).in("id", ownedBusinessIds);
+          }
+          if (apiKeyIds.length) {
+            await supabaseAdmin.from("api_keys").update({ created_by: userId }).in("id", apiKeyIds);
+          }
+          throw authDeleteError;
+        }
+
+        await writeAdminUserAudit(
+          req,
+          "user.deleted",
+          { id: userId, label: targetUser.email || targetUser.full_name || userId },
+          {
+            previousRole: targetUser.role || null,
+            previousStatus: targetUser.status || null,
+            detachedBusinessIds: ownedBusinessIds,
+            detachedApiKeyIds: apiKeyIds,
+            authUserDeleted: true,
+          },
+        );
+
+        return res.json({
+          success: true,
+          deletedUserId: userId,
+          detachedBusinessIds: ownedBusinessIds,
+        });
+      } catch (error: any) {
+        console.error("[Admin User Deletion] Failed:", error);
+        return res.status(500).json({
+          error: safeErrorMessage(error) || "Unable to permanently delete user",
+        });
+      }
+    },
+  );
 
   app.post(
     "/api/admin/users/:userId/terminate",
