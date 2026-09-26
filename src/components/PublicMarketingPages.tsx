@@ -873,7 +873,7 @@ function CaseStudiesPage() {
   );
 }
 
-const PREVIEW_GENERATION_VERSION = 15;
+const PREVIEW_GENERATION_VERSION = 16;
 
 const previewIndustries = [
   {
@@ -1642,7 +1642,7 @@ function GeneratePreviewPage() {
         assetReadiness: "some",
         heroImageUrl: previewMode === "website" ? profile.heroImage || previewStockImage : previewStockImage,
         heroFallbackImageUrl: previewStockImage,
-        storyImageUrl: previewMode === "website" ? profile.secondaryImage || undefined : undefined,
+        storyImageUrl: previewMode === "website" ? profile.secondaryImage || previewStockImage : previewStockImage,
         storyFallbackImageUrl: previewStockImage,
         heroHeadline: previewMode === "website" ? profile.heroHeadline || undefined : undefined,
         heroSubheadline: previewMode === "website" ? profile.heroSubheadline || undefined : undefined,

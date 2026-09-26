@@ -401,3 +401,63 @@ test("preview lets users auto-detect or override customer brand colours", async 
   assert.match(source, /primaryColor: form\.brandPrimaryColor/);
   assert.match(source, /secondaryColor: form\.brandAccentColor/);
 });
+
+
+test("sparse source websites are expanded into useful non-fabricated sections", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Sparse Handyman Co",
+    nicheId: "service-pro-v1",
+    nicheName: "Other Local Service Business handyman",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Handyman Services",
+    targetCustomer: "homeowners",
+    location: "Singapore",
+    ctaPreference: "Request a Quote",
+    sourceDriven: true,
+    contactEmail: "hello@example.com",
+    generationMode: "premium",
+    heroFallbackImageUrl: "/template-assets/flagship-renovation.jpg",
+    storyFallbackImageUrl: "/template-assets/flagship-renovation.jpg",
+  });
+
+  assert.equal(pages.length, 5);
+  assert.deepEqual(pages.map((page) => page.slug), ["", "services", "about", "faq", "quote"]);
+
+  const home = pages[0];
+  const homeTypes = home.sections.filter((section) => section.isVisible !== false).map((section) => section.type);
+  for (const required of ["hero", "features", "services", "about", "faq", "contact", "cta"]) {
+    assert.ok(homeTypes.includes(required), `expected home to include ${required}`);
+  }
+
+  const about = pages.find((page) => page.slug === "about")!;
+  const aboutSection = about.sections.find((section) => section.type === "about")!;
+  assert.match(String(aboutSection.content?.text || ""), /Sparse Handyman Co/);
+  assert.equal(aboutSection.content?.contentSource, "inferred");
+
+  const faq = pages.find((page) => page.slug === "faq")!;
+  const faqSection = faq.sections.find((section) => section.type === "faq")!;
+  assert.ok(Array.isArray(faqSection.content?.items));
+  assert.ok(faqSection.content.items.length >= 3);
+  assert.match(String(faqSection.content.items[0]?.answer || ""), /contact|enquiry|team/i);
+});
+
+test("sparse previews do not invent evidence-only sections", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "No Proof Business",
+    nicheId: "service-pro-v1",
+    nicheName: "Local Service",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Repairs",
+    targetCustomer: "customers",
+    location: "Kuala Lumpur",
+    ctaPreference: "Contact Us",
+    sourceDriven: true,
+    generationMode: "premium",
+  });
+
+  const allVisible = pages.flatMap((page) => page.sections.filter((section) => section.isVisible !== false));
+  assert.equal(allVisible.some((section) => section.type === "testimonials"), false);
+  assert.equal(allVisible.some((section) => section.type === "proof"), false);
+});

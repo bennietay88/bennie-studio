@@ -694,6 +694,7 @@ const getServiceItems = (input: BlueprintBusinessInput) => {
       title,
       description: input.sourceDriven
         ? String(sourceDetail?.description || "").trim()
+          || generatedBody(`Learn more about ${title} from ${input.businessName} and contact the team to confirm scope, availability and the right next step for your needs.`)
         : generatedBody(`${title} designed for ${input.targetCustomer || "your customers"} in ${input.location || "your area"}.`),
       imageUrl: undefined,
     };
@@ -707,33 +708,88 @@ const getFaqItems = (input: BlueprintBusinessInput) => {
     .map((item) => ({
       question: item.question.includes("?") ? item.question : `${item.question}?`,
       answer: item.answer,
+      contentSource: "source",
     }));
   if (verifiedFaqItems.length > 0) return verifiedFaqItems;
-
-  if (input.sourceDriven) return [];
 
   const customFaqs = (input.faqs || []).filter(Boolean);
   if (customFaqs.length > 0) {
     return customFaqs.slice(0, 6).map((question) => ({
       question: question.includes("?") ? question : `${question}?`,
-      answer: `Contact ${input.businessName} for a clear answer based on your needs.`,
+      answer: `Contact ${input.businessName} for the most accurate answer based on your requirements.`,
+      contentSource: input.sourceDriven ? "inferred" : "generated",
     }));
   }
 
-  return [
+  const businessName = input.businessName || "the business";
+  const service = generatedServiceTitle(input.mainService || "the service");
+  const location = input.location || "your area";
+  const niche = inferBlueprintNiche(`${input.nicheName || ""} ${input.mainService || ""}`);
+
+  const common = [
     {
-      question: `Do you serve ${input.location || "my area"}?`,
-      answer: `Yes. ${input.businessName} works with ${input.targetCustomer || "customers"} in ${input.location || "the local area"}.`,
+      question: `How do I get started with ${service}?`,
+      answer: `Use the enquiry options on this page to tell ${businessName} what you need. The business can then confirm the appropriate next step.`,
     },
     {
-      question: "How do I get started?",
-      answer: `Use the ${input.ctaPreference || "contact"} button and the team will guide you through the next step.`,
+      question: `Do you serve ${location}?`,
+      answer: `The website identifies ${location} as the relevant location or service area. Contact ${businessName} to confirm coverage for your exact address or requirement.`,
     },
     {
-      question: "Can I ask questions before booking?",
-      answer: "Yes. Send an enquiry and the team will help you understand the best option before you commit.",
+      question: "Can I ask questions before I commit?",
+      answer: `Yes — the preview is designed to make it easy to contact ${businessName} and clarify scope, timing, availability or suitability before proceeding.`,
     },
   ];
+
+  const nicheSpecific =
+    niche === "clinic"
+      ? [
+          {
+            question: `Is ${service} suitable for me?`,
+            answer: `Suitability depends on individual circumstances. Contact ${businessName} for the appropriate professional guidance before booking or proceeding.`,
+          },
+          {
+            question: "How do I arrange an appointment?",
+            answer: `Use the contact or appointment action shown on this website. ${businessName} can confirm availability and any information needed before your visit.`,
+          },
+        ]
+      : niche === "contractor"
+        ? [
+            {
+              question: "Can I request a quote before work starts?",
+              answer: `Use the enquiry form or contact details to describe the job. ${businessName} can confirm what information is needed before providing any quotation.`,
+            },
+            {
+              question: "What details should I include in my enquiry?",
+              answer: "Include the type of work, location, preferred timing and any useful photos or measurements. The business can then advise what else is required.",
+            },
+          ]
+        : niche === "restaurant"
+          ? [
+              {
+                question: "How can I confirm availability or make a reservation?",
+                answer: `Use the contact or reservation details shown on the website. ${businessName} can confirm current availability and any booking requirements.`,
+              },
+              {
+                question: "Can I ask about dietary or special requirements?",
+                answer: `Contact ${businessName} directly so the team can confirm what can be accommodated for your visit.`,
+              },
+            ]
+          : [
+              {
+                question: `What should I prepare before enquiring about ${service}?`,
+                answer: "Share your main objective, relevant background and any timing constraints. The business can then explain the most appropriate next step.",
+              },
+              {
+                question: "How will I know which service is right for me?",
+                answer: `Review the service information first, then contact ${businessName} to confirm fit, scope and any details that are not covered on the website.`,
+              },
+            ];
+
+  return [...common, ...nicheSpecific].slice(0, 5).map((item) => ({
+    ...item,
+    contentSource: input.sourceDriven ? "inferred" : "generated",
+  }));
 };
 
 const getTestimonials = (input: BlueprintBusinessInput) => {
@@ -779,7 +835,9 @@ const buildSectionContent = (
         pageBlueprint.slug === ""
           ? suppliedHeroSubheadline
             || input.description
-            || (input.sourceDriven ? "" : `${tone} ${generatedServiceTitle(service)} in ${location}, designed to help ${target} take the next step with confidence.`)
+            || (input.sourceDriven
+              ? `Explore ${generatedServiceTitle(service)} from ${businessName} in ${location}, with a clearer path to the information and next step customers need.`
+              : `${tone} ${generatedServiceTitle(service)} in ${location}, designed to help ${target} take the next step with confidence.`)
           : input.sourceDriven
             ? ""
             : input.description
@@ -852,23 +910,26 @@ const buildSectionContent = (
 
   if (section.type === "about") {
     const sourceAboutText = String(input.aboutText || input.description || "").trim();
+    const inferredAboutText = `${businessName} provides ${service} for ${target} in ${location}. This preview reorganises the available business information so visitors can understand the service, where it is offered and how to make an enquiry more easily.\n\nFor details that are not available on the current website, customers are directed to contact ${businessName} rather than relying on unsupported claims.`;
     section.content = {
       ...section.content,
       title: `About ${businessName}`,
       text: input.sourceDriven
-        ? sourceAboutText
+        ? sourceAboutText || inferredAboutText
         : `${businessName} helps ${target} in ${location} with ${service}. The approach is clear, practical, and focused on helping every customer understand their options before taking action.\n\nThe website structure is designed to answer common questions and make it easy to enquire without inventing claims the business has not supplied.`,
-      imageUrl: input.storyImageUrl || undefined,
+      contentSource: input.sourceDriven && !sourceAboutText ? "inferred" : "source",
+      imageUrl: input.storyImageUrl || input.storyFallbackImageUrl || undefined,
       fallbackImageUrl: input.storyFallbackImageUrl || undefined,
       assetSlots: {
         storyImage: {
-          source: "customer",
-          status: input.storyImageUrl ? "provided" : "needed",
-          guidance: "Customer-supplied founder, team, office, service, project or environment photography.",
+          source: input.storyImageUrl ? "customer" : "fallback",
+          status: input.storyImageUrl || input.storyFallbackImageUrl ? "provided" : "needed",
+          guidance: input.storyImageUrl
+            ? "Customer-supplied founder, team, office, service, project or environment photography."
+            : "Preview-only contextual image. Replace with real business photography before publishing.",
         },
       },
     };
-    if (input.sourceDriven && !sourceAboutText) section.isVisible = false;
   }
 
   if (section.type === "features") {
@@ -1051,7 +1112,7 @@ const buildSectionContent = (
       title: "Common Questions",
       items,
     };
-    if (input.sourceDriven && items.length === 0) section.isVisible = false;
+    section.isVisible = items.length > 0;
   }
 
   if (section.type === "pricing") {
@@ -1148,58 +1209,46 @@ const resolveSourceDrivenBlueprintPages = (
   input: BlueprintBusinessInput,
   limit: number,
 ): BlueprintPage[] => {
-  const hasAbout = Boolean(String(input.aboutText || input.description || "").trim());
-  const hasFaqs = (input.faqItems || []).some((item) => item?.question && item?.answer);
   const hasTestimonials = (input.testimonials || []).filter(Boolean).length > 0;
-  const hasServices = (input.services || []).filter(Boolean).length > 0 || Boolean(input.mainService);
   const ctaType = input.ctaPreference || blueprint.pages[blueprint.pages.length - 1]?.ctaType || "Contact Us";
 
   const home = makeSourceBlueprintPage(
     "Home",
     "",
-    "Present the clearest business proposition, services, proof and next step.",
+    "Present the clearest business proposition, services, useful context and next step.",
+    ctaType,
+  );
+  const serviceName =
+    blueprint.niche === "clinic"
+      ? "Treatments"
+      : blueprint.niche === "restaurant"
+        ? "Menu"
+        : "Services";
+  const servicePage = makeSourceBlueprintPage(
+    serviceName,
+    blueprint.niche === "clinic" ? "treatments" : blueprint.niche === "restaurant" ? "menu" : "services",
+    "Present the identified services and add useful explanatory structure where the source website is incomplete.",
     ctaType,
   );
   const about = makeSourceBlueprintPage(
     "About",
     "about",
-    "Explain the business, team and approach using verified source content.",
-    ctaType,
-  );
-  const reviews = makeSourceBlueprintPage(
-    "Reviews",
-    "reviews",
-    "Show genuine customer feedback already published by the business.",
+    "Explain the business and approach using source facts first, then safe contextual copy where details are missing.",
     ctaType,
   );
   const faq = makeSourceBlueprintPage(
     blueprint.niche === "clinic" ? "Patient Info" : "FAQ",
     blueprint.niche === "clinic" ? "patient-info" : "faq",
-    "Answer common questions using verified source information.",
+    "Answer common customer questions using source facts where available and clearly non-fabricated guidance otherwise.",
     ctaType,
     blueprint.niche === "clinic" ? "Patient Info" : "FAQ",
   );
-
-  let pages: BlueprintPage[] = [home];
-
-  if (hasServices) {
-    const serviceName =
-      blueprint.niche === "clinic"
-        ? "Treatments"
-        : blueprint.niche === "restaurant"
-          ? "Menu"
-          : "Services";
-    pages.push(makeSourceBlueprintPage(
-      serviceName,
-      blueprint.niche === "clinic" ? "treatments" : blueprint.niche === "restaurant" ? "menu" : "services",
-      "Present the real services or offers already identified from the source website.",
-      ctaType,
-    ));
-  }
-
-  if (hasAbout) pages.push(about);
-  if (hasFaqs) pages.push(faq);
-  else if (hasTestimonials) pages.push(reviews);
+  const reviews = makeSourceBlueprintPage(
+    "Reviews",
+    "reviews",
+    "Show only genuine customer feedback already published by the business.",
+    ctaType,
+  );
 
   const contactName =
     blueprint.niche === "clinic"
@@ -1221,28 +1270,31 @@ const resolveSourceDrivenBlueprintPages = (
       : blueprint.niche === "contractor"
         ? "Quote"
         : "Contact";
-
-  pages.push(makeSourceBlueprintPage(
+  const contact = makeSourceBlueprintPage(
     contactName,
     contactSlug,
     "Give visitors a direct, credible way to contact the business.",
     ctaType,
     contactNav,
-  ));
+  );
 
-  // A strong preview is allowed to have fewer than five pages when the source
-  // website does not contain enough trustworthy material. Empty pages sell
-  // templates; concise evidence-led pages sell redesigns.
-  return pages.slice(0, Math.max(1, limit));
+  const corePages: BlueprintPage[] = [home, servicePage, about, faq, contact];
+
+  // Reviews remain evidence-only. If the source contains real reviews and the
+  // page budget allows it, place them before Contact; never fabricate reviews
+  // simply to make the preview look fuller.
+  if (hasTestimonials && limit > corePages.length) {
+    corePages.splice(corePages.length - 1, 0, reviews);
+  }
+
+  return corePages.slice(0, Math.max(1, limit));
 };
 
 const resolveSourceDrivenBlockPlan = (
   page: BlueprintPage,
   input: BlueprintBusinessInput,
 ): SectionBlockType[] => {
-  const hasAbout = Boolean(String(input.aboutText || input.description || "").trim());
   const hasTestimonials = (input.testimonials || []).filter(Boolean).length > 0;
-  const hasFaqs = (input.faqItems || []).some((item) => item?.question && item?.answer);
   const hasTrust = Boolean(
     String(input.localProof || "").trim()
     || (input.proofLogos || []).filter(Boolean).length,
@@ -1254,36 +1306,44 @@ const resolveSourceDrivenBlockPlan = (
       "highlights",
       "services",
       "process",
-      ...(hasAbout ? ["about" as SectionBlockType] : []),
+      "about",
       ...(hasTrust ? ["trust" as SectionBlockType] : []),
       ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []),
-      ...(hasFaqs ? ["faq" as SectionBlockType] : []),
+      "faq",
       "contact_form",
       "final_cta",
     ];
   }
 
   if (/^(treatments?|services?|menu|programs?|practice-areas?)$/.test(page.slug)) {
-    return ["hero", "services", ...(hasFaqs ? ["faq" as SectionBlockType] : []), "final_cta"];
+    return ["hero", "services", "highlights", "process", "faq", "contact_form", "final_cta"];
   }
 
   if (/^(about|practitioners?|team|our-team)$/.test(page.slug)) {
-    return ["hero", ...(hasAbout ? ["about" as SectionBlockType] : []), ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []), "final_cta"];
+    return [
+      "hero",
+      "about",
+      "highlights",
+      ...(hasTrust ? ["trust" as SectionBlockType] : []),
+      ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []),
+      "contact_form",
+      "final_cta",
+    ];
   }
 
   if (/^(reviews|results|testimonials)$/.test(page.slug)) {
-    return ["hero", ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []), "final_cta"];
+    return ["hero", ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []), "contact_form", "final_cta"];
   }
 
   if (/^(faq|patient-info|info|process)$/.test(page.slug)) {
-    return ["hero", ...(hasFaqs ? ["faq" as SectionBlockType] : []), "final_cta"];
+    return ["hero", "faq", "process", "contact_form", "final_cta"];
   }
 
   if (/^(appointment|contact|quote|book-call|consultation|reservation)$/.test(page.slug)) {
-    return ["hero", "contact_form"];
+    return ["hero", "highlights", "contact_form", "faq", "final_cta"];
   }
 
-  return ["hero", "services", "final_cta"];
+  return ["hero", "services", "highlights", "process", "faq", "contact_form", "final_cta"];
 };
 
 export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsitePage[] => {
