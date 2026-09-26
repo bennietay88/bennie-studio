@@ -20,6 +20,9 @@ import {
   Phone,
   Send,
   Link as LinkIcon,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
@@ -453,7 +456,7 @@ export function ProspectExplorer() {
     const rows = [...filteredProspects];
     const scoreFor = (prospect: any) =>
       Number(prospect.qualification_score ?? prospect._score?.score ?? scoreProspect(prospect).score ?? 0);
-    const opportunityRank: Record<string, number> = { high: 3, medium: 2, low: 1 };
+    const opportunityRank: Record<string, number> = { low: 1, medium: 2, high: 3 };
     const outreachRank: Record<string, number> = {
       not_started: 1,
       queued: 2,
@@ -463,32 +466,72 @@ export function ProspectExplorer() {
       won: 6,
       lost: 7,
     };
-    const timestamp = (value: any, empty: number) => {
-      const parsed = value ? new Date(value).getTime() : NaN;
-      return Number.isFinite(parsed) ? parsed : empty;
+    const websiteRank: Record<string, number> = {
+      no_website: 1,
+      unknown: 2,
+      weak: 3,
+      average: 4,
+      strong: 5,
+    };
+    const primaryContact = (prospect: any) =>
+      String(
+        prospect.contact_email
+        || prospect.contact_phone
+        || prospect.contact_whatsapp
+        || "",
+      ).trim().toLowerCase();
+    const compareOptionalText = (left: string, right: string, direction: 1 | -1) => {
+      if (!left && !right) return 0;
+      if (!left) return 1;
+      if (!right) return -1;
+      return left.localeCompare(right) * direction;
+    };
+    const compareOptionalDate = (left: any, right: any, direction: 1 | -1) => {
+      const leftTime = left ? new Date(left).getTime() : NaN;
+      const rightTime = right ? new Date(right).getTime() : NaN;
+      const leftValid = Number.isFinite(leftTime);
+      const rightValid = Number.isFinite(rightTime);
+      if (!leftValid && !rightValid) return 0;
+      if (!leftValid) return 1;
+      if (!rightValid) return -1;
+      return (leftTime - rightTime) * direction;
     };
 
     rows.sort((a, b) => {
       switch (sortMode) {
         case "oldest":
-          return timestamp(a.created_at, Number.MAX_SAFE_INTEGER) - timestamp(b.created_at, Number.MAX_SAFE_INTEGER);
+          return compareOptionalDate(a.created_at, b.created_at, 1);
         case "name_asc":
-          return String(a.name || "").localeCompare(String(b.name || ""));
+          return compareOptionalText(String(a.name || "").toLowerCase(), String(b.name || "").toLowerCase(), 1);
         case "name_desc":
-          return String(b.name || "").localeCompare(String(a.name || ""));
+          return compareOptionalText(String(a.name || "").toLowerCase(), String(b.name || "").toLowerCase(), -1);
+        case "contact_asc":
+          return compareOptionalText(primaryContact(a), primaryContact(b), 1);
+        case "contact_desc":
+          return compareOptionalText(primaryContact(a), primaryContact(b), -1);
+        case "website_asc":
+          return (websiteRank[a.website_status] || 0) - (websiteRank[b.website_status] || 0);
+        case "website_desc":
+          return (websiteRank[b.website_status] || 0) - (websiteRank[a.website_status] || 0);
         case "score_desc":
           return scoreFor(b) - scoreFor(a);
         case "score_asc":
           return scoreFor(a) - scoreFor(b);
         case "opportunity_desc":
           return (opportunityRank[b.opportunity_level] || 0) - (opportunityRank[a.opportunity_level] || 0);
+        case "opportunity_asc":
+          return (opportunityRank[a.opportunity_level] || 0) - (opportunityRank[b.opportunity_level] || 0);
         case "followup_asc":
-          return timestamp(a.next_follow_up_at, Number.MAX_SAFE_INTEGER) - timestamp(b.next_follow_up_at, Number.MAX_SAFE_INTEGER);
+          return compareOptionalDate(a.next_follow_up_at, b.next_follow_up_at, 1);
+        case "followup_desc":
+          return compareOptionalDate(a.next_follow_up_at, b.next_follow_up_at, -1);
         case "outreach_asc":
           return (outreachRank[a.outreach_status] || 0) - (outreachRank[b.outreach_status] || 0);
+        case "outreach_desc":
+          return (outreachRank[b.outreach_status] || 0) - (outreachRank[a.outreach_status] || 0);
         case "newest":
         default:
-          return timestamp(b.created_at, 0) - timestamp(a.created_at, 0);
+          return compareOptionalDate(a.created_at, b.created_at, -1);
       }
     });
     return rows;
@@ -763,13 +806,20 @@ export function ProspectExplorer() {
             <SelectContent>
               <SelectItem value="newest">Newest first</SelectItem>
               <SelectItem value="oldest">Oldest first</SelectItem>
-              <SelectItem value="score_desc">Highest score</SelectItem>
-              <SelectItem value="score_asc">Lowest score</SelectItem>
-              <SelectItem value="opportunity_desc">Highest opportunity</SelectItem>
-              <SelectItem value="followup_asc">Next follow-up</SelectItem>
-              <SelectItem value="outreach_asc">Outreach stage</SelectItem>
               <SelectItem value="name_asc">Business A–Z</SelectItem>
               <SelectItem value="name_desc">Business Z–A</SelectItem>
+              <SelectItem value="contact_asc">Contact A–Z</SelectItem>
+              <SelectItem value="contact_desc">Contact Z–A</SelectItem>
+              <SelectItem value="website_asc">Website: weakest first</SelectItem>
+              <SelectItem value="website_desc">Website: strongest first</SelectItem>
+              <SelectItem value="opportunity_desc">Highest opportunity</SelectItem>
+              <SelectItem value="opportunity_asc">Lowest opportunity</SelectItem>
+              <SelectItem value="score_desc">Highest score</SelectItem>
+              <SelectItem value="score_asc">Lowest score</SelectItem>
+              <SelectItem value="outreach_asc">Outreach: earliest stage</SelectItem>
+              <SelectItem value="outreach_desc">Outreach: latest stage</SelectItem>
+              <SelectItem value="followup_asc">Next follow-up first</SelectItem>
+              <SelectItem value="followup_desc">Latest follow-up first</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" className="rounded-xl px-6" onClick={() => { setSearchQuery(""); setIndustryFilter("all"); setStatusFilter("all"); setSortMode("newest"); }}>
@@ -781,14 +831,14 @@ export function ProspectExplorer() {
             <table className="w-full min-w-[1180px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50">
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Company</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Contact</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Website</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Opportunity</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Score / next action</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Outreach</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Next Step</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
+                  <SortableHeader label="Company" sortMode={sortMode} ascMode="name_asc" descMode="name_desc" onChange={setSortMode} />
+                  <SortableHeader label="Contact" sortMode={sortMode} ascMode="contact_asc" descMode="contact_desc" onChange={setSortMode} />
+                  <SortableHeader label="Website" sortMode={sortMode} ascMode="website_asc" descMode="website_desc" onChange={setSortMode} />
+                  <SortableHeader label="Opportunity" sortMode={sortMode} ascMode="opportunity_asc" descMode="opportunity_desc" onChange={setSortMode} />
+                  <SortableHeader label="Score / next action" sortMode={sortMode} ascMode="score_asc" descMode="score_desc" onChange={setSortMode} />
+                  <SortableHeader label="Outreach" sortMode={sortMode} ascMode="outreach_asc" descMode="outreach_desc" onChange={setSortMode} />
+                  <SortableHeader label="Next Step" sortMode={sortMode} ascMode="followup_asc" descMode="followup_desc" onChange={setSortMode} />
+                  <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -1224,6 +1274,48 @@ export function ProspectExplorer() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function SortableHeader({
+  label,
+  sortMode,
+  ascMode,
+  descMode,
+  onChange,
+}: {
+  label: string;
+  sortMode: string;
+  ascMode: string;
+  descMode: string;
+  onChange: (value: string) => void;
+}) {
+  const ascending = sortMode === ascMode;
+  const descending = sortMode === descMode;
+  const active = ascending || descending;
+  const nextMode = ascending ? descMode : ascMode;
+
+  return (
+    <th
+      aria-sort={ascending ? "ascending" : descending ? "descending" : "none"}
+      className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400"
+    >
+      <button
+        type="button"
+        onClick={() => onChange(nextMode)}
+        className="group inline-flex items-center gap-1.5 whitespace-nowrap transition-colors hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+        title={ascending ? `Sort ${label} descending` : `Sort ${label} ascending`}
+      >
+        <span>{label}</span>
+        {ascending ? (
+          <ArrowUp className="h-3.5 w-3.5 text-indigo-600" />
+        ) : descending ? (
+          <ArrowDown className="h-3.5 w-3.5 text-indigo-600" />
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 text-slate-300 transition-colors group-hover:text-indigo-500" />
+        )}
+      </button>
+    </th>
   );
 }
 

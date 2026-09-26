@@ -27,3 +27,16 @@ test("direct outreach endpoint sends email through the server and records delive
   assert.match(sales, /sendDirectProspectOutreach/);
   assert.match(sales, /status: "sent"/);
 });
+
+
+test("prospect table headers expose clickable directional sort controls", () => {
+  assert.match(ui, /SortableHeader label="Company"/);
+  assert.match(ui, /SortableHeader label="Contact"/);
+  assert.match(ui, /SortableHeader label="Website"/);
+  assert.match(ui, /SortableHeader label="Opportunity"/);
+  assert.match(ui, /SortableHeader label="Score \/ next action"/);
+  assert.match(ui, /SortableHeader label="Outreach"/);
+  assert.match(ui, /SortableHeader label="Next Step"/);
+  assert.match(ui, /ArrowUpDown/);
+  assert.match(ui, /aria-sort=/);
+});
