@@ -155,10 +155,10 @@ export function NeuralAuditor() {
   ];
 
   return (
-    <div className="space-y-8 pt-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="w-full min-w-0 max-w-full overflow-x-hidden space-y-6 pt-2 sm:space-y-8 sm:pt-4">
+      <div className="flex w-full min-w-0 flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 dark:text-white">
+          <h1 className="break-words text-3xl font-black italic uppercase leading-tight tracking-tighter text-slate-900 dark:text-white sm:text-4xl">
             Neural <span className="text-indigo-600">Auditor</span>
           </h1>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Deep-tissue analysis of business infrastructure.</p>
@@ -172,9 +172,9 @@ export function NeuralAuditor() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 rounded-[2.5rem] shadow-xl shadow-slate-100 border-none ring-1 ring-slate-100 overflow-hidden">
-          <CardHeader className="p-8 border-b border-slate-50 bg-slate-50/30">
+      <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(300px,0.9fr)]">
+        <Card className="min-w-0 overflow-hidden rounded-3xl border-none shadow-xl shadow-slate-100 ring-1 ring-slate-100 sm:rounded-[2.5rem]">
+          <CardHeader className="border-b border-slate-50 bg-slate-50/30 p-5 sm:p-8">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-xl font-black italic uppercase italic tracking-tight dark:text-white">Active Audit Engine</CardTitle>
@@ -183,7 +183,7 @@ export function NeuralAuditor() {
               {auditing && <Badge className="animate-pulse bg-indigo-600">ENGINE ACTIVE</Badge>}
             </div>
           </CardHeader>
-          <CardContent className="p-12 min-h-[400px] flex flex-col items-center justify-center text-center">
+          <CardContent className="flex min-h-[360px] min-w-0 flex-col items-center justify-center p-5 text-center sm:min-h-[400px] sm:p-8 lg:p-10">
             {auditing ? (
               <div className="space-y-8 w-full max-w-sm">
                 <div className="relative mx-auto h-32 w-32">
@@ -204,7 +204,7 @@ export function NeuralAuditor() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-10 w-full">
+              <div className="w-full min-w-0 space-y-8 sm:space-y-10">
                 <div className="h-24 w-24 bg-indigo-50 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner">
                   <BrainCircuit className="h-12 w-12 text-indigo-600" />
                 </div>
@@ -212,20 +212,20 @@ export function NeuralAuditor() {
                   <h3 className="text-2xl font-black italic uppercase tracking-tight text-slate-900 dark:text-white">System Ready</h3>
                   <p className="text-slate-400 font-bold text-sm max-w-xs mx-auto">Enter a domain or select a prospect to launch a multi-layer neural audit.</p>
                 </div>
-                <div className="flex gap-4 w-full max-w-md mx-auto">
-                  <div className="relative flex-1">
+                <div className="mx-auto flex w-full max-w-xl min-w-0 flex-col gap-3 sm:flex-row">
+                  <div className="relative min-w-0 flex-1">
                     <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input 
                       type="text" 
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://example.com"
-                      className="w-full h-14 pl-12 pr-6 rounded-2xl bg-slate-50 border border-slate-100 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all font-bold text-slate-900"
+                      className="h-14 w-full min-w-0 rounded-2xl border border-slate-100 bg-slate-50 pl-12 pr-4 font-bold text-slate-900 outline-none transition-all focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
                     />
                   </div>
                   <Button 
                     onClick={runAudit}
-                    className="h-14 px-10 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] hover:bg-slate-800 transition-all"
+                    className="h-14 w-full shrink-0 rounded-2xl bg-slate-900 px-6 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-slate-800 sm:w-auto sm:px-8"
                   >
                     Audit Site
                   </Button>
@@ -235,8 +235,8 @@ export function NeuralAuditor() {
           </CardContent>
         </Card>
 
-        <div className="space-y-6">
-          <Card className="rounded-[2.5rem] border-slate-100 shadow-sm overflow-hidden border-none ring-1 ring-slate-100">
+        <div className="min-w-0 space-y-6">
+          <Card className="min-w-0 overflow-hidden rounded-3xl border-none shadow-sm ring-1 ring-slate-100 sm:rounded-[2.5rem]">
             <CardHeader className="p-6 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
               <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-300">Recent Vulnerabilities</CardTitle>
             </CardHeader>
@@ -250,9 +250,9 @@ export function NeuralAuditor() {
                ) : (
                  <div className="divide-y divide-slate-100 dark:divide-slate-800">
                     {recentAudits.map((audit) => (
-                      <div key={audit.id} className="p-5 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all group">
-                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-black italic uppercase italic tracking-tight text-slate-900 dark:text-white">
+                      <div key={audit.id} className="group min-w-0 p-5 transition-all hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                         <div className="mb-2 flex min-w-0 items-center justify-between gap-3">
+                            <span className="min-w-0 truncate text-[10px] font-black italic uppercase tracking-tight text-slate-900 dark:text-white">
                               {audit.prospect?.name || 'Unknown'}
                             </span>
                             <Badge className="border-none bg-indigo-50 text-[9px] font-black text-indigo-700" variant="outline">
@@ -288,7 +288,7 @@ export function NeuralAuditor() {
             </CardFooter>
           </Card>
 
-          <Card className="rounded-[2.5rem] border-slate-100 shadow-sm bg-indigo-600 border-none text-white overflow-hidden relative">
+          <Card className="relative min-w-0 overflow-hidden rounded-3xl border-none bg-indigo-600 text-white shadow-sm sm:rounded-[2.5rem]">
              <Target className="absolute -right-4 -bottom-4 h-24 w-24 text-white/10" />
              <CardContent className="p-8 flex flex-col items-center text-center space-y-4">
                 <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
@@ -312,10 +312,10 @@ export function NeuralAuditor() {
       </div>
 
       <Dialog open={showReport} onOpenChange={setShowReport}>
-         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3rem] p-0 border-none bg-white">
+         <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-4xl overflow-y-auto rounded-3xl border-none bg-white p-0 sm:rounded-[3rem]">
             {selectedAudit && (
                <div className="flex flex-col h-full">
-                  <div className="bg-slate-900 p-10 text-white relative overflow-hidden">
+                  <div className="relative overflow-hidden bg-slate-900 p-6 text-white sm:p-10">
                      <BrainCircuit className="absolute -right-10 -bottom-10 h-64 w-64 text-white/5" />
                      <div className="relative z-10 space-y-6">
                         <div className="flex justify-between items-start">
@@ -329,7 +329,7 @@ export function NeuralAuditor() {
                            </Button>
                         </div>
                         <div className="space-y-2">
-                           <h2 className="text-5xl font-black italic uppercase italic tracking-tighter leading-tight">
+                           <h2 className="break-words text-3xl font-black italic uppercase leading-tight tracking-tighter sm:text-5xl">
                               {selectedAudit.prospect?.name || selectedAudit.prospect?.domain || "Unknown Prospect"}
                            </h2>
                            <div className="flex items-center gap-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest">
@@ -340,7 +340,7 @@ export function NeuralAuditor() {
                      </div>
                   </div>
 
-                  <div className="p-12 space-y-12">
+                  <div className="space-y-8 p-5 sm:space-y-12 sm:p-10 lg:p-12">
                      <div className="rounded-[2.5rem] border border-slate-100 bg-slate-50 p-8">
                         <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">What we found</p>
                         <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-950">{selectedAudit.report_data.summary}</h3>
@@ -372,8 +372,8 @@ export function NeuralAuditor() {
                         </div>
                      </div>
 
-                     <div className="p-8 bg-indigo-600 rounded-[2.5rem] text-white flex items-center justify-between shadow-2xl shadow-indigo-200">
-                        <div className="flex items-center gap-6">
+                     <div className="flex flex-col gap-6 rounded-3xl bg-indigo-600 p-6 text-white shadow-2xl shadow-indigo-200 sm:rounded-[2.5rem] sm:p-8 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex min-w-0 items-center gap-4 sm:gap-6">
                            <div className="h-16 w-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
                               <Zap className="h-8 w-8 text-white" />
                            </div>
@@ -384,7 +384,7 @@ export function NeuralAuditor() {
                         </div>
                         <Button 
                           onClick={downloadPDF}
-                          className="bg-white text-indigo-600 hover:bg-indigo-50 px-8 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                          className="h-14 w-full shrink-0 rounded-2xl bg-white px-6 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50 lg:w-auto lg:px-8"
                         >
                            <Download className="h-4 w-4 mr-2" />
                            Download audit data

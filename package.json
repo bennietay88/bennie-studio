@@ -40,7 +40,8 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "test:finance": "node --import tsx --test tests/finance-v2.test.ts",
-    "test:platform-cleanup": "node --import tsx --test tests/platform-cleanup.test.ts"
+    "test:platform-cleanup": "node --import tsx --test tests/platform-cleanup.test.ts",
+    "test:auditor": "node --import tsx --test tests/neural-auditor-layout.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
