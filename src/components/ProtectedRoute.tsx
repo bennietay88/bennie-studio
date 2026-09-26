@@ -41,16 +41,20 @@ export const ProtectedRoute = ({
     );
   }
 
-  if (profile?.status === "suspended") {
+  if (profile?.status === "suspended" || profile?.status === "terminated") {
+    const terminated = profile.status === "terminated";
     return (
       <div className="flex h-screen flex-col items-center justify-center p-6 text-center">
         <div className="h-16 w-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
           <Shield className="h-8 w-8" />
         </div>
-        <h1 className="text-2xl font-bold text-slate-900">Account Suspended</h1>
+        <h1 className="text-2xl font-bold text-slate-900">
+          {terminated ? "Account Terminated" : "Account Suspended"}
+        </h1>
         <p className="text-slate-500 mt-2 max-w-md">
-          Your account has been suspended by an administrator. Please contact
-          support if you believe this is a mistake.
+          {terminated
+            ? "This account has been terminated and no longer has platform access."
+            : "Your account has been suspended by an administrator. Please contact support if you believe this is a mistake."}
         </p>
         <Button
           variant="outline"
