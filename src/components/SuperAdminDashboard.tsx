@@ -654,32 +654,26 @@ export default function SuperAdminDashboard() {
       return;
     }
     try {
-      // First, find the business associated with this user before we null it
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("business_id")
-        .eq("id", userId)
-        .single();
-      const associatedBusinessId = profileData?.business_id;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Missing admin session");
 
-      // Termination sets status to terminated and clears business ID to free it up
-      // and prevent further associated actions
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          status: "terminated",
-          business_id: null,
-        })
-        .eq("id", userId);
+      const response = await fetch(
+        `/api/admin/users/${encodeURIComponent(userId)}/terminate`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
-      if (error) throw error;
-
-      // Also potentially de-activate their business if any
-      if (associatedBusinessId) {
-        await supabase
-          .from("businesses")
-          .update({ status: "inactive" })
-          .eq("id", associatedBusinessId);
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to terminate user");
       }
 
       setUsers((prev) =>
@@ -689,12 +683,11 @@ export default function SuperAdminDashboard() {
             : u,
         ),
       );
-      await recordAdminAction(
-        "user.terminated",
-        { type: "user", id: userId, label: terminatingUser?.email || terminatingUser?.name },
-        { associatedBusinessId },
+      toast.success(
+        payload?.businessDeactivated === false && payload?.associatedBusinessId
+          ? "User terminated; business deactivation needs attention"
+          : "User terminated and business disassociated",
       );
-      toast.success("User terminated and business disassociated");
       setIsTerminateDialogOpen(false);
       setTerminatingUser(null);
     } catch (err: any) {
