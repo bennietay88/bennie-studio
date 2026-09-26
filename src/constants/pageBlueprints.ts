@@ -86,7 +86,9 @@ export interface BlueprintBusinessInput {
   businessMaturity?: BusinessMaturity;
   assetReadiness?: AssetReadiness;
   heroImageUrl?: string;
+  heroFallbackImageUrl?: string;
   storyImageUrl?: string;
+  storyFallbackImageUrl?: string;
   heroHeadline?: string;
   heroSubheadline?: string;
   heroTrustItems?: string[];
@@ -135,7 +137,7 @@ export const inferBlueprintNiche = (value?: string) => {
   const raw = (value || "").toLowerCase();
   if (/restaurant|cafe|bistro|dining|food|menu/.test(raw)) return "restaurant";
   if (/clinic|dental|dentist|doctor|medical|health|wellness|spa|physio|therapy/.test(raw)) return "clinic";
-  if (/contractor|renovation|repair|cleaning|pest|builder|construction|home service/.test(raw)) return "contractor";
+  if (/contractor|renovation|repair|cleaning|pest|builder|construction|home service|local service|handyman|plumb|electric|roof|hvac|air[ -]?con|air condition|locksmith|landscap|garden|moving|removal|appliance|garage|painting|flooring|waterproof|carpentr/.test(raw)) return "contractor";
   if (/web agency|website agency|marketing agency|digital agency|web design|website design|web development|lead generation|seo agency|managed website/.test(raw)) return "agency";
   if (/coach|consult|consultant|advisor|professional|speaker|trainer|corporate|saas|software/.test(raw)) return "consultant";
   if (/real estate|property|realtor|agent|listing/.test(raw)) return "real_estate";
@@ -786,6 +788,7 @@ const buildSectionContent = (
       ctaText: cta,
       trustItems: pageBlueprint.slug === "" ? (input.heroTrustItems || []).filter(Boolean).slice(0, 3) : [],
       imageUrl: pageBlueprint.slug === "" ? input.heroImageUrl || undefined : undefined,
+      fallbackImageUrl: pageBlueprint.slug === "" ? input.heroFallbackImageUrl || undefined : undefined,
       imageAlt: pageBlueprint.slug === "" && input.heroImageUrl ? `${businessName} - ${service}` : undefined,
       assetSlots: pageBlueprint.slug === "" ? {
         heroImage: {
@@ -856,6 +859,7 @@ const buildSectionContent = (
         ? sourceAboutText
         : `${businessName} helps ${target} in ${location} with ${service}. The approach is clear, practical, and focused on helping every customer understand their options before taking action.\n\nThe website structure is designed to answer common questions and make it easy to enquire without inventing claims the business has not supplied.`,
       imageUrl: input.storyImageUrl || undefined,
+      fallbackImageUrl: input.storyFallbackImageUrl || undefined,
       assetSlots: {
         storyImage: {
           source: "customer",
@@ -868,28 +872,111 @@ const buildSectionContent = (
   }
 
   if (section.type === "features") {
+    const sourceNiche = inferBlueprintNiche(`${input.nicheName || ""} ${input.mainService || ""}`);
+    const sourceDriven = Boolean(input.sourceDriven);
+    const localServiceSource = sourceDriven && sourceNiche === "contractor";
+    const clinicSource = sourceDriven && sourceNiche === "clinic";
+    const restaurantSource = sourceDriven && sourceNiche === "restaurant";
+    const professionalSource = sourceDriven && ["consultant", "law", "agency"].includes(sourceNiche);
+
+    const sourceHighlights =
+      localServiceSource
+        ? [
+            { title: "Service clarity", description: `${service} and related services are easy to scan before a customer gets in touch.` },
+            { title: "Local relevance", description: `The service area around ${location} stays visible where it helps customers decide.` },
+            { title: "Direct contact", description: input.contactPhone || input.contactEmail ? "Real contact details stay easy to find throughout the journey." : "The enquiry path stays visible without inventing contact details." },
+            { title: "Mobile-ready journey", description: "Key information and the next action remain clear on smaller screens." },
+          ]
+        : clinicSource
+          ? [
+              { title: "Clear services", description: `${service} and related care options are organised so visitors can understand the available next step.` },
+              { title: "Patient confidence", description: "Real clinic information, FAQs and supplied credentials are brought forward without adding unsupported claims." },
+              { title: "Easy enquiry", description: `Visitors can move naturally toward ${cta.toLowerCase()} once they have enough information.` },
+              { title: "Local access", description: `${location} remains clear for people deciding whether the clinic is convenient for them.` },
+            ]
+          : restaurantSource
+            ? [
+                { title: "What to expect", description: `${service} is presented clearly so visitors can understand the offer quickly.` },
+                { title: "Easy decision path", description: "Useful details are prioritised before the booking or contact step." },
+                { title: "Local visibility", description: `${location} stays visible for customers planning a visit.` },
+                { title: "Direct next step", description: `The page keeps ${cta.toLowerCase()} easy to find without overwhelming the experience.` },
+              ]
+            : professionalSource
+              ? [
+                  { title: "Clear scope", description: `${service} is explained around the questions prospective clients need answered first.` },
+                  { title: "Client fit", description: `The page helps ${target} understand whether the service is relevant before they enquire.` },
+                  { title: "Credible detail", description: "Real business information, credentials and supplied proof are prioritised over generic claims." },
+                  { title: "Simple consultation path", description: `Visitors can move naturally toward ${cta.toLowerCase()} when they are ready.` },
+                ]
+              : [
+                  { title: "Clear offer", description: `${service} is easy to understand without making visitors hunt for the important details.` },
+                  { title: "Useful context", description: `The page keeps the customer, service and ${location} context clear throughout the journey.` },
+                  { title: "Real business details", description: "Contact information and supplied proof stay visible without inventing claims." },
+                  { title: "Easy next step", description: `The route toward ${cta.toLowerCase()} stays simple on desktop and mobile.` },
+                ];
+
+    const sourceProcess =
+      clinicSource
+        ? [
+            { title: "Choose the right service", description: "Review the relevant treatment or service information first." },
+            { title: "Ask what you need to know", description: "Use the enquiry path to clarify suitability, availability or practical questions." },
+            { title: "Confirm the next step", description: `Move forward with ${cta.toLowerCase()} once the essentials are clear.` },
+          ]
+        : restaurantSource
+          ? [
+              { title: "Explore the offer", description: "See the main services or menu direction without unnecessary clutter." },
+              { title: "Check the essentials", description: "Review the useful details before deciding to contact or book." },
+              { title: "Make your enquiry", description: `Use the clearest route to ${cta.toLowerCase()}.` },
+            ]
+          : professionalSource
+            ? [
+                { title: "Choose the relevant service", description: "Start with the service or expertise that matches the situation." },
+                { title: "Share the requirement", description: "Provide enough context for the business to understand what help is needed." },
+                { title: "Confirm the conversation", description: `Move forward with ${cta.toLowerCase()} when there is a good fit.` },
+              ]
+            : [
+                { title: "Tell us what you need", description: `Start with the ${service.toLowerCase()} you need and the practical details that matter.` },
+                { title: "Confirm the details", description: "Use the contact or enquiry path to clarify scope, timing and next steps." },
+                { title: "Move forward", description: `Continue with ${cta.toLowerCase()} once the essentials are clear.` },
+              ];
+
     section.content = {
       ...section.content,
       title:
-        block === "portfolio"
-          ? (pageBlueprint.slug === "" ? "Selected Work" : pageBlueprint.name)
-          : block === "process"
-            ? "How It Works"
-            : "What Makes This Different",
-      description: `A simple path from first visit to ${cta.toLowerCase()}.`,
+        sourceDriven && block === "highlights"
+          ? localServiceSource
+            ? "Local service, with a clearer path to enquiry"
+            : "What customers need to know"
+          : sourceDriven && block === "process"
+            ? "A simple way to get started"
+            : block === "portfolio"
+              ? (pageBlueprint.slug === "" ? "Selected Work" : pageBlueprint.name)
+              : block === "process"
+                ? "How It Works"
+                : "What Makes This Different",
+      description:
+        sourceDriven && block === "highlights"
+          ? `The essentials around ${service}, the business and the next step are brought forward.`
+          : sourceDriven && block === "process"
+            ? "A straightforward path from first visit to a useful conversation."
+            : `A simple path from first visit to ${cta.toLowerCase()}.`,
       items:
-        block === "process"
-          ? ["Understand your needs", "Recommend the right option", "Confirm the next step", "Follow up clearly"]
-          : block === "portfolio"
-            ? ["Selected work", "Customer-supplied project photography", "Verified project details", "Recent highlights"]
-            : block === "highlights"
-              ? [
-                  { title: "Clear proposition", description: `${service} explained around what ${target} need to know.` },
-                  { title: "Evidence before claims", description: input.localProof ? "Business-supplied proof is brought forward in the journey." : "Customer proof slots stay empty until real evidence is supplied." },
-                  { title: "Easy next step", description: `The page keeps ${cta.toLowerCase()} visible without turning every section into a button wall.` },
-                  { title: "Responsive by design", description: "Desktop and mobile use deliberate composition rather than a simple shrink-down." },
-                ]
-              : ["Clear service information", "Trust-focused page flow", "Fast enquiry path", "Mobile-first experience"],
+        sourceDriven && block === "process"
+          ? sourceProcess
+          : sourceDriven && block === "highlights"
+            ? sourceHighlights
+            : block === "process"
+              ? ["Understand your needs", "Recommend the right option", "Confirm the next step", "Follow up clearly"]
+              : block === "portfolio"
+                ? ["Selected work", "Customer-supplied project photography", "Verified project details", "Recent highlights"]
+                : block === "highlights"
+                  ? [
+                      { title: "Clear proposition", description: `${service} explained around what ${target} need to know.` },
+                      { title: "Evidence before claims", description: input.localProof ? "Business-supplied proof is brought forward in the journey." : "Customer proof slots stay empty until real evidence is supplied." },
+                      { title: "Easy next step", description: `The page keeps ${cta.toLowerCase()} visible without turning every section into a button wall.` },
+                      { title: "Responsive by design", description: "Desktop and mobile use deliberate composition rather than a simple shrink-down." },
+                    ]
+                  : ["Clear service information", "Trust-focused page flow", "Fast enquiry path", "Mobile-first experience"],
       assetSlots: block === "portfolio" ? {
         projectImages: {
           source: "customer",
@@ -1156,14 +1243,22 @@ const resolveSourceDrivenBlockPlan = (
   const hasAbout = Boolean(String(input.aboutText || input.description || "").trim());
   const hasTestimonials = (input.testimonials || []).filter(Boolean).length > 0;
   const hasFaqs = (input.faqItems || []).some((item) => item?.question && item?.answer);
+  const hasTrust = Boolean(
+    String(input.localProof || "").trim()
+    || (input.proofLogos || []).filter(Boolean).length,
+  );
 
   if (page.slug === "") {
     return [
       "hero",
+      "highlights",
       "services",
+      "process",
       ...(hasAbout ? ["about" as SectionBlockType] : []),
+      ...(hasTrust ? ["trust" as SectionBlockType] : []),
       ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []),
       ...(hasFaqs ? ["faq" as SectionBlockType] : []),
+      "contact_form",
       "final_cta",
     ];
   }

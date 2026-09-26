@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.ts";
+import { buildPagesFromBlueprint, inferBlueprintNiche } from "../src/constants/pageBlueprints.ts";
 
 test("public preview intake extracts business facts without AI", () => {
   const html = `
@@ -332,4 +333,71 @@ test("public preview does not trust a stale localStorage lead id", async () => {
   assert.doesNotMatch(source, /canReuseExistingLead/);
   assert.match(source, /leadResult = await submitPlatformLead\(\{/);
   assert.match(source, /deduplicates by previewId \+ email/);
+});
+
+
+test("other local service previews use the contractor blueprint family", () => {
+  assert.equal(inferBlueprintNiche("Other Local Service Business handyman repairs"), "contractor");
+  assert.equal(inferBlueprintNiche("Plumbing and electrical services"), "contractor");
+  assert.equal(inferBlueprintNiche("Roofing company"), "contractor");
+});
+
+test("generated previews include local stock fallbacks and browser image recovery", async () => {
+  const { readFileSync } = await import("node:fs");
+  const previewSource = readFileSync("src/components/PublicMarketingPages.tsx", "utf8");
+  const rendererSource = readFileSync("src/components/WebsiteRenderer.tsx", "utf8");
+
+  assert.match(previewSource, /flagship-renovation\.jpg/);
+  assert.match(previewSource, /heroFallbackImageUrl: previewStockImage/);
+  assert.match(rendererSource, /applySectionImageFallback/);
+  assert.match(rendererSource, /fallbackImageUrl/);
+});
+
+
+test("source-driven previews produce a fuller homepage across niches", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Example Dental",
+    nicheId: "dental-clinic-v1",
+    nicheName: "Dental Clinic",
+    plan: "business",
+    maxPages: 5,
+    mainService: "General Dentistry",
+    targetCustomer: "patients",
+    location: "Singapore",
+    ctaPreference: "Book Appointment",
+    services: ["General Dentistry", "Teeth Whitening"],
+    description: "A local dental clinic.",
+    aboutText: "We provide general dental care.",
+    sourceDriven: true,
+    contactEmail: "hello@example.com",
+    contactPhone: "6512345678",
+    testimonials: ["Helpful and professional."],
+    faqItems: [{ question: "Do you take bookings?", answer: "Yes." }],
+    localProof: "Registered clinic",
+    generationMode: "premium",
+  });
+  const home = pages.find((page) => page.slug === "")!;
+  const types = home.sections.filter((section) => section.isVisible !== false).map((section) => section.type);
+
+  assert.ok(types.includes("hero"));
+  assert.ok(types.includes("features"));
+  assert.ok(types.includes("services"));
+  assert.ok(types.includes("about"));
+  assert.ok(types.includes("proof"));
+  assert.ok(types.includes("testimonials"));
+  assert.ok(types.includes("faq"));
+  assert.ok(types.includes("contact"));
+  assert.ok(types.includes("cta"));
+  assert.ok(home.sections.length >= 9);
+});
+
+test("preview lets users auto-detect or override customer brand colours", async () => {
+  const { readFileSync } = await import("node:fs");
+  const source = readFileSync("src/components/PublicMarketingPages.tsx", "utf8");
+
+  assert.match(source, /brandColorMode/);
+  assert.match(source, /Auto-detect/);
+  assert.match(source, /Custom colours/);
+  assert.match(source, /primaryColor: form\.brandPrimaryColor/);
+  assert.match(source, /secondaryColor: form\.brandAccentColor/);
 });

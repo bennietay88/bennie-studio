@@ -76,6 +76,20 @@ import {
 import { DESIGN_TOKENS, resolveDesignProfile } from "../constants/designProfiles";
 import { resolveAccessibleThemeColors } from "../lib/colorContrast";
 
+
+const applySectionImageFallback = (
+  event: React.SyntheticEvent<HTMLImageElement>,
+  fallback?: string,
+) => {
+  const image = event.currentTarget;
+  if (fallback && image.dataset.fallbackApplied !== "true") {
+    image.dataset.fallbackApplied = "true";
+    image.src = fallback;
+    return;
+  }
+  image.style.opacity = "0";
+};
+
 const fadeInUp = {
   // Never hide conversion copy while waiting for viewport animation.
   initial: { opacity: 1, y: 18 },
@@ -2902,6 +2916,7 @@ export function WebsiteRenderer({
                                   loading="eager"
                                   fetchPriority="high"
                                   referrerPolicy="no-referrer"
+                                  onError={(event) => applySectionImageFallback(event, section.content.fallbackImageUrl)}
                                 />
                                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/15 via-transparent to-transparent" />
                               </motion.div>
@@ -2974,7 +2989,7 @@ export function WebsiteRenderer({
                         >
                           {hasHeroImage ? (
                             <>
-                              <img src={section.content.imageUrl} alt={section.content.imageAlt || displayBusinessName} className="absolute inset-0 h-full w-full object-cover" loading="eager" referrerPolicy="no-referrer" />
+                              <img src={section.content.imageUrl} alt={section.content.imageAlt || displayBusinessName} className="absolute inset-0 h-full w-full object-cover" loading="eager" referrerPolicy="no-referrer" onError={(event) => applySectionImageFallback(event, section.content.fallbackImageUrl)} />
                               <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/75 to-slate-950/15" />
                             </>
                           ) : (
@@ -3062,6 +3077,7 @@ export function WebsiteRenderer({
                                 className="absolute inset-0 h-full w-full object-cover"
                                 loading="eager"
                                 referrerPolicy="no-referrer"
+                                onError={(event) => applySectionImageFallback(event, section.content.fallbackImageUrl)}
                               />
                             ) : (
                               <div className={cn("absolute inset-6 overflow-hidden border p-8 sm:inset-10", brandHero ? "border-white/25 bg-white/[0.04]" : "border-slate-200 bg-slate-50")}>
@@ -3183,6 +3199,7 @@ export function WebsiteRenderer({
                                 alt={section.content.imageAlt || displayBusinessName}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                                 referrerPolicy="no-referrer"
+                                onError={(event) => applySectionImageFallback(event, section.content.fallbackImageUrl)}
                               />
                             ) : (
                               <div className="relative flex h-full w-full flex-col justify-between overflow-hidden bg-slate-950 p-8 text-white">
@@ -3444,7 +3461,7 @@ export function WebsiteRenderer({
                           {storyImage ? (
                             <motion.div variants={fadeInUp} className="lg:col-span-6">
                               <div className="aspect-[5/4] overflow-hidden bg-slate-200">
-                                <img src={storyImage} alt={section.content.imageAlt || displayBusinessName} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+                                <img src={storyImage} alt={section.content.imageAlt || displayBusinessName} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" onError={(event) => applySectionImageFallback(event, section.content.fallbackImageUrl)} />
                               </div>
                             </motion.div>
                           ) : null}
@@ -3475,7 +3492,7 @@ export function WebsiteRenderer({
                         <motion.div variants={fadeInUp} className="lg:col-span-6">
                           {storyImage ? (
                             <div className="aspect-[5/4] overflow-hidden bg-slate-200">
-                              <img src={storyImage} alt={section.content.imageAlt || displayBusinessName} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+                              <img src={storyImage} alt={section.content.imageAlt || displayBusinessName} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" onError={(event) => applySectionImageFallback(event, section.content.fallbackImageUrl)} />
                             </div>
                           ) : (
                             <div className="relative aspect-[5/4] overflow-hidden border border-slate-800 bg-slate-950 p-8 text-white">

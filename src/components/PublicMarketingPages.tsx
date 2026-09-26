@@ -873,7 +873,7 @@ function CaseStudiesPage() {
   );
 }
 
-const PREVIEW_GENERATION_VERSION = 13;
+const PREVIEW_GENERATION_VERSION = 15;
 
 const previewIndustries = [
   {
@@ -1044,6 +1044,37 @@ const previewBusinessTypes: PreviewBusinessType[] = [
   { id: "photographer", label: "Photographer", group: "Hospitality & Lifestyle", industryId: "consultant", templateId: "photographer-v1", targetCustomer: "people and businesses planning a shoot", websiteGoal: "Get contact form submissions" },
   { id: "personal-brand", label: "Personal Brand / Creator", group: "Hospitality & Lifestyle", industryId: "consultant", templateId: "personal-brand-v1", targetCustomer: "followers, clients and partners", websiteGoal: "Get contact form submissions" },
 ];
+
+const resolvePreviewStockAsset = (input: {
+  businessTypeId: string;
+  industryId: string;
+  service: string;
+}) => {
+  const key = `${input.businessTypeId} ${input.industryId} ${input.service}`.toLowerCase();
+
+  // Every preview niche resolves to a local bundled fallback. We intentionally
+  // use broad visual families instead of hot-linking a third-party stock API.
+  if (/clinic|dental|dentist|medical|physio|therapy|health/.test(key)) {
+    return "/template-assets/flagship-clinic.jpg";
+  }
+  if (/beauty|salon|spa|aesthetic|wellness/.test(key)) {
+    return "/template-assets/flagship-beauty.jpg";
+  }
+  if (/tuition|education|childcare|school|learning/.test(key)) {
+    return "/template-assets/flagship-education.jpg";
+  }
+  if (/renovation|contractor|local-service|local service|handyman|plumb|electric|roof|hvac|air[ -]?con|cleaning|pest|builder|construction|locksmith|landscap|garden|painting|flooring|carpentr|repair|interior/.test(key)) {
+    return "/template-assets/flagship-renovation.jpg";
+  }
+  if (/restaurant|catering|boutique|retail|florist|photograph|personal-brand|creator/.test(key)) {
+    return "/template-assets/flagship-professional.jpg";
+  }
+  if (/account|bookkeep|law|consult|coach|real-estate|mortgage|insurance|recruit|it-support|agency|professional/.test(key)) {
+    return "/template-assets/flagship-professional.jpg";
+  }
+  return "/template-assets/flagship-professional.jpg";
+};
+
 
 const resolvePreviewBrandPersonality = (brandStyle: string): BrandPersonality => {
   const value = brandStyle.toLowerCase();
@@ -1218,6 +1249,9 @@ function GeneratePreviewPage() {
       phone: String(savedPreviewIntent.phone || ""),
       email: String(savedPreviewIntent.email || auditContext.email || initialParams.get("email") || ""),
       brandStyle: String(savedPreviewIntent.brandStyle || "Modern professional"),
+      brandColorMode: String(savedPreviewIntent.brandColorMode || "auto"),
+      brandPrimaryColor: String(savedPreviewIntent.brandPrimaryColor || "#5746e8"),
+      brandAccentColor: String(savedPreviewIntent.brandAccentColor || "#141821"),
       socialUrl: String(savedPreviewIntent.socialUrl || ""),
       reviews: String(savedPreviewIntent.reviews || ""),
       biggestProblem: String(savedPreviewIntent.biggestProblem || initialParams.get("problem") || ""),
@@ -1256,6 +1290,9 @@ function GeneratePreviewPage() {
     form.phone,
     form.email,
     form.brandStyle,
+    form.brandColorMode,
+    form.brandPrimaryColor,
+    form.brandAccentColor,
     form.socialUrl,
     form.reviews,
     form.biggestProblem,
@@ -1544,11 +1581,28 @@ function GeneratePreviewPage() {
         ...(Array.isArray(profile.testimonials) ? profile.testimonials : []),
         ...form.reviews.split(/\n+/).map((review) => review.trim()).filter(Boolean),
       ].filter((review, index, values) => values.indexOf(review) === index).slice(0, 4);
+      const sourceProofItems = previewMode === "website"
+        ? [
+            String(profile.yearsInBusiness || "").trim(),
+            ...(Array.isArray(profile.credentials) ? profile.credentials : []),
+            ...(Array.isArray(profile.guarantees) ? profile.guarantees : []),
+            ...(Array.isArray(profile.serviceAreas) && profile.serviceAreas.length
+              ? [`Serves ${profile.serviceAreas.slice(0, 3).join(", ")}`]
+              : []),
+          ].filter(Boolean).slice(0, 6)
+        : [];
+      const previewStockImage = resolvePreviewStockAsset({
+        businessTypeId: resolvedBusinessType.id,
+        industryId: resolvedIndustryId,
+        service: resolvedMainService,
+      });
 
       const blueprintInput: BlueprintBusinessInput = {
         businessName: resolvedBusinessName,
         nicheId: resolvedTemplateId,
-        nicheName: resolvedBusinessType.label,
+        nicheName: resolvedBusinessType.id === "other-local-service"
+          ? `${resolvedBusinessType.label} ${resolvedMainService}`
+          : resolvedBusinessType.label,
         plan: "business",
         maxPages: 5,
         mainService: resolvedMainService,
@@ -1560,6 +1614,7 @@ function GeneratePreviewPage() {
         serviceDetails: previewMode === "website" && Array.isArray(profile.serviceDetails)
           ? profile.serviceDetails
           : undefined,
+        localProof: sourceProofItems.length ? sourceProofItems.join(" • ") : undefined,
         description: previewMode === "website"
           ? String(profile.description || "").trim()
           : profile.description || resolvedReviewStrategy.subheadline,
@@ -1584,16 +1639,16 @@ function GeneratePreviewPage() {
         generationMode: resolvedGenerationMode,
         brandPersonality: resolvedBrandPersonality,
         businessMaturity: resolvedBusinessMaturity,
-        assetReadiness: profile.heroImage ? "some" : "pending",
-        heroImageUrl: previewMode === "website" ? profile.heroImage || undefined : undefined,
+        assetReadiness: "some",
+        heroImageUrl: previewMode === "website" ? profile.heroImage || previewStockImage : previewStockImage,
+        heroFallbackImageUrl: previewStockImage,
         storyImageUrl: previewMode === "website" ? profile.secondaryImage || undefined : undefined,
+        storyFallbackImageUrl: previewStockImage,
         heroHeadline: previewMode === "website" ? profile.heroHeadline || undefined : undefined,
         heroSubheadline: previewMode === "website" ? profile.heroSubheadline || undefined : undefined,
         heroTrustItems: previewMode === "website"
           ? [
-              String(profile.yearsInBusiness || "").trim(),
-              ...(Array.isArray(profile.credentials) ? profile.credentials : []),
-              ...(Array.isArray(profile.guarantees) ? profile.guarantees : []),
+              ...sourceProofItems,
               ...(previewTestimonials.length ? ["Customer reviews"] : []),
             ].filter(Boolean).slice(0, 3)
           : [],
@@ -1604,14 +1659,22 @@ function GeneratePreviewPage() {
       const basePreviewTheme = getBlueprintTheme(resolvedTemplateId, resolvedGenerationMode, {
         brandPersonality: resolvedBrandPersonality,
         businessMaturity: resolvedBusinessMaturity,
-        assetReadiness: profile.heroImage ? "some" : "pending",
+        assetReadiness: "some",
       });
+      const customBrandColours = form.brandColorMode === "custom";
       const previewTheme: Website["theme"] = {
         ...basePreviewTheme,
         previewPurpose: salesMode ? "sales_preview" : "generated_preview",
         sourceDriven: previewMode === "website",
-        ...(previewMode === "website" && profile.brandColor ? { primaryColor: profile.brandColor } : {}),
-        ...(previewMode === "website" && profile.accentColor ? { secondaryColor: profile.accentColor } : {}),
+        ...(customBrandColours
+          ? {
+              primaryColor: form.brandPrimaryColor,
+              secondaryColor: form.brandAccentColor,
+            }
+          : {
+              ...(previewMode === "website" && profile.brandColor ? { primaryColor: profile.brandColor } : {}),
+              ...(previewMode === "website" && profile.accentColor ? { secondaryColor: profile.accentColor } : {}),
+            }),
         ...(previewMode === "website" && profile.logoUrl ? { logoUrl: profile.logoUrl } : {}),
       };
       const previewSeo = getBlueprintSeo(blueprintInput);
@@ -2035,6 +2098,58 @@ function GeneratePreviewPage() {
                 </div>
               </section>
               )}
+
+              <section className="border border-[#dfe2ea] bg-white p-5 sm:p-7">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="max-w-xl">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Brand colours</p>
+                    <h3 className="mt-1 text-xl font-semibold text-[#141821]">Match the customer brand.</h3>
+                    <p className="mt-2 text-sm leading-6 text-[#5f6673]">
+                      Auto mode uses colours detected from the current website when available. Choose custom to override them for the preview.
+                    </p>
+                  </div>
+                  <select
+                    aria-label="Brand colour mode"
+                    value={form.brandColorMode}
+                    onChange={(event) => setForm({ ...form, brandColorMode: event.target.value })}
+                    className="h-11 min-w-44 border border-[#dfe2ea] bg-white px-3 text-sm font-semibold text-[#141821] outline-none focus:border-[#5746e8]"
+                  >
+                    <option value="auto">Auto-detect</option>
+                    <option value="custom">Custom colours</option>
+                  </select>
+                </div>
+
+                {form.brandColorMode === "custom" ? (
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <label className="flex items-center gap-3 border border-[#dfe2ea] bg-[#f9f8f4] p-3">
+                      <input
+                        type="color"
+                        value={form.brandPrimaryColor}
+                        onChange={(event) => setForm({ ...form, brandPrimaryColor: event.target.value })}
+                        className="h-11 w-14 cursor-pointer border-0 bg-transparent p-0"
+                        aria-label="Primary brand colour"
+                      />
+                      <span>
+                        <span className="block text-xs font-bold uppercase tracking-[0.12em] text-[#687083]">Primary</span>
+                        <span className="mt-1 block font-mono text-sm font-semibold text-[#141821]">{form.brandPrimaryColor.toUpperCase()}</span>
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-3 border border-[#dfe2ea] bg-[#f9f8f4] p-3">
+                      <input
+                        type="color"
+                        value={form.brandAccentColor}
+                        onChange={(event) => setForm({ ...form, brandAccentColor: event.target.value })}
+                        className="h-11 w-14 cursor-pointer border-0 bg-transparent p-0"
+                        aria-label="Accent brand colour"
+                      />
+                      <span>
+                        <span className="block text-xs font-bold uppercase tracking-[0.12em] text-[#687083]">Accent</span>
+                        <span className="mt-1 block font-mono text-sm font-semibold text-[#141821]">{form.brandAccentColor.toUpperCase()}</span>
+                      </span>
+                    </label>
+                  </div>
+                ) : null}
+              </section>
 
               <section className={previewMode === "website" ? "hidden" : "border border-[#dfe2ea] bg-white p-5 sm:p-7"}>
                 <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
