@@ -10,3 +10,14 @@ supabase/.temp/
 audit-current/
 prospects/
 design-audit-*.png
+tests/
+e2e/
+docs/
+supabase/
+scripts/
+pricing-audit/
+design-qa-*.png
+template-preview*.png
+*.md
+playwright.config.ts
+.github/

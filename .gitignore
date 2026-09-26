@@ -9,3 +9,7 @@ test-results/
 .env*
 !.env.example
 .vercel
+prospects/
+pricing-audit/
+design-qa-*.png
+template-preview*.png
