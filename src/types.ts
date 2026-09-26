@@ -254,6 +254,7 @@ export interface WebsiteSection {
     | "hero"
     | "services"
     | "testimonials"
+    | "google_reviews"
     | "pricing"
     | "faq"
     | "contact"

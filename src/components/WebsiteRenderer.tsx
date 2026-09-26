@@ -45,6 +45,8 @@ import {
   AlertCircle,
   Activity,
   Cookie,
+  Star,
+  ExternalLink,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
@@ -90,6 +92,236 @@ const applySectionImageFallback = (
   image.style.opacity = "0";
 };
 
+type GoogleReviewFeed = {
+  placeId: string;
+  displayName: string;
+  formattedAddress?: string | null;
+  rating?: number | null;
+  userRatingCount?: number | null;
+  googleMapsUri?: string | null;
+  reviews: Array<{
+    id: string;
+    authorName: string;
+    authorUri?: string | null;
+    authorPhotoUri?: string | null;
+    rating: number;
+    text: string;
+    relativeTime?: string | null;
+    publishTime?: string | null;
+  }>;
+};
+
+function GoogleReviewsSection({
+  section,
+  websiteId,
+  isEditingPreview,
+  primaryColor,
+  displayFont,
+}: {
+  section: WebsiteSection;
+  websiteId: string;
+  isEditingPreview: boolean;
+  primaryColor: string;
+  displayFont?: string;
+}) {
+  const [feed, setFeed] = useState<GoogleReviewFeed | null>(null);
+  const [loading, setLoading] = useState(Boolean(section.content?.placeId));
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    const placeId = String(section.content?.placeId || "").trim();
+    if (!placeId || section.content?.enabled === false) {
+      setFeed(null);
+      setLoading(false);
+      setError("");
+      return;
+    }
+
+    const load = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        let response: Response;
+        if (isEditingPreview || websiteId === "preview") {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.access_token) throw new Error("Sign in to preview Google reviews.");
+          response = await fetch(
+            `/api/admin/google-places/details?placeId=${encodeURIComponent(placeId)}`,
+            { headers: { Authorization: `Bearer ${session.access_token}` } },
+          );
+        } else {
+          response = await fetch(
+            `/api/public/google-reviews?websiteId=${encodeURIComponent(websiteId)}&sectionId=${encodeURIComponent(section.id)}`,
+          );
+        }
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload?.error || "Google reviews are temporarily unavailable.");
+        if (!cancelled) setFeed(payload.place || null);
+      } catch (loadError: any) {
+        if (!cancelled) setError(loadError?.message || "Google reviews are temporarily unavailable.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditingPreview, section.content?.enabled, section.content?.placeId, section.id, websiteId]);
+
+  if (section.content?.enabled === false || !section.content?.placeId) return null;
+
+  if (loading) {
+    return (
+      <section id={section.id} className="border-y border-slate-200 bg-white py-16 sm:py-20">
+        <div className="mx-auto flex max-w-7xl items-center justify-center px-6">
+          <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+        </div>
+      </section>
+    );
+  }
+
+  if (error || !feed) {
+    if (!isEditingPreview) return null;
+    return (
+      <section id={section.id} className="border-y border-amber-200 bg-amber-50 py-10">
+        <div className="mx-auto max-w-7xl px-6 text-sm font-semibold text-amber-800">
+          {error || "Google reviews could not be loaded."}
+        </div>
+      </section>
+    );
+  }
+
+  const maxReviews = Math.min(Math.max(Number(section.content?.maxReviews || 5), 1), 5);
+  const reviews = (feed.reviews || []).filter((review) => review.text).slice(0, maxReviews);
+
+  return (
+    <motion.section
+      id={section.id}
+      key={section.id}
+      initial="initial"
+      whileInView="whileInView"
+      viewport={{ once: true, margin: "-80px" }}
+      variants={staggerContainer}
+      className="border-y border-slate-200 bg-white py-16 text-slate-950 sm:py-24"
+    >
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+          <motion.div variants={fadeInUp}>
+            <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em]" style={{ color: primaryColor }}>
+              <span>Google Reviews</span>
+            </div>
+            <h2 className="mt-4 max-w-2xl text-4xl font-semibold tracking-[-0.04em] sm:text-5xl" style={{ fontFamily: displayFont }}>
+              {section.content?.title || "What our customers say"}
+            </h2>
+            {section.content?.description ? (
+              <p className="mt-4 max-w-xl text-base font-medium leading-7 text-slate-600">
+                {section.content.description}
+              </p>
+            ) : null}
+          </motion.div>
+
+          <motion.div variants={fadeInUp} className="lg:text-right">
+            <div className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+              <div>
+                <div className="flex items-center gap-1" aria-label={`${feed.rating || 0} out of 5 stars`}>
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star
+                      key={index}
+                      className="h-4 w-4"
+                      fill={index < Math.round(Number(feed.rating || 0)) ? "#f59e0b" : "transparent"}
+                      color={index < Math.round(Number(feed.rating || 0)) ? "#f59e0b" : "#cbd5e1"}
+                    />
+                  ))}
+                </div>
+                <p className="mt-1 text-sm font-black text-slate-900">
+                  {Number(feed.rating || 0).toFixed(1)} · {Number(feed.userRatingCount || 0).toLocaleString()} reviews
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {reviews.length ? (
+          <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {reviews.map((review) => (
+              <motion.article
+                key={review.id}
+                variants={fadeInUp}
+                className="flex min-h-[260px] flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  {review.authorPhotoUri ? (
+                    <img
+                      src={review.authorPhotoUri}
+                      alt=""
+                      className="h-10 w-10 rounded-full object-cover"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-sm font-black text-slate-500">
+                      {review.authorName.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-slate-900">{review.authorName}</p>
+                    <p className="text-xs font-semibold text-slate-400">{review.relativeTime || "Google review"}</p>
+                  </div>
+                </div>
+                <div className="mt-5 flex items-center gap-1" aria-hidden="true">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star
+                      key={index}
+                      className="h-3.5 w-3.5"
+                      fill={index < Math.round(review.rating) ? "#f59e0b" : "transparent"}
+                      color={index < Math.round(review.rating) ? "#f59e0b" : "#cbd5e1"}
+                    />
+                  ))}
+                </div>
+                <p className="mt-4 flex-1 text-sm font-medium leading-6 text-slate-700">“{review.text}”</p>
+                {review.authorUri ? (
+                  <a
+                    href={review.authorUri}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-5 inline-flex items-center gap-1 text-xs font-black"
+                    style={{ color: primaryColor }}
+                  >
+                    Reviewer profile <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : null}
+              </motion.article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-10 rounded-3xl border border-slate-200 bg-slate-50 p-8 text-sm font-semibold text-slate-600">
+            Google reports a rating for this business, but no review text is currently available through the connected Places feed.
+          </div>
+        )}
+
+        <div className="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-6 text-xs font-semibold text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>Reviews provided by Google. Review ordering is determined by Google.</p>
+          {feed.googleMapsUri ? (
+            <a
+              href={feed.googleMapsUri}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 font-black"
+              style={{ color: primaryColor }}
+            >
+              View all reviews on Google <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          ) : null}
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
 const fadeInUp = {
   // Never hide conversion copy while waiting for viewport animation.
   initial: { opacity: 1, y: 18 },
@@ -122,12 +354,14 @@ export function WebsiteRenderer({
   businessIdOverride,
   isTemplatePreview = false,
   enableRealtime = true,
+  isEditingPreview = false,
 }: {
   initialData?: Website;
   activePageSlug?: string;
   businessIdOverride?: string;
   isTemplatePreview?: boolean;
   enableRealtime?: boolean;
+  isEditingPreview?: boolean;
 }) {
   const { businessId: businessIdFromParams, templateId } = useParams<{
     businessId: string;
@@ -4142,6 +4376,17 @@ export function WebsiteRenderer({
                         </div>
                       </div>
                     </motion.section>
+                  );
+                case "google_reviews":
+                  return (
+                    <GoogleReviewsSection
+                      key={section.id || `google-reviews-${idx}`}
+                      section={section}
+                      websiteId={website.id}
+                      isEditingPreview={isEditingPreview || draftPreview || Boolean(website.theme?.previewPurpose)}
+                      primaryColor={accessibleTheme.primary}
+                      displayFont={theme.displayFont || designProfile.displayFont}
+                    />
                   );
                 case "testimonials": {
                   const testimonialItems = (section.content.items || []).filter((item: any) => item?.text);

@@ -113,6 +113,22 @@ export const SECTION_TEMPLATES: Record<string, SectionTemplate> = {
     },
     isVisible: true,
   },
+  google_reviews: {
+    type: "google_reviews",
+    featureId: "review_management",
+    content: {
+      title: "What our customers say",
+      description: "Recent customer feedback from Google.",
+      placeId: "",
+      placeName: "",
+      enabled: true,
+      maxReviews: 5,
+    },
+    settings: {
+      variant: "google_reviews_grid",
+    },
+    isVisible: true,
+  },
   testimonials: {
     type: "testimonials",
     featureId: "review_management",

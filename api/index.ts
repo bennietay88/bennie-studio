@@ -519,6 +519,79 @@ function rateLimit(options: {
   };
 }
 
+const googlePlacesApiKey = () =>
+  String(process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || "").trim();
+
+const normalizeGooglePlace = (place: any) => ({
+  id: String(place?.id || ""),
+  placeId: String(place?.id || ""),
+  displayName: String(place?.displayName?.text || place?.displayName || ""),
+  formattedAddress: String(place?.formattedAddress || "") || null,
+  rating: Number.isFinite(Number(place?.rating)) ? Number(place.rating) : null,
+  userRatingCount: Number.isFinite(Number(place?.userRatingCount)) ? Number(place.userRatingCount) : null,
+  googleMapsUri: String(place?.googleMapsUri || "") || null,
+  reviews: Array.isArray(place?.reviews)
+    ? place.reviews.slice(0, 5).map((review: any) => ({
+        id: String(review?.name || review?.publishTime || crypto.randomUUID()),
+        authorName: String(review?.authorAttribution?.displayName || "Google reviewer"),
+        authorUri: String(review?.authorAttribution?.uri || "") || null,
+        authorPhotoUri: String(review?.authorAttribution?.photoUri || "") || null,
+        rating: Number.isFinite(Number(review?.rating)) ? Number(review.rating) : 0,
+        text: String(review?.text?.text || review?.originalText?.text || "").trim(),
+        relativeTime: String(review?.relativePublishTimeDescription || "") || null,
+        publishTime: String(review?.publishTime || "") || null,
+      }))
+    : [],
+});
+
+async function fetchGooglePlaceDetails(placeId: string) {
+  const apiKey = googlePlacesApiKey();
+  if (!apiKey) throw new Error("GOOGLE_PLACES_NOT_CONFIGURED");
+  const normalizedPlaceId = String(placeId || "").trim();
+  if (!/^[A-Za-z0-9_\-:.]{10,300}$/.test(normalizedPlaceId)) {
+    throw new Error("INVALID_GOOGLE_PLACE_ID");
+  }
+
+  const response = await fetch(
+    `https://places.googleapis.com/v1/places/${encodeURIComponent(normalizedPlaceId)}`,
+    {
+      headers: {
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": "id,displayName,formattedAddress,rating,userRatingCount,reviews,googleMapsUri",
+      },
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+  if (!response.ok) {
+    structuredLog("warn", "google_places_details_failed", { status: response.status });
+    throw new Error("GOOGLE_PLACES_FETCH_FAILED");
+  }
+  return normalizeGooglePlace(await response.json());
+}
+
+async function searchGooglePlaces(textQuery: string) {
+  const apiKey = googlePlacesApiKey();
+  if (!apiKey) throw new Error("GOOGLE_PLACES_NOT_CONFIGURED");
+  const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": apiKey,
+      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.googleMapsUri",
+    },
+    body: JSON.stringify({ textQuery, maxResultCount: 5 }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) {
+    structuredLog("warn", "google_places_search_failed", { status: response.status });
+    throw new Error("GOOGLE_PLACES_SEARCH_FAILED");
+  }
+  const payload = await response.json().catch(() => ({}));
+  return Array.isArray(payload?.places)
+    ? payload.places.slice(0, 5).map((place: any) => normalizeGooglePlace(place))
+    : [];
+}
+
 async function verifyPreviewTurnstile(req: any, token?: string | null) {
   const secret = String(process.env.TURNSTILE_SECRET_KEY || "").trim();
   const required = String(process.env.PREVIEW_TURNSTILE_REQUIRED || "").toLowerCase() === "true";
@@ -7212,6 +7285,107 @@ async function startServer() {
       return res.status(503).json({ error: "Email event could not be processed. Please retry." });
     }
   });
+
+  app.post(
+    "/api/admin/google-places/search",
+    authenticate,
+    rateLimit({
+      windowMs: 60 * 1000,
+      max: 30,
+      keyPrefix: "admin-google-places-search",
+      key: (req) => req.user?.id || getClientIp(req),
+    }),
+    async (req: any, res: any) => {
+      const body = validateBody(
+        z.object({ query: z.string().trim().min(3).max(200) }),
+        req,
+        res,
+      );
+      if (!body) return;
+      try {
+        const places = await searchGooglePlaces(body.query);
+        res.setHeader("Cache-Control", "no-store");
+        return res.json({ places });
+      } catch (error: any) {
+        const message = error?.message === "GOOGLE_PLACES_NOT_CONFIGURED"
+          ? "Google Reviews is not configured yet. Add GOOGLE_PLACES_API_KEY in Vercel."
+          : "Google Business search is temporarily unavailable.";
+        return res.status(error?.message === "GOOGLE_PLACES_NOT_CONFIGURED" ? 503 : 502).json({ error: message });
+      }
+    },
+  );
+
+  app.get(
+    "/api/admin/google-places/details",
+    authenticate,
+    rateLimit({
+      windowMs: 60 * 1000,
+      max: 60,
+      keyPrefix: "admin-google-places-details",
+      key: (req) => req.user?.id || getClientIp(req),
+    }),
+    async (req: any, res: any) => {
+      try {
+        const placeId = String(req.query.placeId || "").trim();
+        const place = await fetchGooglePlaceDetails(placeId);
+        res.setHeader("Cache-Control", "no-store");
+        return res.json({ place });
+      } catch (error: any) {
+        const message = error?.message === "GOOGLE_PLACES_NOT_CONFIGURED"
+          ? "Google Reviews is not configured yet. Add GOOGLE_PLACES_API_KEY in Vercel."
+          : error?.message === "INVALID_GOOGLE_PLACE_ID"
+            ? "Choose a valid Google Business location."
+            : "Google reviews are temporarily unavailable.";
+        const status = error?.message === "GOOGLE_PLACES_NOT_CONFIGURED" ? 503
+          : error?.message === "INVALID_GOOGLE_PLACE_ID" ? 400
+          : 502;
+        return res.status(status).json({ error: message });
+      }
+    },
+  );
+
+  app.get(
+    "/api/public/google-reviews",
+    rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-google-reviews" }),
+    async (req: any, res: any) => {
+      const websiteId = String(req.query.websiteId || "");
+      const sectionId = String(req.query.sectionId || "");
+      if (!UUID_SCHEMA.safeParse(websiteId).success || !UUID_SCHEMA.safeParse(sectionId).success) {
+        return res.status(400).json({ error: "Invalid Google Reviews section." });
+      }
+
+      try {
+        const { data: website, error } = await supabaseAdmin
+          .from("websites")
+          .select("id,status,pages")
+          .eq("id", websiteId)
+          .eq("status", "published")
+          .maybeSingle();
+        if (error) throw error;
+        if (!website) return res.status(404).json({ error: "Published website not found." });
+
+        const pages = Array.isArray(website.pages) ? website.pages : [];
+        const section = pages
+          .flatMap((page: any) => Array.isArray(page?.sections) ? page.sections : [])
+          .find((candidate: any) => candidate?.id === sectionId && candidate?.type === "google_reviews");
+
+        const placeId = String(section?.content?.placeId || "").trim();
+        if (!section || section?.isVisible === false || section?.content?.enabled === false || !placeId) {
+          return res.status(404).json({ error: "Google Reviews is not enabled for this website." });
+        }
+
+        const place = await fetchGooglePlaceDetails(placeId);
+        res.setHeader("Cache-Control", "no-store");
+        return res.json({ place });
+      } catch (error: any) {
+        if (error?.message === "GOOGLE_PLACES_NOT_CONFIGURED") {
+          return res.status(503).json({ error: "Google Reviews is temporarily unavailable." });
+        }
+        structuredLog("warn", "public_google_reviews_failed", { websiteId, sectionId });
+        return res.status(502).json({ error: "Google reviews are temporarily unavailable." });
+      }
+    },
+  );
 
   app.get("/api/public/call-availability", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "call-availability" }), async (_req, res) => {
     const now = new Date();

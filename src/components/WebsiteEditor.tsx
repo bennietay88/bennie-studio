@@ -538,6 +538,195 @@ const getWorkflowLabel = (status?: string) =>
   WEBSITE_WORKFLOW_STATUSES.find((item) => item.value === status)?.label ||
   "Draft";
 
+function GoogleReviewsEditor({
+  content,
+  onChange,
+}: {
+  content: any;
+  onChange: (patch: Record<string, any>) => void;
+}) {
+  const [query, setQuery] = React.useState(String(content?.placeName || ""));
+  const [results, setResults] = React.useState<any[]>([]);
+  const [selectedPreview, setSelectedPreview] = React.useState<any | null>(null);
+  const [searching, setSearching] = React.useState(false);
+  const [loadingDetails, setLoadingDetails] = React.useState(false);
+
+  const authHeaders = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error("Your session has expired. Sign in again.");
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    };
+  };
+
+  const loadDetails = React.useCallback(async (placeId: string) => {
+    if (!placeId) {
+      setSelectedPreview(null);
+      return;
+    }
+    try {
+      setLoadingDetails(true);
+      const headers = await authHeaders();
+      const response = await fetch(
+        `/api/admin/google-places/details?placeId=${encodeURIComponent(placeId)}`,
+        { headers },
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || "Could not load Google reviews.");
+      setSelectedPreview(payload.place || null);
+    } catch (error: any) {
+      setSelectedPreview(null);
+      toast.error(error?.message || "Could not load Google reviews.");
+    } finally {
+      setLoadingDetails(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (content?.placeId) void loadDetails(String(content.placeId));
+  }, [content?.placeId, loadDetails]);
+
+  const searchPlaces = async () => {
+    if (query.trim().length < 3) return toast.error("Enter the customer business name and location.");
+    try {
+      setSearching(true);
+      const headers = await authHeaders();
+      const response = await fetch("/api/admin/google-places/search", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ query: query.trim() }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || "Google Business search failed.");
+      setResults(payload.places || []);
+      if (!(payload.places || []).length) toast.info("No matching Google Business locations found.");
+    } catch (error: any) {
+      toast.error(error?.message || "Google Business search failed.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const choosePlace = (place: any) => {
+    onChange({
+      placeId: place.id,
+      placeName: place.displayName,
+      enabled: true,
+    });
+    setQuery(place.displayName || query);
+    setResults([]);
+    setSelectedPreview(place);
+    void loadDetails(place.id);
+  };
+
+  return (
+    <div className="space-y-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <Label className="text-sm font-black text-slate-900">Google Reviews</Label>
+          <p className="mt-1 text-xs font-medium leading-5 text-slate-500">
+            Connect this section to the customer's Google Business listing. Reviews remain live Google data and are not copied into the website.
+          </p>
+        </div>
+        <Switch
+          checked={content?.enabled !== false}
+          onCheckedChange={(checked) => onChange({ enabled: checked })}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Section heading</Label>
+        <Input
+          value={content?.title || "What our customers say"}
+          onChange={(event) => onChange({ title: event.target.value })}
+          placeholder="What our customers say"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Find Google Business location</Label>
+        <div className="flex gap-2">
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void searchPlaces();
+              }
+            }}
+            placeholder="e.g. Acme Dental, Singapore"
+          />
+          <Button type="button" variant="outline" onClick={searchPlaces} disabled={searching}>
+            {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+
+      {results.length > 0 ? (
+        <div className="space-y-2">
+          {results.map((place) => (
+            <button
+              key={place.id}
+              type="button"
+              onClick={() => choosePlace(place)}
+              className="w-full rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50/40"
+            >
+              <p className="text-sm font-black text-slate-900">{place.displayName}</p>
+              <p className="mt-1 text-xs font-medium text-slate-500">{place.formattedAddress || "Address not returned"}</p>
+              <p className="mt-1 text-xs font-bold text-amber-600">
+                {place.rating ? `${Number(place.rating).toFixed(1)} ★` : "No rating"} {place.userRatingCount ? `· ${Number(place.userRatingCount).toLocaleString()} reviews` : ""}
+              </p>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {content?.placeId ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Connected</p>
+          <p className="mt-1 text-sm font-black text-slate-900">
+            {selectedPreview?.displayName || content?.placeName || "Google Business location"}
+          </p>
+          {loadingDetails ? (
+            <p className="mt-2 text-xs font-semibold text-slate-500">Loading live rating…</p>
+          ) : selectedPreview ? (
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-bold text-slate-600">
+              <span>{Number(selectedPreview.rating || 0).toFixed(1)} ★</span>
+              <span>{Number(selectedPreview.userRatingCount || 0).toLocaleString()} Google reviews</span>
+              {selectedPreview.googleMapsUri ? (
+                <a href={selectedPreview.googleMapsUri} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600">
+                  Open Google <ExternalLink className="h-3 w-3" />
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+          <p className="mt-2 break-all font-mono text-[10px] text-slate-400">{content.placeId}</p>
+        </div>
+      ) : null}
+
+      <div className="space-y-1.5">
+        <Label>Reviews to show</Label>
+        <Select
+          value={String(content?.maxReviews || 5)}
+          onValueChange={(value) => onChange({ maxReviews: Number(value) })}
+        >
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {[3, 4, 5].map((value) => (
+              <SelectItem key={value} value={String(value)}>{value} reviews</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[10px] font-medium leading-4 text-slate-400">
+          The section links visitors to Google for the full review history.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 interface WebsiteEditorProps {
   businessIdOverride?: string;
   templateIdOverride?: string;
@@ -809,7 +998,7 @@ export function WebsiteEditor({
       const hero = homePage.sections.find(s => s.type === "hero");
       if (!(hero?.content?.headline && hero?.content?.subheadline && hero?.content?.imageUrl)) missing.push("High-Impact Hero Strategy");
 
-      const proof = homePage.sections.find(s => s.type === "proof" || s.type === "testimonials");
+      const proof = homePage.sections.find(s => s.type === "proof" || s.type === "testimonials" || s.type === "google_reviews");
       if (!proof) missing.push("Trust & Social Proof");
 
       const services = homePage.sections.find(s => s.type === "services");
@@ -4437,6 +4626,7 @@ export function WebsiteEditor({
                 <div className="w-full rounded-2xl border border-slate-200 shadow-inner bg-white origin-top scale-[0.9] lg:scale-[1]">
                   <React.Suspense fallback={<InlineModuleFallback />}>
                     <WebsiteRenderer
+                      isEditingPreview
                       activePageSlug={
                         website.pages.find((p) => p.id === (activePageId || ""))
                           ?.slug || "home"
@@ -4521,6 +4711,7 @@ export function WebsiteEditor({
                 >
                   <React.Suspense fallback={<InlineModuleFallback />}>
                     <WebsiteRenderer
+                      isEditingPreview
                       activePageSlug={
                         website?.pages.find((p) => p.id === activePageId)?.slug ||
                         website?.pages[0]?.slug ||
@@ -7208,6 +7399,14 @@ export function WebsiteEditor({
                                         </Button>
                                       </div>
                                     )}
+                                    {section.type === "google_reviews" && (
+                                      <GoogleReviewsEditor
+                                        content={section.content || {}}
+                                        onChange={(patch) =>
+                                          updateSectionContent(page.id, section.id, patch)
+                                        }
+                                      />
+                                    )}
                                     {section.type === "testimonials" && (
                                       <div className="space-y-4">
                                         {section.content.items?.map(
@@ -8366,9 +8565,10 @@ export function WebsiteEditor({
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       {Object.entries(SECTION_TEMPLATES)
                         .filter(
-                          ([_, template]) =>
-                            !template.featureId ||
-                            isFeatureEnabled(template.featureId),
+                          ([type, template]) =>
+                            type !== "google_reviews" &&
+                            (!template.featureId ||
+                              isFeatureEnabled(template.featureId)),
                         )
                         .map(([type, template]) => {
                           return (
