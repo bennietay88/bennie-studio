@@ -1413,32 +1413,27 @@ function GeneratePreviewPage() {
         leadResult = { leadId: payload.leadId, leadEmail: payload.leadEmail };
         intake = payload;
       } else {
-        const existingLeadId = typeof existingPreview.leadId === "string" && /^[0-9a-f-]{36}$/i.test(existingPreview.leadId)
-          ? existingPreview.leadId
-          : "";
-        const existingLeadEmail = String(existingPreview.email || "").trim().toLowerCase();
-        const canReuseExistingLead = Boolean(existingLeadId) && existingLeadEmail === form.email.trim().toLowerCase();
-
-        leadResult = canReuseExistingLead
-          ? { leadId: existingLeadId, reused: true, leadEmail: form.email }
-          : await submitPlatformLead({
-              name: form.contactName || form.businessName || form.email.split("@")[0] || "Website preview lead",
-              email: form.email,
-              phone: form.phone,
-              businessName: form.businessName,
-              industry: selectedBusinessType.label,
-              websiteUrl: form.websiteUrl,
-              service: form.mainService,
-              message: previewMode === "website"
-                ? `URL-first website preview requested for ${form.websiteUrl}.`
-                : `Business-info preview: ${form.mainService} in ${form.location}. Goal: ${goal}.`,
-              formName: "Personalized website preview",
-              leadType: previewMode === "website" ? "free_website_rebuild_preview" : "free_website_preview",
-              previewId,
-              market: "INTL",
-              turnstileToken,
-              website: honeypot,
-            });
+        // A localStorage leadId can become stale after admin cleanup or data reset.
+        // Revalidate the preview through the lead-intake endpoint every time.
+        // The endpoint deduplicates by previewId + email when the lead still exists.
+        leadResult = await submitPlatformLead({
+          name: form.contactName || form.businessName || form.email.split("@")[0] || "Website preview lead",
+          email: form.email,
+          phone: form.phone,
+          businessName: form.businessName,
+          industry: selectedBusinessType.label,
+          websiteUrl: form.websiteUrl,
+          service: form.mainService,
+          message: previewMode === "website"
+            ? `URL-first website preview requested for ${form.websiteUrl}.`
+            : `Business-info preview: ${form.mainService} in ${form.location}. Goal: ${goal}.`,
+          formName: "Personalized website preview",
+          leadType: previewMode === "website" ? "free_website_rebuild_preview" : "free_website_preview",
+          previewId,
+          market: "INTL",
+          turnstileToken,
+          website: honeypot,
+        });
         if (!leadResult?.leadId) throw new Error("We could not connect this preview to your enquiry. Please retry.");
         leadResult.leadEmail = form.email;
 

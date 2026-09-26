@@ -18,6 +18,7 @@ import {
   Copy,
   Mail,
   Phone,
+  Send,
   Link as LinkIcon,
 } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
@@ -74,6 +75,12 @@ export function ProspectExplorer() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [quickFilter, setQuickFilter] = useState("all");
   const [selectedProspect, setSelectedProspect] = useState<any | null>(null);
+  const [sortMode, setSortMode] = useState("newest");
+  const [outreachProspect, setOutreachProspect] = useState<any | null>(null);
+  const [outreachSubject, setOutreachSubject] = useState("");
+  const [outreachBody, setOutreachBody] = useState("");
+  const [outreachRequestId, setOutreachRequestId] = useState("");
+  const [outreachSending, setOutreachSending] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [csvText, setCsvText] = useState("");
@@ -441,6 +448,53 @@ export function ProspectExplorer() {
     [prospects, searchQuery, industryFilter, statusFilter, quickFilter],
   );
 
+
+  const sortedProspects = useMemo(() => {
+    const rows = [...filteredProspects];
+    const scoreFor = (prospect: any) =>
+      Number(prospect.qualification_score ?? prospect._score?.score ?? scoreProspect(prospect).score ?? 0);
+    const opportunityRank: Record<string, number> = { high: 3, medium: 2, low: 1 };
+    const outreachRank: Record<string, number> = {
+      not_started: 1,
+      queued: 2,
+      contacted: 3,
+      replied: 4,
+      call_booked: 5,
+      won: 6,
+      lost: 7,
+    };
+    const timestamp = (value: any, empty: number) => {
+      const parsed = value ? new Date(value).getTime() : NaN;
+      return Number.isFinite(parsed) ? parsed : empty;
+    };
+
+    rows.sort((a, b) => {
+      switch (sortMode) {
+        case "oldest":
+          return timestamp(a.created_at, Number.MAX_SAFE_INTEGER) - timestamp(b.created_at, Number.MAX_SAFE_INTEGER);
+        case "name_asc":
+          return String(a.name || "").localeCompare(String(b.name || ""));
+        case "name_desc":
+          return String(b.name || "").localeCompare(String(a.name || ""));
+        case "score_desc":
+          return scoreFor(b) - scoreFor(a);
+        case "score_asc":
+          return scoreFor(a) - scoreFor(b);
+        case "opportunity_desc":
+          return (opportunityRank[b.opportunity_level] || 0) - (opportunityRank[a.opportunity_level] || 0);
+        case "followup_asc":
+          return timestamp(a.next_follow_up_at, Number.MAX_SAFE_INTEGER) - timestamp(b.next_follow_up_at, Number.MAX_SAFE_INTEGER);
+        case "outreach_asc":
+          return (outreachRank[a.outreach_status] || 0) - (outreachRank[b.outreach_status] || 0);
+        case "newest":
+        default:
+          return timestamp(b.created_at, 0) - timestamp(a.created_at, 0);
+      }
+    });
+    return rows;
+  }, [filteredProspects, sortMode]);
+
+
   const industries = useMemo(
     () => Array.from(new Set(prospects.map((p) => p.industry).filter(Boolean))).sort(),
     [prospects],
@@ -457,7 +511,7 @@ export function ProspectExplorer() {
   const exportCsv = () => {
     const rows = [
       ["Name", "Domain", "Industry", "Location", "Email", "Phone", "WhatsApp", "Social", "Website Status", "Opportunity", "Outreach Status", "Next Follow Up", "Preview URL", "Notes"],
-      ...filteredProspects.map((p) => [
+      ...sortedProspects.map((p) => [
         p.name,
         p.domain || "",
         p.industry || "",
@@ -497,19 +551,125 @@ export function ProspectExplorer() {
     setIsAddModalOpen(true);
   };
 
+  const openOutreachComposer = (prospect: any) => {
+    if (!prospect.contact_email) {
+      toast.error("Add an email address for this prospect first.");
+      return;
+    }
+
+    const previewLine = prospect.preview_url
+      ? `\n\nI also prepared a quick preview for you: ${prospect.preview_url}`
+      : "";
+    setOutreachProspect(prospect);
+    setOutreachSubject(`Quick website idea for ${prospect.name}`);
+    setOutreachBody(
+      `Hi ${prospect.name},\n\nI came across your business and noticed a few practical opportunities to improve how your website turns visitors into enquiries.${previewLine}\n\nIf useful, I can share the key recommendations and what I would prioritise first.\n\nBest,\nBennie`,
+    );
+    setOutreachRequestId(crypto.randomUUID());
+  };
+
+  const closeOutreachComposer = () => {
+    if (outreachSending) return;
+    setOutreachProspect(null);
+    setOutreachSubject("");
+    setOutreachBody("");
+    setOutreachRequestId("");
+  };
+
+  const sendOutreach = async () => {
+    if (!outreachProspect || !outreachBody.trim()) return;
+    if (!outreachSubject.trim()) {
+      toast.error("Add an email subject");
+      return;
+    }
+
+    try {
+      setOutreachSending(true);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Your admin session has expired. Sign in again and retry.");
+      }
+
+      const response = await fetch(
+        `/api/admin/prospects/${encodeURIComponent(outreachProspect.id)}/outreach`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action: "send",
+            channel: "email",
+            subject: outreachSubject.trim(),
+            bodyText: outreachBody.trim(),
+            observation: "Direct email outreach sent from Prospect Explorer.",
+            requestId: outreachRequestId || crypto.randomUUID(),
+          }),
+        },
+      );
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || "Email could not be sent");
+      }
+
+      if (payload?.prospect) {
+        setProspects((current) =>
+          current.map((prospect) =>
+            prospect.id === payload.prospect.id
+              ? {
+                  ...prospect,
+                  ...payload.prospect,
+                  _score: scoreProspect({ ...prospect, ...payload.prospect }),
+                }
+              : prospect,
+          ),
+        );
+      }
+
+      toast.success(
+        payload?.alreadySent
+          ? "This email was already sent; no duplicate was created."
+          : "Email sent from Bennie Studio",
+      );
+      setOutreachProspect(null);
+      setOutreachSubject("");
+      setOutreachBody("");
+      setOutreachRequestId("");
+    } catch (error: any) {
+      console.error("Direct email outreach failed:", error);
+      toast.error(error?.message || "Email could not be sent");
+    } finally {
+      setOutreachSending(false);
+    }
+  };
+
   const renderContactActions = (prospect: any) => {
-    const emailHref = prospect.contact_email ? `mailto:${prospect.contact_email}` : "";
     const phoneHref = prospect.contact_phone ? `tel:${prospect.contact_phone}` : "";
-    const whatsappHref = prospect.contact_whatsapp
-      ? `https://wa.me/${String(prospect.contact_whatsapp).replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hi ${prospect.name}, I prepared a quick website growth audit for your business. Can I send it over?`)}`
+    const whatsappNumber = String(
+      prospect.contact_whatsapp || prospect.contact_phone || "",
+    ).replace(/[^0-9]/g, "");
+    const whatsappText = `Hi ${prospect.name}, I came across your business and noticed a few practical website improvements that could help generate more enquiries.${prospect.preview_url ? ` I prepared a quick preview here: ${prospect.preview_url}` : ""} Would you like me to send the key recommendations?`;
+    const whatsappHref = whatsappNumber
+      ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappText)}`
       : "";
 
     return (
       <div className="flex flex-wrap gap-1.5">
-        {emailHref && (
-          <a href={emailHref} className="inline-flex h-8 items-center rounded-xl border border-slate-200 px-3 text-[10px] font-bold text-slate-700 hover:bg-slate-50">
-            <Mail className="mr-1.5 h-3 w-3" />Email
-          </a>
+        {prospect.contact_email && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => openOutreachComposer(prospect)}
+            className="h-8 rounded-xl px-3 text-[10px] font-bold"
+          >
+            <Mail className="mr-1.5 h-3 w-3" />
+            Email
+          </Button>
         )}
         {phoneHref && (
           <a href={phoneHref} className="inline-flex h-8 items-center rounded-xl border border-slate-200 px-3 text-[10px] font-bold text-slate-700 hover:bg-slate-50">
@@ -517,8 +677,14 @@ export function ProspectExplorer() {
           </a>
         )}
         {whatsappHref && (
-          <a href={whatsappHref} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center rounded-xl border border-slate-200 px-3 text-[10px] font-bold text-slate-700 hover:bg-slate-50">
-            <MessageSquare className="mr-1.5 h-3 w-3" />WA
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-8 items-center rounded-xl border border-slate-200 px-3 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+          >
+            <MessageSquare className="mr-1.5 h-3 w-3" />
+            WhatsApp
           </a>
         )}
       </div>
@@ -568,7 +734,7 @@ export function ProspectExplorer() {
         <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white p-4">
           {[["all","All"],["follow_up_due","Follow-up due"],["high","High opportunity"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
         </div>
-        <div className="grid gap-3 border-b border-slate-100 bg-slate-50 p-4 lg:grid-cols-[1fr_220px_220px_auto]">
+        <div className="grid gap-3 border-b border-slate-100 bg-slate-50 p-4 xl:grid-cols-[1fr_190px_190px_220px_auto]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
@@ -592,7 +758,21 @@ export function ProspectExplorer() {
               {OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{toTitle(status)}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button variant="outline" className="rounded-xl px-6" onClick={() => { setSearchQuery(""); setIndustryFilter("all"); setStatusFilter("all"); }}>
+          <Select value={sortMode} onValueChange={setSortMode}>
+            <SelectTrigger className="rounded-xl bg-white"><SelectValue placeholder="Sort" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest first</SelectItem>
+              <SelectItem value="oldest">Oldest first</SelectItem>
+              <SelectItem value="score_desc">Highest score</SelectItem>
+              <SelectItem value="score_asc">Lowest score</SelectItem>
+              <SelectItem value="opportunity_desc">Highest opportunity</SelectItem>
+              <SelectItem value="followup_asc">Next follow-up</SelectItem>
+              <SelectItem value="outreach_asc">Outreach stage</SelectItem>
+              <SelectItem value="name_asc">Business A–Z</SelectItem>
+              <SelectItem value="name_desc">Business Z–A</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" className="rounded-xl px-6" onClick={() => { setSearchQuery(""); setIndustryFilter("all"); setStatusFilter("all"); setSortMode("newest"); }}>
             <Filter className="h-4 w-4 mr-2 text-slate-400" /> Reset
           </Button>
         </div>
@@ -614,10 +794,10 @@ export function ProspectExplorer() {
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr><td colSpan={8} className="py-20 text-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" /><p className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading prospects...</p></td></tr>
-                ) : filteredProspects.length === 0 ? (
+                ) : sortedProspects.length === 0 ? (
                   <tr><td colSpan={8} className="py-20 text-center"><p className="text-slate-400 font-bold text-sm">No prospects found.</p></td></tr>
                 ) : (
-                  filteredProspects.map((prospect) => (
+                  sortedProspects.map((prospect) => (
                     <tr key={prospect.id} className="hover:bg-slate-50/50 transition-colors align-top">
                       <td className="px-6 py-6">
                         <div className="flex items-start gap-3">
@@ -948,6 +1128,83 @@ export function ProspectExplorer() {
                   : "Import prospects"}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(outreachProspect)}
+        onOpenChange={(open) => {
+          if (!open) closeOutreachComposer();
+        }}
+      >
+        <DialogContent className="max-w-xl rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black tracking-tight">
+              Send email outreach
+            </DialogTitle>
+            <DialogDescription>
+              Send directly from Bennie Studio. A successful send updates the prospect's outreach status and follow-up automatically.
+            </DialogDescription>
+          </DialogHeader>
+
+          {outreachProspect && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Recipient</p>
+                <p className="mt-1 text-sm font-bold text-slate-900">{outreachProspect.name}</p>
+                <p className="mt-1 break-all text-xs font-semibold text-slate-500">
+                  {outreachProspect.contact_email}
+                </p>
+              </div>
+
+              <Field label="Subject">
+                <Input
+                  value={outreachSubject}
+                  onChange={(event) => setOutreachSubject(event.target.value)}
+                  maxLength={160}
+                  className="h-11 rounded-xl"
+                />
+              </Field>
+
+              <Field label="Message">
+                <Textarea
+                  value={outreachBody}
+                  onChange={(event) => setOutreachBody(event.target.value)}
+                  maxLength={10000}
+                  className="!h-56 min-h-56 max-h-72 resize-y overflow-auto rounded-2xl [field-sizing:fixed]"
+                />
+              </Field>
+
+              <p className="text-xs font-semibold leading-5 text-slate-500">
+                Email is sent through the configured Resend account. WhatsApp continues to open through wa.me because no WhatsApp API is configured.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeOutreachComposer}
+              disabled={outreachSending}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={sendOutreach}
+              disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim()}
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-700"
+            >
+              {outreachSending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-2 h-4 w-4" />
+              )}
+              {outreachSending ? "Sending…" : "Send email"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

@@ -323,3 +323,13 @@ test("public preview preserves factual descriptions next to service headings", (
     },
   ]);
 });
+
+
+test("public preview does not trust a stale localStorage lead id", async () => {
+  const { readFileSync } = await import("node:fs");
+  const source = readFileSync("src/components/PublicMarketingPages.tsx", "utf8");
+
+  assert.doesNotMatch(source, /canReuseExistingLead/);
+  assert.match(source, /leadResult = await submitPlatformLead\(\{/);
+  assert.match(source, /deduplicates by previewId \+ email/);
+});

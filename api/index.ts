@@ -64,7 +64,7 @@ import {
 import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
-import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, suppressSalesRecipient } from "../server/salesOperations.js";
+import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { parseProspectCsv } from "../src/lib/prospectImport.js";
 import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS } from "../src/lib/commercialPricing.js";
 import { DEFAULT_LAUNCH_FLAGS, normalizeLaunchFlags, type LaunchFlags } from "../src/lib/launchFlags.js";
@@ -3216,6 +3216,29 @@ async function startServer() {
       return { id: data.id };
     },
   });
+
+  const sendDirectSalesEmail = async (message: any) => {
+    await refreshPlatformSettings();
+    const unsubscribeUrl = `${publicAppUrl()}/api/public/unsubscribe/${message.unsubscribe_token}`;
+    const html = `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
+    const { data, error } = await getResend().emails.send({
+      from:
+        process.env.RESEND_FROM_EMAIL
+        || platformSettings?.emailFrom
+        || "Bennie Studio <onboarding@resend.dev>",
+      to: message.recipient,
+      subject: message.subject || "A note from Bennie Studio",
+      html,
+      text: `${message.body_text}\n\nStop receiving these emails: ${unsubscribeUrl}`,
+      replyTo:
+        process.env.SALES_REPLY_TO
+        || platformSettings?.supportEmail
+        || undefined,
+      tags: [{ name: "sales_message_id", value: message.id }],
+    }, { idempotencyKey: message.idempotency_key });
+    if (error || !data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
+    return { id: data.id };
+  };
 
   const isPrivateAddress = (address: string) => {
     const normalized = address.replace(/^::ffff:/, "").toLowerCase();
@@ -6824,23 +6847,114 @@ async function startServer() {
   });
 
   app.post("/api/admin/prospects/:prospectId/outreach", authenticate, async (req: any, res) => {
-    if (!UUID_SCHEMA.safeParse(req.params.prospectId).success) return res.status(400).json({ error: "Invalid prospect ID" });
+    if (!UUID_SCHEMA.safeParse(req.params.prospectId).success) {
+      return res.status(400).json({ error: "Invalid prospect ID" });
+    }
+
     try {
       const profile = await getProfileForUser(req.user.id);
-      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
-      const body = validateBody(z.object({
-        action: z.enum(["prepare", "contacted"]), channel: z.enum(["email", "whatsapp"]),
-        observation: z.string().trim().min(10).max(1000), bodyText: z.string().trim().min(1).max(10000), requestId: UUID_SCHEMA,
-      }), req, res);
+      if (!canManageSalesOperations(profile)) {
+        return res.status(403).json({ error: "Sales access required" });
+      }
+
+      const body = validateBody(
+        z.object({
+          action: z.enum(["prepare", "contacted", "send"]),
+          channel: z.enum(["email", "whatsapp"]),
+          observation: z.string().trim().max(1000).optional(),
+          subject: z.string().trim().max(160).optional(),
+          bodyText: z.string().trim().min(1).max(10000),
+          requestId: UUID_SCHEMA,
+        }),
+        req,
+        res,
+      );
       if (!body) return;
-      return res.json(await saveManualOutreach(supabaseAdmin, { ...body, prospectId: req.params.prospectId, actorId: req.user.id }, new Date().toISOString()));
+
+      if (body.action === "send") {
+        if (body.channel !== "email") {
+          return res.status(400).json({
+            error: "Direct WhatsApp is not enabled. Use the WhatsApp button to open wa.me.",
+          });
+        }
+        const result = await sendDirectProspectOutreach(
+          supabaseAdmin,
+          {
+            ...body,
+            channel: "email",
+            prospectId: req.params.prospectId,
+            actorId: req.user.id,
+            deliver: sendDirectSalesEmail,
+          },
+          new Date().toISOString(),
+        );
+        return res.json({ success: true, ...result });
+      }
+
+      if (!body.observation || body.observation.length < 10) {
+        return res.status(400).json({
+          error: "Add a short outreach observation before saving manual outreach.",
+        });
+      }
+
+      return res.json(
+        await saveManualOutreach(
+          supabaseAdmin,
+          {
+            action: body.action,
+            channel: body.channel,
+            observation: body.observation,
+            bodyText: body.bodyText,
+            requestId: body.requestId,
+            prospectId: req.params.prospectId,
+            actorId: req.user.id,
+          },
+          new Date().toISOString(),
+        ),
+      );
     } catch (error: any) {
-      const errors: Record<string, string> = {
-        CONTACT_NOT_FOUND: "Prospect not found", CONTACT_CLOSED: "This prospect is closed; do not restart outreach automatically.",
-        CONTACT_SUPPRESSED: "This contact has opted out or is suppressed.", CONTACT_CHANNEL_MISSING: "Add a valid contact for this channel.",
-        OUTREACH_REQUEST_CONFLICT: "This outreach confirmation belongs to another prospect.",
+      const errors: Record<string, { status: number; message: string }> = {
+        CONTACT_NOT_FOUND: { status: 404, message: "Prospect not found" },
+        CONTACT_CLOSED: {
+          status: 409,
+          message: "This prospect is closed; do not restart outreach automatically.",
+        },
+        CONTACT_SUPPRESSED: {
+          status: 409,
+          message: "This contact has opted out or is suppressed.",
+        },
+        CONTACT_CHANNEL_MISSING: {
+          status: 409,
+          message: "Add a valid contact for this channel.",
+        },
+        OUTREACH_REQUEST_CONFLICT: {
+          status: 409,
+          message: "This outreach request belongs to another prospect.",
+        },
+        OUTREACH_SEND_IN_PROGRESS: {
+          status: 409,
+          message: "This message is already being sent. Wait before retrying.",
+        },
+        OUTREACH_SEND_UNCERTAIN: {
+          status: 409,
+          message: "The previous delivery attempt is uncertain. Close and reopen the composer before sending again.",
+        },
+        RESEND_CONFIG_ERROR: {
+          status: 503,
+          message: "Direct email is not configured. Add RESEND_API_KEY and RESEND_FROM_EMAIL in Vercel.",
+        },
+        EMAIL_DELIVERY_FAILED: {
+          status: 502,
+          message: "The email provider rejected the message. Check the verified sender/domain and try again.",
+        },
       };
-      return res.status(errors[error?.message] ? 409 : 503).json({ error: errors[error?.message] || "Outreach could not be saved. No message was sent by the app." });
+      const known = errors[error?.message];
+      if (known) return res.status(known.status).json({ error: known.message });
+
+      console.error("[Direct Prospect Outreach] Failed:", error);
+      return res.status(503).json({
+        error: "Outreach could not be sent. No successful delivery was recorded.",
+      });
     }
   });
 

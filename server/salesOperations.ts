@@ -299,6 +299,225 @@ export async function saveManualOutreach(db: Db, input: {
   return { prospect: data, recipient: input.channel === "email" ? email : phone };
 }
 
+export async function sendDirectProspectOutreach(
+  db: Db,
+  input: {
+    prospectId: string;
+    channel: "email" | "whatsapp";
+    subject?: string;
+    bodyText: string;
+    observation?: string;
+    requestId: string;
+    actorId: string;
+    deliver: (message: Row) => Promise<{ id: string }>;
+  },
+  now: string,
+) {
+  const { data: prospect } = checked(
+    await db.from("prospects").select("*").eq("id", input.prospectId).maybeSingle(),
+  );
+  if (!prospect) throw new Error("CONTACT_NOT_FOUND");
+
+  if (
+    [prospect.status, prospect.outreach_status].some((status) =>
+      ["won", "lost", "closed", "converted", "paid"].includes(
+        String(status || "").toLowerCase(),
+      ),
+    )
+  ) {
+    throw new Error("CONTACT_CLOSED");
+  }
+
+  const email = normalizeSalesEmail(prospect.contact_email);
+  const phone = String(
+    prospect.contact_whatsapp || prospect.contact_phone || "",
+  ).replace(/\D/g, "");
+
+  if (input.channel === "email") {
+    if (!email) throw new Error("CONTACT_CHANNEL_MISSING");
+    if (await isSalesSuppressed(db, email)) {
+      throw new Error("CONTACT_SUPPRESSED");
+    }
+  } else {
+    if (!/^\d{7,15}$/.test(phone)) throw new Error("CONTACT_CHANNEL_MISSING");
+    const { data: suppression } = checked(
+      await db
+        .from("sales_suppressions")
+        .select("id")
+        .eq("phone", phone)
+        .limit(1)
+        .maybeSingle(),
+    );
+    if (suppression) throw new Error("CONTACT_SUPPRESSED");
+  }
+
+  const recipient = input.channel === "email" ? email : phone;
+  const key = `direct-outreach:${input.channel}:${input.requestId}`;
+  const { data: prior } = checked(
+    await db
+      .from("sales_messages")
+      .select("*")
+      .eq("idempotency_key", key)
+      .maybeSingle(),
+  );
+
+  if (prior && prior.prospect_id !== prospect.id) {
+    throw new Error("OUTREACH_REQUEST_CONFLICT");
+  }
+  if (prior && SENT.includes(prior.status)) {
+    return {
+      prospect,
+      recipient,
+      message: prior,
+      providerMessageId: prior.provider_message_id || null,
+      alreadySent: true,
+    };
+  }
+  if (prior?.status === "sending") throw new Error("OUTREACH_SEND_IN_PROGRESS");
+  if (prior?.status === "failed") throw new Error("OUTREACH_SEND_UNCERTAIN");
+
+  const messageId = prior?.id || salesRecordId(key);
+  const messagePayload = {
+    prospect_id: prospect.id,
+    direction: "outbound",
+    channel: input.channel,
+    recipient,
+    subject:
+      input.channel === "email"
+        ? String(input.subject || `A quick website idea for ${prospect.name}`).slice(0, 500)
+        : null,
+    body_text: input.bodyText,
+    status: "sending",
+    scheduled_at: now,
+    error: null,
+    updated_at: now,
+    provider_payload: {
+      directSend: true,
+      actorId: input.actorId,
+      observation: input.observation || null,
+    },
+  };
+
+  let message: Row;
+  if (prior) {
+    const { data } = checked(
+      await db
+        .from("sales_messages")
+        .update(messagePayload)
+        .eq("id", prior.id)
+        .select("*")
+        .single(),
+    );
+    message = data;
+  } else {
+    const { data } = checked(
+      await db
+        .from("sales_messages")
+        .insert({
+          id: messageId,
+          idempotency_key: key,
+          ...messagePayload,
+        })
+        .select("*")
+        .single(),
+    );
+    message = data;
+  }
+
+  let receipt: { id: string };
+  try {
+    receipt = await input.deliver(message);
+    if (!receipt?.id) throw new Error("MISSING_DELIVERY_RECEIPT");
+  } catch (error: any) {
+    checked(
+      await db
+        .from("sales_messages")
+        .update({
+          status: "failed",
+          error: String(error?.message || "Delivery failed").slice(0, 500),
+          updated_at: now,
+        })
+        .eq("id", message.id)
+        .eq("status", "sending"),
+    );
+    throw error;
+  }
+
+  const { data: sentMessage } = checked(
+    await db
+      .from("sales_messages")
+      .update({
+        status: "sent",
+        sent_at: now,
+        provider_message_id: receipt.id,
+        error: null,
+        updated_at: now,
+      })
+      .eq("id", message.id)
+      .eq("status", "sending")
+      .select("*")
+      .single(),
+  );
+
+  const followUp = new Date(new Date(now).getTime() + 3 * 86400000).toISOString();
+  const existingFollowUp =
+    prospect.next_follow_up_at &&
+    new Date(prospect.next_follow_up_at).getTime() > new Date(now).getTime()
+      ? prospect.next_follow_up_at
+      : null;
+  const observation =
+    input.observation?.trim() ||
+    `Direct ${input.channel} outreach sent from Prospect Explorer.`;
+  const notes = saveOutreachObservation(prospect.notes, observation);
+  const updates: Row = {
+    notes,
+    updated_at: now,
+  };
+
+  if (!["replied", "call_booked"].includes(String(prospect.outreach_status || ""))) {
+    updates.outreach_status = "contacted";
+    updates.next_follow_up_at = existingFollowUp || followUp;
+  }
+
+  const { data: updatedProspect } = checked(
+    await db
+      .from("prospects")
+      .update(updates)
+      .eq("id", prospect.id)
+      .select("*")
+      .single(),
+  );
+
+  if (!["replied", "call_booked"].includes(String(prospect.outreach_status || ""))) {
+    checked(
+      await db.from("sales_tasks").upsert(
+        {
+          id: salesRecordId(`direct-follow-up:${input.requestId}`),
+          prospect_id: prospect.id,
+          title: `Follow up with ${prospect.name}`,
+          task_type: "follow_up",
+          priority: "medium",
+          due_at: existingFollowUp || followUp,
+          metadata: {
+            directOutreachId: input.requestId,
+            channel: input.channel,
+            actorId: input.actorId,
+          },
+        },
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+    );
+  }
+
+  return {
+    prospect: updatedProspect,
+    recipient,
+    message: sentMessage,
+    providerMessageId: receipt.id,
+    alreadySent: false,
+  };
+}
+
 export async function saveSalesCallOutcome(db: Db, id: string, input: {
   status?: string; outcome?: string; nextAction?: string;
 }, now: string) {
