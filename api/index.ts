@@ -6963,6 +6963,260 @@ async function startServer() {
     }
   });
 
+  app.get("/api/admin/prospects/:prospectId/engagement", authenticate, async (req: any, res: any) => {
+    const prospectId = String(req.params.prospectId || "");
+    if (!UUID_SCHEMA.safeParse(prospectId).success) {
+      return res.status(400).json({ error: "Invalid prospect ID" });
+    }
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) {
+        return res.status(403).json({ error: "Sales access required" });
+      }
+      const [prospectResult, messagesResult, tasksResult, eventsResult] = await Promise.all([
+        supabaseAdmin.from("prospects").select("*").eq("id", prospectId).maybeSingle(),
+        supabaseAdmin.from("sales_messages").select("id,prospect_id,direction,channel,recipient,subject,body_text,status,sent_at,created_at,classification,reply_to_message_id,provider_message_id").eq("prospect_id", prospectId).order("created_at", { ascending: true }).limit(100),
+        supabaseAdmin.from("sales_tasks").select("id,prospect_id,title,task_type,status,priority,due_at,notes,metadata,created_at,updated_at").eq("prospect_id", prospectId).order("created_at", { ascending: false }).limit(50),
+        supabaseAdmin.from("deal_stage_events").select("id,from_stage,to_stage,event_type,metadata,created_at").eq("prospect_id", prospectId).order("created_at", { ascending: false }).limit(30),
+      ]);
+      if (prospectResult.error) throw prospectResult.error;
+      if (!prospectResult.data) return res.status(404).json({ error: "Prospect not found" });
+      if (messagesResult.error) throw messagesResult.error;
+      if (tasksResult.error) throw tasksResult.error;
+      if (eventsResult.error) console.warn("Prospect stage events unavailable:", eventsResult.error.message);
+      res.setHeader("Cache-Control", "no-store");
+      return res.json({
+        prospect: prospectResult.data,
+        messages: messagesResult.data || [],
+        tasks: tasksResult.data || [],
+        events: eventsResult.data || [],
+      });
+    } catch (error: any) {
+      console.error("[Prospect Engagement] Failed:", error?.message || error);
+      return res.status(503).json({ error: "Prospect conversation could not be loaded." });
+    }
+  });
+
+  app.patch("/api/admin/sales-tasks/:taskId", authenticate, async (req: any, res: any) => {
+    const taskId = String(req.params.taskId || "");
+    if (!UUID_SCHEMA.safeParse(taskId).success) {
+      return res.status(400).json({ error: "Invalid task ID" });
+    }
+    const body = validateBody(
+      z.object({ status: z.enum(["open", "completed", "dismissed"]) }).strict(),
+      req,
+      res,
+    );
+    if (!body) return;
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) {
+        return res.status(403).json({ error: "Sales access required" });
+      }
+      const { data, error } = await supabaseAdmin
+        .from("sales_tasks")
+        .update({ status: body.status, updated_at: new Date().toISOString() })
+        .eq("id", taskId)
+        .select("*")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ error: "Sales task not found" });
+      return res.json({ task: data });
+    } catch (error: any) {
+      console.error("[Sales Task Update] Failed:", error?.message || error);
+      return res.status(503).json({ error: "Sales task could not be updated." });
+    }
+  });
+
+  app.post("/api/admin/prospects/:prospectId/convert", authenticate, async (req: any, res: any) => {
+    const prospectId = String(req.params.prospectId || "");
+    if (!UUID_SCHEMA.safeParse(prospectId).success) {
+      return res.status(400).json({ error: "Invalid prospect ID" });
+    }
+    const body = validateBody(
+      z.object({
+        productSlug: z.enum(["managed-website", "website-growth", "growth-partner", "custom-website"]).default("managed-website"),
+        market: z.enum(["MY", "SG", "GB", "INTL"]).default("INTL"),
+        termMonths: z.union([z.literal(3), z.literal(6), z.literal(9), z.literal(12)]).default(3),
+      }).strict(),
+      req,
+      res,
+    );
+    if (!body) return;
+
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) {
+        return res.status(403).json({ error: "Sales access required" });
+      }
+
+      const { data: prospect, error: prospectError } = await supabaseAdmin
+        .from("prospects")
+        .select("*")
+        .eq("id", prospectId)
+        .maybeSingle();
+      if (prospectError) throw prospectError;
+      if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+
+      const now = new Date().toISOString();
+      const businessId = prospect.converted_business_id || salesRecordId(`prospect-business:${prospectId}`);
+      const projectId = salesRecordId(`prospect-project:${prospectId}`);
+      const onboardingId = salesRecordId(`prospect-onboarding:${prospectId}`);
+      const currencyByMarket: Record<string, string> = { MY: "MYR", SG: "SGD", GB: "GBP", INTL: "USD" };
+      const plan = ["website-growth", "growth-partner"].includes(body.productSlug) ? "growth" : "business";
+
+      let ownerId: string | null = null;
+      const prospectEmail = normalizeSalesEmail(prospect.contact_email);
+      if (prospectEmail) {
+        const { data: existingProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("id,business_id,role")
+          .ilike("email", prospectEmail)
+          .maybeSingle();
+        if (
+          existingProfile &&
+          !existingProfile.business_id &&
+          !["super_admin", "platform_staff"].includes(existingProfile.role)
+        ) {
+          ownerId = existingProfile.id;
+        }
+      }
+
+      const { data: existingBusiness, error: existingBusinessError } = await supabaseAdmin
+        .from("businesses")
+        .select("id,owner_id")
+        .eq("id", businessId)
+        .maybeSingle();
+      if (existingBusinessError) throw existingBusinessError;
+
+      if (!existingBusiness) {
+        const { error: businessError } = await supabaseAdmin.from("businesses").insert({
+          id: businessId,
+          name: String(prospect.name || "New customer").slice(0, 160),
+          owner_id: ownerId,
+          plan,
+          status: "pending",
+          subscription_status: "incomplete",
+          industry: prospect.industry || null,
+          location: prospect.location || null,
+          business_nature: prospect.notes ? String(prospect.notes).slice(0, 500) : prospect.industry || null,
+          lifecycle_stage: "onboarding",
+          lifecycle_stage_changed_at: now,
+          onboarding_started_at: now,
+          commercial_product_slug: body.productSlug,
+          commercial_market: body.market,
+          commercial_currency: currencyByMarket[body.market],
+          commercial_term_months: body.termMonths,
+          admin_notes: `Converted from prospect ${prospectId}. Customer account/payment may still need to be attached.`,
+        });
+        if (businessError) throw businessError;
+      } else if (ownerId && !existingBusiness.owner_id) {
+        const { error: ownerError } = await supabaseAdmin
+          .from("businesses")
+          .update({ owner_id: ownerId })
+          .eq("id", businessId)
+          .is("owner_id", null);
+        if (ownerError) throw ownerError;
+      }
+
+      if (ownerId) {
+        const { error: profileUpdateError } = await supabaseAdmin
+          .from("profiles")
+          .update({
+            business_id: businessId,
+            role: "business_admin",
+            status: "active",
+            onboarding_completed: false,
+          })
+          .eq("id", ownerId)
+          .is("business_id", null);
+        if (profileUpdateError) throw profileUpdateError;
+      }
+
+      const { error: onboardingError } = await supabaseAdmin.from("onboarding_sessions").upsert({
+        id: onboardingId,
+        business_id: businessId,
+        current_step: "Awaiting customer onboarding",
+        progress: 5,
+        status: "In Progress",
+        notes: prospectEmail
+          ? "Prospect converted. Collect the complete customer brief before production."
+          : "Prospect converted without an email address. Attach a customer account before onboarding.",
+        updated_at: now,
+      }, { onConflict: "id" });
+      if (onboardingError) throw onboardingError;
+
+      const { error: projectError } = await supabaseAdmin.from("projects").upsert({
+        id: projectId,
+        business_id: businessId,
+        type: "waas",
+        package_name: body.productSlug,
+        title: `${prospect.name} Managed Website`,
+        status: "awaiting_onboarding",
+        priority: prospect.opportunity_level === "high" ? "high" : "medium",
+        delivery_checklist: [],
+        creation_key: `prospect-conversion:${prospectId}`,
+        updated_at: now,
+      }, { onConflict: "id" });
+      if (projectError) throw projectError;
+
+      const { data: convertedProspect, error: updateError } = await supabaseAdmin
+        .from("prospects")
+        .update({
+          converted_business_id: businessId,
+          converted_at: prospect.converted_at || now,
+          outreach_status: "won",
+          status: "converted",
+          next_follow_up_at: null,
+          updated_at: now,
+        })
+        .eq("id", prospectId)
+        .select("*")
+        .single();
+      if (updateError) throw updateError;
+
+      await supabaseAdmin
+        .from("sales_tasks")
+        .update({ status: "completed", updated_at: now })
+        .eq("prospect_id", prospectId)
+        .eq("status", "open");
+
+      if (!prospect.converted_business_id) {
+        await supabaseAdmin.from("deal_stage_events").insert({
+          prospect_id: prospectId,
+          from_stage: prospect.outreach_status || prospect.status || null,
+          to_stage: "won",
+          event_type: "prospect_converted",
+          metadata: {
+            businessId,
+            projectId,
+            onboardingId,
+            productSlug: body.productSlug,
+            market: body.market,
+            actorId: req.user.id,
+          },
+        });
+      }
+
+      return res.json({
+        success: true,
+        alreadyConverted: Boolean(prospect.converted_business_id),
+        prospect: convertedProspect,
+        business: {
+          id: businessId,
+          ownerId,
+          accountStatus: ownerId ? "existing_user_attached" : "awaiting_customer_account",
+          onboardingPath: "/dashboard/onboarding",
+        },
+        project: { id: projectId, status: "awaiting_onboarding" },
+        onboarding: { id: onboardingId, progress: 5 },
+      });
+    } catch (error: any) {
+      console.error("[Prospect Conversion] Failed:", error?.message || error);
+      return res.status(503).json({ error: "Prospect could not be converted. No duplicate customer should be created on retry." });
+    }
+  });
+
   app.post("/api/admin/prospects/:prospectId/outreach", authenticate, async (req: any, res) => {
     if (!UUID_SCHEMA.safeParse(req.params.prospectId).success) {
       return res.status(400).json({ error: "Invalid prospect ID" });
@@ -6981,6 +7235,7 @@ async function startServer() {
           observation: z.string().trim().max(1000).optional(),
           subject: z.string().trim().max(160).optional(),
           bodyText: z.string().trim().min(1).max(10000),
+          replyToMessageId: UUID_SCHEMA.optional().nullable(),
           requestId: UUID_SCHEMA,
         }),
         req,
@@ -7047,6 +7302,10 @@ async function startServer() {
         OUTREACH_REQUEST_CONFLICT: {
           status: 409,
           message: "This outreach request belongs to another prospect.",
+        },
+        OUTREACH_REPLY_CONFLICT: {
+          status: 409,
+          message: "The selected reply no longer belongs to this prospect.",
         },
         OUTREACH_SEND_IN_PROGRESS: {
           status: 409,
@@ -9755,6 +10014,294 @@ async function startServer() {
       }
     },
   );
+
+  app.post("/api/admin/businesses/:businessId/approval-request", authenticate, async (req: any, res: any) => {
+    const businessId = String(req.params.businessId || "");
+    if (!UUID_SCHEMA.safeParse(businessId).success) {
+      return res.status(400).json({ error: "Invalid business reference." });
+    }
+    const body = validateBody(
+      z.object({
+        title: z.string().trim().min(1).max(180).optional(),
+        description: z.string().trim().max(1000).optional(),
+      }).strict(),
+      req,
+      res,
+    );
+    if (!body) return;
+    try {
+      await assertBusinessRoleAccess(req.user.id, businessId, {
+        customerRoles: [],
+        platformPermissions: ["delivery", "approvals"],
+      });
+      const [{ data: business, error: businessError }, { data: website, error: websiteError }, { data: project, error: projectError }] = await Promise.all([
+        supabaseAdmin.from("businesses").select("id,name").eq("id", businessId).maybeSingle(),
+        supabaseAdmin.from("websites").select("id,status,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+        supabaseAdmin.from("projects").select("id,status").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (businessError) throw businessError;
+      if (!business) return res.status(404).json({ error: "Business not found." });
+      if (websiteError) throw websiteError;
+      if (!website) return res.status(409).json({ error: "Create a website draft before requesting customer approval." });
+      if (projectError) console.warn("Approval project lookup failed:", projectError.message);
+
+      const now = new Date().toISOString();
+      const previewUrl = `${publicAppUrl()}/w/${businessId}?draft=1&website=${website.id}`;
+      const versionLabel = `Website review · ${new Date().toLocaleDateString("en-GB")}`;
+      const { data: existing } = await supabaseAdmin
+        .from("customer_approvals")
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("website_id", website.id)
+        .eq("status", "pending")
+        .order("requested_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const approvalPayload = {
+        business_id: businessId,
+        project_id: project?.id || null,
+        website_id: website.id,
+        approval_type: "website_review",
+        title: body.title || `Approve ${business.name} website`,
+        description: body.description || "Review the current website version. Approve it for launch or send one consolidated change request.",
+        version_label: versionLabel,
+        preview_url: previewUrl,
+        requested_by: req.user.id,
+        requested_at: now,
+        updated_at: now,
+      };
+      let approval: any;
+      if (existing?.id) {
+        const { data, error } = await supabaseAdmin
+          .from("customer_approvals")
+          .update(approvalPayload)
+          .eq("id", existing.id)
+          .select("*")
+          .single();
+        if (error) throw error;
+        approval = data;
+      } else {
+        const { data, error } = await supabaseAdmin
+          .from("customer_approvals")
+          .insert(approvalPayload)
+          .select("*")
+          .single();
+        if (error) throw error;
+        approval = data;
+      }
+
+      if (project?.id) {
+        await supabaseAdmin.from("projects").update({ status: "customer_review", updated_at: now }).eq("id", project.id);
+      }
+      await supabaseAdmin.from("businesses").update({
+        lifecycle_stage: "customer_review",
+        lifecycle_stage_changed_at: now,
+        customer_review_started_at: now,
+        customer_review_sent_at: now,
+      }).eq("id", businessId);
+
+      return res.json({ success: true, approval });
+    } catch (error: any) {
+      if (["BUSINESS_NOT_FOUND", "PROFILE_NOT_FOUND", "FORBIDDEN_BUSINESS_ACCESS"].includes(error?.message)) {
+        return handleAccessError(res, error);
+      }
+      console.error("[Approval Request] Failed:", error?.message || error);
+      return res.status(503).json({ error: "Customer approval request could not be created." });
+    }
+  });
+
+  app.post("/api/customer/approvals/:approvalId/respond", authenticate, async (req: any, res: any) => {
+    const approvalId = String(req.params.approvalId || "");
+    if (!UUID_SCHEMA.safeParse(approvalId).success) {
+      return res.status(400).json({ error: "Invalid approval reference." });
+    }
+    const body = validateBody(
+      z.object({
+        status: z.enum(["approved", "changes_requested"]),
+        notes: z.string().trim().max(5000).optional().nullable(),
+      }).superRefine((value, ctx) => {
+        if (value.status === "changes_requested" && !String(value.notes || "").trim()) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Describe the changes you need.", path: ["notes"] });
+        }
+      }),
+      req,
+      res,
+    );
+    if (!body) return;
+    try {
+      const { data: approval, error: approvalError } = await supabaseAdmin
+        .from("customer_approvals")
+        .select("*")
+        .eq("id", approvalId)
+        .maybeSingle();
+      if (approvalError) throw approvalError;
+      if (!approval) return res.status(404).json({ error: "Approval request not found." });
+      await assertBusinessRoleAccess(req.user.id, approval.business_id, {
+        customerRoles: ["business_admin", "staff", "client"],
+        platformPermissions: ["approvals"],
+      });
+
+      const now = new Date().toISOString();
+      const { data: updated, error: updateError } = await supabaseAdmin
+        .from("customer_approvals")
+        .update({
+          status: body.status,
+          customer_notes: body.notes || null,
+          responded_by: req.user.id,
+          responded_at: now,
+          updated_at: now,
+        })
+        .eq("id", approvalId)
+        .select("*")
+        .single();
+      if (updateError) throw updateError;
+
+      if (approval.project_id) {
+        await supabaseAdmin.from("projects").update({
+          status: body.status === "approved" ? "approved" : "changes_requested",
+          updated_at: now,
+        }).eq("id", approval.project_id);
+      }
+
+      if (body.status === "approved") {
+        await supabaseAdmin.from("businesses").update({
+          lifecycle_stage: "launch_ready",
+          lifecycle_stage_changed_at: now,
+          customer_approved_at: now,
+          launch_ready_at: now,
+        }).eq("id", approval.business_id);
+      } else {
+        await supabaseAdmin.from("businesses").update({
+          lifecycle_stage: "design_build",
+          lifecycle_stage_changed_at: now,
+          customer_feedback_received_at: now,
+        }).eq("id", approval.business_id);
+      }
+
+      return res.json({ success: true, approval: updated });
+    } catch (error: any) {
+      if (["BUSINESS_NOT_FOUND", "PROFILE_NOT_FOUND", "FORBIDDEN_BUSINESS_ACCESS"].includes(error?.message)) {
+        return handleAccessError(res, error);
+      }
+      console.error("[Customer Approval Response] Failed:", error?.message || error);
+      return res.status(503).json({ error: "Your approval response could not be saved." });
+    }
+  });
+
+  app.get("/api/admin/businesses/:businessId/launch-readiness", authenticate, async (req: any, res: any) => {
+    const businessId = String(req.params.businessId || "");
+    if (!UUID_SCHEMA.safeParse(businessId).success) {
+      return res.status(400).json({ error: "Invalid business reference." });
+    }
+    try {
+      await assertBusinessRoleAccess(req.user.id, businessId, {
+        customerRoles: [],
+        platformPermissions: ["delivery", "customer_health", "approvals"],
+      });
+
+      const [businessResult, websiteResult, projectResult, approvalResult, onboardingResult] = await Promise.all([
+        supabaseAdmin.from("businesses").select("id,name,custom_domain,custom_domain_status,ssl_status,lifecycle_stage,onboarding_completed_at").eq("id", businessId).maybeSingle(),
+        supabaseAdmin.from("websites").select("id,status,pages,seo,button_health,validation_report,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+        supabaseAdmin.from("projects").select("id,status,launch_blocker,delivery_checklist,target_launch_date,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+        supabaseAdmin.from("customer_approvals").select("id,status,responded_at,updated_at").eq("business_id", businessId).order("requested_at", { ascending: false }).limit(1).maybeSingle(),
+        supabaseAdmin.from("onboarding_sessions").select("id,status,progress,current_step,updated_at").eq("business_id", businessId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (businessResult.error) throw businessResult.error;
+      if (!businessResult.data) return res.status(404).json({ error: "Business not found." });
+      if (websiteResult.error) throw websiteResult.error;
+      if (projectResult.error) console.warn("Launch project lookup failed:", projectResult.error.message);
+      if (approvalResult.error) console.warn("Launch approval lookup failed:", approvalResult.error.message);
+      if (onboardingResult.error) console.warn("Launch onboarding lookup failed:", onboardingResult.error.message);
+
+      const business: any = businessResult.data;
+      const website: any = websiteResult.data;
+      const project: any = projectResult.data;
+      const approval: any = approvalResult.data;
+      const onboarding: any = onboardingResult.data;
+      const pages = Array.isArray(website?.pages) ? website.pages : [];
+      const visibleSections = pages.flatMap((page: any) =>
+        Array.isArray(page?.sections) ? page.sections.filter((section: any) => section?.isVisible !== false) : [],
+      );
+      const seo = website?.seo && typeof website.seo === "object" ? website.seo : {};
+      const storedButtonHealth =
+        website?.button_health && typeof website.button_health === "object"
+          ? website.button_health
+          : seo.buttonHealth && typeof seo.buttonHealth === "object"
+            ? seo.buttonHealth
+            : {};
+      const criticalBroken = Number(storedButtonHealth.criticalBroken ?? storedButtonHealth.critical ?? 0);
+      const hasEnquiryPath = visibleSections.some((section: any) =>
+        ["contact", "appointment"].includes(String(section?.type || "")),
+      );
+      const hasCustomDomain = Boolean(String(business.custom_domain || "").trim());
+      const domainReady = !hasCustomDomain || (
+        String(business.custom_domain_status || "").toLowerCase() === "connected"
+        && String(business.ssl_status || "").toLowerCase() === "issued"
+      );
+      const onboardingReady =
+        Boolean(business.onboarding_completed_at)
+        || String(onboarding?.status || "").toLowerCase() === "completed"
+        || Number(onboarding?.progress || 0) >= 100;
+
+      const publicUrl = hasCustomDomain && String(business.custom_domain_status || "").toLowerCase() === "connected"
+        ? `https://${normalizeDomainInput(String(business.custom_domain || ""))}`
+        : `${publicAppUrl()}/w/${businessId}`;
+      let reachable = false;
+      let httpStatus: number | null = null;
+      let latencyMs: number | null = null;
+      const startedAt = Date.now();
+      try {
+        const response = await fetch(publicUrl, {
+          method: "GET",
+          redirect: "follow",
+          signal: AbortSignal.timeout(6000),
+          headers: { "user-agent": "BennieStudio-LaunchQA/1.0" },
+        });
+        httpStatus = response.status;
+        reachable = response.status >= 200 && response.status < 500;
+        latencyMs = Date.now() - startedAt;
+        await response.body?.cancel().catch(() => undefined);
+      } catch {
+        latencyMs = Date.now() - startedAt;
+      }
+
+      const checks = [
+        { id: "onboarding", label: "Customer onboarding complete", pass: onboardingReady, severity: "blocker" },
+        { id: "website", label: "Website draft exists", pass: Boolean(website?.id && pages.length), severity: "blocker" },
+        { id: "seo", label: "SEO title and description present", pass: Boolean(String(seo.title || "").trim() && String(seo.description || "").trim()), severity: "blocker" },
+        { id: "enquiry", label: "Customer enquiry path exists", pass: hasEnquiryPath, severity: "blocker" },
+        { id: "buttons", label: "No known critical broken buttons", pass: criticalBroken === 0, severity: "blocker" },
+        { id: "approval", label: "Customer approved current version", pass: approval?.status === "approved", severity: "blocker" },
+        { id: "project", label: "No delivery launch blocker", pass: !String(project?.launch_blocker || "").trim(), severity: "blocker" },
+        { id: "domain", label: hasCustomDomain ? "Custom domain and SSL ready" : "Bennie hosted URL available", pass: domainReady, severity: "blocker" },
+        { id: "reachability", label: "Public website responds", pass: reachable, severity: "blocker" },
+      ];
+      const blockers = checks.filter((check) => !check.pass && check.severity === "blocker");
+      return res.json({
+        businessId,
+        websiteId: website?.id || null,
+        ready: blockers.length === 0,
+        checks,
+        blockers,
+        warnings: [],
+        publicUrl,
+        reachable,
+        httpStatus,
+        latencyMs,
+        project: project || null,
+        approval: approval || null,
+        onboarding: onboarding || null,
+        checkedAt: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      if (["BUSINESS_NOT_FOUND", "PROFILE_NOT_FOUND", "FORBIDDEN_BUSINESS_ACCESS"].includes(error?.message)) {
+        return handleAccessError(res, error);
+      }
+      console.error("[Launch Readiness] Failed:", error?.message || error);
+      return res.status(503).json({ error: "Launch readiness could not be checked." });
+    }
+  });
 
   app.get(
     "/api/website-health",

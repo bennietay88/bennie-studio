@@ -307,6 +307,7 @@ export async function sendDirectProspectOutreach(
     subject?: string;
     bodyText: string;
     observation?: string;
+    replyToMessageId?: string | null;
     requestId: string;
     actorId: string;
     deliver: (message: Row) => Promise<{ id: string }>;
@@ -376,6 +377,21 @@ export async function sendDirectProspectOutreach(
   if (prior?.status === "sending") throw new Error("OUTREACH_SEND_IN_PROGRESS");
   if (prior?.status === "failed") throw new Error("OUTREACH_SEND_UNCERTAIN");
 
+  let replyToMessageId: string | null = null;
+  if (input.replyToMessageId) {
+    const { data: parent } = checked(
+      await db
+        .from("sales_messages")
+        .select("id,prospect_id")
+        .eq("id", input.replyToMessageId)
+        .maybeSingle(),
+    );
+    if (!parent || parent.prospect_id !== prospect.id) {
+      throw new Error("OUTREACH_REPLY_CONFLICT");
+    }
+    replyToMessageId = parent.id;
+  }
+
   const messageId = prior?.id || salesRecordId(key);
   const messagePayload = {
     prospect_id: prospect.id,
@@ -387,6 +403,7 @@ export async function sendDirectProspectOutreach(
         ? String(input.subject || `A quick website idea for ${prospect.name}`).slice(0, 500)
         : null,
     body_text: input.bodyText,
+    reply_to_message_id: replyToMessageId,
     status: "sending",
     scheduled_at: now,
     error: null,
@@ -395,6 +412,7 @@ export async function sendDirectProspectOutreach(
       directSend: true,
       actorId: input.actorId,
       observation: input.observation || null,
+      replyToMessageId,
     },
   };
 
@@ -506,6 +524,17 @@ export async function sendDirectProspectOutreach(
         },
         { onConflict: "id", ignoreDuplicates: true },
       ),
+    );
+  }
+
+  if (replyToMessageId) {
+    checked(
+      await db
+        .from("sales_tasks")
+        .update({ status: "completed", updated_at: now })
+        .eq("prospect_id", prospect.id)
+        .eq("task_type", "reply")
+        .eq("status", "open"),
     );
   }
 

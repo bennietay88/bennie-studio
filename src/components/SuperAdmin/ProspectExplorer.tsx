@@ -23,6 +23,9 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  Check,
+  AlertTriangle,
+  UserPlus,
 } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
@@ -83,7 +86,15 @@ export function ProspectExplorer() {
   const [outreachSubject, setOutreachSubject] = useState("");
   const [outreachBody, setOutreachBody] = useState("");
   const [outreachRequestId, setOutreachRequestId] = useState("");
+  const [outreachReplyToMessageId, setOutreachReplyToMessageId] = useState<string | null>(null);
   const [outreachSending, setOutreachSending] = useState(false);
+  const [engagement, setEngagement] = useState<{ messages: any[]; tasks: any[]; events: any[] } | null>(null);
+  const [engagementLoading, setEngagementLoading] = useState(false);
+  const [conversionProspect, setConversionProspect] = useState<any | null>(null);
+  const [conversionProduct, setConversionProduct] = useState("managed-website");
+  const [conversionMarket, setConversionMarket] = useState("INTL");
+  const [conversionTerm, setConversionTerm] = useState("3");
+  const [conversionSaving, setConversionSaving] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [csvText, setCsvText] = useState("");
@@ -236,9 +247,17 @@ export function ProspectExplorer() {
       toast.error("Add a public website domain before preparing a review.");
       return;
     }
-    const auditResponse = await fetch("/api/public/website-audit", {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      toast.error("Your admin session has expired. Sign in again and retry.");
+      return;
+    }
+    const auditResponse = await fetch("/api/admin/website-audit", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
       body: JSON.stringify({ url: /^https?:\/\//i.test(prospect.domain) ? prospect.domain : `https://${prospect.domain}` }),
     });
     const payload = await auditResponse.json().catch(() => ({}));
@@ -261,11 +280,17 @@ export function ProspectExplorer() {
 
   const generatePreviewLink = async (prospect: any) => {
     const previewUrl = buildPreviewUrl(prospect);
-    const ok = await updateProspect(prospect.id, { preview_url: previewUrl });
+    const generatedAt = new Date().toISOString();
+    const ok = await updateProspect(prospect.id, {
+      preview_url: previewUrl,
+      preview_generated_at: prospect.preview_generated_at || generatedAt,
+    });
     if (ok) {
       await navigator.clipboard.writeText(previewUrl).catch(() => undefined);
       toast.success("Preview/audit link saved and copied");
+      return previewUrl;
     }
+    return "";
   };
 
   const resetCsvImport = () => {
@@ -594,7 +619,115 @@ export function ProspectExplorer() {
     setIsAddModalOpen(true);
   };
 
-  const openOutreachComposer = (prospect: any) => {
+  const loadEngagement = async (prospectId: string) => {
+    try {
+      setEngagementLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Your admin session has expired.");
+      const response = await fetch(
+        `/api/admin/prospects/${encodeURIComponent(prospectId)}/engagement`,
+        { headers: { Authorization: `Bearer ${session.access_token}` } },
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || "Conversation could not be loaded.");
+      setEngagement({
+        messages: payload.messages || [],
+        tasks: payload.tasks || [],
+        events: payload.events || [],
+      });
+    } catch (error: any) {
+      setEngagement(null);
+      toast.error(error?.message || "Conversation could not be loaded.");
+    } finally {
+      setEngagementLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedProspect?.id) {
+      setEngagement(null);
+      return;
+    }
+    void loadEngagement(selectedProspect.id);
+  }, [selectedProspect?.id]);
+
+  const updateSalesTask = async (taskId: string, status: "completed" | "dismissed") => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return toast.error("Your admin session has expired.");
+    const response = await fetch(`/api/admin/sales-tasks/${encodeURIComponent(taskId)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ status }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) return toast.error(payload?.error || "Task could not be updated.");
+    setEngagement((current) => current ? {
+      ...current,
+      tasks: current.tasks.map((task) => task.id === taskId ? { ...task, status } : task),
+    } : current);
+    toast.success(status === "completed" ? "Task completed" : "Task dismissed");
+  };
+
+  const preparePreviewAndEmail = async (prospect: any) => {
+    let next = prospect;
+    if (!prospect.preview_url) {
+      const previewUrl = await generatePreviewLink(prospect);
+      if (!previewUrl) return;
+      next = { ...prospect, preview_url: previewUrl, preview_generated_at: new Date().toISOString() };
+    }
+    openOutreachComposer(next);
+  };
+
+  const convertProspect = async () => {
+    if (!conversionProspect) return;
+    try {
+      setConversionSaving(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Your admin session has expired.");
+      const response = await fetch(
+        `/api/admin/prospects/${encodeURIComponent(conversionProspect.id)}/convert`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            productSlug: conversionProduct,
+            market: conversionMarket,
+            termMonths: Number(conversionTerm),
+          }),
+        },
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || "Prospect could not be converted.");
+      if (payload?.prospect) {
+        setProspects((current) => current.map((item) =>
+          item.id === payload.prospect.id
+            ? { ...item, ...payload.prospect, _score: scoreProspect({ ...item, ...payload.prospect }) }
+            : item,
+        ));
+        if (selectedProspect?.id === payload.prospect.id) {
+          setSelectedProspect({ ...selectedProspect, ...payload.prospect });
+        }
+      }
+      setConversionProspect(null);
+      toast.success(
+        payload?.business?.accountStatus === "existing_user_attached"
+          ? "Customer workspace created and existing account attached."
+          : "Customer workspace created. Attach the customer account/payment before onboarding.",
+      );
+    } catch (error: any) {
+      toast.error(error?.message || "Prospect could not be converted.");
+    } finally {
+      setConversionSaving(false);
+    }
+  };
+
+  const openOutreachComposer = (prospect: any, replyToMessage?: any) => {
     if (!prospect.contact_email) {
       toast.error("Add an email address for this prospect first.");
       return;
@@ -604,10 +737,17 @@ export function ProspectExplorer() {
       ? `\n\nI also prepared a quick preview for you: ${prospect.preview_url}`
       : "";
     setOutreachProspect(prospect);
-    setOutreachSubject(`Quick website idea for ${prospect.name}`);
-    setOutreachBody(
-      `Hi ${prospect.name},\n\nI came across your business and noticed a few practical opportunities to improve how your website turns visitors into enquiries.${previewLine}\n\nIf useful, I can share the key recommendations and what I would prioritise first.\n\nBest,\nBennie`,
-    );
+    setOutreachReplyToMessageId(replyToMessage?.id || null);
+    if (replyToMessage) {
+      const priorSubject = String(replyToMessage.subject || `Website conversation with ${prospect.name}`).replace(/^Re:\s*/i, "");
+      setOutreachSubject(`Re: ${priorSubject}`);
+      setOutreachBody(`Hi ${prospect.name},\n\nThanks for your reply.\n\n\n\nBest,\nBennie`);
+    } else {
+      setOutreachSubject(`Quick website idea for ${prospect.name}`);
+      setOutreachBody(
+        `Hi ${prospect.name},\n\nI came across your business and noticed a few practical opportunities to improve how your website turns visitors into enquiries.${previewLine}\n\nIf useful, I can share the key recommendations and what I would prioritise first.\n\nBest,\nBennie`,
+      );
+    }
     setOutreachRequestId(crypto.randomUUID());
   };
 
@@ -616,6 +756,7 @@ export function ProspectExplorer() {
     setOutreachProspect(null);
     setOutreachSubject("");
     setOutreachBody("");
+    setOutreachReplyToMessageId(null);
     setOutreachRequestId("");
   };
 
@@ -648,7 +789,10 @@ export function ProspectExplorer() {
             channel: "email",
             subject: outreachSubject.trim(),
             bodyText: outreachBody.trim(),
-            observation: "Direct email outreach sent from Prospect Explorer.",
+            observation: outreachReplyToMessageId
+              ? "Personal reply sent from Prospect Explorer."
+              : "Direct email outreach sent from Prospect Explorer.",
+            replyToMessageId: outreachReplyToMessageId,
             requestId: outreachRequestId || crypto.randomUUID(),
           }),
         },
@@ -681,7 +825,11 @@ export function ProspectExplorer() {
       setOutreachProspect(null);
       setOutreachSubject("");
       setOutreachBody("");
+      setOutreachReplyToMessageId(null);
       setOutreachRequestId("");
+      if (selectedProspect?.id === outreachProspect.id) {
+        void loadEngagement(outreachProspect.id);
+      }
     } catch (error: any) {
       console.error("Direct email outreach failed:", error);
       toast.error(error?.message || "Email could not be sent");
@@ -896,6 +1044,8 @@ export function ProspectExplorer() {
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Preview</Button>
+                          {prospect.contact_email && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
+                          {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-50" onClick={() => setConversionProspect(prospect)}><UserPlus className="h-3 w-3 mr-1.5" />Convert</Button>}
                           {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
                           <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 hover:bg-rose-50 hover:text-rose-600" onClick={() => deleteProspect(prospect.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
@@ -1259,20 +1409,177 @@ export function ProspectExplorer() {
       </Dialog>
 
       <Dialog open={Boolean(selectedProspect)} onOpenChange={(open) => !open && setSelectedProspect(null)}>
-        <DialogContent className="max-w-2xl rounded-3xl">
-          <DialogHeader><DialogTitle>{selectedProspect?.name}</DialogTitle><DialogDescription>Prospect history, qualification, audit, preview, and next action in one view.</DialogDescription></DialogHeader>
-          {selectedProspect && <div className="grid gap-4 py-3 sm:grid-cols-2">
-            <Info label="Pipeline" value={toTitle(selectedProspect.outreach_status || "not_started")} />
-            <Info label="Opportunity" value={toTitle(selectedProspect.opportunity_level || "medium")} />
-            <Info label="Website review" value={selectedProspect.last_audit_at ? `Prepared · ${format(new Date(selectedProspect.last_audit_at), "MMM dd, yyyy")}` : "Not prepared"} />
-            <Info label="Next follow-up" value={selectedProspect.next_follow_up_at ? format(new Date(selectedProspect.next_follow_up_at), "MMM dd, yyyy") : "Not scheduled"} />
-            <Info label="Contact" value={selectedProspect.contact_email || selectedProspect.contact_phone || selectedProspect.contact_whatsapp || "Missing"} />
-            <Info label="Source" value={selectedProspect.source || "Unknown"} />
-            <div className="sm:col-span-2 rounded-2xl bg-slate-50 p-4"><p className="text-xs font-black uppercase tracking-widest text-slate-400">Notes and outreach history</p><p className="mt-2 whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-700">{selectedProspect.notes || "No notes recorded."}</p></div>
-          </div>}
-          <DialogFooter>{selectedProspect?.preview_url && <a href={selectedProspect.preview_url} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-bold"><ExternalLink className="mr-2 h-4 w-4"/>Open Preview</a>}</DialogFooter>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>{selectedProspect?.name}</DialogTitle>
+            <DialogDescription>Sales conversation, next actions, preview status, and conversion in one view.</DialogDescription>
+          </DialogHeader>
+          {selectedProspect && (
+            <div className="space-y-5 py-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <Info label="Pipeline" value={toTitle(selectedProspect.outreach_status || "not_started")} />
+                <Info label="Opportunity" value={toTitle(selectedProspect.opportunity_level || "medium")} />
+                <Info label="Next follow-up" value={selectedProspect.next_follow_up_at ? format(new Date(selectedProspect.next_follow_up_at), "MMM dd, yyyy") : "Not scheduled"} />
+              </div>
+
+              <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                {[
+                  ["Audit", Boolean(selectedProspect.last_audit_at)],
+                  ["Preview", Boolean(selectedProspect.preview_url)],
+                  ["Contacted", ["contacted", "replied", "call_booked", "won"].includes(selectedProspect.outreach_status)],
+                  ["Replied", ["replied", "call_booked", "won"].includes(selectedProspect.outreach_status)],
+                  ["Customer", Boolean(selectedProspect.converted_business_id)],
+                ].map(([label, done]: any) => (
+                  <Badge key={label} variant="outline" className={done ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-400"}>
+                    {done ? <Check className="mr-1 h-3 w-3" /> : null}{label}
+                  </Badge>
+                ))}
+              </div>
+
+              <div className="rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between border-b border-slate-100 p-4">
+                  <div>
+                    <p className="text-sm font-black text-slate-900">Sales Inbox</p>
+                    <p className="text-xs font-semibold text-slate-500">Inbound replies and Bennie Studio emails are kept together.</p>
+                  </div>
+                  {selectedProspect.contact_email && (
+                    <Button size="sm" variant="outline" className="rounded-xl" onClick={() => {
+                      const prospect = selectedProspect;
+                      setSelectedProspect(null);
+                      openOutreachComposer(prospect);
+                    }}>
+                      <Mail className="mr-2 h-4 w-4" />New email
+                    </Button>
+                  )}
+                </div>
+                <div className="max-h-[360px] space-y-3 overflow-y-auto p-4">
+                  {engagementLoading ? (
+                    <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-indigo-600" /></div>
+                  ) : !engagement?.messages?.length ? (
+                    <p className="py-8 text-center text-sm font-semibold text-slate-400">No email conversation recorded yet.</p>
+                  ) : engagement.messages.map((message: any) => (
+                    <div key={message.id} className={message.direction === "inbound" ? "mr-8 rounded-2xl border border-indigo-100 bg-indigo-50 p-4" : "ml-8 rounded-2xl border border-slate-200 bg-white p-4"}>
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-widest text-slate-500">{message.direction === "inbound" ? "Client reply" : "Bennie Studio"}</p>
+                          <p className="mt-1 text-sm font-black text-slate-900">{message.subject || "Email"}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-bold text-slate-400">{format(new Date(message.sent_at || message.created_at), "MMM dd, yyyy · h:mm a")}</p>
+                          {message.classification && <Badge variant="outline" className="mt-1 text-[9px]">{toTitle(message.classification)}</Badge>}
+                        </div>
+                      </div>
+                      <p className="mt-3 whitespace-pre-wrap text-sm font-medium leading-6 text-slate-700">{message.body_text}</p>
+                      {message.direction === "inbound" && selectedProspect.contact_email && (
+                        <Button size="sm" className="mt-3 rounded-xl bg-indigo-600" onClick={() => {
+                          const prospect = selectedProspect;
+                          setSelectedProspect(null);
+                          openOutreachComposer(prospect, message);
+                        }}>
+                          <Send className="mr-2 h-3.5 w-3.5" />Reply
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Open sales tasks</p>
+                <div className="mt-3 space-y-2">
+                  {(engagement?.tasks || []).filter((task: any) => task.status === "open").map((task: any) => (
+                    <div key={task.id} className="flex flex-col gap-3 rounded-xl bg-slate-50 p-3 sm:flex-row sm:items-center">
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-800">{task.title}</p>
+                        <p className="mt-1 text-xs font-semibold text-slate-400">{task.due_at ? `Due ${format(new Date(task.due_at), "MMM dd, yyyy · h:mm a")}` : "No due date"} · {toTitle(task.priority || "medium")}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="rounded-xl" onClick={() => updateSalesTask(task.id, "dismissed")}>Dismiss</Button>
+                        <Button size="sm" className="rounded-xl bg-emerald-600 hover:bg-emerald-700" onClick={() => updateSalesTask(task.id, "completed")}><Check className="mr-1 h-3.5 w-3.5" />Done</Button>
+                      </div>
+                    </div>
+                  ))}
+                  {!(engagement?.tasks || []).some((task: any) => task.status === "open") && (
+                    <p className="text-sm font-semibold text-slate-400">No open sales tasks.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Internal notes</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-700">{selectedProspect.notes || "No notes recorded."}</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex-wrap">
+            {selectedProspect?.preview_url && <a href={selectedProspect.preview_url} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-bold"><ExternalLink className="mr-2 h-4 w-4"/>Open Preview</a>}
+            {selectedProspect && !selectedProspect.converted_business_id && (
+              <Button variant="outline" onClick={() => setConversionProspect(selectedProspect)} className="rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                <UserPlus className="mr-2 h-4 w-4" />Convert to Customer
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={Boolean(conversionProspect)} onOpenChange={(open) => !open && setConversionProspect(null)}>
+        <DialogContent className="max-w-lg rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Convert {conversionProspect?.name} to Customer</DialogTitle>
+            <DialogDescription>Create the pending customer workspace, onboarding queue, and delivery project without duplicating records on retry.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-3">
+            <Field label="Product">
+              <Select value={conversionProduct} onValueChange={setConversionProduct}>
+                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="managed-website">Managed Website</SelectItem>
+                  <SelectItem value="website-growth">Website Growth</SelectItem>
+                  <SelectItem value="growth-partner">Growth Partner</SelectItem>
+                  <SelectItem value="custom-website">Custom Website</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Market">
+                <Select value={conversionMarket} onValueChange={setConversionMarket}>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MY">Malaysia</SelectItem>
+                    <SelectItem value="SG">Singapore</SelectItem>
+                    <SelectItem value="GB">United Kingdom</SelectItem>
+                    <SelectItem value="INTL">International / USD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Initial commitment">
+                <Select value={conversionTerm} onValueChange={setConversionTerm}>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">3 months</SelectItem>
+                    <SelectItem value="6">6 months</SelectItem>
+                    <SelectItem value="9">9 months</SelectItem>
+                    <SelectItem value="12">12 months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+            {!conversionProspect?.contact_email && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+                <AlertTriangle className="mr-2 inline h-4 w-4" />This prospect has no email address. The workspace can be created, but a customer account must be attached manually.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConversionProspect(null)} disabled={conversionSaving} className="rounded-xl">Cancel</Button>
+            <Button onClick={convertProspect} disabled={conversionSaving} className="rounded-xl bg-emerald-600 hover:bg-emerald-700">
+              {conversionSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+              Create Customer Workspace
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

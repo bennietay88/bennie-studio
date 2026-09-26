@@ -37,25 +37,28 @@ export function CustomerApprovals() {
     if (!selected) return;
     if (status === "changes_requested" && !notes.trim()) return toast.error("Describe the changes you need");
     setSaving(true);
-    const { error } = await supabase.from("customer_approvals").update({
-      status,
-      customer_notes: notes.trim() || null,
-      responded_by: profile?.uid,
-      responded_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }).eq("id", selected.id).eq("business_id", profile?.businessId);
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    if (selected.project_id) {
-      await supabase.from("projects").update({
-        status: status === "approved" ? "approved" : "changes_requested",
-        updated_at: new Date().toISOString(),
-      }).eq("id", selected.project_id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Your session has expired. Sign in again.");
+      const response = await fetch(`/api/customer/approvals/${encodeURIComponent(selected.id)}/respond`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ status, notes: notes.trim() || null }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || "Approval response could not be saved.");
+      toast.success(status === "approved" ? "Website version approved" : "Change request submitted");
+      setSelected(null);
+      setNotes("");
+      await load();
+    } catch (error: any) {
+      toast.error(error?.message || "Approval response could not be saved.");
+    } finally {
+      setSaving(false);
     }
-    toast.success(status === "approved" ? "Website version approved" : "Change request submitted");
-    setSelected(null);
-    setNotes("");
-    load();
   };
 
   if (loading) return <div className="flex min-h-72 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600"/></div>;
