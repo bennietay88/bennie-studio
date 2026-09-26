@@ -51,3 +51,19 @@ test("rejects invalid contact data before upload", () => {
     /Row 2: email is invalid/,
   );
 });
+
+test("accepts the current qualified prospect export shape", () => {
+  const csv = [
+    "business_name,website,industry,location,email,phone,whatsapp,social_url,notes",
+    "\"Brighton's Bathrooms Ltd\",brightonsbathrooms.com,Bathroom / Plumbing,\"Brighton, UK\",brightonsbathrooms@gmail.com,07590477434,,,\"Priority 99/100. Gmail + direct mobile and specialist positioning.\"",
+    "J. A Roofing Services,jaroofpros.co.uk,Roofing,\"Norwich, UK\",j-roofingservices@hotmail.com,01603355153,,,\"Priority 98/100. Strong fast-cycle outreach angle.\"",
+  ].join("\n");
+
+  const result = parseProspectCsv(csv);
+  assert.equal(result.prospects.length, 2);
+  assert.equal(result.prospects[0].name, "Brighton's Bathrooms Ltd");
+  assert.equal(result.prospects[0].domain, "brightonsbathrooms.com");
+  assert.equal(result.prospects[0].location, "Brighton, UK");
+  assert.equal(result.prospects[0].contact_phone, "07590477434");
+  assert.match(result.prospects[0].notes, /Priority 99\/100/);
+});
