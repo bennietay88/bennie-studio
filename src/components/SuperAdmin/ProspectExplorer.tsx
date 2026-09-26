@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { normalizeWebsiteAuditResult } from "../../lib/websiteAudit";
 import { scoreProspect } from "../../lib/prospectScoring";
+import { parseProspectCsv } from "../../lib/prospectImport";
 import {
   Dialog,
   DialogContent,
@@ -76,7 +77,23 @@ export function ProspectExplorer() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [csvText, setCsvText] = useState("");
+  const [csvFileName, setCsvFileName] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const csvPreview = useMemo(() => {
+    if (!csvText.trim()) {
+      return { prospects: [] as Record<string, any>[], duplicates: 0, error: "" };
+    }
+    try {
+      return { ...parseProspectCsv(csvText), error: "" };
+    } catch (error: any) {
+      return {
+        prospects: [] as Record<string, any>[],
+        duplicates: 0,
+        error: error?.message || "Invalid CSV file",
+      };
+    }
+  }, [csvText]);
   const [newProspect, setNewProspect] = useState({
     name: "",
     domain: "",
@@ -236,22 +253,106 @@ export function ProspectExplorer() {
     }
   };
 
+  const handleCsvFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      toast.error("Choose a .csv file");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > 500_000) {
+      toast.error("CSV file must be 500 KB or smaller");
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      setCsvText(text);
+      setCsvFileName(file.name);
+    } catch {
+      toast.error("The CSV file could not be read");
+    }
+  };
+
+  const downloadCsvTemplate = () => {
+    const template = [
+      [
+        "business_name",
+        "website",
+        "industry",
+        "market",
+        "city_area",
+        "email",
+        "phone",
+        "whatsapp",
+        "social_url",
+        "source_note",
+        "pitch_angle",
+        "notes",
+      ],
+      [
+        "Example Dental Clinic",
+        "example.com",
+        "Dental clinic",
+        "Malaysia",
+        "Kuala Lumpur",
+        "hello@example.com",
+        "+60123456789",
+        "60123456789",
+        "https://instagram.com/example",
+        "Official website",
+        "Improve booking CTA and local SEO",
+        "Owner-led practice",
+      ],
+    ];
+    const csv = template
+      .map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
+      )
+      .join("\n");
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" }),
+    );
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "bennie-prospect-import-template.csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   const importCsv = async () => {
-    if (!csvText.trim()) return toast.error("Paste CSV rows first");
+    if (!csvText.trim()) return toast.error("Choose a CSV file or paste CSV rows first");
+    if (csvPreview.error) return toast.error(csvPreview.error);
+    if (!csvPreview.prospects.length) return toast.error("No valid prospects found in this CSV");
+
     try {
       setSaving(true);
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch("/api/admin/prospects/import", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
         body: JSON.stringify({ csv: csvText }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "CSV import failed");
-      setProspects((current) => [...(payload.prospects || []), ...current]);
+
+      const importedProspects = (payload.prospects || []).map((prospect: any) => ({
+        ...prospect,
+        _score: scoreProspect(prospect),
+      }));
+      setProspects((current) => [...importedProspects, ...current]);
       setCsvText("");
+      setCsvFileName("");
       setIsImportModalOpen(false);
-      toast.success(`${payload.imported} prospects imported; ${payload.duplicates} duplicates skipped.`);
+      toast.success(
+        `${payload.imported} prospects imported; ${payload.duplicates} duplicates skipped.`,
+      );
     } catch (error: any) {
       toast.error(error.message || "CSV import failed");
     } finally {
@@ -564,16 +665,168 @@ export function ProspectExplorer() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
-        <DialogContent className="rounded-3xl max-w-2xl">
+      <Dialog
+        open={isImportModalOpen}
+        onOpenChange={(open) => {
+          setIsImportModalOpen(open);
+          if (!open) {
+            setCsvText("");
+            setCsvFileName("");
+          }
+        }}
+      >
+        <DialogContent className="rounded-3xl max-w-3xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black italic uppercase tracking-tight">Import Prospects</DialogTitle>
-            <DialogDescription>Paste CSV rows in this order: name, domain, industry, location, email, phone, whatsapp, social, notes.</DialogDescription>
+            <DialogTitle className="text-xl font-black italic uppercase tracking-tight">
+              Import Prospect CSV
+            </DialogTitle>
+            <DialogDescription>
+              Upload a CSV file directly. Up to 500 prospects / 500 KB per import.
+              Existing Bennie prospect-list formats and common column names are auto-mapped.
+            </DialogDescription>
           </DialogHeader>
-          <Textarea value={csvText} onChange={(e) => setCsvText(e.target.value)} className="min-h-64 rounded-2xl font-mono text-xs" placeholder={'Business Name,example.com,Dental Clinic,Kuala Lumpur,hello@example.com,+6012...,6012...,https://instagram.com/example,"Weak website and no WhatsApp CTA"'} />
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/40 p-5">
+              <Label htmlFor="prospect-csv-file" className="text-sm font-black text-slate-900">
+                Choose CSV file
+              </Label>
+              <Input
+                id="prospect-csv-file"
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleCsvFile}
+                className="mt-3 cursor-pointer rounded-xl bg-white"
+              />
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs font-semibold text-slate-500">
+                  {csvFileName ? `Selected: ${csvFileName}` : "No file selected"}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={downloadCsvTemplate}
+                  className="rounded-xl bg-white"
+                >
+                  <Download className="mr-2 h-3.5 w-3.5" />
+                  Download template
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold leading-5 text-slate-600">
+              <p className="font-black text-slate-800">Auto-mapped columns</p>
+              <p className="mt-1">
+                Business/company name, website/domain, niche/industry, market/country,
+                city/area, email, phone, WhatsApp, social links, source notes,
+                contact confidence, pitch angle and notes.
+              </p>
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <Label className="text-xs font-black uppercase tracking-widest text-slate-500">
+                  Or paste CSV
+                </Label>
+                {csvText && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCsvText("");
+                      setCsvFileName("");
+                    }}
+                    className="text-xs font-bold text-slate-500 hover:text-slate-900"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <Textarea
+                value={csvText}
+                onChange={(e) => {
+                  setCsvText(e.target.value);
+                  setCsvFileName("");
+                }}
+                className="min-h-36 rounded-2xl font-mono text-xs"
+                placeholder={"business_name,website,industry,market,city_area,email,phone,whatsapp,source_note,pitch_angle"}
+              />
+            </div>
+
+            {csvText && (
+              <div className={`rounded-2xl border p-4 ${csvPreview.error ? "border-rose-200 bg-rose-50" : "border-emerald-200 bg-emerald-50/50"}`}>
+                {csvPreview.error ? (
+                  <div>
+                    <p className="font-black text-rose-800">CSV needs attention</p>
+                    <p className="mt-1 text-sm font-semibold text-rose-700">{csvPreview.error}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      <span className="font-black text-emerald-800">
+                        {csvPreview.prospects.length} ready to import
+                      </span>
+                      <span className="font-semibold text-slate-600">
+                        {csvPreview.duplicates} duplicate row(s) inside file will be skipped
+                      </span>
+                    </div>
+                    <div className="overflow-x-auto rounded-xl border border-emerald-100 bg-white">
+                      <table className="w-full min-w-[620px] text-left text-xs">
+                        <thead className="bg-slate-50 text-slate-500">
+                          <tr>
+                            <th className="px-3 py-2 font-black">Business</th>
+                            <th className="px-3 py-2 font-black">Website</th>
+                            <th className="px-3 py-2 font-black">Location</th>
+                            <th className="px-3 py-2 font-black">Email</th>
+                            <th className="px-3 py-2 font-black">Phone</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {csvPreview.prospects.slice(0, 5).map((prospect, index) => (
+                            <tr key={`${prospect.name}-${index}`} className="border-t border-slate-100">
+                              <td className="px-3 py-2 font-bold text-slate-900">{prospect.name}</td>
+                              <td className="px-3 py-2 text-slate-600">{prospect.domain || "—"}</td>
+                              <td className="px-3 py-2 text-slate-600">{prospect.location || "—"}</td>
+                              <td className="px-3 py-2 text-slate-600">{prospect.contact_email || "—"}</td>
+                              <td className="px-3 py-2 text-slate-600">{prospect.contact_phone || prospect.contact_whatsapp || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {csvPreview.prospects.length > 5 && (
+                      <p className="text-xs font-semibold text-slate-500">
+                        Previewing first 5 of {csvPreview.prospects.length} valid prospects.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsImportModalOpen(false)} className="rounded-xl">Cancel</Button>
-            <Button onClick={importCsv} disabled={saving} className="rounded-xl bg-indigo-600">{saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}Import</Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsImportModalOpen(false)}
+              className="rounded-xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={importCsv}
+              disabled={saving || !csvPreview.prospects.length || Boolean(csvPreview.error)}
+              className="rounded-xl bg-indigo-600"
+            >
+              {saving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="mr-2 h-4 w-4" />
+              )}
+              {csvPreview.prospects.length
+                ? `Import ${csvPreview.prospects.length} Prospects`
+                : "Import Prospects"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
