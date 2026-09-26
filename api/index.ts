@@ -1494,6 +1494,92 @@ async function startServer() {
     }
   });
 
+  app.post(
+    "/api/admin/users/:userId/terminate",
+    authenticate,
+    superAdminOnly,
+    async (req: any, res: any) => {
+      try {
+        const userId = String(req.params.userId || "").trim();
+        if (!UUID_SCHEMA.safeParse(userId).success) {
+          return res.status(400).json({ error: "Invalid user ID" });
+        }
+        if (userId === req.user.id) {
+          return res.status(409).json({ error: "You cannot terminate your own super admin account." });
+        }
+
+        const { data: targetUser, error: targetError } = await supabaseAdmin
+          .from("profiles")
+          .select("id,email,full_name,role,business_id,status")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (targetError) throw targetError;
+        if (!targetUser) return res.status(404).json({ error: "User profile not found." });
+
+        const associatedBusinessId = targetUser.business_id || null;
+        const { data: updatedUser, error: updateError } = await supabaseAdmin
+          .from("profiles")
+          .update({
+            status: "terminated",
+            business_id: null,
+          })
+          .eq("id", userId)
+          .select("id,status,business_id")
+          .single();
+
+        if (updateError) throw updateError;
+
+        let businessDeactivated = false;
+        if (associatedBusinessId) {
+          const { error: businessError } = await supabaseAdmin
+            .from("businesses")
+            .update({ status: "inactive" })
+            .eq("id", associatedBusinessId);
+          if (businessError) {
+            console.warn(
+              `[Admin User Termination] User terminated but business deactivation failed for ${associatedBusinessId}: ${businessError.message}`,
+            );
+          } else {
+            businessDeactivated = true;
+          }
+        }
+
+        const { error: auditError } = await supabaseAdmin
+          .from("admin_action_audit_logs")
+          .insert({
+            actor_user_id: req.user.id,
+            actor_email: req.user.email || null,
+            action_type: "user.terminated",
+            target_type: "user",
+            target_id: userId,
+            target_label: targetUser.email || targetUser.full_name || userId,
+            metadata: {
+              associatedBusinessId,
+              businessDeactivated,
+              previousStatus: targetUser.status || null,
+              previousRole: targetUser.role || null,
+            },
+          });
+        if (auditError) {
+          console.warn("[Admin User Termination] Audit log skipped:", auditError.message);
+        }
+
+        return res.json({
+          success: true,
+          user: updatedUser,
+          associatedBusinessId,
+          businessDeactivated,
+        });
+      } catch (error: any) {
+        console.error("[Admin User Termination] Failed:", error);
+        return res.status(500).json({
+          error: safeErrorMessage(error) || "Unable to terminate user",
+        });
+      }
+    },
+  );
+
   app.delete(
     "/api/admin/businesses/:businessId",
     authenticate,
