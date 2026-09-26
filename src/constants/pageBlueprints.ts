@@ -1310,13 +1310,12 @@ const resolveSourceDrivenBlockPlan = (
       ...(hasTrust ? ["trust" as SectionBlockType] : []),
       ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []),
       "faq",
-      "contact_form",
       "final_cta",
     ];
   }
 
   if (/^(treatments?|services?|menu|programs?|practice-areas?)$/.test(page.slug)) {
-    return ["hero", "services", "highlights", "process", "faq", "contact_form", "final_cta"];
+    return ["hero", "services", "highlights", "process", "faq", "final_cta"];
   }
 
   if (/^(about|practitioners?|team|our-team)$/.test(page.slug)) {
@@ -1326,24 +1325,23 @@ const resolveSourceDrivenBlockPlan = (
       "highlights",
       ...(hasTrust ? ["trust" as SectionBlockType] : []),
       ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []),
-      "contact_form",
       "final_cta",
     ];
   }
 
   if (/^(reviews|results|testimonials)$/.test(page.slug)) {
-    return ["hero", ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []), "contact_form", "final_cta"];
+    return ["hero", ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []), "final_cta"];
   }
 
   if (/^(faq|patient-info|info|process)$/.test(page.slug)) {
-    return ["hero", "faq", "process", "contact_form", "final_cta"];
+    return ["hero", "faq", "process", "final_cta"];
   }
 
   if (/^(appointment|contact|quote|book-call|consultation|reservation)$/.test(page.slug)) {
     return ["hero", "highlights", "contact_form", "faq", "final_cta"];
   }
 
-  return ["hero", "services", "highlights", "process", "faq", "contact_form", "final_cta"];
+  return ["hero", "services", "highlights", "process", "faq", "final_cta"];
 };
 
 export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsitePage[] => {

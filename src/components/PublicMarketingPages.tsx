@@ -873,7 +873,7 @@ function CaseStudiesPage() {
   );
 }
 
-const PREVIEW_GENERATION_VERSION = 16;
+const PREVIEW_GENERATION_VERSION = 17;
 
 const previewIndustries = [
   {
@@ -1723,7 +1723,16 @@ function GeneratePreviewPage() {
           (check) => salesBlockingChecks.has(check.key) && !check.pass,
         );
         if (blockingFailures.length) {
-          throw new Error("This version did not meet the preview quality bar, so it was not shown. Please rebuild the preview.");
+          const issueSummary = blockingFailures
+            .map((check) => check.label)
+            .slice(0, 3)
+            .join(", ");
+          console.warn("[Preview QA] Blocking checks failed", blockingFailures);
+          throw new Error(
+            issueSummary
+              ? `The preview needs one more automatic quality pass (${issueSummary}). Please rebuild it.`
+              : "The preview needs one more automatic quality pass. Please rebuild it.",
+          );
         }
       }
 

@@ -57,12 +57,12 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
   const premiumAssetPlan = sourceDriven || generationMode === "fast" || customerAssetSlots >= Math.min(2, Math.max(1, sections.length));
   const homeSections = pages[0]?.sections?.filter((section) => section.isVisible !== false) || [];
   const compositionDepth = sourceDriven
-    ? homeSections.length >= 3 && homeSections.length <= 7
+    ? homeSections.length >= 5 && homeSections.length <= 10
     : homeSections.length >= (generationMode === "brand_led" ? 7 : generationMode === "premium" ? 6 : 4);
   const sourceForbiddenLanguage = /evidence before claims|useful restraint|action without pressure|responsive by design|execution strategy|strategic initiative|initialize connection|synthesis successful/i.test(text);
   const fakeAvailability = sourceDriven && /available times|local business hours/i.test(text);
   const contactSectionCount = sections.filter((section) => section.type === "contact").length;
-  const sourceContactDiscipline = !sourceDriven || contactSectionCount <= 1;
+  const sourceContactDiscipline = !sourceDriven || contactSectionCount === 1;
   const sourceHeroVariant = pages[0]?.sections?.find((section) => section.type === "hero")?.settings?.variant;
   const sourceHeroReady = !sourceDriven || sourceHeroVariant === "source_brand_hero";
   const sourcePageCountReady = !sourceDriven || (pages.length >= 3 && pages.length <= 5);
@@ -73,7 +73,7 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
     { key: "headline_length", label: "Concise hero headline", pass: conciseHeroHeadlines, severity: "high", note: conciseHeroHeadlines ? "Hero headlines stay within readable responsive limits." : "Shorten hero headlines before publishing; generated hero copy should fit the layout without excessive wrapping." },
     { key: "source_preview_language", label: "Prospect-facing language", pass: !sourceDriven || !sourceForbiddenLanguage, severity: "high", note: sourceForbiddenLanguage ? "Internal design-system or agency language leaked into the prospect preview." : "No internal design-system language is exposed." },
     { key: "source_preview_availability", label: "No fake availability", pass: !fakeAvailability, severity: "high", note: fakeAvailability ? "A generated preview must not imply live appointment availability without an integration." : "No unsupported live availability is shown." },
-    { key: "source_preview_contact", label: "Contact form discipline", pass: sourceContactDiscipline, severity: "high", note: sourceContactDiscipline ? "Contact capture is concentrated on the conversion page." : "Too many contact forms are repeated across the preview." },
+    { key: "source_preview_contact", label: "Contact form discipline", pass: sourceContactDiscipline, severity: "high", note: sourceContactDiscipline ? "One contact form is concentrated on the dedicated conversion page." : "Source previews should contain exactly one contact form on the conversion page." },
     { key: "source_preview_hero", label: "Source-aware hero", pass: sourceHeroReady, severity: "high", note: sourceHeroReady ? "URL-based previews use the source-aware hero." : "Use the source-aware hero for URL-based redesign previews." },
     { key: "source_preview_pages", label: "Evidence-led page count", pass: sourcePageCountReady, severity: "medium", note: sourcePageCountReady ? "The source preview uses a focused three-to-five page architecture." : "Do not force empty pages into a source-driven prospect preview." },
     { key: "cta", label: "Conversion path", pass: hasCta, severity: "high", note: hasCta ? "A conversion section is present." : "Add contact, booking, or CTA path." },

@@ -461,3 +461,34 @@ test("sparse previews do not invent evidence-only sections", () => {
   assert.equal(allVisible.some((section) => section.type === "testimonials"), false);
   assert.equal(allVisible.some((section) => section.type === "proof"), false);
 });
+
+
+test("source-driven previews keep exactly one contact form on the conversion page", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "Example Local Service",
+    nicheId: "service-pro-v1",
+    nicheName: "Other Local Service Business handyman",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Handyman Services",
+    targetCustomer: "homeowners",
+    location: "Singapore",
+    ctaPreference: "Request a Quote",
+    sourceDriven: true,
+    contactEmail: "contact@localservice.test",
+    generationMode: "premium",
+    heroFallbackImageUrl: "/template-assets/flagship-renovation.jpg",
+    storyFallbackImageUrl: "/template-assets/flagship-renovation.jpg",
+  });
+
+  const contactSections = pages.flatMap((page) =>
+    page.sections.filter((section) => section.isVisible !== false && section.type === "contact")
+  );
+  assert.equal(contactSections.length, 1);
+
+  const home = pages.find((page) => page.slug === "")!;
+  assert.equal(home.sections.some((section) => section.type === "contact"), false);
+
+  const conversionPage = pages.find((page) => page.slug === "quote")!;
+  assert.equal(conversionPage.sections.some((section) => section.type === "contact"), true);
+});
