@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
   CheckCircle2,
@@ -38,6 +39,9 @@ const currency = (value: number | string | null | undefined) =>
 
 export function AffiliateDashboard() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedAffiliateId = searchParams.get("affiliate");
+  const [affiliateRecords, setAffiliateRecords] = useState<any[]>([]);
   const [affiliate, setAffiliate] = useState<any>(null);
   const [program, setProgram] = useState<any>(null);
   const [tiers, setTiers] = useState<any[]>([]);
@@ -55,7 +59,7 @@ export function AffiliateDashboard() {
 
   useEffect(() => {
     if (user?.id) fetchAffiliateData();
-  }, [user?.id]);
+  }, [user?.id, selectedAffiliateId]);
 
   const fetchAffiliateData = async () => {
     setLoading(true);
@@ -68,21 +72,28 @@ export function AffiliateDashboard() {
 
       if (affiliateError) throw affiliateError;
 
-      const platformAffiliate =
-        affiliates?.find((item) => !item.business_id) || affiliates?.[0] || null;
-      setAffiliate(platformAffiliate);
+      const records = affiliates || [];
+      setAffiliateRecords(records);
+      const selectedAffiliate =
+        (selectedAffiliateId
+          ? records.find((item) => item.id === selectedAffiliateId)
+          : null)
+        || records.find((item) => !item.business_id)
+        || records[0]
+        || null;
+      setAffiliate(selectedAffiliate);
 
-      if (!platformAffiliate) {
+      if (!selectedAffiliate) {
         setLoading(false);
         return;
       }
 
       const [programRes, referralRes, payoutRes] = await Promise.all([
-        platformAffiliate.business_id
+        selectedAffiliate.business_id
           ? supabase
               .from("affiliate_programs")
               .select("*, commission_tiers(*)")
-              .eq("business_id", platformAffiliate.business_id)
+              .eq("business_id", selectedAffiliate.business_id)
               .eq("is_enabled", true)
               .maybeSingle()
           : supabase
@@ -94,12 +105,12 @@ export function AffiliateDashboard() {
         supabase
           .from("affiliate_referrals")
           .select("*")
-          .eq("affiliate_id", platformAffiliate.id)
+          .eq("affiliate_id", selectedAffiliate.id)
           .order("created_at", { ascending: false }),
         supabase
           .from("affiliate_payouts")
           .select("*")
-          .eq("affiliate_id", platformAffiliate.id)
+          .eq("affiliate_id", selectedAffiliate.id)
           .order("created_at", { ascending: false }),
       ]);
 
@@ -167,6 +178,12 @@ export function AffiliateDashboard() {
   };
 
   const affiliateApproved = Boolean(affiliate && ["active", "approved"].includes(String(affiliate.status || "")));
+
+  const handleAffiliateSwitch = (affiliateId: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("affiliate", affiliateId);
+    setSearchParams(next, { replace: true });
+  };
 
   const handleRequestPayout = async () => {
     if (!affiliate) return;
@@ -245,18 +262,36 @@ export function AffiliateDashboard() {
             We track clicks, signups, paying customers, commission, and payout status.
           </p>
         </div>
-        <Badge
-          variant="outline"
-          className={
-            affiliateApproved
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : affiliate.status === "pending"
-                ? "border-amber-200 bg-amber-50 text-amber-700"
-                : "border-red-200 bg-red-50 text-red-700"
-          }
-        >
-          Status: {String(affiliate.status || "pending").toUpperCase()}
-        </Badge>
+        <div className="flex w-full flex-col gap-2 md:w-auto md:min-w-64 md:items-end">
+          {affiliateRecords.length > 1 && (
+            <label className="w-full text-xs font-semibold text-slate-500">
+              Affiliate account
+              <select
+                value={affiliate.id}
+                onChange={(event) => handleAffiliateSwitch(event.target.value)}
+                className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800"
+              >
+                {affiliateRecords.map((record) => (
+                  <option key={record.id} value={record.id}>
+                    {record.business_id ? "Business program" : "Bennie Studio platform"} · {record.referral_code}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <Badge
+            variant="outline"
+            className={
+              affiliateApproved
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : affiliate.status === "pending"
+                  ? "border-amber-200 bg-amber-50 text-amber-700"
+                  : "border-red-200 bg-red-50 text-red-700"
+            }
+          >
+            Status: {String(affiliate.status || "pending").toUpperCase()}
+          </Badge>
+        </div>
       </div>
 
       {!affiliateApproved && (
@@ -273,10 +308,13 @@ export function AffiliateDashboard() {
 
       <Card className="overflow-hidden border-none bg-gradient-to-br from-indigo-600 to-slate-950 text-white shadow-sm">
         <CardHeader>
-          <CardTitle>Your Platform Referral Link</CardTitle>
+          <CardTitle>
+            {affiliate.business_id ? "Your Business Referral Link" : "Your Platform Referral Link"}
+          </CardTitle>
           <CardDescription className="text-indigo-100">
-            Send prospects to the Bennie Studio sales page. This is not for promoting
-            your own products or customer websites.
+            {affiliate.business_id
+              ? "Share this link for the selected business affiliate program."
+              : "Send prospects to the Bennie Studio sales page. This is not for promoting your own products or customer websites."}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-[1fr_auto_auto]">

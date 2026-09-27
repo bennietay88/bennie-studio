@@ -70,7 +70,7 @@ export default function AffiliateJoinPage() {
 
         if (existing) {
           toast.info("You already have an affiliate account.");
-          navigate("/dashboard/affiliate/dashboard");
+          navigate(`/dashboard/affiliate/dashboard?affiliate=${existing.id}`);
         }
       }
     } catch (err) {
@@ -99,9 +99,10 @@ export default function AffiliateJoinPage() {
     try {
       const code =
         referralCode.trim() || `BENNIE-${generateId().slice(0, 8).toUpperCase()}`;
+      const applicationId = generateId();
 
       const { error } = await supabase.from("affiliates").insert({
-        id: generateId(),
+        id: applicationId,
         uid: user.id,
         business_id: businessId || null,
         referral_code: code.toUpperCase().replace(/\s/g, ""),
@@ -116,7 +117,7 @@ export default function AffiliateJoinPage() {
       if (error) throw error;
 
       toast.success("Affiliate application submitted for approval.");
-      navigate("/dashboard/affiliate/dashboard");
+      navigate(`/dashboard/affiliate/dashboard?affiliate=${applicationId}`);
     } catch (err) {
       console.error("Error joining affiliate program:", err);
       toast.error("Failed to apply. The referral code might already be taken.");

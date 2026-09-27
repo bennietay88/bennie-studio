@@ -138,3 +138,20 @@ test("commission database boundary blocks self-referrals and mismatched attribut
 test("affiliate forgot-password action uses the existing password reset route", () => {
   assert.match(affiliateAuth, /navigate\("\/forgot-password"\)/);
 });
+
+
+test("affiliate dashboard can switch between platform and business-specific accounts", () => {
+  assert.match(affiliateDashboard, /useSearchParams/);
+  assert.match(affiliateDashboard, /selectedAffiliateId/);
+  assert.match(affiliateDashboard, /affiliateRecords\.length > 1/);
+  assert.match(affiliateDashboard, /handleAffiliateSwitch/);
+  assert.match(affiliateDashboard, /Business program/);
+  assert.match(affiliateDashboard, /Your Business Referral Link/);
+});
+
+test("affiliate join redirects back to the exact account that was created or already exists", () => {
+  const join = readFileSync("src/components/AffiliateJoinPage.tsx", "utf8");
+  assert.match(join, /const applicationId = generateId\(\)/);
+  assert.match(join, /dashboard\/affiliate\/dashboard\?affiliate=\$\{applicationId\}/);
+  assert.match(join, /dashboard\/affiliate\/dashboard\?affiliate=\$\{existing\.id\}/);
+});
