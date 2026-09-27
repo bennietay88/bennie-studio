@@ -334,12 +334,19 @@ async function syncCommercialStripeProductLabel(
   stripe: Stripe,
   priceId: string,
   expectedName: string,
+  expectedDescription?: string | null,
 ) {
   const livePrice: any = await stripe.prices.retrieve(priceId, { expand: ["product"] });
   const product = livePrice.product && typeof livePrice.product === "object" ? livePrice.product : null;
   if (!product || product.active === false) throw new Error("STRIPE_CATALOG_MISMATCH");
-  if (String(product.name || "").trim() !== expectedName) {
-    await stripe.products.update(product.id, { name: expectedName });
+  const expectedProductDescription = String(expectedDescription || "").trim().slice(0, 500);
+  const updates: Record<string, string> = {};
+  if (String(product.name || "").trim() !== expectedName) updates.name = expectedName;
+  if (expectedProductDescription && String(product.description || "").trim() !== expectedProductDescription) {
+    updates.description = expectedProductDescription;
+  }
+  if (Object.keys(updates).length > 0) {
+    await stripe.products.update(product.id, updates);
   }
   return livePrice;
 }
@@ -9369,7 +9376,7 @@ async function startServer() {
         // Validate the live Stripe catalogue before creating any pending
         // Bennie Studio record. Failed configuration checks must not leave junk.
         const verifyStripePrice = async (priceId: string, expectedAmount: number, recurring: boolean) => {
-          const live = await syncCommercialStripeProductLabel(stripe, priceId, product.name);
+          const live = await syncCommercialStripeProductLabel(stripe, priceId, product.name, product.description);
           if (live.active === false || String(live.currency || "").toUpperCase() !== String(price.currency || commercialCurrencyForMarket(market)).toUpperCase()) {
             throw new Error("STRIPE_CATALOG_MISMATCH");
           }
