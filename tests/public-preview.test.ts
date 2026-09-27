@@ -426,7 +426,7 @@ test("sparse source websites are expanded into useful non-fabricated sections", 
 
   const home = pages[0];
   const homeTypes = home.sections.filter((section) => section.isVisible !== false).map((section) => section.type);
-  for (const required of ["hero", "features", "services", "about", "faq", "contact", "cta"]) {
+  for (const required of ["hero", "features", "services", "about", "faq", "contact", "cta"] as const) {
     assert.ok(homeTypes.includes(required), `expected home to include ${required}`);
   }
 

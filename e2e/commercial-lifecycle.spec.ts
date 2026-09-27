@@ -322,7 +322,7 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
 
   await page.getByRole("button", { name: "Convert", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Convert Example Dental to Customer" })).toBeVisible();
-  await expect(page.getByDisplayValue("customer@example.test")).toBeVisible();
+  await expect(page.locator('input[value="customer@example.test"]')).toBeVisible();
   await page.getByRole("button", { name: "Create Customer Workspace" }).click();
   await expect.poll(() => converted).toBe(true);
 

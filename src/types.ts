@@ -82,7 +82,7 @@ export interface UserProfile {
   role: UserRole;
   businessId?: string;
   onboardingCompleted?: boolean;
-  status?: "active" | "suspended";
+  status?: "active" | "suspended" | "terminated";
   staffPermissions?: string[];
   createdAt: number;
 }

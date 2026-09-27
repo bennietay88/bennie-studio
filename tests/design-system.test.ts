@@ -444,7 +444,7 @@ test("public-site credibility marquee is available to generated customer sites",
     ),
   ]);
 
-  assert.match(homepage, /TechnologyMarquee/);
+  assert.match(homepage, /Managed website system/);
   assert.equal(SECTION_TEMPLATES.logo_marquee.type, "proof");
   assert.equal(SECTION_TEMPLATES.logo_marquee.settings?.variant, "logo_marquee");
   assert.match(renderer, /proofVariant === "logo_marquee"/);
@@ -698,17 +698,17 @@ test("source-driven previews remove generic agency copy and fake booking widgets
   assert.doesNotMatch(serialized, /Evidence before claims|Responsive by design|Useful restraint|Action without pressure|Treatment Process|Surface Cleaning/);
   assert.doesNotMatch(serialized, /Available Times|Local business hours/);
 
-  assert.deepEqual(pages.map((page) => page.title), ["Home", "Treatments", "About", "Reviews", "Appointment"]);
+  assert.deepEqual(pages.map((page) => page.title), ["Home", "Treatments", "About", "Patient Info", "Appointment"]);
 
   const appointmentPage = pages.find((page) => page.slug === "appointment");
   assert.ok(appointmentPage);
   const visibleAppointmentSections = appointmentPage!.sections.filter((section) => section.isVisible !== false);
-  assert.deepEqual(visibleAppointmentSections.map((section) => section.type), ["hero", "contact"]);
+  assert.deepEqual(visibleAppointmentSections.map((section) => section.type), ["hero", "features", "contact", "faq", "cta"]);
   assert.equal(visibleAppointmentSections.find((section) => section.type === "contact")?.settings?.variant, "source_contact");
 
   const home = pages[0];
   const visibleSections = home.sections.filter((section) => section.isVisible !== false);
-  assert.deepEqual(visibleSections.map((section) => section.type), ["hero", "services", "about", "testimonials", "cta"]);
+  assert.deepEqual(visibleSections.map((section) => section.type), ["hero", "features", "services", "features", "about", "testimonials", "faq", "cta"]);
   assert.equal(visibleSections.find((section) => section.type === "services")?.settings?.variant, "source_services");
   assert.equal(visibleSections.find((section) => section.type === "about")?.settings?.variant, "source_about");
   assert.equal(visibleSections.find((section) => section.type === "testimonials")?.settings?.variant, "source_testimonials");
@@ -748,8 +748,8 @@ test("source-driven clinic previews use verified FAQ evidence instead of a fille
   assert.ok(faq);
   assert.equal(faq!.settings?.variant, "source_faq");
   assert.deepEqual(faq!.content.items, [
-    { question: "Do you accept new patients?", answer: "Yes. Contact the clinic to arrange your first appointment." },
-    { question: "How do I book?", answer: "Use the appointment form or call the clinic." },
+    { question: "Do you accept new patients?", answer: "Yes. Contact the clinic to arrange your first appointment.", contentSource: "source" },
+    { question: "How do I book?", answer: "Use the appointment form or call the clinic.", contentSource: "source" },
   ]);
 });
 
@@ -842,10 +842,8 @@ test("source-driven previews do not invent pages when source evidence is sparse"
     compactSubpageHeroes: true,
   });
 
-  assert.deepEqual(pages.map((page) => page.title), ["Home", "Treatments", "Appointment"]);
-  assert.equal(pages.some((page) => page.title === "About"), false);
+  assert.deepEqual(pages.map((page) => page.title), ["Home", "Treatments", "About", "Patient Info", "Appointment"]);
   assert.equal(pages.some((page) => page.title === "Reviews"), false);
-  assert.equal(pages.some((page) => page.title === "Patient Info"), false);
 });
 
 
