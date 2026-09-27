@@ -154,7 +154,8 @@ export function ProspectExplorer() {
       const { data, error } = await supabase
         .from("prospects")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(1000);
 
       if (error) throw error;
       let rows = (data || []).map((prospect) => ({ ...prospect, _score: scoreProspect(prospect) }));
@@ -1014,7 +1015,7 @@ export function ProspectExplorer() {
           <h1 className="text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">
             Prospect <span className="text-indigo-600">Pipeline</span>
           </h1>
-          <p className="mt-1 max-w-3xl text-sm font-bold text-slate-500">
+          <p className="mt-1 max-w-3xl text-sm font-medium leading-6 text-slate-500">
             Build targeted lead lists, qualify weak websites, generate preview/audit links, and track follow-up status before prospects become customers.
           </p>
         </div>
@@ -1029,15 +1030,15 @@ export function ProspectExplorer() {
       </div>
 
       <Card className="overflow-hidden rounded-[2rem] border-slate-100 shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-950 px-6 py-5 text-white sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-b border-slate-100 bg-white px-5 py-5 text-slate-950 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-300">Sales Reply Center</p>
+              <p className="text-sm font-semibold text-indigo-700">Sales Reply Center</p>
               {unreadReplyCount > 0 && (
                 <Badge className="border-none bg-indigo-500 text-white">{unreadReplyCount} unread</Badge>
               )}
             </div>
-            <p className="mt-1 text-sm font-semibold text-slate-300">
+            <p className="mt-1 text-sm font-medium text-slate-500">
               Recent inbound conversations, reply classification, delivery state, and next follow-up in one queue.
             </p>
           </div>
@@ -1045,7 +1046,7 @@ export function ProspectExplorer() {
             type="button"
             variant="outline"
             size="sm"
-            className="w-fit rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            className="w-fit rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-950"
             onClick={() => setQuickFilter("replied")}
           >
             View all replied prospects
@@ -1057,7 +1058,7 @@ export function ProspectExplorer() {
           ) : replyCenterProspects.length === 0 ? (
             <div className="p-8 text-center">
               <Mail className="mx-auto h-8 w-8 text-slate-300" />
-              <p className="mt-3 text-sm font-black text-slate-800">No inbound sales replies yet</p>
+              <p className="mt-3 text-sm font-semibold text-slate-800">No inbound sales replies yet</p>
               <p className="mt-1 text-xs font-semibold text-slate-500">New Resend replies will appear here automatically and remain linked to the full prospect thread.</p>
             </div>
           ) : (
@@ -1078,12 +1079,12 @@ export function ProspectExplorer() {
                       </div>
                       <p className="mt-1 truncate text-xs font-bold text-slate-700">{reply.subject || "Email reply"}</p>
                       <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">{reply.preview || reply.body_text}</p>
-                      <p className="mt-2 text-xs font-black uppercase tracking-widest text-indigo-600">
+                      <p className="mt-2 text-xs font-semibold text-indigo-600">
                         Replied · {formatDistanceToNowStrict(replyAt, { addSuffix: true })}
                       </p>
                     </div>
                     <div>
-                      <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Follow-up</Label>
+                      <Label className="text-xs font-semibold text-slate-400">Follow-up</Label>
                       <Input
                         type="date"
                         className="mt-1 h-9 rounded-xl bg-white"
@@ -1130,7 +1131,7 @@ export function ProspectExplorer() {
           <Card key={label} className="rounded-3xl border-slate-100 shadow-sm">
             <CardContent className="p-5">
               <Icon className="h-5 w-5 text-indigo-600" />
-              <p className="mt-4 text-xs font-black uppercase tracking-widest text-slate-400">{label}</p>
+              <p className="mt-4 text-xs font-semibold text-slate-400">{label}</p>
               <p className="text-3xl font-black text-slate-950">{value}</p>
             </CardContent>
           </Card>
@@ -1191,7 +1192,63 @@ export function ProspectExplorer() {
           </Button>
         </div>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-slate-100 xl:hidden">
+            {loading ? (
+              <div className="p-10 text-center">
+                <Loader2 className="mx-auto h-7 w-7 animate-spin text-indigo-600" />
+                <p className="mt-3 text-sm font-medium text-slate-500">Loading prospects...</p>
+              </div>
+            ) : sortedProspects.length === 0 ? (
+              <div className="p-10 text-center text-sm font-medium text-slate-500">No prospects found.</div>
+            ) : (
+              sortedProspects.map((prospect) => {
+                const scored = prospect._score || scoreProspect(prospect);
+                return (
+                  <div key={`mobile-${prospect.id}`} className="p-5 sm:p-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <button type="button" onClick={() => setSelectedProspect(prospect)} className="min-w-0 text-left">
+                        <span className="block truncate text-base font-semibold text-slate-950 dark:text-white">{prospect.name}</span>
+                        <span className="mt-1 block text-sm text-slate-500">{prospect.industry || "No industry"}{prospect.location ? ` · ${prospect.location}` : ""}</span>
+                      </button>
+                      <Badge className="shrink-0 border-none bg-indigo-50 text-sm font-semibold text-indigo-700">{prospect.qualification_score ?? scored.score}</Badge>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Badge variant="outline" className="capitalize">{toTitle(prospect.website_status || "unknown")}</Badge>
+                      <Badge variant="outline" className="capitalize">{toTitle(prospect.opportunity_level || "medium")} opportunity</Badge>
+                      <Badge variant="outline" className="capitalize">{toTitle(prospect.outreach_status || "not_started")}</Badge>
+                      {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
+                    </div>
+                    <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+                      <p className="text-xs font-semibold text-slate-500">Recommended next action</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{prospect.recommended_next_action || scored.recommendedNextAction}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">{scored.factors.slice(0, 2).map((factor) => `+${factor.points} ${factor.label}`).join(" · ") || "Needs more evidence"}</p>
+                    </div>
+                    <div className="mt-4">
+                      {renderContactActions(prospect)}
+                      <p className="mt-2 break-words text-sm text-slate-500">{prospect.contact_email || prospect.contact_phone || prospect.contact_whatsapp || "No contact yet"}</p>
+                    </div>
+                    {prospect._latestReply && (
+                      <button type="button" onClick={() => setSelectedProspect(prospect)} className={`mt-4 w-full rounded-2xl border p-3 text-left ${prospect._unreadReply ? "border-indigo-200 bg-indigo-50" : "border-slate-200 bg-white"}`}>
+                        <span className="block text-sm font-semibold text-indigo-700">{prospect._unreadReply ? "● " : ""}Reply · {formatDistanceToNowStrict(new Date(prospect._latestReply.sent_at || prospect._latestReply.created_at), { addSuffix: true })}</span>
+                        <span className="mt-1 block line-clamp-2 text-sm text-slate-500">{prospect._latestReply.preview}</span>
+                      </button>
+                    )}
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div><Label className="text-xs font-semibold text-slate-500">Follow-up</Label><Input type="date" className="mt-1 h-11 rounded-xl" value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""} onChange={(event) => void setFollowUp(prospect, event.target.value)} /></div>
+                      <div><Label className="text-xs font-semibold text-slate-500">Outreach status</Label><Select value={prospect.outreach_status || "not_started"} onValueChange={(value) => updateProspect(prospect.id, { outreach_status: value })}><SelectTrigger className="mt-1 h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{toTitle(status)}</SelectItem>)}</SelectContent></Select></div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <Button variant="outline" className="h-11 rounded-xl" onClick={() => runQuickAudit(prospect)}><Zap className="mr-2 h-4 w-4" />Audit</Button>
+                      <Button variant="outline" className="h-11 rounded-xl" onClick={() => generatePreviewLink(prospect)}><Copy className="mr-2 h-4 w-4" />Preview</Button>
+                      {prospect.contact_email && !prospect.converted_business_id && <Button className="col-span-2 h-11 rounded-xl bg-indigo-600" onClick={() => preparePreviewAndEmail(prospect)}><Send className="mr-2 h-4 w-4" />Prepare & Email</Button>}
+                      {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="outline" className="col-span-2 h-11 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="mr-2 h-4 w-4" />Convert to customer</Button>}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <div className="hidden overflow-x-auto xl:block">
             <table className="w-full min-w-[1180px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50">
@@ -1202,7 +1259,7 @@ export function ProspectExplorer() {
                   <SortableHeader label="Score / next action" sortMode={sortMode} ascMode="score_asc" descMode="score_desc" onChange={setSortMode} />
                   <SortableHeader label="Outreach" sortMode={sortMode} ascMode="outreach_asc" descMode="outreach_desc" onChange={setSortMode} />
                   <SortableHeader label="Next Step" sortMode={sortMode} ascMode="followup_asc" descMode="followup_desc" onChange={setSortMode} />
-                  <th className="px-6 py-4 text-right text-xs font-black uppercase tracking-widest text-slate-400">Actions</th>
+                  <th className="px-6 py-4 text-right text-xs font-semibold text-slate-400">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -1217,7 +1274,7 @@ export function ProspectExplorer() {
                         <div className="flex items-start gap-3">
                           <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center"><Globe className="h-5 w-5 text-slate-400" /></div>
                           <div className="min-w-0">
-                            <button type="button" onClick={() => setSelectedProspect(prospect)} className="text-left text-sm font-black italic text-slate-900 hover:text-indigo-600 dark:text-white">{prospect.name}</button>
+                            <button type="button" onClick={() => setSelectedProspect(prospect)} className="text-left text-sm font-semibold text-slate-900 hover:text-indigo-600 dark:text-white">{prospect.name}</button>
                             <p className="text-xs font-bold text-slate-400">{prospect.industry || "No industry"} {prospect.location ? `• ${prospect.location}` : ""}</p>
                             {prospect.domain && <a className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-indigo-600" href={`https://${prospect.domain}`} target="_blank" rel="noreferrer">{prospect.domain}<ExternalLink className="h-3 w-3" /></a>}
                           </div>
@@ -1239,7 +1296,7 @@ export function ProspectExplorer() {
                         </Select>
                       </td>
                       <td className="px-6 py-6">
-                        {(() => { const scored = prospect._score || scoreProspect(prospect); return <><div className="flex items-center gap-2"><span className="text-lg font-black text-slate-900">{prospect.qualification_score ?? scored.score}</span><Badge className="rounded-full border-none bg-indigo-50 text-xs font-black uppercase text-indigo-700">{prospect.qualification_category || scored.category.replace("_", " ")}</Badge></div><p className="mt-1 text-xs font-black uppercase tracking-widest text-indigo-600">{prospect.recommended_next_action || scored.recommendedNextAction}</p><p className="mt-1 text-xs font-semibold text-slate-400">{scored.factors.slice(0, 2).map((factor) => `+${factor.points} ${factor.label}`).join(" · ") || "Needs more evidence"}</p></>; })()}
+                        {(() => { const scored = prospect._score || scoreProspect(prospect); return <><div className="flex items-center gap-2"><span className="text-lg font-black text-slate-900">{prospect.qualification_score ?? scored.score}</span><Badge className="rounded-full border-none bg-indigo-50 text-xs font-black uppercase text-indigo-700">{prospect.qualification_category || scored.category.replace("_", " ")}</Badge></div><p className="mt-1 text-xs font-semibold text-indigo-600">{prospect.recommended_next_action || scored.recommendedNextAction}</p><p className="mt-1 text-xs font-semibold text-slate-400">{scored.factors.slice(0, 2).map((factor) => `+${factor.points} ${factor.label}`).join(" · ") || "Needs more evidence"}</p></>; })()}
                       </td>
                       <td className="px-6 py-6">
                         <Select value={prospect.outreach_status || "not_started"} onValueChange={(value) => updateProspect(prospect.id, { outreach_status: value })}>
@@ -1269,14 +1326,14 @@ export function ProspectExplorer() {
                           value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""}
                           onChange={(e) => void setFollowUp(prospect, e.target.value)}
                         />
-                        {prospect.preview_url && <a href={prospect.preview_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-black uppercase tracking-widest text-indigo-600"><LinkIcon className="h-3 w-3" /> Preview link</a>}
+                        {prospect.preview_url && <a href={prospect.preview_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600"><LinkIcon className="h-3 w-3" /> Preview link</a>}
                       </td>
                       <td className="px-6 py-6 text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
-                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Preview</Button>
-                          {prospect.contact_email && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
-                          {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="h-3 w-3 mr-1.5" />Convert</Button>}
+                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
+                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Preview</Button>
+                          {prospect.contact_email && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
+                          {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="h-3 w-3 mr-1.5" />Convert</Button>}
                           {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
                           <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 hover:bg-rose-50 hover:text-rose-600" onClick={() => deleteProspect(prospect.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
@@ -1295,10 +1352,10 @@ export function ProspectExplorer() {
         <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
           <div className="h-16 w-16 rounded-2xl bg-indigo-600/20 backdrop-blur-md flex items-center justify-center border border-indigo-500/30"><Search className="h-8 w-8 text-indigo-400" /></div>
           <div className="flex-1 text-center md:text-left">
-            <h3 className="text-xl font-black italic uppercase tracking-tighter text-white">Manual-first prospect workflow</h3>
+            <h3 className="text-xl font-semibold text-white">Manual-first prospect workflow</h3>
             <p className="text-slate-300 text-sm font-bold">Import your list, qualify weak websites, create audit links, contact by email/phone/WhatsApp, and track every next step.</p>
           </div>
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white h-12 px-8 rounded-xl font-black uppercase tracking-widest text-xs" onClick={() => setIsImportModalOpen(true)}>
+          <Button className="h-12 rounded-xl bg-indigo-600 px-8 text-sm font-semibold text-white hover:bg-indigo-700" onClick={() => setIsImportModalOpen(true)}>
             Import Lead List
           </Button>
         </div>
@@ -1307,8 +1364,8 @@ export function ProspectExplorer() {
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="rounded-3xl max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black italic uppercase tracking-tight">Add New Prospect</DialogTitle>
-            <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Add a business for audit, preview, and outreach tracking.</DialogDescription>
+            <DialogTitle className="text-xl font-semibold tracking-tight">Add New Prospect</DialogTitle>
+            <DialogDescription className="text-sm text-slate-500">Add a business for audit, preview, and outreach tracking.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 md:grid-cols-2">
             <Field label="Business Name"><Input value={newProspect.name} onChange={(e) => setNewProspect({ ...newProspect, name: e.target.value })} placeholder="e.g. Acme Dental" className="rounded-xl" /></Field>
@@ -1581,7 +1638,7 @@ export function ProspectExplorer() {
           {outreachProspect && (
             <div className="space-y-4 py-2">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Recipient</p>
+                <p className="text-xs font-semibold text-slate-400">Recipient</p>
                 <p className="mt-1 text-sm font-bold text-slate-900">{outreachProspect.name}</p>
                 <p className="mt-1 break-all text-xs font-semibold text-slate-500">
                   {outreachProspect.contact_email}
@@ -1694,7 +1751,7 @@ export function ProspectExplorer() {
                     <div key={message.id} className={message.direction === "inbound" ? "mr-8 rounded-2xl border border-indigo-100 bg-indigo-50 p-4" : "ml-8 rounded-2xl border border-slate-200 bg-white p-4"}>
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
-                          <p className="text-xs font-black uppercase tracking-widest text-slate-500">{message.direction === "inbound" ? "Client reply" : "Bennie Studio"}</p>
+                          <p className="text-xs font-semibold text-slate-500">{message.direction === "inbound" ? "Client reply" : "Bennie Studio"}</p>
                           <p className="mt-1 text-sm font-black text-slate-900">{message.subject || "Email"}</p>
                         </div>
                         <div className="text-right">
@@ -1721,7 +1778,7 @@ export function ProspectExplorer() {
               </div>
 
               <div className="rounded-2xl border border-slate-200 p-4">
-                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Open sales tasks</p>
+                <p className="text-xs font-semibold text-slate-400">Open sales tasks</p>
                 <div className="mt-3 space-y-2">
                   {(engagement?.tasks || []).filter((task: any) => task.status === "open").map((task: any) => (
                     <div key={task.id} className="flex flex-col gap-3 rounded-xl bg-slate-50 p-3 sm:flex-row sm:items-center">
@@ -1742,7 +1799,7 @@ export function ProspectExplorer() {
               </div>
 
               <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Internal notes</p>
+                <p className="text-xs font-semibold text-slate-400">Internal notes</p>
                 <p className="mt-2 whitespace-pre-wrap text-sm font-semibold leading-6 text-slate-700">{selectedProspect.notes || "No notes recorded."}</p>
               </div>
             </div>
@@ -1848,7 +1905,7 @@ function SortableHeader({
   return (
     <th
       aria-sort={ascending ? "ascending" : descending ? "descending" : "none"}
-      className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400"
+      className="px-6 py-4 text-xs font-semibold text-slate-400"
     >
       <button
         type="button"
@@ -1872,12 +1929,12 @@ function SortableHeader({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <Label className="text-xs font-black uppercase tracking-widest text-slate-500">{label}</Label>
+      <Label className="text-xs font-semibold text-slate-500">{label}</Label>
       {children}
     </div>
   );
 }
 
 function Info({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-2xl border border-slate-200 p-4"><p className="text-xs font-black uppercase tracking-widest text-slate-400">{label}</p><p className="mt-2 break-words text-sm font-bold text-slate-800">{value}</p></div>;
+  return <div className="rounded-2xl border border-slate-200 p-4"><p className="text-xs font-semibold text-slate-400">{label}</p><p className="mt-2 break-words text-sm font-bold text-slate-800">{value}</p></div>;
 }

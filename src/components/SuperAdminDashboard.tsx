@@ -379,7 +379,7 @@ export default function SuperAdminDashboard() {
   const tourSteps: Step[] = [
     {
       target: ".tour-dashboard",
-      content: "Welcome to the Neural Command Center. This is where you monitor the entire platform's health and growth metrics.",
+      content: "Welcome to Admin Operations. This is where you monitor platform health, sales activity, delivery and customer work.",
       placement: "bottom",
     },
     {
@@ -389,12 +389,12 @@ export default function SuperAdminDashboard() {
     },
     {
       target: ".tour-scale",
-      content: "Open the Growth OS configuration area for infrastructure, billing, AI, and platform settings.",
+      content: "Open platform settings for infrastructure, billing, AI features and operating controls.",
       placement: "bottom",
     },
     {
       target: ".tour-revenue-command",
-      content: "Review revenue, tenant, and operations signals from the command surface.",
+      content: "Review revenue, customer and operating signals from the business overview.",
       placement: "top",
     },
   ];

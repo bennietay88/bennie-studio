@@ -109,12 +109,12 @@ export function MonthlyUpdateQueue() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Badge className="mb-4 bg-indigo-50 text-indigo-700 border-indigo-100">Managed Website Service</Badge>
-          <h1 className="text-4xl font-black tracking-tight text-slate-950">Monthly Update Queue</h1>
+          <h1 className="text-4xl font-semibold tracking-tight text-slate-950">Monthly Update Queue</h1>
           <p className="mt-2 max-w-3xl text-sm font-semibold text-slate-500">
             Review customer change requests, prioritize launch blockers, and move updates through the managed service workflow.
           </p>
         </div>
-        <Button onClick={loadRequests} variant="outline" className="rounded-2xl font-black">
+        <Button onClick={loadRequests} variant="outline" className="rounded-2xl font-semibold">
           Refresh Queue
         </Button>
       </div>
@@ -131,8 +131,8 @@ export function MonthlyUpdateQueue() {
               <div className={cn("mb-5 flex h-11 w-11 items-center justify-center rounded-2xl", stat.tone)}>
                 <stat.icon className="h-5 w-5" />
               </div>
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400">{stat.label}</p>
-              <p className="mt-2 text-3xl font-black text-slate-950">{stat.value}</p>
+              <p className="text-sm font-medium text-slate-500">{stat.label}</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-950">{stat.value}</p>
             </CardContent>
           </Card>
         ))}
@@ -158,7 +158,7 @@ export function MonthlyUpdateQueue() {
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
-                className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold"
+                className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium"
               >
                 <option value="all">All statuses</option>
                 {statusOptions.map((status) => (
@@ -174,7 +174,7 @@ export function MonthlyUpdateQueue() {
           ) : filteredRequests.length === 0 ? (
             <div className="rounded-2xl bg-slate-50 p-10 text-center">
               <CalendarCheck className="mx-auto mb-4 h-10 w-10 text-slate-300" />
-              <p className="font-black text-slate-950">No update requests found</p>
+              <p className="font-semibold text-slate-950">No update requests found</p>
               <p className="mt-1 text-sm font-semibold text-slate-500">Requests submitted by customers will appear here.</p>
             </div>
           ) : (
@@ -194,7 +194,7 @@ export function MonthlyUpdateQueue() {
                       </Badge>
                       <Badge variant="outline" className="capitalize">{String(request.update_category || request.request_type || "update").replace(/_/g, " ")}</Badge>
                     </div>
-                    <h3 className="text-lg font-black text-slate-950">{request.title}</h3>
+                    <h3 className="text-lg font-semibold text-slate-950">{request.title}</h3>
                     <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-500">{request.details || "No details provided."}</p>
                     {(request.customer_draft?.page || request.customer_draft?.section) && (
                       <p className="mt-2 text-xs font-black text-indigo-600">

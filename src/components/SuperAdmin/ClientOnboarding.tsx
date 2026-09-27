@@ -322,11 +322,11 @@ export function ClientOnboarding() {
     <div className="space-y-8 pt-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">
-          Client <span className="text-indigo-600">Onboarding</span>
+          Customer <span className="text-indigo-600">Onboarding</span>
         </h1>
         <Button 
           onClick={() => setIsAddModalOpen(true)}
-          className="rounded-xl bg-indigo-600 hover:bg-indigo-700 h-11 px-8 font-black uppercase tracking-widest text-xs"
+          className="h-11 rounded-xl bg-indigo-600 px-6 text-sm font-semibold hover:bg-indigo-700"
         >
           <Plus className="h-4 w-4 mr-2" />
           New Client Setup
@@ -342,11 +342,11 @@ export function ClientOnboarding() {
         ].map((stat) => (
           <Card key={stat.label} className="rounded-[2rem] border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden bg-white dark:bg-slate-900/50">
              <CardHeader className="p-6 pb-2 flex flex-row items-center justify-between">
-                <CardTitle className="text-xs font-black text-slate-400 uppercase tracking-widest">{stat.label}</CardTitle>
+                <CardTitle className="text-sm font-medium text-slate-500">{stat.label}</CardTitle>
                 <stat.icon className={cn("h-4 w-4", stat.color)} />
              </CardHeader>
              <CardContent className="p-6 pt-0">
-                <div className="text-3xl font-black italic text-slate-900 dark:text-white tracking-tighter leading-none">{stat.value}</div>
+                <div className="text-3xl font-semibold text-slate-900 dark:text-white tracking-tighter leading-none">{stat.value}</div>
              </CardContent>
           </Card>
         ))}
@@ -356,7 +356,7 @@ export function ClientOnboarding() {
         <CardHeader className="p-8 border-b border-slate-50 flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-xl font-semibold tracking-tight dark:text-white">Onboarding Queue</CardTitle>
-            <CardDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Managing the transition from prospect to active subscriber.</CardDescription>
+            <CardDescription className="mt-1 text-sm text-slate-500">Move customers from sale through onboarding, approval, launch QA and handover.</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -364,7 +364,7 @@ export function ClientOnboarding() {
              {loading ? (
                <div className="p-20 text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
-                  <p className="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Syncing Queue...</p>
+                  <p className="mt-2 text-sm font-medium text-slate-500">Loading onboarding queue...</p>
                </div>
              ) : loadError ? (
                <div className="p-12 text-center">
@@ -390,7 +390,7 @@ export function ClientOnboarding() {
                  ).replace(/_/g, " ");
                  return (
                  <div key={item.id} className="border-b border-slate-100 last:border-b-0">
-                   <div className="p-8 flex flex-col xl:flex-row xl:items-center justify-between gap-8 hover:bg-slate-50 transition-colors">
+                   <div className="flex flex-col justify-between gap-6 p-5 transition-colors hover:bg-slate-50 sm:p-8 xl:flex-row xl:items-center">
                      <div className="flex items-center gap-6">
                         <div className="h-14 w-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
                            <UserPlus className="h-6 w-6" />
@@ -399,7 +399,7 @@ export function ClientOnboarding() {
                            <div className="flex items-center gap-2 mb-1">
                               <h3 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white leading-tight">{item.businesses?.name || "Unknown Client"}</h3>
                            </div>
-                           <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Active Step: {item.current_step}</p>
+                           <p className="text-sm font-medium text-indigo-700">Current stage: {String(item.current_step || "onboarding").replace(/_/g, " ")}</p>
                            <div className="mt-2 flex flex-wrap items-center gap-2">
                              <Badge variant="outline" className="rounded-full bg-white text-xs font-semibold capitalize text-slate-600">
                                Customer access: {accessLabel}
@@ -414,7 +414,7 @@ export function ClientOnboarding() {
                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                         <div className="w-48 space-y-1.5">
                            <div className="flex justify-between items-end">
-                              <p className="text-xs font-black text-slate-300 uppercase tracking-widest">Velocity</p>
+                              <p className="text-xs font-semibold text-slate-500">Progress</p>
                               <p className="text-xs font-black text-slate-900 dark:text-white">{item.progress}%</p>
                            </div>
                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -423,7 +423,7 @@ export function ClientOnboarding() {
                         </div>
 
                         <Badge variant="outline" className={cn(
-                          "text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full",
+                          "rounded-full px-3 py-1 text-xs font-semibold capitalize",
                           item.status === "Completed" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
                           item.status === "Delayed" ? "bg-rose-50 text-rose-600 border-rose-100" :
                           "bg-indigo-50 text-indigo-600 border-indigo-100"

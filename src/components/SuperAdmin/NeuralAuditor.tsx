@@ -166,7 +166,7 @@ export function NeuralAuditor() {
   };
 
   const steps = [
-    { title: "Initializing Scan", desc: "Setting up neural listeners..." },
+    { title: "Initializing Scan", desc: "Preparing website checks..." },
     { title: "Analyzing DOM", desc: "Identifying structural weaknesses..." },
     { title: "Checking Performance", desc: "Measuring core web vitals..." },
     { title: "Reviewing Discoverability", desc: "Identifying observable search and content gaps..." }
@@ -177,7 +177,7 @@ export function NeuralAuditor() {
       <div className="flex w-full min-w-0 flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="break-words text-3xl font-black italic uppercase leading-tight tracking-tighter text-slate-900 dark:text-white sm:text-4xl">
-            Neural <span className="text-indigo-600">Auditor</span>
+            Website <span className="text-indigo-600">Audit</span>
           </h1>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Deep-tissue analysis of business infrastructure.</p>
         </div>
@@ -228,7 +228,7 @@ export function NeuralAuditor() {
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-2xl font-black italic uppercase tracking-tight text-slate-900 dark:text-white">System Ready</h3>
-                  <p className="text-slate-400 font-bold text-sm max-w-xs mx-auto">Enter a domain or select a prospect to launch a multi-layer neural audit.</p>
+                  <p className="text-slate-400 font-bold text-sm max-w-xs mx-auto">Enter a domain or select a prospect to run a structured website audit.</p>
                 </div>
                 <div className="mx-auto flex w-full max-w-xl min-w-0 flex-col gap-3 sm:flex-row">
                   <div className="relative min-w-0 flex-1">
@@ -396,7 +396,7 @@ export function NeuralAuditor() {
                               <Zap className="h-8 w-8 text-white" />
                            </div>
                            <div>
-                              <h4 className="text-xl font-black italic uppercase italic tracking-tight">Growth OS recommendation</h4>
+                              <h4 className="text-xl font-semibold tracking-tight">Recommended next step</h4>
                               <p className="text-indigo-100 font-bold text-xs uppercase tracking-widest">Turn the observed findings into a clearer enquiry journey.</p>
                            </div>
                         </div>

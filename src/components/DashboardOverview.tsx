@@ -991,7 +991,7 @@ export default function DashboardOverview() {
           className="h-12 w-12 border-4 border-indigo-600 border-t-transparent rounded-full"
         />
         <p className="text-slate-500 font-medium animate-pulse text-sm">
-          Synchronizing your business data...
+          Loading your dashboard...
         </p>
       </div>
     );
@@ -1247,14 +1247,14 @@ export default function DashboardOverview() {
     <Tabs defaultValue="overview" className="flex-col space-y-12 pb-20">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
         <motion.div variants={fadeInUp} className="space-y-2">
-          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">
-            Growth OS Interface v4.0
+          <span className="text-sm font-semibold text-primary">
+            Business Dashboard
           </span>
-          <h1 className="text-5xl sm:text-7xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
-            Operational.
+          <h1 className="text-4xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-5xl">
+            Business overview
           </h1>
           <p className="text-xl text-slate-500 dark:text-slate-400 font-medium">
-            Monitoring the digital infrastructure for{" "}
+            Website performance and customer activity for{" "}
             <span className="text-slate-900 dark:text-white font-black">
               {business?.name || "Your Business"}
             </span>
@@ -2221,18 +2221,18 @@ export default function DashboardOverview() {
                 <div className="space-y-8">
                   <div className="inline-flex items-center gap-3 px-4 py-2 bg-primary/20 rounded-full border border-primary/30">
                     <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                    <span className="text-xs font-black uppercase tracking-[0.3em] text-primary">
-                      Mission Critical
+                    <span className="text-sm font-semibold text-primary">
+                      Website setup
                     </span>
                   </div>
-                  <h2 className="text-5xl sm:text-7xl font-black leading-[0.9] tracking-tighter uppercase">
-                    Initialize Your <br />
-                    <span className="text-gradient">Growth OS.</span>
+                  <h2 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+                    Launch your <br />
+                    <span className="text-gradient">business website.</span>
                   </h2>
                   <p className="text-indigo-100/60 text-xl leading-relaxed max-w-lg font-medium">
-                    Your business infrastructure is currently offline.
-                    Activating your digital presence will immediately unlock
-                    global visibility and lead acquisition protocols.
+                    Your website setup is not live yet.
+                    Complete the remaining setup steps to publish your site,
+                    start receiving enquiries and track customer activity.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -2440,7 +2440,7 @@ export default function DashboardOverview() {
                     Advanced Analytics Locked
                   </h4>
                   <p className="text-sm text-slate-500 max-w-xs mb-6">
-                    Upgrade to Business or Growth OS to unlock detailed visitor insights
+                    Upgrade your plan to unlock detailed visitor insights
                     and conversion tracking.
                   </p>
                   <Button

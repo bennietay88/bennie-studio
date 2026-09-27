@@ -300,8 +300,8 @@ export function DashboardLayout({
                 <h2 className="truncate text-sm font-bold capitalize text-slate-900 dark:text-white">
                   {isAdminRole ? "Admin Operations" : `${(role || "").replace("_", " ")} Panel`}
                 </h2>
-                <p className="hidden text-xs font-medium uppercase tracking-widest text-slate-500 dark:text-slate-400 sm:block">
-                  {isAdminRole ? "Run the business from anywhere" : "Enterprise Management"}
+                <p className="hidden text-xs font-medium text-slate-500 dark:text-slate-400 sm:block">
+                  {isAdminRole ? "Run the business from anywhere" : "Customer Workspace"}
                 </p>
               </div>
               {maintenanceMode && role === "super_admin" && (
@@ -322,7 +322,7 @@ export function DashboardLayout({
                     href={mainWebsiteLink.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold uppercase tracking-wide text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300"
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300"
                   >
                     <Globe className="h-4 w-4" />
                     Main Site
@@ -334,7 +334,7 @@ export function DashboardLayout({
                     href={portfolioLink.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold uppercase tracking-wide text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300"
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300"
                   >
                     <BriefcaseBusiness className="h-4 w-4" />
                     Portfolio

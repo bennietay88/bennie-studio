@@ -139,7 +139,7 @@ export function Sidebar({
         {
           label: "Sales & Leads",
           items: [
-            { to: "/admin", icon: LayoutDashboard, label: "Sales Command Center", className: "tour-dashboard" },
+            { to: "/admin", icon: LayoutDashboard, label: "Sales Overview", className: "tour-dashboard" },
             { to: "/admin/growth_operations", icon: Rocket, label: "Growth Operations", moduleId: "growth_operations" },
             { to: "/admin/daily_operations", icon: CalendarIcon, label: "Daily Operations" },
             { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox" },
@@ -357,8 +357,8 @@ export function Sidebar({
           </div>
           {!isCollapsed && (
             <div className="flex flex-col whitespace-nowrap">
-              <span className="text-lg leading-none tracking-tight">Studio Pro</span>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Control Center</span>
+              <span className="text-lg leading-none tracking-tight">Bennie Studio</span>
+              <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">Operations</span>
             </div>
           )}
         </div>
@@ -376,7 +376,7 @@ export function Sidebar({
                     onClick={() => toggleSection(group.label)}
                     className="flex items-center justify-between w-full px-3 mb-2 group/header"
                   >
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover/header:text-indigo-600 transition-colors">
+                    <span className="text-xs font-semibold tracking-wide text-slate-500 transition-colors group-hover/header:text-indigo-600">
                       {group.label}
                     </span>
                     <ChevronDown className={cn(
@@ -467,7 +467,7 @@ export function Sidebar({
               <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
                 {profile?.email?.split("@")[0]}
               </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate uppercase tracking-tighter">
+              <span className="truncate text-xs text-slate-500 dark:text-slate-400">
                 {(profile?.role || "").replace("_", " ")}
               </span>
             </motion.div>
@@ -480,7 +480,7 @@ export function Sidebar({
                 href={mainWebsiteLink.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-indigo-900/20"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs font-semibold text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-indigo-900/20"
               >
                 <Globe className="h-3.5 w-3.5" />
                 Main
@@ -492,7 +492,7 @@ export function Sidebar({
                 href={portfolioLink.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-indigo-900/20"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs font-semibold text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-indigo-900/20"
               >
                 <BriefcaseBusiness className="h-3.5 w-3.5" />
                 Work

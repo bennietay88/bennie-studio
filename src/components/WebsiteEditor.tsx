@@ -970,7 +970,7 @@ export function WebsiteEditor({
           updateSectionContent(activeElement?.pageId || "", sectionId, {
             [field]: result,
           });
-          toast.success("AI Synthesis complete. Content synchronized.");
+          toast.success("AI rewrite complete. The section copy has been updated.");
         } else if (field === "faq" && sectionId) {
           updateSectionContent(activeElement?.pageId || "", sectionId, {
             items: result,
@@ -1061,7 +1061,7 @@ export function WebsiteEditor({
         });
         
         setWebsite({ ...website, pages: newPages });
-        toast.success("AI Synthesis complete! Website quality elevated.");
+        toast.success("AI rewrite complete. Website copy updated.");
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.response?.data?.error || err.response?.data?.details || err.message;
@@ -11234,8 +11234,8 @@ export function WebsiteEditor({
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-indigo-600">
                 <Sparkles className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                  AI Synthesis Engine
+                <span className="text-sm font-semibold">
+                  AI Writing Assistant
                 </span>
               </div>
               <DialogTitle className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
