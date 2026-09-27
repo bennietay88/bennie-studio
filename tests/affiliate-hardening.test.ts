@@ -116,7 +116,7 @@ test("payout requests are atomic and affiliates cannot submit arbitrary payout a
 });
 
 test("affiliate dashboard supports platform and business-specific referral programs", () => {
-  assert.match(affiliateDashboard, /platformAffiliate\.business_id/);
+  assert.match(affiliateDashboard, /selectedAffiliate\.business_id/);
   assert.match(affiliateDashboard, /\/w\/\$\{affiliate\.business_id\}\?ref=/);
   assert.match(affiliateDashboard, /is_platform_program/);
   assert.match(affiliateDashboard, /affiliateApproved/);
