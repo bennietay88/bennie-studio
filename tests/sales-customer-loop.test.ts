@@ -76,6 +76,9 @@ test("daily automation also performs lightweight published-site health monitorin
 test("sales inbox summaries surface reply preview, unread handling and follow-up tasks", () => {
   assert.match(api, /\/api\/admin\/sales-inbox/);
   assert.match(api, /\/api\/admin\/prospects\/:prospectId\/follow-up/);
+  assert.match(prospects, /Sales Reply Center/);
+  assert.match(prospects, /No inbound sales replies yet/);
+  assert.match(prospects, /Last send:/);
   assert.match(prospects, /Replied ·/);
   assert.match(prospects, /Mark handled/);
   assert.match(prospects, /formatDistanceToNowStrict/);

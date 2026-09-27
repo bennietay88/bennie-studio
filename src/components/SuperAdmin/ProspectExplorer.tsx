@@ -593,6 +593,24 @@ export function ProspectExplorer() {
   }, [filteredProspects, sortMode]);
 
 
+  const replyCenterProspects = useMemo(
+    () =>
+      prospects
+        .filter((prospect) => Boolean(prospect._latestReply))
+        .sort((left, right) => {
+          const leftAt = new Date(left._latestReply?.sent_at || left._latestReply?.created_at || 0).getTime();
+          const rightAt = new Date(right._latestReply?.sent_at || right._latestReply?.created_at || 0).getTime();
+          return rightAt - leftAt;
+        })
+        .slice(0, 12),
+    [prospects],
+  );
+
+  const unreadReplyCount = useMemo(
+    () => prospects.filter((prospect) => prospect._latestReply && prospect._unreadReply).length,
+    [prospects],
+  );
+
   const industries = useMemo(
     () => Array.from(new Set(prospects.map((p) => p.industry).filter(Boolean))).sort(),
     [prospects],
@@ -698,6 +716,13 @@ export function ProspectExplorer() {
       ...current,
       tasks: current.tasks.map((task) => task.id === taskId ? { ...task, status } : task),
     } : current);
+    setProspects((current) =>
+      current.map((prospect) =>
+        prospect._replyTaskId === taskId
+          ? { ...prospect, _unreadReply: false, _replyTaskId: null }
+          : prospect,
+      ),
+    );
     toast.success(status === "completed" ? "Task completed" : "Task dismissed");
   };
 
@@ -997,6 +1022,97 @@ export function ProspectExplorer() {
           </Button>
         </div>
       </div>
+
+      <Card className="overflow-hidden rounded-[2rem] border-slate-100 shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-950 px-6 py-5 text-white sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-300">Sales Reply Center</p>
+              {unreadReplyCount > 0 && (
+                <Badge className="border-none bg-indigo-500 text-white">{unreadReplyCount} unread</Badge>
+              )}
+            </div>
+            <p className="mt-1 text-sm font-semibold text-slate-300">
+              Recent inbound conversations, reply classification, delivery state, and next follow-up in one queue.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-fit rounded-xl border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+            onClick={() => setQuickFilter("replied")}
+          >
+            View all replied prospects
+          </Button>
+        </div>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-8 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-indigo-600" /></div>
+          ) : replyCenterProspects.length === 0 ? (
+            <div className="p-8 text-center">
+              <Mail className="mx-auto h-8 w-8 text-slate-300" />
+              <p className="mt-3 text-sm font-black text-slate-800">No inbound sales replies yet</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">New Resend replies will appear here automatically and remain linked to the full prospect thread.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {replyCenterProspects.map((prospect) => {
+                const reply = prospect._latestReply;
+                const replyAt = new Date(reply.sent_at || reply.created_at);
+                return (
+                  <div key={prospect.id} className={`grid gap-4 p-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(190px,.7fr)_auto] lg:items-center ${prospect._unreadReply ? "bg-indigo-50/60" : "bg-white"}`}>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {prospect._unreadReply && <span className="h-2 w-2 rounded-full bg-indigo-600" aria-label="Unread reply" />}
+                        <button type="button" onClick={() => setSelectedProspect(prospect)} className="truncate text-left text-sm font-black text-slate-950 hover:text-indigo-600">
+                          {prospect.name}
+                        </button>
+                        {reply.classification && <Badge variant="outline" className="text-[9px]">{toTitle(reply.classification)}</Badge>}
+                        {prospect._latestOutbound?.status && <Badge variant="outline" className="text-[9px]">Last send: {toTitle(prospect._latestOutbound.status)}</Badge>}
+                      </div>
+                      <p className="mt-1 truncate text-xs font-bold text-slate-700">{reply.subject || "Email reply"}</p>
+                      <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">{reply.preview || reply.body_text}</p>
+                      <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-indigo-600">
+                        Replied · {formatDistanceToNowStrict(replyAt, { addSuffix: true })}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Follow-up</Label>
+                      <Input
+                        type="date"
+                        className="mt-1 h-9 rounded-xl bg-white"
+                        value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""}
+                        onChange={(event) => void setFollowUp(prospect, event.target.value)}
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                      {prospect.contact_email && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="rounded-xl bg-indigo-600 hover:bg-indigo-700"
+                          onClick={() => openOutreachComposer(prospect, reply)}
+                        >
+                          <Send className="mr-1.5 h-3.5 w-3.5" />Reply
+                        </Button>
+                      )}
+                      <Button type="button" size="sm" variant="outline" className="rounded-xl" onClick={() => setSelectedProspect(prospect)}>
+                        <MessageSquare className="mr-1.5 h-3.5 w-3.5" />Thread
+                      </Button>
+                      {prospect._unreadReply && prospect._replyTaskId && (
+                        <Button type="button" size="sm" variant="outline" className="rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => updateSalesTask(prospect._replyTaskId, "completed")}>
+                          <Check className="mr-1.5 h-3.5 w-3.5" />Mark handled
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-5">
         {[
