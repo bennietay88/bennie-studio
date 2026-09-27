@@ -55,3 +55,11 @@ test("launch readiness combines delivery, approval, domain and live health check
   assert.match(api, /Public website responds/);
   assert.match(onboarding, /Launch QA/);
 });
+
+
+test("daily automation also performs lightweight published-site health monitoring", () => {
+  assert.match(api, /BennieStudio-HealthMonitor\/1\.0/);
+  assert.match(api, /website_health_checks/);
+  assert.match(api, /source: "daily_cron"/);
+  assert.match(api, /websiteHealthChecks:/);
+});

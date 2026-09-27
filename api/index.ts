@@ -7356,9 +7356,104 @@ async function startServer() {
     try {
       const sales = await processDueSalesMessages();
       const funnelRuns = await processDueFunnelWorkflowRuns({ db: supabaseAdmin, sendEmail: sendFunnelEmail, limit: 50 });
-      return res.json({ success: true, ...sales, funnelWorkflowRuns: funnelRuns.length });
+
+      // Reuse the existing daily cron invocation for lightweight customer-site health
+      // monitoring instead of adding another Vercel cron/deployment cost. Keep the
+      // batch deliberately small; a later run will cover additional published sites.
+      const { data: publishedSites, error: sitesError } = await supabaseAdmin
+        .from("websites")
+        .select("id,business_id")
+        .eq("status", "published")
+        .order("updated_at", { ascending: false })
+        .limit(20);
+      if (sitesError) throw sitesError;
+
+      const businessIds = Array.from(new Set((publishedSites || []).map((site: any) => site.business_id).filter(Boolean)));
+      const { data: healthBusinesses, error: businessError } = businessIds.length
+        ? await supabaseAdmin
+            .from("businesses")
+            .select("id,custom_domain,custom_domain_status")
+            .in("id", businessIds)
+        : { data: [], error: null };
+      if (businessError) throw businessError;
+
+      const businessById = new Map((healthBusinesses || []).map((business: any) => [business.id, business]));
+      const healthResults = await Promise.all((publishedSites || []).map(async (site: any) => {
+        const business: any = businessById.get(site.business_id);
+        if (!business) return null;
+        const connectedDomain =
+          String(business.custom_domain_status || "").toLowerCase() === "connected"
+            ? normalizeDomainInput(String(business.custom_domain || ""))
+            : "";
+        const publicUrl = connectedDomain
+          ? `https://${connectedDomain}`
+          : `${publicAppUrl()}/w/${site.business_id}`;
+
+        const startedAt = Date.now();
+        let reachable = false;
+        let httpStatus: number | null = null;
+        let issue = "";
+        try {
+          const response = await fetch(publicUrl, {
+            method: "GET",
+            redirect: "follow",
+            signal: AbortSignal.timeout(6000),
+            headers: { "user-agent": "BennieStudio-HealthMonitor/1.0" },
+          });
+          httpStatus = response.status;
+          reachable = response.status >= 200 && response.status < 500;
+          if (!reachable) issue = `Public website returned HTTP ${response.status}`;
+          await response.body?.cancel().catch(() => undefined);
+        } catch {
+          issue = "Public website could not be reached";
+        }
+
+        const latencyMs = Date.now() - startedAt;
+        const healthStatus =
+          !reachable || (httpStatus !== null && httpStatus >= 500)
+            ? "critical"
+            : httpStatus !== null && httpStatus >= 400
+              ? "warning"
+              : "healthy";
+
+        const { error: healthInsertError } = await supabaseAdmin
+          .from("website_health_checks")
+          .insert({
+            website_id: site.id,
+            business_id: site.business_id,
+            health_status: healthStatus,
+            issues: issue ? [issue] : [],
+            checks: {
+              reachable,
+              httpStatus,
+              latencyMs,
+              publicUrl,
+              source: "daily_cron",
+            },
+          });
+        if (healthInsertError) {
+          structuredLog("warn", "website_health_check_store_failed", {
+            businessId: site.business_id,
+            websiteId: site.id,
+          });
+        }
+
+        return { businessId: site.business_id, websiteId: site.id, healthStatus, reachable, httpStatus, latencyMs };
+      }));
+
+      const completedHealth = healthResults.filter(Boolean);
+      return res.json({
+        success: true,
+        ...sales,
+        funnelWorkflowRuns: funnelRuns.length,
+        websiteHealthChecks: {
+          checked: completedHealth.length,
+          critical: completedHealth.filter((item: any) => item.healthStatus === "critical").length,
+          warning: completedHealth.filter((item: any) => item.healthStatus === "warning").length,
+        },
+      });
     } catch (error) {
-      console.error("Sales/funnel automation cron failed:", error);
+      console.error("Sales/funnel/health automation cron failed:", error);
       return res.status(500).json({ error: "Automation run failed" });
     }
   });
