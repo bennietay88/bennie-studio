@@ -17,6 +17,8 @@ const checkoutStatus = readFileSync("src/components/CheckoutStatusPage.tsx", "ut
 const publicChrome = readFileSync("src/components/PublicSiteChrome.tsx", "utf8");
 const appRoutes = readFileSync("src/App.tsx", "utf8");
 const hardeningMigration = readFileSync("supabase/migrations/20260927070000_commercial_launch_hardening.sql", "utf8");
+const finalLaunchQa = readFileSync("server/finalLaunchQa.ts", "utf8");
+const commercialLifecycleE2e = readFileSync("e2e/commercial-lifecycle.spec.ts", "utf8");
 
 test("prospect engagement API exposes messages and tasks", () => {
   assert.match(api, /\/api\/admin\/prospects\/:prospectId\/engagement/);
@@ -156,4 +158,28 @@ test("launch hardening migration aligns negotiated terms and least-privilege RLS
   assert.match(hardeningMigration, /has_platform_permission\('sales'/);
   assert.match(hardeningMigration, /DROP POLICY IF EXISTS "Customers respond to their approvals"/);
   assert.match(hardeningMigration, /Customer users create own update requests/);
+});
+
+
+test("customer onboarding access can be resent without recreating conversion records", () => {
+  assert.match(api, /\/api\/admin\/businesses\/:businessId\/onboarding-invite/);
+  assert.match(api, /deliverCustomerOnboardingInvite/);
+  assert.match(onboarding, /Resend invite/);
+  assert.match(onboarding, /Copy access link/);
+});
+
+test("final launch uses a fresh content-aware live crawler", () => {
+  assert.match(api, /runFinalLaunchCrawler/);
+  assert.match(api, /fresh_crawl/);
+  assert.match(finalLaunchQa, /brokenResources/);
+  assert.match(finalLaunchQa, /duplicate page slug/);
+  assert.match(onboarding, /Fresh crawl:/);
+});
+
+test("deterministic commercial lifecycle e2e covers conversion, access, launch QA and approval", () => {
+  assert.match(commercialLifecycleE2e, /Create Customer Workspace/);
+  assert.match(commercialLifecycleE2e, /Resend invite/);
+  assert.match(commercialLifecycleE2e, /Launch QA/);
+  assert.match(commercialLifecycleE2e, /Approve Version/);
+  assert.match(commercialLifecycleE2e, /horizontal overflow/);
 });

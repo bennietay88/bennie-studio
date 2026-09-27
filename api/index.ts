@@ -81,6 +81,7 @@ import { buildPortableWebsiteFiles } from "../src/lib/websiteHandover.js";
 import { HANDOVER_GRACE_DAYS, handoverGraceUntil, subscriptionAllowsPermanentDeletion } from "../src/lib/billingLifecycle.js";
 import { nextStepForSubmission } from "../src/lib/funnelEngine.js";
 import { processDueFunnelWorkflowRuns, runFunnelAutomations } from "../server/funnelAutomation.js";
+import { runFinalLaunchCrawler } from "../server/finalLaunchQa.js";
 
 dotenv.config();
 initServerObservability();
@@ -3308,6 +3309,48 @@ async function startServer() {
   }));
 
   const publicAppUrl = () => String(process.env.APP_PUBLIC_URL || process.env.PUBLIC_APP_URL || "https://app.bennietay.com").replace(/\/+$/, "");
+  const customerOnboardingUrl = (email: string, hasAccount: boolean) =>
+    publicAppUrl() + "/" + (hasAccount ? "login" : "signup")
+    + "?redirectTo=" + encodeURIComponent("/dashboard/onboarding")
+    + "&email=" + encodeURIComponent(email);
+
+  const deliverCustomerOnboardingInvite = async (input: {
+    businessId: string;
+    businessName: string;
+    email: string;
+    contactName?: string | null;
+    hasAccount: boolean;
+    requestId: string;
+  }) => {
+    await refreshPlatformSettings();
+    const onboardingUrl = customerOnboardingUrl(input.email, input.hasAccount);
+    const greeting = input.contactName ? " " + escapeHtml(input.contactName) : "";
+    const inviteHtml = "<div style=\"font-family:Arial,sans-serif;line-height:1.65;color:#172033\">"
+      + "<p>Hi" + greeting + ",</p><p>Your Bennie Studio customer workspace for <strong>" + escapeHtml(input.businessName) + "</strong> is ready.</p>"
+      + "<p><a href=\"" + onboardingUrl + "\" style=\"display:inline-block;padding:12px 18px;border-radius:10px;background:#4f46e5;color:#fff;text-decoration:none;font-weight:700\">Start onboarding</a></p>"
+      + "<p style=\"color:#64748b;font-size:13px\">Use " + escapeHtml(input.email) + " when signing in or creating your account. Your workspace will attach automatically.</p></div>";
+    const inviteText = "Your Bennie Studio customer workspace for " + input.businessName
+      + " is ready. Start onboarding: " + onboardingUrl
+      + "\n\nUse " + input.email + " when signing in or creating your account. Your workspace will attach automatically.";
+    const { data, error } = await getResend().emails.send({
+      from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "Bennie Studio <onboarding@resend.dev>",
+      to: input.email,
+      subject: "Your Bennie Studio onboarding is ready",
+      html: inviteHtml,
+      text: inviteText,
+      replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
+      bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
+    }, { idempotencyKey: "customer-onboarding-" + input.businessId + "-" + input.requestId });
+    if (error || !data?.id) throw new Error("CUSTOMER_INVITE_DELIVERY_FAILED");
+    return {
+      status: input.hasAccount ? "existing_user_notified" : "invite_sent",
+      email: input.email,
+      sentAt: new Date().toISOString(),
+      providerMessageId: data.id,
+      onboardingUrl,
+    };
+  };
+
 
   const processDueSalesMessages = (limit = 40) => runSalesDelivery({
     db: supabaseAdmin,
@@ -7312,29 +7355,23 @@ async function startServer() {
         ? { status: ownerId ? "existing_user_attached" : "invite_pending", email: prospectEmail }
         : { status: "missing_customer_email" };
       if (prospectEmail) {
-        const onboardingUrl = publicAppUrl() + "/" + (ownerId ? "login" : "signup")
-          + "?redirectTo=" + encodeURIComponent("/dashboard/onboarding")
-          + "&email=" + encodeURIComponent(prospectEmail);
         try {
-          await refreshPlatformSettings();
-          const greeting = customerContact.name ? " " + escapeHtml(customerContact.name) : "";
-          const inviteHtml = "<div style=\"font-family:Arial,sans-serif;line-height:1.65;color:#172033\">"
-            + "<p>Hi" + greeting + ",</p><p>Your Bennie Studio customer workspace for <strong>" + escapeHtml(customerName) + "</strong> is ready.</p>"
-            + "<p><a href=\"" + onboardingUrl + "\" style=\"display:inline-block;padding:12px 18px;border-radius:10px;background:#4f46e5;color:#fff;text-decoration:none;font-weight:700\">Start onboarding</a></p>"
-            + "<p style=\"color:#64748b;font-size:13px\">Use " + escapeHtml(prospectEmail) + " when signing in or creating your account. Your workspace will attach automatically.</p></div>";
-          const inviteText = "Your Bennie Studio customer workspace for " + customerName + " is ready. Start onboarding: " + onboardingUrl
-            + "\n\nUse " + prospectEmail + " when signing in or creating your account. Your workspace will attach automatically.";
-          const { data: inviteReceipt, error: inviteError } = await getResend().emails.send({
-            from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "Bennie Studio <onboarding@resend.dev>",
-            to: prospectEmail, subject: "Your Bennie Studio onboarding is ready", html: inviteHtml, text: inviteText,
-            replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
-            bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
-          }, { idempotencyKey: "customer-onboarding-" + businessId });
-          if (inviteError || !inviteReceipt?.id) throw new Error("CUSTOMER_INVITE_DELIVERY_FAILED");
-          customerAccess = { status: ownerId ? "existing_user_notified" : "invite_sent", email: prospectEmail, sentAt: now, providerMessageId: inviteReceipt.id, onboardingUrl };
+          customerAccess = await deliverCustomerOnboardingInvite({
+            businessId,
+            businessName: customerName,
+            email: prospectEmail,
+            contactName: customerContact.name,
+            hasAccount: Boolean(ownerId),
+            requestId: "conversion-v1",
+          });
         } catch (inviteError: any) {
           console.warn("[Prospect Conversion] Customer onboarding invite could not be delivered:", inviteError?.message || inviteError);
-          customerAccess = { status: ownerId ? "existing_user_attached" : "invite_delivery_pending", email: prospectEmail, onboardingUrl, error: "Invite delivery pending" };
+          customerAccess = {
+            status: ownerId ? "existing_user_attached" : "invite_delivery_pending",
+            email: prospectEmail,
+            onboardingUrl: customerOnboardingUrl(prospectEmail, Boolean(ownerId)),
+            error: "Invite delivery pending",
+          };
         }
       }
       const onboardingSteps = {
@@ -7439,6 +7476,76 @@ async function startServer() {
     } catch (error: any) {
       console.error("[Prospect Conversion] Failed:", error?.message || error);
       return res.status(503).json({ error: "Prospect could not be converted. No duplicate customer should be created on retry." });
+    }
+  });
+
+  app.post("/api/admin/businesses/:businessId/onboarding-invite", authenticate, async (req: any, res: any) => {
+    const businessId = String(req.params.businessId || "");
+    if (!UUID_SCHEMA.safeParse(businessId).success) return res.status(400).json({ error: "Invalid business reference." });
+    const body = validateBody(z.object({ requestId: UUID_SCHEMA }).strict(), req, res);
+    if (!body) return;
+    try {
+      await assertBusinessRoleAccess(req.user.id, businessId, {
+        customerRoles: [],
+        platformPermissions: ["sales", "delivery", "customer_health"],
+      });
+      const { data: business, error } = await supabaseAdmin
+        .from("businesses")
+        .select("id,name,owner_id,onboarding_steps")
+        .eq("id", businessId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!business) return res.status(404).json({ error: "Business not found." });
+
+      const onboardingSteps =
+        business.onboarding_steps && typeof business.onboarding_steps === "object"
+          ? business.onboarding_steps
+          : {};
+      const customerContact =
+        onboardingSteps.customerContact && typeof onboardingSteps.customerContact === "object"
+          ? onboardingSteps.customerContact
+          : {};
+      const email = normalizeSalesEmail(customerContact.email);
+      if (!email) return res.status(400).json({ error: "Add the customer email before sending onboarding access." });
+
+      try {
+        const customerAccess = await deliverCustomerOnboardingInvite({
+          businessId,
+          businessName: String(business.name || "Customer"),
+          email,
+          contactName: customerContact.name || null,
+          hasAccount: Boolean(business.owner_id),
+          requestId: body.requestId,
+        });
+        const { error: updateError } = await supabaseAdmin.from("businesses").update({
+          onboarding_steps: { ...onboardingSteps, customerAccess },
+          updated_at: new Date().toISOString(),
+        }).eq("id", businessId);
+        if (updateError) throw updateError;
+        return res.json({ success: true, customerAccess });
+      } catch (inviteError: any) {
+        const customerAccess = {
+          status: business.owner_id ? "existing_user_attached" : "invite_delivery_pending",
+          email,
+          onboardingUrl: customerOnboardingUrl(email, Boolean(business.owner_id)),
+          error: "Invite delivery pending",
+          lastAttemptAt: new Date().toISOString(),
+        };
+        await supabaseAdmin.from("businesses").update({
+          onboarding_steps: { ...onboardingSteps, customerAccess },
+          updated_at: new Date().toISOString(),
+        }).eq("id", businessId);
+        return res.status(503).json({
+          error: "Onboarding invitation could not be delivered.",
+          customerAccess,
+        });
+      }
+    } catch (error: any) {
+      if (["BUSINESS_NOT_FOUND", "PROFILE_NOT_FOUND", "FORBIDDEN_BUSINESS_ACCESS"].includes(error?.message)) {
+        return handleAccessError(res, error);
+      }
+      console.error("[Customer Onboarding Invite] Failed:", error?.message || error);
+      return res.status(503).json({ error: "Onboarding invitation could not be sent." });
     }
   });
 
@@ -10674,6 +10781,23 @@ async function startServer() {
         latencyMs = Date.now() - startedAt;
       }
 
+      const liveCrawler = await runFinalLaunchCrawler({
+        pages,
+        theme: website?.theme || {},
+        seo,
+        maxResources: 36,
+        fetchResource: async (url, method) => {
+          const { response, finalUrl } = await fetchAuditResource(url, method);
+          const result = {
+            status: response.status,
+            contentType: response.headers.get("content-type"),
+            finalUrl,
+          };
+          await response.body?.cancel().catch(() => undefined);
+          return result;
+        },
+      });
+
       const checks = [
         { id: "onboarding", label: "Customer onboarding complete", pass: onboardingReady, severity: "blocker" },
         { id: "website", label: "Website draft exists", pass: Boolean(website?.id && pages.length), severity: "blocker" },
@@ -10684,8 +10808,10 @@ async function startServer() {
         { id: "whatsapp", label: hasWhatsapp ? "WhatsApp CTA detected" : "WhatsApp CTA not configured", pass: hasWhatsapp, severity: "warning" },
         { id: "email", label: hasEmail ? "Email contact path detected" : "Email contact path not configured", pass: hasEmail, severity: "warning" },
         { id: "booking", label: hasBooking ? "Booking/appointment path detected" : "Booking link not configured", pass: hasBooking, severity: "warning" },
-        { id: "buttons", label: "No broken website buttons/links", pass: brokenButtons === 0 && criticalBroken === 0, severity: "blocker" },
-        { id: "images", label: "No broken images reported", pass: brokenImages === 0, severity: "blocker" },
+        { id: "buttons", label: "No broken website buttons/links", pass: brokenButtons === 0 && criticalBroken === 0 && liveCrawler.brokenLinks.length === 0, severity: "blocker" },
+        { id: "images", label: "No broken images reported", pass: brokenImages === 0 && liveCrawler.brokenImages.length === 0, severity: "blocker" },
+        { id: "fresh_crawl", label: `Fresh crawl: ${liveCrawler.pageCount} pages · ${liveCrawler.resourceCount} live targets checked`, pass: liveCrawler.pass, severity: "blocker" },
+        { id: "crawler_review", label: liveCrawler.uncertainResources.length ? `${liveCrawler.uncertainResources.length} remote target(s) need manual review` : "All remote targets verified automatically", pass: liveCrawler.uncertainResources.length === 0, severity: "warning" },
         { id: "legal_privacy", label: "Privacy page present", pass: hasPrivacyPage, severity: "warning" },
         { id: "legal_terms", label: "Terms/legal page present", pass: hasTermsPage, severity: "warning" },
         { id: "analytics", label: "Analytics/tracking configured", pass: analyticsReady, severity: "warning" },
@@ -10707,6 +10833,7 @@ async function startServer() {
         publicUrl,
         reachable,
         liveHtmlReady,
+        crawler: liveCrawler,
         httpStatus,
         latencyMs,
         project: project || null,

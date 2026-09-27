@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserPlus, Rocket, CheckCircle2, MoreVertical, Shield, Loader2, Plus, Trash2, RefreshCw, Activity, Send, AlertTriangle, ExternalLink } from "lucide-react";
+import { UserPlus, Rocket, CheckCircle2, MoreVertical, Shield, Loader2, Plus, Trash2, RefreshCw, Activity, Send, AlertTriangle, ExternalLink, Copy } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -10,6 +10,7 @@ import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { cn } from "../../lib/utils";
 
 const handoverChecklist = [
   "Business details and primary contact methods confirmed",
@@ -34,6 +35,7 @@ export function ClientOnboarding() {
   const [launchQaByBusiness, setLaunchQaByBusiness] = useState<Record<string, any>>({});
   const [checkingBusinessId, setCheckingBusinessId] = useState<string | null>(null);
   const [requestingApprovalId, setRequestingApprovalId] = useState<string | null>(null);
+  const [sendingInviteBusinessId, setSendingInviteBusinessId] = useState<string | null>(null);
   const [newSession, setNewSession] = useState({
     business_id: "",
     current_step: "Profile Initialized",
@@ -58,7 +60,7 @@ export function ClientOnboarding() {
       setLoadError("");
       const { data, error } = await supabase
         .from("onboarding_sessions")
-        .select("*, businesses(name)")
+        .select("*, businesses(name, owner_id, onboarding_steps)")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -110,7 +112,7 @@ export function ClientOnboarding() {
           updated_at: new Date().toISOString(),
         })
         .eq("id", editingSession.id)
-        .select("*, businesses(name)")
+        .select("*, businesses(name, owner_id, onboarding_steps)")
         .single();
 
       if (error) throw error;
@@ -171,7 +173,7 @@ export function ClientOnboarding() {
           status: newSession.status,
           progress: newSession.progress
         }])
-        .select("*, businesses(name)")
+        .select("*, businesses(name, owner_id, onboarding_steps)")
         .single();
 
       if (error) throw error;
@@ -220,6 +222,65 @@ export function ClientOnboarding() {
       toast.error(error?.message || "Launch QA could not be checked.");
     } finally {
       setCheckingBusinessId(null);
+    }
+  };
+
+  const resendOnboardingInvite = async (item: any) => {
+    try {
+      setSendingInviteBusinessId(item.business_id);
+      const headers = await getAdminHeaders();
+      const response = await fetch(
+        `/api/admin/businesses/${encodeURIComponent(item.business_id)}/onboarding-invite`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ requestId: crypto.randomUUID() }),
+        },
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || "Onboarding invitation could not be sent.");
+      setSessions((current) =>
+        current.map((session) =>
+          session.business_id === item.business_id
+            ? {
+                ...session,
+                businesses: {
+                  ...session.businesses,
+                  onboarding_steps: {
+                    ...(session.businesses?.onboarding_steps || {}),
+                    customerAccess: payload.customerAccess,
+                  },
+                },
+              }
+            : session,
+        ),
+      );
+      toast.success("Onboarding invitation sent.");
+    } catch (error: any) {
+      toast.error(error?.message || "Onboarding invitation could not be sent.");
+      await fetchSessions();
+    } finally {
+      setSendingInviteBusinessId(null);
+    }
+  };
+
+  const copyOnboardingAccess = async (item: any) => {
+    const steps = item.businesses?.onboarding_steps || {};
+    const access = steps.customerAccess || {};
+    const contact = steps.customerContact || {};
+    const email = String(access.email || contact.email || "").trim();
+    if (!email) return toast.error("No customer email is available.");
+
+    const fallbackUrl =
+      window.location.origin + "/" + (item.businesses?.owner_id ? "login" : "signup")
+      + "?redirectTo=" + encodeURIComponent("/dashboard/onboarding")
+      + "&email=" + encodeURIComponent(email);
+    const url = String(access.onboardingUrl || fallbackUrl);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Customer onboarding link copied.");
+    } catch {
+      toast.error("Could not copy the onboarding link.");
     }
   };
 
@@ -294,7 +355,7 @@ export function ClientOnboarding() {
       <Card className="rounded-[2.5rem] border-slate-100 shadow-sm overflow-hidden">
         <CardHeader className="p-8 border-b border-slate-50 flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-xl font-black italic uppercase tracking-tight dark:text-white">Onboarding Queue</CardTitle>
+            <CardTitle className="text-xl font-semibold tracking-tight dark:text-white">Onboarding Queue</CardTitle>
             <CardDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Managing the transition from prospect to active subscriber.</CardDescription>
           </div>
         </CardHeader>
@@ -320,6 +381,13 @@ export function ClientOnboarding() {
              ) : (
                sessions.map((item) => {
                  const qa = launchQaByBusiness[item.business_id];
+                 const onboardingSteps = item.businesses?.onboarding_steps || {};
+                 const customerAccess = onboardingSteps.customerAccess || {};
+                 const customerContact = onboardingSteps.customerContact || {};
+                 const customerEmail = String(customerAccess.email || customerContact.email || "").trim();
+                 const accessLabel = String(
+                   customerAccess.status || (customerEmail ? "access_pending" : "email_missing"),
+                 ).replace(/_/g, " ");
                  return (
                  <div key={item.id} className="border-b border-slate-100 last:border-b-0">
                    <div className="p-8 flex flex-col xl:flex-row xl:items-center justify-between gap-8 hover:bg-slate-50 transition-colors">
@@ -329,9 +397,17 @@ export function ClientOnboarding() {
                         </div>
                         <div>
                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="text-lg font-black italic uppercase tracking-tight text-slate-900 dark:text-white leading-tight">{item.businesses?.name || "Unknown Client"}</h3>
+                              <h3 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white leading-tight">{item.businesses?.name || "Unknown Client"}</h3>
                            </div>
                            <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Active Step: {item.current_step}</p>
+                           <div className="mt-2 flex flex-wrap items-center gap-2">
+                             <Badge variant="outline" className="rounded-full bg-white text-xs font-semibold capitalize text-slate-600">
+                               Customer access: {accessLabel}
+                             </Badge>
+                             <span className="text-xs font-semibold text-slate-500">
+                               {customerEmail || "Customer email not captured"}
+                             </span>
+                           </div>
                         </div>
                      </div>
 
@@ -366,6 +442,31 @@ export function ClientOnboarding() {
                             {checkingBusinessId === item.business_id ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Activity className="mr-2 h-3.5 w-3.5" />}
                             Launch QA
                           </Button>
+                          {customerEmail && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => resendOnboardingInvite(item)}
+                                disabled={sendingInviteBusinessId === item.business_id}
+                                className="rounded-xl"
+                              >
+                                {sendingInviteBusinessId === item.business_id
+                                  ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                                  : <Send className="mr-2 h-3.5 w-3.5" />}
+                                Resend invite
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyOnboardingAccess(item)}
+                                className="rounded-xl"
+                              >
+                                <Copy className="mr-2 h-3.5 w-3.5" />
+                                Copy access link
+                              </Button>
+                            </>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -408,6 +509,11 @@ export function ClientOnboarding() {
                            <p className="mt-1 text-xs font-semibold text-slate-600">
                              Live health: {qa.health?.reachable ? `online · ${qa.health.httpStatus} · ${qa.health.latencyMs}ms` : qa.reachable ? `responding · ${qa.httpStatus || "HTTP"}` : "not confirmed"}
                            </p>
+                           {qa.crawler && (
+                             <p className="mt-1 text-xs font-semibold text-slate-600">
+                               Fresh crawl: {qa.crawler.pageCount || 0} pages · {qa.crawler.resourceCount || 0} live targets · {qa.crawler.brokenResources?.length || 0} broken
+                             </p>
+                           )}
                          </div>
                          {qa.publicUrl && (
                            <a href={qa.publicUrl} target="_blank" rel="noreferrer" className="inline-flex items-center text-xs font-black text-indigo-600">
