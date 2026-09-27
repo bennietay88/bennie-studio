@@ -15,6 +15,8 @@ const commercialCatalogue = readFileSync("src/components/SuperAdmin/CommercialCa
 const prospectPreview = readFileSync("src/components/ProspectPreviewPage.tsx", "utf8");
 const checkoutStatus = readFileSync("src/components/CheckoutStatusPage.tsx", "utf8");
 const publicChrome = readFileSync("src/components/PublicSiteChrome.tsx", "utf8");
+const appRoutes = readFileSync("src/App.tsx", "utf8");
+const hardeningMigration = readFileSync("supabase/migrations/20260927070000_commercial_launch_hardening.sql", "utf8");
 
 test("prospect engagement API exposes messages and tasks", () => {
   assert.match(api, /\/api\/admin\/prospects\/:prospectId\/engagement/);
@@ -36,6 +38,9 @@ test("prospect conversion creates the connected customer handoff", () => {
   assert.match(api, /prospect-business:/);
   assert.match(api, /Awaiting customer onboarding/);
   assert.match(api, /awaiting_onboarding/);
+  assert.match(api, /claimPendingCustomerBusiness/);
+  assert.match(api, /customer-onboarding-/);
+  assert.match(api, /Start onboarding/);
   assert.match(prospects, /Convert to Customer/);
   assert.match(prospects, /Create Customer Workspace/);
 });
@@ -60,7 +65,8 @@ test("launch readiness combines delivery, approval, domain and live health check
   assert.match(api, /Customer onboarding complete/);
   assert.match(api, /No broken website buttons\/links/);
   assert.match(api, /Customer approved current version/);
-  assert.match(api, /Public website responds/);
+  assert.match(api, /Public website returns a successful HTML page/);
+  assert.match(api, /response\.status >= 200 && response\.status < 400/);
   assert.match(onboarding, /Launch QA/);
 });
 
@@ -140,4 +146,14 @@ test("customer confidence flow makes evidence and managed handoff explicit", () 
   assert.match(checkoutStatus, /Your managed project starts here/);
   assert.match(publicChrome, /companyRegistrationNumber/);
   assert.match(publicChrome, /businessAddress/);
+});
+
+test("customer approval access matches the client approval capability", () => {
+  assert.match(appRoutes, /allowedRoles=\{\["business_admin", "staff", "client"\]\}[\s\S]{0,180}<CustomerApprovals \/>/);
+});
+test("launch hardening migration aligns negotiated terms and least-privilege RLS", () => {
+  assert.match(hardeningMigration, /commercial_term_months >= 1 AND commercial_term_months <= 120/);
+  assert.match(hardeningMigration, /has_platform_permission\('sales'/);
+  assert.match(hardeningMigration, /DROP POLICY IF EXISTS "Customers respond to their approvals"/);
+  assert.match(hardeningMigration, /Customer users create own update requests/);
 });

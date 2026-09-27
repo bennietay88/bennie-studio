@@ -131,7 +131,7 @@ export function MonthlyUpdateQueue() {
               <div className={cn("mb-5 flex h-11 w-11 items-center justify-center rounded-2xl", stat.tone)}>
                 <stat.icon className="h-5 w-5" />
               </div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{stat.label}</p>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400">{stat.label}</p>
               <p className="mt-2 text-3xl font-black text-slate-950">{stat.value}</p>
             </CardContent>
           </Card>

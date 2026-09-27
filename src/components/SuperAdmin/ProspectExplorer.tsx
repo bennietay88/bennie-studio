@@ -835,10 +835,15 @@ export function ProspectExplorer() {
         }
       }
       setConversionProspect(null);
+      const accountStatus = String(payload?.business?.accountStatus || "");
       toast.success(
-        payload?.business?.accountStatus === "existing_user_attached"
-          ? "Customer workspace created and existing account attached."
-          : "Customer workspace created. Attach the customer account/payment before onboarding.",
+        ["existing_user_attached", "existing_user_notified"].includes(accountStatus)
+          ? "Customer workspace created and the existing account is attached."
+          : accountStatus === "invite_sent"
+            ? "Customer workspace created and onboarding invitation sent."
+            : accountStatus === "invite_delivery_pending"
+              ? "Customer workspace created. Invitation delivery needs a retry, but account claiming is ready."
+              : "Customer workspace created. Add a customer email before onboarding.",
       );
     } catch (error: any) {
       toast.error(error?.message || "Prospect could not be converted.");
@@ -976,14 +981,14 @@ export function ProspectExplorer() {
             variant="outline"
             size="sm"
             onClick={() => openOutreachComposer(prospect)}
-            className="h-8 rounded-xl px-3 text-[10px] font-bold"
+            className="h-8 rounded-xl px-3 text-xs font-bold"
           >
             <Mail className="mr-1.5 h-3 w-3" />
             Email
           </Button>
         )}
         {phoneHref && (
-          <a href={phoneHref} className="inline-flex h-8 items-center rounded-xl border border-slate-200 px-3 text-[10px] font-bold text-slate-700 hover:bg-slate-50">
+          <a href={phoneHref} className="inline-flex h-8 items-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50">
             <Phone className="mr-1.5 h-3 w-3" />Call
           </a>
         )}
@@ -992,7 +997,7 @@ export function ProspectExplorer() {
             href={whatsappHref}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-8 items-center rounded-xl border border-slate-200 px-3 text-[10px] font-bold text-slate-700 hover:bg-slate-50"
+            className="inline-flex h-8 items-center rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
           >
             <MessageSquare className="mr-1.5 h-3 w-3" />
             WhatsApp
@@ -1006,8 +1011,8 @@ export function ProspectExplorer() {
     <div className="space-y-8 pt-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 dark:text-white">
-            Sales Prospecting <span className="text-indigo-600">Workspace</span>
+          <h1 className="text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">
+            Prospect <span className="text-indigo-600">Pipeline</span>
           </h1>
           <p className="mt-1 max-w-3xl text-sm font-bold text-slate-500">
             Build targeted lead lists, qualify weak websites, generate preview/audit links, and track follow-up status before prospects become customers.
@@ -1068,17 +1073,17 @@ export function ProspectExplorer() {
                         <button type="button" onClick={() => setSelectedProspect(prospect)} className="truncate text-left text-sm font-black text-slate-950 hover:text-indigo-600">
                           {prospect.name}
                         </button>
-                        {reply.classification && <Badge variant="outline" className="text-[9px]">{toTitle(reply.classification)}</Badge>}
-                        {prospect._latestOutbound?.status && <Badge variant="outline" className="text-[9px]">Last send: {toTitle(prospect._latestOutbound.status)}</Badge>}
+                        {reply.classification && <Badge variant="outline" className="text-xs">{toTitle(reply.classification)}</Badge>}
+                        {prospect._latestOutbound?.status && <Badge variant="outline" className="text-xs">Last send: {toTitle(prospect._latestOutbound.status)}</Badge>}
                       </div>
                       <p className="mt-1 truncate text-xs font-bold text-slate-700">{reply.subject || "Email reply"}</p>
                       <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">{reply.preview || reply.body_text}</p>
-                      <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-indigo-600">
+                      <p className="mt-2 text-xs font-black uppercase tracking-widest text-indigo-600">
                         Replied · {formatDistanceToNowStrict(replyAt, { addSuffix: true })}
                       </p>
                     </div>
                     <div>
-                      <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Follow-up</Label>
+                      <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Follow-up</Label>
                       <Input
                         type="date"
                         className="mt-1 h-9 rounded-xl bg-white"
@@ -1125,7 +1130,7 @@ export function ProspectExplorer() {
           <Card key={label} className="rounded-3xl border-slate-100 shadow-sm">
             <CardContent className="p-5">
               <Icon className="h-5 w-5 text-indigo-600" />
-              <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
+              <p className="mt-4 text-xs font-black uppercase tracking-widest text-slate-400">{label}</p>
               <p className="text-3xl font-black text-slate-950">{value}</p>
             </CardContent>
           </Card>
@@ -1197,12 +1202,12 @@ export function ProspectExplorer() {
                   <SortableHeader label="Score / next action" sortMode={sortMode} ascMode="score_asc" descMode="score_desc" onChange={setSortMode} />
                   <SortableHeader label="Outreach" sortMode={sortMode} ascMode="outreach_asc" descMode="outreach_desc" onChange={setSortMode} />
                   <SortableHeader label="Next Step" sortMode={sortMode} ascMode="followup_asc" descMode="followup_desc" onChange={setSortMode} />
-                  <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
+                  <th className="px-6 py-4 text-right text-xs font-black uppercase tracking-widest text-slate-400">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr><td colSpan={8} className="py-20 text-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" /><p className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading prospects...</p></td></tr>
+                  <tr><td colSpan={8} className="py-20 text-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" /><p className="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Loading prospects...</p></td></tr>
                 ) : sortedProspects.length === 0 ? (
                   <tr><td colSpan={8} className="py-20 text-center"><p className="text-slate-400 font-bold text-sm">No prospects found.</p></td></tr>
                 ) : (
@@ -1213,19 +1218,19 @@ export function ProspectExplorer() {
                           <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center"><Globe className="h-5 w-5 text-slate-400" /></div>
                           <div className="min-w-0">
                             <button type="button" onClick={() => setSelectedProspect(prospect)} className="text-left text-sm font-black italic text-slate-900 hover:text-indigo-600 dark:text-white">{prospect.name}</button>
-                            <p className="text-[10px] font-bold text-slate-400">{prospect.industry || "No industry"} {prospect.location ? `• ${prospect.location}` : ""}</p>
-                            {prospect.domain && <a className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600" href={`https://${prospect.domain}`} target="_blank" rel="noreferrer">{prospect.domain}<ExternalLink className="h-3 w-3" /></a>}
+                            <p className="text-xs font-bold text-slate-400">{prospect.industry || "No industry"} {prospect.location ? `• ${prospect.location}` : ""}</p>
+                            {prospect.domain && <a className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-indigo-600" href={`https://${prospect.domain}`} target="_blank" rel="noreferrer">{prospect.domain}<ExternalLink className="h-3 w-3" /></a>}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-6">
                         {renderContactActions(prospect)}
-                        <p className="mt-2 text-[10px] font-semibold text-slate-400">{prospect.contact_email || prospect.contact_phone || prospect.contact_whatsapp || "No contact yet"}</p>
+                        <p className="mt-2 text-xs font-semibold text-slate-400">{prospect.contact_email || prospect.contact_phone || prospect.contact_whatsapp || "No contact yet"}</p>
                       </td>
                       <td className="px-6 py-6">
-                        <Badge className="rounded-full border-none bg-slate-100 px-3 py-0.5 text-[8px] font-black uppercase text-slate-600">{toTitle(prospect.website_status || "unknown")}</Badge>
+                        <Badge className="rounded-full border-none bg-slate-100 px-3 py-0.5 text-xs font-black uppercase text-slate-600">{toTitle(prospect.website_status || "unknown")}</Badge>
                         <p className="mt-2 text-xs font-bold text-slate-500">Website review: {prospect.last_audit_at ? "Prepared" : "Not prepared"}</p>
-                        <p className="text-[10px] font-bold text-slate-400">{prospect.last_audit_at ? format(new Date(prospect.last_audit_at), "MMM dd, yyyy") : "No audit date"}</p>
+                        <p className="text-xs font-bold text-slate-400">{prospect.last_audit_at ? format(new Date(prospect.last_audit_at), "MMM dd, yyyy") : "No audit date"}</p>
                       </td>
                       <td className="px-6 py-6">
                         <Select value={prospect.opportunity_level || "medium"} onValueChange={(value) => updateProspect(prospect.id, { opportunity_level: value })}>
@@ -1234,7 +1239,7 @@ export function ProspectExplorer() {
                         </Select>
                       </td>
                       <td className="px-6 py-6">
-                        {(() => { const scored = prospect._score || scoreProspect(prospect); return <><div className="flex items-center gap-2"><span className="text-lg font-black text-slate-900">{prospect.qualification_score ?? scored.score}</span><Badge className="rounded-full border-none bg-indigo-50 text-[8px] font-black uppercase text-indigo-700">{prospect.qualification_category || scored.category.replace("_", " ")}</Badge></div><p className="mt-1 text-[10px] font-black uppercase tracking-widest text-indigo-600">{prospect.recommended_next_action || scored.recommendedNextAction}</p><p className="mt-1 text-[10px] font-semibold text-slate-400">{scored.factors.slice(0, 2).map((factor) => `+${factor.points} ${factor.label}`).join(" · ") || "Needs more evidence"}</p></>; })()}
+                        {(() => { const scored = prospect._score || scoreProspect(prospect); return <><div className="flex items-center gap-2"><span className="text-lg font-black text-slate-900">{prospect.qualification_score ?? scored.score}</span><Badge className="rounded-full border-none bg-indigo-50 text-xs font-black uppercase text-indigo-700">{prospect.qualification_category || scored.category.replace("_", " ")}</Badge></div><p className="mt-1 text-xs font-black uppercase tracking-widest text-indigo-600">{prospect.recommended_next_action || scored.recommendedNextAction}</p><p className="mt-1 text-xs font-semibold text-slate-400">{scored.factors.slice(0, 2).map((factor) => `+${factor.points} ${factor.label}`).join(" · ") || "Needs more evidence"}</p></>; })()}
                       </td>
                       <td className="px-6 py-6">
                         <Select value={prospect.outreach_status || "not_started"} onValueChange={(value) => updateProspect(prospect.id, { outreach_status: value })}>
@@ -1247,14 +1252,14 @@ export function ProspectExplorer() {
                             onClick={() => setSelectedProspect(prospect)}
                             className={`mt-2 block max-w-[220px] rounded-xl border px-3 py-2 text-left ${prospect._unreadReply ? "border-indigo-200 bg-indigo-50" : "border-slate-100 bg-slate-50"}`}
                           >
-                            <span className="block text-[10px] font-black text-indigo-700">
+                            <span className="block text-xs font-black text-indigo-700">
                               {prospect._unreadReply ? "● " : ""}Replied · {formatDistanceToNowStrict(new Date(prospect._latestReply.sent_at || prospect._latestReply.created_at), { addSuffix: true })}
                             </span>
-                            <span className="mt-1 block truncate text-[10px] font-semibold text-slate-500">{prospect._latestReply.preview}</span>
+                            <span className="mt-1 block truncate text-xs font-semibold text-slate-500">{prospect._latestReply.preview}</span>
                           </button>
                         )}
                         {!prospect._latestReply && prospect._latestOutbound?.status && (
-                          <p className="mt-2 text-[10px] font-bold text-slate-400">Email: {toTitle(prospect._latestOutbound.status)}</p>
+                          <p className="mt-2 text-xs font-bold text-slate-400">Email: {toTitle(prospect._latestOutbound.status)}</p>
                         )}
                       </td>
                       <td className="px-6 py-6">
@@ -1264,14 +1269,14 @@ export function ProspectExplorer() {
                           value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""}
                           onChange={(e) => void setFollowUp(prospect, e.target.value)}
                         />
-                        {prospect.preview_url && <a href={prospect.preview_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-indigo-600"><LinkIcon className="h-3 w-3" /> Preview link</a>}
+                        {prospect.preview_url && <a href={prospect.preview_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-black uppercase tracking-widest text-indigo-600"><LinkIcon className="h-3 w-3" /> Preview link</a>}
                       </td>
                       <td className="px-6 py-6 text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
-                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Preview</Button>
-                          {prospect.contact_email && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
-                          {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="h-3 w-3 mr-1.5" />Convert</Button>}
+                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
+                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Preview</Button>
+                          {prospect.contact_email && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
+                          {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="h-3 w-3 mr-1.5" />Convert</Button>}
                           {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
                           <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 hover:bg-rose-50 hover:text-rose-600" onClick={() => deleteProspect(prospect.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
@@ -1293,7 +1298,7 @@ export function ProspectExplorer() {
             <h3 className="text-xl font-black italic uppercase tracking-tighter text-white">Manual-first prospect workflow</h3>
             <p className="text-slate-300 text-sm font-bold">Import your list, qualify weak websites, create audit links, contact by email/phone/WhatsApp, and track every next step.</p>
           </div>
-          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white h-12 px-8 rounded-xl font-black uppercase tracking-widest text-[10px]" onClick={() => setIsImportModalOpen(true)}>
+          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white h-12 px-8 rounded-xl font-black uppercase tracking-widest text-xs" onClick={() => setIsImportModalOpen(true)}>
             Import Lead List
           </Button>
         </div>
@@ -1303,7 +1308,7 @@ export function ProspectExplorer() {
         <DialogContent className="rounded-3xl max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-black italic uppercase tracking-tight">Add New Prospect</DialogTitle>
-            <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Add a business for audit, preview, and outreach tracking.</DialogDescription>
+            <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Add a business for audit, preview, and outreach tracking.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 md:grid-cols-2">
             <Field label="Business Name"><Input value={newProspect.name} onChange={(e) => setNewProspect({ ...newProspect, name: e.target.value })} placeholder="e.g. Acme Dental" className="rounded-xl" /></Field>
@@ -1693,10 +1698,10 @@ export function ProspectExplorer() {
                           <p className="mt-1 text-sm font-black text-slate-900">{message.subject || "Email"}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] font-bold text-slate-400">{format(new Date(message.sent_at || message.created_at), "MMM dd, yyyy · h:mm a")}</p>
+                          <p className="text-xs font-bold text-slate-400">{format(new Date(message.sent_at || message.created_at), "MMM dd, yyyy · h:mm a")}</p>
                           <div className="mt-1 flex justify-end gap-1">
-                            {message.classification && <Badge variant="outline" className="text-[9px]">{toTitle(message.classification)}</Badge>}
-                            {message.direction === "outbound" && <Badge variant="outline" className="text-[9px]">{toTitle(message.status || "sent")}</Badge>}
+                            {message.classification && <Badge variant="outline" className="text-xs">{toTitle(message.classification)}</Badge>}
+                            {message.direction === "outbound" && <Badge variant="outline" className="text-xs">{toTitle(message.status || "sent")}</Badge>}
                           </div>
                         </div>
                       </div>
@@ -1785,7 +1790,7 @@ export function ProspectExplorer() {
               </Field>
               <Field label="Initial commitment">
                 <Input type="number" min="1" max="120" step="1" value={conversionTerm} onChange={(e) => setConversionTerm(e.target.value)} className="rounded-xl" />
-                <p className="mt-1 text-[11px] font-semibold leading-4 text-slate-500">{conversionCommercialLoading ? "Loading the current catalogue term…" : "Defaults from Products & Pricing for this product/market. Change only for a negotiated customer-specific term."}</p>
+                <p className="mt-1 text-xs font-semibold leading-4 text-slate-500">{conversionCommercialLoading ? "Loading the current catalogue term…" : "Defaults from Products & Pricing for this product/market. Change only for a negotiated customer-specific term."}</p>
               </Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -1804,7 +1809,7 @@ export function ProspectExplorer() {
             </div>
             {!conversionEmail.trim() && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
-                <AlertTriangle className="mr-2 inline h-4 w-4" />No customer email is captured. The workspace can be created, but a customer account must be attached manually.
+                <AlertTriangle className="mr-2 inline h-4 w-4" />No customer email is captured. Add one so Bennie Studio can send onboarding access automatically.
               </div>
             )}
           </div>
@@ -1843,7 +1848,7 @@ function SortableHeader({
   return (
     <th
       aria-sort={ascending ? "ascending" : descending ? "descending" : "none"}
-      className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400"
+      className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400"
     >
       <button
         type="button"
@@ -1867,7 +1872,7 @@ function SortableHeader({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</Label>
+      <Label className="text-xs font-black uppercase tracking-widest text-slate-500">{label}</Label>
       {children}
     </div>
   );

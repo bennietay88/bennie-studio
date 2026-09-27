@@ -25,7 +25,7 @@ export default function LoginPage({
   const navigate = useNavigate();
   const location = useLocation();
   const [isSignUp, setIsSignUp] = React.useState(initialSignUp);
-  const [email, setEmail] = React.useState("");
+  const [email, setEmail] = React.useState(() => new URLSearchParams(location.search).get("email") || "");
   const [password, setPassword] = React.useState("");
   const [agreedToTerms, setAgreedToTerms] = React.useState(false);
 

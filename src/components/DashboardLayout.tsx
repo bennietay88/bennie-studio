@@ -300,7 +300,7 @@ export function DashboardLayout({
                 <h2 className="truncate text-sm font-bold capitalize text-slate-900 dark:text-white">
                   {isAdminRole ? "Admin Operations" : `${(role || "").replace("_", " ")} Panel`}
                 </h2>
-                <p className="hidden text-[10px] font-medium uppercase tracking-widest text-slate-500 dark:text-slate-400 sm:block">
+                <p className="hidden text-xs font-medium uppercase tracking-widest text-slate-500 dark:text-slate-400 sm:block">
                   {isAdminRole ? "Run the business from anywhere" : "Enterprise Management"}
                 </p>
               </div>
@@ -322,7 +322,7 @@ export function DashboardLayout({
                     href={mainWebsiteLink.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[10px] font-bold uppercase tracking-wide text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300"
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold uppercase tracking-wide text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300"
                   >
                     <Globe className="h-4 w-4" />
                     Main Site
@@ -334,7 +334,7 @@ export function DashboardLayout({
                     href={portfolioLink.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-[10px] font-bold uppercase tracking-wide text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300"
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold uppercase tracking-wide text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-indigo-900/20 dark:hover:text-indigo-300"
                   >
                     <BriefcaseBusiness className="h-4 w-4" />
                     Portfolio
@@ -395,7 +395,7 @@ export function DashboardLayout({
                 className="flex gap-2 rounded-xl border-slate-200 dark:border-slate-800 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 group px-2 sm:px-3"
               >
                 <LogOut className="h-4 w-4 text-slate-500 group-hover:text-red-500" />
-                <span className="hidden leading-none md:inline text-[10px] sm:text-xs font-bold">
+                <span className="hidden leading-none md:inline text-xs sm:text-xs font-bold">
                   Sign Out
                 </span>
               </Button>
@@ -408,7 +408,7 @@ export function DashboardLayout({
                 className="hidden sm:flex gap-2 rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 px-3"
               >
                 <Settings className="h-4 w-4 text-slate-500" />
-                <span className="hidden md:inline text-[10px] sm:text-xs font-bold">Settings</span>
+                <span className="hidden md:inline text-xs sm:text-xs font-bold">Settings</span>
               </Button>
             </div>
           </header>
@@ -437,13 +437,13 @@ export function DashboardLayout({
               {mobileAdminLinks.map(({ label, path, icon: Icon }) => {
                 const active = path === "/admin" ? location.pathname === "/admin" : location.pathname.startsWith(path);
                 return (
-                  <button key={path} type="button" onClick={() => { setIsSidebarOpen(false); navigate(path); }} className={cn("flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold transition-colors", active ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300" : "text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800")}>
+                  <button key={path} type="button" onClick={() => { setIsSidebarOpen(false); navigate(path); }} className={cn("flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 text-xs font-bold transition-colors", active ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300" : "text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800")}>
                     <Icon className="h-4 w-4" />
                     <span>{label}</span>
                   </button>
                 );
               })}
-              <button type="button" onClick={() => setIsSidebarOpen(true)} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold text-slate-500 transition-colors hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
+              <button type="button" onClick={() => setIsSidebarOpen(true)} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
                 <MoreHorizontal className="h-4 w-4" />
                 <span>More</span>
               </button>

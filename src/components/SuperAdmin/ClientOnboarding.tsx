@@ -260,12 +260,12 @@ export function ClientOnboarding() {
   return (
     <div className="space-y-8 pt-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-4xl font-black italic tracking-tighter uppercase text-slate-900 dark:text-white">
+        <h1 className="text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">
           Client <span className="text-indigo-600">Onboarding</span>
         </h1>
         <Button 
           onClick={() => setIsAddModalOpen(true)}
-          className="rounded-xl bg-indigo-600 hover:bg-indigo-700 h-11 px-8 font-black uppercase tracking-widest text-[10px]"
+          className="rounded-xl bg-indigo-600 hover:bg-indigo-700 h-11 px-8 font-black uppercase tracking-widest text-xs"
         >
           <Plus className="h-4 w-4 mr-2" />
           New Client Setup
@@ -281,7 +281,7 @@ export function ClientOnboarding() {
         ].map((stat) => (
           <Card key={stat.label} className="rounded-[2rem] border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden bg-white dark:bg-slate-900/50">
              <CardHeader className="p-6 pb-2 flex flex-row items-center justify-between">
-                <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</CardTitle>
+                <CardTitle className="text-xs font-black text-slate-400 uppercase tracking-widest">{stat.label}</CardTitle>
                 <stat.icon className={cn("h-4 w-4", stat.color)} />
              </CardHeader>
              <CardContent className="p-6 pt-0">
@@ -295,7 +295,7 @@ export function ClientOnboarding() {
         <CardHeader className="p-8 border-b border-slate-50 flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-xl font-black italic uppercase tracking-tight dark:text-white">Onboarding Queue</CardTitle>
-            <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Managing the transition from prospect to active subscriber.</CardDescription>
+            <CardDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Managing the transition from prospect to active subscriber.</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -303,7 +303,7 @@ export function ClientOnboarding() {
              {loading ? (
                <div className="p-20 text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
-                  <p className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Syncing Queue...</p>
+                  <p className="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Syncing Queue...</p>
                </div>
              ) : loadError ? (
                <div className="p-12 text-center">
@@ -331,15 +331,15 @@ export function ClientOnboarding() {
                            <div className="flex items-center gap-2 mb-1">
                               <h3 className="text-lg font-black italic uppercase tracking-tight text-slate-900 dark:text-white leading-tight">{item.businesses?.name || "Unknown Client"}</h3>
                            </div>
-                           <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Active Step: {item.current_step}</p>
+                           <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest">Active Step: {item.current_step}</p>
                         </div>
                      </div>
 
                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                         <div className="w-48 space-y-1.5">
                            <div className="flex justify-between items-end">
-                              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Velocity</p>
-                              <p className="text-[10px] font-black text-slate-900 dark:text-white">{item.progress}%</p>
+                              <p className="text-xs font-black text-slate-300 uppercase tracking-widest">Velocity</p>
+                              <p className="text-xs font-black text-slate-900 dark:text-white">{item.progress}%</p>
                            </div>
                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                               <div className={cn("h-full rounded-full", item.progress === 100 ? "bg-emerald-500" : "bg-indigo-600")} style={{ width: `${item.progress}%` }} />
@@ -347,7 +347,7 @@ export function ClientOnboarding() {
                         </div>
 
                         <Badge variant="outline" className={cn(
-                          "text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full",
+                          "text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full",
                           item.status === "Completed" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
                           item.status === "Delayed" ? "bg-rose-50 text-rose-600 border-rose-100" :
                           "bg-indigo-50 text-indigo-600 border-indigo-100"
@@ -437,7 +437,7 @@ export function ClientOnboarding() {
           <CardTitle className="text-xl font-black italic uppercase tracking-tight text-slate-950">
             Customer Handover Checklist
           </CardTitle>
-          <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          <CardDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">
             Use this before marking a managed website as launched or ready for monthly support.
           </CardDescription>
         </CardHeader>
@@ -457,13 +457,13 @@ export function ClientOnboarding() {
         <DialogContent className="rounded-3xl max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-black italic uppercase italic tracking-tight">Setup New Client Onboarding</DialogTitle>
-            <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">
               Initialize the transition process for a new subscriber.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Select Business</Label>
+              <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Select Business</Label>
               <Select 
                 value={newSession.business_id}
                 onValueChange={(val) => setNewSession({...newSession, business_id: val})}
@@ -479,7 +479,7 @@ export function ClientOnboarding() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Current Phase</Label>
+              <Label className="text-xs font-black uppercase tracking-widest text-slate-500">Current Phase</Label>
               <Input 
                 value={newSession.current_step}
                 onChange={(e) => setNewSession({...newSession, current_step: e.target.value})}
@@ -489,7 +489,7 @@ export function ClientOnboarding() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddModalOpen(false)} className="rounded-xl">Cancel</Button>
-            <Button onClick={handleCreateSession} disabled={saving} className="rounded-xl bg-indigo-600 text-[10px] font-black uppercase tracking-widest">
+            <Button onClick={handleCreateSession} disabled={saving} className="rounded-xl bg-indigo-600 text-xs font-black uppercase tracking-widest">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
               Launch Onboarding
             </Button>

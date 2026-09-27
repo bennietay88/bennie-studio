@@ -979,6 +979,34 @@ async function startServer() {
     }
   };
 
+  const claimPendingCustomerBusiness = async (userId: string, email: string) => {
+    if (!userId || !email) return null;
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const { data: pendingBusiness, error: pendingError } = await supabaseAdmin
+      .from("businesses")
+      .select("id,onboarding_steps")
+      .is("owner_id", null)
+      .eq("status", "pending")
+      .contains("onboarding_steps", { customerContact: { email: normalizedEmail } })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (pendingError) throw pendingError;
+    if (!pendingBusiness) return null;
+    const { data: claimedBusiness, error: claimError } = await supabaseAdmin
+      .from("businesses")
+      .update({ owner_id: userId, updated_at: new Date().toISOString() })
+      .eq("id", pendingBusiness.id).is("owner_id", null).select("id").maybeSingle();
+    if (claimError) throw claimError;
+    if (!claimedBusiness) return null;
+    const { data: claimedProfile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .update({ business_id: pendingBusiness.id, role: "business_admin", status: "active", onboarding_completed: false })
+      .eq("id", userId).is("business_id", null).select("*").single();
+    if (profileError) throw profileError;
+    return { businessId: pendingBusiness.id, profile: claimedProfile };
+  };
+
   // Profile bootstrap is server-owned. Signup metadata may select only the
   // explicitly safe public account class (customer or affiliate); it can
   // never request staff, platform, or administrator privileges.
@@ -995,7 +1023,13 @@ async function startServer() {
         .eq("id", userId)
         .maybeSingle();
       if (existingError) throw existingError;
-      if (existing) return res.json({ profile: existing, created: false });
+      if (existing) {
+        if (!existing.business_id && email && !["super_admin", "platform_staff", "affiliate"].includes(String(existing.role || ""))) {
+          const claimed = await claimPendingCustomerBusiness(userId, email);
+          if (claimed?.profile) return res.json({ profile: claimed.profile, created: false, customerBusinessClaimed: true });
+        }
+        return res.json({ profile: existing, created: false });
+      }
 
       const { data: created, error: createError } = await supabaseAdmin
         .from("profiles")
@@ -1008,6 +1042,10 @@ async function startServer() {
         const { data: raced } = await supabaseAdmin.from("profiles").select("*").eq("id", userId).maybeSingle();
         if (raced) return res.json({ profile: raced, created: false });
         throw createError;
+      }
+      if (email && initialRole === "business_admin") {
+        const claimed = await claimPendingCustomerBusiness(userId, email);
+        if (claimed?.profile) return res.status(201).json({ profile: claimed.profile, created: true, customerBusinessClaimed: true });
       }
       return res.status(201).json({ profile: created, created: true });
     } catch (error) {
@@ -7222,7 +7260,7 @@ async function startServer() {
 
       const { data: existingBusiness, error: existingBusinessError } = await supabaseAdmin
         .from("businesses")
-        .select("id,owner_id")
+        .select("id,owner_id,onboarding_steps")
         .eq("id", businessId)
         .maybeSingle();
       if (existingBusinessError) throw existingBusinessError;
@@ -7265,16 +7303,51 @@ async function startServer() {
       if (ownerId) {
         const { error: profileUpdateError } = await supabaseAdmin
           .from("profiles")
-          .update({
-            business_id: businessId,
-            role: "business_admin",
-            status: "active",
-            onboarding_completed: false,
-          })
-          .eq("id", ownerId)
-          .is("business_id", null);
+          .update({ business_id: businessId, role: "business_admin", status: "active", onboarding_completed: false })
+          .eq("id", ownerId).is("business_id", null);
         if (profileUpdateError) throw profileUpdateError;
       }
+
+      let customerAccess: Record<string, any> = prospectEmail
+        ? { status: ownerId ? "existing_user_attached" : "invite_pending", email: prospectEmail }
+        : { status: "missing_customer_email" };
+      if (prospectEmail) {
+        const onboardingUrl = publicAppUrl() + "/" + (ownerId ? "login" : "signup")
+          + "?redirectTo=" + encodeURIComponent("/dashboard/onboarding")
+          + "&email=" + encodeURIComponent(prospectEmail);
+        try {
+          await refreshPlatformSettings();
+          const greeting = customerContact.name ? " " + escapeHtml(customerContact.name) : "";
+          const inviteHtml = "<div style=\"font-family:Arial,sans-serif;line-height:1.65;color:#172033\">"
+            + "<p>Hi" + greeting + ",</p><p>Your Bennie Studio customer workspace for <strong>" + escapeHtml(customerName) + "</strong> is ready.</p>"
+            + "<p><a href=\"" + onboardingUrl + "\" style=\"display:inline-block;padding:12px 18px;border-radius:10px;background:#4f46e5;color:#fff;text-decoration:none;font-weight:700\">Start onboarding</a></p>"
+            + "<p style=\"color:#64748b;font-size:13px\">Use " + escapeHtml(prospectEmail) + " when signing in or creating your account. Your workspace will attach automatically.</p></div>";
+          const inviteText = "Your Bennie Studio customer workspace for " + customerName + " is ready. Start onboarding: " + onboardingUrl
+            + "\n\nUse " + prospectEmail + " when signing in or creating your account. Your workspace will attach automatically.";
+          const { data: inviteReceipt, error: inviteError } = await getResend().emails.send({
+            from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "Bennie Studio <onboarding@resend.dev>",
+            to: prospectEmail, subject: "Your Bennie Studio onboarding is ready", html: inviteHtml, text: inviteText,
+            replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
+            bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
+          }, { idempotencyKey: "customer-onboarding-" + businessId });
+          if (inviteError || !inviteReceipt?.id) throw new Error("CUSTOMER_INVITE_DELIVERY_FAILED");
+          customerAccess = { status: ownerId ? "existing_user_notified" : "invite_sent", email: prospectEmail, sentAt: now, providerMessageId: inviteReceipt.id, onboardingUrl };
+        } catch (inviteError: any) {
+          console.warn("[Prospect Conversion] Customer onboarding invite could not be delivered:", inviteError?.message || inviteError);
+          customerAccess = { status: ownerId ? "existing_user_attached" : "invite_delivery_pending", email: prospectEmail, onboardingUrl, error: "Invite delivery pending" };
+        }
+      }
+      const onboardingSteps = {
+        commercialAgreement, customerContact,
+        sourceProspect: { id: prospectId, previewUrl: prospect.preview_url || null, website: prospect.domain || null },
+        customerAccess,
+      };
+      const { error: handoffUpdateError } = await supabaseAdmin.from("businesses").update({
+        commercial_product_slug: body.productSlug, commercial_market: body.market,
+        commercial_currency: currencyByMarket[body.market], commercial_term_months: effectiveTermMonths,
+        onboarding_steps: onboardingSteps, updated_at: now,
+      }).eq("id", businessId);
+      if (handoffUpdateError) throw handoffUpdateError;
 
       const { error: onboardingError } = await supabaseAdmin.from("onboarding_sessions").upsert({
         id: onboardingId,
@@ -7354,8 +7427,9 @@ async function startServer() {
         business: {
           id: businessId,
           ownerId,
-          accountStatus: ownerId ? "existing_user_attached" : "awaiting_customer_account",
+          accountStatus: customerAccess.status,
           onboardingPath: "/dashboard/onboarding",
+          customerAccess,
         },
         project: { id: projectId, status: "awaiting_onboarding" },
         onboarding: { id: onboardingId, progress: 5 },
@@ -10580,6 +10654,7 @@ async function startServer() {
         ? `https://${normalizeDomainInput(String(business.custom_domain || ""))}`
         : `${publicAppUrl()}/w/${businessId}`;
       let reachable = false;
+      let liveHtmlReady = false;
       let httpStatus: number | null = null;
       let latencyMs: number | null = null;
       const startedAt = Date.now();
@@ -10591,7 +10666,8 @@ async function startServer() {
           headers: { "user-agent": "BennieStudio-LaunchQA/1.0" },
         });
         httpStatus = response.status;
-        reachable = response.status >= 200 && response.status < 500;
+        reachable = response.status >= 200 && response.status < 400;
+        liveHtmlReady = reachable && String(response.headers.get("content-type") || "").toLowerCase().includes("text/html");
         latencyMs = Date.now() - startedAt;
         await response.body?.cancel().catch(() => undefined);
       } catch {
@@ -10616,8 +10692,8 @@ async function startServer() {
         { id: "approval", label: "Customer approved current version", pass: approval?.status === "approved", severity: "blocker" },
         { id: "project", label: "No delivery launch blocker", pass: !String(project?.launch_blocker || "").trim(), severity: "blocker" },
         { id: "domain", label: hasCustomDomain ? "DNS, custom domain and SSL ready" : "Bennie hosted URL available", pass: domainReady, severity: "blocker" },
-        { id: "reachability", label: "Public website responds", pass: reachable, severity: "blocker" },
-        { id: "publication", label: `Publication status: ${String(website?.status || "not_created")}`, pass: ["published", "active"].includes(String(website?.status || "").toLowerCase()), severity: "warning" },
+        { id: "reachability", label: "Public website returns a successful HTML page", pass: reachable && liveHtmlReady, severity: "blocker" },
+        { id: "publication", label: `Publication status: ${String(website?.status || "not_created")}`, pass: ["published", "active"].includes(String(website?.status || "").toLowerCase()), severity: "blocker" },
       ];
       const blockers = checks.filter((check) => !check.pass && check.severity === "blocker");
       const warnings = checks.filter((check) => !check.pass && check.severity === "warning");
@@ -10630,6 +10706,7 @@ async function startServer() {
         warnings,
         publicUrl,
         reachable,
+        liveHtmlReady,
         httpStatus,
         latencyMs,
         project: project || null,

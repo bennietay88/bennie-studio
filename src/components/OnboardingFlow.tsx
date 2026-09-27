@@ -1037,7 +1037,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-indigo-100 mb-2">
+                      <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-black uppercase tracking-[0.2em] border border-indigo-100 mb-2">
                         <Sparkles className="h-3 w-3" /> Saved automatically · about 5 minutes
                       </div>
                       <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tighter uppercase leading-none px-4">
@@ -1051,7 +1051,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
                   <div className="max-w-xl mx-auto space-y-8 pt-4">
                     <div className="space-y-3">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                         Business name
                       </label>
                       <Input
@@ -1066,7 +1066,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                           })
                         }
                       />
-                      <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-2">
+                      <p className="text-center text-xs text-slate-400 font-bold uppercase tracking-widest pt-2">
                          You can leave and resume this brief on this device.
                       </p>
                     </div>
@@ -1112,7 +1112,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-4">
                     <div className="space-y-8">
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Temporary website address
                         </label>
                         <div className="relative">
@@ -1139,7 +1139,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
                     <div className="space-y-8">
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Starting website structure <span className="normal-case tracking-normal text-slate-400">(optional)</span>
                         </label>
                         <div className="relative group">
@@ -1176,7 +1176,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       <div className="rounded-[2rem] border-2 border-indigo-100 bg-white p-6 shadow-sm">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                           <div className="space-y-2">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-indigo-600">
+                            <p className="text-xs font-black uppercase tracking-widest text-indigo-600">
                               Recommended Website Blueprint
                             </p>
                             <h4 className="text-lg font-black text-slate-900">
@@ -1192,15 +1192,15 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         </div>
                         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
                           <div className="rounded-2xl bg-slate-50 p-3">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Pages</p>
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Pages</p>
                             <p className="text-xs font-black text-slate-900">{recommendedStructure.pages.join(", ")}</p>
                           </div>
                           <div className="rounded-2xl bg-slate-50 p-3">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Sections</p>
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Sections</p>
                             <p className="text-xs font-black text-slate-900">{recommendedTemplateMeta.sectionPreset?.slice(0, 3).join(", ") || "Hero, Services, CTA"}</p>
                           </div>
                           <div className="rounded-2xl bg-slate-50 p-3">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Lead Capture</p>
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Lead Capture</p>
                             <p className="text-xs font-black text-slate-900">{recommendedTemplateMeta.leadCaptureType || "Contact form"}</p>
                           </div>
                         </div>
@@ -1247,11 +1247,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                             />
                           </div>
                           <div className="space-y-1">
-                            <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Active Blueprint</p>
+                            <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">Active Blueprint</p>
                             <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight line-clamp-1">
                               {templates.find(t => t.id === selectedTemplate)?.name}
                             </h4>
-                            <p className="text-[10px] text-indigo-900/40 font-bold leading-tight line-clamp-2">
+                            <p className="text-xs text-indigo-900/40 font-bold leading-tight line-clamp-2">
                               {templates.find(t => t.id === selectedTemplate)?.description || "High-conversion architecture selected."}
                             </p>
                           </div>
@@ -1264,7 +1264,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <Button
                       variant="ghost"
                       onClick={handleBack}
-                      className="h-18 px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900"
+                      className="h-18 px-8 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-900"
                     >
                       Previous Step
                     </Button>
@@ -1307,7 +1307,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-4">
                     <div className="space-y-4">
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Country / market <span className="text-rose-500">*</span>
                         </label>
                         <Input
@@ -1318,7 +1318,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         />
                       </div>
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Main service or offer <span className="text-rose-500">*</span>
                         </label>
                         <Input
@@ -1329,7 +1329,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         />
                       </div>
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Company description</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">Company description</label>
                         <Textarea
                           className="min-h-[110px] text-sm px-6 py-4 bg-slate-50 border-slate-100 rounded-2xl font-medium"
                           placeholder="What does your company do, who do you serve, and what makes it different?"
@@ -1340,7 +1340,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                     <div className="space-y-4">
                        <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Service area <span className="text-rose-500">*</span>
                         </label>
                         <Input
@@ -1351,15 +1351,15 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         />
                       </div>
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Existing website</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">Existing website</label>
                         <Input className="h-12 rounded-xl" placeholder="https://example.com" value={businessData.existingUrl} onChange={(e) => setBusinessData({...businessData, existingUrl: e.target.value})} />
                       </div>
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Preferred custom domain</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">Preferred custom domain</label>
                         <Input className="h-12 rounded-xl" placeholder="www.example.com" value={businessData.customDomain} onChange={(e) => setBusinessData({...businessData, customDomain: e.target.value})} />
                       </div>
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           CTA Preference
                         </label>
                         <select
@@ -1374,7 +1374,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         </select>
                       </div>
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Website Goal
                         </label>
                         <select
@@ -1394,7 +1394,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <Button
                       variant="ghost"
                       onClick={handleBack}
-                      className="h-18 px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900"
+                      className="h-18 px-8 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-900"
                     >
                       Previous Step
                     </Button>
@@ -1436,7 +1436,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-4">
                     <div className="space-y-6">
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Services provided <span className="text-rose-500">*</span>
                         </label>
                         <div className="space-y-3">
@@ -1461,7 +1461,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         </div>
                       </div>
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Pages Needed
                         </label>
                         <p className="text-xs font-medium text-slate-500 px-1">
@@ -1474,7 +1474,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                               key={page}
                               onClick={() => togglePageNeeded(page)}
                               disabled={!businessData.pagesNeeded.includes(page) && businessData.pagesNeeded.length >= MAX_ONBOARDING_PAGES}
-                              className={`rounded-xl border px-3 py-2 text-left text-[10px] font-black uppercase tracking-widest ${
+                              className={`rounded-xl border px-3 py-2 text-left text-xs font-black uppercase tracking-widest ${
                                 businessData.pagesNeeded.includes(page)
                                   ? "border-indigo-600 bg-indigo-50 text-indigo-700"
                                   : !businessData.pagesNeeded.includes(page) && businessData.pagesNeeded.length >= MAX_ONBOARDING_PAGES
@@ -1486,14 +1486,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                             </button>
                           ))}
                         </div>
-                        <p className="text-[11px] font-bold text-slate-400 px-1">
+                        <p className="text-xs font-bold text-slate-400 px-1">
                           {businessData.pagesNeeded.length}/{MAX_ONBOARDING_PAGES} pages selected
                         </p>
                       </div>
                     </div>
                     <div className="space-y-6">
                        <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Contact details <span className="text-rose-500">*</span>
                         </label>
                         <div className="grid grid-cols-1 gap-3">
@@ -1518,7 +1518,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         </div>
                       </div>
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Local SEO Targets
                         </label>
                         <Textarea
@@ -1535,7 +1535,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <Button
                       variant="ghost"
                       onClick={handleBack}
-                      className="h-18 px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900"
+                      className="h-18 px-8 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-900"
                     >
                       Previous Step
                     </Button>
@@ -1577,7 +1577,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-4">
                     <div className="space-y-8">
                        <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Brand Colors
                         </label>
                         <input 
@@ -1588,7 +1588,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         />
                       </div>
                       <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Preferred Style
                         </label>
                         <div className="grid grid-cols-2 gap-3">
@@ -1596,7 +1596,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                              <button
                                key={style}
                                onClick={() => setBusinessData({...businessData, style: style.toLowerCase()})}
-                               className={`p-4 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest ${businessData.style === style.toLowerCase() ? "border-indigo-600 bg-indigo-50" : "border-slate-50"}`}
+                               className={`p-4 rounded-xl border-2 font-black uppercase text-xs tracking-widest ${businessData.style === style.toLowerCase() ? "border-indigo-600 bg-indigo-50" : "border-slate-50"}`}
                              >
                                {style}
                              </button>
@@ -1606,7 +1606,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                     <div className="space-y-8">
                        <div className="space-y-3">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Testimonials / Reviews
                         </label>
                         <Textarea
@@ -1617,7 +1617,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         />
                       </div>
                       <div className="space-y-3">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                         <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                           Frequently Asked Questions
                         </label>
                         <Textarea
@@ -1629,7 +1629,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-3">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                             Tone Preference
                           </label>
                           <select
@@ -1643,7 +1643,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                           </select>
                         </div>
                         <div className="space-y-3">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+                          <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">
                             Real Local Proof?
                           </label>
                           <select
@@ -1665,7 +1665,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <Button
                       variant="ghost"
                       onClick={handleBack}
-                      className="h-18 px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900"
+                      className="h-18 px-8 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-900"
                     >
                       Previous Step
                     </Button>
@@ -1688,7 +1688,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   className="space-y-10"
                 >
                   <div className="text-center space-y-3">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-4 py-1.5 text-xs font-black uppercase tracking-[0.2em] text-indigo-600">
                       <Sparkles className="h-3 w-3" /> Brand & Evidence Vault
                     </div>
                     <h2 className="text-3xl sm:text-5xl font-black tracking-tighter uppercase text-slate-900">
@@ -1736,7 +1736,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 space-y-5">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Verified logo relationship</p>
+                      <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Verified logo relationship</p>
                       <p className="mt-2 text-sm leading-6 text-slate-600">
                         Optional. Add an association, certification, partner, platform or client logo only when you are entitled to display it.
                       </p>
@@ -1766,7 +1766,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Brand direction</label>
+                      <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Brand direction</label>
                       <Textarea
                         className="mt-2 min-h-28 rounded-2xl"
                         placeholder="Brand guidelines, competitors you like, words to use/avoid, visual references..."
@@ -1775,7 +1775,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Claims / compliance notes</label>
+                      <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Claims / compliance notes</label>
                       <Textarea
                         className="mt-2 min-h-28 rounded-2xl"
                         placeholder="Claims that need approval, regulated wording, disclaimers, memberships, licences..."
@@ -1787,11 +1787,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Social profiles</label>
+                      <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Social profiles</label>
                       <Textarea className="mt-2 min-h-24 rounded-2xl" placeholder="One Facebook, Instagram, LinkedIn, TikTok or other profile per line" value={businessData.socialProfiles} onChange={(e) => setBusinessData({ ...businessData, socialProfiles: e.target.value })} />
                     </div>
                     <div className="grid content-start gap-3">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Approval contact</label>
+                      <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Approval contact</label>
                       <Input className="h-12 rounded-2xl" placeholder="Name" value={businessData.approvalContactName} onChange={(e) => setBusinessData({ ...businessData, approvalContactName: e.target.value })} />
                       <Input type="email" className="h-12 rounded-2xl" placeholder="Email" value={businessData.approvalContactEmail} onChange={(e) => setBusinessData({ ...businessData, approvalContactEmail: e.target.value })} />
                     </div>
@@ -1799,18 +1799,18 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="grid content-start gap-3">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Business / legal details</label>
+                      <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Business / legal details</label>
                       <Input className="h-12 rounded-2xl" placeholder="Registered business name" value={businessData.legalBusinessName} onChange={(e) => setBusinessData({ ...businessData, legalBusinessName: e.target.value })} />
                       <Input className="h-12 rounded-2xl" placeholder="Company / registration number" value={businessData.registrationNumber} onChange={(e) => setBusinessData({ ...businessData, registrationNumber: e.target.value })} />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Legal / footer notes</label>
+                      <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Legal / footer notes</label>
                       <Textarea className="mt-2 min-h-24 rounded-2xl" placeholder="Registered address, required footer wording, licence details or other legal information" value={businessData.legalNotes} onChange={(e) => setBusinessData({ ...businessData, legalNotes: e.target.value })} />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Reference files & source links</label>
+                    <label className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Reference files & source links</label>
                     <Textarea
                       className="mt-2 min-h-28 rounded-2xl"
                       placeholder={"One link per line. Add Google Drive, Dropbox, brochure, menu, price list, brand guide, video, existing website or other source material the delivery team should review."}
@@ -1841,7 +1841,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 >
                   <div className="text-center space-y-4">
                     <div className="flex justify-center">
-                      <div className="inline-flex items-center gap-3 px-6 py-2 bg-indigo-950 text-indigo-400 rounded-full text-[10px] font-black uppercase tracking-[0.3em] border border-indigo-500/20 shadow-2xl shadow-indigo-900/10 mb-2">
+                      <div className="inline-flex items-center gap-3 px-6 py-2 bg-indigo-950 text-indigo-400 rounded-full text-xs font-black uppercase tracking-[0.3em] border border-indigo-500/20 shadow-2xl shadow-indigo-900/10 mb-2">
                         <Sparkles className="h-3 w-3" /> Confirm Website Direction
                       </div>
                     </div>
@@ -1858,7 +1858,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <div className="rounded-[2rem] border-2 border-indigo-100 bg-white p-6 shadow-sm sm:p-8">
                     <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">Selected product</p>
+                        <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-600">Selected product</p>
                         <h3 className="mt-2 text-2xl font-black text-slate-950">{publicProductLabel(selectedPackage)}</h3>
                         <p className="mt-2 text-sm font-semibold text-slate-500">Pricing and payment terms remain exactly as confirmed in checkout.</p>
                       </div>
@@ -1868,7 +1868,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <div className="rounded-[2rem] border border-indigo-100 bg-indigo-50 p-6">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600">Delivery summary</p>
+                        <p className="text-xs font-black uppercase tracking-[0.25em] text-indigo-600">Delivery summary</p>
                         <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{businessData.mainOffer} for customers in {businessData.serviceArea}. Primary action: {businessData.ctaPreference}. Requested pages: {businessData.pagesNeeded.join(", ")}.</p>
                       </div>
                       <Badge className={intakeBlockers.length ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}>{intakeProgress}% brief complete</Badge>
@@ -1904,10 +1904,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                               />
                             </div>
                             <div className="flex justify-between items-center px-1">
-                              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
+                              <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">
                                 Brief submission progress
                               </span>
-                              <span className="text-[10px] text-indigo-400 font-black tracking-widest">
+                              <span className="text-xs text-indigo-400 font-black tracking-widest">
                                 {progress}%
                               </span>
                             </div>
@@ -1938,7 +1938,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         </Button>
                         <button
                           onClick={() => setError(null)}
-                          className="text-[10px] text-red-400 uppercase font-black tracking-widest hover:text-red-600 transition-colors"
+                          className="text-xs text-red-400 uppercase font-black tracking-widest hover:text-red-600 transition-colors"
                         >
                           Abort & Return
                         </button>
@@ -1954,7 +1954,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                               <h3 className="text-3xl font-black text-white uppercase tracking-tighter">
                                 {selectedPackageConfig?.name} Tier
                               </h3>
-                              <p className="text-indigo-200/40 text-[10px] font-black uppercase tracking-widest">
+                              <p className="text-indigo-200/40 text-xs font-black uppercase tracking-widest">
                                 Preview complete
                               </p>
                             </div>
@@ -1962,7 +1962,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                               <div className="text-3xl font-black text-white">
                                 Brief ready
                               </div>
-                              <div className="text-[10px] text-indigo-400 font-extrabold uppercase tracking-widest">
+                              <div className="text-xs text-indigo-400 font-extrabold uppercase tracking-widest">
                                 Ready for delivery
                               </div>
                             </div>
@@ -1971,7 +1971,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                           <div className="h-px bg-white/10" />
 
                           <div className="space-y-3">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300/70">
+                            <p className="text-xs font-black uppercase tracking-widest text-indigo-300/70">
                               Pages Generated
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -1982,7 +1982,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                               }).map((page) => (
                                 <span
                                   key={page.slug || "home"}
-                                  className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white"
+                                  className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-black uppercase tracking-widest text-white"
                                 >
                                   {page.navLabel}
                                 </span>
@@ -1990,7 +1990,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                             </div>
                           </div>
                           <div className="rounded-2xl bg-white/5 p-5">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-300/70">
+                            <p className="text-xs font-black uppercase tracking-widest text-indigo-300/70">
                               Review Before Generate
                             </p>
                             <div className="mt-3 grid grid-cols-1 gap-2 text-xs font-bold text-indigo-100/70">
@@ -2032,7 +2032,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                               <Globe className="h-5 w-5 text-slate-400" />
                             </div>
                             <div>
-                              <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1">
+                              <p className="text-xs font-black text-slate-900 uppercase tracking-widest mb-1">
                                 Temporary website address
                               </p>
                               <p className="text-xs font-medium text-slate-500 line-clamp-1">
@@ -2045,7 +2045,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                               <Shield className="h-5 w-5 text-slate-400" />
                             </div>
                             <div>
-                              <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1">
+                              <p className="text-xs font-black text-slate-900 uppercase tracking-widest mb-1">
                                 What happens next
                               </p>
                               <p className="text-xs font-medium text-slate-500">
@@ -2066,7 +2066,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                             />
                             <label
                               htmlFor="agree-protocols"
-                              className="text-[10px] font-bold text-slate-500 leading-relaxed cursor-pointer"
+                              className="text-xs font-bold text-slate-500 leading-relaxed cursor-pointer"
                             >
                               I agree to the{" "}
                               <button
@@ -2101,7 +2101,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                           </Button>
                           <button
                             onClick={handleBack}
-                            className="w-full text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors"
+                            className="w-full text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors"
                           >
                             Return to brand and proof
                           </button>
@@ -2110,7 +2110,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                   )}
 
-                    <p className="text-left text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] leading-relaxed max-w-sm">
+                    <p className="text-left text-xs text-slate-400 font-bold uppercase tracking-[0.2em] leading-relaxed max-w-sm">
                       By submitting this brief, you acknowledge the{" "}
                       <span className="text-slate-900 underline cursor-pointer">
                         Terms of Service

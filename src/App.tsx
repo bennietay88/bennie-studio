@@ -668,7 +668,7 @@ export default function App() {
                               path="approvals"
                               element={
                                 <ProtectedRoute
-                                  allowedRoles={["business_admin", "staff"]}
+                                  allowedRoles={["business_admin", "staff", "client"]}
                                 >
                                   <CustomerApprovals />
                                 </ProtectedRoute>

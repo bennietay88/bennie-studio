@@ -166,16 +166,16 @@ export default function MonthlyUpdateRequests() {
           <CardContent className="space-y-4">
             <div className="grid gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Remaining allowance</p>
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Remaining allowance</p>
                 <p className="mt-1 text-lg font-black text-slate-950">{remainingAllowance} / {monthlyAllowance}</p>
                 <p className="mt-1 text-xs font-bold text-slate-500">{usedAllowance} used this month</p>
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Estimated response</p>
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Estimated response</p>
                 <p className="mt-1 text-lg font-black text-slate-950">{updateStandard.targetUpdateTurnaround.replace(/^.*?within\s+/i, "")}</p>
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Draft safety</p>
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Draft safety</p>
                 <p className="mt-1 text-lg font-black text-slate-950">Saved locally on failure</p>
               </div>
             </div>
