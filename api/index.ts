@@ -6965,6 +6965,60 @@ async function startServer() {
     }
   });
 
+  app.get("/api/admin/sales-inbox", authenticate, async (req: any, res: any) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      const { data: inbound, error: inboundError } = await supabaseAdmin
+        .from("sales_messages")
+        .select("id,prospect_id,direction,channel,recipient,subject,body_text,status,sent_at,created_at,classification,reply_to_message_id,provider_message_id")
+        .eq("direction", "inbound").not("prospect_id", "is", null)
+        .order("created_at", { ascending: false }).limit(200);
+      if (inboundError) throw inboundError;
+      const prospectIds = Array.from(new Set((inbound || []).map((message: any) => message.prospect_id).filter(Boolean)));
+      if (!prospectIds.length) {
+        res.setHeader("Cache-Control", "no-store");
+        return res.json({ conversations: [] });
+      }
+      const [prospectsResult, tasksResult, outboundResult] = await Promise.all([
+        supabaseAdmin.from("prospects").select("id,name,contact_email,outreach_status,next_follow_up_at,preview_url").in("id", prospectIds),
+        supabaseAdmin.from("sales_tasks").select("id,prospect_id,task_type,status,due_at,metadata").in("prospect_id", prospectIds).eq("status", "open"),
+        supabaseAdmin.from("sales_messages").select("id,prospect_id,status,subject,sent_at,created_at").in("prospect_id", prospectIds).eq("direction", "outbound").order("created_at", { ascending: false }).limit(500),
+      ]);
+      if (prospectsResult.error) throw prospectsResult.error;
+      if (tasksResult.error) throw tasksResult.error;
+      if (outboundResult.error) throw outboundResult.error;
+      const prospectById = new Map((prospectsResult.data || []).map((prospect: any) => [prospect.id, prospect]));
+      const tasksByProspect = new Map<string, any[]>();
+      for (const task of tasksResult.data || []) {
+        const rows = tasksByProspect.get(task.prospect_id) || [];
+        rows.push(task);
+        tasksByProspect.set(task.prospect_id, rows);
+      }
+      const latestOutboundByProspect = new Map<string, any>();
+      for (const message of outboundResult.data || []) if (!latestOutboundByProspect.has(message.prospect_id)) latestOutboundByProspect.set(message.prospect_id, message);
+      const latestInboundByProspect = new Map<string, any>();
+      for (const message of inbound || []) if (!latestInboundByProspect.has(message.prospect_id)) latestInboundByProspect.set(message.prospect_id, message);
+      const conversations = Array.from(latestInboundByProspect.values()).map((message: any) => {
+        const openTasks = tasksByProspect.get(message.prospect_id) || [];
+        const replyTask = openTasks.find((task: any) => task.task_type === "reply" && (!task.metadata?.messageId || task.metadata.messageId === message.provider_message_id));
+        return {
+          prospect: prospectById.get(message.prospect_id) || null,
+          latestReply: { ...message, preview: String(message.body_text || "").replace(/\s+/g, " ").trim().slice(0, 180) },
+          latestOutbound: latestOutboundByProspect.get(message.prospect_id) || null,
+          unread: Boolean(replyTask),
+          replyTaskId: replyTask?.id || null,
+          openTasks,
+        };
+      });
+      res.setHeader("Cache-Control", "no-store");
+      return res.json({ conversations });
+    } catch (error: any) {
+      console.error("[Sales Inbox] Failed:", error?.message || error);
+      return res.status(503).json({ error: "Sales inbox could not be loaded." });
+    }
+  });
+
   app.get("/api/admin/prospects/:prospectId/engagement", authenticate, async (req: any, res: any) => {
     const prospectId = String(req.params.prospectId || "");
     if (!UUID_SCHEMA.safeParse(prospectId).success) {
@@ -6996,6 +7050,44 @@ async function startServer() {
     } catch (error: any) {
       console.error("[Prospect Engagement] Failed:", error?.message || error);
       return res.status(503).json({ error: "Prospect conversation could not be loaded." });
+    }
+  });
+
+  app.post("/api/admin/prospects/:prospectId/follow-up", authenticate, async (req: any, res: any) => {
+    const prospectId = String(req.params.prospectId || "");
+    if (!UUID_SCHEMA.safeParse(prospectId).success) return res.status(400).json({ error: "Invalid prospect ID" });
+    const body = validateBody(z.object({
+      dueAt: z.string().datetime({ offset: true }).nullable(),
+      note: z.string().trim().max(1000).optional().nullable(),
+    }).strict(), req, res);
+    if (!body) return;
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      const { data: prospect, error: prospectError } = await supabaseAdmin.from("prospects").select("id,name").eq("id", prospectId).maybeSingle();
+      if (prospectError) throw prospectError;
+      if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+      const now = new Date().toISOString();
+      await supabaseAdmin.from("sales_tasks").update({ status: "dismissed", updated_at: now })
+        .eq("prospect_id", prospectId).eq("task_type", "follow_up").eq("status", "open");
+      let task: any = null;
+      if (body.dueAt) {
+        const taskId = salesRecordId(`manual-follow-up:${prospectId}:${body.dueAt.slice(0, 10)}`);
+        const { data, error } = await supabaseAdmin.from("sales_tasks").upsert({
+          id: taskId, prospect_id: prospectId, title: `Follow up with ${prospect.name}`, task_type: "follow_up",
+          status: "open", priority: "medium", due_at: body.dueAt, notes: body.note || null,
+          metadata: { source: "prospect_explorer", actorId: req.user.id }, updated_at: now,
+        }, { onConflict: "id" }).select("*").single();
+        if (error) throw error;
+        task = data;
+      }
+      const { data: updatedProspect, error: updateError } = await supabaseAdmin.from("prospects")
+        .update({ next_follow_up_at: body.dueAt, updated_at: now }).eq("id", prospectId).select("*").single();
+      if (updateError) throw updateError;
+      return res.json({ prospect: updatedProspect, task });
+    } catch (error: any) {
+      console.error("[Prospect Follow-up] Failed:", error?.message || error);
+      return res.status(503).json({ error: "Follow-up could not be saved." });
     }
   });
 
@@ -7040,6 +7132,13 @@ async function startServer() {
         productSlug: z.enum(["managed-website", "website-growth", "growth-partner", "custom-website"]).default("managed-website"),
         market: z.enum(["MY", "SG", "GB", "INTL"]).default("INTL"),
         termMonths: z.union([z.literal(3), z.literal(6), z.literal(9), z.literal(12)]).default(3),
+        setupFee: z.number().finite().min(0).max(1000000).default(0),
+        recurringFee: z.number().finite().min(0).max(1000000).default(0),
+        customerName: z.string().trim().min(1).max(160).optional(),
+        contactName: z.string().trim().max(160).optional().nullable(),
+        contactEmail: z.string().trim().email().max(320).optional().nullable(),
+        contactPhone: z.string().trim().max(60).optional().nullable(),
+        contactWhatsapp: z.string().trim().max(60).optional().nullable(),
       }).strict(),
       req,
       res,
@@ -7068,7 +7167,18 @@ async function startServer() {
       const plan = ["website-growth", "growth-partner"].includes(body.productSlug) ? "growth" : "business";
 
       let ownerId: string | null = null;
-      const prospectEmail = normalizeSalesEmail(prospect.contact_email);
+      const prospectEmail = normalizeSalesEmail(body.contactEmail || prospect.contact_email);
+      const customerName = String(body.customerName || prospect.name || "New customer").trim().slice(0, 160);
+      const commercialAgreement = {
+        productSlug: body.productSlug, market: body.market, currency: currencyByMarket[body.market],
+        setupFee: body.setupFee, recurringFee: body.recurringFee, termMonths: body.termMonths,
+        agreedAt: now, sourceProspectId: prospectId,
+      };
+      const customerContact = {
+        name: body.contactName || null, email: prospectEmail || null,
+        phone: body.contactPhone || prospect.contact_phone || null,
+        whatsapp: body.contactWhatsapp || prospect.contact_whatsapp || null,
+      };
       if (prospectEmail) {
         const { data: existingProfile } = await supabaseAdmin
           .from("profiles")
@@ -7094,7 +7204,7 @@ async function startServer() {
       if (!existingBusiness) {
         const { error: businessError } = await supabaseAdmin.from("businesses").insert({
           id: businessId,
-          name: String(prospect.name || "New customer").slice(0, 160),
+          name: customerName,
           owner_id: ownerId,
           plan,
           status: "pending",
@@ -7109,7 +7219,12 @@ async function startServer() {
           commercial_market: body.market,
           commercial_currency: currencyByMarket[body.market],
           commercial_term_months: body.termMonths,
-          admin_notes: `Converted from prospect ${prospectId}. Customer account/payment may still need to be attached.`,
+          onboarding_steps: {
+            commercialAgreement,
+            customerContact,
+            sourceProspect: { id: prospectId, previewUrl: prospect.preview_url || null, website: prospect.domain || null },
+          },
+          admin_notes: `Converted from prospect ${prospectId}. Agreed ${currencyByMarket[body.market]} ${body.setupFee} setup + ${body.recurringFee} recurring; ${body.termMonths}-month initial commitment. Customer account/payment may still need to be attached.`,
         });
         if (businessError) throw businessError;
       } else if (ownerId && !existingBusiness.owner_id) {
@@ -7195,6 +7310,12 @@ async function startServer() {
             onboardingId,
             productSlug: body.productSlug,
             market: body.market,
+            currency: currencyByMarket[body.market],
+            setupFee: body.setupFee,
+            recurringFee: body.recurringFee,
+            termMonths: body.termMonths,
+            customerName,
+            customerContact,
             actorId: req.user.id,
           },
         });
@@ -7212,6 +7333,8 @@ async function startServer() {
         },
         project: { id: projectId, status: "awaiting_onboarding" },
         onboarding: { id: onboardingId, progress: 5 },
+        commercial: commercialAgreement,
+        contact: customerContact,
       });
     } catch (error: any) {
       console.error("[Prospect Conversion] Failed:", error?.message || error);
@@ -10217,8 +10340,13 @@ async function startServer() {
       z.object({
         status: z.enum(["approved", "changes_requested"]),
         notes: z.string().trim().max(5000).optional().nullable(),
+        items: z.array(z.object({
+          page: z.string().trim().max(160).optional().nullable(),
+          section: z.string().trim().max(160).optional().nullable(),
+          request: z.string().trim().min(1).max(3000),
+        }).strict()).max(25).optional(),
       }).superRefine((value, ctx) => {
-        if (value.status === "changes_requested" && !String(value.notes || "").trim()) {
+        if (value.status === "changes_requested" && !String(value.notes || "").trim() && !(value.items || []).length) {
           ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Describe the changes you need.", path: ["notes"] });
         }
       }),
@@ -10261,6 +10389,23 @@ async function startServer() {
         }).eq("id", approval.project_id);
       }
 
+      if (body.status === "changes_requested") {
+        const changeItems = (body.items || []).length ? body.items || [] : [{ page: null, section: null, request: String(body.notes || "").trim() }];
+        const changeRows = changeItems.map((item: any, index: number) => ({
+          id: salesRecordId(`approval-change:${approvalId}:${index}`),
+          business_id: approval.business_id, profile_id: req.user.id, website_id: approval.website_id || null,
+          request_type: "website_approval_change", update_category: "website_approval", priority: "launch_blocker", status: "submitted",
+          title: [item.page, item.section].filter(Boolean).length
+            ? `Approval change · ${[item.page, item.section].filter(Boolean).join(" · ")}`
+            : "Website approval change",
+          details: item.request, client_request_id: `approval:${approvalId}:${index}`, submitted_at: now,
+          customer_draft: { approvalId, websiteId: approval.website_id || null, projectId: approval.project_id || null, page: item.page || null, section: item.section || null, request: item.request },
+          updated_at: now,
+        }));
+        const { error: changeError } = await supabaseAdmin.from("monthly_update_requests").upsert(changeRows, { onConflict: "id" });
+        if (changeError) throw changeError;
+      }
+
       if (body.status === "approved") {
         await supabaseAdmin.from("businesses").update({
           lifecycle_stage: "launch_ready",
@@ -10298,8 +10443,8 @@ async function startServer() {
       });
 
       const [businessResult, websiteResult, projectResult, approvalResult, onboardingResult] = await Promise.all([
-        supabaseAdmin.from("businesses").select("id,name,custom_domain,custom_domain_status,ssl_status,lifecycle_stage,onboarding_completed_at").eq("id", businessId).maybeSingle(),
-        supabaseAdmin.from("websites").select("id,status,pages,seo,button_health,validation_report,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+        supabaseAdmin.from("businesses").select("id,name,custom_domain,custom_domain_status,ssl_status,lifecycle_stage,onboarding_completed_at,ga_measurement_id,meta_pixel_id,tracking_scripts_header,tracking_scripts_footer").eq("id", businessId).maybeSingle(),
+        supabaseAdmin.from("websites").select("id,status,pages,theme,seo,button_health,validation_report,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
         supabaseAdmin.from("projects").select("id,status,launch_blocker,delivery_checklist,target_launch_date,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
         supabaseAdmin.from("customer_approvals").select("id,status,responded_at,updated_at").eq("business_id", businessId).order("requested_at", { ascending: false }).limit(1).maybeSingle(),
         supabaseAdmin.from("onboarding_sessions").select("id,status,progress,current_step,updated_at").eq("business_id", businessId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
@@ -10328,9 +10473,23 @@ async function startServer() {
             ? seo.buttonHealth
             : {};
       const criticalBroken = Number(storedButtonHealth.criticalBroken ?? storedButtonHealth.critical ?? 0);
+      const brokenButtons = Number(storedButtonHealth.broken ?? criticalBroken ?? 0);
       const hasEnquiryPath = visibleSections.some((section: any) =>
-        ["contact", "appointment"].includes(String(section?.type || "")),
+        ["contact", "appointment", "lead_form", "enquiry"].includes(String(section?.type || "")),
       );
+      const serializedPages = JSON.stringify(pages);
+      const hasWhatsapp = /wa\.me|whatsapp/i.test(serializedPages);
+      const hasEmail = /mailto:|"email"\s*:/i.test(serializedPages);
+      const hasBooking = /calendly|booking|appointment|book[-_ ]?(?:now|call|appointment)/i.test(serializedPages);
+      const deliveryQuality = seo.deliveryQuality && typeof seo.deliveryQuality === "object" ? seo.deliveryQuality : {};
+      const validationReport = website?.validation_report && typeof website.validation_report === "object" ? website.validation_report : {};
+      const brokenImages = Number(validationReport.brokenImages ?? validationReport.broken_images ?? 0);
+      const mobileQaRecorded = deliveryQuality.responsiveQaApproved === true || validationReport.mobileReady === true || validationReport.responsive === true;
+      const faviconReady = Boolean(String(seo.favicon || seo.faviconUrl || website?.theme?.favicon || website?.theme?.faviconUrl || "").trim());
+      const pageLabels = pages.map((page: any) => `${page?.title || ""} ${page?.slug || ""}`.toLowerCase());
+      const hasPrivacyPage = pageLabels.some((label: string) => /privacy/.test(label));
+      const hasTermsPage = pageLabels.some((label: string) => /terms|legal/.test(label));
+      const analyticsReady = Boolean(String(business.ga_measurement_id || business.meta_pixel_id || business.tracking_scripts_header || business.tracking_scripts_footer || "").trim());
       const hasCustomDomain = Boolean(String(business.custom_domain || "").trim());
       const domainReady = !hasCustomDomain || (
         String(business.custom_domain_status || "").toLowerCase() === "connected"
@@ -10366,22 +10525,33 @@ async function startServer() {
       const checks = [
         { id: "onboarding", label: "Customer onboarding complete", pass: onboardingReady, severity: "blocker" },
         { id: "website", label: "Website draft exists", pass: Boolean(website?.id && pages.length), severity: "blocker" },
+        { id: "mobile", label: "Mobile/responsive QA approved", pass: mobileQaRecorded, severity: "blocker" },
         { id: "seo", label: "SEO title and description present", pass: Boolean(String(seo.title || "").trim() && String(seo.description || "").trim()), severity: "blocker" },
-        { id: "enquiry", label: "Customer enquiry path exists", pass: hasEnquiryPath, severity: "blocker" },
-        { id: "buttons", label: "No known critical broken buttons", pass: criticalBroken === 0, severity: "blocker" },
+        { id: "favicon", label: "Favicon configured", pass: faviconReady, severity: "warning" },
+        { id: "forms", label: "Lead/contact form path exists", pass: hasEnquiryPath, severity: "blocker" },
+        { id: "whatsapp", label: hasWhatsapp ? "WhatsApp CTA detected" : "WhatsApp CTA not configured", pass: hasWhatsapp, severity: "warning" },
+        { id: "email", label: hasEmail ? "Email contact path detected" : "Email contact path not configured", pass: hasEmail, severity: "warning" },
+        { id: "booking", label: hasBooking ? "Booking/appointment path detected" : "Booking link not configured", pass: hasBooking, severity: "warning" },
+        { id: "buttons", label: "No broken website buttons/links", pass: brokenButtons === 0 && criticalBroken === 0, severity: "blocker" },
+        { id: "images", label: "No broken images reported", pass: brokenImages === 0, severity: "blocker" },
+        { id: "legal_privacy", label: "Privacy page present", pass: hasPrivacyPage, severity: "warning" },
+        { id: "legal_terms", label: "Terms/legal page present", pass: hasTermsPage, severity: "warning" },
+        { id: "analytics", label: "Analytics/tracking configured", pass: analyticsReady, severity: "warning" },
         { id: "approval", label: "Customer approved current version", pass: approval?.status === "approved", severity: "blocker" },
         { id: "project", label: "No delivery launch blocker", pass: !String(project?.launch_blocker || "").trim(), severity: "blocker" },
-        { id: "domain", label: hasCustomDomain ? "Custom domain and SSL ready" : "Bennie hosted URL available", pass: domainReady, severity: "blocker" },
+        { id: "domain", label: hasCustomDomain ? "DNS, custom domain and SSL ready" : "Bennie hosted URL available", pass: domainReady, severity: "blocker" },
         { id: "reachability", label: "Public website responds", pass: reachable, severity: "blocker" },
+        { id: "publication", label: `Publication status: ${String(website?.status || "not_created")}`, pass: ["published", "active"].includes(String(website?.status || "").toLowerCase()), severity: "warning" },
       ];
       const blockers = checks.filter((check) => !check.pass && check.severity === "blocker");
+      const warnings = checks.filter((check) => !check.pass && check.severity === "warning");
       return res.json({
         businessId,
         websiteId: website?.id || null,
         ready: blockers.length === 0,
         checks,
         blockers,
-        warnings: [],
+        warnings,
         publicUrl,
         reachable,
         httpStatus,

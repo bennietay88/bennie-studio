@@ -146,6 +146,12 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     brandNotes: "",
     complianceNotes: "",
     referenceLinks: "",
+    socialProfiles: "",
+    approvalContactName: "",
+    approvalContactEmail: "",
+    legalBusinessName: "",
+    registrationNumber: "",
+    legalNotes: "",
   });
   const [agreed, setAgreed] = useState(false);
   const selectedPackageConfig =
@@ -318,6 +324,24 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const totalSteps = 7;
   const MAX_ONBOARDING_PAGES = 5;
+  const intakeChecks = [
+    { label: "Business name", complete: Boolean(businessData.name.trim()), blocker: true },
+    { label: "Company description", complete: Boolean((businessData.businessNature || businessData.description).trim()), blocker: false },
+    { label: "Services / main offer", complete: Boolean(businessData.mainOffer.trim() && businessData.service1.trim()), blocker: true },
+    { label: "Customer contact method", complete: [businessData.whatsappNumber, businessData.contactEmail, businessData.contactPhone].some((value) => value.trim()), blocker: true },
+    { label: "Service locations", complete: Boolean(businessData.serviceArea.trim()), blocker: true },
+    { label: "Preferred CTA", complete: Boolean(businessData.ctaPreference.trim()), blocker: true },
+    { label: "Existing website / domain", complete: Boolean((businessData.existingUrl || businessData.customDomain).trim()), blocker: false },
+    { label: "Logo", complete: Boolean(businessData.logoUrl), blocker: false },
+    { label: "Brand colour", complete: Boolean(businessData.brandColor), blocker: false },
+    { label: "Images / assets", complete: Boolean(businessData.heroImageUrl || businessData.storyImageUrl || businessData.projectImageUrl || businessData.referenceLinks.trim()), blocker: false },
+    { label: "Social profiles", complete: Boolean(businessData.socialProfiles.trim()), blocker: false },
+    { label: "Approval contact", complete: Boolean(businessData.approvalContactName.trim() && businessData.approvalContactEmail.trim()), blocker: false },
+    { label: "Business / legal details", complete: Boolean(businessData.legalBusinessName.trim() || businessData.registrationNumber.trim() || businessData.complianceNotes.trim()), blocker: false },
+  ];
+  const intakeProgress = Math.round((intakeChecks.filter((item) => item.complete).length / intakeChecks.length) * 100);
+  const intakeBlockers = intakeChecks.filter((item) => item.blocker && !item.complete);
+  const intakeMissing = intakeChecks.filter((item) => !item.complete);
   const recommendedPlanId = React.useMemo(() => {
     const requestedPages = businessData.pagesNeeded.length;
     const requestedLocations = businessData.localSeoCities.split(/,|\n/).map((item) => item.trim()).filter(Boolean).length;
@@ -414,6 +438,23 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             tonePreference: businessData.tonePreference, primaryLocation: businessData.location, serviceArea: businessData.serviceArea,
             nearbyAreas: businessData.nearbyAreas.split(/,|\n/).map((item) => item.trim()).filter(Boolean),
             localSeoCities: businessData.localSeoCities.split(/,|\n/).map((item) => item.trim()).filter(Boolean),
+            customerContact: {
+              email: businessData.contactEmail,
+              phone: businessData.contactPhone,
+              whatsapp: businessData.whatsappNumber,
+              approvalContactName: businessData.approvalContactName,
+              approvalContactEmail: businessData.approvalContactEmail,
+            },
+            businessDetails: {
+              description: businessData.businessNature || businessData.description,
+              mainOffer: businessData.mainOffer,
+              services: [businessData.service1, businessData.service2, businessData.service3].filter(Boolean),
+              socialProfiles: businessData.socialProfiles.split(/\n+/).map((item) => item.trim()).filter(Boolean),
+              existingWebsite: businessData.existingUrl || null,
+              legalBusinessName: businessData.legalBusinessName || null,
+              registrationNumber: businessData.registrationNumber || null,
+              legalNotes: businessData.legalNotes || null,
+            },
             recommendedPlanId,
             deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
             assetVault: {
@@ -477,6 +518,23 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             serviceArea: businessData.serviceArea,
             nearbyAreas: businessData.nearbyAreas.split(/,|\n/).map((item) => item.trim()).filter(Boolean),
             localSeoCities: businessData.localSeoCities.split(/,|\n/).map((item) => item.trim()).filter(Boolean),
+            customerContact: {
+              email: businessData.contactEmail,
+              phone: businessData.contactPhone,
+              whatsapp: businessData.whatsappNumber,
+              approvalContactName: businessData.approvalContactName,
+              approvalContactEmail: businessData.approvalContactEmail,
+            },
+            businessDetails: {
+              description: businessData.businessNature || businessData.description,
+              mainOffer: businessData.mainOffer,
+              services: [businessData.service1, businessData.service2, businessData.service3].filter(Boolean),
+              socialProfiles: businessData.socialProfiles.split(/\n+/).map((item) => item.trim()).filter(Boolean),
+              existingWebsite: businessData.existingUrl || null,
+              legalBusinessName: businessData.legalBusinessName || null,
+              registrationNumber: businessData.registrationNumber || null,
+              legalNotes: businessData.legalNotes || null,
+            },
             hasLocalProof: businessData.hasLocalProof,
             recommendedPlanId,
             deliveryStandardVersion: DELIVERY_STANDARD_VERSION,
@@ -869,6 +927,27 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             mainOffer: businessData.mainOffer,
             serviceArea: businessData.serviceArea,
             localSeoCities: businessData.localSeoCities,
+            customerContact: {
+              email: businessData.contactEmail,
+              phone: businessData.contactPhone,
+              whatsapp: businessData.whatsappNumber,
+              approvalContactName: businessData.approvalContactName,
+              approvalContactEmail: businessData.approvalContactEmail,
+            },
+            businessDetails: {
+              description: businessData.businessNature || businessData.description,
+              services: [businessData.service1, businessData.service2, businessData.service3].filter(Boolean),
+              socialProfiles: businessData.socialProfiles.split(/\n+/).map((item) => item.trim()).filter(Boolean),
+              existingWebsite: businessData.existingUrl || null,
+              legalBusinessName: businessData.legalBusinessName || null,
+              registrationNumber: businessData.registrationNumber || null,
+              legalNotes: businessData.legalNotes || null,
+            },
+            briefCompleteness: {
+              percent: intakeProgress,
+              missing: intakeMissing.map((item) => item.label),
+              blocking: intakeBlockers.map((item) => item.label),
+            },
             assetVault: {
               logoUrl: businessData.logoUrl,
               heroImageUrl: businessData.heroImageUrl,
@@ -1249,6 +1328,15 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                           onChange={(e) => setBusinessData({...businessData, mainOffer: e.target.value})}
                         />
                       </div>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Company description</label>
+                        <Textarea
+                          className="min-h-[110px] text-sm px-6 py-4 bg-slate-50 border-slate-100 rounded-2xl font-medium"
+                          placeholder="What does your company do, who do you serve, and what makes it different?"
+                          value={businessData.description}
+                          onChange={(e) => setBusinessData({...businessData, description: e.target.value})}
+                        />
+                      </div>
                     </div>
                     <div className="space-y-4">
                        <div className="space-y-3">
@@ -1261,6 +1349,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                           value={businessData.serviceArea}
                           onChange={(e) => setBusinessData({...businessData, serviceArea: e.target.value})}
                         />
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Existing website</label>
+                        <Input className="h-12 rounded-xl" placeholder="https://example.com" value={businessData.existingUrl} onChange={(e) => setBusinessData({...businessData, existingUrl: e.target.value})} />
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Preferred custom domain</label>
+                        <Input className="h-12 rounded-xl" placeholder="www.example.com" value={businessData.customDomain} onChange={(e) => setBusinessData({...businessData, customDomain: e.target.value})} />
                       </div>
                       <div className="space-y-3">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
@@ -1689,6 +1785,30 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                   </div>
 
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Social profiles</label>
+                      <Textarea className="mt-2 min-h-24 rounded-2xl" placeholder="One Facebook, Instagram, LinkedIn, TikTok or other profile per line" value={businessData.socialProfiles} onChange={(e) => setBusinessData({ ...businessData, socialProfiles: e.target.value })} />
+                    </div>
+                    <div className="grid content-start gap-3">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Approval contact</label>
+                      <Input className="h-12 rounded-2xl" placeholder="Name" value={businessData.approvalContactName} onChange={(e) => setBusinessData({ ...businessData, approvalContactName: e.target.value })} />
+                      <Input type="email" className="h-12 rounded-2xl" placeholder="Email" value={businessData.approvalContactEmail} onChange={(e) => setBusinessData({ ...businessData, approvalContactEmail: e.target.value })} />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid content-start gap-3">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Business / legal details</label>
+                      <Input className="h-12 rounded-2xl" placeholder="Registered business name" value={businessData.legalBusinessName} onChange={(e) => setBusinessData({ ...businessData, legalBusinessName: e.target.value })} />
+                      <Input className="h-12 rounded-2xl" placeholder="Company / registration number" value={businessData.registrationNumber} onChange={(e) => setBusinessData({ ...businessData, registrationNumber: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Legal / footer notes</label>
+                      <Textarea className="mt-2 min-h-24 rounded-2xl" placeholder="Registered address, required footer wording, licence details or other legal information" value={businessData.legalNotes} onChange={(e) => setBusinessData({ ...businessData, legalNotes: e.target.value })} />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Reference files & source links</label>
                     <Textarea
@@ -1746,8 +1866,15 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                   </div>
                   <div className="rounded-[2rem] border border-indigo-100 bg-indigo-50 p-6">
-                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600">Delivery summary</p>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{businessData.mainOffer} for customers in {businessData.serviceArea}. Primary action: {businessData.ctaPreference}. Requested pages: {businessData.pagesNeeded.join(", ")}.</p>
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600">Delivery summary</p>
+                        <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{businessData.mainOffer} for customers in {businessData.serviceArea}. Primary action: {businessData.ctaPreference}. Requested pages: {businessData.pagesNeeded.join(", ")}.</p>
+                      </div>
+                      <Badge className={intakeBlockers.length ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}>{intakeProgress}% brief complete</Badge>
+                    </div>
+                    {intakeMissing.length > 0 && <p className="mt-3 text-xs font-bold text-slate-500">Missing: {intakeMissing.map((item) => item.label).join(", ")}.</p>}
+                    {intakeBlockers.length > 0 && <p className="mt-2 text-xs font-black text-rose-700">Blocking: {intakeBlockers.map((item) => item.label).join(", ")}.</p>}
                   </div>
 
                   <div className="h-px bg-slate-100 my-8" />
@@ -1962,7 +2089,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         <Button
                           onClick={submitOnboarding}
                           data-testid="onboarding-launch"
-                          disabled={!agreed || loading}
+                          disabled={!agreed || loading || intakeBlockers.length > 0}
                           className={`w-full h-20 text-xl font-black uppercase tracking-[0.3em] shadow-2xl rounded-[2rem] group transition-all ${
                               agreed 
                                 ? "bg-slate-950 hover:bg-black text-white shadow-slate-200" 

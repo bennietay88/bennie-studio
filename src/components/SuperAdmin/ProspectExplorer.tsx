@@ -33,7 +33,7 @@ import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import { supabase } from "../../lib/supabase";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, formatDistanceToNowStrict } from "date-fns";
 import { normalizeWebsiteAuditResult } from "../../lib/websiteAudit";
 import { scoreProspect } from "../../lib/prospectScoring";
 import { parseProspectCsv } from "../../lib/prospectImport";
@@ -94,6 +94,12 @@ export function ProspectExplorer() {
   const [conversionProduct, setConversionProduct] = useState("managed-website");
   const [conversionMarket, setConversionMarket] = useState("INTL");
   const [conversionTerm, setConversionTerm] = useState("3");
+  const [conversionSetupFee, setConversionSetupFee] = useState("0");
+  const [conversionRecurringFee, setConversionRecurringFee] = useState("0");
+  const [conversionContactName, setConversionContactName] = useState("");
+  const [conversionEmail, setConversionEmail] = useState("");
+  const [conversionPhone, setConversionPhone] = useState("");
+  const [conversionWhatsapp, setConversionWhatsapp] = useState("");
   const [conversionSaving, setConversionSaving] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -150,7 +156,30 @@ export function ProspectExplorer() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setProspects((data || []).map((prospect) => ({ ...prospect, _score: scoreProspect(prospect) })));
+      let rows = (data || []).map((prospect) => ({ ...prospect, _score: scoreProspect(prospect) }));
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        try {
+          const inboxResponse = await fetch("/api/admin/sales-inbox", { headers: { Authorization: `Bearer ${session.access_token}` } });
+          if (inboxResponse.ok) {
+            const inbox = await inboxResponse.json();
+            const byProspect = new Map((inbox.conversations || []).map((conversation: any) => [conversation.prospect?.id, conversation]));
+            rows = rows.map((prospect) => {
+              const conversation: any = byProspect.get(prospect.id);
+              return conversation ? {
+                ...prospect,
+                _latestReply: conversation.latestReply,
+                _latestOutbound: conversation.latestOutbound,
+                _unreadReply: conversation.unread,
+                _replyTaskId: conversation.replyTaskId,
+              } : prospect;
+            });
+          }
+        } catch (inboxError) {
+          console.warn("Sales inbox summary unavailable:", inboxError);
+        }
+      }
+      setProspects(rows);
     } catch (error: any) {
       console.error("Error fetching prospects:", error);
       toast.error("Failed to load prospects. Apply the prospecting migration if this is the first run.");
@@ -671,6 +700,39 @@ export function ProspectExplorer() {
     toast.success(status === "completed" ? "Task completed" : "Task dismissed");
   };
 
+  const setFollowUp = async (prospect: any, dateValue: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Your admin session has expired.");
+      const dueAt = dateValue ? new Date(`${dateValue}T09:00:00`).toISOString() : null;
+      const response = await fetch(`/api/admin/prospects/${encodeURIComponent(prospect.id)}/follow-up`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ dueAt }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || "Follow-up could not be saved.");
+      if (payload.prospect) {
+        setProspects((current) => current.map((item) => item.id === prospect.id ? { ...item, ...payload.prospect } : item));
+        if (selectedProspect?.id === prospect.id) setSelectedProspect((current: any) => current ? { ...current, ...payload.prospect } : current);
+      }
+      if (selectedProspect?.id === prospect.id) void loadEngagement(prospect.id);
+      toast.success(dueAt ? "Follow-up scheduled" : "Follow-up cleared");
+    } catch (error: any) {
+      toast.error(error?.message || "Follow-up could not be saved.");
+    }
+  };
+
+  const openConversion = (prospect: any) => {
+    setConversionProspect(prospect);
+    setConversionContactName("");
+    setConversionEmail(prospect.contact_email || "");
+    setConversionPhone(prospect.contact_phone || "");
+    setConversionWhatsapp(prospect.contact_whatsapp || "");
+    setConversionSetupFee("0");
+    setConversionRecurringFee("0");
+  };
+
   const preparePreviewAndEmail = async (prospect: any) => {
     let next = prospect;
     if (!prospect.preview_url) {
@@ -699,6 +761,13 @@ export function ProspectExplorer() {
             productSlug: conversionProduct,
             market: conversionMarket,
             termMonths: Number(conversionTerm),
+            setupFee: Math.max(0, Number(conversionSetupFee) || 0),
+            recurringFee: Math.max(0, Number(conversionRecurringFee) || 0),
+            customerName: conversionProspect.name,
+            contactName: conversionContactName.trim() || null,
+            contactEmail: conversionEmail.trim() || null,
+            contactPhone: conversionPhone.trim() || null,
+            contactWhatsapp: conversionWhatsapp.trim() || null,
           }),
         },
       );
@@ -1030,13 +1099,28 @@ export function ProspectExplorer() {
                           <SelectTrigger className="h-9 w-40 rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{toTitle(status)}</SelectItem>)}</SelectContent>
                         </Select>
+                        {prospect._latestReply && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedProspect(prospect)}
+                            className={`mt-2 block max-w-[220px] rounded-xl border px-3 py-2 text-left ${prospect._unreadReply ? "border-indigo-200 bg-indigo-50" : "border-slate-100 bg-slate-50"}`}
+                          >
+                            <span className="block text-[10px] font-black text-indigo-700">
+                              {prospect._unreadReply ? "● " : ""}Replied · {formatDistanceToNowStrict(new Date(prospect._latestReply.sent_at || prospect._latestReply.created_at), { addSuffix: true })}
+                            </span>
+                            <span className="mt-1 block truncate text-[10px] font-semibold text-slate-500">{prospect._latestReply.preview}</span>
+                          </button>
+                        )}
+                        {!prospect._latestReply && prospect._latestOutbound?.status && (
+                          <p className="mt-2 text-[10px] font-bold text-slate-400">Email: {toTitle(prospect._latestOutbound.status)}</p>
+                        )}
                       </td>
                       <td className="px-6 py-6">
                         <Input
                           type="date"
                           className="h-9 w-40 rounded-xl"
                           value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""}
-                          onChange={(e) => updateProspect(prospect.id, { next_follow_up_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                          onChange={(e) => void setFollowUp(prospect, e.target.value)}
                         />
                         {prospect.preview_url && <a href={prospect.preview_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-indigo-600"><LinkIcon className="h-3 w-3" /> Preview link</a>}
                       </td>
@@ -1045,7 +1129,7 @@ export function ProspectExplorer() {
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Preview</Button>
                           {prospect.contact_email && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-indigo-600 hover:bg-indigo-50" onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
-                          {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-50" onClick={() => setConversionProspect(prospect)}><UserPlus className="h-3 w-3 mr-1.5" />Convert</Button>}
+                          {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="h-3 w-3 mr-1.5" />Convert</Button>}
                           {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
                           <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 hover:bg-rose-50 hover:text-rose-600" onClick={() => deleteProspect(prospect.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
@@ -1424,10 +1508,12 @@ export function ProspectExplorer() {
 
               <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 {[
-                  ["Audit", Boolean(selectedProspect.last_audit_at)],
-                  ["Preview", Boolean(selectedProspect.preview_url)],
-                  ["Contacted", ["contacted", "replied", "call_booked", "won"].includes(selectedProspect.outreach_status)],
-                  ["Replied", ["replied", "call_booked", "won"].includes(selectedProspect.outreach_status)],
+                  ["Audit Site", Boolean(selectedProspect.last_audit_at)],
+                  ["Generate Preview", Boolean(selectedProspect.preview_url)],
+                  ["Review Preview", Boolean(selectedProspect.preview_generated_at)],
+                  ["Send Email", Boolean((engagement?.messages || []).some((message: any) => message.direction === "outbound"))],
+                  ["Viewed", Boolean((engagement?.messages || []).some((message: any) => message.direction === "outbound" && ["opened", "clicked"].includes(message.status)))],
+                  ["Replied", Boolean((engagement?.messages || []).some((message: any) => message.direction === "inbound"))],
                   ["Customer", Boolean(selectedProspect.converted_business_id)],
                 ].map(([label, done]: any) => (
                   <Badge key={label} variant="outline" className={done ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-400"}>
@@ -1466,7 +1552,10 @@ export function ProspectExplorer() {
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] font-bold text-slate-400">{format(new Date(message.sent_at || message.created_at), "MMM dd, yyyy · h:mm a")}</p>
-                          {message.classification && <Badge variant="outline" className="mt-1 text-[9px]">{toTitle(message.classification)}</Badge>}
+                          <div className="mt-1 flex justify-end gap-1">
+                            {message.classification && <Badge variant="outline" className="text-[9px]">{toTitle(message.classification)}</Badge>}
+                            {message.direction === "outbound" && <Badge variant="outline" className="text-[9px]">{toTitle(message.status || "sent")}</Badge>}
+                          </div>
                         </div>
                       </div>
                       <p className="mt-3 whitespace-pre-wrap text-sm font-medium leading-6 text-slate-700">{message.body_text}</p>
@@ -1495,7 +1584,7 @@ export function ProspectExplorer() {
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" className="rounded-xl" onClick={() => updateSalesTask(task.id, "dismissed")}>Dismiss</Button>
-                        <Button size="sm" className="rounded-xl bg-emerald-600 hover:bg-emerald-700" onClick={() => updateSalesTask(task.id, "completed")}><Check className="mr-1 h-3.5 w-3.5" />Done</Button>
+                        <Button size="sm" className="rounded-xl bg-emerald-600 hover:bg-emerald-700" onClick={() => updateSalesTask(task.id, "completed")}><Check className="mr-1 h-3.5 w-3.5" />{task.task_type === "reply" ? "Mark handled" : "Done"}</Button>
                       </div>
                     </div>
                   ))}
@@ -1514,7 +1603,7 @@ export function ProspectExplorer() {
           <DialogFooter className="flex-wrap">
             {selectedProspect?.preview_url && <a href={selectedProspect.preview_url} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-bold"><ExternalLink className="mr-2 h-4 w-4"/>Open Preview</a>}
             {selectedProspect && !selectedProspect.converted_business_id && (
-              <Button variant="outline" onClick={() => setConversionProspect(selectedProspect)} className="rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+              <Button variant="outline" onClick={() => openConversion(selectedProspect)} className="rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50">
                 <UserPlus className="mr-2 h-4 w-4" />Convert to Customer
               </Button>
             )}
@@ -1564,9 +1653,23 @@ export function ProspectExplorer() {
                 </Select>
               </Field>
             </div>
-            {!conversionProspect?.contact_email && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={`Setup fee (${conversionMarket === "MY" ? "MYR" : conversionMarket === "SG" ? "SGD" : conversionMarket === "GB" ? "GBP" : "USD"})`}>
+                <Input type="number" min="0" step="0.01" value={conversionSetupFee} onChange={(e) => setConversionSetupFee(e.target.value)} className="rounded-xl" />
+              </Field>
+              <Field label="Recurring fee">
+                <Input type="number" min="0" step="0.01" value={conversionRecurringFee} onChange={(e) => setConversionRecurringFee(e.target.value)} className="rounded-xl" />
+              </Field>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Contact name"><Input value={conversionContactName} onChange={(e) => setConversionContactName(e.target.value)} className="rounded-xl" placeholder="Decision maker / approval contact" /></Field>
+              <Field label="Contact email"><Input type="email" value={conversionEmail} onChange={(e) => setConversionEmail(e.target.value)} className="rounded-xl" /></Field>
+              <Field label="Contact phone"><Input value={conversionPhone} onChange={(e) => setConversionPhone(e.target.value)} className="rounded-xl" /></Field>
+              <Field label="WhatsApp"><Input value={conversionWhatsapp} onChange={(e) => setConversionWhatsapp(e.target.value)} className="rounded-xl" /></Field>
+            </div>
+            {!conversionEmail.trim() && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
-                <AlertTriangle className="mr-2 inline h-4 w-4" />This prospect has no email address. The workspace can be created, but a customer account must be attached manually.
+                <AlertTriangle className="mr-2 inline h-4 w-4" />No customer email is captured. The workspace can be created, but a customer account must be attached manually.
               </div>
             )}
           </div>

@@ -50,7 +50,7 @@ test("approval requests and customer responses update lifecycle", () => {
 test("launch readiness combines delivery, approval, domain and live health checks", () => {
   assert.match(api, /\/api\/admin\/businesses\/:businessId\/launch-readiness/);
   assert.match(api, /Customer onboarding complete/);
-  assert.match(api, /No known critical broken buttons/);
+  assert.match(api, /No broken website buttons\/links/);
   assert.match(api, /Customer approved current version/);
   assert.match(api, /Public website responds/);
   assert.match(onboarding, /Launch QA/);
@@ -62,4 +62,38 @@ test("daily automation also performs lightweight published-site health monitorin
   assert.match(api, /website_health_checks/);
   assert.match(api, /source: "daily_cron"/);
   assert.match(api, /websiteHealthChecks:/);
+});
+
+
+test("sales inbox summaries surface reply preview, unread handling and follow-up tasks", () => {
+  assert.match(api, /\/api\/admin\/sales-inbox/);
+  assert.match(api, /\/api\/admin\/prospects\/:prospectId\/follow-up/);
+  assert.match(prospects, /Replied ·/);
+  assert.match(prospects, /Mark handled/);
+  assert.match(prospects, /formatDistanceToNowStrict/);
+});
+
+test("prospect conversion captures agreed commercial and contact terms", () => {
+  assert.match(api, /setupFee: z\.number/);
+  assert.match(api, /recurringFee: z\.number/);
+  assert.match(api, /commercialAgreement/);
+  assert.match(prospects, /Setup fee/);
+  assert.match(prospects, /Recurring fee/);
+});
+
+test("customer change requests become structured launch-blocking work items", () => {
+  assert.match(api, /website_approval_change/);
+  assert.match(api, /monthly_update_requests/);
+  assert.match(approvals, /Page \(optional\)/);
+  assert.match(approvals, /Section \(optional\)/);
+});
+
+test("launch readiness covers the full commercial launch checklist", () => {
+  assert.match(api, /Mobile\/responsive QA approved/);
+  assert.match(api, /No broken website buttons\/links/);
+  assert.match(api, /No broken images reported/);
+  assert.match(api, /Favicon configured/);
+  assert.match(api, /Privacy page present/);
+  assert.match(api, /Analytics\/tracking configured/);
+  assert.match(api, /Publication status:/);
 });

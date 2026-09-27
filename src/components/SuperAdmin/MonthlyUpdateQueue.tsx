@@ -15,7 +15,8 @@ type UpdateRequest = {
   request_type?: string;
   update_category?: string;
   priority?: "normal" | "high" | "launch_blocker";
-  status: "new" | "in_progress" | "changes_requested" | "completed" | "cancelled";
+  status: "draft" | "submitted" | "acknowledged" | "in_progress" | "waiting_for_customer" | "completed" | "declined" | "cancelled";
+  customer_draft?: Record<string, any>;
   title: string;
   details?: string;
   allowance_period?: string;
@@ -31,7 +32,7 @@ type UpdateRequest = {
   };
 };
 
-const statusOptions: UpdateRequest["status"][] = ["new", "in_progress", "changes_requested", "completed", "cancelled"];
+const statusOptions: UpdateRequest["status"][] = ["submitted", "acknowledged", "in_progress", "waiting_for_customer", "completed", "cancelled"];
 
 export function MonthlyUpdateQueue() {
   const [requests, setRequests] = React.useState<UpdateRequest[]>([]);
@@ -97,7 +98,7 @@ export function MonthlyUpdateQueue() {
   });
 
   const stats = {
-    new: requests.filter((item) => item.status === "new").length,
+    submitted: requests.filter((item) => item.status === "submitted").length,
     inProgress: requests.filter((item) => item.status === "in_progress").length,
     blockers: requests.filter((item) => item.priority === "launch_blocker").length,
     completed: requests.filter((item) => item.status === "completed").length,
@@ -120,7 +121,7 @@ export function MonthlyUpdateQueue() {
 
       <div className="grid gap-4 md:grid-cols-4">
         {[
-          { label: "New", value: stats.new, icon: Clock, tone: "text-blue-600 bg-blue-50" },
+          { label: "Submitted", value: stats.submitted, icon: Clock, tone: "text-blue-600 bg-blue-50" },
           { label: "In Progress", value: stats.inProgress, icon: Wrench, tone: "text-amber-600 bg-amber-50" },
           { label: "Launch Blockers", value: stats.blockers, icon: Filter, tone: "text-rose-600 bg-rose-50" },
           { label: "Completed", value: stats.completed, icon: CheckCircle2, tone: "text-emerald-600 bg-emerald-50" },
@@ -195,6 +196,11 @@ export function MonthlyUpdateQueue() {
                     </div>
                     <h3 className="text-lg font-black text-slate-950">{request.title}</h3>
                     <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-500">{request.details || "No details provided."}</p>
+                    {(request.customer_draft?.page || request.customer_draft?.section) && (
+                      <p className="mt-2 text-xs font-black text-indigo-600">
+                        {[request.customer_draft?.page && `Page: ${request.customer_draft.page}`, request.customer_draft?.section && `Section: ${request.customer_draft.section}`].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
                     <div className="mt-4 flex flex-wrap gap-4 text-xs font-bold text-slate-400">
                       <span>{request.business?.name || request.business_id}</span>
                       <span>Plan: {(request.business?.plan || "unknown").toUpperCase()}</span>
@@ -206,7 +212,7 @@ export function MonthlyUpdateQueue() {
                     <Button size="sm" variant="outline" className="rounded-xl font-bold" onClick={() => updateStatus(request, "in_progress")}>
                       In Progress
                     </Button>
-                    <Button size="sm" variant="outline" className="rounded-xl font-bold" onClick={() => updateStatus(request, "changes_requested")}>
+                    <Button size="sm" variant="outline" className="rounded-xl font-bold" onClick={() => updateStatus(request, "waiting_for_customer")}>
                       Needs Info
                     </Button>
                     <Button size="sm" className="rounded-xl bg-emerald-600 font-bold hover:bg-emerald-700" onClick={() => updateStatus(request, "completed")}>
