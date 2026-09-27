@@ -3283,6 +3283,7 @@ async function startServer() {
         html,
         text: `${message.body_text}\n\nStop receiving these emails: ${unsubscribeUrl}`,
         replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
+        bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
         tags: [{ name: "sales_message_id", value: message.id }],
       }, { idempotencyKey: message.idempotency_key });
       if (error || !data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
@@ -3307,6 +3308,7 @@ async function startServer() {
         process.env.SALES_REPLY_TO
         || platformSettings?.supportEmail
         || undefined,
+      bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
       tags: [{ name: "sales_message_id", value: message.id }],
     }, { idempotencyKey: message.idempotency_key });
     if (error || !data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
