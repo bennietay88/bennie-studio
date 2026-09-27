@@ -43,7 +43,6 @@ export default function AffiliateAuthPage() {
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [referralCode, setReferralCode] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // If already logged in, redirect to wherever they were going or dashboard
@@ -192,6 +191,7 @@ export default function AffiliateAuthPage() {
                   {!isSignUp && (
                     <button
                       type="button"
+                      onClick={() => navigate("/forgot-password")}
                       className="text-xs font-bold text-indigo-600 hover:text-indigo-700"
                     >
                       Forgot?

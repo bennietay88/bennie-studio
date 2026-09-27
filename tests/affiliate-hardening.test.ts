@@ -13,6 +13,7 @@ const applicationIntegrity = readFileSync("supabase/migrations/20260927111658_af
 const applicationRlsFix = readFileSync("supabase/migrations/20260927111955_affiliate_application_rls_recursion_fix.sql", "utf8");
 const ownerHardening = readFileSync("supabase/migrations/20260927112119_business_owner_role_hardening.sql", "utf8");
 const accountMembershipHardening = readFileSync("supabase/migrations/20260927112955_account_membership_role_hardening.sql", "utf8");
+const affiliateE2eHardening = readFileSync("supabase/migrations/20260927121400_affiliate_e2e_hardening.sql", "utf8");
 
 test("role changes out of tenant scope clear inherited tenant associations", () => {
   assert.match(api, /leavesTenantScope = \["platform_staff", "affiliate"\]\.includes\(body\.role\)/);
@@ -124,4 +125,16 @@ test("affiliate dashboard supports platform and business-specific referral progr
 test("affiliate signup language reflects approval rather than instant activation", () => {
   assert.doesNotMatch(affiliateAuth, /Instant Activation/);
   assert.match(affiliateAuth, /Apply in minutes and start promoting once approved/);
+});
+
+
+test("commission database boundary blocks self-referrals and mismatched attribution", () => {
+  assert.match(affiliateE2eHardening, /SELF_REFERRAL_NOT_ALLOWED/);
+  assert.match(affiliateE2eHardening, /AFFILIATE_ATTRIBUTION_MISMATCH/);
+  assert.match(affiliateE2eHardening, /REFERRED_USER_MISMATCH/);
+  assert.match(affiliateE2eHardening, /referred_by_affiliate_id/);
+});
+
+test("affiliate forgot-password action uses the existing password reset route", () => {
+  assert.match(affiliateAuth, /navigate\("\/forgot-password"\)/);
 });
