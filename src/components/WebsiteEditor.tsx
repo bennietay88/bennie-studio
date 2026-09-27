@@ -1554,7 +1554,7 @@ export function WebsiteEditor({
       const isWebsiteObject = data && data.pages && data.theme && data.seo;
       const targetWebsite = normalizeWebsiteForPreview(isWebsiteObject ? data : website);
       const nextButtonAudit = auditWebsiteButtons(targetWebsite);
-      const nextSeo = {
+      const nextSeo: Website["seo"] = {
         ...targetWebsite.seo,
         buttonHealth: {
           total: nextButtonAudit.length,

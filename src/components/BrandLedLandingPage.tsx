@@ -406,10 +406,10 @@ export default function BrandLedLandingPage() {
                 Strategy, design, lead capture, hosting and ongoing improvement in one managed service.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <button onClick={() => go("/generate-preview", "Hero free preview")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
+                <button type="button" onClick={() => go("/generate-preview", "Hero free preview")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
                   Build my free preview <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
-                <button onClick={() => go("/case-studies", "Hero examples")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
+                <button type="button" onClick={() => go("/case-studies", "Hero examples")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
                   Explore the work
                 </button>
               </div>

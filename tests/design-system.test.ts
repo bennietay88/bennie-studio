@@ -5,6 +5,7 @@ import { buildPagesFromBlueprint, getBlueprintTheme } from "../src/constants/pag
 import { parseDesignDirection } from "../src/lib/designDirector.ts";
 import { assessWebsiteDesign } from "../src/lib/designQa.ts";
 import { SECTION_TEMPLATES } from "../src/constants/sectionTemplates.ts";
+import { APPROVED_VARIANTS } from "../src/constants/designProfiles.ts";
 import { NICHE_TEMPLATES } from "../src/constants/nicheTemplates.ts";
 import { CUSTOMER_SITE_CAPABILITIES } from "../src/constants/customerSiteCapabilities.ts";
 import { inferButtonAction } from "../src/lib/websiteButtons.ts";
@@ -55,8 +56,10 @@ test("public brand uses product-led positioning guardrails", async () => {
 
   assert.match(homepage, /managed website system/i);
   assert.match(homepage, /Managed, not handed off/i);
+  assert.match(homepage, /<button type="button" onClick=\{\(\) => go\("\/generate-preview"/);
   assert.doesNotMatch(chrome, /Website Design Orchard|Website Design Petaling Jaya|Website Design London/);
   assert.doesNotMatch(pricing, /hidden overflow-x-auto md:block/);
+  assert.match(pricing, /<Button type="button" onClick=\{\(\) => handleSelect\(product\)\}/);
 });
 
 test("all catalogue templates resolve to WCAG AA text contrast", () => {
