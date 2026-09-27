@@ -324,6 +324,26 @@ async function getStripe(merchantBusinessId?: string) {
   return stripeInstance;
 }
 
+/**
+ * Keep the customer-facing Stripe Product label aligned with the current
+ * commercial catalogue without creating replacement Prices or Products.
+ * Historical Stripe Prices can retain a retired Product name after the
+ * application catalogue is renamed, so repair only the attached Product.
+ */
+async function syncCommercialStripeProductLabel(
+  stripe: Stripe,
+  priceId: string,
+  expectedName: string,
+) {
+  const livePrice: any = await stripe.prices.retrieve(priceId, { expand: ["product"] });
+  const product = livePrice.product && typeof livePrice.product === "object" ? livePrice.product : null;
+  if (!product || product.active === false) throw new Error("STRIPE_CATALOG_MISMATCH");
+  if (String(product.name || "").trim() !== expectedName) {
+    await stripe.products.update(product.id, { name: expectedName });
+  }
+  return livePrice;
+}
+
 const useCredits = async (
   businessId: string,
   amount: number = 1,
@@ -9349,7 +9369,7 @@ async function startServer() {
         // Validate the live Stripe catalogue before creating any pending
         // Bennie Studio record. Failed configuration checks must not leave junk.
         const verifyStripePrice = async (priceId: string, expectedAmount: number, recurring: boolean) => {
-          const live = await stripe.prices.retrieve(priceId, { expand: ["product"] });
+          const live = await syncCommercialStripeProductLabel(stripe, priceId, product.name);
           if (live.active === false || String(live.currency || "").toUpperCase() !== String(price.currency || commercialCurrencyForMarket(market)).toUpperCase()) {
             throw new Error("STRIPE_CATALOG_MISMATCH");
           }
@@ -10167,6 +10187,16 @@ async function startServer() {
           }
           const product = livePrice.product && typeof livePrice.product === "object" ? livePrice.product : null;
           if (!product || product.active === false) throw new Error("STRIPE_CATALOG_MISMATCH");
+          if (resolvedProductSlug) {
+            const expectedName = resolvedProductSlug === "managed-website"
+              ? "Managed Website"
+              : resolvedProductSlug === "growth-partner"
+                ? "Growth Partner"
+                : "Website Growth";
+            if (String(product.name || "").trim() !== expectedName) {
+              await stripe.products.update(product.id, { name: expectedName });
+            }
+          }
         };
         await assertStripePrice(priceId, { amount: commercialPriceExpectation.monthlyAmount, recurring: true });
         if (configuredSetupPriceId && commercialPriceExpectation.setupAmount > 0) {
