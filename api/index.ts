@@ -1068,6 +1068,23 @@ async function startServer() {
     return data;
   };
 
+  const normalizeAffiliateReferralCode = (value: unknown) =>
+    String(value || "").trim().toUpperCase().replace(/\s+/g, "").slice(0, 120);
+
+  const resolvePlatformAffiliateAttribution = async (value: unknown) => {
+    const referralCode = normalizeAffiliateReferralCode(value);
+    if (!referralCode) return null;
+    const { data, error } = await supabaseAdmin
+      .from("affiliates")
+      .select("id,uid,referral_code,status,business_id")
+      .eq("referral_code", referralCode)
+      .is("business_id", null)
+      .in("status", ["active", "approved"])
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
+  };
+
   const canManageLeadInbox = (profile: any) =>
     profile?.role === "super_admin" ||
     (profile?.role === "platform_staff" &&
@@ -1800,7 +1817,7 @@ async function startServer() {
       try {
         const { data: targetUser, error: targetError } = await supabaseAdmin
           .from("profiles")
-          .select("id,email,full_name,role,status,staff_permissions")
+          .select("id,email,full_name,role,status,staff_permissions,business_id,default_account_id")
           .eq("id", userId)
           .maybeSingle();
         if (targetError) throw targetError;
@@ -1809,19 +1826,37 @@ async function startServer() {
           return res.status(409).json({ error: "A terminated user's role cannot be changed." });
         }
 
+        const leavesTenantScope = ["platform_staff", "affiliate"].includes(body.role);
+        if (leavesTenantScope) {
+          const { count: ownedBusinessCount, error: ownershipError } = await supabaseAdmin
+            .from("businesses")
+            .select("id", { count: "exact", head: true })
+            .eq("owner_id", userId);
+          if (ownershipError) throw ownershipError;
+          if ((ownedBusinessCount || 0) > 0) {
+            return res.status(409).json({
+              error: "Transfer or remove this user's business ownership before moving them to a platform or affiliate role.",
+              code: "BUSINESS_OWNERSHIP_TRANSFER_REQUIRED",
+            });
+          }
+        }
+
         const rolePatch = {
           role: body.role,
           staff_permissions:
             body.role === "platform_staff"
               ? DEFAULT_PLATFORM_STAFF_PERMISSIONS_SERVER
               : [],
+          ...(leavesTenantScope
+            ? { business_id: null, default_account_id: null }
+            : {}),
         };
 
         const { data: updatedUser, error: updateError } = await supabaseAdmin
           .from("profiles")
           .update(rolePatch)
           .eq("id", userId)
-          .select("id,role,staff_permissions")
+          .select("id,role,staff_permissions,business_id,default_account_id")
           .single();
         if (updateError) throw updateError;
 
@@ -1834,6 +1869,9 @@ async function startServer() {
             role: body.role,
             previousStaffPermissions: targetUser.staff_permissions || [],
             staffPermissions: rolePatch.staff_permissions,
+            previousBusinessId: targetUser.business_id || null,
+            previousDefaultAccountId: targetUser.default_account_id || null,
+            tenantScopeCleared: leavesTenantScope,
           },
         );
 
@@ -2905,17 +2943,14 @@ async function startServer() {
                   `Successfully updated business ${businessId} and user subscription to plan ${planSlug}`,
                 );
 
-                // Platform affiliate commission logic. Commission is only created
-                // after a valid referred business becomes a paying customer.
+                // Affiliate commission is resolved from server-owned attribution and
+                // recorded atomically so webhook retries cannot double-credit.
                 const { data: business } = await supabaseAdmin
                   .from("businesses")
-                  .select("referred_by_affiliate_id, owner_id")
+                  .select("referred_by_affiliate_id,owner_id")
                   .eq("id", businessId)
                   .single();
-                if (
-                  business?.referred_by_affiliate_id &&
-                  session.amount_total
-                ) {
+                if (business?.referred_by_affiliate_id && session.amount_total) {
                   const { data: affiliate } = await supabaseAdmin
                     .from("affiliates")
                     .select("*")
@@ -2924,25 +2959,20 @@ async function startServer() {
                     .maybeSingle();
 
                   if (affiliate && affiliate.uid !== business.owner_id) {
-                    const { data: existingCommission } = await supabaseAdmin
-                      .from("affiliate_referrals")
-                      .select("id")
-                      .eq("affiliate_id", affiliate.id)
-                      .eq("event_type", "paid_subscription")
-                      .contains("metadata", { stripeSessionId: session.id })
-                      .maybeSingle();
+                    const [{ data: affiliateProfile }, { data: program }] = await Promise.all([
+                      supabaseAdmin.from("profiles").select("email").eq("id", affiliate.uid).maybeSingle(),
+                      affiliate.business_id
+                        ? supabaseAdmin.from("affiliate_programs").select("*,commission_tiers(*)").eq("business_id", affiliate.business_id).eq("is_enabled", true).maybeSingle()
+                        : supabaseAdmin.from("affiliate_programs").select("*,commission_tiers(*)").eq("is_platform_program", true).eq("is_enabled", true).maybeSingle(),
+                    ]);
+                    const buyerEmail = String(session.customer_details?.email || session.customer_email || "").trim().toLowerCase();
+                    const affiliateEmail = String(affiliateProfile?.email || "").trim().toLowerCase();
+                    const isSelfReferral = Boolean(buyerEmail && affiliateEmail && buyerEmail === affiliateEmail);
 
-                    if (!existingCommission) {
-                      const { data: program } = await supabaseAdmin
-                        .from("affiliate_programs")
-                        .select("*, commission_tiers(*)")
-                        .eq(affiliate.business_id ? "business_id" : "is_platform_program", affiliate.business_id || true)
-                        .maybeSingle();
-
-                      const tiers = [...(program?.commission_tiers || [])].sort(
+                    if (program && !isSelfReferral) {
+                      const tiers = [...(program.commission_tiers || [])].sort(
                         (a: any, b: any) =>
-                          Number(b.requirement_value || 0) -
-                          Number(a.requirement_value || 0),
+                          Number(b.requirement_value || 0) - Number(a.requirement_value || 0),
                       );
                       const activeTier =
                         tiers.find((tier: any) => {
@@ -2952,52 +2982,35 @@ async function startServer() {
                           }
                           return Number(affiliate.total_referrals || 0) >= requirement;
                         }) || null;
-
                       const amountPaid = session.amount_total / 100;
-                      const commissionType =
-                        activeTier?.commission_type ||
-                        program?.commission_type ||
-                        "percentage";
-                      const rate = Number(
-                        activeTier?.commission_rate ??
-                          program?.base_commission_rate ??
-                          0.1,
-                      );
+                      const commissionType = activeTier?.commission_type || program.commission_type || "percentage";
+                      const rate = Number(activeTier?.commission_rate ?? program.base_commission_rate ?? 0);
                       const commission =
                         commissionType === "fixed"
-                          ? Number(activeTier?.fixed_commission_amount || program?.fixed_commission_amount || 0)
+                          ? Number(activeTier?.fixed_commission_amount || program.fixed_commission_amount || 0)
                           : amountPaid * rate;
 
-                      await supabaseAdmin
-                        .from("affiliates")
-                        .update({
-                          total_earnings: Number(affiliate.total_earnings || 0) + commission,
-                          unpaid_earnings: Number(affiliate.unpaid_earnings || 0) + commission,
-                          total_referrals: Number(affiliate.total_referrals || 0) + 1,
-                        })
-                        .eq("id", affiliate.id);
-
-                      await supabaseAdmin.from("affiliate_referrals").insert({
-                        affiliate_id: affiliate.id,
-                        referred_user_id: business.owner_id,
-                        status: "converted",
-                        event_type: "paid_subscription",
-                        commission_amount: commission,
-                        sale_amount: amountPaid,
-                        plan_slug: planSlug,
-                        converted_at: new Date().toISOString(),
-                        commission_status: "approved",
-                        metadata: {
-                          businessId,
-                          stripeSessionId: session.id,
-                          stripeSubscriptionId: session.subscription,
-                          tierName: activeTier?.name || "Default",
-                        },
-                      });
-
-                      console.log(
-                        `Rewarded affiliate ${affiliate.id} with $${commission.toFixed(2)}`,
-                      );
+                      if (commission > 0) {
+                        const { data: commissionResult, error: commissionError } = await supabaseAdmin.rpc("record_affiliate_commission", {
+                          p_affiliate_id: affiliate.id,
+                          p_amount: commission,
+                          p_sale_amount: amountPaid,
+                          p_referred_user_id: business.owner_id || null,
+                          p_plan_slug: planSlug,
+                          p_business_id: businessId,
+                          p_stripe_session_id: session.id,
+                          p_stripe_subscription_id: String(session.subscription || ""),
+                          p_tier_name: activeTier?.name || "Default",
+                          p_idempotency_key: `stripe-checkout:${session.id}`,
+                        });
+                        if (commissionError) throw commissionError;
+                        const recorded = Array.isArray(commissionResult) ? commissionResult[0]?.recorded : commissionResult?.recorded;
+                        if (recorded) {
+                          console.log(`Rewarded affiliate ${affiliate.id} with ${commission.toFixed(2)}`);
+                        }
+                      }
+                    } else if (isSelfReferral) {
+                      console.warn(`Skipped self-referral commission for affiliate ${affiliate.id}`);
                     }
                   }
                 }
@@ -9266,6 +9279,7 @@ async function startServer() {
         billingCycle: z.literal("monthly").optional().default("monthly"),
         currency: z.enum(["USD", "GBP", "MYR", "SGD"]).optional().default("USD"),
         customerEmail: EMAIL_SCHEMA.optional().nullable(),
+        referralCode: z.string().trim().max(120).optional().nullable(),
         termsAccepted: z.literal(true),
       }), req, res);
       if (!body) return;
@@ -9336,6 +9350,8 @@ async function startServer() {
         await verifyStripePrice(price.recurring_stripe_monthly_price_id, monthly, true);
         if (setup > 0) await verifyStripePrice(price.recurring_stripe_setup_price_id, setup, false);
 
+        const affiliateAttribution = await resolvePlatformAffiliateAttribution(body.referralCode);
+
         const { data: business, error: businessError } = await supabaseAdmin
           .from("businesses")
           .insert({
@@ -9353,6 +9369,7 @@ async function startServer() {
             commercial_market: market,
             commercial_currency: price.currency || commercialCurrencyForMarket(market),
             commercial_term_months: termMonths,
+            referred_by_affiliate_id: affiliateAttribution?.id || null,
             admin_notes: `Created from public pricing checkout ${checkoutRef}. Awaiting payment/account activation.`,
           })
           .select("id")
@@ -9378,6 +9395,7 @@ async function startServer() {
             previewId: checkoutRef,
             publicOrder: "1",
             directCheckout: "1",
+            affiliateId: affiliateAttribution?.id || "",
             type: "subscription",
             termsVersion: COMMERCIAL_TERMS_VERSION,
             termsAcceptedAt,
@@ -9389,6 +9407,7 @@ async function startServer() {
               previewId: checkoutRef,
               publicOrder: "1",
               directCheckout: "1",
+              affiliateId: affiliateAttribution?.id || "",
               termMonths: String(termMonths),
               termsVersion: COMMERCIAL_TERMS_VERSION,
               termsAcceptedAt,
@@ -9441,6 +9460,7 @@ async function startServer() {
         email: EMAIL_SCHEMA,
         productSlug: z.enum(["managed-website", "website-growth", "growth-partner"]),
         currency: z.enum(["USD", "GBP", "MYR", "SGD"]).optional().default("USD"),
+        referralCode: z.string().trim().max(120).optional().nullable(),
         termsAccepted: z.literal(true),
       }), req, res);
       if (!body) return;
@@ -9503,6 +9523,12 @@ async function startServer() {
         const termMonths = getMinimumTermMonths({ minimumTermMonths: price.minimum_term_months }, COMMERCIAL_DEFAULT_COMMITMENT_MONTHS);
         const termsAcceptedAt = new Date().toISOString();
         const dueToday = monthly + setup;
+        const referralCode =
+          body.referralCode
+          || lead.raw_fields?.referralCode
+          || lead.raw_fields?.attribution?.referralCode
+          || null;
+        const affiliateAttribution = await resolvePlatformAffiliateAttribution(referralCode);
 
         let businessId = lead.business_id || null;
         if (businessId) {
@@ -9533,6 +9559,7 @@ async function startServer() {
               commercial_market: market,
               commercial_currency: price.currency || "USD",
               commercial_term_months: termMonths,
+              referred_by_affiliate_id: affiliateAttribution?.id || null,
               admin_notes: `Created from public preview ${body.previewId}. Awaiting payment/account activation.`,
             })
             .select("id")
@@ -9555,6 +9582,14 @@ async function startServer() {
             commercial_currency: price.currency || "USD",
             commercial_term_months: termMonths,
           }).eq("id", businessId);
+        }
+
+        if (affiliateAttribution?.id) {
+          await supabaseAdmin
+            .from("businesses")
+            .update({ referred_by_affiliate_id: affiliateAttribution.id })
+            .eq("id", businessId)
+            .is("referred_by_affiliate_id", null);
         }
 
         const { data: existingOrder } = await supabaseAdmin
@@ -9649,6 +9684,7 @@ async function startServer() {
             leadId: lead.id,
             previewId: body.previewId,
             publicOrder: "1",
+            affiliateId: affiliateAttribution?.id || "",
             type: "subscription",
             termsVersion: COMMERCIAL_TERMS_VERSION,
             termsAcceptedAt,
@@ -9661,6 +9697,7 @@ async function startServer() {
               leadId: lead.id,
               previewId: body.previewId,
               publicOrder: "1",
+              affiliateId: affiliateAttribution?.id || "",
               termMonths: String(termMonths),
               termsVersion: COMMERCIAL_TERMS_VERSION,
               termsAcceptedAt,
@@ -11669,8 +11706,9 @@ async function startServer() {
         const { data: affiliate } = await supabaseAdmin
           .from("affiliates")
           .select("id")
-          .eq("referral_code", refCode)
+          .eq("referral_code", normalizeAffiliateReferralCode(refCode))
           .eq("business_id", businessId)
+          .in("status", ["active", "approved"])
           .maybeSingle();
 
         if (affiliate) {
@@ -12190,12 +12228,7 @@ async function startServer() {
         return res.status(400).json({ error: "Referral code is required" });
       }
 
-      const { data: affiliate } = await supabaseAdmin
-        .from("affiliates")
-        .select("id, uid, status, business_id")
-        .eq("referral_code", referralCode)
-        .in("status", ["active", "approved"])
-        .maybeSingle();
+      const affiliate = await resolvePlatformAffiliateAttribution(referralCode);
 
       if (!affiliate) {
         return res.status(404).json({ error: "Affiliate code not found" });
@@ -12238,57 +12271,43 @@ async function startServer() {
     "/api/affiliate/request-payout",
     authenticate,
     async (req: any, res) => {
+      const parsed = z.object({ affiliateId: UUID_SCHEMA.optional() }).strict().safeParse(req.body || {});
+      if (!parsed.success) return res.status(400).json({ error: "Invalid payout request." });
       try {
-        const { data: affiliate } = await supabase
+        let affiliateQuery = supabaseAdmin
           .from("affiliates")
-          .select("*")
-          .eq("uid", req.user.id)
-          .is("business_id", null)
-          .single();
+          .select("id,uid,business_id,status")
+          .eq("uid", req.user.id);
+        affiliateQuery = parsed.data.affiliateId
+          ? affiliateQuery.eq("id", parsed.data.affiliateId)
+          : affiliateQuery.is("business_id", null);
 
-        if (!affiliate)
-          return res.status(404).json({ error: "Affiliate record not found" });
-        if (affiliate.status !== "active")
-          return res
-            .status(403)
-            .json({ error: "Affiliate account is not active" });
+        const { data: affiliate, error: affiliateError } = await affiliateQuery.maybeSingle();
+        if (affiliateError) throw affiliateError;
+        if (!affiliate) return res.status(404).json({ error: "Affiliate record not found" });
 
-        const amount = Number(affiliate.unpaid_earnings);
-        // Fetch program minimum if possible
-        const programQuery = supabase
-          .from("affiliate_programs")
-          .select("payout_minimum");
-        const { data: program } = affiliate.business_id
-          ? await programQuery.eq("business_id", affiliate.business_id).maybeSingle()
-          : await programQuery.eq("is_platform_program", true).maybeSingle();
-        const minimum = program?.payout_minimum || 50;
+        const { data, error } = await supabaseAdmin.rpc("request_affiliate_payout", {
+          p_affiliate_id: affiliate.id,
+          p_user_id: req.user.id,
+        });
+        if (error) {
+          const message = String(error.message || "");
+          if (message.includes("AFFILIATE_NOT_ACTIVE")) return res.status(403).json({ error: "Affiliate account is not active." });
+          if (message.includes("PAYOUT_METHOD_REQUIRED")) return res.status(409).json({ error: "Add a payout method before requesting payment." });
+          if (message.includes("PAYOUT_ALREADY_PENDING")) return res.status(409).json({ error: "A payout request is already pending." });
+          if (message.includes("PAYOUT_MINIMUM_NOT_MET")) return res.status(400).json({ error: "Your available earnings have not reached the payout minimum." });
+          throw error;
+        }
 
-        if (amount < minimum)
-          return res
-            .status(400)
-            .json({ error: `Minimum payout is $${minimum}` });
-
-        // Atomic push to payouts and clear unpaid_earnings
-        const { error: payoutError } = await supabase
-          .from("affiliate_payouts")
-          .insert({
-            affiliate_id: affiliate.id,
-            amount: amount,
-            status: "pending",
-          });
-
-        if (payoutError) throw payoutError;
-
-        const { error: updateError } = await supabase
-          .from("affiliates")
-          .update({ unpaid_earnings: 0 })
-          .eq("id", affiliate.id);
-
-        if (updateError) throw updateError;
-
-        res.json({ success: true, amount });
+        const payout = Array.isArray(data) ? data[0] : data;
+        return res.json({
+          success: true,
+          payoutId: payout?.payout_id || null,
+          amount: Number(payout?.amount || 0),
+        });
       } catch (error: any) {
-        res.status(500).json({ error: safeErrorMessage(error) });
+        console.error("Affiliate payout request failed:", error?.message || error);
+        return res.status(500).json({ error: "Payout request could not be completed." });
       }
     },
   );

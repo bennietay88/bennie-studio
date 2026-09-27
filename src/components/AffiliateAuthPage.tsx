@@ -114,9 +114,9 @@ export default function AffiliateAuthPage() {
                 <Zap className="h-5 w-5 text-amber-400" />
               </div>
               <div>
-                <p className="font-bold text-slate-100">Instant Activation</p>
+                <p className="font-bold text-slate-100">Quick Application</p>
                 <p className="text-sm text-slate-400">
-                  Start promoting within minutes of signing up.
+                  Apply in minutes and start promoting once approved.
                 </p>
               </div>
             </div>

@@ -32,6 +32,9 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   const startCheckout = async (product: CommercialProduct) => {
     let previewId: string | null = null;
     try { previewId = JSON.parse(localStorage.getItem("bt_preview_intent") || "{}").previewId || null; } catch { /* ignore malformed preview state */ }
+    const queryReferral = new URLSearchParams(window.location.search).get("ref")?.trim() || "";
+    if (queryReferral) localStorage.setItem("bt_platform_affiliate_ref", queryReferral);
+    const referralCode = queryReferral || localStorage.getItem("bt_platform_affiliate_ref") || undefined;
     trackPublicEvent({ eventType: "checkout_started", label: product.name, target: "/pricing", metadata: { product: product.slug, currency: checkoutCurrency, billingCycle, previewId } });
     const checkoutProduct = checkoutProducts.find((item) => item.slug === product.slug) || product;
     const price = getCommercialPrice(checkoutProduct, checkoutMarket);
@@ -47,7 +50,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
         const response = await fetch("/api/public/plan-checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ productSlug: product.slug, billingCycle, currency: checkoutCurrency, customerEmail: profile?.email || undefined, termsAccepted: true }),
+          body: JSON.stringify({ productSlug: product.slug, billingCycle, currency: checkoutCurrency, customerEmail: profile?.email || undefined, referralCode, termsAccepted: true }),
         });
         const result = await response.json().catch(() => ({}));
         if (!response.ok || !result.url) throw new Error(result.error || "Unable to start secure checkout.");

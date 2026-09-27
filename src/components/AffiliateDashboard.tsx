@@ -48,7 +48,9 @@ export function AffiliateDashboard() {
 
   const referralLink =
     affiliate?.referral_code && typeof window !== "undefined"
-      ? `${window.location.origin}/?ref=${affiliate.referral_code}`
+      ? affiliate.business_id
+        ? `${window.location.origin}/w/${affiliate.business_id}?ref=${affiliate.referral_code}`
+        : `${window.location.origin}/?ref=${affiliate.referral_code}`
       : "";
 
   useEffect(() => {
@@ -76,11 +78,19 @@ export function AffiliateDashboard() {
       }
 
       const [programRes, referralRes, payoutRes] = await Promise.all([
-        supabase
-          .from("affiliate_programs")
-          .select("*, commission_tiers(*)")
-          .eq("is_platform_program", true)
-          .maybeSingle(),
+        platformAffiliate.business_id
+          ? supabase
+              .from("affiliate_programs")
+              .select("*, commission_tiers(*)")
+              .eq("business_id", platformAffiliate.business_id)
+              .eq("is_enabled", true)
+              .maybeSingle()
+          : supabase
+              .from("affiliate_programs")
+              .select("*, commission_tiers(*)")
+              .eq("is_platform_program", true)
+              .eq("is_enabled", true)
+              .maybeSingle(),
         supabase
           .from("affiliate_referrals")
           .select("*")
@@ -156,6 +166,8 @@ export function AffiliateDashboard() {
     toast.success("Referral link copied");
   };
 
+  const affiliateApproved = Boolean(affiliate && ["active", "approved"].includes(String(affiliate.status || "")));
+
   const handleRequestPayout = async () => {
     if (!affiliate) return;
     const minimum = Number(program?.payout_minimum || 50);
@@ -175,6 +187,7 @@ export function AffiliateDashboard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.session?.access_token || ""}`,
         },
+        body: JSON.stringify({ affiliateId: affiliate.id }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Payout request failed");
@@ -235,7 +248,7 @@ export function AffiliateDashboard() {
         <Badge
           variant="outline"
           className={
-            affiliate.status === "active"
+            affiliateApproved
               ? "border-emerald-200 bg-emerald-50 text-emerald-700"
               : affiliate.status === "pending"
                 ? "border-amber-200 bg-amber-50 text-amber-700"
@@ -246,7 +259,7 @@ export function AffiliateDashboard() {
         </Badge>
       </div>
 
-      {affiliate.status !== "active" && (
+      {!affiliateApproved && (
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="flex items-start gap-3 p-4 text-sm text-amber-800">
             <Clock className="mt-0.5 h-4 w-4" />
@@ -348,7 +361,7 @@ export function AffiliateDashboard() {
             <Button
               size="sm"
               className="w-full rounded-xl"
-              disabled={requestingPayout || affiliate.status !== "active"}
+              disabled={requestingPayout || !affiliateApproved}
               onClick={handleRequestPayout}
             >
               {requestingPayout ? <Loader2 className="h-4 w-4 animate-spin" /> : "Request Payout"}

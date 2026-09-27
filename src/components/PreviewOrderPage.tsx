@@ -26,6 +26,9 @@ type PreviewIntent = {
   location?: string;
   recommendedProduct?: string;
   previewMode?: "website" | "business";
+  attribution?: {
+    referralCode?: string;
+  };
   previewProfile?: {
     sourceUrl?: string;
     businessName?: string;
@@ -148,6 +151,7 @@ export function PreviewOrderPage() {
           email: intent.email,
           productSlug: selected.slug,
           currency: checkoutCurrency,
+          referralCode: intent.attribution?.referralCode || localStorage.getItem("bt_platform_affiliate_ref") || undefined,
           termsAccepted: true,
         }),
       });

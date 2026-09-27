@@ -444,7 +444,7 @@ const getTrackingContext = () => {
     campaign: params.get("campaign") || params.get("utm_campaign") || "",
     referrer: document.referrer || "",
     country: navigator.language?.split("-")?.[1] || "",
-    referralCode: params.get("ref") || params.get("referral") || localStorage.getItem("ref_platform") || "",
+    referralCode: params.get("ref") || params.get("referral") || localStorage.getItem("bt_platform_affiliate_ref") || localStorage.getItem("ref_platform") || "",
   };
   let firstTouch = currentTouch;
   try {
