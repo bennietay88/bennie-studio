@@ -82,9 +82,11 @@ async function installPersona(page: Page, role: "super_admin" | "client") {
     contact_whatsapp: "441234567890",
     website_status: "weak",
     opportunity_level: "high",
-    outreach_status: "replied",
+    outreach_status: "not_started",
     status: "active",
-    preview_url: `${appOrigin}/preview/prospect/demo`,
+    preview_url: null,
+    preview_generated_at: null,
+    last_audit_at: null,
     created_at: new Date().toISOString(),
   };
   const onboarding = {
@@ -132,7 +134,15 @@ async function installPersona(page: Page, role: "super_admin" | "client") {
 
     const table = url.pathname.split("/").filter(Boolean).at(-1);
     if (table === "profiles") return json(route, profile);
-    if (table === "prospects") return json(route, method === "GET" ? [prospect] : prospect);
+    if (table === "prospects") {
+      if (method === "GET") return json(route, [prospect]);
+      if (method === "PATCH") {
+        const payload = JSON.parse(request.postData() || "{}");
+        Object.assign(prospect, payload);
+        return json(route, [prospect]);
+      }
+      return json(route, prospect);
+    }
     if (table === "onboarding_sessions") return json(route, method === "GET" ? [onboarding] : onboarding);
     if (table === "businesses") return json(route, business);
     if (table === "customer_approvals") return json(route, role === "client" ? [approval] : []);
@@ -162,8 +172,50 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   const { prospect, business } = await installPersona(page, "super_admin");
   let converted = false;
   let inviteResent = false;
+  let outreachSent = false;
+  const engagementMessages: any[] = [];
 
   await page.route("**/api/admin/sales-inbox", (route) => json(route, { conversations: [] }));
+  await page.route(`**/api/admin/prospects/${prospectId}/engagement`, (route) =>
+    json(route, { messages: engagementMessages, tasks: [] }),
+  );
+  await page.route("**/api/admin/website-audit", (route) =>
+    json(route, {
+      report: {
+        schemaVersion: 2,
+        analyzedUrl: "https://example.test",
+        summary: "E2E website review",
+        findings: [{
+          id: "cta-e2e",
+          category: "Conversion",
+          title: "CTA can be clearer",
+          whatWeFound: "Primary enquiry action is not prominent.",
+          whyItMatters: "Visitors may leave without enquiring.",
+          recommendation: "Use one clear enquiry CTA.",
+          exampleImprovement: "Book an appointment",
+          priority: "high",
+          observation: "confirmed",
+        }],
+      },
+    }),
+  );
+  await page.route(`**/api/admin/prospects/${prospectId}/outreach`, async (route) => {
+    const payload = await route.request().postDataJSON();
+    expect(payload.action).toBe("send");
+    expect(payload.channel).toBe("email");
+    expect(String(payload.bodyText)).toContain("/preview/prospect/");
+    outreachSent = true;
+    prospect.outreach_status = "contacted";
+    engagementMessages.push({
+      id: "00000000-0000-4000-8000-000000001120",
+      direction: "outbound",
+      status: "delivered",
+      subject: payload.subject,
+      body_text: payload.bodyText,
+      sent_at: new Date().toISOString(),
+    });
+    await json(route, { success: true, prospect, message: engagementMessages.at(-1) });
+  });
   await page.route("**/api/public/pricing**", (route) =>
     json(route, {
       products: [{
@@ -238,6 +290,36 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   await signIn(page, "super_admin");
   await page.goto("/admin/prospect_explorer");
   await expect(page.getByText("Example Dental", { exact: true }).first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Audit", exact: true }).click();
+  await expect.poll(() => Boolean(prospect.last_audit_at)).toBe(true);
+  await expect.poll(() => prospect.outreach_status).toBe("queued");
+
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect.poll(() => String(prospect.preview_url || "")).toContain("/preview/prospect/");
+  await expect.poll(() => Boolean(prospect.preview_generated_at)).toBe(true);
+
+  await page.getByRole("button", { name: "Prepare & Email", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Send email outreach" })).toBeVisible();
+  await expect(page.locator("textarea").first()).toHaveValue(/\/preview\/prospect\//);
+  await page.getByRole("button", { name: "Send email", exact: true }).click();
+  await expect.poll(() => outreachSent).toBe(true);
+  await expect.poll(() => prospect.outreach_status).toBe("contacted");
+
+  // Simulate the inbound Resend webhook result without calling a real email provider.
+  prospect.outreach_status = "replied";
+  engagementMessages.push({
+    id: "00000000-0000-4000-8000-000000001121",
+    direction: "inbound",
+    status: "replied",
+    subject: "Re: Quick website idea",
+    body_text: "Yes, please send the next steps.",
+    classification: "interested",
+    sent_at: new Date().toISOString(),
+  });
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Convert", exact: true })).toBeVisible();
+
   await page.getByRole("button", { name: "Convert", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Convert Example Dental to Customer" })).toBeVisible();
   await expect(page.getByDisplayValue("customer@example.test")).toBeVisible();

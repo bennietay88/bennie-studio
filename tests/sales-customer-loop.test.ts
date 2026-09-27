@@ -19,6 +19,7 @@ const appRoutes = readFileSync("src/App.tsx", "utf8");
 const hardeningMigration = readFileSync("supabase/migrations/20260927070000_commercial_launch_hardening.sql", "utf8");
 const finalLaunchQa = readFileSync("server/finalLaunchQa.ts", "utf8");
 const commercialLifecycleE2e = readFileSync("e2e/commercial-lifecycle.spec.ts", "utf8");
+const commercialLiveSmoke = readFileSync("scripts/commercial-live-smoke.mjs", "utf8");
 
 test("prospect engagement API exposes messages and tasks", () => {
   assert.match(api, /\/api\/admin\/prospects\/:prospectId\/engagement/);
@@ -176,10 +177,23 @@ test("final launch uses a fresh content-aware live crawler", () => {
   assert.match(onboarding, /Fresh crawl:/);
 });
 
-test("deterministic commercial lifecycle e2e covers conversion, access, launch QA and approval", () => {
+test("deterministic commercial lifecycle e2e covers evidence, outreach, conversion, access, launch QA and approval", () => {
+  assert.match(commercialLifecycleE2e, /api\/admin\/website-audit/);
+  assert.match(commercialLifecycleE2e, /Prepare & Email/);
+  assert.match(commercialLifecycleE2e, /Send email/);
+  assert.match(commercialLifecycleE2e, /direction: "inbound"/);
   assert.match(commercialLifecycleE2e, /Create Customer Workspace/);
   assert.match(commercialLifecycleE2e, /Resend invite/);
   assert.match(commercialLifecycleE2e, /Launch QA/);
   assert.match(commercialLifecycleE2e, /Approve Version/);
   assert.match(commercialLifecycleE2e, /horizontal overflow/);
+});
+
+test("live commercial smoke is isolated and verifies the rendered website at launch viewports", () => {
+  assert.match(commercialLiveSmoke, /refuses to mutate a prospect whose name is not explicitly marked E2E/);
+  assert.match(commercialLiveSmoke, /chromium\.launch/);
+  assert.match(commercialLiveSmoke, /data-website-page-nav/);
+  assert.match(commercialLiveSmoke, /brokenImages/);
+  assert.match(commercialLiveSmoke, /horizontal overflow/);
+  assert.match(commercialLiveSmoke, /ALLOW_PRODUCTION_COMMERCIAL_E2E/);
 });

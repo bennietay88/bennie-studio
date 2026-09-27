@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { chromium } from "@playwright/test";
 
 const baseUrl = String(process.env.COMMERCIAL_E2E_BASE_URL || "").replace(/\/+$/, "");
 const supabaseUrl = process.env.COMMERCIAL_E2E_SUPABASE_URL;
@@ -62,6 +63,22 @@ async function api(path, token, init = {}) {
 }
 
 const adminToken = await signIn(adminEmail, adminPassword);
+
+const { data: fixtureProspect, error: fixtureProspectError } = await supabase
+  .from("prospects")
+  .select("id,name,contact_email,converted_business_id")
+  .eq("id", prospectId)
+  .maybeSingle();
+if (fixtureProspectError || !fixtureProspect) {
+  throw new Error("Commercial E2E prospect fixture is missing or inaccessible.");
+}
+if (!/e2e/i.test(String(fixtureProspect.name || ""))) {
+  throw new Error("Commercial E2E refuses to mutate a prospect whose name is not explicitly marked E2E.");
+}
+if (String(fixtureProspect.contact_email || "").trim().toLowerCase() !== String(customerEmail).trim().toLowerCase()) {
+  throw new Error("Commercial E2E fixture prospect email does not match the isolated test customer.");
+}
+
 const pricingResponse = await fetch(new URL("/api/public/pricing?market=INTL", baseUrl));
 if (!pricingResponse.ok) throw new Error(`Pricing lookup failed: ${pricingResponse.status}`);
 const pricing = await pricingResponse.json();
@@ -76,7 +93,7 @@ const conversion = await api(`/api/admin/prospects/${prospectId}/convert`, admin
     termMonths: Number(managed.price.minimumTermMonths || 3),
     setupFee: Number(managed.price.setupFee || 0),
     recurringFee: Number(managed.price.monthlyPrice || 0),
-    customerName: "Bennie Studio E2E Fixture",
+    customerName: String(fixtureProspect.name || "Bennie Studio E2E Fixture"),
     contactName: "E2E Customer",
     contactEmail: customerEmail,
   }),
@@ -93,9 +110,103 @@ if (!["invite_sent", "existing_user_notified"].includes(String(invite.customerAc
   throw new Error("Onboarding invitation did not reach a sent state.");
 }
 
+
+async function verifyRenderedWebsite(publicUrl) {
+  const browser = await chromium.launch({ headless: true });
+  const viewports = [
+    { width: 375, height: 812 },
+    { width: 768, height: 1024 },
+    { width: 1440, height: 1000 },
+  ];
+  const results = [];
+
+  try {
+    for (const viewport of viewports) {
+      const context = await browser.newContext({ viewport });
+      const page = await context.newPage();
+      const pageErrors = [];
+      const sameOriginFailures = [];
+      const publicOrigin = new URL(publicUrl).origin;
+
+      page.on("pageerror", (error) => pageErrors.push(error.message));
+      page.on("response", (response) => {
+        try {
+          const url = new URL(response.url());
+          if (url.origin === publicOrigin && response.status() >= 400) {
+            sameOriginFailures.push({ url: response.url(), status: response.status() });
+          }
+        } catch {
+          // Ignore non-URL response records.
+        }
+      });
+
+      const response = await page.goto(publicUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
+      if (!response || response.status() < 200 || response.status() >= 400) {
+        throw new Error(`Rendered website failed at ${viewport.width}px with HTTP ${response?.status() || "none"}.`);
+      }
+      await page.waitForTimeout(750);
+
+      const assertRenderedState = async (label) => {
+        const state = await page.evaluate(() => {
+          window.scrollTo(0, document.body.scrollHeight);
+          const overflow = Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth);
+          const brokenImages = [...document.images]
+            .filter((image) => image.getBoundingClientRect().width > 0 && image.getBoundingClientRect().height > 0)
+            .filter((image) => image.complete && image.naturalWidth === 0)
+            .map((image) => image.currentSrc || image.src || "(unknown)");
+          const bodyText = document.body.innerText || "";
+          const forms = [...document.querySelectorAll("form")].map((form) => ({
+            inputs: form.querySelectorAll("input,textarea,select").length,
+            submitters: form.querySelectorAll('button[type="submit"],input[type="submit"]').length,
+          }));
+          return {
+            overflow,
+            brokenImages,
+            noContent: bodyText.includes("No Content Available"),
+            forms,
+          };
+        });
+        if (state.noContent) throw new Error(`${label}: renderer showed No Content Available.`);
+        if (state.overflow > 1) throw new Error(`${label}: horizontal overflow is ${state.overflow}px.`);
+        if (state.brokenImages.length) throw new Error(`${label}: ${state.brokenImages.length} visible image(s) failed to render.`);
+        if (state.forms.some((form) => form.inputs > 0 && form.submitters === 0)) {
+          throw new Error(`${label}: a form has fields but no submit control.`);
+        }
+      };
+
+      await assertRenderedState(`${viewport.width}px home`);
+      const pageNav = page.locator("[data-website-page-nav]");
+      const navCount = await pageNav.count();
+      for (let index = 0; index < navCount; index += 1) {
+        const navItem = page.locator("[data-website-page-nav]").nth(index);
+        const slug = (await navItem.getAttribute("data-website-page-nav")) || `page-${index + 1}`;
+        await navItem.click();
+        await page.waitForTimeout(250);
+        await assertRenderedState(`${viewport.width}px ${slug}`);
+      }
+
+      if (pageErrors.length) {
+        throw new Error(`Rendered website raised browser errors at ${viewport.width}px: ${pageErrors.join(" | ")}`);
+      }
+      if (sameOriginFailures.length) {
+        throw new Error(`Rendered website returned same-origin HTTP failures at ${viewport.width}px: ${JSON.stringify(sameOriginFailures)}`);
+      }
+
+      results.push({ viewport, pagesChecked: Math.max(1, navCount), pageErrors: 0, sameOriginFailures: 0 });
+      await context.close();
+    }
+  } finally {
+    await browser.close();
+  }
+
+  return results;
+}
+
 const launchQa = await api(`/api/admin/businesses/${businessId}/launch-readiness`, adminToken);
 if (launchQa.crawler?.truncated) throw new Error("Launch crawler did not verify every discovered resource.");
 if (launchQa.crawler?.navigationIssues?.length) throw new Error("Launch crawler found invalid internal navigation.");
+if (!launchQa.publicUrl) throw new Error("Launch QA did not return a public website URL.");
+const renderedWebsite = await verifyRenderedWebsite(launchQa.publicUrl);
 
 await supabase.auth.signOut();
 const customerToken = await signIn(customerEmail, customerPassword);
@@ -112,5 +223,6 @@ console.log(JSON.stringify({
   launchReady: Boolean(launchQa.ready),
   launchBlockers: launchQa.blockers?.length || 0,
   crawlerResources: launchQa.crawler?.resourceCount || 0,
+  renderedWebsite,
   approval: approval.approval?.status,
 }, null, 2));
