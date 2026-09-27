@@ -12,11 +12,13 @@ const migration = readFileSync("supabase/migrations/20260927111202_account_affil
 const applicationIntegrity = readFileSync("supabase/migrations/20260927111658_affiliate_application_integrity_hardening.sql", "utf8");
 const applicationRlsFix = readFileSync("supabase/migrations/20260927111955_affiliate_application_rls_recursion_fix.sql", "utf8");
 const ownerHardening = readFileSync("supabase/migrations/20260927112119_business_owner_role_hardening.sql", "utf8");
+const accountMembershipHardening = readFileSync("supabase/migrations/20260927112955_account_membership_role_hardening.sql", "utf8");
 
 test("role changes out of tenant scope clear inherited tenant associations", () => {
   assert.match(api, /leavesTenantScope = \["platform_staff", "affiliate"\]\.includes\(body\.role\)/);
   assert.match(api, /business_id: null, default_account_id: null/);
   assert.match(api, /BUSINESS_OWNERSHIP_TRANSFER_REQUIRED/);
+  assert.match(api, /ACCOUNT_OWNERSHIP_TRANSFER_REQUIRED/);
   assert.match(migration, /profiles_non_tenant_role_scope_check/);
   assert.match(migration, /role not in \('platform_staff', 'affiliate'\)/);
   assert.match(migration, /p\.role in \('business_admin', 'staff', 'client'\)/);
@@ -42,6 +44,13 @@ test("business ownership cannot preserve tenant access after a role transition",
   assert.match(ownerHardening, /p\.role = 'business_admin'/);
   assert.match(ownerHardening, /Business members can view own business/);
   assert.match(ownerHardening, /Business admins can update own business/);
+});
+
+test("account memberships cannot preserve tenant access after a role transition", () => {
+  assert.match(accountMembershipHardening, /private\.is_account_member/);
+  assert.match(accountMembershipHardening, /p\.role in \('business_admin', 'staff', 'client'\)/);
+  assert.match(accountMembershipHardening, /private\.is_account_admin/);
+  assert.match(accountMembershipHardening, /p\.role = 'business_admin'/);
 });
 
 test("affiliate rows are no longer anonymously readable", () => {

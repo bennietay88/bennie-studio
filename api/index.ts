@@ -1839,6 +1839,20 @@ async function startServer() {
               code: "BUSINESS_OWNERSHIP_TRANSFER_REQUIRED",
             });
           }
+
+          const { count: ownedAccountCount, error: accountOwnershipError } = await supabaseAdmin
+            .from("account_memberships")
+            .select("account_id", { count: "exact", head: true })
+            .eq("user_id", userId)
+            .eq("status", "active")
+            .eq("role", "owner");
+          if (accountOwnershipError) throw accountOwnershipError;
+          if ((ownedAccountCount || 0) > 0) {
+            return res.status(409).json({
+              error: "Transfer this user's customer account ownership before moving them to a platform or affiliate role.",
+              code: "ACCOUNT_OWNERSHIP_TRANSFER_REQUIRED",
+            });
+          }
         }
 
         const rolePatch = {
