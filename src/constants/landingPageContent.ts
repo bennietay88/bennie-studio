@@ -199,11 +199,11 @@ export const DEFAULT_LANDING_CONTENT = {
     title: "Managed websites built around enquiries",
     subtitle:
       "Start with Managed Website, then add Website Growth when you need ongoing conversion and local SEO expansion.",
-    trialNote: "Setup fee + monthly managed service · 12-month initial commitment · scope confirmed before payment",
+    trialNote: "Setup fee + monthly managed service · current plan commitment shown before payment · scope confirmed before payment",
   },
   dashboard: {
     title: "Track Progress and Enquiries",
-    subtitle: "Customers can track project progress, submit updates, and view enquiries without learning a website builder.",
+    subtitle: "Customers can track project progress, submit managed updates, and view enquiries from one customer portal.",
     image: "/brand-template-preview.svg",
     features: [
       { title: "Lead Inbox", description: "View new enquiries from forms, WhatsApp paths, bookings, and calls where supported." },

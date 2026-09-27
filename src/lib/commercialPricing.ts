@@ -77,6 +77,19 @@ export const formatCommercialMoney = (amount: number | null | undefined, currenc
   }).format(amount);
 };
 
+export const getMinimumTermMonths = (
+  price?: Pick<CommercialPrice, "minimumTermMonths"> | null,
+  fallback = COMMERCIAL_DEFAULT_COMMITMENT_MONTHS,
+) => {
+  const value = Number(price?.minimumTermMonths);
+  return Number.isFinite(value) && value > 0 ? Math.round(value) : fallback;
+};
+
+export const formatCommitmentLabel = (months: number) => {
+  const normalized = Number.isFinite(months) && months > 0 ? Math.round(months) : COMMERCIAL_DEFAULT_COMMITMENT_MONTHS;
+  return normalized === 1 ? "1-month initial commitment" : `${normalized}-month initial commitment`;
+};
+
 export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
   {
     slug: "managed-website",

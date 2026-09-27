@@ -119,7 +119,7 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
   "preview-order": {
     title: "Launch Your Website | Bennie Studio",
     description:
-      "Turn your Bennie Studio website preview into a managed website with a simple setup fee, monthly service, and 90-day initial commitment.",
+      "Turn your Bennie Studio website preview into a managed website with a clear setup fee, monthly service, and the current plan commitment shown before payment.",
   },
   "dental-clinics": {
     title: "Dental Clinic Website Design | More Patient Enquiries",

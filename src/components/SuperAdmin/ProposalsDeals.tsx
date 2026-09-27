@@ -3,6 +3,8 @@ import { CheckCircle2, CircleDollarSign, Clock3, Copy, FileText, Loader2, Plus, 
 import { toast } from "sonner";
 import { getOfferForMarket, REVENUE_MARKETS, type RevenueMarket } from "../../constants/revenueOffer";
 import { supabase } from "../../lib/supabase";
+import { formatCommercialMoney, getCommercialPrice, type CommercialMarket } from "../../lib/commercialPricing";
+import { usePublicCommercialPricing } from "../../hooks/usePublicCommercialPricing";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -39,7 +41,23 @@ export function ProposalsDeals() {
   React.useEffect(() => { void fetchData(); }, [fetchData]);
   React.useEffect(() => { if (form.target) sessionStorage.removeItem("bts_proposal_lead_id"); }, [form.target]);
 
-  const offer = getOfferForMarket(form.market);
+  const commercialMarket: CommercialMarket = form.market === "US" ? "INTL" : form.market;
+  const { products: liveCommercialProducts } = usePublicCommercialPricing(commercialMarket);
+  const baseOffer = getOfferForMarket(form.market);
+  const liveGrowthPartner = liveCommercialProducts.find((product) => product.slug === "growth-partner");
+  const livePrice = liveGrowthPartner ? getCommercialPrice(liveGrowthPartner, commercialMarket) : null;
+  const liveMonthly = Number(livePrice?.monthlyPrice ?? baseOffer.monthlyPrice);
+  const liveSetup = Number(livePrice?.setupFee ?? baseOffer.setupFee);
+  const liveCommitmentMonths = Number(livePrice?.minimumTermMonths ?? baseOffer.commitmentMonths);
+  const liveCurrency = livePrice?.currency || baseOffer.prices[form.market].currency;
+  const offer = {
+    ...baseOffer,
+    monthlyPrice: liveMonthly,
+    setupFee: liveSetup,
+    commitmentMonths: liveCommitmentMonths,
+    monthlyLabel: formatCommercialMoney(liveMonthly, liveCurrency),
+    setupLabel: formatCommercialMoney(liveSetup, liveCurrency),
+  };
   const active = proposals.filter((proposal) => !["Declined", "Expired"].includes(proposal.status));
   const accepted = proposals.filter((proposal) => proposal.status === "Accepted");
   const stats = {
@@ -52,22 +70,34 @@ export function ProposalsDeals() {
     if (!form.target || !form.title.trim()) return toast.error("Choose a lead or customer and add a proposal title.");
     setSaving(true);
     try {
+      const pricingResponse = await fetch(`/api/public/pricing?market=${commercialMarket}`, { cache: "no-store" });
+      const pricingPayload = await pricingResponse.json().catch(() => ({}));
+      if (!pricingResponse.ok) throw new Error(pricingPayload.error || "Current commercial terms could not be loaded.");
+      const currentProduct = Array.isArray(pricingPayload.products)
+        ? pricingPayload.products.find((product: any) => product.slug === "growth-partner")
+        : null;
+      const currentPrice = currentProduct?.price;
+      if (!currentProduct || !currentPrice) throw new Error("Growth Partner is not configured for this market.");
+      const proposalMonthly = Number(currentPrice.monthlyPrice || 0);
+      const proposalSetup = Number(currentPrice.setupFee || 0);
+      const proposalTermMonths = Number(currentPrice.minimumTermMonths || 3);
+      const proposalCurrency = currentPrice.currency || liveCurrency;
       const [kind, id] = form.target.split(":");
       const payload = {
         lead_id: kind === "lead" ? id : null,
         business_id: kind === "business" ? id : null,
         title: form.title.trim(),
-        package_name: offer.name,
-        value: offer.monthlyPrice,
-        amount: offer.monthlyPrice,
-        setup_fee: offer.setupFee,
+        package_name: currentProduct.name || offer.name,
+        value: proposalMonthly,
+        amount: proposalMonthly,
+        setup_fee: proposalSetup,
         status: "Draft",
         expires_at: form.expiresAt,
         valid_until: form.expiresAt,
         scope: offer.included,
         outcome: offer.description,
         checkout_url: form.checkoutUrl.trim() || null,
-        config: { offerId: offer.id, planId: offer.planId, market: form.market, currency: offer.prices[form.market].currency, commitmentMonths: offer.commitmentMonths, package_name: offer.name, setup_fee: offer.setupFee, scope: offer.included, outcome: offer.description },
+        config: { offerId: offer.id, planId: offer.planId, commercialProductSlug: "growth-partner", market: form.market, currency: proposalCurrency, commitmentMonths: proposalTermMonths, package_name: currentProduct.name || offer.name, setup_fee: proposalSetup, scope: offer.included, outcome: currentProduct.description || offer.description },
       };
       const { data, error } = await supabase.from("proposals").insert(payload).select("*, businesses(name), leads(name,email)").single();
       if (error) throw error;

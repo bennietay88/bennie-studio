@@ -175,6 +175,26 @@ export function CheckoutStatusPage({ status }: { status: "success" | "cancel" })
                     : "No payment was taken. Your plan selection is saved so you can retry when ready."}
         </p>
 
+        {confirmed ? (
+          <div className="mt-7 rounded-2xl bg-slate-50 p-5 text-left">
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-indigo-600">Your managed project starts here</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {[
+                ["1", "Activate your portal", "Use the checkout email so the paid order connects to the correct account."],
+                ["2", "Complete the business brief", "Confirm services, brand assets, contacts, domain and approval details."],
+                ["3", "Bennie Studio reviews the build", "The website goes through managed creative review, responsive checks and launch QA."],
+                ["4", "Approve and launch", "You review the finished website, request agreed changes and approve it before publication."],
+              ].map(([step, title, copy]) => (
+                <div key={step} className="border-t border-slate-200 pt-3">
+                  <p className="text-xs font-black text-indigo-600">0{step}</p>
+                  <p className="mt-1 text-sm font-bold text-slate-900">{title}</p>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{copy}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
           {confirmed && publicOrder && !signedIn ? (
             <>

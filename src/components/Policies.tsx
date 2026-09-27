@@ -20,6 +20,8 @@ import ReactMarkdown from "react-markdown";
 import { Helmet } from "react-helmet-async";
 import { DEFAULT_POLICIES } from "../constants/defaultPolicies";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
+import { COMMERCIAL_MARKETS, getMinimumTermMonths, getStoredMarket, type CommercialMarket } from "../lib/commercialPricing";
+import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 
 interface PolicyPageProps {
   type:
@@ -42,6 +44,8 @@ export function PolicyPage({ type }: PolicyPageProps) {
   const [policy, setPolicy] = useState<PolicyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [commercialMarket] = useState<CommercialMarket>(() => getStoredMarket());
+  const { products: commercialProducts, loading: commercialTermsLoading } = usePublicCommercialPricing(commercialMarket);
 
   const slugMap: Record<PolicyPageProps["type"], string> = {
     privacy: "privacy-policy",
@@ -77,7 +81,9 @@ export function PolicyPage({ type }: PolicyPageProps) {
           typeof foundPolicy?.content === "string" &&
           (foundPolicy.content.includes("AI Output Liability") ||
             foundPolicy.content.includes("structured AI Output") ||
-            foundPolicy.content.includes("AI-driven managed website service"));
+            foundPolicy.content.includes("AI-driven managed website service") ||
+            foundPolicy.content.includes("minimum six-month initial service term") ||
+            foundPolicy.content.includes("12-month initial commitment"));
 
         if (!foundPolicy || hasLegacyTerms) {
           if (defaultPolicy) {
@@ -122,6 +128,13 @@ export function PolicyPage({ type }: PolicyPageProps) {
     .split("\n")
     .filter((line) => /^##\s+/.test(line))
     .map((line) => line.replace(/^##\s+/, "").trim());
+  const managedCommitments = commercialProducts
+    .filter((product) => ["managed-website", "website-growth", "growth-partner"].includes(product.slug))
+    .map((product) => ({
+      slug: product.slug,
+      name: product.name,
+      months: getMinimumTermMonths(product.prices?.[0]),
+    }));
 
   if (loading) {
     return (
@@ -177,6 +190,20 @@ export function PolicyPage({ type }: PolicyPageProps) {
                 <summary className="cursor-pointer font-semibold">On this page</summary>
                 <nav className="mt-4 space-y-2">{policyHeadings.map((heading)=><a key={heading} href={"#" + headingId(heading)} className="block text-sm text-[#526071]">{heading}</a>)}</nav>
               </details>
+              {type === "terms" ? (
+                <div className="mb-8 border border-indigo-200 bg-indigo-50 p-5">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-indigo-700">Current configured commitment · {COMMERCIAL_MARKETS[commercialMarket].label}</p>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
+                    These values are read live from the Products & Pricing catalogue. When an administrator changes a plan's minimum term, this notice, public pricing and new checkout sessions update from the same source of truth.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {commercialTermsLoading ? <span className="text-xs font-bold text-slate-500">Loading current commercial terms…</span> : managedCommitments.map((item) => (
+                      <span key={item.slug} className="border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">{item.name}: {item.months} month{item.months === 1 ? "" : "s"}</span>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">The plan/market term shown on the accepted order or proposal governs that specific order if it differs from the current catalogue.</p>
+                </div>
+              ) : null}
               <div className="legal-document prose prose-slate max-w-none">
                 <ReactMarkdown components={{
                   h2: ({children}) => {

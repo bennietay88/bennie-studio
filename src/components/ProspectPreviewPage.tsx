@@ -11,6 +11,7 @@ import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
 import type { Website } from "../types";
 import { WebsiteRenderer } from "./WebsiteRenderer";
+import { PLAN_DELIVERY_STANDARDS, type PublicPlanSlug } from "../constants/deliveryStandards";
 
 type ProspectPreviewPayload = {
   preview: {
@@ -93,6 +94,9 @@ export default function ProspectPreviewPage() {
   const frameWidth = device === "mobile" ? "max-w-[430px]" : device === "tablet" ? "max-w-[820px]" : "max-w-[1600px]";
   const originalUrl = safeExternalUrl(preview.sourceUrl);
   const cleanPreviewUrl = safeExternalUrl(preview.websiteOnlyUrl);
+  const deliveryStandard = product && product.slug !== "custom-website"
+    ? PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug]
+    : null;
 
   return (
     <main className="min-h-screen bg-[#f4f5f7] text-[#141821]">
@@ -198,6 +202,31 @@ export default function ProspectPreviewPage() {
               <span className="ml-2 truncate text-[10px] font-semibold text-[#7a8391]">{preview.businessName}</span>
             </div>
             <WebsiteRenderer initialData={preview.website} enableRealtime={false} />
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-[#dfe2ea] bg-white">
+        <div className="mx-auto max-w-[90rem] px-6 py-12 sm:px-10 sm:py-14 lg:px-16">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5746e8]">Why this preview is relevant</p>
+          <h2 className="mt-3 max-w-3xl text-3xl font-semibold tracking-[-0.03em] text-[#141821]">See the evidence, the change and the managed next step.</h2>
+          <div className="mt-8 grid gap-px overflow-hidden border border-[#dfe2ea] bg-[#dfe2ea] md:grid-cols-2 xl:grid-cols-4">
+            <article className="bg-white p-5 sm:p-6">
+              <p className="text-xs font-black uppercase tracking-[0.1em] text-[#5746e8]">01 · What we found</p>
+              <p className="mt-3 text-sm leading-6 text-[#526071]">{preview.opportunitySummary || "The existing customer journey can be made clearer and easier to act on."}</p>
+            </article>
+            <article className="bg-white p-5 sm:p-6">
+              <p className="text-xs font-black uppercase tracking-[0.1em] text-[#5746e8]">02 · What changes</p>
+              <p className="mt-3 text-sm leading-6 text-[#526071]">The preview reorganises the website around {preview.primaryConversionPath || "the primary enquiry action"} and the proposed page structure shown below.</p>
+            </article>
+            <article className="bg-white p-5 sm:p-6">
+              <p className="text-xs font-black uppercase tracking-[0.1em] text-[#5746e8]">03 · What stays grounded</p>
+              <p className="mt-3 text-sm leading-6 text-[#526071]">{preview.proofSignals[0] || "Claims, credentials and proof are finalised from business-supplied or approved evidence before launch."}</p>
+            </article>
+            <article className="bg-white p-5 sm:p-6">
+              <p className="text-xs font-black uppercase tracking-[0.1em] text-[#5746e8]">04 · After subscription</p>
+              <p className="mt-3 text-sm leading-6 text-[#526071]">{deliveryStandard ? `${deliveryStandard.targetFirstDraft}. ${deliveryStandard.revisions}. Nothing publishes until customer approval and launch QA pass.` : "Bennie Studio confirms the scope, completes the managed build, reviews it with you and runs launch QA before publication."}</p>
+            </article>
           </div>
         </div>
       </section>

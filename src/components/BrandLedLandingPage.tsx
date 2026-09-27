@@ -18,8 +18,10 @@ import { trackPublicEvent } from "../lib/publicTracking";
 import { supabase } from "../lib/supabase";
 import {
   COMMERCIAL_FALLBACK_PRODUCTS,
+  formatCommitmentLabel,
   formatCommercialMoney,
   getCommercialPrice,
+  getMinimumTermMonths,
 } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { DELIVERY_STANDARD_VERSION, PUBLIC_DELIVERY_PROMISES } from "../constants/deliveryStandards";
@@ -108,58 +110,35 @@ const process = [
 ];
 
 const faqs = [
-  ["Is this a template website?", "No. The system uses reusable design rules and components, but the composition, hierarchy, copy structure and conversion path are selected around the business brief."],
+  ["How is my website tailored?", "The page structure, hierarchy, content direction, proof placement and enquiry path are selected around your business brief, audience and strongest customer action."],
   ["Who reviews my website before launch?", "Every paid build goes through Bennie Studio's internal creative review, responsive QA, production-quality checks and customer approval before it can be published."],
-  ["Why is there a 90-day initial commitment?", "Managed plans combine the initial strategy and build with hosting, maintenance, tracking and plan-based improvements after launch. After the initial 90 days, service continues month-to-month under the written renewal, cancellation and transfer terms shown before payment."],
+  ["Why is there an initial commitment?", "The initial period covers strategy, build, launch and the first managed-service cycle. The current minimum term is shown on each plan and again in the order summary before payment; after it ends, service continues month-to-month under the written renewal, cancellation and transfer terms."],
   ["What stays mine?", "Your domain and the business assets you supply remain yours. Any managed transfer, export or platform arrangements are confirmed in the written terms before payment."],
-  ["Do I need professional photography before we start?", "No. Brand-led layouts can work without customer photography at first. When real imagery is supplied, it is placed into deliberate media slots rather than replaced with fake AI photos."],
-  ["What happens after launch?", "Managed plans include hosting and ongoing website management. Higher tiers add deeper conversion, landing-page and growth support."],
-  ["Can I preview the website before paying?", "Yes. The free preview flow uses the same Premium and Brand-led generator system used for customer builds."],
+  ["Do I need professional photography before we start?", "No. The design can launch with suitable approved assets and clear media placeholders. When real business photography is supplied, it is placed into the planned visual system."],
+  ["What happens after launch?", "Managed plans include hosting, maintenance, tracking and plan-based updates. Higher tiers add deeper conversion, landing-page, SEO and growth work."],
+  ["Can I preview the website before paying?", "Yes. The free preview shows a tailored direction for your business before you choose a managed plan."],
 ];
 
 
 
-const technologyStack = [
-  { name: "Google Analytics", detail: "Measure what converts", icon: "https://cdn.simpleicons.org/googleanalytics/6b7280" },
-  { name: "Search Console", detail: "Improve search visibility", icon: "https://cdn.simpleicons.org/googlesearchconsole/6b7280" },
-  { name: "WhatsApp", detail: "Capture enquiries", icon: "https://cdn.simpleicons.org/whatsapp/6b7280" },
-  { name: "Meta", detail: "Ready for paid traffic", icon: "https://cdn.simpleicons.org/meta/6b7280" },
-  { name: "Vercel", detail: "Fast modern delivery", icon: "https://cdn.simpleicons.org/vercel/6b7280" },
-  { name: "Supabase", detail: "Reliable app infrastructure", icon: "https://cdn.simpleicons.org/supabase/6b7280" },
+const serviceAssurances = [
+  [ShieldCheck, "Human review", "A Bennie Studio review happens before the customer review stage."],
+  [Layers3, "Defined scope", "Pages, revision allowance and delivery targets are shown before payment."],
+  [Wrench, "Managed launch", "Hosting, SSL, launch QA and website publication stay under one managed workflow."],
+  [LineChart, "Ongoing service", "Updates, tracking and plan-based improvements continue after launch."],
 ] as const;
 
-function TechnologyMarquee() {
+function ServiceAssuranceStrip() {
   return (
-    <section className="brand-tech-marquee border-b border-[#dfe2ea] bg-white" aria-labelledby="technology-marquee-title">
-      <div className="brand-shell grid gap-5 py-7 sm:py-8 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-center">
-        <div>
-          <p className="brand-kicker">Modern technology. Managed for you.</p>
-          <p id="technology-marquee-title" className="mt-2 max-w-sm text-sm font-semibold leading-6 text-[#526071]">
-            Proven tools for performance, search, analytics and customer enquiries.
-          </p>
-        </div>
-
-        <div className="brand-logo-marquee" aria-label="Technology used or supported by Bennie Studio">
-          <div className="brand-logo-track">
-            {[0, 1].map((groupIndex) => (
-              <div
-                key={groupIndex}
-                className="brand-logo-group"
-                aria-hidden={groupIndex === 1}
-              >
-                {technologyStack.map((item) => (
-                  <div key={item.name} className="brand-logo-chip">
-                    <img src={item.icon} alt="" width="24" height="24" loading="lazy" decoding="async" />
-                    <span>
-                      <span className="brand-logo-name">{item.name}</span>
-                      <span className="brand-logo-detail">{item.detail}</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ))}
+    <section className="border-b border-[#dfe2ea] bg-white" aria-label="Managed service assurances">
+      <div className="brand-shell grid sm:grid-cols-2 lg:grid-cols-4">
+        {serviceAssurances.map(([Icon, title, detail]) => (
+          <div key={title} className="border-b border-[#dfe2ea] px-5 py-6 sm:border-r lg:border-b-0 lg:px-6">
+            <Icon className="h-5 w-5 text-[#5746e8]" />
+            <p className="mt-4 font-semibold text-[#141821]">{title}</p>
+            <p className="mt-2 text-sm leading-6 text-[#687386]">{detail}</p>
           </div>
-        </div>
+        ))}
       </div>
     </section>
   );
@@ -470,7 +449,7 @@ export default function BrandLedLandingPage() {
           </div>
         </section>
 
-        <TechnologyMarquee />
+        <ServiceAssuranceStrip />
 
         <section className="border-b border-[#dfe2ea] bg-white">
           <div className="brand-shell grid sm:grid-cols-2 lg:grid-cols-4">
@@ -675,6 +654,7 @@ export default function BrandLedLandingPage() {
                         </div>
                         <p className={isGrowth ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
                         <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "USD")} setup</p>
+                        <p className={isGrowth ? "mt-2 text-xs font-semibold !text-white/65" : "mt-2 text-xs font-semibold text-[#687386]"}>{formatCommitmentLabel(getMinimumTermMonths(price))}, then month-to-month unless the accepted order states otherwise.</p>
                         <div className={isGrowth ? "mt-6 space-y-3 border-t border-white/25 pt-5" : "mt-6 space-y-3 border-t border-[#dfe2ea] pt-5"}>
                           {planComparisonRows.map(([label, values]) => (
                             <div key={label} className="flex items-start justify-between gap-4 text-sm">

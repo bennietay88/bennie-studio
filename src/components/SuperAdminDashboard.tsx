@@ -332,6 +332,10 @@ export default function SuperAdminDashboard() {
       "Hi, I found Bennie Studio and I’m interested in a managed website plan. Can you share more details?",
     salesWhatsappAriaLabel: "Chat with Bennie Studio on WhatsApp",
     supportEmail: "support@bennietay.com",
+    supportPhone: "",
+    companyName: "",
+    companyRegistrationNumber: "",
+    businessAddress: "",
     maintenanceMode: false,
     maintenanceTitle: "Coming Soon",
     maintenanceMessage:
@@ -1949,6 +1953,25 @@ export default function SuperAdminDashboard() {
                            className="rounded-xl h-12"
                          />
                       </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Public company / trading name</Label>
+                          <Input value={platformSettings.companyName || ""} onChange={(e) => setPlatformSettings({...platformSettings, companyName: e.target.value})} placeholder="Bennie Studio or registered entity" className="rounded-xl h-12" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Registration number</Label>
+                          <Input value={platformSettings.companyRegistrationNumber || ""} onChange={(e) => setPlatformSettings({...platformSettings, companyRegistrationNumber: e.target.value})} placeholder="Optional business registration number" className="rounded-xl h-12" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Support phone</Label>
+                          <Input value={platformSettings.supportPhone || ""} onChange={(e) => setPlatformSettings({...platformSettings, supportPhone: e.target.value})} placeholder="+60..." className="rounded-xl h-12" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Business address</Label>
+                          <Input value={platformSettings.businessAddress || ""} onChange={(e) => setPlatformSettings({...platformSettings, businessAddress: e.target.value})} placeholder="Optional public business address" className="rounded-xl h-12" />
+                        </div>
+                      </div>
+                      <p className="text-xs font-semibold leading-5 text-slate-500">Configured identity details appear in the public footer to give customers a clear support and accountability reference. Leave optional fields blank until the details are verified.</p>
                       <Separator className="bg-slate-100" />
                       <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-4">
                         <div className="flex items-center justify-between gap-4">

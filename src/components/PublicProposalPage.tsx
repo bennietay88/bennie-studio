@@ -1,6 +1,6 @@
 import React from "react";
 import { ArrowRight, Check, CheckCircle2, FileText, Loader2, ShieldCheck } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -13,6 +13,7 @@ export default function PublicProposalPage() {
   const [accepting, setAccepting] = React.useState(false);
   const [accepted, setAccepted] = React.useState(false);
   const [email, setEmail] = React.useState("");
+  const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [error, setError] = React.useState("");
 
   React.useEffect(() => {
@@ -41,7 +42,7 @@ export default function PublicProposalPage() {
     setAccepting(true);
     setError("");
     try {
-      const response = await fetch(`/api/public/proposals/${encodeURIComponent(token || "")}/accept`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+      const response = await fetch(`/api/public/proposals/${encodeURIComponent(token || "")}/accept`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, termsAccepted: true }) });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Proposal could not be accepted");
       setAccepted(true);
@@ -57,6 +58,8 @@ export default function PublicProposalPage() {
   const market = proposal?.config?.market || "US";
   const currency = market === "MY" ? "MYR" : market === "SG" ? "SGD" : market === "GB" ? "GBP" : "USD";
   const locale = market === "MY" ? "en-MY" : market === "SG" ? "en-SG" : market === "GB" ? "en-GB" : "en-US";
+  const commitmentMonths = Number(proposal?.config?.commitmentMonths || 3);
+  const termsMarket = market === "US" ? "INTL" : market;
   const money = (value: number) => new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 0 }).format(Number(value || 0));
 
   return <div className="min-h-screen bg-slate-50 text-slate-950"><PublicSiteHeader /><main className="mx-auto max-w-5xl px-5 py-14 sm:py-20">
@@ -66,8 +69,8 @@ export default function PublicProposalPage() {
         <div className="mt-8 border-t border-slate-100 pt-7"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Proposed scope</p><div className="mt-4 space-y-3">{(Array.isArray(proposal.scope) ? proposal.scope : []).map((item: string) => <p key={item} className="flex gap-3 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />{item}</p>)}</div></div>
         <div className="mt-7 rounded-2xl border border-indigo-100 bg-indigo-50 p-5 text-sm font-bold leading-6 text-slate-700"><ShieldCheck className="mb-3 h-5 w-5 text-indigo-600" />This proposal describes the managed work and commercial terms. It does not promise rankings, traffic, revenue, or a specific number of enquiries.</div>
       </section>
-      <aside className="h-fit rounded-[2rem] bg-slate-950 p-7 text-white shadow-xl sm:p-8"><p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">{proposal.package_name}</p><div className="mt-6"><p className="text-4xl font-black tracking-tight">{money(proposal.value)}<span className="text-base text-slate-400">/month</span></p><p className="mt-2 text-sm font-semibold text-slate-300">{money(proposal.setup_fee)} one-time setup</p></div><div className="mt-6 space-y-2 border-y border-white/10 py-5 text-sm font-semibold text-slate-300"><p>Initial commitment: {proposal.config?.commitmentMonths || 6} months</p><p>Valid until: {proposal.expires_at || "Confirm with Bennie Studio"}</p><p>Status: {proposal.status}</p></div>
-        {accepted ? <div className="mt-6 rounded-2xl bg-emerald-400/10 p-5 text-center"><CheckCircle2 className="mx-auto h-8 w-8 text-emerald-300" /><h2 className="mt-3 text-xl font-black">Proposal accepted</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Bennie Studio will send the secure checkout and onboarding instructions next.</p></div> : <form onSubmit={accept} className="mt-6 space-y-4"><div><Label htmlFor="proposal-email" className="text-slate-300">Confirm your email</Label><Input id="proposal-email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email used for this proposal" className="mt-2 h-12 rounded-xl bg-white text-slate-950" /></div>{error && <p className="rounded-xl bg-rose-400/10 p-3 text-sm font-bold text-rose-200">{error}</p>}<Button type="submit" disabled={accepting} className="min-h-12 w-full rounded-2xl bg-indigo-500 px-6 text-white hover:bg-indigo-400">{accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Accept proposal <ArrowRight className="ml-2 h-4 w-4" /></>}</Button><p className="text-center text-xs font-semibold leading-5 text-slate-400">Accepting records your approval. Payment is handled separately through a secure checkout link.</p></form>}
+      <aside className="h-fit rounded-[2rem] bg-slate-950 p-7 text-white shadow-xl sm:p-8"><p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-300">{proposal.package_name}</p><div className="mt-6"><p className="text-4xl font-black tracking-tight">{money(proposal.value)}<span className="text-base text-slate-400">/month</span></p><p className="mt-2 text-sm font-semibold text-slate-300">{money(proposal.setup_fee)} one-time setup</p></div><div className="mt-6 space-y-2 border-y border-white/10 py-5 text-sm font-semibold text-slate-300"><p>Initial commitment: {commitmentMonths} month{commitmentMonths === 1 ? "" : "s"}</p><p>Valid until: {proposal.expires_at || "Confirm with Bennie Studio"}</p><p>Status: {proposal.status}</p></div>
+        {accepted ? <div className="mt-6 rounded-2xl bg-emerald-400/10 p-5 text-center"><CheckCircle2 className="mx-auto h-8 w-8 text-emerald-300" /><h2 className="mt-3 text-xl font-black">Proposal accepted</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Your agreed scope and commercial terms are recorded. Continue through the secure checkout when available, then onboarding begins.</p></div> : <form onSubmit={accept} className="mt-6 space-y-4"><div><Label htmlFor="proposal-email" className="text-slate-300">Confirm your email</Label><Input id="proposal-email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email used for this proposal" className="mt-2 h-12 rounded-xl bg-white text-slate-950" /></div><label className="flex items-start gap-3 rounded-xl border border-white/15 bg-white/[0.04] p-4 text-xs font-semibold leading-5 text-slate-300"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 shrink-0" /><span>I confirm the scope, {commitmentMonths}-month initial commitment and recurring service shown above, and I agree to the <Link to={`/terms?market=${termsMarket}`} target="_blank" className="text-indigo-300 underline underline-offset-2">Terms of Service</Link>.</span></label>{error && <p className="rounded-xl bg-rose-400/10 p-3 text-sm font-bold text-rose-200">{error}</p>}<Button type="submit" disabled={accepting || !termsAccepted} className="min-h-12 w-full rounded-2xl bg-indigo-500 px-6 text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60">{accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Accept proposal <ArrowRight className="ml-2 h-4 w-4" /></>}</Button><p className="text-center text-xs font-semibold leading-5 text-slate-400">Acceptance records the agreed scope and commercial terms before payment.</p></form>}
       </aside>
     </div>}
   </main><PublicSiteFooter /></div>;

@@ -94,6 +94,7 @@ export function ProspectExplorer() {
   const [conversionProduct, setConversionProduct] = useState("managed-website");
   const [conversionMarket, setConversionMarket] = useState("INTL");
   const [conversionTerm, setConversionTerm] = useState("3");
+  const [conversionCommercialLoading, setConversionCommercialLoading] = useState(false);
   const [conversionSetupFee, setConversionSetupFee] = useState("0");
   const [conversionRecurringFee, setConversionRecurringFee] = useState("0");
   const [conversionContactName, setConversionContactName] = useState("");
@@ -732,6 +733,31 @@ export function ProspectExplorer() {
     setConversionSetupFee("0");
     setConversionRecurringFee("0");
   };
+
+  useEffect(() => {
+    if (!conversionProspect || conversionProduct === "custom-website") return;
+    const controller = new AbortController();
+    setConversionCommercialLoading(true);
+    fetch(`/api/public/pricing?market=${conversionMarket}`, { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload?.error || "Commercial catalogue unavailable");
+        const product = Array.isArray(payload.products)
+          ? payload.products.find((item: any) => item.slug === conversionProduct)
+          : null;
+        if (!product?.price) throw new Error("Selected product is not configured for this market");
+        setConversionTerm(String(Number(product.price.minimumTermMonths || 3)));
+        setConversionSetupFee(String(Number(product.price.setupFee || 0)));
+        setConversionRecurringFee(String(Number(product.price.monthlyPrice || 0)));
+      })
+      .catch((error) => {
+        if (error?.name !== "AbortError") console.warn("Could not load current conversion terms:", error);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setConversionCommercialLoading(false);
+      });
+    return () => controller.abort();
+  }, [conversionMarket, conversionProduct, conversionProspect]);
 
   const preparePreviewAndEmail = async (prospect: any) => {
     let next = prospect;
@@ -1642,15 +1668,8 @@ export function ProspectExplorer() {
                 </Select>
               </Field>
               <Field label="Initial commitment">
-                <Select value={conversionTerm} onValueChange={setConversionTerm}>
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="3">3 months</SelectItem>
-                    <SelectItem value="6">6 months</SelectItem>
-                    <SelectItem value="9">9 months</SelectItem>
-                    <SelectItem value="12">12 months</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input type="number" min="1" max="120" step="1" value={conversionTerm} onChange={(e) => setConversionTerm(e.target.value)} className="rounded-xl" />
+                <p className="mt-1 text-[11px] font-semibold leading-4 text-slate-500">{conversionCommercialLoading ? "Loading the current catalogue term…" : "Defaults from Products & Pricing for this product/market. Change only for a negotiated customer-specific term."}</p>
               </Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

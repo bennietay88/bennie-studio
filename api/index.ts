@@ -66,7 +66,7 @@ import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
 import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { parseProspectCsv } from "../src/lib/prospectImport.js";
-import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS } from "../src/lib/commercialPricing.js";
+import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, getMinimumTermMonths } from "../src/lib/commercialPricing.js";
 import { DEFAULT_LAUNCH_FLAGS, normalizeLaunchFlags, type LaunchFlags } from "../src/lib/launchFlags.js";
 import {
   DELIVERY_STANDARD_VERSION,
@@ -84,6 +84,8 @@ import { processDueFunnelWorkflowRuns, runFunnelAutomations } from "../server/fu
 
 dotenv.config();
 initServerObservability();
+
+const COMMERCIAL_TERMS_VERSION = "2026.09.27";
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || "";
@@ -6435,16 +6437,19 @@ async function startServer() {
         const setupPrice = await stripe.prices.create({ product: product.id, currency, unit_amount: setupAmount, metadata: { proposalId: proposal.id, chargeType: "setup" } });
         lineItems.push({ price: setupPrice.id, quantity: 1 });
       }
+      const proposalTermMonths = getMinimumTermMonths({ minimumTermMonths: proposal.config?.commitmentMonths });
       const paymentLink = await stripe.paymentLinks.create({
         line_items: lineItems,
+        billing_address_collection: "required",
+        tax_id_collection: { enabled: true },
         after_completion: {
           type: "redirect",
           redirect: {
             url: `${publicAppUrl()}/signup?redirect=${encodeURIComponent(`/dashboard/onboarding?proposal=${proposal.id}`)}`,
           },
         },
-        metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "", businessId: proposal.business_id || "", planId: proposal.config?.planId || "website_growth_partner", market, type: "proposal_subscription" },
-        subscription_data: { metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "", businessId: proposal.business_id || "", planId: proposal.config?.planId || "website_growth_partner", market } },
+        metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "", businessId: proposal.business_id || "", planId: proposal.config?.planId || "website_growth_partner", market, termMonths: String(proposalTermMonths), termsVersion: COMMERCIAL_TERMS_VERSION, type: "proposal_subscription" },
+        subscription_data: { metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "", businessId: proposal.business_id || "", planId: proposal.config?.planId || "website_growth_partner", market, termMonths: String(proposalTermMonths), termsVersion: COMMERCIAL_TERMS_VERSION } },
       });
       await supabaseAdmin.from("proposals").update({ checkout_url: paymentLink.url, updated_at: new Date().toISOString() }).eq("id", proposal.id);
       await supabaseAdmin.from("proposal_events").insert({ proposal_id: proposal.id, event_type: "checkout_started", metadata: { paymentLinkId: paymentLink.id, createdBy: req.user.id } });
@@ -6490,12 +6495,12 @@ async function startServer() {
     rateLimit({ windowMs: 60 * 1000, max: 12, keyPrefix: "public-proposal-accept" }),
     async (req, res) => {
       if (!UUID_SCHEMA.safeParse(req.params.token).success) return res.status(400).json({ error: "Invalid proposal link" });
-      const body = validateBody(z.object({ email: EMAIL_SCHEMA }), req, res);
+      const body = validateBody(z.object({ email: EMAIL_SCHEMA, termsAccepted: z.literal(true) }), req, res);
       if (!body) return;
       try {
         const { data: proposal, error } = await supabaseAdmin
           .from("proposals")
-          .select("id,lead_id,status,expires_at,checkout_url,leads(email)")
+          .select("id,lead_id,status,expires_at,checkout_url,config,leads(email)")
           .eq("proposal_token", req.params.token)
           .maybeSingle();
         if (error) throw error;
@@ -6504,10 +6509,17 @@ async function startServer() {
         const leadEmail = String((proposal as any).leads?.email || "").toLowerCase();
         if (leadEmail && leadEmail !== body.email.toLowerCase()) return res.status(403).json({ error: "Use the email address that received this proposal." });
         const acceptedAt = new Date().toISOString();
-        const { error: updateError } = await supabaseAdmin.from("proposals").update({ status: "Accepted", accepted_at: acceptedAt, accepted_email: body.email.toLowerCase(), updated_at: acceptedAt }).eq("id", proposal.id);
+        const acceptance = { termsAcceptedAt: acceptedAt, termsVersion: COMMERCIAL_TERMS_VERSION };
+        const { error: updateError } = await supabaseAdmin.from("proposals").update({
+          status: "Accepted",
+          accepted_at: acceptedAt,
+          accepted_email: body.email.toLowerCase(),
+          updated_at: acceptedAt,
+          config: { ...((proposal as any).config || {}), acceptance },
+        }).eq("id", proposal.id);
         if (updateError) throw updateError;
         if (proposal.lead_id) await supabaseAdmin.from("leads").update({ status: "won", automation_next_action: "Send secure checkout and onboarding link", next_follow_up_at: acceptedAt }).eq("id", proposal.lead_id);
-        await supabaseAdmin.from("proposal_events").insert({ proposal_id: proposal.id, event_type: "accepted", metadata: { leadId: proposal.lead_id || null } });
+        await supabaseAdmin.from("proposal_events").insert({ proposal_id: proposal.id, event_type: "accepted", metadata: { leadId: proposal.lead_id || null, ...acceptance } });
         await supabaseAdmin.from("tracking_events").insert({ event_type: "proposal_accepted", source_platform: "bennie_studio_public", source_page: `/proposal/${req.params.token}`, metadata: { proposalId: proposal.id, leadId: proposal.lead_id || null } }).then(({ error: trackingError }) => {
           if (trackingError) console.warn("Proposal acceptance tracking skipped:", trackingError.message);
         });
@@ -7131,7 +7143,7 @@ async function startServer() {
       z.object({
         productSlug: z.enum(["managed-website", "website-growth", "growth-partner", "custom-website"]).default("managed-website"),
         market: z.enum(["MY", "SG", "GB", "INTL"]).default("INTL"),
-        termMonths: z.union([z.literal(3), z.literal(6), z.literal(9), z.literal(12)]).default(3),
+        termMonths: z.number().int().min(1).max(120).optional(),
         setupFee: z.number().finite().min(0).max(1000000).default(0),
         recurringFee: z.number().finite().min(0).max(1000000).default(0),
         customerName: z.string().trim().min(1).max(160).optional(),
@@ -7165,13 +7177,27 @@ async function startServer() {
       const onboardingId = salesRecordId(`prospect-onboarding:${prospectId}`);
       const currencyByMarket: Record<string, string> = { MY: "MYR", SG: "SGD", GB: "GBP", INTL: "USD" };
       const plan = ["website-growth", "growth-partner"].includes(body.productSlug) ? "growth" : "business";
+      let effectiveTermMonths = body.termMonths || COMMERCIAL_DEFAULT_COMMITMENT_MONTHS;
+      if (body.productSlug !== "custom-website" && body.termMonths === undefined) {
+        const { data: catalogueProduct } = await supabaseAdmin
+          .from("commercial_products")
+          .select("id,commercial_market_prices!inner(market,minimum_term_months,active)")
+          .eq("slug", body.productSlug)
+          .eq("commercial_market_prices.market", body.market)
+          .eq("commercial_market_prices.active", true)
+          .maybeSingle();
+        const cataloguePrice = catalogueProduct && (Array.isArray((catalogueProduct as any).commercial_market_prices)
+          ? (catalogueProduct as any).commercial_market_prices[0]
+          : (catalogueProduct as any).commercial_market_prices);
+        effectiveTermMonths = getMinimumTermMonths({ minimumTermMonths: cataloguePrice?.minimum_term_months });
+      }
 
       let ownerId: string | null = null;
       const prospectEmail = normalizeSalesEmail(body.contactEmail || prospect.contact_email);
       const customerName = String(body.customerName || prospect.name || "New customer").trim().slice(0, 160);
       const commercialAgreement = {
         productSlug: body.productSlug, market: body.market, currency: currencyByMarket[body.market],
-        setupFee: body.setupFee, recurringFee: body.recurringFee, termMonths: body.termMonths,
+        setupFee: body.setupFee, recurringFee: body.recurringFee, termMonths: effectiveTermMonths,
         agreedAt: now, sourceProspectId: prospectId,
       };
       const customerContact = {
@@ -7218,13 +7244,13 @@ async function startServer() {
           commercial_product_slug: body.productSlug,
           commercial_market: body.market,
           commercial_currency: currencyByMarket[body.market],
-          commercial_term_months: body.termMonths,
+          commercial_term_months: effectiveTermMonths,
           onboarding_steps: {
             commercialAgreement,
             customerContact,
             sourceProspect: { id: prospectId, previewUrl: prospect.preview_url || null, website: prospect.domain || null },
           },
-          admin_notes: `Converted from prospect ${prospectId}. Agreed ${currencyByMarket[body.market]} ${body.setupFee} setup + ${body.recurringFee} recurring; ${body.termMonths}-month initial commitment. Customer account/payment may still need to be attached.`,
+          admin_notes: `Converted from prospect ${prospectId}. Agreed ${currencyByMarket[body.market]} ${body.setupFee} setup + ${body.recurringFee} recurring; ${effectiveTermMonths}-month initial commitment. Customer account/payment may still need to be attached.`,
         });
         if (businessError) throw businessError;
       } else if (ownerId && !existingBusiness.owner_id) {
@@ -7313,7 +7339,7 @@ async function startServer() {
             currency: currencyByMarket[body.market],
             setupFee: body.setupFee,
             recurringFee: body.recurringFee,
-            termMonths: body.termMonths,
+            termMonths: effectiveTermMonths,
             customerName,
             customerContact,
             actorId: req.user.id,
@@ -7922,7 +7948,7 @@ async function startServer() {
           setupFee: price.recurring_setup_fee === null || price.recurring_setup_fee === undefined ? 0 : Number(price.recurring_setup_fee),
           annualPrice: price.recurring_annual_price === null || price.recurring_annual_price === undefined ? null : Number(price.recurring_annual_price),
           billingInterval: "month",
-          minimumTermMonths: COMMERCIAL_RECURRING_COMMITMENT_MONTHS,
+          minimumTermMonths: getMinimumTermMonths({ minimumTermMonths: price.minimum_term_months }),
           catalogueMode: "otc_mrc",
           recurringConfigStatus: price.recurring_config_status || "draft",
           recurringConfigured: Boolean(dynamicCheckoutAvailable || (
@@ -7994,18 +8020,32 @@ async function startServer() {
     return res.json({ horizonDays, renewals: data || [] });
   });
 
-  // Founding-customer commitment override. The public catalogue remains
-  // 90 days; only a super admin can explicitly set a customer's term to
-  // one of the approved launch exceptions. Null restores the catalogue term.
+  // Customer-specific commitment override. The commercial catalogue remains
+  // the default source of truth; a super admin may set a negotiated term for
+  // a specific customer. Null restores the current catalogue term.
   app.patch("/api/admin/businesses/:businessId/contract-term", authenticate, superAdminOnly, async (req: any, res: any) => {
     const businessId = String(req.params.businessId || "");
     if (!UUID_SCHEMA.safeParse(businessId).success) return res.status(400).json({ error: "Invalid business ID" });
-    const body = validateBody(z.object({ termMonths: z.union([z.literal(3), z.literal(6), z.literal(9), z.literal(12)]).nullable() }).strict(), req, res);
+    const body = validateBody(z.object({ termMonths: z.number().int().min(1).max(120).nullable() }).strict(), req, res);
     if (!body) return;
-    const { data: current, error: readError } = await supabaseAdmin.from("businesses").select("id,name,commercial_term_months").eq("id", businessId).maybeSingle();
+    const { data: current, error: readError } = await supabaseAdmin.from("businesses").select("id,name,commercial_term_months,commercial_product_slug,commercial_market").eq("id", businessId).maybeSingle();
     if (readError) return res.status(503).json({ error: "Business could not be loaded" });
     if (!current) return res.status(404).json({ error: "Business not found" });
-    const { data, error } = await supabaseAdmin.from("businesses").update({ commercial_term_months: body.termMonths }).eq("id", businessId).select("id,name,commercial_term_months").single();
+    let effectiveTermMonths = body.termMonths;
+    if (effectiveTermMonths === null && current.commercial_product_slug && current.commercial_market) {
+      const { data: catalogueProduct } = await supabaseAdmin
+        .from("commercial_products")
+        .select("id,commercial_market_prices!inner(market,minimum_term_months,active)")
+        .eq("slug", current.commercial_product_slug)
+        .eq("commercial_market_prices.market", current.commercial_market)
+        .eq("commercial_market_prices.active", true)
+        .maybeSingle();
+      const cataloguePrice = catalogueProduct && (Array.isArray((catalogueProduct as any).commercial_market_prices)
+        ? (catalogueProduct as any).commercial_market_prices[0]
+        : (catalogueProduct as any).commercial_market_prices);
+      effectiveTermMonths = getMinimumTermMonths({ minimumTermMonths: cataloguePrice?.minimum_term_months });
+    }
+    const { data, error } = await supabaseAdmin.from("businesses").update({ commercial_term_months: effectiveTermMonths }).eq("id", businessId).select("id,name,commercial_term_months").single();
     if (error) return res.status(400).json({ error: "Contract term could not be updated" });
     await supabaseAdmin.from("admin_action_audit_logs").insert({
       actor_user_id: req.user.id,
@@ -8013,9 +8053,9 @@ async function startServer() {
       target_type: "business",
       target_id: businessId,
       target_label: current.name || businessId,
-      metadata: { previousTermMonths: current.commercial_term_months, termMonths: body.termMonths },
+      metadata: { previousTermMonths: current.commercial_term_months, requestedTermMonths: body.termMonths, effectiveTermMonths },
     });
-    return res.json({ business: data, effectiveTermMonths: body.termMonths || COMMERCIAL_DEFAULT_COMMITMENT_MONTHS });
+    return res.json({ business: data, effectiveTermMonths });
   });
 
   app.patch("/api/admin/commercial-catalogue/prices/:id", authenticate, superAdminOnly, async (req: any, res: any) => {
@@ -8103,7 +8143,7 @@ async function startServer() {
     const platform = settings.get("platform") || {};
     const publicPlatformKeys = [
       "name", "salesPageTitle", "maintenanceMode", "maintenanceMessage", "maintenanceTitle", "estimatedDowntime",
-      "supportEmail", "gaMeasurementId", "metaPixelId", "salesWhatsappAriaLabel", "salesWhatsappEnabled",
+      "supportEmail", "supportPhone", "companyName", "companyRegistrationNumber", "businessAddress", "gaMeasurementId", "metaPixelId", "salesWhatsappAriaLabel", "salesWhatsappEnabled",
       "salesWhatsappLink", "salesWhatsappMessage", "salesCookieBannerEnabled", "trackingScriptsHeader", "trackingScriptsFooter",
       "publicProofTestimonialIds",
     ];
@@ -9045,6 +9085,7 @@ async function startServer() {
         billingCycle: z.literal("monthly").optional().default("monthly"),
         currency: z.enum(["USD", "GBP", "MYR", "SGD"]).optional().default("USD"),
         customerEmail: EMAIL_SCHEMA.optional().nullable(),
+        termsAccepted: z.literal(true),
       }), req, res);
       if (!body) return;
 
@@ -9079,7 +9120,8 @@ async function startServer() {
 
         const monthly = Number(price.recurring_monthly_price || 0);
         const setup = Number(price.recurring_setup_fee || 0);
-        const termMonths = COMMERCIAL_RECURRING_COMMITMENT_MONTHS;
+        const termMonths = getMinimumTermMonths({ minimumTermMonths: price.minimum_term_months }, COMMERCIAL_RECURRING_COMMITMENT_MONTHS);
+        const termsAcceptedAt = new Date().toISOString();
         const checkoutRef = crypto.randomUUID();
         const stripe = await getStripe();
         const lineItems: any[] = [
@@ -9140,6 +9182,8 @@ async function startServer() {
           mode: "subscription",
           payment_method_types: ["card"],
           payment_method_collection: "always",
+          billing_address_collection: "required",
+          tax_id_collection: { enabled: true },
           ...(body.customerEmail ? { customer_email: body.customerEmail } : {}),
           line_items: lineItems,
           success_url: `${publicAppUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}&public_order=1&preview_id=${encodeURIComponent(checkoutRef)}&direct_checkout=1`,
@@ -9154,6 +9198,8 @@ async function startServer() {
             publicOrder: "1",
             directCheckout: "1",
             type: "subscription",
+            termsVersion: COMMERCIAL_TERMS_VERSION,
+            termsAcceptedAt,
           },
           subscription_data: {
             metadata: {
@@ -9163,6 +9209,8 @@ async function startServer() {
               publicOrder: "1",
               directCheckout: "1",
               termMonths: String(termMonths),
+              termsVersion: COMMERCIAL_TERMS_VERSION,
+              termsAcceptedAt,
             },
           },
         });
@@ -9212,6 +9260,7 @@ async function startServer() {
         email: EMAIL_SCHEMA,
         productSlug: z.enum(["managed-website", "website-growth", "growth-partner"]),
         currency: z.enum(["USD", "GBP", "MYR", "SGD"]).optional().default("USD"),
+        termsAccepted: z.literal(true),
       }), req, res);
       if (!body) return;
 
@@ -9270,7 +9319,8 @@ async function startServer() {
 
         const monthly = Number(price.recurring_monthly_price || 0);
         const setup = Number(price.recurring_setup_fee || 0);
-        const termMonths = COMMERCIAL_DEFAULT_COMMITMENT_MONTHS;
+        const termMonths = getMinimumTermMonths({ minimumTermMonths: price.minimum_term_months }, COMMERCIAL_DEFAULT_COMMITMENT_MONTHS);
+        const termsAcceptedAt = new Date().toISOString();
         const dueToday = monthly + setup;
 
         let businessId = lead.business_id || null;
@@ -9402,6 +9452,8 @@ async function startServer() {
           mode: "subscription",
           payment_method_types: ["card"],
           payment_method_collection: "always",
+          billing_address_collection: "required",
+          tax_id_collection: { enabled: true },
           customer_email: body.email,
           line_items: lineItems,
           success_url: `${publicAppUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}&public_order=1&preview_id=${encodeURIComponent(body.previewId)}`,
@@ -9417,6 +9469,8 @@ async function startServer() {
             previewId: body.previewId,
             publicOrder: "1",
             type: "subscription",
+            termsVersion: COMMERCIAL_TERMS_VERSION,
+            termsAcceptedAt,
           },
           subscription_data: {
             metadata: {
@@ -9427,6 +9481,8 @@ async function startServer() {
               previewId: body.previewId,
               publicOrder: "1",
               termMonths: String(termMonths),
+              termsVersion: COMMERCIAL_TERMS_VERSION,
+              termsAcceptedAt,
             },
           },
         });
@@ -9687,6 +9743,7 @@ async function startServer() {
         market: z.enum(["MY", "SG", "GB", "US", "INTL"]).optional().default("INTL"),
         promotionCode: z.string().trim().max(120).optional().nullable(),
         upgradeFrom: z.string().trim().max(80).optional().nullable(),
+        termsAccepted: z.boolean().optional(),
       }),
       req,
       res,
@@ -9730,7 +9787,7 @@ async function startServer() {
         });
       }
       const customerTermOverride = checkoutBusiness?.commercial_term_months == null ? null : Number(checkoutBusiness.commercial_term_months);
-      if (customerTermOverride !== null && ![3, 6, 9, 12].includes(customerTermOverride)) {
+      if (customerTermOverride !== null && (!Number.isInteger(customerTermOverride) || customerTermOverride < 1 || customerTermOverride > 120)) {
         return res.status(409).json({ error: "This customer's contract term is invalid. Clear the override before checkout." });
       }
       const launchFlags = await refreshLaunchFlags();
@@ -9773,10 +9830,9 @@ async function startServer() {
             return res.status(400).json({ error: "Annual billing is not configured for this market yet. Choose monthly billing or book a consultation." });
           }
           isOneTimeCheckout = false;
-          // New managed website orders use the canonical 90-day initial term.
-          // Database catalogue rows may briefly retain the previous term during
-          // deployment, so checkout does not trust a stale row for this value.
-          minimumTermMonths = customerTermOverride || COMMERCIAL_RECURRING_COMMITMENT_MONTHS;
+          // Customer-specific overrides take precedence; otherwise the
+          // administrator-configured product/market minimum term is authoritative.
+          minimumTermMonths = customerTermOverride || getMinimumTermMonths({ minimumTermMonths: currentPrice.minimum_term_months }, COMMERCIAL_RECURRING_COMMITMENT_MONTHS);
           commercialPriceExpectation = {
             currency: commercialCurrencyForMarket(market),
             monthlyAmount: Number(testDynamicMonthlyAmount || 0),
@@ -9854,6 +9910,9 @@ async function startServer() {
             "This plan still uses a placeholder Stripe Price ID. Add the real price_... value from Stripe in Super Admin > Billing Plans.",
         });
       }
+      if (resolvedProductSlug && checkoutBody.type !== "credits" && checkoutBody.termsAccepted !== true) {
+        return res.status(400).json({ error: "Confirm the current scope and Terms of Service before checkout." });
+      }
 
       const stripe = await getStripe();
 
@@ -9890,8 +9949,11 @@ async function startServer() {
         .eq("id", businessId)
         .single();
 
+	      const termsAcceptedAt = checkoutBody.termsAccepted === true ? new Date().toISOString() : "";
 	      const sessionOptions: any = {
 	        payment_method_types: ["card"],
+        billing_address_collection: resolvedProductSlug ? "required" : "auto",
+        ...(resolvedProductSlug ? { tax_id_collection: { enabled: true } } : {}),
         line_items: (useDynamicCatalogPrices || (process.env.NODE_ENV !== "production" && process.env.STRIPE_TEST_DYNAMIC_PRICES === "true")) && resolvedProductSlug && testDynamicMonthlyAmount
           ? [
               { price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: resolvedProductSlug === "managed-website" ? "Managed Website" : resolvedProductSlug === "growth-partner" ? "Growth Partner" : "Website Growth" }, unit_amount: Math.round(testDynamicMonthlyAmount * 100), recurring: { interval: billingCycle === "yearly" ? "year" : "month" } }, quantity: 1 },
@@ -9913,6 +9975,8 @@ async function startServer() {
           currency: commercialCurrencyForMarket(market),
           termMonths: resolvedProductSlug && !isOneTimeCheckout ? String(minimumTermMonths) : "",
           promotionId: resolvedPromotionId || "",
+          termsVersion: resolvedProductSlug ? COMMERCIAL_TERMS_VERSION : "",
+          termsAcceptedAt,
           type:
             isOneTimeCheckout
               ? "one_time_package"
@@ -9924,6 +9988,18 @@ async function startServer() {
 
 	      if (sessionOptions.mode === "subscription") {
 	        sessionOptions.payment_method_collection = "always";
+          sessionOptions.subscription_data = {
+            ...(sessionOptions.subscription_data || {}),
+            metadata: {
+              ...(sessionOptions.subscription_data?.metadata || {}),
+              businessId,
+              productSlug: resolvedProductSlug || "",
+              market,
+              termMonths: resolvedProductSlug ? String(minimumTermMonths) : "",
+              termsVersion: resolvedProductSlug ? COMMERCIAL_TERMS_VERSION : "",
+              termsAcceptedAt,
+            },
+          };
 	      }
 
       if (couponId) {

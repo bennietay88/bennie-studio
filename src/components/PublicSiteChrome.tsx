@@ -127,6 +127,21 @@ export function PublicSiteHeader() {
 }
 
 export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?: string; email?: string; onManageCookies?: () => void }) {
+  const [publicIdentity, setPublicIdentity] = React.useState<any>(null);
+  React.useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/public/site-config", { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => setPublicIdentity(payload?.platform || null))
+      .catch(() => null);
+    return () => controller.abort();
+  }, []);
+  const supportEmail = email || publicIdentity?.supportEmail || "";
+  const companyName = publicIdentity?.companyName || publicIdentity?.name || "Bennie Studio";
+  const registrationNumber = publicIdentity?.companyRegistrationNumber || "";
+  const businessAddress = publicIdentity?.businessAddress || "";
+  const supportPhone = publicIdentity?.supportPhone || "";
+
   return (
     <footer className="bg-[#0c1224] text-white">
       <div className="mx-auto grid max-w-[90rem] gap-10 px-6 py-16 sm:px-10 md:grid-cols-2 lg:grid-cols-5 lg:px-16 lg:py-20">
@@ -136,7 +151,13 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
             <span className="text-xl font-semibold tracking-[-0.035em]">Bennie Studio</span>
           </div>
           <p className="max-w-sm text-sm font-medium leading-7 text-white/70">{tagline || "A managed website system for service businesses that need stronger trust, clearer enquiries, and a site that stays useful after launch."}</p>
-          {email ? <a href={`mailto:${email}`} className="mt-5 inline-flex text-sm font-black text-[#aaa0ff] hover:text-white">Contact us</a> : null}
+          <div className="mt-5 space-y-1 text-sm font-semibold text-white/65">
+            {companyName ? <p className="text-white/80">{companyName}</p> : null}
+            {registrationNumber ? <p>Registration: {registrationNumber}</p> : null}
+            {businessAddress ? <p className="max-w-sm">{businessAddress}</p> : null}
+            {supportEmail ? <a href={`mailto:${supportEmail}`} className="inline-flex font-black text-[#aaa0ff] hover:text-white">Contact: {supportEmail}</a> : null}
+            {supportPhone ? <p><a href={`tel:${supportPhone.replace(/\s+/g, "")}`} className="hover:text-white">{supportPhone}</a></p> : null}
+          </div>
         </div>
         {footerGroups.map(([title, links]) => (
           <div key={title}>

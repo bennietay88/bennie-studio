@@ -475,7 +475,7 @@ export default function LandingPage() {
                 className="mx-auto mb-8 flex w-full max-w-[21rem] items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 px-4 py-3 text-left sm:max-w-3xl lg:mx-0 lg:w-fit"
               >
                 <div className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse" />
-                <span className="text-sm font-bold text-slate-900 tracking-tight">Setup + monthly managed service · 12-month initial commitment · managed hosting included</span>
+                <span className="text-sm font-bold text-slate-900 tracking-tight">Setup + monthly managed service · current plan commitment shown before payment · managed hosting included</span>
               </motion.div>
             )}
 

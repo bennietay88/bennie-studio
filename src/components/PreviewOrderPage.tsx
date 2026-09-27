@@ -5,14 +5,17 @@ import { Button } from "./ui/button";
 import {
   CHECKOUT_CURRENCIES,
   COMMERCIAL_FALLBACK_PRODUCTS,
+  formatCommitmentLabel,
   formatCommercialMoney,
   getCommercialPrice,
+  getMinimumTermMonths,
   marketForCurrency,
   type CommercialCurrency,
   type CommercialProduct,
 } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
+import { PLAN_DELIVERY_STANDARDS, type PublicPlanSlug } from "../constants/deliveryStandards";
 
 type PreviewIntent = {
   previewId?: string;
@@ -85,6 +88,7 @@ export function PreviewOrderPage() {
       : "website-growth",
   );
   const [showAlternatives, setShowAlternatives] = React.useState(false);
+  const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -100,6 +104,8 @@ export function PreviewOrderPage() {
   const monthly = Number(price?.monthlyPrice || 0);
   const setup = Number(price?.setupFee || 0);
   const dueToday = monthly + setup;
+  const commitmentMonths = getMinimumTermMonths(price);
+  const deliveryStandard = selected ? PLAN_DELIVERY_STANDARDS[selected.slug as PublicPlanSlug] : null;
   const fit = selected ? fitCopy[selected.slug] || fitCopy["website-growth"] : fitCopy["website-growth"];
   const businessName = intent.previewProfile?.businessName || intent.businessName || "Your business";
   const cancelled = new URLSearchParams(location.search).get("cancelled") === "1";
@@ -142,6 +148,7 @@ export function PreviewOrderPage() {
           email: intent.email,
           productSlug: selected.slug,
           currency: checkoutCurrency,
+          termsAccepted: true,
         }),
       });
       const payload = await response.json().catch(() => null);
@@ -191,8 +198,8 @@ export function PreviewOrderPage() {
               </p>
             </div>
             <div className="lg:col-span-4 lg:text-right">
-              <p className="text-sm font-semibold text-[#526071]">Choose billing currency at checkout · 90-day initial commitment</p>
-              <p className="mt-1 text-sm text-[#707b8a]">Month-to-month after the initial 90 days.</p>
+              <p className="text-sm font-semibold text-[#526071]">Choose billing currency at checkout · {formatCommitmentLabel(commitmentMonths)}</p>
+              <p className="mt-1 text-sm text-[#707b8a]">Month-to-month after the initial commitment unless your accepted order states otherwise.</p>
             </div>
           </div>
         </div>
@@ -246,6 +253,7 @@ export function PreviewOrderPage() {
                         type="button"
                         onClick={() => {
                           setSelectedSlug(product.slug);
+                          setTermsAccepted(false);
                           setError("");
                         }}
                         className={active
@@ -285,7 +293,7 @@ export function PreviewOrderPage() {
             <div className="border border-[#141821] bg-[#141821] p-6 text-white sm:p-8 lg:sticky lg:top-24">
               <p className="text-xs font-bold uppercase tracking-[0.13em] !text-[#b9b1ff]">Order summary</p>
               <label htmlFor="preview-checkout-currency" className="mt-5 block text-xs font-semibold uppercase tracking-[0.08em] !text-white/60">Billing currency</label>
-              <select id="preview-checkout-currency" value={checkoutCurrency} onChange={(event) => setCheckoutCurrency(event.target.value as CommercialCurrency)} className="mt-2 h-11 w-full border border-white/20 bg-white px-3 text-sm font-semibold text-[#141821]">
+              <select id="preview-checkout-currency" value={checkoutCurrency} onChange={(event) => { setCheckoutCurrency(event.target.value as CommercialCurrency); setTermsAccepted(false); }} className="mt-2 h-11 w-full border border-white/20 bg-white px-3 text-sm font-semibold text-[#141821]">
                 {CHECKOUT_CURRENCIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
               <h2 className="mt-3 text-3xl font-semibold !text-white">{selected?.name || "Website Growth"}</h2>
@@ -301,6 +309,10 @@ export function PreviewOrderPage() {
                       <span className="!text-white/70">First month</span>
                       <span className="font-semibold !text-white">{formatCommercialMoney(monthly, price?.currency || "USD")}</span>
                     </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="!text-white/70">Initial commitment</span>
+                      <span className="font-semibold !text-white">{commitmentMonths} month{commitmentMonths === 1 ? "" : "s"}</span>
+                    </div>
                     <div className="flex items-center justify-between gap-4 border-t border-white/15 pt-4 text-base">
                       <span className="font-semibold !text-white">Due today</span>
                       <span className="text-xl font-semibold !text-white">{formatCommercialMoney(dueToday, price?.currency || "USD")}</span>
@@ -308,14 +320,26 @@ export function PreviewOrderPage() {
                   </div>
 
                   <p className="mt-5 text-sm leading-6 !text-white/70">
-                    Then {formatCommercialMoney(monthly, price?.currency || "USD")}/month. 90-day initial commitment, then month-to-month.
+                    Then {formatCommercialMoney(monthly, price?.currency || "USD")}/month. {formatCommitmentLabel(commitmentMonths)}, then month-to-month unless the accepted order states otherwise.
                   </p>
+                  {deliveryStandard ? (
+                    <div className="mt-5 border-t border-white/15 pt-5">
+                      <p className="text-[10px] font-black uppercase tracking-[0.12em] !text-[#b9b1ff]">What happens after payment</p>
+                      <div className="mt-3 space-y-2 text-xs font-semibold leading-5 !text-white/75">
+                        {[deliveryStandard.pages, deliveryStandard.revisions, deliveryStandard.targetFirstDraft, deliveryStandard.updates, deliveryStandard.targetUpdateTurnaround].map((item) => <p key={item} className="flex gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-300" />{item}</p>)}
+                      </div>
+                    </div>
+                  ) : null}
+                  <label className="mt-5 flex items-start gap-3 border border-white/15 bg-white/[0.04] p-4 text-xs font-semibold leading-5 !text-white/75">
+                    <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 shrink-0" />
+                    <span>I confirm this scope, {commitmentMonths}-month initial commitment and recurring managed service, and agree to the <Link to={`/terms?market=${checkoutMarket}`} target="_blank" className="!text-[#c7c1ff] underline underline-offset-2">Terms of Service</Link> and <Link to="/privacy" target="_blank" className="!text-[#c7c1ff] underline underline-offset-2">Privacy Policy</Link>.</span>
+                  </label>
 
                   {error ? <div className="mt-5 border border-rose-300/30 bg-rose-400/10 p-4 text-sm font-semibold text-rose-100">{error}</div> : null}
 
                   <Button
                     onClick={startCheckout}
-                    disabled={submitting || loading}
+                    disabled={submitting || loading || !termsAccepted}
                     className="mt-7 min-h-14 w-full rounded-none bg-white px-6 font-semibold text-[#141821] hover:bg-[#eeebff]"
                   >
                     {submitting ? "Opening secure checkout…" : "Continue to secure checkout"} <ArrowRight className="ml-2 h-4 w-4" />

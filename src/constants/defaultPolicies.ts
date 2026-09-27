@@ -97,7 +97,7 @@ These Terms are designed for a managed website subscription service. They are no
 ## 1. Service Model
 Bennie Studio provides:
 - Managed website subscriptions for small businesses.
-- Template-based website setup, hosting, SSL, lead capture, WhatsApp/contact CTAs, SEO-ready page structure, local SEO support, dashboards, and support based on plan limits.
+- Managed website planning, build, hosting, SSL, lead capture, WhatsApp/contact CTAs, SEO-ready page structure, local SEO support, dashboards, and support based on plan limits.
 - Optional premium custom websites quoted separately.
 
 The managed subscription is not an unlimited custom development service, full agency retainer, advertising service, legal compliance service, or guaranteed SEO ranking service.
@@ -108,7 +108,7 @@ Plans may include limits for pages, location pages, templates, support, update r
 If you need more pages, more locations, ecommerce, booking systems, portals, dashboards, integrations, custom code, advanced SEO architecture, migration, or bespoke design, a higher plan or separate quote may be required.
 
 ## 3. Minimum Term, Billing, and Refunds
-Managed website subscriptions are generally structured around a minimum six-month initial service term unless we agree otherwise in writing. Fees are billed in advance for the selected period.
+The applicable minimum initial service term is the term shown for the selected product and market in Bennie Studio's current commercial catalogue and order summary. That value is configurable by Bennie Studio administrators and is shown dynamically on this Terms page. The term recorded on an accepted order or proposal applies to that specific order. Fees are billed in advance for the selected period.
 
 Setup fees, custom work, domains, paid assets, third-party tools, premium plugins, ad spend, external subscriptions, migration, export, and custom integrations are separate unless clearly included in writing.
 
@@ -135,10 +135,10 @@ Search engines, competitors, algorithms, market demand, content quality, website
 
 We may refuse to publish or may keep in draft any location page, content, or claim that appears thin, duplicate, misleading, unsupported, spammy, unlawful, or likely to create risk.
 
-## 7. AI-Assisted Content
-AI tools can assist with headlines, service descriptions, FAQs, SEO titles, meta descriptions, CTAs, WhatsApp scripts, local SEO copy, and content ideas. AI output may be incomplete, inaccurate, generic, or unsuitable.
+## 7. Content Assistance and Review
+Bennie Studio may use internal software and assisted production tools to prepare draft headlines, service descriptions, FAQs, SEO titles, meta descriptions, CTAs, local SEO copy, and content ideas. Draft material can be incomplete, inaccurate, generic, or unsuitable.
 
-You must review all AI-assisted content before publishing. We do not provide legal, medical, financial, tax, investment, immigration, employment, regulatory, or professional advice through AI features.
+Bennie Studio performs a managed review before customer review, and you must still approve business claims, regulated information and final published content. We do not provide legal, medical, financial, tax, investment, immigration, employment, regulatory, or other professional advice through content tools.
 
 ## 8. Hosting, Domains, SSL, and Availability
 Hosting and SSL are included only while your subscription is active and your account is in good standing. We may suspend, restrict, or take offline websites for non-payment, cancellation, abuse, security risk, legal risk, or breach of these Terms.
@@ -155,7 +155,7 @@ The following may require a separate quote: custom design, custom code, new comp
 ## 10. Ownership, Licence, Export, and Termination
 You retain ownership of business content, logos, images, and materials you provide, subject to third-party rights.
 
-Bennie Studio retains ownership of its platform, codebase, templates, design systems, layouts, workflows, admin tools, AI prompts, generation logic, internal systems, and proprietary methods.
+Bennie Studio retains ownership of its platform, codebase, reusable design systems, layouts, workflows, admin tools, internal production systems, and proprietary methods.
 
 During an active subscription, you receive a limited, revocable, non-exclusive licence to use the website prepared for your business through our platform.
 

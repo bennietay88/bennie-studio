@@ -7,6 +7,14 @@ const sales = readFileSync("server/salesOperations.ts", "utf8");
 const prospects = readFileSync("src/components/SuperAdmin/ProspectExplorer.tsx", "utf8");
 const onboarding = readFileSync("src/components/SuperAdmin/ClientOnboarding.tsx", "utf8");
 const approvals = readFileSync("src/components/CustomerApprovals.tsx", "utf8");
+const pricing = readFileSync("src/components/Pricing.tsx", "utf8");
+const previewOrder = readFileSync("src/components/PreviewOrderPage.tsx", "utf8");
+const policies = readFileSync("src/components/Policies.tsx", "utf8");
+const proposals = readFileSync("src/components/PublicProposalPage.tsx", "utf8");
+const commercialCatalogue = readFileSync("src/components/SuperAdmin/CommercialCatalogue.tsx", "utf8");
+const prospectPreview = readFileSync("src/components/ProspectPreviewPage.tsx", "utf8");
+const checkoutStatus = readFileSync("src/components/CheckoutStatusPage.tsx", "utf8");
+const publicChrome = readFileSync("src/components/PublicSiteChrome.tsx", "utf8");
 
 test("prospect engagement API exposes messages and tasks", () => {
   assert.match(api, /\/api\/admin\/prospects\/:prospectId\/engagement/);
@@ -96,4 +104,37 @@ test("launch readiness covers the full commercial launch checklist", () => {
   assert.match(api, /Privacy page present/);
   assert.match(api, /Analytics\/tracking configured/);
   assert.match(api, /Publication status:/);
+});
+
+
+test("admin-configured commitment is authoritative across catalogue, terms and checkout", () => {
+  assert.match(api, /getMinimumTermMonths\(\{ minimumTermMonths: price\.minimum_term_months/);
+  assert.doesNotMatch(api, /\[3, 6, 9, 12\]/);
+  assert.match(prospects, /Defaults from Products & Pricing/);
+  assert.match(api, /currentPrice\.minimum_term_months/);
+  assert.match(commercialCatalogue, /source of truth used by public pricing, checkout, new proposals and the live Terms page/);
+  assert.match(pricing, /getMinimumTermMonths\(pendingPrice\)/);
+  assert.match(previewOrder, /getMinimumTermMonths\(price\)/);
+  assert.match(policies, /Current configured commitment/);
+  assert.doesNotMatch(proposals, /commitmentMonths \|\| 6/);
+});
+
+test("subscription checkout records explicit terms acceptance and business billing identity", () => {
+  assert.match(api, /termsAccepted: z\.literal\(true\)/);
+  assert.match(api, /billing_address_collection: "required"/);
+  assert.match(api, /tax_id_collection: \{ enabled: true \}/);
+  assert.match(api, /termsVersion: COMMERCIAL_TERMS_VERSION/);
+  assert.match(pricing, /I confirm this scope/);
+  assert.match(previewOrder, /I confirm this scope/);
+  assert.match(proposals, /I confirm the scope/);
+});
+
+test("customer confidence flow makes evidence and managed handoff explicit", () => {
+  assert.match(prospectPreview, /What we found/);
+  assert.match(prospectPreview, /What changes/);
+  assert.match(prospectPreview, /What stays grounded/);
+  assert.match(prospectPreview, /After subscription/);
+  assert.match(checkoutStatus, /Your managed project starts here/);
+  assert.match(publicChrome, /companyRegistrationNumber/);
+  assert.match(publicChrome, /businessAddress/);
 });

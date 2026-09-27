@@ -4,7 +4,7 @@ export const PUBLIC_PROMISE =
 export const SUPPORTING_POSITIONING = [
   "Done-for-you website service",
   "Professionally managed",
-  "No website builder to learn",
+  "Managed from business brief through launch",
   "Hosting and maintenance included",
   "Built around the customer's services, reviews and business information",
   "Progress tracking and update requests through the customer portal",

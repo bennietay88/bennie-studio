@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, isRecurringCheckoutEnabled, marketForCurrency, normalizeCommercialMarket } from "../src/lib/commercialPricing.ts";
+import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_FALLBACK_PRODUCTS, formatCommitmentLabel, getCommercialPrice, getMinimumTermMonths, isRecurringCheckoutEnabled, marketForCurrency, normalizeCommercialMarket } from "../src/lib/commercialPricing.ts";
 import { OWN_SALES_SEO_PAGES } from "../src/constants/ownSalesSeoPages.ts";
 import { getTemplateReadiness, NICHE_TEMPLATES } from "../src/constants/nicheTemplates.ts";
 import { REVIEW_POWERED_PLANS } from "../src/constants/reviewPoweredWaas.ts";
@@ -153,4 +153,13 @@ test("recommendation uses scope signals instead of keywords alone", () => {
   });
   assert.equal(integration.slug, "custom-website");
   assert.equal(integration.label, "Custom Website");
+});
+
+
+test("commercial commitment helpers use the configured market term", () => {
+  assert.equal(getMinimumTermMonths({ minimumTermMonths: 6 }), 6);
+  assert.equal(getMinimumTermMonths({ minimumTermMonths: 12 }), 12);
+  assert.equal(getMinimumTermMonths({ minimumTermMonths: undefined }), COMMERCIAL_DEFAULT_COMMITMENT_MONTHS);
+  assert.equal(formatCommitmentLabel(1), "1-month initial commitment");
+  assert.equal(formatCommitmentLabel(6), "6-month initial commitment");
 });

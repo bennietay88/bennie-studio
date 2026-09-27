@@ -13,7 +13,7 @@ export const PRIMARY_REVENUE_OFFER = {
   id: "website_growth_partner",
   planId: "website_growth_partner",
   name: "Growth Partner",
-  commitmentMonths: 6,
+  commitmentMonths: 3,
   description:
     "A consultant-led managed website service for service businesses that need a clearer enquiry journey and ongoing improvement after launch.",
   included: [
