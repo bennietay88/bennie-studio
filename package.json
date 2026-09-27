@@ -45,7 +45,8 @@
     "test:reviews": "node --import tsx --test tests/google-reviews.test.ts",
     "test:customer-loop": "node --import tsx --test tests/sales-customer-loop.test.ts tests/final-launch-crawler.test.ts",
     "e2e:commercial": "playwright test e2e/commercial-lifecycle.spec.ts --project=chromium-desktop",
-    "test:email-trace": "node --import tsx --test tests/email-trace.test.ts"
+    "test:email-trace": "node --import tsx --test tests/email-trace.test.ts",
+    "e2e:commercial:live": "node scripts/commercial-live-smoke.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

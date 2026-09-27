@@ -10785,7 +10785,7 @@ async function startServer() {
         pages,
         theme: website?.theme || {},
         seo,
-        maxResources: 36,
+        maxResources: 60,
         fetchResource: async (url, method) => {
           const { response, finalUrl } = await fetchAuditResource(url, method);
           const result = {
@@ -10811,6 +10811,8 @@ async function startServer() {
         { id: "buttons", label: "No broken website buttons/links", pass: brokenButtons === 0 && criticalBroken === 0 && liveCrawler.brokenLinks.length === 0, severity: "blocker" },
         { id: "images", label: "No broken images reported", pass: brokenImages === 0 && liveCrawler.brokenImages.length === 0, severity: "blocker" },
         { id: "fresh_crawl", label: `Fresh crawl: ${liveCrawler.pageCount} pages · ${liveCrawler.resourceCount} live targets checked`, pass: liveCrawler.pass, severity: "blocker" },
+        { id: "crawler_complete", label: liveCrawler.truncated ? `Crawler limit reached: ${liveCrawler.resourceCount}/${liveCrawler.discoveredResourceCount} targets verified` : `All ${liveCrawler.discoveredResourceCount} discovered targets verified`, pass: !liveCrawler.truncated, severity: "blocker" },
+        { id: "internal_navigation", label: liveCrawler.navigationIssues.length ? `${liveCrawler.navigationIssues.length} internal navigation target(s) are invalid` : "Internal page and section targets are valid", pass: liveCrawler.navigationIssues.length === 0, severity: "blocker" },
         { id: "crawler_review", label: liveCrawler.uncertainResources.length ? `${liveCrawler.uncertainResources.length} remote target(s) need manual review` : "All remote targets verified automatically", pass: liveCrawler.uncertainResources.length === 0, severity: "warning" },
         { id: "legal_privacy", label: "Privacy page present", pass: hasPrivacyPage, severity: "warning" },
         { id: "legal_terms", label: "Terms/legal page present", pass: hasTermsPage, severity: "warning" },

@@ -86,3 +86,46 @@ test("bot-gated resources are review warnings rather than false launch failures"
   assert.equal(result.pass, true);
   assert.equal(result.uncertainResources.length, 1);
 });
+
+
+test("final launch crawler blocks missing internal page targets", async () => {
+  const result = await runFinalLaunchCrawler({
+    pages: [{
+      title: "Home",
+      slug: "home",
+      sections: [{
+        id: "hero",
+        type: "hero",
+        isVisible: true,
+        content: {
+          primaryAction: { actionType: "internal_page", target: "/missing-page" },
+        },
+      }],
+    }],
+    fetchResource: async (url) => ({ status: 200, contentType: "text/html", finalUrl: url }),
+  });
+
+  assert.equal(result.pass, false);
+  assert.equal(result.navigationIssues.length, 1);
+});
+
+test("final launch crawler fails closed when resource verification is truncated", async () => {
+  const links = Array.from({ length: 4 }, (_, index) => ({
+    title: `Link ${index}`,
+    href: `https://example.test/resource-${index}`,
+  }));
+  const result = await runFinalLaunchCrawler({
+    pages: [{
+      title: "Home",
+      slug: "home",
+      sections: [{ id: "links", type: "links", isVisible: true, content: { items: links } }],
+    }],
+    maxResources: 2,
+    fetchResource: async (url) => ({ status: 200, contentType: "text/html", finalUrl: url }),
+  });
+
+  assert.equal(result.truncated, true);
+  assert.equal(result.pass, false);
+  assert.equal(result.discoveredResourceCount, 4);
+  assert.equal(result.resourceCount, 2);
+});

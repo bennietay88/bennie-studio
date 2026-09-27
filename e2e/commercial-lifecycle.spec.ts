@@ -217,6 +217,9 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
         resourceCount: 12,
         brokenResources: [],
         uncertainResources: [],
+        navigationIssues: [],
+        discoveredResourceCount: 12,
+        truncated: false,
       },
       checks: [
         {
@@ -249,6 +252,7 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   await page.getByRole("button", { name: "Launch QA" }).click();
   await expect(page.getByText("Ready for launch")).toBeVisible();
   await expect(page.getByText(/Fresh crawl: 5 pages/).first()).toBeVisible();
+  await expect(page.getByText(/12\/12 targets/).first()).toBeVisible();
 });
 
 test("invited customer email is prefilled and client can approve", async ({ page }, testInfo) => {

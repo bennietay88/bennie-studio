@@ -510,9 +510,14 @@ export function ClientOnboarding() {
                              Live health: {qa.health?.reachable ? `online · ${qa.health.httpStatus} · ${qa.health.latencyMs}ms` : qa.reachable ? `responding · ${qa.httpStatus || "HTTP"}` : "not confirmed"}
                            </p>
                            {qa.crawler && (
-                             <p className="mt-1 text-xs font-semibold text-slate-600">
-                               Fresh crawl: {qa.crawler.pageCount || 0} pages · {qa.crawler.resourceCount || 0} live targets · {qa.crawler.brokenResources?.length || 0} broken
-                             </p>
+                             <>
+                               <p className="mt-1 text-xs font-semibold text-slate-600">
+                                 Fresh crawl: {qa.crawler.pageCount || 0} pages · {qa.crawler.resourceCount || 0}/{qa.crawler.discoveredResourceCount || qa.crawler.resourceCount || 0} targets · {qa.crawler.brokenResources?.length || 0} broken · {qa.crawler.navigationIssues?.length || 0} navigation issue(s)
+                               </p>
+                               {qa.crawler.truncated && (
+                                 <p className="mt-1 text-xs font-bold text-rose-600">Launch blocked: crawler did not verify every discovered target.</p>
+                               )}
+                             </>
                            )}
                          </div>
                          {qa.publicUrl && (

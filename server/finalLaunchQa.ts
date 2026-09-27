@@ -25,7 +25,19 @@ type LaunchCrawlerInput = {
   fetchResource: (url: string, method: "HEAD" | "GET") => Promise<LaunchFetchResult>;
 };
 
+type NavigationIssue = {
+  path: string;
+  actionType: string;
+  target: string;
+  note: string;
+};
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizePageSlug(value: unknown, fallback = "home") {
+  const slug = String(value || "").trim().replace(/^\/+|\/+$/g, "").toLowerCase();
+  return slug || fallback;
+}
 
 function classifyResource(path: string, raw: string): LaunchResourceKind {
   const lowerPath = path.toLowerCase();
@@ -62,10 +74,9 @@ function collectResources(
 function checkPages(pages: any[]) {
   const seen = new Set<string>();
   return pages.map((page, index) => {
-    const slug = String(page?.slug || (index === 0 ? "home" : "")).trim() || `page-${index + 1}`;
-    const normalizedSlug = slug.toLowerCase();
-    const duplicateSlug = seen.has(normalizedSlug);
-    seen.add(normalizedSlug);
+    const slug = normalizePageSlug(page?.slug, index === 0 ? "home" : `page-${index + 1}`);
+    const duplicateSlug = seen.has(slug);
+    seen.add(slug);
     const visibleSections = Array.isArray(page?.sections)
       ? page.sections.filter((section: any) => section?.isVisible !== false)
       : [];
@@ -84,6 +95,64 @@ function checkPages(pages: any[]) {
       issues,
     };
   });
+}
+
+function checkNavigationTargets(pages: any[]): NavigationIssue[] {
+  const pageSlugs = new Set(
+    pages.map((page, index) => normalizePageSlug(page?.slug, index === 0 ? "home" : `page-${index + 1}`)),
+  );
+  const visibleSectionIds = new Set<string>();
+  pages.forEach((page) => {
+    (Array.isArray(page?.sections) ? page.sections : [])
+      .filter((section: any) => section?.isVisible !== false)
+      .forEach((section: any) => {
+        const id = String(section?.id || "").trim().replace(/^#/, "").toLowerCase();
+        if (id) visibleSectionIds.add(id);
+        const type = String(section?.type || "").trim().toLowerCase();
+        if (type) visibleSectionIds.add(type);
+      });
+  });
+
+  const issues: NavigationIssue[] = [];
+  const walk = (value: unknown, path: string) => {
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => walk(item, `${path}[${index}]`));
+      return;
+    }
+    if (!value || typeof value !== "object") return;
+    const record = value as Record<string, unknown>;
+    const actionType = String(record.actionType || "").trim().toLowerCase();
+    const target = String(record.target || "").trim();
+
+    if (actionType === "internal_page") {
+      const slug = normalizePageSlug(target, "home");
+      if (!pageSlugs.has(slug)) {
+        issues.push({
+          path,
+          actionType,
+          target,
+          note: `Internal page target "${target || "home"}" does not exist.`,
+        });
+      }
+    }
+
+    if (actionType === "section_anchor") {
+      const anchor = target.replace(/^#/, "").trim().toLowerCase();
+      if (!anchor || !visibleSectionIds.has(anchor)) {
+        issues.push({
+          path,
+          actionType,
+          target,
+          note: `Section target "${target || "(empty)"}" does not exist.`,
+        });
+      }
+    }
+
+    Object.entries(record).forEach(([key, item]) => walk(item, path ? `${path}.${key}` : key));
+  };
+
+  walk(pages, "pages");
+  return issues;
 }
 
 async function validateResource(
@@ -163,6 +232,7 @@ async function validateResource(
 export async function runFinalLaunchCrawler(input: LaunchCrawlerInput) {
   const pages = Array.isArray(input.pages) ? input.pages : [];
   const pagesChecked = checkPages(pages);
+  const navigationIssues = checkNavigationTargets(pages);
   const discovered: Array<{ url: string; path: string; kind: LaunchResourceKind }> = [];
 
   collectResources(pages, "pages", discovered);
@@ -175,9 +245,10 @@ export async function runFinalLaunchCrawler(input: LaunchCrawlerInput) {
     if (!unique.has(key)) unique.set(key, resource);
   }
 
-  const maxResources = Math.max(1, Math.min(60, Number(input.maxResources || 36)));
+  const maxResources = Math.max(1, Math.min(120, Number(input.maxResources || 60)));
   const allResources = [...unique.values()];
   const selected = allResources.slice(0, maxResources);
+  const truncated = allResources.length > selected.length;
   const resources = await Promise.all(
     selected.map((resource) => validateResource(resource, input.fetchResource)),
   );
@@ -191,16 +262,20 @@ export async function runFinalLaunchCrawler(input: LaunchCrawlerInput) {
   const pass =
     pages.length > 0 &&
     pagesChecked.every((page) => page.pass) &&
-    brokenResources.length === 0;
+    navigationIssues.length === 0 &&
+    brokenResources.length === 0 &&
+    !truncated;
 
   return {
     pass,
     checkedAt: new Date().toISOString(),
     pageCount: pages.length,
     pages: pagesChecked,
+    navigationIssues,
     resourceCount: resources.length,
     discoveredResourceCount: allResources.length,
-    truncated: allResources.length > selected.length,
+    truncated,
+    resourceLimit: maxResources,
     resources,
     brokenResources,
     brokenLinks,
