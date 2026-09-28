@@ -1842,6 +1842,18 @@ function GeneratePreviewPage() {
         yearsInBusiness?: string;
         guarantees?: string[];
         primaryCta?: string;
+        people?: Array<{ name: string; role?: string; bio?: string; imageUrl?: string }>;
+        historyItems?: string[];
+        pressItems?: string[];
+        imageCandidates?: string[];
+        businessDNA?: {
+          humanLed?: boolean;
+          heritageRich?: boolean;
+          proofRich?: boolean;
+          imageRich?: boolean;
+          identityScore?: number;
+          typographyStyle?: "heritage" | "humanist" | "modern";
+        };
       };
 
       const resolvedBusinessName = String(profile.businessName || form.businessName || "Your Business").trim();
@@ -1915,6 +1927,18 @@ function GeneratePreviewPage() {
         industryId: resolvedIndustryId,
         service: resolvedMainService,
       });
+      const sourcePeople = previewMode === "website" && Array.isArray(profile.people)
+        ? profile.people.filter((person) => person?.name).slice(0, 6)
+        : [];
+      const sourceImages = previewMode === "website" && Array.isArray(profile.imageCandidates)
+        ? profile.imageCandidates.filter(Boolean)
+        : [];
+      const sourceHeroImage = previewMode === "website"
+        ? (profile.heroImage || sourceImages[0] || previewStockImage)
+        : previewStockImage;
+      const sourceStoryImage = previewMode === "website"
+        ? (profile.secondaryImage || sourcePeople.find((person) => person.imageUrl)?.imageUrl || sourceImages.find((url) => url !== sourceHeroImage) || "")
+        : previewStockImage;
 
       const blueprintInput: BlueprintBusinessInput = {
         businessName: resolvedBusinessName,
@@ -1955,14 +1979,18 @@ function GeneratePreviewPage() {
           ? profile.faqItems
           : undefined,
         testimonials: previewTestimonials,
+        teamMembers: sourcePeople,
+        historyItems: previewMode === "website" && Array.isArray(profile.historyItems) ? profile.historyItems : undefined,
+        pressItems: previewMode === "website" && Array.isArray(profile.pressItems) ? profile.pressItems : undefined,
+        businessDNA: previewMode === "website" ? profile.businessDNA : undefined,
         generationMode: resolvedGenerationMode,
         brandPersonality: resolvedBrandPersonality,
         businessMaturity: resolvedBusinessMaturity,
-        assetReadiness: "some",
-        heroImageUrl: previewMode === "website" ? profile.heroImage || previewStockImage : previewStockImage,
-        heroFallbackImageUrl: previewStockImage,
-        storyImageUrl: previewMode === "website" ? profile.secondaryImage || previewStockImage : previewStockImage,
-        storyFallbackImageUrl: previewStockImage,
+        assetReadiness: previewMode === "website" && profile.businessDNA?.imageRich ? "professional" : "some",
+        heroImageUrl: sourceHeroImage,
+        heroFallbackImageUrl: previewMode === "website" ? undefined : previewStockImage,
+        storyImageUrl: sourceStoryImage || undefined,
+        storyFallbackImageUrl: previewMode === "website" ? undefined : previewStockImage,
         heroHeadline: previewMode === "website" ? profile.heroHeadline || undefined : undefined,
         heroSubheadline: previewMode === "website" ? profile.heroSubheadline || undefined : undefined,
         heroTrustItems: previewMode === "website"
@@ -1981,10 +2009,30 @@ function GeneratePreviewPage() {
         assetReadiness: "some",
       });
       const customBrandColours = form.brandColorMode === "custom";
+      const sourceTypographyStyle = previewMode === "website" ? profile.businessDNA?.typographyStyle : undefined;
+      const sourceTypography =
+        sourceTypographyStyle === "heritage"
+          ? { displayFont: "'Source Serif 4', serif", bodyFont: "'Source Sans 3', sans-serif", fontFamily: "'Source Sans 3', sans-serif" }
+          : sourceTypographyStyle === "humanist"
+            ? { displayFont: "Fraunces, serif", bodyFont: "'Source Sans 3', sans-serif", fontFamily: "'Source Sans 3', sans-serif" }
+            : {};
       const previewTheme: Website["theme"] = {
         ...basePreviewTheme,
+        ...sourceTypography,
         previewPurpose: salesMode ? "sales_preview" : "generated_preview",
         sourceDriven: previewMode === "website",
+        ...(previewMode === "website" ? {
+          sourceIdentity: {
+            peopleCount: sourcePeople.length,
+            historyCount: Array.isArray(profile.historyItems) ? profile.historyItems.length : 0,
+            pressCount: Array.isArray(profile.pressItems) ? profile.pressItems.length : 0,
+            testimonialCount: previewTestimonials.length,
+            realImageCount: sourceImages.length,
+            hasLogo: Boolean(profile.logoUrl),
+            identityScore: Number(profile.businessDNA?.identityScore || 0),
+            typographyStyle: profile.businessDNA?.typographyStyle || "modern",
+          },
+        } : {}),
         ...(customBrandColours
           ? {
               primaryColor: form.brandPrimaryColor,
@@ -2022,10 +2070,11 @@ function GeneratePreviewPage() {
         const quality = evaluateGeneratedDesign(website);
         const rank =
           quality.score +
-          quality.metrics.visualVariety * 0.25 +
+          quality.metrics.visualVariety * 0.2 +
           quality.metrics.hierarchy * 0.15 +
-          quality.metrics.conversionClarity * 0.15 -
-          quality.metrics.aiTemplateRisk * 0.4;
+          quality.metrics.conversionClarity * 0.15 +
+          quality.metrics.identityPreservation * 0.35 -
+          quality.metrics.aiTemplateRisk * 0.45;
         return { website, quality, rank };
       });
       const selectedPreview = previewCandidates.sort((a, b) => b.rank - a.rank)[0];
@@ -2035,6 +2084,10 @@ function GeneratePreviewPage() {
           "source_preview_availability",
           "source_preview_contact",
           "source_preview_hero",
+          "source_identity_people",
+          "source_identity_testimonials",
+          "source_identity_heritage",
+          "source_identity_logo",
           "placeholders",
           "proof_integrity",
         ]);
