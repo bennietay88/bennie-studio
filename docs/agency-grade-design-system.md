@@ -6,6 +6,20 @@ This document defines the premium design and motion standard for Bennie Studio m
 
 Every generated or managed website should feel intentionally art-directed, not template-produced. The visual target is the level of polish a small specialist agency might sell as a premium custom build, while preserving conversion clarity, accessibility, and performance.
 
+## Redesign standard
+
+Existing-site previews are redesigns, not template substitutions. The source website is both the evidence base and the quality baseline.
+
+A redesign must:
+- remain recognisably the same business while materially improving hierarchy, readability, mobile usability and conversion clarity;
+- preserve meaningful people, customer proof, history, press, logo, brand colour, useful service depth and FAQs when the source provides them;
+- prefer real source imagery to stock or decorative imagery;
+- adapt typography to the business character instead of forcing a universal geometric-sans look;
+- translate internal content semantics into natural business language;
+- fail prospect-preview QA when important source identity is lost.
+
+The desired prospect reaction is: **"This is us, but much better."**
+
 ## Core rules
 
 1. **Art direction before animation**
