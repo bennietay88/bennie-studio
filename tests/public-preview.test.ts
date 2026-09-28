@@ -255,6 +255,27 @@ test("public preview decodes numeric entities and extracts human business DNA", 
 });
 
 
+test("public preview recovers a practitioner from legacy page context", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <html><head><title>Legacy Podiatry Practice</title></head><body>
+        <h1>Specialist Podiatry Care</h1>
+        <section>
+          <img src="/ty.jpg" width="480" height="600" alt="">
+          <h2>First Podiatrist in Singapore</h2>
+          <p>Ty has a deep well of experience in all areas of podiatric practice and has treated patients for many years.</p>
+        </section>
+      </body></html>
+    `,
+    finalUrl: "https://legacy-podiatry.example/",
+  });
+
+  assert.ok(profile.people.some((person) => person.name === "Ty"));
+  assert.ok(profile.people.some((person) => /Podiatrist/i.test(person.role || "")));
+  assert.equal(profile.businessDNA.humanLed, true);
+});
+
+
 test("public preview prefers an actual hero image over generic social imagery", () => {
   const profile = buildPublicPreviewProfile({
     html: `
