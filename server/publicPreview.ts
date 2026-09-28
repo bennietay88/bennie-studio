@@ -284,6 +284,47 @@ const extractPeople = (objects: any[], html: string, baseUrl: string) => {
     });
   }
 
+  // Older small-business sites often have weak image alt text and no Person
+  // schema. Recover a practitioner/founder only when nearby copy provides a
+  // strong role signal and a plausible human name.
+  for (const match of html.matchAll(/<img\b([^>]+)>/gi)) {
+    const attrs = String(match[1] || "");
+    const src = /\b(?:src|data-src|data-lazy-src)=["']([^"']+)["']/i.exec(attrs)?.[1] || "";
+    const imageUrl = absoluteUrl(src, baseUrl);
+    if (!imageUrl || /(?:logo|icon|badge|sprite|favicon)/i.test(attrs)) continue;
+
+    const position = match.index || 0;
+    const nearbyHtml = html.slice(Math.max(0, position - 1200), Math.min(html.length, position + match[0].length + 1800));
+    const nearbyText = text(nearbyHtml);
+    const roleMatch = /\b(podiatrist|doctor|dentist|therapist|physiotherapist|chiropractor|founder|owner|director|principal|consultant|surgeon)\b/i.exec(nearbyText);
+    if (!roleMatch) continue;
+
+    const alt = text(/\balt=["']([^"']+)["']/i.exec(attrs)?.[1] || "");
+    const headingCandidates = [...nearbyHtml.matchAll(/<(?:h2|h3|h4|strong)\b[^>]*>([\s\S]*?)<\/(?:h2|h3|h4|strong)>/gi)]
+      .map((candidate) => text(candidate[1]))
+      .filter(Boolean);
+    const sentenceName = /\b(?:Mr\.?|Ms\.?|Mrs\.?|Dr\.?)?\s*([A-Z][a-z]{1,24}(?:\s+[A-Z][a-z]{1,24}){0,3})\s+(?:has|is)\s+[^.!?]{0,150}\b(?:podiatr|doctor|dentist|therap|founder|owner|director|principal|consult)/i.exec(nearbyText);
+    const rawCandidates = [
+      alt,
+      ...headingCandidates,
+      sentenceName ? sentenceName[0].replace(/\s+(?:has|is)\s+[\s\S]*$/i, "") : "",
+    ].filter(Boolean);
+    const candidate = rawCandidates
+      .map((value) => normalizePersonName(value))
+      .find((value) =>
+        value
+        && value.split(/\s+/).length <= 5
+        && !/\b(?:clinic|centre|center|practice|services?|care|team|staff|first|professional|podiatrist|doctor|dentist|therapist|founder|owner|director|principal|consultant|singapore|malaysia)\b/i.test(value)
+      );
+    if (!candidate) continue;
+
+    people.push({
+      name: candidate,
+      role: roleMatch[1].replace(/^./, (char) => char.toUpperCase()),
+      imageUrl,
+    });
+  }
+
   const seen = new Set<string>();
   return people.filter((person) => {
     const key = person.name.toLowerCase();
