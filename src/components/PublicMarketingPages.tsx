@@ -3546,6 +3546,17 @@ export default function PublicMarketingPages() {
   const meta = pageMeta[pageKind] || pageMeta.templates;
   const nichePage = nichePages[pageKind as keyof typeof nichePages];
 
+  const finalCta = ({
+    services: ["Let's build a website that moves your business forward.", "A clear website, human guidance and a managed path from strategy to launch."],
+    about: ["Your better website starts here.", "See how Bennie Studio would translate your business into a clearer, more credible website direction."],
+    resources: ["Turn insights into results.", "Apply the ideas to your own business with a tailored website preview."],
+    contact: ["Let's build something great.", "Start with a call or a project brief and get a clear next step."],
+    pricing: ["Let's build a website that grows your business.", "Choose the right scope after you have seen what a stronger direction can look like."],
+    "how-it-works": ["Let's build a website that moves your business forward.", "A clear process, expert guidance and a reviewed launch."],
+    "case-studies": ["Let's build a website that works for you.", "Modern design, better structure and a direction grounded in the business."],
+    "generate-preview": ["See your website before you commit.", "Complete the brief, review the direction and decide what you want to do next."],
+  } as Record<string, [string, string]>)[pageKind] || ["See it applied to your business.", "Generate a real website direction first, then decide the right next step."];
+
   const pageContent =
     nichePage
       ? <NicheLandingPage page={nichePage} />
@@ -3580,17 +3591,17 @@ export default function PublicMarketingPages() {
       </Helmet>
       <PublicSiteHeader />
       {pageContent}
-      <section className="brand-grid-bg relative overflow-hidden border-t border-white/10 bg-[#5746e8] text-white">
+      <section className="brand-grid-bg relative overflow-hidden border-t border-white/10 bg-[#6252f4] text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-        <div className="brand-shell relative grid gap-8 py-16 md:grid-cols-[1fr_auto] md:items-center">
+        <div className="brand-shell relative grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.1em] !text-white/65">Next step</p>
-            <h2 className="mt-3 max-w-2xl !text-white">See it applied to your business.</h2>
-            <p className="mt-4 max-w-2xl text-base !text-white/75">Generate a real website direction first. Use the 30-minute review when you want help confirming scope and fit.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.1em] !text-white/65">Ready to get started?</p>
+            <h2 className="mt-3 max-w-3xl !text-white">{finalCta[0]}</h2>
+            <p className="mt-4 max-w-2xl text-base !text-white/75">{finalCta[1]}</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-            <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#ece9ff]">Generate free preview <ArrowRight className="ml-2 h-4 w-4" /></Button>
-            <Button onClick={() => navigate("/book-demo")} variant="outline" className="min-h-12 border-white/30 bg-white/[0.04] px-6 font-semibold text-white hover:bg-white/10 hover:text-white">Book 30-minute review</Button>
+            <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#ece9ff]">Start your website <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Button onClick={() => navigate("/book-demo")} variant="outline" className="min-h-12 border-white/30 bg-white/[0.04] px-6 font-semibold text-white hover:bg-white/10 hover:text-white">Book a free review</Button>
           </div>
         </div>
       </section>
