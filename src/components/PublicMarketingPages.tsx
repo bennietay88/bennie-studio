@@ -2080,7 +2080,8 @@ function GeneratePreviewPage() {
           quality.metrics.visualVariety * 0.2 +
           quality.metrics.hierarchy * 0.15 +
           quality.metrics.conversionClarity * 0.15 +
-          quality.metrics.identityPreservation * 0.35 -
+          quality.metrics.identityPreservation * 0.3 +
+          quality.metrics.redesignAdvantage * 0.25 -
           quality.metrics.aiTemplateRisk * 0.45;
         return { website, quality, rank };
       });
@@ -2095,6 +2096,7 @@ function GeneratePreviewPage() {
           "source_identity_testimonials",
           "source_identity_heritage",
           "source_identity_logo",
+          "source_redesign_advantage",
           "placeholders",
           "proof_integrity",
         ]);
