@@ -465,7 +465,7 @@ export default function App() {
               <Route path="/website-design/*" element={<Navigate to="/website-subscription-service" replace />} />
               <Route path="/website-subscription-service" element={<OwnSalesSeoPage />} />
               <Route path="/website-subscription-service/:market" element={<Navigate to="/website-subscription-service" replace />} />
-              <Route path="/portfolio" element={<PortfolioPage />} />
+              <Route path="/portfolio" element={<Navigate to="/case-studies" replace />} />
               <Route path="/services" element={<PublicMarketingPages />} />
               <Route path="/about" element={<PublicMarketingPages />} />
               <Route path="/resources" element={<PublicMarketingPages />} />
