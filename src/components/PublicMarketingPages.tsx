@@ -1821,6 +1821,16 @@ function GeneratePreviewPage() {
         });
         intake = await intakeResponse.json().catch(() => null);
         if (!intakeResponse.ok || !intake?.profile) {
+          const canContinueWithBusinessDetails =
+            previewMode === "website"
+            && intakeResponse.status === 422
+            && intake?.fallbackMode === "business";
+          if (canContinueWithBusinessDetails) {
+            setPreviewMode("business");
+            setForm((current) => ({ ...current, websiteStatus: "no" }));
+            setError("We could not read that website. Continue with the business details below to build the preview.");
+            return;
+          }
           throw new Error(intake?.error || "We could not prepare that preview. Try business information instead.");
         }
       }
@@ -2393,6 +2403,7 @@ function GeneratePreviewPage() {
                     type="button"
                     onClick={() => {
                       setPreviewMode("website");
+                      setError("");
                       setForm((current) => ({ ...current, websiteStatus: "yes" }));
                       setGenerated(false);
                       setGeneratedWebsite(null);
@@ -2408,6 +2419,7 @@ function GeneratePreviewPage() {
                     type="button"
                     onClick={() => {
                       setPreviewMode("business");
+                      setError("");
                       setForm((current) => ({ ...current, websiteStatus: "no" }));
                       setGenerated(false);
                       setGeneratedWebsite(null);
@@ -2710,7 +2722,7 @@ function GeneratePreviewPage() {
 
                 <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
                   <Button type="submit" disabled={generating} className="min-h-14 rounded-xl bg-[#6758ff] px-7 text-base font-bold text-white shadow-[0_18px_35px_-22px_rgba(103,88,255,.85)] hover:bg-[#7a6cff]">
-                    {generating ? "Building your website preview..." : previewMode === "website" ? "Build preview from my URL" : "Build my free website preview"} <ArrowRight className="ml-2 h-4 w-4" />
+                    {generating ? "Building your website preview..." : previewMode === "website" ? "Build preview from my URL" : "Build preview from business details"} <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   <p className="max-w-md text-xs leading-5 text-slate-400">No card required. Your details are used to prepare and follow up on the preview. Nothing is published without your approval.</p>
                 </div>

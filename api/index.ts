@@ -3727,7 +3727,10 @@ async function startServer() {
         if (code === "PRIVATE_AUDIT_URL") return res.status(422).json({ error: "Private or local URLs cannot be previewed." });
         if (code === "INVALID_AUDIT_URL") return res.status(422).json({ error: "Enter a valid public website URL." });
         console.warn("[PublicPreviewIntake]", code || error);
-        return res.status(422).json({ error: "We could not read that website. You can still build a preview from business details." });
+        return res.status(422).json({
+          error: "We could not read that website. You can still build a preview from business details.",
+          fallbackMode: "business",
+        });
       }
     },
   );
