@@ -536,7 +536,7 @@ function Hero({
   primaryHref = "/generate-preview",
   secondaryLabel,
   secondaryHref,
-  imageSrc = "/images/bennie-studio-hero.webp",
+  imageSrc = "/images/studio-hero-v2.png",
 }: {
   title: string;
   copy: string;
@@ -604,7 +604,7 @@ function ServicesPage() {
         primaryHref="/generate-preview"
         secondaryLabel="View the work"
         secondaryHref="/case-studies"
-        imageSrc="/images/bennie-studio-system.webp"
+        imageSrc="/images/studio-process-v2.png"
       />
 
       <section className="brand-shell brand-section">
@@ -616,7 +616,7 @@ function ServicesPage() {
             <Link to="/generate-preview" className={`${primaryCtaClass} mt-7`}>Start your website <ArrowRight className="ml-2 h-4 w-4" /></Link>
           </div>
           <div className="bt-premium-card overflow-hidden bg-[#0b1020] p-3 lg:col-span-7">
-            <img src="/images/bennie-studio-system.webp" alt="Bennie Studio website strategy and design system" className="aspect-[16/10] w-full rounded-[1rem] object-cover" loading="lazy" decoding="async" />
+            <img src="/images/studio-process-v2.png" alt="Bennie Studio website strategy and design system" className="aspect-[16/10] w-full rounded-[1rem] object-cover" loading="lazy" decoding="async" />
           </div>
         </div>
       </section>
@@ -698,7 +698,7 @@ function AboutPage() {
         primaryHref="/generate-preview"
         secondaryLabel="See how it works"
         secondaryHref="/how-it-works"
-        imageSrc="/images/bennie-studio-system.webp"
+        imageSrc="/images/studio-process-v2.png"
       />
 
       <section className="brand-shell brand-section">
@@ -709,7 +709,7 @@ function AboutPage() {
             <p className="brand-copy mt-6">The goal is not to produce more pages. It is to make good businesses easier to understand, easier to trust and easier to contact. Strategy, design and technology are useful only when they serve that goal.</p>
           </div>
           <div className="bt-premium-card overflow-hidden p-3 lg:col-span-7">
-            <img src="/images/bennie-studio-system.webp" alt="Bennie Studio reviewing a website direction" className="aspect-[16/10] w-full rounded-[1rem] object-cover" loading="lazy" decoding="async" />
+            <img src="/images/studio-process-v2.png" alt="Bennie Studio reviewing a website direction" className="aspect-[16/10] w-full rounded-[1rem] object-cover" loading="lazy" decoding="async" />
           </div>
         </div>
       </section>
@@ -778,7 +778,7 @@ function ResourcesPage() {
         primaryHref="/website-audit"
         secondaryLabel="Generate a preview"
         secondaryHref="/generate-preview"
-        imageSrc="/images/bennie-studio-work.webp"
+        imageSrc="/images/studio-work-v2.png"
       />
 
       <section className="brand-shell brand-section">
@@ -973,7 +973,7 @@ function HowItWorksPage() {
         title="From brief to launch, without the chaos."
         copy="A clear process takes you from business brief to strategy, design, human review, customer approval, launch and ongoing support — with one managed workflow."
         icon={Rocket}
-        imageSrc="/images/bennie-studio-system.webp"
+        imageSrc="/images/studio-process-v2.png"
       />
       <section className="brand-shell brand-section">
         <div className="grid gap-10 lg:grid-cols-12">
@@ -1130,7 +1130,7 @@ function CaseStudiesPage() {
         title="Work that shows how different businesses need different websites."
         copy="Explore demonstration builds and verified customer proof where approved evidence is available. The goal is to show structure, messaging, visual direction and enquiry flow without inventing results."
         icon={Sparkles}
-        imageSrc="/images/bennie-studio-work.webp"
+        imageSrc="/images/studio-work-v2.png"
       />
 
       {verifiedProof.length ? (
@@ -2351,10 +2351,10 @@ function GeneratePreviewPage() {
             <div className="bs3-device-wrap">
               <div className="bs3-laptop">
                 <div className="bs3-browser-dots"><span /><span /><span /></div>
-                <img src="/images/bennie-studio-hero.webp" alt="" loading="eager" decoding="async" />
+                <img src="/images/studio-hero-v2.png" alt="" loading="eager" decoding="async" />
                 <div className="bs3-screen-label">Personalised website direction</div>
               </div>
-              <div className="bs3-phone" aria-hidden="true"><div className="bs3-phone-notch" /><img src="/images/bennie-studio-hero.webp" alt="" /></div>
+              <div className="bs3-phone" aria-hidden="true"><div className="bs3-phone-notch" /><img src="/images/studio-hero-v2.png" alt="" /></div>
             </div>
             <p className="absolute right-3 top-1 hidden rotate-[-6deg] text-sm font-semibold italic text-[#c9c4ff] lg:block">Your preview<br/>in minutes ↙</p>
           </div>
@@ -2724,7 +2724,7 @@ function GeneratePreviewPage() {
                   <div><p className="text-sm font-bold text-[#172033]">Your website preview</p><p className="mt-1 text-xs text-[#657186]">Based on your answers, we create a tailored direction.</p></div>
                 </div>
                 <div className="mt-5 overflow-hidden rounded-xl border border-[#e5e8ef] bg-[#0b1020] p-2">
-                  <img src="/images/bennie-studio-hero.webp" alt="" className="aspect-[16/10] w-full rounded-lg object-cover" />
+                  <img src="/images/studio-insights-v2.png" alt="" className="aspect-[16/10] w-full rounded-lg object-cover" />
                 </div>
                 <div className="mt-5 space-y-4">
                   {[
@@ -2800,7 +2800,7 @@ function GeneratePreviewPage() {
       <section className="bs3-dark">
         <div className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center">
           <div className="lg:col-span-5"><p className="brand-kicker !text-[#9f93ff]">Built around real people</p><h2 className="mt-4 !text-white">A human-guided process, from start to finish.</h2><p className="mt-5 text-base leading-8 text-white/62">The system helps prepare the direction. A real person still reviews the business context, design quality and next-step logic before launch.</p><Link to="/how-it-works" className={`${primaryCtaClass} mt-7`}>See how it works<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
-          <div className="lg:col-span-7"><div className="bs3-image-card !border-white/10"><img src="/images/bennie-studio-system.webp" alt="Bennie Studio human website review process" /><span className="bs3-float-card right-[8%] top-[15%]">Designed around your business.</span></div></div>
+          <div className="lg:col-span-7"><div className="bs3-image-card !border-white/10"><img src="/images/studio-process-v2.png" alt="Bennie Studio human website review process" /><span className="bs3-float-card right-[8%] top-[15%]">Designed around your business.</span></div></div>
         </div>
       </section>
 
