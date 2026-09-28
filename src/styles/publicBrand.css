@@ -888,3 +888,193 @@
     transition-delay: 0ms !important;
   }
 }
+
+
+/* Bennie Studio public redesign v2 */
+.brand-public {
+  --brand-ink: #0c1324;
+  --brand-muted: #5f6b7d;
+  --brand-soft: #6f7888;
+  --brand-line: #e5e8ef;
+  --brand-paper: #f7f8fb;
+  --brand-white: #ffffff;
+  --brand-accent: #6252f4;
+  --brand-accent-2: #8d7bff;
+  --brand-accent-soft: #f0eeff;
+  --brand-dark: #08101f;
+  background:
+    radial-gradient(circle at 80% 0%, rgba(98,82,244,.06), transparent 28rem),
+    #f7f8fb;
+  font-size: 17px;
+  line-height: 1.68;
+}
+
+.brand-public h1,
+.brand-public h2,
+.brand-public h3 {
+  letter-spacing: -.04em !important;
+}
+
+.brand-public h1 {
+  max-width: 15ch;
+  font-size: clamp(3rem, 6.4vw, 5.75rem) !important;
+  line-height: .96 !important;
+}
+
+.brand-public h2 {
+  font-size: clamp(2.2rem, 4vw, 4rem) !important;
+  line-height: 1 !important;
+}
+
+.brand-public h3 {
+  font-size: clamp(1.25rem, 1.8vw, 1.7rem) !important;
+  line-height: 1.18 !important;
+}
+
+.brand-public .brand-shell {
+  width: min(calc(100% - 2.25rem), 84rem);
+}
+
+.brand-public .brand-section {
+  padding-block: clamp(5.25rem, 8vw, 8rem);
+}
+
+.brand-public .brand-kicker {
+  font-size: .72rem;
+  font-weight: 720;
+  letter-spacing: .13em !important;
+}
+
+.brand-public .brand-copy {
+  max-width: 42rem;
+  color: #657186;
+  font-size: clamp(1.03rem, 1.2vw, 1.16rem);
+  line-height: 1.75;
+}
+
+.brand-public .brand-on-dark {
+  background:
+    radial-gradient(circle at 85% 15%, rgba(99,82,244,.28), transparent 28rem),
+    radial-gradient(circle at 15% 80%, rgba(47,63,120,.18), transparent 25rem),
+    #08101f;
+}
+
+.brand-public .brand-grid-bg {
+  background-image:
+    linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.brand-public .brand-elevated,
+.brand-public .brand-browser-frame {
+  border-radius: 1.35rem;
+  box-shadow: 0 40px 110px -60px rgba(9,16,31,.72);
+}
+
+.brand-public button,
+.brand-public [role="button"],
+.brand-public a[class*="inline-flex"] {
+  border-radius: .8rem !important;
+  font-weight: 650;
+}
+
+.brand-public .rounded-3xl,
+.brand-public .rounded-2xl,
+.brand-public [class*="rounded-[2rem]"],
+.brand-public [class*="rounded-[1.75rem]"],
+.brand-public [class*="rounded-[1.5rem]"] {
+  border-radius: 1.25rem !important;
+}
+
+.brand-public .shadow-sm,
+.brand-public .shadow-lg,
+.brand-public .shadow-xl,
+.brand-public .shadow-2xl {
+  box-shadow: 0 28px 80px -55px rgba(15,23,42,.58) !important;
+}
+
+.brand-public details {
+  background: rgba(255,255,255,.7);
+}
+
+.brand-public details summary {
+  min-height: 3.5rem;
+}
+
+.brand-public .bt-premium-card {
+  border: 1px solid #e4e7ee;
+  border-radius: 1.25rem;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 28px 70px -55px rgba(15,23,42,.6);
+}
+
+.brand-public .bt-premium-card-dark {
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 1.25rem;
+  background: rgba(255,255,255,.045);
+  box-shadow: 0 28px 70px -55px rgba(0,0,0,.78);
+}
+
+.brand-public .bt-section-soft {
+  background:
+    radial-gradient(circle at 85% 0%, rgba(98,82,244,.08), transparent 24rem),
+    linear-gradient(180deg, #fbfbfe 0%, #f4f3ff 100%);
+}
+
+.brand-public .bt-gradient-title {
+  background: linear-gradient(90deg, #ffffff 0%, #c8c1ff 46%, #7f6cff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+}
+
+.brand-public .bt-hero-glow {
+  position: absolute;
+  width: 38rem;
+  height: 38rem;
+  border-radius: 999px;
+  background: rgba(99,82,244,.22);
+  filter: blur(90px);
+  pointer-events: none;
+}
+
+.brand-public .bt-stat {
+  border-left: 1px solid rgba(255,255,255,.14);
+  padding-left: 1rem;
+}
+
+.brand-public .bt-card-hover {
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.brand-public .bt-card-hover:hover {
+  transform: translateY(-3px);
+  border-color: #c7c0ff;
+  box-shadow: 0 34px 85px -55px rgba(87,70,232,.45);
+}
+
+@media (max-width: 767px) {
+  .brand-public {
+    font-size: 16px;
+  }
+
+  .brand-public h1 {
+    font-size: clamp(2.55rem, 12vw, 3.5rem) !important;
+    line-height: 1.01 !important;
+  }
+
+  .brand-public h2 {
+    font-size: clamp(2rem, 9vw, 2.65rem) !important;
+  }
+
+  .brand-public .brand-shell {
+    width: 100%;
+    padding-left: 1.15rem;
+    padding-right: 1.15rem;
+  }
+
+  .brand-public .brand-section {
+    padding-block: 4.4rem;
+  }
+}
