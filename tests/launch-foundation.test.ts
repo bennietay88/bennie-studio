@@ -29,3 +29,16 @@ test("internal content brief requires verified facts and drafts stay schema-boun
     claimsToVerify: ["Years in business"],
   }).claimsToVerify[0], "Years in business");
 });
+
+
+test("preview deployments do not blank when Supabase browser env is missing", async () => {
+  const { readFileSync } = await import("node:fs");
+  const supabaseSource = readFileSync("src/lib/supabase.ts", "utf8");
+  const authSource = readFileSync("src/contexts/AuthContext.tsx", "utf8");
+
+  assert.match(supabaseSource, /isSupabaseConfigured/);
+  assert.match(supabaseSource, /preview-placeholder\.supabase\.co/);
+  assert.doesNotMatch(supabaseSource, /createClient\(supabaseUrl\s*\|\|\s*""/);
+  assert.match(authSource, /if \(!isSupabaseConfigured\)/);
+  assert.match(authSource, /setIsAuthReady\(true\)/);
+});
