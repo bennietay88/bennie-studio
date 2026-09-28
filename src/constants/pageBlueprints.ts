@@ -903,6 +903,7 @@ const buildSectionContent = (
   }
 
   if (section.type === "proof") {
+    const sourceNiche = inferBlueprintNiche(`${input.nicheName || ""} ${input.mainService || ""}`);
     const suppliedProof = (input.localProof || "").trim();
     const suppliedLogos = Array.isArray(input.proofLogos) ? input.proofLogos.filter(Boolean) : [];
     const historyItems = (input.historyItems || []).filter(Boolean);
@@ -921,7 +922,7 @@ const buildSectionContent = (
         ? (historyItems.length || pressItems.length ? "Our history" : "Trust")
         : undefined,
       title: historyItems.length || pressItems.length
-        ? "A Practice With a Story"
+        ? (sourceNiche === "clinic" ? "A Practice With a Story" : "Our Story So Far")
         : suppliedLogos.length
           ? "Trusted Connections"
           : suppliedProof
