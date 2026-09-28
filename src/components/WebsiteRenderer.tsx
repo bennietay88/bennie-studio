@@ -4733,6 +4733,46 @@ export function WebsiteRenderer({
                   );
                 case "team":
                   if (!Array.isArray(section.content.members) || section.content.members.length === 0) return null;
+                  if (section.settings?.variant === "founder_story" && section.content.members.length === 1) {
+                    const member = section.content.members[0];
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `team-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="border-y border-slate-200 bg-[#f7f4ee] py-16 sm:py-20"
+                      >
+                        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-12 lg:items-center">
+                          <motion.div variants={fadeInUp} className="lg:col-span-5">
+                            {member.imageUrl ? (
+                              <div className="mx-auto aspect-[4/5] max-w-md overflow-hidden bg-slate-200">
+                                <img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+                              </div>
+                            ) : (
+                              <div className="mx-auto flex aspect-[4/5] max-w-md items-end bg-slate-950 p-8 text-white">
+                                <span className="text-6xl font-semibold tracking-[-0.04em]">
+                                  {String(member.name || "Team").split(/\s+/).slice(0, 2).map((part: string) => part.charAt(0)).join("").toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                          </motion.div>
+                          <motion.div variants={fadeInUp} className="lg:col-span-7 lg:pl-8">
+                            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">{section.content.eyebrow || "Meet your practitioner"}</p>
+                            <h2 className="mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                              {section.content.title || member.name}
+                            </h2>
+                            <p className="mt-5 text-xl font-semibold text-slate-800">{member.name}</p>
+                            {member.role ? <p className="mt-1 text-sm font-semibold text-primary">{member.role}</p> : null}
+                            {member.bio ? <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600">{member.bio}</p> : null}
+                            {section.content.description ? <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600">{section.content.description}</p> : null}
+                          </motion.div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
                   if (["leadership_grid", "editorial_people", "founder_story"].includes(section.settings?.variant || "")) {
                     return (
                       <motion.section key={section.id || `team-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true, margin: "-80px" }} variants={staggerContainer} className="bg-[#f4f2ed] py-20 sm:py-28">
