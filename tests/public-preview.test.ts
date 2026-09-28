@@ -469,9 +469,10 @@ test("sparse source websites are expanded into useful non-fabricated sections", 
 
   const home = pages[0];
   const homeTypes = home.sections.filter((section) => section.isVisible !== false).map((section) => section.type);
-  for (const required of ["hero", "features", "services", "about", "faq", "contact", "cta"] as const) {
+  for (const required of ["hero", "features", "services", "about", "faq", "cta"] as const) {
     assert.ok(homeTypes.includes(required), `expected home to include ${required}`);
   }
+  assert.equal(homeTypes.includes("contact"), false, "contact form belongs on the dedicated conversion page");
 
   const about = pages.find((page) => page.slug === "about")!;
   const aboutSection = about.sections.find((section) => section.type === "about")!;
