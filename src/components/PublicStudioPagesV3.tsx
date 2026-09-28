@@ -349,7 +349,7 @@ export function ResourcesStudioPage() {
       </section>
       <section className="bs3-soft border-y border-[#e6e8ef]">
         <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12 lg:items-center">
-          <div className="lg:col-span-5"><p className="brand-kicker">Free resource</p><h2 className="mt-4">The Website Launch Checklist.</h2><p className="brand-copy mt-5">Use the launch process as a checklist for content, responsive behaviour, search basics, forms and final QA.</p><Link to="/how-it-works" className={`${primary} mt-7`}>View the checklist<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
+          <div className="lg:col-span-5"><p className="brand-kicker">Free resource</p><h2 className="mt-4">The Website Launch Checklist.</h2><p className="brand-copy mt-5">Use the launch process as a checklist for content, responsive behaviour, search basics, forms and final QA.</p><Link to="/resources/website-launch-checklist" className={`${primary} mt-7`}>View the checklist<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
           <div className="lg:col-span-7"><div className="bs3-resource-art"><BookOpen className="h-16 w-16 text-[#8d7bff]" /><div><p className="text-sm font-semibold text-white/60">Bennie Studio</p><p className="mt-2 text-3xl font-semibold text-white">Website<br/>Launch Checklist</p></div></div></div>
         </div>
       </section>
