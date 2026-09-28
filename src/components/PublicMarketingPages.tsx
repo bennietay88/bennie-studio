@@ -53,6 +53,15 @@ import {
   DELIVERY_STANDARD_VERSION,
 } from "../constants/deliveryStandards";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
+import {
+  AboutStudioPage,
+  ContactStudioPage,
+  PricingStudioPage,
+  ProcessStudioPage,
+  ResourcesStudioPage,
+  ServicesStudioPage,
+  WorkStudioPage,
+} from "./PublicStudioPagesV3";
 import { FlagshipTemplateGallery } from "./FlagshipTemplateGallery";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { TurnstileWidget } from "./TurnstileWidget";
@@ -3491,19 +3500,19 @@ export default function PublicMarketingPages() {
     nichePage
       ? <NicheLandingPage page={nichePage} />
       : pageKind === "services"
-      ? <ServicesPage />
+      ? <ServicesStudioPage />
       : pageKind === "about"
-        ? <AboutPage />
+        ? <AboutStudioPage />
         : pageKind === "resources"
-          ? <ResourcesPage />
+          ? <ResourcesStudioPage />
           : pageKind === "contact"
-            ? <ContactPage />
+            ? <ContactStudioPage />
       : pageKind === "pricing"
-      ? <PricingPage />
+      ? <PricingStudioPage />
       : pageKind === "how-it-works"
-        ? <HowItWorksPage />
+        ? <ProcessStudioPage />
         : pageKind === "case-studies"
-          ? <CaseStudiesPage />
+          ? <WorkStudioPage />
           : pageKind === "website-audit"
             ? <WebsiteAuditPage />
             : pageKind === "generate-preview"
