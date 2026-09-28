@@ -1078,3 +1078,343 @@
     padding-block: 4.4rem;
   }
 }
+
+
+/* Reference-led public marketing UI — aligned to the approved Bennie Studio page concepts. */
+.brand-public .bs3-dark {
+  position: relative;
+  color: #fff;
+  background:
+    radial-gradient(circle at 82% 6%, rgba(96, 73, 255, .34), transparent 24rem),
+    radial-gradient(circle at 8% 88%, rgba(42, 64, 128, .20), transparent 26rem),
+    #08101f;
+}
+.brand-public .bs3-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,.026) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.026) 1px, transparent 1px);
+  background-size: 46px 46px;
+}
+.brand-public .bs3-orb {
+  position: absolute;
+  width: 34rem;
+  height: 34rem;
+  border-radius: 999px;
+  background: rgba(98,82,244,.2);
+  filter: blur(85px);
+  pointer-events: none;
+}
+.brand-public .bs3-accent {
+  background: linear-gradient(90deg, #9f93ff 0%, #7d6aff 55%, #b9b1ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.brand-public .bs3-soft {
+  background:
+    radial-gradient(circle at 76% 0%, rgba(98,82,244,.09), transparent 26rem),
+    linear-gradient(180deg, #fbfbfe 0%, #f4f3ff 100%);
+}
+.brand-public .bs3-card,
+.brand-public .bs3-card-dark {
+  border-radius: 1rem;
+}
+.brand-public .bs3-card {
+  border: 1px solid #e3e6ee;
+  background: rgba(255,255,255,.96);
+  box-shadow: 0 28px 70px -56px rgba(15,23,42,.58);
+}
+.brand-public .bs3-card-dark {
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.045);
+  box-shadow: 0 34px 80px -58px rgba(0,0,0,.82);
+}
+.brand-public .bs3-card-hover {
+  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.brand-public .bs3-card-hover:hover {
+  transform: translateY(-3px);
+  border-color: #c8c1ff;
+  box-shadow: 0 34px 84px -56px rgba(83,67,218,.46);
+}
+.brand-public .bs3-icon {
+  display: inline-grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: .75rem;
+  background: #eeebff;
+  color: #6252f4;
+}
+.brand-public .bs3-image-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e5e8ef;
+  border-radius: 1.15rem;
+  background: #0a1020;
+  box-shadow: 0 42px 100px -62px rgba(14,20,39,.78);
+}
+.brand-public .bs3-image-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+.brand-public .bs3-float-card {
+  position: absolute;
+  z-index: 3;
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: .8rem;
+  background: rgba(255,255,255,.93);
+  padding: .65rem .85rem;
+  color: #172033;
+  font-size: .72rem;
+  font-weight: 650;
+  box-shadow: 0 18px 45px -24px rgba(15,23,42,.55);
+  backdrop-filter: blur(10px);
+}
+.brand-public .bs3-device-wrap {
+  position: relative;
+  min-height: 26rem;
+  padding: 1.5rem 2.2rem 1.5rem 1rem;
+}
+.brand-public .bs3-laptop {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 1.05rem;
+  background: #080d18;
+  box-shadow: 0 48px 120px -54px rgba(0,0,0,.95);
+  transform: perspective(1100px) rotateY(-4deg) rotateX(1deg);
+}
+.brand-public .bs3-laptop::after {
+  content: "";
+  position: absolute;
+  inset: auto 10% -.7rem;
+  height: .7rem;
+  border-radius: 0 0 1rem 1rem;
+  background: linear-gradient(180deg, #3a4050, #141925);
+}
+.brand-public .bs3-laptop img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+.brand-public .bs3-browser-dots {
+  position: absolute;
+  z-index: 3;
+  left: .75rem;
+  top: .65rem;
+  display: flex;
+  gap: .32rem;
+}
+.brand-public .bs3-browser-dots span {
+  width: .38rem;
+  height: .38rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.5);
+}
+.brand-public .bs3-phone {
+  position: absolute;
+  z-index: 4;
+  right: 0;
+  bottom: .25rem;
+  width: 25%;
+  min-width: 7.25rem;
+  overflow: hidden;
+  border: 5px solid #222938;
+  border-radius: 1.45rem;
+  background: #050913;
+  box-shadow: 0 28px 70px -30px rgba(0,0,0,.9);
+}
+.brand-public .bs3-phone img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 18.5;
+  object-fit: cover;
+}
+.brand-public .bs3-phone-notch {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: .35rem;
+  width: 36%;
+  height: .45rem;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #0c111c;
+}
+.brand-public .bs3-screen-label {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: .65rem;
+  background: rgba(8,13,24,.72);
+  padding: .5rem .7rem;
+  color: rgba(255,255,255,.78);
+  font-size: .68rem;
+  font-weight: 650;
+  backdrop-filter: blur(8px);
+}
+.brand-public .bs3-pill {
+  display: inline-flex;
+  min-height: 2.4rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e1e4eb;
+  border-radius: 999px;
+  background: #fff;
+  padding: .55rem 1rem;
+  color: #657186;
+  font-size: .78rem;
+  font-weight: 650;
+}
+.brand-public .bs3-pill-active {
+  border-color: #6252f4;
+  background: #6252f4;
+  color: #fff;
+}
+.brand-public .bs3-resource-art {
+  position: relative;
+  display: flex;
+  min-height: 20rem;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  overflow: hidden;
+  border-radius: 1.1rem;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(98,82,244,.55), transparent 14rem),
+    linear-gradient(135deg, #10172a, #090f1d 65%);
+  box-shadow: 0 40px 100px -60px rgba(15,23,42,.75);
+}
+.brand-public .bs3-resource-art::after {
+  content: "";
+  position: absolute;
+  right: -15%;
+  bottom: -25%;
+  width: 18rem;
+  height: 18rem;
+  border-radius: 999px;
+  border: 1px solid rgba(157,147,255,.26);
+  box-shadow: 0 0 0 3rem rgba(157,147,255,.03), 0 0 0 6rem rgba(157,147,255,.025);
+}
+.brand-public .bs3-input {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  border: 1px solid rgba(255,255,255,.17);
+  border-radius: .72rem;
+  background: #fff;
+  padding: .75rem .9rem;
+  color: #172033;
+  outline: none;
+}
+.brand-public .bs3-input:focus {
+  border-color: #8d7bff;
+  box-shadow: 0 0 0 4px rgba(141,123,255,.14);
+}
+.brand-public .bs3-calendar {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid #dfe2ea;
+  border-radius: 1.1rem;
+  background: #fff;
+  box-shadow: 0 36px 90px -58px rgba(15,23,42,.7);
+}
+.brand-public .bs3-calendar-side {
+  background:
+    radial-gradient(circle at 90% 0%, rgba(98,82,244,.25), transparent 12rem),
+    #0b1020;
+  padding: 2rem;
+}
+.brand-public .bs3-calendar-grid {
+  padding: 2rem;
+}
+.brand-public .bs3-day {
+  display: grid;
+  min-height: 2rem;
+  place-items: center;
+  border-radius: .55rem;
+}
+.brand-public .bs3-day-active {
+  background: #6252f4;
+  color: #fff;
+  font-weight: 700;
+}
+.brand-public .bs3-time {
+  border: 1px solid #dfe2ea;
+  border-radius: .6rem;
+  padding: .65rem;
+  text-align: center;
+  color: #6252f4;
+  font-size: .75rem;
+  font-weight: 650;
+}
+.brand-public .bs3-step {
+  display: inline-grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border-radius: 999px;
+  background: #6252f4;
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 750;
+  box-shadow: 0 10px 25px -14px rgba(98,82,244,.85);
+}
+.brand-public .bs3-compare {
+  position: relative;
+  min-height: 21rem;
+  overflow: hidden;
+  border: 1px solid #e2e5ec;
+  border-radius: 1.15rem;
+  background: #fff;
+  box-shadow: 0 32px 85px -58px rgba(15,23,42,.62);
+}
+.brand-public .bs3-compare img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 21rem;
+  object-fit: cover;
+}
+.brand-public .bs3-compare-after {
+  border-color: #d8d2ff;
+  box-shadow: 0 32px 85px -54px rgba(98,82,244,.34);
+}
+.brand-public .bs3-compare-label {
+  position: absolute;
+  z-index: 2;
+  left: 1rem;
+  top: 1rem;
+  border-radius: .55rem;
+  background: #172033;
+  padding: .45rem .7rem;
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 700;
+}
+@media (min-width: 768px) {
+  .brand-public .bs3-calendar {
+    grid-template-columns: minmax(0, .85fr) minmax(0, 1.2fr);
+  }
+}
+@media (max-width: 767px) {
+  .brand-public .bs3-device-wrap {
+    min-height: 20rem;
+    padding: 1rem 1.35rem 1rem 0;
+  }
+  .brand-public .bs3-phone {
+    width: 28%;
+    min-width: 5.6rem;
+    border-width: 4px;
+  }
+  .brand-public .bs3-float-card {
+    font-size: .64rem;
+    padding: .5rem .65rem;
+  }
+}
