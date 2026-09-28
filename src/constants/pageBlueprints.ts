@@ -1361,14 +1361,21 @@ const resolveSourceDrivenBlockPlan = (
   const richIdentity = hasPeople || hasTestimonials || hasHistory || Boolean(input.businessDNA?.identityScore && input.businessDNA.identityScore >= 35);
 
   if (page.slug === "") {
+    const seed = Math.abs(Number(input.compositionSeed || 0)) % 4;
+    const identityBlocks: SectionBlockType[] = [];
+    if (seed === 1 && hasTestimonials) identityBlocks.push("testimonials");
+    if (seed === 2 && hasPeople) identityBlocks.push("team");
+    if (seed === 3 && hasTrust) identityBlocks.push("trust");
+    identityBlocks.push("services");
+    if (hasPeople && !identityBlocks.includes("team")) identityBlocks.push("team");
+    if (hasTestimonials && !identityBlocks.includes("testimonials")) identityBlocks.push("testimonials");
+    if (hasTrust && !identityBlocks.includes("trust")) identityBlocks.push("trust");
+    identityBlocks.push("about");
+    if (!richIdentity) identityBlocks.push("highlights");
+
     return [
       "hero",
-      "services",
-      ...(hasPeople ? ["team" as SectionBlockType] : []),
-      ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []),
-      ...(hasTrust ? ["trust" as SectionBlockType] : []),
-      "about",
-      ...(!richIdentity ? ["highlights" as SectionBlockType] : []),
+      ...identityBlocks,
       "faq",
       "final_cta",
     ];
