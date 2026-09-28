@@ -5,7 +5,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabase";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { UserProfile, UserRole } from "../types";
 import { toast } from "sonner";
 
@@ -42,6 +42,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setUser(null);
+      setProfile(null);
+      setBusiness(null);
+      setLoading(false);
+      setIsAuthReady(true);
+      return;
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -51,6 +60,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
         setIsAuthReady(true);
       }
+    }).catch((err) => {
+      console.error("Supabase session initialization failed:", err);
+      setLoading(false);
+      setIsAuthReady(true);
     });
 
     // Listen for auth changes
@@ -143,6 +156,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   const signInWithEmail = async (email: string, pass: string) => {
+    if (!isSupabaseConfigured) {
+      setError("Authentication is unavailable because this preview deployment is missing Supabase configuration.");
+      return;
+    }
     if (isSigningIn) return;
     setError(null);
     setIsSigningIn(true);
@@ -170,6 +187,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     pass: string,
     role?: UserRole,
   ) => {
+    if (!isSupabaseConfigured) {
+      setError("Authentication is unavailable because this preview deployment is missing Supabase configuration.");
+      return;
+    }
     if (isSigningIn) return;
     setError(null);
     setIsSigningIn(true);
@@ -218,6 +239,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
+    if (!isSupabaseConfigured) {
+      setError("Authentication is unavailable because this preview deployment is missing Supabase configuration.");
+      return;
+    }
     setError(null);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -233,6 +258,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updatePassword = async (password: string) => {
+    if (!isSupabaseConfigured) {
+      setError("Authentication is unavailable because this preview deployment is missing Supabase configuration.");
+      return;
+    }
     setError(null);
     try {
       const { error } = await supabase.auth.updateUser({ password });
