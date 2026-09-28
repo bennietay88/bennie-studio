@@ -1934,7 +1934,7 @@ function GeneratePreviewPage() {
         ? profile.imageCandidates.filter(Boolean)
         : [];
       const sourceHeroImage = previewMode === "website"
-        ? (profile.heroImage || sourceImages[0] || previewStockImage)
+        ? (profile.heroImage || sourceImages[0] || "")
         : previewStockImage;
       const personImageUrls = new Set(sourcePeople.map((person) => person.imageUrl).filter(Boolean));
       const sourceStoryImage = previewMode === "website"
