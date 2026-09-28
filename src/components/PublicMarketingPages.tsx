@@ -1936,8 +1936,13 @@ function GeneratePreviewPage() {
       const sourceHeroImage = previewMode === "website"
         ? (profile.heroImage || sourceImages[0] || previewStockImage)
         : previewStockImage;
+      const personImageUrls = new Set(sourcePeople.map((person) => person.imageUrl).filter(Boolean));
       const sourceStoryImage = previewMode === "website"
-        ? (profile.secondaryImage || sourcePeople.find((person) => person.imageUrl)?.imageUrl || sourceImages.find((url) => url !== sourceHeroImage) || "")
+        ? (
+            sourceImages.find((url) => url !== sourceHeroImage && !personImageUrls.has(url))
+            || (profile.secondaryImage && !personImageUrls.has(profile.secondaryImage) ? profile.secondaryImage : "")
+            || ""
+          )
         : previewStockImage;
 
       const blueprintInput: BlueprintBusinessInput = {
@@ -2027,6 +2032,8 @@ function GeneratePreviewPage() {
             historyCount: Array.isArray(profile.historyItems) ? profile.historyItems.length : 0,
             pressCount: Array.isArray(profile.pressItems) ? profile.pressItems.length : 0,
             testimonialCount: previewTestimonials.length,
+            serviceCount: resolvedServices.length,
+            faqCount: Array.isArray(profile.faqItems) ? profile.faqItems.length : 0,
             realImageCount: sourceImages.length,
             hasLogo: Boolean(profile.logoUrl),
             identityScore: Number(profile.businessDNA?.identityScore || 0),
