@@ -2075,15 +2075,23 @@ function GeneratePreviewPage() {
           updatedAt: Date.now(),
         };
         const quality = evaluateGeneratedDesign(website);
+        const sourceDirectionBonus = previewMode === "website"
+          ? (
+              (profile.businessDNA?.humanLed && compositionSeed === 2 ? 16 : 0)
+              + (profile.businessDNA?.heritageRich && compositionSeed === 3 ? 10 : 0)
+              + (profile.businessDNA?.proofRich && compositionSeed === 1 ? 7 : 0)
+            )
+          : 0;
         const rank =
           quality.score +
           quality.metrics.visualVariety * 0.2 +
           quality.metrics.hierarchy * 0.15 +
           quality.metrics.conversionClarity * 0.15 +
           quality.metrics.identityPreservation * 0.3 +
-          quality.metrics.redesignAdvantage * 0.25 -
+          quality.metrics.redesignAdvantage * 0.25 +
+          sourceDirectionBonus -
           quality.metrics.aiTemplateRisk * 0.45;
-        return { website, quality, rank };
+        return { website, quality, rank, compositionSeed, sourceDirectionBonus };
       });
       const selectedPreview = previewCandidates.sort((a, b) => b.rank - a.rank)[0];
       if (previewMode === "website") {
