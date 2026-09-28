@@ -421,6 +421,8 @@ export interface Website {
       historyCount?: number;
       pressCount?: number;
       testimonialCount?: number;
+      serviceCount?: number;
+      faqCount?: number;
       realImageCount?: number;
       hasLogo?: boolean;
       identityScore?: number;
