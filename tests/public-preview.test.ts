@@ -211,6 +211,50 @@ test("public preview preserves useful source branding and hero content", () => {
 });
 
 
+test("public preview decodes numeric entities and extracts human business DNA", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <html>
+        <head>
+          <title>The Podiatry Centre &#8211; Singapore</title>
+          <meta name="description" content="Established podiatry care in Singapore.">
+          <script type="application/ld+json">
+            {
+              "@context":"https://schema.org",
+              "@graph":[
+                {"@type":"MedicalBusiness","name":"The Podiatry Centre"},
+                {"@type":"Person","name":"Mr Ty","jobTitle":"Podiatrist","description":"Experienced podiatrist providing clinical care.","image":"/ty.jpg"}
+              ]
+            }
+          </script>
+        </head>
+        <body>
+          <h1>The Podiatry Centre &#8211; Singapore</h1>
+          <p>Established in 1995 as one of Singapore's early specialist podiatry practices.</p>
+          <h2>Featured in the press</h2>
+          <a href="/articles/straits-times">Straits Times newspaper interview</a>
+          <blockquote>Professional care and careful adjustments made a real difference to my running.</blockquote>
+          <img src="/clinic.jpg" width="1200" height="800" alt="Podiatry clinic">
+        </body>
+      </html>
+    `,
+    finalUrl: "https://podiatry.example/",
+  });
+
+  assert.equal(profile.heroHeadline.includes("&#8211;"), false);
+  assert.equal(profile.heroHeadline, "The Podiatry Centre – Singapore");
+  assert.equal(profile.people.length, 1);
+  assert.equal(profile.people[0].name, "Mr Ty");
+  assert.equal(profile.people[0].role, "Podiatrist");
+  assert.ok(profile.historyItems.some((item) => /Established in 1995/i.test(item)));
+  assert.ok(profile.pressItems.some((item) => /Straits Times/i.test(item)));
+  assert.equal(profile.businessDNA.humanLed, true);
+  assert.equal(profile.businessDNA.heritageRich, true);
+  assert.equal(profile.businessDNA.typographyStyle, "heritage");
+  assert.ok(profile.businessDNA.identityScore >= 50);
+});
+
+
 test("public preview prefers an actual hero image over generic social imagery", () => {
   const profile = buildPublicPreviewProfile({
     html: `
@@ -348,13 +392,13 @@ test("generated previews include local stock fallbacks and browser image recover
   const rendererSource = readFileSync("src/components/WebsiteRenderer.tsx", "utf8");
 
   assert.match(previewSource, /flagship-renovation\.jpg/);
-  assert.match(previewSource, /heroFallbackImageUrl: previewStockImage/);
+  assert.match(previewSource, /heroFallbackImageUrl: previewMode === "website" \? undefined : previewStockImage/);
   assert.match(rendererSource, /applySectionImageFallback/);
   assert.match(rendererSource, /fallbackImageUrl/);
 });
 
 
-test("source-driven previews produce a fuller homepage across niches", () => {
+test("source-driven previews prioritise real identity over generic filler sections", () => {
   const pages = buildPagesFromBlueprint({
     businessName: "Example Dental",
     nicheId: "dental-clinic-v1",
@@ -371,24 +415,23 @@ test("source-driven previews produce a fuller homepage across niches", () => {
     sourceDriven: true,
     contactEmail: "hello@example.com",
     contactPhone: "6512345678",
-    testimonials: ["Helpful and professional."],
+    testimonials: ["Helpful and professional care from first visit to follow-up."],
     faqItems: [{ question: "Do you take bookings?", answer: "Yes." }],
     localProof: "Registered clinic",
+    teamMembers: [{ name: "Dr Jane Tan", role: "Podiatrist", imageUrl: "https://example.test/jane.jpg" }],
+    historyItems: ["Established in 1998 as one of the early specialist podiatry practices in Singapore."],
+    businessDNA: { humanLed: true, heritageRich: true, proofRich: true, imageRich: true, identityScore: 82, typographyStyle: "heritage" },
     generationMode: "premium",
   });
   const home = pages.find((page) => page.slug === "")!;
   const types = home.sections.filter((section) => section.isVisible !== false).map((section) => section.type);
 
-  assert.ok(types.includes("hero"));
-  assert.ok(types.includes("features"));
-  assert.ok(types.includes("services"));
-  assert.ok(types.includes("about"));
-  assert.ok(types.includes("proof"));
-  assert.ok(types.includes("testimonials"));
-  assert.ok(types.includes("faq"));
-  assert.ok(types.includes("contact"));
-  assert.ok(types.includes("cta"));
-  assert.ok(home.sections.length >= 9);
+  assert.deepEqual(types, ["hero", "services", "team", "testimonials", "proof", "about", "faq", "cta"]);
+  assert.equal(types.includes("features"), false);
+  assert.equal(types.includes("contact"), false);
+  assert.equal(home.sections.find((section) => section.type === "team")?.content?.title, "Meet Your Podiatrist");
+  assert.equal(home.sections.find((section) => section.type === "testimonials")?.content?.title, "What Patients Say");
+  assert.equal(home.sections.find((section) => section.type === "proof")?.content?.title, "A Practice With a Story");
 });
 
 test("preview lets users auto-detect or override customer brand colours", async () => {
