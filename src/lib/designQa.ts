@@ -12,6 +12,7 @@ export interface DesignQualityMetrics {
   proofQuality: number;
   conversionClarity: number;
   identityPreservation: number;
+  redesignAdvantage: number;
   aiTemplateRisk: number;
 }
 
@@ -96,6 +97,27 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
   const sourceTypographyPreserved = !sourceDriven
     || sourceIdentity?.typographyStyle !== "heritage"
     || /serif/i.test(String(website.theme?.displayFont || ""));
+  const redesignAdvantageSignals = [
+    hasHero,
+    conciseHeroHeadlines,
+    hasCta,
+    hasNavigation,
+    !repeatedVariant,
+    cardHeavyRatio <= 0.45,
+    centeredRatio <= 0.6,
+    sourcePeoplePreserved,
+    sourceTestimonialsPreserved,
+    sourceHeritagePreserved,
+    sourceLogoPreserved,
+    sourceServicesPreserved,
+    sourceFaqPreserved,
+    sourceTypographyPreserved,
+    !sourceForbiddenLanguage,
+  ];
+  const redesignAdvantage = sourceDriven
+    ? Math.round((redesignAdvantageSignals.filter(Boolean).length / redesignAdvantageSignals.length) * 100)
+    : 100;
+  const sourceRedesignAdvantageReady = !sourceDriven || redesignAdvantage >= 87;
 
   const checks: DesignQaCheck[] = [
     { key: "hero", label: "Clear hero", pass: hasHero, severity: "high", note: hasHero ? "Hero section is present." : "Add a clear primary hero." },
@@ -113,6 +135,7 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
     { key: "source_identity_services", label: "Service depth preserved", pass: sourceServicesPreserved, severity: "high", note: sourceServicesPreserved ? "The redesign keeps the source service depth visible." : "The source site contains multiple services, but the redesign collapsed them too far." },
     { key: "source_identity_faq", label: "Useful source information preserved", pass: sourceFaqPreserved, severity: "medium", note: sourceFaqPreserved ? "Useful source FAQs remain available." : "The source site contains useful FAQs, but the redesign dropped them." },
     { key: "source_identity_typography", label: "Typography matches identity", pass: sourceTypographyPreserved, severity: "medium", note: sourceTypographyPreserved ? "Typography direction respects the source business character." : "An established heritage-led business should not be flattened into a generic sans-serif identity." },
+    { key: "source_redesign_advantage", label: "Better-than-existing redesign gate", pass: sourceRedesignAdvantageReady, severity: "high", note: sourceRedesignAdvantageReady ? "The redesign clears the combined identity, hierarchy, conversion and anti-template floor." : "Do not show this concept yet; it has not earned a clear redesign advantage over the source site." },
     { key: "cta", label: "Conversion path", pass: hasCta, severity: "high", note: hasCta ? "A conversion section is present." : "Add contact, booking, or CTA path." },
     { key: "proof", label: "Proof", pass: hasProof, severity: "medium", note: hasProof ? "Trust/proof section is present." : "Add verified proof or a factual trust section." },
     { key: "proof_integrity", label: "Proof integrity", pass: !hasPlaceholderProof, severity: "high", note: hasPlaceholderProof ? "Placeholder client/testimonial labels detected. Replace with verified proof or remove the testimonial block." : "No placeholder client proof detected." },
@@ -165,7 +188,7 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
     (!sourceContactDiscipline ? 20 : 0) +
     (!sourceHeroReady ? 25 : 0)
   ));
-  const metrics = { visualVariety, hierarchy, proofQuality, conversionClarity, identityPreservation, aiTemplateRisk };
+  const metrics = { visualVariety, hierarchy, proofQuality, conversionClarity, identityPreservation, redesignAdvantage, aiTemplateRisk };
   const threshold = previewPurpose
     ? (sourceDriven ? 88 : 85)
     : generationMode === "brand_led"
@@ -176,7 +199,7 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
   const productionReady = score >= threshold
     && highFailures === 0
     && aiTemplateRisk <= (sourceDriven ? 25 : generationMode === "brand_led" ? 35 : 45)
-    && (!sourceDriven || identityPreservation >= 80);
+    && (!sourceDriven || (identityPreservation >= 80 && redesignAdvantage >= 87));
   return { score, productionReady, checks, metrics };
 }
 
