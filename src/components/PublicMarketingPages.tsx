@@ -71,6 +71,10 @@ type PublicPageKind =
   | "website-audit"
   | "generate-preview"
   | "preview-order"
+  | "about"
+  | "services"
+  | "resources"
+  | "contact"
   | "dental-clinics"
   | "clinic-website-design"
   | "renovation-contractor-website-design"
@@ -120,6 +124,26 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
     title: "Launch Your Website | Bennie Studio",
     description:
       "Turn your Bennie Studio website preview into a managed website with a clear setup fee, monthly service, and the current plan commitment shown before payment.",
+  },
+  about: {
+    title: "About Bennie Studio | Managed Website Delivery",
+    description:
+      "Meet the managed website system behind Bennie Studio's strategy, design, launch and ongoing improvement workflow.",
+  },
+  services: {
+    title: "Website Services | Bennie Studio",
+    description:
+      "Explore Bennie Studio's managed website, website growth and growth partner services for service businesses.",
+  },
+  resources: {
+    title: "Website Resources | Bennie Studio",
+    description:
+      "Practical resources for clearer website positioning, stronger trust and better enquiry paths.",
+  },
+  contact: {
+    title: "Contact Bennie Studio | Website Enquiries",
+    description:
+      "Contact Bennie Studio about a managed website, a free preview or a website growth conversation.",
   },
   "dental-clinics": {
     title: "Dental Clinic Website Design | More Patient Enquiries",
@@ -3075,6 +3099,50 @@ function PreviewRequestPanel() {
   );
 }
 
+function PublicInfoPage({ kind }: { kind: "about" | "services" | "resources" | "contact" }) {
+  const content = {
+    about: {
+      eyebrow: "ABOUT BENNIE STUDIO",
+      title: "A managed website team for businesses that need the site to keep working.",
+      body: "Bennie Studio combines positioning, design, lead capture, hosting and ongoing improvement in one accountable workflow. Every paid build is reviewed before customer approval and launch.",
+      action: "See how it works",
+      href: "/how-it-works",
+    },
+    services: {
+      eyebrow: "WEBSITE SERVICES",
+      title: "Choose the level of managed website support your business needs.",
+      body: "Start with a clear, conversion-ready website, then add deeper optimisation, local SEO and growth direction when the commercial need is there.",
+      action: "View managed plans",
+      href: "/pricing",
+    },
+    resources: {
+      eyebrow: "WEBSITE RESOURCES",
+      title: "Practical guidance for clearer positioning and stronger enquiries.",
+      body: "Use the website system, industry examples and preview workflow to understand what your customers need to see before they take the next step.",
+      action: "Explore the system",
+      href: "/how-it-works",
+    },
+    contact: {
+      eyebrow: "CONTACT BENNIE STUDIO",
+      title: "Tell us what the website needs to help your business do.",
+      body: "Start with a free website preview or book a short scope conversation. No card is required to see the initial direction.",
+      action: "Build my free preview",
+      href: "/generate-preview",
+    },
+  }[kind];
+
+  return (
+    <main className="brand-shell py-16 md:py-24">
+      <section className="max-w-3xl rounded-[2rem] border border-[#e1e4ec] bg-white p-8 shadow-[0_24px_70px_-45px_rgba(20,24,33,.35)] md:p-14">
+        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#5746e8]">{content.eyebrow}</p>
+        <h1 className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-[#141821] md:text-6xl">{content.title}</h1>
+        <p className="mt-6 max-w-2xl text-lg leading-8 text-[#525a6b]">{content.body}</p>
+        <Link to={content.href} className={`${primaryCtaClass} mt-8`}>{content.action} <ArrowRight className="ml-2 h-4 w-4" /></Link>
+      </section>
+    </main>
+  );
+}
+
 export default function PublicMarketingPages() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -3097,6 +3165,8 @@ export default function PublicMarketingPages() {
               ? <GeneratePreviewPage />
               : pageKind === "preview-order"
                 ? <PreviewOrderPage />
+                : ["about", "services", "resources", "contact"].includes(pageKind)
+                  ? <PublicInfoPage kind={pageKind as "about" | "services" | "resources" | "contact"} />
                 : <TemplatesPage />;
 
   return (

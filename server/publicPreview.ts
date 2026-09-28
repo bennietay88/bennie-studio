@@ -35,7 +35,15 @@ const decodeEntities = (value: string) =>
     .replace(/&quot;|&#34;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
     .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">");
+    .replace(/&gt;/gi, ">")
+    .replace(/&#(x[0-9a-f]+|\d+);?/gi, (_match, raw: string) => {
+      const value = raw.toLowerCase().startsWith("x")
+        ? Number.parseInt(raw.slice(1), 16)
+        : Number.parseInt(raw, 10);
+      return Number.isInteger(value) && value >= 0 && value <= 0x10ffff
+        ? String.fromCodePoint(value)
+        : "";
+    });
 
 const text = (value: string) =>
   decodeEntities(String(value || "")
@@ -649,8 +657,8 @@ export function buildPublicPreviewProfile(input: {
     /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
     /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
   ]);
-  const imageCandidates = extractImageCandidates(html, finalUrl);
-  const firstImage = imageCandidates[0] || "";
+  const previewImageCandidates = extractImageCandidates(html, finalUrl);
+  const firstImage = previewImageCandidates[0] || "";
   const pageHeroImage = extractHeroImageCandidate(html, finalUrl);
   const heroImage = absoluteUrl(pageHeroImage || schemaImageRaw || ogImage || firstImage, finalUrl);
   const secondaryImage = extractSecondaryImageCandidate(html, finalUrl, heroImage);
@@ -696,7 +704,7 @@ export function extractPreviewEvidenceUrls(html: string, baseUrl: string, limit 
   const seen = new Set<string>();
   let base: URL;
   try { base = new URL(baseUrl); } catch { return urls; }
-  const priority = /\b(reviews?|testimonials?|services?|about|contact|projects?|gallery|case-studies?|treatments?|solutions?)\b/i;
+  const priority = /\b(reviews?|testimonials?|services?|about|contact|projects?|gallery|case-studies?|treatments?|solutions?|team|practitioners?|people|staff|history|press|media|news)\b/i;
   for (const match of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     const href = String(match[1] || "").trim();
     const label = text(match[2]);

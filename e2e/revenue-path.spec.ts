@@ -483,6 +483,7 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
   await page.getByLabel("Billing currency").selectOption("GBP");
   await expect(page.getByLabel("Billing currency")).toHaveValue("GBP");
   await page.getByLabel("Billing currency").selectOption("USD");
+  await page.getByRole("dialog", { name: "Order summary" }).getByRole("checkbox").check();
   await page.getByRole("button", { name: /Continue to secure checkout/i }).click();
   await expect(page).toHaveURL(/\/checkout\/success\?/);
   await expect(page).not.toHaveURL(/\/signup/);
@@ -505,7 +506,7 @@ test("preview order carries the captured lead into payment without signup", asyn
   await page.goto("/preview-order");
   await expect(page.getByRole("heading", { name: /Turn the Example Studio preview into the real site/i })).toBeVisible();
   await expect(page.getByText(/No signup before payment/i)).toBeVisible();
-  await expect(page.getByText(/90-day initial commitment/i).first()).toBeVisible();
+  await expect(page.getByText(/(?:90-day|3-month) initial commitment/i).first()).toBeVisible();
   await expect(page.getByRole("button", { name: /Continue to secure checkout/i })).toBeVisible();
 });
 
@@ -533,6 +534,7 @@ test("shows and accepts a public proposal without exposing checkout secrets", as
   await page.goto(`/proposal/${proposalToken}`);
   await expect(page.getByRole("heading", { name: "Website Growth Partner proposal" })).toBeVisible();
   await page.getByLabel("Confirm your email").fill("jane@example.test");
+  await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: /Accept proposal/i }).click();
   await expect(page.getByRole("heading", { name: "Proposal accepted" })).toBeVisible();
 });

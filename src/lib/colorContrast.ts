@@ -166,8 +166,10 @@ export const resolveAccessibleThemeColors = (
     secondaryForeground: secondarySurface.foreground,
     primaryInk: ensureTextContrast(primary, LIGHT_SURFACE),
     secondaryInk: ensureTextContrast(secondary, LIGHT_SURFACE),
-    primaryOnDark: ensureTextContrast(primary, DARK_SURFACE),
-    secondaryOnDark: ensureTextContrast(secondary, DARK_SURFACE),
+    // Keep a small safety margin above AA because browser color rounding can
+    // otherwise turn a mathematically passing token into a 4.4x rendered ratio.
+    primaryOnDark: ensureTextContrast(primary, "#0b1020", 4.7),
+    secondaryOnDark: ensureTextContrast(secondary, "#0b1020", 4.7),
   };
 };
 

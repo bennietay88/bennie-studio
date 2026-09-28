@@ -465,7 +465,7 @@ export default function App() {
               <Route path="/website-design/*" element={<Navigate to="/website-subscription-service" replace />} />
               <Route path="/website-subscription-service" element={<OwnSalesSeoPage />} />
               <Route path="/website-subscription-service/:market" element={<Navigate to="/website-subscription-service" replace />} />
-              <Route path="/portfolio" element={<PortfolioPage />} />
+              <Route path="/portfolio" element={<Navigate to="/case-studies" replace />} />
               <Route path="/templates" element={<PublicMarketingPages />} />
               <Route path="/pricing" element={<PublicMarketingPages />} />
               <Route path="/how-it-works" element={<PublicMarketingPages />} />
@@ -476,6 +476,10 @@ export default function App() {
               <Route path="/website-audit" element={<PublicMarketingPages />} />
               <Route path="/generate-preview" element={<PublicMarketingPages />} />
               <Route path="/preview-order" element={<PublicMarketingPages />} />
+              <Route path="/about" element={<PublicMarketingPages />} />
+              <Route path="/services" element={<PublicMarketingPages />} />
+              <Route path="/resources" element={<PublicMarketingPages />} />
+              <Route path="/contact" element={<PublicMarketingPages />} />
               <Route path="/blog/:slug" element={<PublicBlogPostPage />} />
               <Route path="/clinic-website-design" element={<PublicMarketingPages />} />
               <Route path="/clinic-website-design-malaysia" element={<Navigate to="/clinic-website-design" replace />} />

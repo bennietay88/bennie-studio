@@ -5,7 +5,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabase";
+import { supabase, supabaseConfigured } from "../lib/supabase";
 import { UserProfile, UserRole } from "../types";
 import { toast } from "sonner";
 
@@ -42,6 +42,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
+    if (!supabaseConfigured) {
+      setLoading(false);
+      setIsAuthReady(true);
+      return;
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -145,6 +151,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithEmail = async (email: string, pass: string) => {
     if (isSigningIn) return;
     setError(null);
+    if (!supabaseConfigured) {
+      setError("Authentication is currently unavailable. Please try again later.");
+      return;
+    }
     setIsSigningIn(true);
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -172,6 +182,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   ) => {
     if (isSigningIn) return;
     setError(null);
+    if (!supabaseConfigured) {
+      setError("Authentication is currently unavailable. Please try again later.");
+      return;
+    }
     setIsSigningIn(true);
     try {
       // Public signup intent is deliberately constrained to two safe account
@@ -204,6 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearError = () => setError(null);
 
   const logout = async () => {
+    if (!supabaseConfigured) return;
     try {
       await supabase.auth.signOut();
     } catch (error) {
@@ -219,6 +234,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     setError(null);
+    if (!supabaseConfigured) {
+      const message = "Authentication is currently unavailable. Please try again later.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
@@ -234,6 +255,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updatePassword = async (password: string) => {
     setError(null);
+    if (!supabaseConfigured) {
+      const message = "Authentication is currently unavailable. Please try again later.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;

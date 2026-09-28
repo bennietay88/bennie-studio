@@ -18,6 +18,7 @@
     "smoke:staging": "node scripts/smoke.mjs",
     "smoke:auth": "node scripts/auth-smoke.mjs",
     "smoke:audit": "node --import tsx scripts/audit-smoke.ts",
+    "test": "node --import tsx --test",
     "test:seo": "node --import tsx --test tests/seo-audit.test.ts",
     "test:sales": "node --import tsx --test tests/commercial-pricing.test.ts tests/sales-call-slots.test.ts tests/sales-automation.test.ts tests/sales-operations.test.ts tests/onboarding.test.ts tests/launch-foundation.test.ts",
     "test:sales:api": "node --import tsx --test tests/sales-api-boundaries.test.ts",

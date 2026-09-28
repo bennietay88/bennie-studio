@@ -184,7 +184,7 @@ test("sales journey exposes delivery safeguards and defined scope", async ({ pag
   const fees = plans.locator('section[aria-label="What fees cover"]');
   await expect(fees).toBeVisible();
   await expect(fees.getByText(/Know exactly what you are buying/i)).toBeVisible();
-  await expect(page.getByText(/90-day initial commitment/i).first()).toBeVisible();
+  await expect(page.getByText(/(?:90-day|3-month) initial commitment/i).first()).toBeVisible();
 });
 
 

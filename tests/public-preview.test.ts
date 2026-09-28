@@ -210,6 +210,24 @@ test("public preview preserves useful source branding and hero content", () => {
   assert.equal(profile.secondaryImage, "https://harbour.example/images/team.jpg");
 });
 
+test("public preview decodes numeric HTML entities in source facts", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <html><head>
+        <title>Harbour &#8211; Dental</title>
+        <meta name="description" content="Care &#x2013; with clear treatment options.">
+      </head><body>
+        <h1>Harbour &#8211; Dental</h1>
+      </body></html>
+    `,
+    finalUrl: "https://harbour.example/",
+  });
+
+  assert.equal(profile.businessName, "Harbour");
+  assert.match(profile.description, /Care – with clear treatment options/);
+  assert.equal(profile.heroHeadline, "Harbour – Dental");
+});
+
 
 test("public preview prefers an actual hero image over generic social imagery", () => {
   const profile = buildPublicPreviewProfile({
@@ -386,7 +404,6 @@ test("source-driven previews produce a fuller homepage across niches", () => {
   assert.ok(types.includes("proof"));
   assert.ok(types.includes("testimonials"));
   assert.ok(types.includes("faq"));
-  assert.ok(types.includes("contact"));
   assert.ok(types.includes("cta"));
   assert.ok(home.sections.length >= 9);
 });
@@ -426,7 +443,7 @@ test("sparse source websites are expanded into useful non-fabricated sections", 
 
   const home = pages[0];
   const homeTypes = home.sections.filter((section) => section.isVisible !== false).map((section) => section.type);
-  for (const required of ["hero", "features", "services", "about", "faq", "contact", "cta"] as const) {
+  for (const required of ["hero", "features", "services", "about", "faq", "cta"] as const) {
     assert.ok(homeTypes.includes(required), `expected home to include ${required}`);
   }
 

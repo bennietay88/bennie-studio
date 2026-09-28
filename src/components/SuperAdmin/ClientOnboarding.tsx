@@ -63,7 +63,7 @@ export function ClientOnboarding() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setSessions(data || []);
+      setSessions(Array.isArray(data) ? data : []);
     } catch (error: any) {
       console.error("Error fetching sessions:", error);
       const message = error?.message || "Failed to load onboarding queue";
@@ -137,7 +137,7 @@ export function ClientOnboarding() {
         .select("id, name")
         .order("name");
       if (error) throw error;
-      setBusinesses(data || []);
+      setBusinesses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching businesses:", error);
     }

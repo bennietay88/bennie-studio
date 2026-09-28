@@ -203,7 +203,7 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
     const payload = await route.request().postDataJSON();
     expect(payload.action).toBe("send");
     expect(payload.channel).toBe("email");
-    expect(String(payload.bodyText)).toContain("/preview/prospect/");
+    expect(String(payload.bodyText)).toContain("/website-audit?");
     outreachSent = true;
     prospect.outreach_status = "contacted";
     engagementMessages.push({
@@ -289,19 +289,20 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
 
   await signIn(page, "super_admin");
   await page.goto("/admin/prospect_explorer");
-  await expect(page.getByText("Example Dental", { exact: true }).first()).toBeVisible();
+  const prospectRow = page.getByRole("row", { name: /Example Dental/ });
+  await expect(prospectRow).toBeVisible();
 
   await page.getByRole("button", { name: "Audit", exact: true }).click();
   await expect.poll(() => Boolean(prospect.last_audit_at)).toBe(true);
   await expect.poll(() => prospect.outreach_status).toBe("queued");
 
   await page.getByRole("button", { name: "Preview", exact: true }).click();
-  await expect.poll(() => String(prospect.preview_url || "")).toContain("/preview/prospect/");
+  await expect.poll(() => String(prospect.preview_url || "")).toContain("/website-audit?");
   await expect.poll(() => Boolean(prospect.preview_generated_at)).toBe(true);
 
   await page.getByRole("button", { name: "Prepare & Email", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Send email outreach" })).toBeVisible();
-  await expect(page.locator("textarea").first()).toHaveValue(/\/preview\/prospect\//);
+  await expect(page.locator("textarea").first()).toHaveValue(/\/website-audit\?/);
   await page.getByRole("button", { name: "Send email", exact: true }).click();
   await expect.poll(() => outreachSent).toBe(true);
   await expect.poll(() => prospect.outreach_status).toBe("contacted");
@@ -327,7 +328,8 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   await expect.poll(() => converted).toBe(true);
 
   await page.goto("/admin/client_onboarding");
-  await expect(page.getByText("Example Dental", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Customer Onboarding" })).toBeVisible();
+  await expect(page.getByText("Example Dental", { exact: true }).last()).toBeVisible();
   await expect(page.getByText("customer@example.test", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Resend invite/i }).click();
   await expect.poll(() => inviteResent).toBe(true);

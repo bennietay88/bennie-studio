@@ -138,9 +138,13 @@ async function installPersonaMocks(
 }
 
 async function navigateTo(page: Page, path: string) {
-  await page.evaluate((target) => {
-    window.location.href = target;
-  }, path);
+  try {
+    await page.goto(path, { waitUntil: "commit" });
+  } catch {
+    // Firefox/WebKit can report an interrupted navigation when the app redirects
+    // an unauthorized route or retries a dynamically loaded chunk. The assertions
+    // after this helper verify the resulting route and rendered access state.
+  }
 }
 
 async function signInAs(page: Page, persona: Persona, state?: CustomerState) {
@@ -187,7 +191,7 @@ test("client cannot enter the platform admin area", async ({ page }) => {
 test("affiliate signup uses the constrained affiliate provisioning intent", async ({ page }) => {
   const calls = await installPersonaMocks(page, testPersonas.affiliate);
   await page.goto("/affiliate/signup");
-  await page.getByPlaceholder("name@company.com").fill(testPersonas.affiliate.email);
+  await page.locator('input[type="email"]').fill(testPersonas.affiliate.email);
   await page.getByPlaceholder("••••••••").fill("Password123!");
   await page.locator("#agreed").check();
   await page.getByRole("button", { name: "Launch My Partnership" }).click();

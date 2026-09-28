@@ -1961,6 +1961,12 @@ export function WebsiteRenderer({
         .bt-website-renderer section.bg-slate-950 .text-primary {
           color: var(--primary-on-dark) !important;
         }
+        /* Tailwind dark variants keep the light class in the DOM while the
+           browser renders a dark surface; use the dark-safe ink there too. */
+        .bt-website-renderer [class*="dark:bg-slate-950"] .text-primary,
+        .bt-website-renderer [class*="dark:bg-slate-900"] .text-primary {
+          color: var(--primary-on-dark) !important;
+        }
 
         .bt-website-renderer,
         .bt-website-renderer * {
