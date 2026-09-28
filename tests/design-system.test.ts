@@ -686,6 +686,7 @@ test("source-driven previews remove generic agency copy and fake booking widgets
     sourceDriven: true,
     aboutText: "Smile Plus Pro provides professional dental care with a focus on patient comfort.",
     services: ["Teeth Whitening"],
+    serviceImageUrls: ["https://example.test/treatment.jpg"],
     testimonials: ["The team explained the treatment clearly and made the visit comfortable."],
     heroHeadline: "Your Smile Is Our Highest Priority",
     heroSubheadline: "Professional teeth whitening treatment.",
@@ -710,6 +711,8 @@ test("source-driven previews remove generic agency copy and fake booking widgets
   const visibleSections = home.sections.filter((section) => section.isVisible !== false);
   assert.deepEqual(visibleSections.map((section) => section.type), ["hero", "services", "testimonials", "about", "faq", "cta"]);
   assert.equal(visibleSections.find((section) => section.type === "services")?.settings?.variant, "source_services");
+  assert.equal(visibleSections.find((section) => section.type === "services")?.content?.eyebrow, "Dental care");
+  assert.equal(visibleSections.find((section) => section.type === "services")?.content?.items?.[0]?.imageUrl, "https://example.test/treatment.jpg");
   assert.equal(visibleSections.find((section) => section.type === "about")?.settings?.variant, "source_about");
   assert.equal(visibleSections.find((section) => section.type === "testimonials")?.settings?.variant, "source_testimonials");
   assert.equal(visibleSections.find((section) => section.type === "cta")?.settings?.variant, "brand_band");

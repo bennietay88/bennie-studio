@@ -214,7 +214,7 @@ const extractSecondaryImageCandidate = (html: string, baseUrl: string, heroImage
     if (!src || /^data:/i.test(src) || /\.svg(?:\?|$)/i.test(src)) continue;
     const resolved = absoluteUrl(src, baseUrl);
     if (!resolved || resolved === heroImage) continue;
-    if (/(?:icon|illustration|vector|drawing|placeholder|symbol|clipart)/i.test(`${attrs} ${resolved}`)) continue;
+    if (/(?:icon|illustration|vector|drawing|placeholder|symbol|clipart|tooth|teeth|process|step|diagram|graphic)/i.test(`${attrs} ${resolved}`)) continue;
 
     let score = 0;
     if (/(?:about|team|clinic|office|studio|project|gallery|environment|interior|staff)/i.test(attrs)) score += 6;

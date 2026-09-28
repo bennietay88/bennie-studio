@@ -3522,13 +3522,20 @@ export function WebsiteRenderer({
                           </motion.div>
                           <div className="divide-y divide-slate-200">
                             {sourceItems.map((item: any, itemIndex: number) => (
-                              <motion.article key={item.id || itemIndex} variants={fadeInUp} className="grid gap-4 py-7 sm:py-8 lg:grid-cols-12 lg:items-start">
+                              <motion.article key={item.id || itemIndex} variants={fadeInUp} className="grid gap-5 py-7 sm:py-8 lg:grid-cols-12 lg:items-center">
                                 <p className="text-[10px] font-black tracking-[0.22em] text-primary lg:col-span-1">{String(itemIndex + 1).padStart(2, "0")}</p>
-                                <h3 className="text-2xl font-semibold tracking-[-0.02em] text-slate-950 sm:text-3xl lg:col-span-5">{item.title}</h3>
+                                <div className={item.imageUrl ? "lg:col-span-4" : "lg:col-span-5"}>
+                                  <h3 className="text-2xl font-semibold tracking-[-0.02em] text-slate-950 sm:text-3xl">{item.title}</h3>
+                                  {item.imageUrl ? (
+                                    <div className="mt-4 aspect-[16/8] max-w-sm overflow-hidden bg-slate-100">
+                                      <img src={item.imageUrl} alt={item.imageAlt || item.title || "Service"} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+                                    </div>
+                                  ) : null}
+                                </div>
                                 {item.description ? (
-                                  <p className="text-base leading-7 text-slate-600 lg:col-span-6">{item.description}</p>
+                                  <p className={item.imageUrl ? "text-base leading-7 text-slate-600 lg:col-span-7" : "text-base leading-7 text-slate-600 lg:col-span-6"}>{item.description}</p>
                                 ) : (
-                                  <div className="hidden lg:col-span-6 lg:block" aria-hidden="true" />
+                                  <div className={item.imageUrl ? "hidden lg:col-span-7 lg:block" : "hidden lg:col-span-6 lg:block"} aria-hidden="true" />
                                 )}
                               </motion.article>
                             ))}

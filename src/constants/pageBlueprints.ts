@@ -72,6 +72,7 @@ export interface BlueprintBusinessInput {
   tone?: string;
   services?: string[];
   serviceDetails?: Array<{ title: string; description: string }>;
+  serviceImageUrls?: string[];
   description?: string;
   aboutText?: string;
   sourceDriven?: boolean;
@@ -691,7 +692,7 @@ const getServiceItems = (input: BlueprintBusinessInput) => {
       : [fallbackService, "Consultation", "Ongoing Support"];
   const details = (input.serviceDetails || []).filter((item) => item?.title && item?.description);
 
-  return services.slice(0, input.sourceDriven ? 5 : 6).map((service) => {
+  return services.slice(0, input.sourceDriven ? 5 : 6).map((service, serviceIndex) => {
     const title = generatedServiceTitle(service);
     const sourceDetail = details.find((item) => {
       const itemTitle = String(item.title || "").trim().toLowerCase();
@@ -706,7 +707,7 @@ const getServiceItems = (input: BlueprintBusinessInput) => {
         ? String(sourceDetail?.description || "").trim()
           || generatedBody(`Learn more about ${title} from ${input.businessName} and contact the team to confirm scope, availability and the right next step for your needs.`)
         : generatedBody(`${title} designed for ${input.targetCustomer || "your customers"} in ${input.location || "your area"}.`),
-      imageUrl: undefined,
+      imageUrl: input.serviceImageUrls?.[serviceIndex] || undefined,
     };
   });
 };
@@ -886,7 +887,13 @@ const buildSectionContent = (
                     ? "Services"
                     : "Services Built Around Your Needs",
       eyebrow: input.sourceDriven
-        ? (inferBlueprintNiche(`${input.nicheName || ""} ${input.mainService || ""}`) === "clinic" ? "Podiatry care" : "Services")
+        ? (inferBlueprintNiche(`${input.nicheName || ""} ${input.mainService || ""}`) === "clinic"
+          ? /dental|dentist|teeth|tooth|whitening|implant|veneer|orthodont|braces|crown|filling|scaling|polish/i.test(`${input.nicheName || ""} ${input.mainService || ""}`)
+            ? "Dental care"
+            : /podiatr/i.test(`${input.nicheName || ""} ${input.mainService || ""}`)
+              ? "Podiatry care"
+              : "Patient care"
+          : "Services")
         : undefined,
       description: input.sourceDriven
         ? undefined

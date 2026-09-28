@@ -1956,10 +1956,16 @@ function GeneratePreviewPage() {
         ? (profile.heroImage || sourceImages[0] || "")
         : previewStockImage;
       const personImageUrls = new Set(sourcePeople.map((person) => person.imageUrl).filter(Boolean));
+      const sourceSupportingImages = sourceImages.filter((url) =>
+        url !== sourceHeroImage
+        && url !== profile.logoUrl
+        && !personImageUrls.has(url)
+        && !/(?:logo|icon|avatar|badge|sprite|favicon|illustration|vector|drawing|placeholder|symbol|clipart|process|step|diagram|graphic)/i.test(url),
+      ).slice(0, 6);
       const sourceStoryImage = previewMode === "website"
         ? (
-            sourceImages.find((url) => url !== sourceHeroImage && !personImageUrls.has(url))
-            || (profile.secondaryImage && !personImageUrls.has(profile.secondaryImage) ? profile.secondaryImage : "")
+            (profile.secondaryImage && sourceSupportingImages.includes(profile.secondaryImage) ? profile.secondaryImage : "")
+            || sourceSupportingImages[0]
             || ""
           )
         : previewStockImage;
@@ -1981,6 +1987,7 @@ function GeneratePreviewPage() {
         serviceDetails: previewMode === "website" && Array.isArray(profile.serviceDetails)
           ? profile.serviceDetails
           : undefined,
+        serviceImageUrls: previewMode === "website" ? sourceSupportingImages : undefined,
         localProof: sourceProofItems.length ? sourceProofItems.join(" • ") : undefined,
         description: previewMode === "website"
           ? String(profile.description || "").trim()
