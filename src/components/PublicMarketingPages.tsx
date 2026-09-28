@@ -64,6 +64,10 @@ import {
 } from "../lib/websiteAudit";
 
 type PublicPageKind =
+  | "services"
+  | "about"
+  | "resources"
+  | "contact"
   | "templates"
   | "pricing"
   | "how-it-works"
@@ -86,6 +90,22 @@ const PublicWebsiteRenderer = React.lazy(() =>
 );
 
 const pageMeta: Record<PublicPageKind, { title: string; description: string }> = {
+  services: {
+    title: "Website Services | Bennie Studio",
+    description: "Strategy, messaging, design, build, human review, launch and ongoing website support for service businesses.",
+  },
+  about: {
+    title: "About Bennie Studio | Human-Reviewed Website Service",
+    description: "Learn how Bennie Studio combines modern website production with strategy, human review and managed support.",
+  },
+  resources: {
+    title: "Website Resources | Bennie Studio",
+    description: "Practical website resources, audits, examples and planning tools for businesses improving their online presence.",
+  },
+  contact: {
+    title: "Contact Bennie Studio | Talk About Your Website",
+    description: "Start with a free website preview or book a focused review call with Bennie Studio.",
+  },
   templates: {
     title: "Website Templates by Industry | Bennie Studio",
     description:
@@ -551,6 +571,297 @@ function Hero({
   );
 }
 
+
+function ServicesPage() {
+  const services = [
+    ["01", "Strategy & discovery", "We learn how the business makes money, who the buyer is, what evidence already exists and what the website needs to achieve."],
+    ["02", "Messaging & positioning", "We shape the offer, page hierarchy and calls to action so visitors understand the business quickly and know what to do next."],
+    ["03", "Design & user experience", "The visual system is tailored around the brand, category and buyer journey rather than a single generic template."],
+    ["04", "Build & integrations", "We prepare a responsive website with the forms, tracking, analytics and practical integrations required for launch."],
+    ["05", "Human review", "Bennie Studio reviews the message, design, responsive behaviour and conversion path before customer approval."],
+    ["06", "Launch & support", "Hosting, SSL, maintenance and plan-based improvements remain part of the managed workflow after launch."],
+  ];
+
+  return (
+    <>
+      <Hero
+        title="Strategic websites designed to win trust and enquiries."
+        copy="Bennie Studio combines strategy, messaging, design, build and human review into one managed website service for businesses that need something more considered than a generic template."
+        icon={Sparkles}
+        primaryLabel="Start your website"
+        primaryHref="/generate-preview"
+        secondaryLabel="View the work"
+        secondaryHref="/case-studies"
+      />
+
+      <section className="brand-shell brand-section">
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-center">
+          <div className="lg:col-span-5">
+            <p className="brand-kicker">What we do</p>
+            <h2 className="mt-4">More than a website. A strategic business asset.</h2>
+            <p className="brand-copy mt-6">A strong website should make the offer easier to understand, make the business easier to trust and make the next step obvious. That is the job of the whole system.</p>
+            <Link to="/generate-preview" className={`${primaryCtaClass} mt-7`}>Start your website <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          </div>
+          <div className="bt-premium-card overflow-hidden bg-[#0b1020] p-3 lg:col-span-7">
+            <img src="/images/bennie-studio-system.webp" alt="Bennie Studio website strategy and design system" className="aspect-[16/10] w-full rounded-[1rem] object-cover" loading="lazy" decoding="async" />
+          </div>
+        </div>
+      </section>
+
+      <section className="bt-section-soft border-y border-[#e5e8ef]">
+        <div className="brand-shell brand-section">
+          <div className="grid gap-9 lg:grid-cols-12 lg:items-end">
+            <div className="lg:col-span-7">
+              <p className="brand-kicker">Service pillars</p>
+              <h2 className="mt-4">A complete website system, from strategy to growth.</h2>
+            </div>
+            <p className="brand-copy lg:col-span-5">The workflow is structured, but the result is not templated. The business model, audience and proof decide the direction.</p>
+          </div>
+          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {services.map(([number, title, copy]) => (
+              <article key={title} className="bt-premium-card bt-card-hover p-6">
+                <span className="text-xs font-bold text-[#6252f4]">{number}</span>
+                <h3 className="mt-4">{title}</h3>
+                <p className="mt-3 text-sm leading-7 text-[#657186]">{copy}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="brand-on-dark">
+        <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12">
+          <div className="lg:col-span-5">
+            <p className="brand-kicker !text-[#b9b1ff]">The human difference</p>
+            <h2 className="mt-4 !text-white">Modern tools give us speed. Human review protects the result.</h2>
+            <p className="mt-6 max-w-xl text-base leading-8 !text-white/65">Automation can accelerate production. It does not replace judgment about credibility, positioning, design quality or whether the website actually makes sense to a customer.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:col-span-7">
+            {["Strategic messaging", "Thoughtful visual direction", "Responsive quality review", "Clear enquiry paths"].map((item) => (
+              <div key={item} className="bt-premium-card-dark p-5">
+                <ShieldCheck className="h-5 w-5 text-[#b9b1ff]" />
+                <p className="mt-4 font-semibold !text-white">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="brand-shell brand-section">
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
+          <div className="lg:col-span-7">
+            <p className="brand-kicker">Who it is for</p>
+            <h2 className="mt-4">Built for service businesses ready to look more credible and sell more clearly.</h2>
+          </div>
+          <p className="brand-copy lg:col-span-5">Professional services, clinics, consultants, accounting firms and local service businesses all need different proof and enquiry paths. The system adapts to that difference.</p>
+        </div>
+        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[
+            ["Professional services", "Authority, expertise and qualified consultation enquiries."],
+            ["Healthcare & clinics", "Trust, treatment clarity and a simple appointment path."],
+            ["Consultants & experts", "Clear positioning, proof and a focused book-call journey."],
+            ["Local services", "Fast proof, service-area clarity and quote or call actions."],
+          ].map(([title, copy]) => (
+            <article key={title} className="bt-premium-card bt-card-hover p-6">
+              <Globe className="h-5 w-5 text-[#6252f4]" />
+              <h3 className="mt-4">{title}</h3>
+              <p className="mt-3 text-sm leading-7 text-[#657186]">{copy}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function AboutPage() {
+  return (
+    <>
+      <Hero
+        title="A modern studio for businesses that need a better website."
+        copy="Bennie Studio is built around a simple idea: businesses should be able to get thoughtful strategy, strong design and reliable website delivery without managing a complicated agency process."
+        icon={ShieldCheck}
+        primaryLabel="Start your website"
+        primaryHref="/generate-preview"
+        secondaryLabel="See how it works"
+        secondaryHref="/how-it-works"
+      />
+
+      <section className="brand-shell brand-section">
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-center">
+          <div className="lg:col-span-5">
+            <p className="brand-kicker">Our mission</p>
+            <h2 className="mt-4">Better websites for real businesses.</h2>
+            <p className="brand-copy mt-6">The goal is not to produce more pages. It is to make good businesses easier to understand, easier to trust and easier to contact. Strategy, design and technology are useful only when they serve that goal.</p>
+          </div>
+          <div className="bt-premium-card overflow-hidden p-3 lg:col-span-7">
+            <img src="/images/bennie-studio-system.webp" alt="Bennie Studio reviewing a website direction" className="aspect-[16/10] w-full rounded-[1rem] object-cover" loading="lazy" decoding="async" />
+          </div>
+        </div>
+      </section>
+
+      <section className="bt-section-soft border-y border-[#e5e8ef]">
+        <div className="brand-shell brand-section">
+          <p className="brand-kicker">What matters</p>
+          <div className="mt-5 grid gap-10 lg:grid-cols-12 lg:items-end">
+            <h2 className="lg:col-span-7">A more thoughtful way to build websites.</h2>
+            <p className="brand-copy lg:col-span-5">The service is designed around clarity, craft, commercial usefulness and direct responsibility for the finished result.</p>
+          </div>
+          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Human first", "Real review and feedback at the stages where judgment matters."],
+              ["Business minded", "Design decisions are tied back to the buyer, the offer and the desired enquiry."],
+              ["Quality over volume", "The system is designed to make review and launch standards explicit."],
+              ["Long-term usefulness", "The website remains managed and can evolve as the business changes."],
+            ].map(([title, copy]) => (
+              <article key={title} className="bt-premium-card p-6">
+                <Check className="h-5 w-5 text-[#6252f4]" />
+                <h3 className="mt-4">{title}</h3>
+                <p className="mt-3 text-sm leading-7 text-[#657186]">{copy}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="brand-on-dark">
+        <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12">
+          <div className="lg:col-span-5">
+            <p className="brand-kicker !text-[#b9b1ff]">Our difference</p>
+            <h2 className="mt-4 !text-white">Every paid website is reviewed before launch.</h2>
+            <p className="mt-6 text-base leading-8 !text-white/65">The production system can accelerate repetitive work, but the final website still needs judgment: does the message make sense, does it feel credible, does it work on mobile and is the next action obvious?</p>
+          </div>
+          <div className="grid gap-3 lg:col-span-7">
+            {PUBLIC_DELIVERY_PROMISES.slice(0, 4).map((promise, index) => (
+              <div key={promise} className="bt-premium-card-dark grid gap-3 p-5 sm:grid-cols-[3rem_1fr] sm:items-center">
+                <span className="text-xs font-bold !text-[#b9b1ff]">{String(index + 1).padStart(2, "0")}</span>
+                <p className="text-sm font-semibold leading-7 !text-white/80">{promise}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function ResourcesPage() {
+  const resources = [
+    [FileSearch, "Free website growth audit", "Identify observable design, trust, enquiry and SEO issues on your current site.", "/website-audit", "Run the audit"],
+    [LayoutTemplate, "Website directions", "Explore the design families and buyer-journey structures Bennie Studio uses as starting points.", "/templates", "Explore directions"],
+    [Sparkles, "Working examples", "See demonstration builds and verified customer proof where approved proof is available.", "/case-studies", "View the work"],
+    [Rocket, "How the process works", "Understand the brief, review, launch and managed-service workflow before you commit.", "/how-it-works", "See the process"],
+    [ClipboardCheck, "Pricing and scope", "Compare current managed plans, setup fees and included service levels.", "/pricing", "Compare plans"],
+  ] as const;
+
+  return (
+    <>
+      <Hero
+        title="Guides, tools and examples for businesses improving their website."
+        copy="Use the practical resources below to evaluate your current website, understand the Bennie Studio process and see how different businesses need different website directions."
+        icon={FileSearch}
+        primaryLabel="Start with a free audit"
+        primaryHref="/website-audit"
+        secondaryLabel="Generate a preview"
+        secondaryHref="/generate-preview"
+      />
+
+      <section className="brand-shell brand-section">
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
+          <div className="lg:col-span-7">
+            <p className="brand-kicker">Practical resources</p>
+            <h2 className="mt-4">Useful before you spend money on a redesign.</h2>
+          </div>
+          <p className="brand-copy lg:col-span-5">These resources are designed to help you diagnose the problem, see possible directions and understand what a managed website service actually includes.</p>
+        </div>
+        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {resources.map(([Icon, title, copy, href, label]) => (
+            <Link key={title} to={href} className="bt-premium-card bt-card-hover group p-6">
+              <Icon className="h-6 w-6 text-[#6252f4]" />
+              <h3 className="mt-5">{title}</h3>
+              <p className="mt-3 text-sm leading-7 text-[#657186]">{copy}</p>
+              <span className="mt-6 inline-flex items-center text-sm font-semibold text-[#0d1426]">{label}<ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" /></span>
+            </Link>
+          ))}
+          <a href={BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com"} target="_blank" rel="noreferrer" className="bt-premium-card bt-card-hover group p-6">
+            <Globe className="h-6 w-6 text-[#6252f4]" />
+            <h3 className="mt-5">Bennie Tay insights</h3>
+            <p className="mt-3 text-sm leading-7 text-[#657186]">Long-form notes and practical thinking about websites, growth and digital execution.</p>
+            <span className="mt-6 inline-flex items-center text-sm font-semibold text-[#0d1426]">Read insights<ExternalLink className="ml-2 h-4 w-4" /></span>
+          </a>
+        </div>
+      </section>
+
+      <section className="bt-section-soft border-y border-[#e5e8ef]">
+        <div className="brand-shell brand-section grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="brand-kicker">A useful next step</p>
+            <h2 className="mt-4 max-w-3xl">See what a better direction could look like for your business.</h2>
+            <p className="brand-copy mt-5">A preview gives you something concrete to react to before you choose a managed plan.</p>
+          </div>
+          <Link to="/generate-preview" className={primaryCtaClass}>Start your website <ArrowRight className="ml-2 h-4 w-4" /></Link>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function ContactPage() {
+  return (
+    <>
+      <Hero
+        title="Let’s talk about your website."
+        copy="If you already know what you need, book a focused review call. If you are still deciding, start with a guided brief and a tailored website preview."
+        icon={MessageCircle}
+        primaryLabel="Book a free call"
+        primaryHref="/book-demo"
+        secondaryLabel="Start with a preview"
+        secondaryHref="/generate-preview"
+      />
+
+      <section className="brand-shell brand-section">
+        <div className="grid gap-5 lg:grid-cols-2">
+          <article className="bt-premium-card p-7 sm:p-9">
+            <Mail className="h-6 w-6 text-[#6252f4]" />
+            <p className="brand-kicker mt-6">Prefer to start asynchronously?</p>
+            <h2 className="mt-4">Send a clear business brief.</h2>
+            <p className="brand-copy mt-5">The preview flow captures your business, goals, current website and visual direction so the conversation starts with useful context instead of a blank page.</p>
+            <Link to="/generate-preview" className={`${primaryCtaClass} mt-7`}>Start your website <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          </article>
+          <article className="bt-premium-card bg-[#0d1426] p-7 text-white sm:p-9">
+            <MessageCircle className="h-6 w-6 text-[#b9b1ff]" />
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.13em] !text-[#b9b1ff]">Want to talk it through?</p>
+            <h2 className="mt-4 !text-white">Book a focused website review.</h2>
+            <p className="mt-5 text-base leading-8 !text-white/65">Use the call to discuss your goals, current website, plan fit and next steps. The goal is clarity, not a high-pressure sales call.</p>
+            <Link to="/book-demo" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-semibold text-[#0d1426]">Book a free call <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          </article>
+        </div>
+      </section>
+
+      <section className="bt-section-soft border-y border-[#e5e8ef]">
+        <div className="brand-shell brand-section">
+          <p className="brand-kicker">What happens next</p>
+          <h2 className="mt-4 max-w-3xl">From conversation to a clearer website direction.</h2>
+          <div className="mt-10 grid gap-4 md:grid-cols-4">
+            {[
+              ["01", "Share context", "Tell us about the business, current website and what needs to change."],
+              ["02", "Clarify the goal", "We identify the buyer, strongest next action and realistic scope."],
+              ["03", "Review the direction", "See the website direction or discuss the proposed approach."],
+              ["04", "Choose the next step", "Continue only if the plan, scope and working model make sense."],
+            ].map(([number, title, copy]) => (
+              <article key={number} className="bt-premium-card p-6">
+                <span className="text-xs font-bold text-[#6252f4]">{number}</span>
+                <h3 className="mt-4">{title}</h3>
+                <p className="mt-3 text-sm leading-7 text-[#657186]">{copy}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
 function TemplatesPage() {
   return (
     <>
@@ -627,8 +938,8 @@ function PricingPage() {
   return (
     <>
       <Hero
-        title="Managed website plans."
-        copy="Start with a serious managed website. Add deeper conversion, local SEO and growth support when the commercial need is there."
+        title="Professional websites for growing service businesses."
+        copy="Choose the level of website management and growth support that fits where your business is now. The current setup fee, monthly service and commitment are shown before checkout."
         icon={Sparkles}
         primaryLabel="Generate my preview"
         primaryHref="/generate-preview"
@@ -644,8 +955,8 @@ function HowItWorksPage() {
   return (
     <>
       <Hero
-        title="Managed from brief to launch."
-        copy="You provide accurate business information and approvals. Bennie Studio handles strategy, production, hosting, maintenance and the improvement included in your plan."
+        title="From brief to launch, without the chaos."
+        copy="A clear process takes you from business brief to strategy, design, human review, customer approval, launch and ongoing support — with one managed workflow."
         icon={Rocket}
       />
       <section className="brand-shell brand-section">
@@ -800,8 +1111,8 @@ function CaseStudiesPage() {
   return (
     <>
       <Hero
-        title="See the system in action."
-        copy="Verified customer proof is shown separately from demonstration builds so you can tell the difference between measured evidence and a design example."
+        title="Work that shows how different businesses need different websites."
+        copy="Explore demonstration builds and verified customer proof where approved evidence is available. The goal is to show structure, messaging, visual direction and enquiry flow without inventing results."
         icon={Sparkles}
       />
 
@@ -3085,6 +3396,14 @@ export default function PublicMarketingPages() {
   const pageContent =
     nichePage
       ? <NicheLandingPage page={nichePage} />
+      : pageKind === "services"
+      ? <ServicesPage />
+      : pageKind === "about"
+        ? <AboutPage />
+        : pageKind === "resources"
+          ? <ResourcesPage />
+          : pageKind === "contact"
+            ? <ContactPage />
       : pageKind === "pricing"
       ? <PricingPage />
       : pageKind === "how-it-works"
