@@ -14,6 +14,7 @@ import {
   Globe2,
   HeartHandshake,
   Layout,
+  Mail,
   MessageCircle,
   MonitorSmartphone,
   Rocket,
@@ -59,6 +60,7 @@ function StudioHero({
   image = "/images/studio-hero-v2.png",
   visualLabel,
   trust = ["Strategy-led", "Human review", "Built for growth"],
+  titleClassName = "!max-w-[15ch]",
 }: {
   kicker: string;
   title: string;
@@ -71,6 +73,7 @@ function StudioHero({
   image?: string;
   visualLabel?: string;
   trust?: string[];
+  titleClassName?: string;
 }) {
   return (
     <section className="bs3-dark bs3-grid relative overflow-hidden border-b border-white/10">
@@ -78,7 +81,7 @@ function StudioHero({
       <div className="brand-shell grid gap-12 py-16 sm:py-20 lg:grid-cols-12 lg:items-center lg:py-24">
         <div className="lg:col-span-6">
           <p className="brand-kicker !text-[#9f93ff]">{kicker}</p>
-          <h1 className="mt-5 !max-w-[15ch] !text-white">
+          <h1 className={`mt-5 ${titleClassName} !text-white`}>
             {title}{accent ? <> <span className="bs3-accent">{accent}</span></> : null}
           </h1>
           <p className="brand-copy mt-6 !max-w-[40rem] !text-white/68">{copy}</p>
@@ -289,6 +292,9 @@ export function AboutStudioPage() {
 }
 
 export function ResourcesStudioPage() {
+  const [query, setQuery] = React.useState("");
+  const [activeCategory, setActiveCategory] = React.useState("All");
+  const [subscribed, setSubscribed] = React.useState(false);
   const articles = [
     ["/images/studio-insights-v2.png","Website strategy","How to plan a website that actually gets results","A practical step-by-step approach to planning structure, messaging and launch.","/how-it-works"],
     ["/images/studio-work-v2.png","Conversion","7 website elements that build trust","The practical signals that make a service business easier to believe and contact.","/services"],
@@ -300,6 +306,13 @@ export function ResourcesStudioPage() {
     ["/template-assets/flagship-beauty.jpg","Business growth","How to turn more visitors into customers","Clarify the offer, strengthen proof and make the next step easier to take.","/services"],
     ["/images/studio-work-v2.png","Website strategy","When to redesign your website","Signs that the current site is costing trust, clarity or conversion.","/generate-preview"],
   ] as const;
+
+  const categories = ["All","Website Strategy","Design & UX","Copy & Messaging","Conversion","Case Studies","Tools & Resources"];
+  const filteredArticles = articles.filter(([, cat, title, copy]) => {
+    const categoryMatch = activeCategory === "All" || cat.toLowerCase() === activeCategory.toLowerCase() || (activeCategory === "Website Strategy" && cat === "Business growth");
+    const searchMatch = `${title} ${copy} ${cat}`.toLowerCase().includes(query.toLowerCase().trim());
+    return categoryMatch && searchMatch;
+  });
 
   return (
     <>
@@ -314,16 +327,24 @@ export function ResourcesStudioPage() {
         image="/images/studio-insights-v2.png"
         visualLabel="Practical website guidance"
         trust={["Practical advice","Templates & checklists","Examples that work"]}
+        titleClassName="!max-w-[20ch]"
       />
       <section className="bg-white border-y border-[#e6e8ef]">
-        <div className="brand-shell flex flex-wrap gap-3 py-7">
-          {["All","Website Strategy","Design & UX","Copy & Messaging","Conversion","Case Studies","Tools & Resources"].map((x,i)=><span key={x} className={i===0?"bs3-pill bs3-pill-active":"bs3-pill"}>{x}</span>)}
+        <div className="brand-shell py-6">
+          <div className="relative max-w-2xl">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6252f4]" />
+            <label htmlFor="resource-search" className="sr-only">Search resources</label>
+            <input id="resource-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search articles, guides or topics..." className="w-full rounded-xl border border-[#dfe3ed] bg-[#fbfcff] py-3 pl-11 pr-4 text-sm text-[#172033] outline-none transition placeholder:text-[#9aa3b2] focus:border-[#6252f4] focus:ring-4 focus:ring-[#6252f4]/10" />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Resource categories">
+            {categories.map((x) => <button type="button" key={x} onClick={() => setActiveCategory(x)} aria-pressed={activeCategory === x} className={activeCategory === x ? "bs3-pill bs3-pill-active" : "bs3-pill"}>{x}</button>)}
+          </div>
         </div>
       </section>
       <section className="brand-shell brand-section">
         <SectionHeader kicker="Latest resources" title="Practical resources for real business growth." copy="Clear guidance to help you improve your website, communicate more clearly and convert more visitors." />
         <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {articles.map(([img,cat,title,copy,href])=>(
+          {filteredArticles.map(([img,cat,title,copy,href])=>(
             <Link key={title} to={href} className="bs3-card bs3-card-hover overflow-hidden">
               <img src={img} alt="" className="aspect-[16/8.8] w-full object-cover" loading="lazy" />
               <div className="p-5">
@@ -335,11 +356,24 @@ export function ResourcesStudioPage() {
             </Link>
           ))}
         </div>
+        {filteredArticles.length === 0 ? <div className="mt-8 rounded-2xl border border-dashed border-[#cfd5e2] bg-[#fbfcff] p-10 text-center"><p className="font-semibold text-[#172033]">No resources match that search.</p><button type="button" onClick={() => { setQuery(""); setActiveCategory("All"); }} className="mt-3 text-sm font-semibold text-[#6252f4]">Clear filters</button></div> : null}
       </section>
       <section className="bs3-soft border-y border-[#e6e8ef]">
         <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12 lg:items-center">
           <div className="lg:col-span-5"><p className="brand-kicker">Free resource</p><h2 className="mt-4">The Website Launch Checklist.</h2><p className="brand-copy mt-5">Use the launch process as a checklist for content, responsive behaviour, search basics, forms and final QA.</p><Link to="/how-it-works" className={`${primary} mt-7`}>View the checklist<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
           <div className="lg:col-span-7"><div className="bs3-resource-art"><BookOpen className="h-16 w-16 text-[#8d7bff]" /><div><p className="text-sm font-semibold text-white/60">Bennie Studio</p><p className="mt-2 text-3xl font-semibold text-white">Website<br/>Launch Checklist</p></div></div></div>
+        </div>
+      </section>
+      <section className="brand-shell brand-section">
+        <SectionHeader kicker="Popular topics" title="Explore by topic." copy="Start with the area that matters most to your next website decision." />
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          {["Website Strategy","Design & UX","Copy & Messaging","Conversion","Case Studies","Tools & Resources"].map((topic, index) => <button type="button" key={topic} onClick={() => { setActiveCategory(topic); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="bs3-card bs3-card-hover p-5 text-left"><span className="bs3-icon"><BookOpen className="h-4 w-4" /></span><h3 className="mt-4 !text-base">{topic}</h3><p className="mt-2 text-xs text-[#657186]">Useful guides and examples</p><ArrowRight className="mt-5 h-4 w-4 text-[#6252f4]" /></button>)}
+        </div>
+      </section>
+      <section className="bs3-dark">
+        <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12 lg:items-center">
+          <div className="lg:col-span-5"><p className="brand-kicker !text-[#9f93ff]">Stay in the loop</p><h2 className="mt-4 !text-white">Get better website thinking in your inbox.</h2><p className="mt-5 text-base leading-8 text-white/62">Join practical updates for service businesses — no hype, just useful advice, examples and launch checklists.</p></div>
+          <form onSubmit={(event) => { event.preventDefault(); setSubscribed(true); }} className="lg:col-span-7"><div className="flex flex-col gap-3 rounded-2xl border border-white/12 bg-white/[0.06] p-3 sm:flex-row"><label htmlFor="resource-email" className="sr-only">Email address</label><div className="flex min-h-12 flex-1 items-center gap-3 rounded-xl bg-white px-4"><Mail className="h-4 w-4 text-[#6252f4]" /><input id="resource-email" required type="email" placeholder="Your email address" className="min-w-0 flex-1 bg-transparent text-sm text-[#172033] outline-none placeholder:text-[#8d96a5]" /></div><button type="submit" className={primary}>{subscribed ? "You’re subscribed" : "Subscribe"}<ArrowRight className="ml-2 h-4 w-4" /></button></div><p className="mt-3 text-xs text-white/45">No spam. Unsubscribe anytime.</p></form>
         </div>
       </section>
     </>
