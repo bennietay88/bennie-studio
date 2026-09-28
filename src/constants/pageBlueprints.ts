@@ -95,6 +95,16 @@ export interface BlueprintBusinessInput {
   preferredHeroVariant?: string;
   compactSubpageHeroes?: boolean;
   teamMembers?: Array<{ name: string; role?: string; bio?: string; imageUrl?: string }>;
+  historyItems?: string[];
+  pressItems?: string[];
+  businessDNA?: {
+    humanLed?: boolean;
+    heritageRich?: boolean;
+    proofRich?: boolean;
+    imageRich?: boolean;
+    identityScore?: number;
+    typographyStyle?: "heritage" | "humanist" | "modern";
+  };
   compositionSeed?: number;
 }
 
@@ -870,7 +880,14 @@ const buildSectionContent = (
               ? "Practice Areas"
               : pageBlueprint.name.includes("Treatment")
                 ? "Treatments & Services"
-                : "Services Built Around Your Needs",
+                : input.sourceDriven && inferBlueprintNiche(`${input.nicheName || ""} ${input.mainService || ""}`) === "clinic"
+                  ? "How We Can Help"
+                  : input.sourceDriven
+                    ? "Services"
+                    : "Services Built Around Your Needs",
+      eyebrow: input.sourceDriven
+        ? (inferBlueprintNiche(`${input.nicheName || ""} ${input.mainService || ""}`) === "clinic" ? "Podiatry care" : "Services")
+        : undefined,
       description: input.sourceDriven
         ? undefined
         : `Clear options for ${target} looking for ${service} in ${location}.`,
@@ -888,22 +905,34 @@ const buildSectionContent = (
   if (section.type === "proof") {
     const suppliedProof = (input.localProof || "").trim();
     const suppliedLogos = Array.isArray(input.proofLogos) ? input.proofLogos.filter(Boolean) : [];
-    const hasBusinessProof = Boolean(suppliedProof || suppliedLogos.length);
+    const historyItems = (input.historyItems || []).filter(Boolean);
+    const pressItems = (input.pressItems || []).filter(Boolean);
+    const hasBusinessProof = Boolean(suppliedProof || suppliedLogos.length || historyItems.length || pressItems.length);
+    const proofItems = [
+      ...historyItems.map((description) => ({ title: "A part of our story", description })),
+      ...pressItems.map((description) => ({ title: "From the archive", description })),
+    ].slice(0, 6);
+    if (!proofItems.length && suppliedProof) {
+      proofItems.push({ title: "Established trust", description: suppliedProof });
+    }
     section.content = {
       ...section.content,
-      title: suppliedLogos.length
-        ? "Trusted Connections"
-        : suppliedProof
-          ? "Proof From the Business"
-          : "Proof",
-      description: suppliedProof || undefined,
+      eyebrow: input.sourceDriven
+        ? (historyItems.length || pressItems.length ? "Our history" : "Trust")
+        : undefined,
+      title: historyItems.length || pressItems.length
+        ? "A Practice With a Story"
+        : suppliedLogos.length
+          ? "Trusted Connections"
+          : suppliedProof
+            ? "Why Customers Trust Us"
+            : "Proof",
+      description: historyItems.length || pressItems.length ? undefined : suppliedProof || undefined,
       stats: [],
       logos: suppliedLogos,
-      items: suppliedProof
-        ? [{ title: "Business-supplied evidence", description: suppliedProof }]
-        : [],
+      items: proofItems,
       providedByBusiness: hasBusinessProof,
-      sourceLabel: hasBusinessProof ? "Business-supplied proof" : undefined,
+      sourceLabel: hasBusinessProof ? "Source website" : undefined,
     };
     section.isVisible = hasBusinessProof;
   }
@@ -913,6 +942,7 @@ const buildSectionContent = (
     const inferredAboutText = `${businessName} provides ${service} for ${target} in ${location}. This preview reorganises the available business information so visitors can understand the service, where it is offered and how to make an enquiry more easily.\n\nFor details that are not available on the current website, customers are directed to contact ${businessName} rather than relying on unsupported claims.`;
     section.content = {
       ...section.content,
+      eyebrow: input.sourceDriven ? "About" : undefined,
       title: `About ${businessName}`,
       text: input.sourceDriven
         ? sourceAboutText || inferredAboutText
@@ -1003,13 +1033,24 @@ const buildSectionContent = (
 
     section.content = {
       ...section.content,
+      eyebrow: sourceDriven
+        ? (clinicSource ? "Patient information" : restaurantSource ? "Planning your visit" : professionalSource ? "What to expect" : "At a glance")
+        : undefined,
       title:
         sourceDriven && block === "highlights"
-          ? localServiceSource
-            ? "Local service, with a clearer path to enquiry"
-            : "What customers need to know"
+          ? clinicSource
+            ? "Care That Feels Clear and Personal"
+            : localServiceSource
+              ? "What Makes This Service Easy to Choose"
+              : professionalSource
+                ? "What Clients Need to Know"
+                : "What Matters Most"
           : sourceDriven && block === "process"
-            ? "A simple way to get started"
+            ? clinicSource
+              ? "What to Expect"
+              : restaurantSource
+                ? "Plan Your Visit"
+                : "How to Get Started"
             : block === "portfolio"
               ? (pageBlueprint.slug === "" ? "Selected Work" : pageBlueprint.name)
               : block === "process"
@@ -1069,10 +1110,20 @@ const buildSectionContent = (
 
   if (section.type === "team") {
     const members = (input.teamMembers || []).filter((member) => member?.name);
+    const sourceNiche = inferBlueprintNiche(`${input.nicheName || ""} ${input.mainService || ""}`);
     section.content = {
       ...section.content,
-      title: "People Behind the Business",
-      description: "Customer-supplied leadership and team profiles.",
+      eyebrow: input.sourceDriven ? (sourceNiche === "clinic" ? "Your practitioner" : "People") : undefined,
+      title: input.sourceDriven
+        ? (sourceNiche === "clinic"
+          ? (members.length === 1 ? "Meet Your Podiatrist" : "Meet the Clinical Team")
+          : members.length === 1 ? "Meet the Person Behind the Business" : "Meet the Team")
+        : "People Behind the Business",
+      description: input.sourceDriven
+        ? (sourceNiche === "clinic"
+          ? "Get to know the practitioner behind your care."
+          : "The people customers work with directly.")
+        : "Customer-supplied leadership and team profiles.",
       members,
       assetSlots: {
         teamImages: {
@@ -1097,9 +1148,13 @@ const buildSectionContent = (
 
   if (section.type === "testimonials") {
     const items = getTestimonials(input);
+    const sourceNiche = inferBlueprintNiche(`${input.nicheName || ""} ${input.mainService || ""}`);
     section.content = {
       ...section.content,
-      title: items.length ? "Customer Feedback" : "Customer Feedback",
+      eyebrow: input.sourceDriven ? (sourceNiche === "clinic" ? "Patient stories" : "Customer stories") : undefined,
+      title: input.sourceDriven
+        ? (sourceNiche === "clinic" ? "What Patients Say" : "What Customers Say")
+        : "Customer Feedback",
       items,
     };
     section.isVisible = items.length > 0;
@@ -1295,34 +1350,38 @@ const resolveSourceDrivenBlockPlan = (
   input: BlueprintBusinessInput,
 ): SectionBlockType[] => {
   const hasTestimonials = (input.testimonials || []).filter(Boolean).length > 0;
+  const hasPeople = (input.teamMembers || []).filter((member) => member?.name).length > 0;
+  const hasHistory = (input.historyItems || []).filter(Boolean).length > 0 || (input.pressItems || []).filter(Boolean).length > 0;
   const hasTrust = Boolean(
     String(input.localProof || "").trim()
-    || (input.proofLogos || []).filter(Boolean).length,
+    || (input.proofLogos || []).filter(Boolean).length
+    || hasHistory,
   );
+  const richIdentity = hasPeople || hasTestimonials || hasHistory || Boolean(input.businessDNA?.identityScore && input.businessDNA.identityScore >= 35);
 
   if (page.slug === "") {
     return [
       "hero",
-      "highlights",
       "services",
-      "process",
-      "about",
-      ...(hasTrust ? ["trust" as SectionBlockType] : []),
+      ...(hasPeople ? ["team" as SectionBlockType] : []),
       ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []),
+      ...(hasTrust ? ["trust" as SectionBlockType] : []),
+      "about",
+      ...(!richIdentity ? ["highlights" as SectionBlockType] : []),
       "faq",
       "final_cta",
     ];
   }
 
   if (/^(treatments?|services?|menu|programs?|practice-areas?)$/.test(page.slug)) {
-    return ["hero", "services", "highlights", "process", "faq", "final_cta"];
+    return ["hero", "services", ...(!richIdentity ? ["highlights" as SectionBlockType] : []), "faq", "final_cta"];
   }
 
   if (/^(about|practitioners?|team|our-team)$/.test(page.slug)) {
     return [
       "hero",
+      ...(hasPeople ? ["team" as SectionBlockType] : []),
       "about",
-      "highlights",
       ...(hasTrust ? ["trust" as SectionBlockType] : []),
       ...(hasTestimonials ? ["testimonials" as SectionBlockType] : []),
       "final_cta",
@@ -1334,14 +1393,14 @@ const resolveSourceDrivenBlockPlan = (
   }
 
   if (/^(faq|patient-info|info|process)$/.test(page.slug)) {
-    return ["hero", "faq", "process", "final_cta"];
+    return ["hero", "faq", ...(!richIdentity ? ["process" as SectionBlockType] : []), "final_cta"];
   }
 
   if (/^(appointment|contact|quote|book-call|consultation|reservation)$/.test(page.slug)) {
-    return ["hero", "highlights", "contact_form", "faq", "final_cta"];
+    return ["hero", "contact_form", "faq", "final_cta"];
   }
 
-  return ["hero", "services", "highlights", "process", "faq", "final_cta"];
+  return ["hero", "services", ...(!richIdentity ? ["highlights" as SectionBlockType, "process" as SectionBlockType] : []), "faq", "final_cta"];
 };
 
 export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsitePage[] => {
@@ -1379,6 +1438,10 @@ export const buildPagesFromBlueprint = (input: BlueprintBusinessInput): WebsiteP
               ? "source_about"
               : sectionType === "testimonials"
                 ? "source_testimonials"
+                : sectionType === "team"
+                  ? ((input.teamMembers || []).length === 1 ? "founder_story" : "editorial_people")
+                : sectionType === "proof"
+                  ? "trust_strip"
                 : sectionType === "faq"
                   ? "source_faq"
                   : sectionType === "contact"
