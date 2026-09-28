@@ -26,6 +26,7 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { Pricing as CommercialPricing } from "./Pricing";
+import { RESOURCE_ARTICLES } from "../content/resources";
 
 const primary =
   "inline-flex min-h-12 items-center justify-center rounded-xl bg-[#6252f4] px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_-25px_rgba(98,82,244,.9)] transition hover:-translate-y-0.5 hover:bg-[#5142de]";
@@ -295,20 +296,8 @@ export function ResourcesStudioPage() {
   const [query, setQuery] = React.useState("");
   const [activeCategory, setActiveCategory] = React.useState("All");
   const [subscribed, setSubscribed] = React.useState(false);
-  const articles = [
-    ["/images/studio-insights-v2.png","Website strategy","How to plan a website that actually gets results","A practical step-by-step approach to planning structure, messaging and launch.","/how-it-works"],
-    ["/images/studio-work-v2.png","Conversion","7 website elements that build trust","The practical signals that make a service business easier to believe and contact.","/services"],
-    ["/images/studio-process-v2.png","Copy & messaging","How to write website copy that converts","A simple framework for clearer, more useful service-business messaging.","/website-audit"],
-    ["/template-assets/flagship-professional.jpg","Analytics","How to measure website success","Focus on the metrics that connect website activity with enquiries and sales.","/website-audit"],
-    ["/template-assets/flagship-clinic.jpg","Design & UX","Mobile-first design: what it means","How to make a site easier to use when most visitors arrive on a phone.","/templates"],
-    ["/template-assets/flagship-renovation.jpg","Case studies","What a strong redesign should improve","Use the original site as a baseline instead of changing design for its own sake.","/case-studies"],
-    ["/template-assets/flagship-education.jpg","Tools & resources","The website launch checklist","A practical checklist for content, mobile, SEO, forms and launch quality.","/how-it-works"],
-    ["/template-assets/flagship-beauty.jpg","Business growth","How to turn more visitors into customers","Clarify the offer, strengthen proof and make the next step easier to take.","/services"],
-    ["/images/studio-work-v2.png","Website strategy","When to redesign your website","Signs that the current site is costing trust, clarity or conversion.","/generate-preview"],
-  ] as const;
-
   const categories = ["All","Website Strategy","Design & UX","Copy & Messaging","Conversion","Case Studies","Tools & Resources"];
-  const filteredArticles = articles.filter(([, cat, title, copy]) => {
+  const filteredArticles = RESOURCE_ARTICLES.filter(({ category: cat, title, excerpt: copy }) => {
     const categoryMatch = activeCategory === "All" || cat.toLowerCase() === activeCategory.toLowerCase() || (activeCategory === "Website Strategy" && cat === "Business growth");
     const searchMatch = `${title} ${copy} ${cat}`.toLowerCase().includes(query.toLowerCase().trim());
     return categoryMatch && searchMatch;
@@ -344,8 +333,8 @@ export function ResourcesStudioPage() {
       <section className="brand-shell brand-section">
         <SectionHeader kicker="Latest resources" title="Practical resources for real business growth." copy="Clear guidance to help you improve your website, communicate more clearly and convert more visitors." />
         <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {filteredArticles.map(([img,cat,title,copy,href])=>(
-            <Link key={title} to={href} className="bs3-card bs3-card-hover overflow-hidden">
+          {filteredArticles.map(({ slug, image: img, category: cat, title, excerpt: copy })=>(
+            <Link key={title} to={`/resources/${slug}`} className="bs3-card bs3-card-hover overflow-hidden">
               <img src={img} alt="" className="aspect-[16/8.8] w-full object-cover" loading="lazy" />
               <div className="p-5">
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6252f4]">{cat}</p>

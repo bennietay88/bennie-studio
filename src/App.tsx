@@ -66,6 +66,7 @@ const LoginPage = lazy(() => import("./components/LoginPage"));
 const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
 const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPages"));
 const PublicBlogPostPage = lazy(() => import("./components/PublicBlogPostPage"));
+const PublicResourceArticlePage = lazy(() => import("./components/PublicResourceArticlePage"));
 const WaasSamplePage = lazy(() => import("./components/WaasSamplePage"));
 const BookDemo = lazy(() => import("./components/BookDemo"));
 const ManageCallBooking = lazy(() => import("./components/ManageCallBooking"));
@@ -468,6 +469,7 @@ export default function App() {
               <Route path="/services" element={<PublicMarketingPages />} />
               <Route path="/about" element={<PublicMarketingPages />} />
               <Route path="/resources" element={<PublicMarketingPages />} />
+              <Route path="/resources/:slug" element={<PublicResourceArticlePage />} />
               <Route path="/contact" element={<PublicMarketingPages />} />
               <Route path="/templates" element={<PublicMarketingPages />} />
               <Route path="/pricing" element={<PublicMarketingPages />} />
