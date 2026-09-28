@@ -840,12 +840,12 @@ export function buildPublicPreviewProfile(input: {
 }
 
 
-export function extractPreviewEvidenceUrls(html: string, baseUrl: string, limit = 4) {
+export function extractPreviewEvidenceUrls(html: string, baseUrl: string, limit = 6) {
   const urls: string[] = [];
   const seen = new Set<string>();
   let base: URL;
   try { base = new URL(baseUrl); } catch { return urls; }
-  const priority = /\b(reviews?|testimonials?|services?|about|contact|projects?|gallery|case-studies?|treatments?|solutions?)\b/i;
+  const priority = /\b(reviews?|testimonials?|services?|about|contact|projects?|gallery|case-studies?|treatments?|solutions?|team|people|practitioners?|doctors?|our-story|history|press|media|news)\b/i;
   for (const match of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     const href = String(match[1] || "").trim();
     const label = text(match[2]);
