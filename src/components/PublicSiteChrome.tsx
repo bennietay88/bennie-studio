@@ -7,36 +7,35 @@ import { trackPublicEvent } from "../lib/publicTracking";
 import { Button } from "./ui/button";
 
 const publicNavItems = [
-  { label: "Services", href: "/services" },
+  { label: "Explore", href: "/services" },
   { label: "Work", href: "/case-studies" },
   { label: "Pricing", href: "/pricing" },
-  { label: "Process", href: "/how-it-works" },
-  { label: "About", href: "/about" },
-  { label: "Resources", href: "/resources" },
+  { label: "Insights", href: "/resources" },
 ] as const;
 
 const footerGroups = [
   ["Explore", [
-    { label: "Services", href: "/services" },
+    { label: "Website Services", href: "/services" },
     { label: "Work", href: "/case-studies" },
     { label: "Pricing", href: "/pricing" },
     { label: "How it works", href: "/how-it-works" },
-    { label: "About", href: "/about" },
-    { label: "Contact", href: "/contact" },
   ]],
   ["Resources", [
-    { label: "Website Resources", href: "/resources" },
+    { label: "Insights", href: "/resources" },
     { label: "Website Audit", href: "/website-audit" },
     { label: "Website Directions", href: "/templates" },
     { label: "Generate Preview", href: "/generate-preview" },
+  ]],
+  ["Company", [
+    { label: "About Bennie Studio", href: "/about" },
+    { label: "Contact", href: "/contact" },
+    { label: "Book a review", href: "/book-demo" },
     { label: "Bennie Tay Insights", href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com", external: true },
   ]],
   ["Legal", [
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Cookie Policy", href: "/cookie-policy" },
     { label: "Terms of Service", href: "/terms" },
-    { label: "Subprocessor List", href: "/subprocessors" },
-    { label: "Acceptable Use", href: "/acceptable-use-policy" },
   ]],
 ] as const;
 
@@ -69,7 +68,7 @@ export function PublicSiteHeader() {
           <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-gradient-to-br from-[#6e5bff] to-[#4d3ef0] text-sm font-black text-white shadow-[0_10px_24px_-14px_rgba(87,70,232,.85)]">B</span>
           <span className="min-w-0">
             <span className="block max-w-[10rem] truncate text-[15px] font-semibold tracking-[-0.035em] sm:max-w-none">Bennie Studio</span>
-            <span className="hidden text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 xl:block">Websites that work</span>
+            <span className="hidden text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 xl:block">Websites that convert</span>
           </span>
         </Link>
 
@@ -153,10 +152,10 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
             <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#6554f5] text-sm font-black">B</span>
             <span>
               <span className="block text-lg font-semibold tracking-[-0.035em]">Bennie Studio</span>
-              <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Websites that work</span>
+              <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Websites that convert</span>
             </span>
           </Link>
-          <p className="max-w-md text-sm font-medium leading-7 text-white/65">{tagline || "Strategic, managed websites for ambitious service businesses. Clearer positioning, better design and a simpler path from visitor to enquiry."}</p>
+          <p className="max-w-md text-sm font-medium leading-7 text-white/65">{tagline || "A strategic web studio helping service businesses look more credible, communicate more clearly and convert more visitors into enquiries."}</p>
           <div className="mt-5 space-y-1 text-sm font-semibold text-white/55">
             {companyName ? <p className="text-white/75">{companyName}</p> : null}
             {registrationNumber ? <p>Registration: {registrationNumber}</p> : null}
