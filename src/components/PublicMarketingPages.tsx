@@ -527,6 +527,7 @@ function Hero({
   primaryHref = "/generate-preview",
   secondaryLabel,
   secondaryHref,
+  imageSrc = "/images/bennie-studio-hero.webp",
 }: {
   title: string;
   copy: string;
@@ -535,6 +536,7 @@ function Hero({
   primaryHref?: string;
   secondaryLabel?: string;
   secondaryHref?: string;
+  imageSrc?: string;
 }) {
   const primaryContent = <>{primaryLabel} <ArrowRight className="ml-2 h-4 w-4" /></>;
   return (
@@ -560,7 +562,7 @@ function Hero({
         <div className="relative lg:col-span-6 lg:-mr-8 xl:-mr-14">
           <div className="pointer-events-none absolute -inset-8 bg-[#5746e8]/10 blur-3xl" />
           <div className="relative overflow-hidden rounded-[1.15rem] border border-white/10 bg-[#080b15] shadow-[0_55px_140px_-55px_rgba(0,0,0,.95)]">
-            <img src="/images/bennie-studio-hero.webp" alt="" width="1600" height="900" sizes="(min-width: 1024px) 44vw, 100vw" className="aspect-[16/9] w-full object-cover" loading="eager" decoding="async" />
+            <img src={imageSrc} alt="" width="1600" height="900" sizes="(min-width: 1024px) 44vw, 100vw" className="aspect-[16/9] w-full object-cover" loading="eager" decoding="async" />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#080b15] via-[#080b15]/75 to-transparent px-5 pb-5 pt-16">
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Managed website direction</p>
               <p className="mt-2 max-w-md text-sm font-semibold !text-white">The visual direction changes. The operating system underneath stays disciplined.</p>
@@ -593,6 +595,7 @@ function ServicesPage() {
         primaryHref="/generate-preview"
         secondaryLabel="View the work"
         secondaryHref="/case-studies"
+        imageSrc="/images/bennie-studio-system.webp"
       />
 
       <section className="brand-shell brand-section">
@@ -686,6 +689,7 @@ function AboutPage() {
         primaryHref="/generate-preview"
         secondaryLabel="See how it works"
         secondaryHref="/how-it-works"
+        imageSrc="/images/bennie-studio-system.webp"
       />
 
       <section className="brand-shell brand-section">
@@ -765,6 +769,7 @@ function ResourcesPage() {
         primaryHref="/website-audit"
         secondaryLabel="Generate a preview"
         secondaryHref="/generate-preview"
+        imageSrc="/images/bennie-studio-work.webp"
       />
 
       <section className="brand-shell brand-section">
@@ -959,6 +964,7 @@ function HowItWorksPage() {
         title="From brief to launch, without the chaos."
         copy="A clear process takes you from business brief to strategy, design, human review, customer approval, launch and ongoing support — with one managed workflow."
         icon={Rocket}
+        imageSrc="/images/bennie-studio-system.webp"
       />
       <section className="brand-shell brand-section">
         <div className="grid gap-10 lg:grid-cols-12">
@@ -1115,6 +1121,7 @@ function CaseStudiesPage() {
         title="Work that shows how different businesses need different websites."
         copy="Explore demonstration builds and verified customer proof where approved evidence is available. The goal is to show structure, messaging, visual direction and enquiry flow without inventing results."
         icon={Sparkles}
+        imageSrc="/images/bennie-studio-work.webp"
       />
 
       {verifiedProof.length ? (
