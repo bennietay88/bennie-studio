@@ -77,12 +77,12 @@ export const DESIGN_PROFILES: Record<DesignProfileId, DesignProfile> = {
   trust_authority: {
     id: "trust_authority",
     label: "Trust / Authority",
-    description: "Proof-first structure, readable typography, and restrained conversion-focused details.",
+    description: "Human, proof-first editorial structure for established professional and healthcare businesses.",
     typography: "authority",
     spacing: "balanced",
     motion: "subtle",
-    displayFont: "Plus Jakarta Sans, sans-serif",
-    bodyFont: "Inter, sans-serif",
+    displayFont: "'Source Serif 4', serif",
+    bodyFont: "'Source Sans 3', sans-serif",
     defaultStyle: "authority",
     radii: "soft",
     imageTreatment: "documentary",
@@ -193,7 +193,11 @@ export function resolveDesignProfileForMode(
     return DESIGN_PROFILES.craft_organic;
   }
   if (personality === "elegant") return DESIGN_PROFILES.editorial_luxury;
-  if (personality === "technical" || personality === "established") return DESIGN_PROFILES.brand_corporate;
+  if (personality === "technical") return DESIGN_PROFILES.brand_corporate;
+  if (personality === "established") {
+    if (industry && /clinic|health|dental|medical/i.test(industry)) return DESIGN_PROFILES.trust_authority;
+    return DESIGN_PROFILES.brand_corporate;
+  }
   if (personality === "premium") {
     if (industry === "Hospitality" || industry === "Retail / Boutique" || industry === "Portfolio" || industry === "Real Estate") {
       return DESIGN_PROFILES.editorial_luxury;
@@ -217,7 +221,7 @@ export function resolveDesignProfileForMode(
 export const DESIGN_TOKENS = {
   spacing: {
     compact: { section: "clamp(4.5rem, 8vw, 7rem)", gap: "1.25rem", content: "72rem" },
-    balanced: { section: "clamp(5rem, 10vw, 8rem)", gap: "1.75rem", content: "76rem" },
+    balanced: { section: "clamp(4.5rem, 8vw, 7rem)", gap: "1.75rem", content: "76rem" },
     editorial: { section: "clamp(6rem, 12vw, 10rem)", gap: "2.25rem", content: "78rem" },
     immersive: { section: "clamp(7rem, 15vw, 13rem)", gap: "3rem", content: "82rem" },
   },

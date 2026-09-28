@@ -1729,6 +1729,7 @@ export function WebsiteRenderer({
         style={{ fontFamily: theme.fontFamily || "Inter, sans-serif", containerType: "inline-size", containerName: "customer-site" }}
         data-design-profile={designProfile.id}
         data-generation-mode={generationMode}
+        data-source-driven={theme.sourceDriven ? "true" : "false"}
         data-motion-profile={theme.motionProfile || designProfile.motion}
         data-image-profile={theme.imageProfile || designProfile.imageTreatment}
         className={cn(
@@ -1909,8 +1910,8 @@ export function WebsiteRenderer({
           --secondary-ink: ${accessibleTheme.secondaryInk};
           --primary-on-dark: ${accessibleTheme.primaryOnDark};
           --secondary-on-dark: ${accessibleTheme.secondaryOnDark};
-          --bt-display-font: ${designProfile.displayFont};
-          --bt-body-font: ${designProfile.bodyFont};
+          --bt-display-font: ${theme.displayFont || designProfile.displayFont};
+          --bt-body-font: ${theme.bodyFont || theme.fontFamily || designProfile.bodyFont};
           --bt-section-padding: ${spacingTokens.section};
           --bt-grid-gap: ${spacingTokens.gap};
           --bt-content-width: ${spacingTokens.content};
@@ -2033,6 +2034,38 @@ export function WebsiteRenderer({
         .bt-website-renderer main > section h3 {
           line-height: 1.15 !important;
         }
+
+        /* Redesign previews prioritise readability and continuity over the
+           oversized-template aesthetic. These limits intentionally override
+           individual composition classes only for source-driven sites. */
+        .bt-website-renderer[data-source-driven="true"] {
+          font-family: var(--bt-body-font, inherit);
+        }
+        .bt-website-renderer[data-source-driven="true"] main > section h1 {
+          font-size: clamp(2.5rem, 5.2vw, 4rem) !important;
+          line-height: 1.03 !important;
+          letter-spacing: -0.035em !important;
+        }
+        .bt-website-renderer[data-source-driven="true"] main > section h2 {
+          font-size: clamp(2rem, 4vw, 3rem) !important;
+          line-height: 1.08 !important;
+          letter-spacing: -0.028em !important;
+        }
+        .bt-website-renderer[data-source-driven="true"] main > section h3 {
+          font-size: clamp(1.25rem, 2.2vw, 1.75rem) !important;
+          line-height: 1.2 !important;
+        }
+        .bt-website-renderer[data-source-driven="true"] main > section p {
+          font-size: 1rem;
+          line-height: 1.7;
+        }
+        .bt-website-renderer[data-source-driven="true"] [class*="text-[8px]"],
+        .bt-website-renderer[data-source-driven="true"] [class*="text-[9px]"],
+        .bt-website-renderer[data-source-driven="true"] [class*="text-[10px]"] {
+          font-size: 0.8125rem !important;
+          letter-spacing: 0.11em !important;
+        }
+
         .bt-website-renderer[data-motion-profile="none"] *,
         .bt-website-renderer[data-motion-profile="subtle"] * {
           animation-duration: var(--bt-motion-duration);
@@ -2930,7 +2963,7 @@ export function WebsiteRenderer({
                         <div className="mx-auto max-w-7xl px-6">
                           <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-end">
                             <div className="lg:col-span-4">
-                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Evidence</p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">{section.content.eyebrow || "Trust"}</p>
                               <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
                                 {section.content.title || "Proof"}
                               </h2>
@@ -3476,7 +3509,7 @@ export function WebsiteRenderer({
                         <div className="mx-auto max-w-7xl px-6">
                           <motion.div variants={fadeInUp} className="grid gap-6 border-b border-slate-200 pb-8 lg:grid-cols-12 lg:items-end">
                             <div className="lg:col-span-8">
-                              <p className="text-[10px] font-black uppercase tracking-[0.26em] text-primary">{displayBusinessName}</p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.26em] text-primary">{section.content.eyebrow || displayBusinessName}</p>
                               <h2 className="mt-3 max-w-4xl text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
                                 {section.content.title || "Services"}
                               </h2>
@@ -3706,7 +3739,7 @@ export function WebsiteRenderer({
                             </motion.div>
                           ) : null}
                           <motion.div variants={fadeInUp} className={storyImage ? "lg:col-span-6 lg:px-6" : "max-w-4xl"}>
-                            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-primary">About</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-primary">{section.content.eyebrow || "About"}</p>
                             <h2 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
                               {section.content.title || `About ${displayBusinessName}`}
                             </h2>
@@ -3845,7 +3878,7 @@ export function WebsiteRenderer({
                         <div className="mx-auto max-w-7xl px-6">
                           <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-end">
                             <div className="lg:col-span-7">
-                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Capability system</p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Website system</p>
                               <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{section.content.title || "Built to work together"}</h2>
                             </div>
                             <p className="max-w-xl text-sm leading-7 text-slate-400 lg:col-span-5 lg:justify-self-end">{section.content.description}</p>
@@ -4413,7 +4446,7 @@ export function WebsiteRenderer({
                         <div className="mx-auto max-w-7xl px-6">
                           <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-start">
                             <div className="lg:col-span-4">
-                              <p className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-300">Customer feedback</p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-300">{section.content.eyebrow || "Customer stories"}</p>
                               <h2 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-white sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
                                 {section.content.title || "What customers say"}
                               </h2>
@@ -4706,13 +4739,53 @@ export function WebsiteRenderer({
                   );
                 case "team":
                   if (!Array.isArray(section.content.members) || section.content.members.length === 0) return null;
+                  if (section.settings?.variant === "founder_story" && section.content.members.length === 1) {
+                    const member = section.content.members[0];
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `team-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="border-y border-slate-200 bg-[#f7f4ee] py-16 sm:py-20"
+                      >
+                        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-12 lg:items-center">
+                          <motion.div variants={fadeInUp} className="lg:col-span-5">
+                            {member.imageUrl ? (
+                              <div className="mx-auto aspect-[4/5] max-w-md overflow-hidden bg-slate-200">
+                                <img src={member.imageUrl} alt={member.name} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+                              </div>
+                            ) : (
+                              <div className="mx-auto flex aspect-[4/5] max-w-md items-end bg-slate-950 p-8 text-white">
+                                <span className="text-6xl font-semibold tracking-[-0.04em]">
+                                  {String(member.name || "Team").split(/\s+/).slice(0, 2).map((part: string) => part.charAt(0)).join("").toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                          </motion.div>
+                          <motion.div variants={fadeInUp} className="lg:col-span-7 lg:pl-8">
+                            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">{section.content.eyebrow || "Meet your practitioner"}</p>
+                            <h2 className="mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                              {section.content.title || member.name}
+                            </h2>
+                            <p className="mt-5 text-xl font-semibold text-slate-800">{member.name}</p>
+                            {member.role ? <p className="mt-1 text-sm font-semibold text-primary">{member.role}</p> : null}
+                            {member.bio ? <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600">{member.bio}</p> : null}
+                            {section.content.description ? <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600">{section.content.description}</p> : null}
+                          </motion.div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
                   if (["leadership_grid", "editorial_people", "founder_story"].includes(section.settings?.variant || "")) {
                     return (
                       <motion.section key={section.id || `team-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true, margin: "-80px" }} variants={staggerContainer} className="bg-[#f4f2ed] py-20 sm:py-28">
                         <div className="mx-auto max-w-7xl px-6">
                           <motion.div variants={fadeInUp} className="grid gap-6 lg:grid-cols-12 lg:items-end">
                             <div className="lg:col-span-7">
-                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">People</p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">{section.content.eyebrow || "People"}</p>
                               <h2 className="mt-4 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{section.content.title || "Meet the team"}</h2>
                             </div>
                             <p className="text-base leading-7 text-slate-600 lg:col-span-5">{section.content.description}</p>

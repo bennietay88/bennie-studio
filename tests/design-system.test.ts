@@ -703,12 +703,12 @@ test("source-driven previews remove generic agency copy and fake booking widgets
   const appointmentPage = pages.find((page) => page.slug === "appointment");
   assert.ok(appointmentPage);
   const visibleAppointmentSections = appointmentPage!.sections.filter((section) => section.isVisible !== false);
-  assert.deepEqual(visibleAppointmentSections.map((section) => section.type), ["hero", "features", "contact", "faq", "cta"]);
+  assert.deepEqual(visibleAppointmentSections.map((section) => section.type), ["hero", "contact", "faq", "cta"]);
   assert.equal(visibleAppointmentSections.find((section) => section.type === "contact")?.settings?.variant, "source_contact");
 
   const home = pages[0];
   const visibleSections = home.sections.filter((section) => section.isVisible !== false);
-  assert.deepEqual(visibleSections.map((section) => section.type), ["hero", "features", "services", "features", "about", "testimonials", "faq", "cta"]);
+  assert.deepEqual(visibleSections.map((section) => section.type), ["hero", "services", "testimonials", "about", "faq", "cta"]);
   assert.equal(visibleSections.find((section) => section.type === "services")?.settings?.variant, "source_services");
   assert.equal(visibleSections.find((section) => section.type === "about")?.settings?.variant, "source_about");
   assert.equal(visibleSections.find((section) => section.type === "testimonials")?.settings?.variant, "source_testimonials");
@@ -795,6 +795,138 @@ test("source-driven preview QA blocks fake availability and internal design lang
   assert.equal(result.checks.find((check) => check.key === "source_preview_availability")?.pass, false);
   assert.equal(result.productionReady, false);
 });
+
+test("source redesign composition seeds create distinct identity-led directions", () => {
+  const base = {
+    businessName: "The Podiatry Centre",
+    nicheId: "dental-clinic-v1",
+    nicheName: "Clinic / Healthcare",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Podiatry care",
+    targetCustomer: "patients",
+    location: "Singapore",
+    ctaPreference: "Book Appointment",
+    generationMode: "brand_led" as const,
+    sourceDriven: true,
+    services: ["Sports Podiatry", "Custom Orthotics"],
+    testimonials: ["Professional care and clear advice throughout."],
+    teamMembers: [{ name: "Mr Ty", role: "Podiatrist", imageUrl: "https://example.test/ty.jpg" }],
+    historyItems: ["Established as an early specialist podiatry practice in Singapore."],
+    localProof: "Established specialist clinic",
+    faqItems: [{ question: "How do I book?", answer: "Contact the clinic." }],
+    heroHeadline: "The Podiatry Centre",
+    preferredHeroVariant: "source_brand_hero",
+    compactSubpageHeroes: true,
+    businessDNA: { humanLed: true, heritageRich: true, proofRich: true, imageRich: true, identityScore: 90, typographyStyle: "heritage" as const },
+  };
+
+  const balanced = buildPagesFromBlueprint({ ...base, compositionSeed: 0 })[0];
+  const proofLed = buildPagesFromBlueprint({ ...base, compositionSeed: 1 })[0];
+  const peopleLed = buildPagesFromBlueprint({ ...base, compositionSeed: 2 })[0];
+  const heritageLed = buildPagesFromBlueprint({ ...base, compositionSeed: 3 })[0];
+
+  const types = (page: any) => page.sections.filter((section: any) => section.isVisible !== false).map((section: any) => section.type);
+  assert.deepEqual(types(balanced).slice(0, 4), ["hero", "services", "team", "testimonials"]);
+  assert.deepEqual(types(proofLed).slice(0, 4), ["hero", "testimonials", "services", "team"]);
+  assert.deepEqual(types(peopleLed).slice(0, 4), ["hero", "team", "services", "testimonials"]);
+  assert.deepEqual(types(heritageLed).slice(0, 4), ["hero", "proof", "services", "team"]);
+});
+
+
+test("source-driven redesign QA requires important source identity to survive", () => {
+  const pages = buildPagesFromBlueprint({
+    businessName: "The Podiatry Centre",
+    nicheId: "dental-clinic-v1",
+    nicheName: "Clinic / Healthcare",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Podiatry care",
+    targetCustomer: "patients",
+    location: "Singapore",
+    ctaPreference: "Book Appointment",
+    generationMode: "brand_led",
+    sourceDriven: true,
+    services: ["Sports Podiatry", "Custom Orthotics"],
+    testimonials: ["Careful attention and practical advice made a real difference."],
+    teamMembers: [{ name: "Mr Ty", role: "Podiatrist", imageUrl: "https://example.test/ty.jpg" }],
+    historyItems: ["Established in Singapore as an early specialist podiatry practice."],
+    faqItems: [{ question: "How do I book?", answer: "Contact the clinic to arrange an appointment." }],
+    heroHeadline: "The Podiatry Centre",
+    preferredHeroVariant: "source_brand_hero",
+    compactSubpageHeroes: true,
+  });
+
+  const website: any = {
+    id: "source-identity-qa",
+    businessId: "source-identity-qa",
+    theme: {
+      ...getBlueprintTheme("dental-clinic-v1", "brand_led"),
+      sourceDriven: true,
+      previewPurpose: "sales_preview",
+      logoUrl: "https://example.test/logo.svg",
+      displayFont: "'Source Serif 4', serif",
+      sourceIdentity: {
+        peopleCount: 1,
+        historyCount: 1,
+        pressCount: 0,
+        testimonialCount: 1,
+        serviceCount: 2,
+        faqCount: 1,
+        realImageCount: 3,
+        hasLogo: true,
+        identityScore: 85,
+        typographyStyle: "heritage",
+      },
+    },
+    pages,
+    seo: { title: "The Podiatry Centre", description: "Podiatry care in Singapore", keywords: [] },
+    status: "draft",
+    updatedAt: Date.now(),
+  };
+
+  const healthy = assessWebsiteDesign(website);
+  assert.equal(healthy.checks.find((check) => check.key === "source_identity_people")?.pass, true);
+  assert.equal(healthy.checks.find((check) => check.key === "source_identity_heritage")?.pass, true);
+  assert.equal(healthy.checks.find((check) => check.key === "source_identity_typography")?.pass, true);
+  assert.ok(healthy.metrics.identityPreservation >= 80);
+  assert.ok(healthy.metrics.redesignAdvantage >= 87);
+  assert.equal(healthy.checks.find((check) => check.key === "source_redesign_advantage")?.pass, true);
+
+  const stripped = structuredClone(website);
+  stripped.pages.forEach((page: any) => {
+    page.sections = page.sections.filter((section: any) => !["team", "proof"].includes(section.type));
+  });
+  const failed = assessWebsiteDesign(stripped);
+  assert.equal(failed.checks.find((check) => check.key === "source_identity_people")?.pass, false);
+  assert.equal(failed.checks.find((check) => check.key === "source_identity_heritage")?.pass, false);
+  assert.equal(failed.productionReady, false);
+});
+
+
+test("trust authority profile uses human editorial typography", () => {
+  const theme = getBlueprintTheme("dental-clinic-v1", "brand_led", {
+    brandPersonality: "established",
+    businessMaturity: "established",
+    assetReadiness: "professional",
+  });
+  assert.match(String(theme.displayFont || ""), /serif/i);
+  assert.match(String(theme.bodyFont || theme.fontFamily || ""), /Source Sans/i);
+});
+
+
+test("source renderer caps oversized template typography", async () => {
+  const renderer = await import("node:fs/promises").then((fs) =>
+    fs.readFile(new URL("../src/components/WebsiteRenderer.tsx", import.meta.url), "utf8"),
+  );
+  assert.match(renderer, /data-source-driven/);
+  assert.match(renderer, /font-size: clamp\(2\.5rem, 5\.2vw, 4rem\) !important/);
+  assert.match(renderer, /font-size: clamp\(2rem, 4vw, 3rem\) !important/);
+  assert.match(renderer, /font-size: 1rem/);
+  assert.doesNotMatch(renderer, />Evidence<\/p>/);
+  assert.doesNotMatch(renderer, />Capability system<\/p>/);
+});
+
 
 test("prospect preview chrome keeps the website visually primary and comparison-ready", async () => {
   const [page, renderer, generator] = await Promise.all([

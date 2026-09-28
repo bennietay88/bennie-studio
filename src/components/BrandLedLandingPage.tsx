@@ -400,23 +400,23 @@ export default function BrandLedLandingPage() {
           <div className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#5b4bff]/20 blur-3xl" />
           <div className="brand-shell relative grid gap-14 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
             <div className="lg:col-span-5">
-              <p className="brand-kicker !text-[#b9b1ff]">Managed website system for service businesses</p>
-              <h1 className="mt-5 !max-w-[12ch] !text-white">Your website, fully managed.</h1>
+              <p className="brand-kicker !text-[#b9b1ff]">Websites for ambitious service businesses</p>
+              <h1 className="mt-5 !max-w-[13ch] !text-white">A better website <span className="bt-gradient-title block">without the hassle.</span></h1>
               <p className="brand-copy brand-muted-on-dark mt-7 !max-w-xl">
-                Strategy, design, lead capture, hosting and ongoing improvement in one managed service.
+                Strategy, design and human review — so you get a website that looks credible, feels considered and gives customers a clear reason to enquire.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <button type="button" onClick={() => go("/generate-preview", "Hero free preview")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
-                  Build my free preview <ArrowRight className="ml-2 h-4 w-4" />
+                  Start your website <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => go("/case-studies", "Hero examples")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
-                  Explore the work
+                <button type="button" onClick={() => go("/how-it-works", "Hero process")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
+                  See how it works
                 </button>
               </div>
               <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm !text-white/65">
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> No card required</span>
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Tailored website structure</span>
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Desktop + mobile</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Guided start</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Human reviewed</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Built to grow</span>
               </div>
             </div>
 
@@ -471,10 +471,10 @@ export default function BrandLedLandingPage() {
         <section id="system" className="brand-shell brand-section">
           <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
             <div className="lg:col-span-7">
-              <p className="brand-kicker">The website system</p>
-              <h2 className="mt-4 max-w-3xl">One system. Four jobs.</h2>
+              <p className="brand-kicker">Our approach</p>
+              <h2 className="mt-4 max-w-3xl">One system. Human judgment.</h2>
             </div>
-            <p className="brand-copy lg:col-span-5">The website should clarify the offer, build confidence, create an obvious next step and remain useful after launch. The exact pages and depth depend on the business.</p>
+            <p className="brand-copy lg:col-span-5">We combine the speed of modern tools with real human expertise. Strategy, design, review and ongoing support work together around the business — not around a generic template.</p>
           </div>
 
           <div className="mt-12 grid gap-8 lg:grid-cols-12 lg:items-center">
@@ -507,9 +507,9 @@ export default function BrandLedLandingPage() {
             <div className="grid gap-10 lg:grid-cols-12">
               <div className="lg:col-span-5">
                 <p className="brand-kicker !text-[#b9b1ff]">Human-reviewed delivery · Standard {DELIVERY_STANDARD_VERSION}</p>
-                <h2 className="mt-4 !text-white">Human review before launch.</h2>
+                <h2 className="mt-4 !text-white">AI gives you speed. A human makes it work.</h2>
                 <p className="mt-5 max-w-xl text-base leading-7 !text-white/65">
-                  Automation gives us speed and consistency. Paid customer work still goes through internal creative direction, responsive QA, conversion checks and customer approval before launch.
+                  Modern tools help us move faster, but every paid website is reviewed for message clarity, design quality, responsive behaviour and conversion logic before it reaches launch.
                 </p>
                 <button onClick={() => go("/how-it-works", "Homepage delivery standard")} className="mt-7 inline-flex items-center font-semibold text-white">
                   See the delivery standard <ArrowRight className="ml-2 h-4 w-4" />
@@ -533,10 +533,10 @@ export default function BrandLedLandingPage() {
           <div className="brand-shell brand-section">
             <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-7">
-                <p className="brand-kicker">Website work</p>
-                <h2 className="mt-4">Different businesses. Different outcomes.</h2>
+                <p className="brand-kicker">Different businesses. Real outcomes.</p>
+                <h2 className="mt-4">Websites for where you’re going.</h2>
               </div>
-              <p className="brand-copy lg:col-span-5">The same operating system can produce very different visual and conversion directions. The business decides the shape, not a fixed template.</p>
+              <p className="brand-copy lg:col-span-5">A consultant, clinic, accountant and local service business should not look or sell the same way. The structure, visual direction and enquiry path adapt to the customer journey.</p>
             </div>
 
             <div className="mt-11"><WorkShowcase /></div>
@@ -638,9 +638,9 @@ export default function BrandLedLandingPage() {
           <div className="brand-shell brand-section">
             <div className="grid gap-10 lg:grid-cols-12">
               <div className="lg:col-span-4">
-                <p className="brand-kicker">Managed plans</p>
-                <h2 className="mt-4">Start with the website. Add growth later.</h2>
-                <p className="brand-copy mt-5">Monthly service first, setup shown clearly, and one recommended middle plan for businesses actively acquiring customers.</p>
+                <p className="brand-kicker">Simple, transparent pricing</p>
+                <h2 className="mt-4">Choose the right level of support.</h2>
+                <p className="brand-copy mt-5">Start with the website you need now. Add deeper conversion, SEO and growth support when your business is ready for it.</p>
               </div>
               <div className="lg:col-span-8">
                 <div className="grid gap-4 lg:grid-cols-3">
@@ -677,9 +677,9 @@ export default function BrandLedLandingPage() {
 
         <section className="brand-on-dark bg-[#0b1020]">
           <div className="brand-shell brand-section">
-            <p className="brand-kicker !text-[#b9b1ff]">How it works</p>
+            <p className="brand-kicker !text-[#b9b1ff]">From brief to ongoing</p>
             <div className="mt-4 grid gap-10 lg:grid-cols-12">
-              <h2 className="!text-white lg:col-span-4">From brief to ongoing improvement.</h2>
+              <h2 className="!text-white lg:col-span-4">From strategy to launch — without the chaos.</h2>
               <div className="lg:col-span-8">
                 {process.map(([number, title, body]) => (
                   <div key={number} className="grid gap-3 border-t border-white/15 py-7 sm:grid-cols-[4rem_1fr_1.5fr]">
@@ -696,7 +696,7 @@ export default function BrandLedLandingPage() {
         <section className="brand-shell brand-section">
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <p className="brand-kicker">Questions</p>
+              <p className="brand-kicker">Common questions</p>
               <h2 className="mt-4">Questions serious buyers ask.</h2>
             </div>
             <div className="border-t border-[#dfe2ea] lg:col-span-8">
@@ -716,13 +716,13 @@ export default function BrandLedLandingPage() {
           <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
           <div className="brand-shell relative grid gap-8 py-16 md:grid-cols-[1fr_auto] md:items-center">
             <div>
-              <p className="text-sm font-semibold !text-white/70">Preview before you choose</p>
-              <h2 className="mt-2 max-w-2xl !text-white">See it on your business first.</h2>
-              <p className="mt-4 max-w-xl !text-white/75">Generate a personalised website direction shaped around your business, then choose a plan only if the approach fits.</p>
+              <p className="text-sm font-semibold !text-white/70">Ready for a better website?</p>
+              <h2 className="mt-2 max-w-2xl !text-white">Let’s build a website that moves your business forward.</h2>
+              <p className="mt-4 max-w-xl !text-white/75">Start with a guided brief and a tailored preview. See the direction first, then decide how far you want Bennie Studio to take it.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-              <button onClick={() => go("/generate-preview", "Final free preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821]">Build free preview <ArrowRight className="ml-2 inline h-4 w-4" /></button>
-              <button onClick={() => go("/book-demo", "Final book review")} className="min-h-12 border border-white/30 bg-white/[0.04] px-6 font-semibold text-white">Book 30-minute review</button>
+              <button onClick={() => go("/generate-preview", "Final free preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821]">Start your website <ArrowRight className="ml-2 inline h-4 w-4" /></button>
+              <button onClick={() => go("/book-demo", "Final book review")} className="min-h-12 border border-white/30 bg-white/[0.04] px-6 font-semibold text-white">Book a free call</button>
             </div>
           </div>
         </section>

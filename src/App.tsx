@@ -64,7 +64,6 @@ const lazy = <T extends React.ComponentType<any>>(
 const LandingPage = lazy(() => import("./components/BrandLedLandingPage"));
 const LoginPage = lazy(() => import("./components/LoginPage"));
 const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
-const PortfolioPage = lazy(() => import("./components/PortfolioPage"));
 const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPages"));
 const PublicBlogPostPage = lazy(() => import("./components/PublicBlogPostPage"));
 const WaasSamplePage = lazy(() => import("./components/WaasSamplePage"));
@@ -466,6 +465,10 @@ export default function App() {
               <Route path="/website-subscription-service" element={<OwnSalesSeoPage />} />
               <Route path="/website-subscription-service/:market" element={<Navigate to="/website-subscription-service" replace />} />
               <Route path="/portfolio" element={<Navigate to="/case-studies" replace />} />
+              <Route path="/services" element={<PublicMarketingPages />} />
+              <Route path="/about" element={<PublicMarketingPages />} />
+              <Route path="/resources" element={<PublicMarketingPages />} />
+              <Route path="/contact" element={<PublicMarketingPages />} />
               <Route path="/templates" element={<PublicMarketingPages />} />
               <Route path="/pricing" element={<PublicMarketingPages />} />
               <Route path="/how-it-works" element={<PublicMarketingPages />} />
@@ -476,10 +479,6 @@ export default function App() {
               <Route path="/website-audit" element={<PublicMarketingPages />} />
               <Route path="/generate-preview" element={<PublicMarketingPages />} />
               <Route path="/preview-order" element={<PublicMarketingPages />} />
-              <Route path="/about" element={<PublicMarketingPages />} />
-              <Route path="/services" element={<PublicMarketingPages />} />
-              <Route path="/resources" element={<PublicMarketingPages />} />
-              <Route path="/contact" element={<PublicMarketingPages />} />
               <Route path="/blog/:slug" element={<PublicBlogPostPage />} />
               <Route path="/clinic-website-design" element={<PublicMarketingPages />} />
               <Route path="/clinic-website-design-malaysia" element={<Navigate to="/clinic-website-design" replace />} />

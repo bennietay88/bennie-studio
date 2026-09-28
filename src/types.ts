@@ -415,6 +415,19 @@ export interface Website {
     assetReadiness?: AssetReadiness;
     previewPurpose?: "generated_preview" | "sales_preview";
     sourceDriven?: boolean;
+    /** Source-site identity inventory used by redesign previews and QA. */
+    sourceIdentity?: {
+      peopleCount?: number;
+      historyCount?: number;
+      pressCount?: number;
+      testimonialCount?: number;
+      serviceCount?: number;
+      faqCount?: number;
+      realImageCount?: number;
+      hasLogo?: boolean;
+      identityScore?: number;
+      typographyStyle?: "heritage" | "humanist" | "modern";
+    };
     displayFont?: string;
     bodyFont?: string;
     customSelectors?: {

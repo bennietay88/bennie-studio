@@ -41,9 +41,20 @@ TRUTH AND PROOF RULES
 - If real pricing is unavailable, do not invent package prices or pretend generic packages are factual.
 - If staff review should verify a claim, add it to reviewNotes.
 
+REDESIGN / IDENTITY RULES
+- When an existing website is the source, redesign the business rather than replacing its identity. Preserve meaningful logo, colour, typography character, real people, customer proof, history, press, distinctive imagery and business terminology when supplied.
+- Existing-site work should feel recognisably like the same business, only clearer, more credible and substantially better designed.
+- Treat founders, practitioners and staff as first-class trust assets for human-led businesses. A real practitioner portrait usually outranks decorative imagery for a clinic or small professional practice.
+- Treat archival material, founding history and press as story content, not as generic "evidence" UI.
+- Do not erase useful imperfection simply to make the page look like a design-system demo.
+- Typography must match business character. Established or heritage-led professional businesses should normally use restrained editorial or humanist typography, not a geometric SaaS treatment.
+- The source website is the baseline: do not recommend a direction that loses important service depth, proof, people, FAQs or brand recognition.
+
 ANTI-TEMPLATE RULES
 - The chosen hero/services/testimonial/CTA combination should feel materially different from another industry using the same base system.
 - Avoid the default SaaS look for local service businesses unless the business itself is software/technology.
+- Never expose internal taxonomy such as "capability system", "evidence", "business-supplied evidence", "outcome" or "proof from the business" as customer-facing section labels.
+- Avoid repeated tiny uppercase eyebrows, repeated numbered matrices, alternating dark/light bands and oversized headings when they create an obvious generator fingerprint.
 - Avoid common AI-agency phrases such as "elevate your", "unlock the power", "transform your business", "trusted partner", "tailored solutions" and "take it to the next level".
 
 A staff member must review the recommendation before publishing.`;
@@ -77,6 +88,9 @@ export function buildDesignDirectionPrompt(input: {
       avoidGenericCardGrids: true,
       avoidUnsupportedPricing: true,
       avoidAiAgencyCliches: true,
+      preserveSourceIdentityWhenRedesigning: true,
+      prioritiseRealPeopleAndHistory: true,
+      avoidInternalTaxonomyInCustomerCopy: true,
       imageTreatmentMustMatchIndustry: true,
     },
     input,

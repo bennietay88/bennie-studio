@@ -24,6 +24,18 @@ export type PublicPreviewProfile = {
   heroHeadline: string;
   heroSubheadline: string;
   sourceTitle: string;
+  people: Array<{ name: string; role?: string; bio?: string; imageUrl?: string }>;
+  historyItems: string[];
+  pressItems: string[];
+  imageCandidates: string[];
+  businessDNA: {
+    humanLed: boolean;
+    heritageRich: boolean;
+    proofRich: boolean;
+    imageRich: boolean;
+    identityScore: number;
+    typographyStyle: "heritage" | "humanist" | "modern";
+  };
   aiUsed: false;
   estimatedAiCostUsd: 0;
 };
@@ -227,6 +239,159 @@ const extractHeroSubheadline = (html: string, description: string) => {
     if (paragraph && paragraph.length >= 20 && paragraph.length <= 260) return paragraph;
   }
   return description;
+};
+
+const normalizePersonName = (value: string) =>
+  text(value)
+    .replace(/\s*[|•·–—-]\s*(?:podiatrist|doctor|dr\.?|founder|director|owner|consultant|therapist|surgeon|dentist|principal).*$/i, "")
+    .trim()
+    .slice(0, 100);
+
+const extractPeople = (objects: any[], html: string, baseUrl: string) => {
+  const people: Array<{ name: string; role?: string; bio?: string; imageUrl?: string }> = [];
+  for (const object of objects) {
+    const types = Array.isArray(object?.["@type"]) ? object["@type"] : [object?.["@type"]];
+    if (!types.some((type: unknown) => String(type || "").toLowerCase() === "person")) continue;
+    const name = normalizePersonName(String(object?.name || ""));
+    if (!name) continue;
+    const rawImage = typeof object?.image === "string"
+      ? object.image
+      : typeof object?.image?.url === "string"
+        ? object.image.url
+        : "";
+    people.push({
+      name,
+      role: text(String(object?.jobTitle || object?.roleName || "")).slice(0, 120) || undefined,
+      bio: text(String(object?.description || "")).slice(0, 420) || undefined,
+      imageUrl: rawImage ? absoluteUrl(rawImage, baseUrl) : undefined,
+    });
+  }
+
+  for (const match of html.matchAll(/<img\b([^>]+)>/gi)) {
+    const attrs = String(match[1] || "");
+    const alt = text(/\balt=["']([^"']+)["']/i.exec(attrs)?.[1] || "");
+    const roleHint = text(/\b(?:title|aria-label)=["']([^"']+)["']/i.exec(attrs)?.[1] || "");
+    const combined = `${alt} ${roleHint} ${attrs}`;
+    if (!/(?:podiatrist|doctor|dr\.?\b|founder|owner|director|consultant|therapist|dentist|surgeon|principal|team|staff)/i.test(combined)) continue;
+    const src = /\b(?:src|data-src|data-lazy-src)=["']([^"']+)["']/i.exec(attrs)?.[1] || "";
+    const imageUrl = absoluteUrl(src, baseUrl);
+    const name = normalizePersonName(alt);
+    if (!name || name.split(/\s+/).length > 6 || /(?:clinic|centre|center|team|staff|logo|image|photo)/i.test(name)) continue;
+    people.push({
+      name,
+      role: /(?:podiatrist|doctor|founder|owner|director|consultant|therapist|dentist|surgeon|principal)/i.exec(combined)?.[0],
+      imageUrl: imageUrl || undefined,
+    });
+  }
+
+  // Older small-business sites often have weak image alt text and no Person
+  // schema. Recover a practitioner/founder only when nearby copy provides a
+  // strong role signal and a plausible human name.
+  for (const match of html.matchAll(/<img\b([^>]+)>/gi)) {
+    const attrs = String(match[1] || "");
+    const src = /\b(?:src|data-src|data-lazy-src)=["']([^"']+)["']/i.exec(attrs)?.[1] || "";
+    const imageUrl = absoluteUrl(src, baseUrl);
+    if (!imageUrl || /(?:logo|icon|badge|sprite|favicon)/i.test(attrs)) continue;
+
+    const position = match.index || 0;
+    const nearbyHtml = html.slice(Math.max(0, position - 1200), Math.min(html.length, position + match[0].length + 1800));
+    const nearbyText = text(nearbyHtml);
+    const roleMatch = /\b(podiatrist|doctor|dentist|therapist|physiotherapist|chiropractor|founder|owner|director|principal|consultant|surgeon)\b/i.exec(nearbyText);
+    if (!roleMatch) continue;
+
+    const alt = text(/\balt=["']([^"']+)["']/i.exec(attrs)?.[1] || "");
+    const headingCandidates = [...nearbyHtml.matchAll(/<(?:h2|h3|h4|strong)\b[^>]*>([\s\S]*?)<\/(?:h2|h3|h4|strong)>/gi)]
+      .map((candidate) => text(candidate[1]))
+      .filter(Boolean);
+    const sentenceName = /\b(?:Mr\.?|Ms\.?|Mrs\.?|Dr\.?)?\s*([A-Z][a-z]{1,24}(?:\s+[A-Z][a-z]{1,24}){0,3})\s+(?:has|is)\s+[^.!?]{0,150}\b(?:podiatr|doctor|dentist|therap|founder|owner|director|principal|consult)/i.exec(nearbyText);
+    const directName = /\b([A-Z][a-z]{1,24})\s+has\b/.exec(nearbyText)?.[1] || "";
+    const rawCandidates = [
+      alt,
+      ...headingCandidates,
+      directName,
+      sentenceName ? sentenceName[0].replace(/\s+(?:has|is)\s+[\s\S]*$/i, "") : "",
+    ].filter(Boolean);
+    const candidate = rawCandidates
+      .map((value) => normalizePersonName(value))
+      .find((value) =>
+        value
+        && value.split(/\s+/).length <= 5
+        && !/\b(?:clinic|centre|center|practice|services?|care|team|staff|first|professional|podiatrist|doctor|dentist|therapist|founder|owner|director|principal|consultant|singapore|malaysia)\b/i.test(value)
+      );
+    if (!candidate) continue;
+
+    people.push({
+      name: candidate,
+      role: roleMatch[1].replace(/^./, (char) => char.toUpperCase()),
+      imageUrl,
+    });
+  }
+
+  const seen = new Set<string>();
+  return people.filter((person) => {
+    const key = person.name.toLowerCase();
+    if (!person.name || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 6);
+};
+
+const extractHistoryItems = (html: string) => {
+  const body = text(html).slice(0, 60_000);
+  const sentences = body.split(/(?<=[.!?])\s+/).map((item) => item.trim());
+  const historySignal = /\b(?:founded|established|since|opened|first\s+(?:clinic|practice|podiatrist|business|centre|center)|pioneer(?:ed|ing)?|history|years?\s+of\s+experience)\b/i;
+  return [...new Set(sentences.filter((item) =>
+    item.length >= 28
+    && item.length <= 260
+    && historySignal.test(item)
+    && !/privacy|cookie|terms/i.test(item)
+  ))].slice(0, 5);
+};
+
+const extractPressItems = (html: string) => {
+  const values: string[] = [];
+  for (const match of html.matchAll(/<(?:a|h2|h3|h4)\b[^>]*>([\s\S]*?)<\/(?:a|h2|h3|h4)>/gi)) {
+    const value = text(match[1]);
+    if (
+      value.length >= 12
+      && value.length <= 180
+      && /\b(?:press|media|featured|article|newspaper|news|interview|straits times|business times|channel news|magazine)\b/i.test(value)
+      && !/privacy|cookie|terms/i.test(value)
+    ) values.push(value);
+  }
+  return [...new Set(values)].slice(0, 5);
+};
+
+const inferBusinessDNA = (input: {
+  html: string;
+  people: Array<{ name: string }>;
+  historyItems: string[];
+  pressItems: string[];
+  testimonials: string[];
+  imageCandidates: string[];
+  logoUrl: string;
+  brandColor: string;
+}) => {
+  const body = text(input.html).slice(0, 30_000);
+  const humanLed = input.people.length > 0 || /\b(?:founder|our team|meet the|podiatrist|doctor|principal|owner)\b/i.test(body);
+  const heritageRich = input.historyItems.length > 0 || input.pressItems.length > 0;
+  const proofRich = input.testimonials.length >= 2 || input.pressItems.length > 0;
+  const imageRich = input.imageCandidates.length >= 3;
+  const identityScore = Math.min(100,
+    (input.logoUrl ? 15 : 0)
+    + (input.brandColor ? 10 : 0)
+    + Math.min(25, input.people.length * 20)
+    + Math.min(20, input.historyItems.length * 12)
+    + Math.min(15, input.pressItems.length * 8)
+    + Math.min(15, input.testimonials.length * 5)
+  );
+  const typographyStyle: "heritage" | "humanist" | "modern" =
+    heritageRich || /\b(?:established|traditional|heritage|first\s+(?:clinic|practice|centre|center))\b/i.test(body)
+      ? "heritage"
+      : humanLed
+        ? "humanist"
+        : "modern";
+  return { humanLed, heritageRich, proofRich, imageRich, identityScore, typographyStyle };
 };
 
 const cleanBusinessName = (value: string) =>
@@ -666,6 +831,20 @@ export function buildPublicPreviewProfile(input: {
   const { brandColor, accentColor } = extractBrandColors(html);
   const heroHeadline = h1.slice(0, 120);
   const heroSubheadline = extractHeroSubheadline(html, description).slice(0, 320);
+  const people = extractPeople(schemaObjects, html, finalUrl);
+  const historyItems = extractHistoryItems(html);
+  const pressItems = extractPressItems(html);
+  const imageCandidates = extractImageCandidates(html, finalUrl).slice(0, 12);
+  const businessDNA = inferBusinessDNA({
+    html,
+    people,
+    historyItems,
+    pressItems,
+    testimonials,
+    imageCandidates,
+    logoUrl,
+    brandColor,
+  });
 
   return {
     sourceUrl: finalUrl,
@@ -693,18 +872,23 @@ export function buildPublicPreviewProfile(input: {
     heroHeadline,
     heroSubheadline,
     sourceTitle: title.slice(0, 220),
+    people,
+    historyItems,
+    pressItems,
+    imageCandidates,
+    businessDNA,
     aiUsed: false,
     estimatedAiCostUsd: 0,
   };
 }
 
 
-export function extractPreviewEvidenceUrls(html: string, baseUrl: string, limit = 4) {
+export function extractPreviewEvidenceUrls(html: string, baseUrl: string, limit = 6) {
   const urls: string[] = [];
   const seen = new Set<string>();
   let base: URL;
   try { base = new URL(baseUrl); } catch { return urls; }
-  const priority = /\b(reviews?|testimonials?|services?|about|contact|projects?|gallery|case-studies?|treatments?|solutions?|team|practitioners?|people|staff|history|press|media|news)\b/i;
+  const priority = /\b(reviews?|testimonials?|services?|about|contact|projects?|gallery|case-studies?|treatments?|solutions?|team|people|practitioners?|doctors?|our-story|history|press|media|news|staff)\b/i;
   for (const match of html.matchAll(/<a\b[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     const href = String(match[1] || "").trim();
     const label = text(match[2]);

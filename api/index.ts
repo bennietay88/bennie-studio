@@ -3587,18 +3587,20 @@ async function startServer() {
     }
 
     const evidenceHtml: string[] = [homeHtml];
-    const evidenceUrls = extractPreviewEvidenceUrls(homeHtml, finalUrl, 4);
-    for (const url of evidenceUrls) {
+    const evidenceUrls = extractPreviewEvidenceUrls(homeHtml, finalUrl, 6);
+    const evidencePages = await Promise.all(evidenceUrls.map(async (url) => {
       try {
         const result = await fetchAuditResource(url);
         const type = result.response.headers.get("content-type") || "";
-        if (!result.response.ok || (!type.includes("text/html") && !type.includes("application/xhtml+xml"))) continue;
+        if (!result.response.ok || (!type.includes("text/html") && !type.includes("application/xhtml+xml"))) return "";
         const page = await result.response.text();
-        if (page && new TextEncoder().encode(page).length <= 750_000) evidenceHtml.push(page);
+        return page && new TextEncoder().encode(page).length <= 750_000 ? page : "";
       } catch {
         // A secondary evidence page must never block the preview.
+        return "";
       }
-    }
+    }));
+    evidenceHtml.push(...evidencePages.filter(Boolean));
 
     return buildPublicPreviewProfile({
       html: evidenceHtml.join("\n<!-- preview-evidence-page -->\n"),

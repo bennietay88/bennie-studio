@@ -229,6 +229,71 @@ test("public preview decodes numeric HTML entities in source facts", () => {
 });
 
 
+test("public preview decodes numeric entities and extracts human business DNA", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <html>
+        <head>
+          <title>The Podiatry Centre &#8211; Singapore</title>
+          <meta name="description" content="Established podiatry care in Singapore.">
+          <script type="application/ld+json">
+            {
+              "@context":"https://schema.org",
+              "@graph":[
+                {"@type":"MedicalBusiness","name":"The Podiatry Centre"},
+                {"@type":"Person","name":"Mr Ty","jobTitle":"Podiatrist","description":"Experienced podiatrist providing clinical care.","image":"/ty.jpg"}
+              ]
+            }
+          </script>
+        </head>
+        <body>
+          <h1>The Podiatry Centre &#8211; Singapore</h1>
+          <p>Established in 1995 as one of Singapore's early specialist podiatry practices.</p>
+          <h2>Featured in the press</h2>
+          <a href="/articles/straits-times">Straits Times newspaper interview</a>
+          <blockquote>Professional care and careful adjustments made a real difference to my running.</blockquote>
+          <img src="/clinic.jpg" width="1200" height="800" alt="Podiatry clinic">
+        </body>
+      </html>
+    `,
+    finalUrl: "https://podiatry.example/",
+  });
+
+  assert.equal(profile.heroHeadline.includes("&#8211;"), false);
+  assert.equal(profile.heroHeadline, "The Podiatry Centre – Singapore");
+  assert.equal(profile.people.length, 1);
+  assert.equal(profile.people[0].name, "Mr Ty");
+  assert.equal(profile.people[0].role, "Podiatrist");
+  assert.ok(profile.historyItems.some((item) => /Established in 1995/i.test(item)));
+  assert.ok(profile.pressItems.some((item) => /Straits Times/i.test(item)));
+  assert.equal(profile.businessDNA.humanLed, true);
+  assert.equal(profile.businessDNA.heritageRich, true);
+  assert.equal(profile.businessDNA.typographyStyle, "heritage");
+  assert.ok(profile.businessDNA.identityScore >= 50);
+});
+
+
+test("public preview recovers a practitioner from legacy page context", () => {
+  const profile = buildPublicPreviewProfile({
+    html: `
+      <html><head><title>Legacy Podiatry Practice</title></head><body>
+        <h1>Specialist Podiatry Care</h1>
+        <section>
+          <img src="/ty.jpg" width="480" height="600" alt="">
+          <h2>First Podiatrist in Singapore</h2>
+          <p>Ty has a deep well of experience in all areas of podiatric practice and has treated patients for many years.</p>
+        </section>
+      </body></html>
+    `,
+    finalUrl: "https://legacy-podiatry.example/",
+  });
+
+  assert.ok(profile.people.some((person) => person.name === "Ty"));
+  assert.ok(profile.people.some((person) => /Podiatrist/i.test(person.role || "")));
+  assert.equal(profile.businessDNA.humanLed, true);
+});
+
+
 test("public preview prefers an actual hero image over generic social imagery", () => {
   const profile = buildPublicPreviewProfile({
     html: `
@@ -366,13 +431,22 @@ test("generated previews include local stock fallbacks and browser image recover
   const rendererSource = readFileSync("src/components/WebsiteRenderer.tsx", "utf8");
 
   assert.match(previewSource, /flagship-renovation\.jpg/);
-  assert.match(previewSource, /heroFallbackImageUrl: previewStockImage/);
+  assert.match(previewSource, /heroFallbackImageUrl: previewMode === "website" \? undefined : previewStockImage/);
   assert.match(rendererSource, /applySectionImageFallback/);
   assert.match(rendererSource, /fallbackImageUrl/);
 });
 
 
-test("source-driven previews produce a fuller homepage across niches", () => {
+test("existing-site redesigns do not inject stock imagery when source imagery is absent", async () => {
+  const { readFileSync } = await import("node:fs");
+  const source = readFileSync("src/components/PublicMarketingPages.tsx", "utf8");
+  assert.match(source, /const sourceHeroImage = previewMode === "website"[\s\S]{0,180}\|\| ""/);
+  assert.match(source, /heroFallbackImageUrl: previewMode === "website" \? undefined : previewStockImage/);
+  assert.match(source, /storyFallbackImageUrl: previewMode === "website" \? undefined : previewStockImage/);
+});
+
+
+test("source-driven previews prioritise real identity over generic filler sections", () => {
   const pages = buildPagesFromBlueprint({
     businessName: "Example Dental",
     nicheId: "dental-clinic-v1",
@@ -389,23 +463,23 @@ test("source-driven previews produce a fuller homepage across niches", () => {
     sourceDriven: true,
     contactEmail: "hello@example.com",
     contactPhone: "6512345678",
-    testimonials: ["Helpful and professional."],
+    testimonials: ["Helpful and professional care from first visit to follow-up."],
     faqItems: [{ question: "Do you take bookings?", answer: "Yes." }],
     localProof: "Registered clinic",
+    teamMembers: [{ name: "Dr Jane Tan", role: "Podiatrist", imageUrl: "https://example.test/jane.jpg" }],
+    historyItems: ["Established in 1998 as one of the early specialist podiatry practices in Singapore."],
+    businessDNA: { humanLed: true, heritageRich: true, proofRich: true, imageRich: true, identityScore: 82, typographyStyle: "heritage" },
     generationMode: "premium",
   });
   const home = pages.find((page) => page.slug === "")!;
   const types = home.sections.filter((section) => section.isVisible !== false).map((section) => section.type);
 
-  assert.ok(types.includes("hero"));
-  assert.ok(types.includes("features"));
-  assert.ok(types.includes("services"));
-  assert.ok(types.includes("about"));
-  assert.ok(types.includes("proof"));
-  assert.ok(types.includes("testimonials"));
-  assert.ok(types.includes("faq"));
-  assert.ok(types.includes("cta"));
-  assert.ok(home.sections.length >= 9);
+  assert.deepEqual(types, ["hero", "services", "team", "testimonials", "proof", "about", "faq", "cta"]);
+  assert.equal(types.includes("features"), false);
+  assert.equal(types.includes("contact"), false);
+  assert.equal(home.sections.find((section) => section.type === "team")?.content?.title, "Meet Your Podiatrist");
+  assert.equal(home.sections.find((section) => section.type === "testimonials")?.content?.title, "What Patients Say");
+  assert.equal(home.sections.find((section) => section.type === "proof")?.content?.title, "A Practice With a Story");
 });
 
 test("preview lets users auto-detect or override customer brand colours", async () => {
@@ -446,6 +520,7 @@ test("sparse source websites are expanded into useful non-fabricated sections", 
   for (const required of ["hero", "features", "services", "about", "faq", "cta"] as const) {
     assert.ok(homeTypes.includes(required), `expected home to include ${required}`);
   }
+  assert.equal(homeTypes.includes("contact"), false, "contact form belongs on the dedicated conversion page");
 
   const about = pages.find((page) => page.slug === "about")!;
   const aboutSection = about.sections.find((section) => section.type === "about")!;

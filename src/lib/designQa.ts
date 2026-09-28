@@ -11,6 +11,8 @@ export interface DesignQualityMetrics {
   hierarchy: number;
   proofQuality: number;
   conversionClarity: number;
+  identityPreservation: number;
+  redesignAdvantage: number;
   aiTemplateRisk: number;
 }
 
@@ -59,13 +61,63 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
   const compositionDepth = sourceDriven
     ? homeSections.length >= 5 && homeSections.length <= 10
     : homeSections.length >= (generationMode === "brand_led" ? 7 : generationMode === "premium" ? 6 : 4);
-  const sourceForbiddenLanguage = /evidence before claims|useful restraint|action without pressure|responsive by design|execution strategy|strategic initiative|initialize connection|synthesis successful/i.test(text);
+  const sourceForbiddenLanguage = /evidence before claims|useful restraint|action without pressure|responsive by design|execution strategy|strategic initiative|initialize connection|synthesis successful|capability system|business-supplied evidence|proof from the business|explore capability/i.test(text);
   const fakeAvailability = sourceDriven && /available times|local business hours/i.test(text);
   const contactSectionCount = sections.filter((section) => section.type === "contact").length;
   const sourceContactDiscipline = !sourceDriven || contactSectionCount === 1;
   const sourceHeroVariant = pages[0]?.sections?.find((section) => section.type === "hero")?.settings?.variant;
   const sourceHeroReady = !sourceDriven || sourceHeroVariant === "source_brand_hero";
   const sourcePageCountReady = !sourceDriven || (pages.length >= 3 && pages.length <= 5);
+  const sourceIdentity = website.theme?.sourceIdentity;
+  const sourcePeopleExpected = sourceDriven && Number(sourceIdentity?.peopleCount || 0) > 0;
+  const sourceTestimonialsExpected = sourceDriven && Number(sourceIdentity?.testimonialCount || 0) > 0;
+  const sourceHeritageExpected = sourceDriven && (Number(sourceIdentity?.historyCount || 0) > 0 || Number(sourceIdentity?.pressCount || 0) > 0);
+  const sourceLogoExpected = sourceDriven && sourceIdentity?.hasLogo === true;
+  const sourceServicesExpected = sourceDriven && Number(sourceIdentity?.serviceCount || 0) > 1;
+  const sourceFaqExpected = sourceDriven && Number(sourceIdentity?.faqCount || 0) > 0;
+  const sourcePeoplePreserved = !sourcePeopleExpected || sections.some((section) =>
+    section.type === "team" && Array.isArray(section.content?.members) && section.content.members.length > 0
+  );
+  const sourceTestimonialsPreserved = !sourceTestimonialsExpected || sections.some((section) =>
+    section.type === "testimonials" && Array.isArray(section.content?.items) && section.content.items.length > 0
+  );
+  const sourceHeritagePreserved = !sourceHeritageExpected || sections.some((section) =>
+    section.type === "proof" && (
+      /history|story|archive|press/i.test(String(section.content?.title || "") + " " + String(section.content?.eyebrow || ""))
+      || (Array.isArray(section.content?.items) && section.content.items.length > 0)
+    )
+  );
+  const sourceLogoPreserved = !sourceLogoExpected || Boolean(website.theme?.logoUrl);
+  const sourceServicesPreserved = !sourceServicesExpected || sections.some((section) =>
+    section.type === "services" && Array.isArray(section.content?.items) && section.content.items.length >= Math.min(2, Number(sourceIdentity?.serviceCount || 0))
+  );
+  const sourceFaqPreserved = !sourceFaqExpected || sections.some((section) =>
+    section.type === "faq" && Array.isArray(section.content?.items) && section.content.items.length > 0
+  );
+  const sourceTypographyPreserved = !sourceDriven
+    || sourceIdentity?.typographyStyle !== "heritage"
+    || /serif/i.test(String(website.theme?.displayFont || ""));
+  const redesignAdvantageSignals = [
+    hasHero,
+    conciseHeroHeadlines,
+    hasCta,
+    hasNavigation,
+    !repeatedVariant,
+    cardHeavyRatio <= 0.45,
+    centeredRatio <= 0.6,
+    sourcePeoplePreserved,
+    sourceTestimonialsPreserved,
+    sourceHeritagePreserved,
+    sourceLogoPreserved,
+    sourceServicesPreserved,
+    sourceFaqPreserved,
+    sourceTypographyPreserved,
+    !sourceForbiddenLanguage,
+  ];
+  const redesignAdvantage = sourceDriven
+    ? Math.round((redesignAdvantageSignals.filter(Boolean).length / redesignAdvantageSignals.length) * 100)
+    : 100;
+  const sourceRedesignAdvantageReady = !sourceDriven || redesignAdvantage >= 87;
 
   const checks: DesignQaCheck[] = [
     { key: "hero", label: "Clear hero", pass: hasHero, severity: "high", note: hasHero ? "Hero section is present." : "Add a clear primary hero." },
@@ -76,6 +128,14 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
     { key: "source_preview_contact", label: "Contact form discipline", pass: sourceContactDiscipline, severity: "high", note: sourceContactDiscipline ? "One contact form is concentrated on the dedicated conversion page." : "Source previews should contain exactly one contact form on the conversion page." },
     { key: "source_preview_hero", label: "Source-aware hero", pass: sourceHeroReady, severity: "high", note: sourceHeroReady ? "URL-based previews use the source-aware hero." : "Use the source-aware hero for URL-based redesign previews." },
     { key: "source_preview_pages", label: "Evidence-led page count", pass: sourcePageCountReady, severity: "medium", note: sourcePageCountReady ? "The source preview uses a focused three-to-five page architecture." : "Do not force empty pages into a source-driven prospect preview." },
+    { key: "source_identity_people", label: "People preserved", pass: sourcePeoplePreserved, severity: "high", note: sourcePeoplePreserved ? "Important people from the source business remain visible." : "The source site contains real people, but the redesign dropped them." },
+    { key: "source_identity_testimonials", label: "Customer proof preserved", pass: sourceTestimonialsPreserved, severity: "high", note: sourceTestimonialsPreserved ? "Real testimonial evidence remains visible." : "The source site contains testimonials, but the redesign dropped them." },
+    { key: "source_identity_heritage", label: "History preserved", pass: sourceHeritagePreserved, severity: "high", note: sourceHeritagePreserved ? "History and archival proof are retained when present." : "The source site contains history or press material, but the redesign lost it." },
+    { key: "source_identity_logo", label: "Brand identity preserved", pass: sourceLogoPreserved, severity: "high", note: sourceLogoPreserved ? "The existing logo is retained when available." : "The source logo was available but not retained." },
+    { key: "source_identity_services", label: "Service depth preserved", pass: sourceServicesPreserved, severity: "high", note: sourceServicesPreserved ? "The redesign keeps the source service depth visible." : "The source site contains multiple services, but the redesign collapsed them too far." },
+    { key: "source_identity_faq", label: "Useful source information preserved", pass: sourceFaqPreserved, severity: "medium", note: sourceFaqPreserved ? "Useful source FAQs remain available." : "The source site contains useful FAQs, but the redesign dropped them." },
+    { key: "source_identity_typography", label: "Typography matches identity", pass: sourceTypographyPreserved, severity: "medium", note: sourceTypographyPreserved ? "Typography direction respects the source business character." : "An established heritage-led business should not be flattened into a generic sans-serif identity." },
+    { key: "source_redesign_advantage", label: "Better-than-existing redesign gate", pass: sourceRedesignAdvantageReady, severity: "high", note: sourceRedesignAdvantageReady ? "The redesign clears the combined identity, hierarchy, conversion and anti-template floor." : "Do not show this concept yet; it has not earned a clear redesign advantage over the source site." },
     { key: "cta", label: "Conversion path", pass: hasCta, severity: "high", note: hasCta ? "A conversion section is present." : "Add contact, booking, or CTA path." },
     { key: "proof", label: "Proof", pass: hasProof, severity: "medium", note: hasProof ? "Trust/proof section is present." : "Add verified proof or a factual trust section." },
     { key: "proof_integrity", label: "Proof integrity", pass: !hasPlaceholderProof, severity: "high", note: hasPlaceholderProof ? "Placeholder client/testimonial labels detected. Replace with verified proof or remove the testimonial block." : "No placeholder client proof detected." },
@@ -104,6 +164,18 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
   const hierarchy = Math.max(0, Math.min(100, (hasHero ? 30 : 0) + (hasHeadline ? 25 : 0) + (compositionDepth ? 25 : 0) + (centeredRatio <= 0.6 ? 20 : 5)));
   const proofQuality = Math.max(0, Math.min(100, (hasProof ? 45 : 20) + (!hasPlaceholderProof ? 35 : 0) + (!hasGenericPricing ? 20 : 0)));
   const conversionClarity = Math.max(0, Math.min(100, (hasCta ? 55 : 0) + (hasHero ? 20 : 0) + (hasNavigation ? 15 : 0) + (hasSeo ? 10 : 0)));
+  const identityChecks = [
+    sourcePeoplePreserved,
+    sourceTestimonialsPreserved,
+    sourceHeritagePreserved,
+    sourceLogoPreserved,
+    sourceServicesPreserved,
+    sourceFaqPreserved,
+    sourceTypographyPreserved,
+  ];
+  const identityPreservation = sourceDriven
+    ? Math.round((identityChecks.filter(Boolean).length / identityChecks.length) * 100)
+    : 100;
   const aiTemplateRisk = Math.max(0, Math.min(100,
     (aiFingerprint ? 30 : 0) +
     (repeatedVariant ? 25 : 0) +
@@ -116,7 +188,7 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
     (!sourceContactDiscipline ? 20 : 0) +
     (!sourceHeroReady ? 25 : 0)
   ));
-  const metrics = { visualVariety, hierarchy, proofQuality, conversionClarity, aiTemplateRisk };
+  const metrics = { visualVariety, hierarchy, proofQuality, conversionClarity, identityPreservation, redesignAdvantage, aiTemplateRisk };
   const threshold = previewPurpose
     ? (sourceDriven ? 88 : 85)
     : generationMode === "brand_led"
@@ -126,7 +198,8 @@ export function assessWebsiteDesign(website: Website): { score: number; producti
         : 80;
   const productionReady = score >= threshold
     && highFailures === 0
-    && aiTemplateRisk <= (sourceDriven ? 30 : generationMode === "brand_led" ? 35 : 45);
+    && aiTemplateRisk <= (sourceDriven ? 25 : generationMode === "brand_led" ? 35 : 45)
+    && (!sourceDriven || (identityPreservation >= 80 && redesignAdvantage >= 87));
   return { score, productionReady, checks, metrics };
 }
 
