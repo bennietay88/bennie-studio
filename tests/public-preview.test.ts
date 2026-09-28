@@ -419,6 +419,15 @@ test("generated previews include local stock fallbacks and browser image recover
 });
 
 
+test("existing-site redesigns do not inject stock imagery when source imagery is absent", async () => {
+  const { readFileSync } = await import("node:fs");
+  const source = readFileSync("src/components/PublicMarketingPages.tsx", "utf8");
+  assert.match(source, /const sourceHeroImage = previewMode === "website"[\s\S]{0,180}\|\| ""/);
+  assert.match(source, /heroFallbackImageUrl: previewMode === "website" \? undefined : previewStockImage/);
+  assert.match(source, /storyFallbackImageUrl: previewMode === "website" \? undefined : previewStockImage/);
+});
+
+
 test("source-driven previews prioritise real identity over generic filler sections", () => {
   const pages = buildPagesFromBlueprint({
     businessName: "Example Dental",
