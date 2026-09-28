@@ -796,6 +796,44 @@ test("source-driven preview QA blocks fake availability and internal design lang
   assert.equal(result.productionReady, false);
 });
 
+test("source redesign composition seeds create distinct identity-led directions", () => {
+  const base = {
+    businessName: "The Podiatry Centre",
+    nicheId: "dental-clinic-v1",
+    nicheName: "Clinic / Healthcare",
+    plan: "business",
+    maxPages: 5,
+    mainService: "Podiatry care",
+    targetCustomer: "patients",
+    location: "Singapore",
+    ctaPreference: "Book Appointment",
+    generationMode: "brand_led" as const,
+    sourceDriven: true,
+    services: ["Sports Podiatry", "Custom Orthotics"],
+    testimonials: ["Professional care and clear advice throughout."],
+    teamMembers: [{ name: "Mr Ty", role: "Podiatrist", imageUrl: "https://example.test/ty.jpg" }],
+    historyItems: ["Established as an early specialist podiatry practice in Singapore."],
+    localProof: "Established specialist clinic",
+    faqItems: [{ question: "How do I book?", answer: "Contact the clinic." }],
+    heroHeadline: "The Podiatry Centre",
+    preferredHeroVariant: "source_brand_hero",
+    compactSubpageHeroes: true,
+    businessDNA: { humanLed: true, heritageRich: true, proofRich: true, imageRich: true, identityScore: 90, typographyStyle: "heritage" as const },
+  };
+
+  const balanced = buildPagesFromBlueprint({ ...base, compositionSeed: 0 })[0];
+  const proofLed = buildPagesFromBlueprint({ ...base, compositionSeed: 1 })[0];
+  const peopleLed = buildPagesFromBlueprint({ ...base, compositionSeed: 2 })[0];
+  const heritageLed = buildPagesFromBlueprint({ ...base, compositionSeed: 3 })[0];
+
+  const types = (page: any) => page.sections.filter((section: any) => section.isVisible !== false).map((section: any) => section.type);
+  assert.deepEqual(types(balanced).slice(0, 4), ["hero", "services", "team", "testimonials"]);
+  assert.deepEqual(types(proofLed).slice(0, 4), ["hero", "testimonials", "services", "team"]);
+  assert.deepEqual(types(peopleLed).slice(0, 4), ["hero", "team", "services", "testimonials"]);
+  assert.deepEqual(types(heritageLed).slice(0, 4), ["hero", "proof", "services", "team"]);
+});
+
+
 test("source-driven redesign QA requires important source identity to survive", () => {
   const pages = buildPagesFromBlueprint({
     businessName: "The Podiatry Centre",
@@ -852,6 +890,8 @@ test("source-driven redesign QA requires important source identity to survive", 
   assert.equal(healthy.checks.find((check) => check.key === "source_identity_heritage")?.pass, true);
   assert.equal(healthy.checks.find((check) => check.key === "source_identity_typography")?.pass, true);
   assert.ok(healthy.metrics.identityPreservation >= 80);
+  assert.ok(healthy.metrics.redesignAdvantage >= 87);
+  assert.equal(healthy.checks.find((check) => check.key === "source_redesign_advantage")?.pass, true);
 
   const stripped = structuredClone(website);
   stripped.pages.forEach((page: any) => {
