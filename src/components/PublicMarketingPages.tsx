@@ -24,6 +24,7 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { SafeImage } from "./SafeImage";
 import { WAAS_TEMPLATE_PACKS } from "../constants/nicheTemplates";
+import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
 import {
   buildReviewWebsiteStrategy,
   assessManualReviewInput,
