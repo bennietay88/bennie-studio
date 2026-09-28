@@ -64,7 +64,6 @@ const lazy = <T extends React.ComponentType<any>>(
 const LandingPage = lazy(() => import("./components/BrandLedLandingPage"));
 const LoginPage = lazy(() => import("./components/LoginPage"));
 const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
-const PortfolioPage = lazy(() => import("./components/PortfolioPage"));
 const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPages"));
 const PublicBlogPostPage = lazy(() => import("./components/PublicBlogPostPage"));
 const WaasSamplePage = lazy(() => import("./components/WaasSamplePage"));
