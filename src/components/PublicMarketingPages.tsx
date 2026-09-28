@@ -2319,52 +2319,44 @@ function GeneratePreviewPage() {
 
   return (
     <>
-      <section className="brand-on-dark brand-grid-bg relative overflow-hidden border-b border-white/10">
-        <div className="bt-hero-glow -right-40 -top-44" />
+      <section className="bs3-dark bs3-grid relative overflow-hidden border-b border-white/10">
+        <div className="bs3-orb -right-40 -top-44" />
         <div className="brand-shell relative grid gap-12 py-16 sm:py-20 lg:grid-cols-12 lg:items-center lg:py-24">
-          <div className="lg:col-span-7">
-            <p className="brand-kicker flex items-center gap-2 !text-[#b9b1ff]">
-              <Sparkles className="h-4 w-4" /> {salesMode ? "Bennie Studio sales preview" : "Free website preview"}
+          <div className="lg:col-span-6">
+            <p className="brand-kicker !text-[#9f93ff]">
+              {salesMode ? "Bennie Studio sales preview" : "From idea to a working website"}
             </p>
-            {salesMode ? <p className="mt-3 inline-flex border border-[#b9b1ff] bg-[#eeebff] px-3 py-2 text-xs font-semibold text-[#5746e8]">Internal mode · prospect email not required</p> : null}
-            <h1 className="mt-5 !max-w-[14ch] !text-white">
-              Start your website <span className="bt-gradient-title block">with a clear brief.</span>
+            {salesMode ? <p className="mt-3 inline-flex rounded-lg border border-[#9f93ff]/40 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-[#b9b1ff]">Internal mode · prospect email not required</p> : null}
+            <h1 className="mt-5 !max-w-[13ch] !text-white">
+              Start your website with a <span className="bs3-accent">clear brief.</span>
             </h1>
-            <p className="brand-copy brand-muted-on-dark mt-6 !max-w-2xl">
-              Answer a few focused questions and we’ll turn the essentials into a tailored website direction — shaped around your business, buyer and strongest enquiry action, then reviewed through the Bennie Studio process.
+            <p className="brand-copy mt-6 !max-w-[39rem] !text-white/68">
+              Answer a few simple questions and we’ll create a tailored website direction and working preview — shaped around the business, reviewed by a human and ready for useful feedback.
             </p>
-            <div className="mt-8 flex flex-wrap gap-2">
-              {([salesMode ? "Internal sales workflow" : "No card required", "No changes to your live website", "Uses verified business details"]).map((item) => (
-                <span key={item} className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.05] px-4 py-2 text-sm font-semibold !text-white/75">
-                  <Check className="h-4 w-4 text-[#5746e8]" /> {item}
-                </span>
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              {[
+                ["3–5 minutes", "Simple and guided"],
+                ["Live preview", "See the direction clearly"],
+                ["Human review", "Real expertise, real feedback"],
+              ].map(([title,copy]) => (
+                <div key={title} className="flex gap-3">
+                  <span className="bs3-icon !bg-white/[0.06] !text-[#9f93ff]"><Check className="h-4 w-4" /></span>
+                  <div><p className="text-sm font-semibold !text-white">{title}</p><p className="mt-1 text-xs !text-white/48">{copy}</p></div>
+                </div>
               ))}
             </div>
           </div>
 
-          <div className="lg:col-span-5">
-            <div className="bt-premium-card-dark overflow-hidden">
-              <div className="border-b border-white/10 bg-white/[0.035] px-6 py-5 text-white">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#b9b1ff]">Your preview blueprint</p>
-                <h2 className="mt-2 text-2xl font-semibold !text-white">{businessLabel === "your business" ? "Your business, made clearer." : businessLabel}</h2>
+          <div className="relative lg:col-span-6">
+            <div className="bs3-device-wrap">
+              <div className="bs3-laptop">
+                <div className="bs3-browser-dots"><span /><span /><span /></div>
+                <img src="/images/bennie-studio-hero.webp" alt="" loading="eager" decoding="async" />
+                <div className="bs3-screen-label">Personalised website direction</div>
               </div>
-              <div className="divide-y divide-white/10 px-6">
-                {[
-                  ["Business", businessTypeLabel],
-                  ["Main service", serviceLabel],
-                  ["Location", locationLabel],
-                  ["Primary action", resolvePreviewCta(goal)],
-                ].map(([label, value]) => (
-                  <div key={label} className="grid grid-cols-[110px_1fr] gap-4 py-4 text-sm">
-                    <span className="font-semibold !text-white/50">{label}</span>
-                    <span className="font-semibold !text-white">{value}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="border-t border-white/10 bg-[#6554f5]/15 px-6 py-5">
-                <p className="text-sm font-semibold !text-[#c8c1ff]">We use this brief to choose structure, messaging hierarchy and the enquiry path.</p>
-              </div>
+              <div className="bs3-phone" aria-hidden="true"><div className="bs3-phone-notch" /><img src="/images/bennie-studio-hero.webp" alt="" /></div>
             </div>
+            <p className="absolute right-3 top-1 hidden rotate-[-6deg] text-sm font-semibold italic text-[#c9c4ff] lg:block">Your preview<br/>in minutes ↙</p>
           </div>
         </div>
       </section>
@@ -2372,9 +2364,9 @@ function GeneratePreviewPage() {
       <section id="preview-brief" className="bt-section-soft">
         <div className="brand-shell py-14 sm:py-20">
           <div className="mb-10 max-w-3xl">
-            <p className="brand-kicker">Build your direction</p>
-            <h2 className="mt-4">A sharp brief is enough.</h2>
-            <p className="brand-copy mt-4">Complete the essentials below. Optional proof and brand details can improve the direction, but they are not required to get started.</p>
+            <p className="brand-kicker">Business brief</p>
+            <h2 className="mt-4">Let’s start with your business.</h2>
+            <p className="brand-copy mt-4">The brief helps us understand the goal and choose the right structure. If there is already a website, the redesign uses that site as source material instead of replacing the business identity.</p>
           </div>
 
           <div className="mb-8 grid gap-3 rounded-[1.25rem] border border-[#e3e5ed] bg-white/85 p-4 shadow-[0_22px_60px_-50px_rgba(15,23,42,.45)] sm:grid-cols-4 sm:p-5">
@@ -2729,9 +2721,27 @@ function GeneratePreviewPage() {
               <div className="bt-premium-card overflow-hidden bg-white p-5 sm:p-6">
                 <div className="flex items-center gap-3">
                   <LayoutTemplate className="h-5 w-5 text-[#5746e8]" />
-                  <p className="text-sm font-bold uppercase tracking-[0.1em] text-[#5746e8]">Live brief</p>
+                  <div><p className="text-sm font-bold text-[#172033]">Your website preview</p><p className="mt-1 text-xs text-[#657186]">Based on your answers, we create a tailored direction.</p></div>
                 </div>
-                <h3 className="mt-4 text-2xl font-semibold text-[#141821]">{businessLabel === "your business" ? "Your preview adapts live." : businessLabel}</h3>
+                <div className="mt-5 overflow-hidden rounded-xl border border-[#e5e8ef] bg-[#0b1020] p-2">
+                  <img src="/images/bennie-studio-hero.webp" alt="" className="aspect-[16/10] w-full rounded-lg object-cover" />
+                </div>
+                <div className="mt-5 space-y-4">
+                  {[
+                    ["1","Strategy & recommendations","The brief shapes the structure, pages and features."],
+                    ["2","Custom design direction","The direction adapts to the business instead of a generic template."],
+                    ["3","Live website preview","You get something concrete to review and respond to."],
+                    ["4","Human review & next steps","A real person reviews the direction before the next step."],
+                  ].map(([number,title,copy])=>(
+                    <div key={number} className="grid grid-cols-[30px_1fr] gap-3">
+                      <span className="grid h-7 w-7 place-items-center rounded-full bg-[#eeebff] text-xs font-bold text-[#6252f4]">{number}</span>
+                      <div><p className="text-sm font-semibold text-[#172033]">{title}</p><p className="mt-1 text-xs leading-5 text-[#657186]">{copy}</p></div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 border-t border-[#e5e8ef] pt-5">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.11em] text-[#6252f4]">Live brief</p>
+                  <h3 className="mt-2 text-xl font-semibold text-[#141821]">{businessLabel === "your business" ? "Your preview adapts live." : businessLabel}</h3>
                 <div className="mt-6 divide-y divide-[#dfe2ea] border-y border-[#dfe2ea]">
                   {[
                     ["Business", businessTypeLabel],
@@ -2763,9 +2773,49 @@ function GeneratePreviewPage() {
                   <p className="mt-2 font-semibold text-[#141821]">{commercialRecommendation.label}</p>
                   <p className="mt-1 text-sm leading-5 text-[#5f6673]">The recommendation is based on the website goal and business brief, not a forced upsell.</p>
                 </div>
+                </div>
               </div>
             </aside>
           </form>
+        </div>
+      </section>
+
+      <section className="bg-white border-y border-[#e6e8ef]">
+        <div className="brand-shell py-14 sm:py-16">
+          <div className="grid gap-7 lg:grid-cols-12 lg:items-end">
+            <div className="lg:col-span-6"><p className="brand-kicker">What happens next</p><h2 className="mt-4">From your answers to a working preview.</h2></div>
+            <p className="brand-copy lg:col-span-6">The brief becomes a practical plan and an interactive website direction, so you can see the decision before committing to a build.</p>
+          </div>
+          <div className="mt-9 grid gap-4 md:grid-cols-4">
+            {[
+              ["1","We analyse your brief","The business, offer and goals determine the right structure."],
+              ["2","We design your preview","A tailored visual direction and key page layouts are created."],
+              ["3","You review and provide feedback","Tell us what feels right and what you would change."],
+              ["4","We share next steps","If the direction fits, the build scope becomes clear."],
+            ].map(([n,t,c])=><article key={n} className="bs3-card p-5"><span className="text-xs font-bold text-[#6252f4]">{n}</span><h3 className="mt-4">{t}</h3><p className="mt-3 text-sm leading-6 text-[#657186]">{c}</p></article>)}
+          </div>
+        </div>
+      </section>
+
+      <section className="bs3-dark">
+        <div className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center">
+          <div className="lg:col-span-5"><p className="brand-kicker !text-[#9f93ff]">Built around real people</p><h2 className="mt-4 !text-white">A human-guided process, from start to finish.</h2><p className="mt-5 text-base leading-8 text-white/62">The system helps prepare the direction. A real person still reviews the business context, design quality and next-step logic before launch.</p><Link to="/how-it-works" className={`${primaryCtaClass} mt-7`}>See how it works<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
+          <div className="lg:col-span-7"><div className="bs3-image-card !border-white/10"><img src="/images/bennie-studio-system.webp" alt="Bennie Studio human website review process" /><span className="bs3-float-card right-[8%] top-[15%]">Designed around your business.</span></div></div>
+        </div>
+      </section>
+
+      <section className="brand-shell brand-section">
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-start">
+          <div className="lg:col-span-4"><p className="brand-kicker">Common questions</p><h2 className="mt-4">Questions before you get started?</h2><p className="brand-copy mt-5">A few quick answers before you build the preview.</p></div>
+          <div className="lg:col-span-8 divide-y divide-[#e5e8ef] overflow-hidden rounded-2xl border border-[#e5e8ef] bg-white">
+            {[
+              ["Is there a commitment to get a preview?","No. The preview is designed to give you something concrete to evaluate before deciding what to do next."],
+              ["How long does it take to get my preview?","The form itself is short. Generation time depends on whether we are reading an existing website and how much source material is available."],
+              ["Can I request changes to the preview?","Yes. The preview is a direction to review, not a locked final design."],
+              ["Do you work with businesses in my industry?","The system supports several service-business categories and adapts page structure to the selected business type."],
+              ["What happens after I approve the preview?","The next step is to confirm the appropriate commercial scope, delivery plan and launch requirements."],
+            ].map(([q,a])=><details key={q} className="px-5"><summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-sm font-semibold text-[#172033]">{q}<span className="text-[#6252f4]">+</span></summary><p className="pb-5 text-sm leading-7 text-[#657186]">{a}</p></details>)}
+          </div>
         </div>
       </section>
 
