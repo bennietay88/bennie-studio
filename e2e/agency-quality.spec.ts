@@ -258,8 +258,9 @@ test("generated customer site mobile navigation is accessible", async ({ page })
 test("sales journey exposes delivery safeguards and defined scope", async ({ page }) => {
   await mockAnonymousPublicDependencies(page);
   await page.goto("/how-it-works", { waitUntil: "networkidle" });
-  await expect(page.getByText(/Generation starts the work/i)).toBeVisible();
-  await expect(page.getByText(/human reviews and art-directs every paid build/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /From brief to launch/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Real people\. Real feedback\. Better results\./i })).toBeVisible();
+  await expect(page.getByText(/Human review at every stage/i)).toBeVisible();
 
   await page.goto("/pricing", { waitUntil: "networkidle" });
   const plans = page.locator("#plans");
