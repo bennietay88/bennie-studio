@@ -3,7 +3,14 @@ import { COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice } from "../src/lib/com
 
 const publicRoutes = [
   "/",
+  "/services",
+  "/about",
+  "/resources",
+  "/contact",
   "/pricing",
+  "/how-it-works",
+  "/case-studies",
+  "/website-audit",
   "/templates",
   "/generate-preview",
   "/preview/template/dental-clinic-v1",
@@ -147,6 +154,82 @@ test("public navigation uses the app route transition", async ({ page }) => {
   await expect(page).toHaveURL(/\/pricing$/);
   const animationName = await page.locator(".bt-public-route-transition").evaluate((node) => getComputedStyle(node).animationName);
   expect(animationName).toContain("bt-public-route-enter");
+});
+
+test("compact desktop keeps primary navigation accessible", async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await mockAnonymousPublicDependencies(page);
+  await page.goto("/", { waitUntil: "networkidle" });
+
+  const menu = page.getByRole("button", { name: "Open navigation menu" });
+  await expect(menu).toBeVisible();
+  await menu.click();
+
+  const dialog = page.getByRole("dialog", { name: "Navigation menu" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Explore", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Work", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Pricing", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Insights", exact: true })).toBeVisible();
+});
+
+test("resources subscription persists before reporting success", async ({ page }) => {
+  await mockAnonymousPublicDependencies(page);
+  let submittedLead: any = null;
+  await page.route("**/api/platform-leads", async (route) => {
+    submittedLead = await route.request().postDataJSON();
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({ success: true, leadId: "newsletter-lead" }),
+    });
+  });
+
+  await page.goto("/resources", { waitUntil: "networkidle" });
+  await page.getByLabel("Email address").fill("reader@example.com");
+  await page.getByRole("button", { name: "Subscribe", exact: true }).click();
+
+  await expect(page.getByRole("button", { name: /You’re subscribed/i })).toBeVisible();
+  expect(submittedLead?.email).toBe("reader@example.com");
+  expect(submittedLead?.leadType).toBe("newsletter_subscription");
+  expect(submittedLead?.formName).toBe("Resources newsletter");
+});
+
+test("contact project brief is captured and carried into the preview", async ({ page }) => {
+  await mockAnonymousPublicDependencies(page);
+  let submittedLead: any = null;
+  await page.route("**/api/platform-leads", async (route) => {
+    submittedLead = await route.request().postDataJSON();
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({ success: true, leadId: "contact-lead" }),
+    });
+  });
+
+  await page.goto("/contact", { waitUntil: "networkidle" });
+  await page.locator('input[placeholder="Your name"]').fill("Jane Prospect");
+  await page.locator('input[placeholder="Company"]').fill("Example Advisory");
+  await page.locator('input[placeholder="you@company.com"]').fill("jane@example.com");
+  await page.locator("select").selectOption({ label: "Website redesign" });
+  await page.locator('textarea[placeholder*="goals"]').fill("We need a clearer enquiry path and stronger credibility.");
+  await expect(page.getByRole("link", { name: /Open live calendar/i })).toBeVisible();
+  await expect(page.getByText("Dates and times below are illustrative.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Start project brief" }).click();
+
+  await expect(page).toHaveURL(/\/generate-preview\?/);
+  const url = new URL(page.url());
+  expect(url.searchParams.get("mode")).toBe("business");
+  expect(url.searchParams.get("name")).toBe("Jane Prospect");
+  expect(url.searchParams.get("business")).toBe("Example Advisory");
+  expect(url.searchParams.get("email")).toBe("jane@example.com");
+  expect(submittedLead?.leadType).toBe("project_brief");
+  expect(submittedLead?.businessName).toBe("Example Advisory");
+
+  await expect(page.locator("#preview-business")).toHaveValue("Example Advisory");
+  await expect(page.locator("#preview-name")).toHaveValue("Jane Prospect");
+  await expect(page.locator("#preview-email")).toHaveValue("jane@example.com");
 });
 
 test("template selector remains usable on mobile", async ({ page }) => {
