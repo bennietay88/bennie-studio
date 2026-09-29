@@ -100,13 +100,13 @@ export function PublicSiteHeader() {
           </Link>
         </div>
 
-        <Button type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="shrink-0 lg:hidden" aria-label="Open navigation menu" aria-expanded={mobileOpen} aria-controls="public-mobile-navigation">
+        <Button type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="shrink-0 xl:hidden" aria-label="Open navigation menu" aria-expanded={mobileOpen} aria-controls="public-mobile-navigation">
           <Menu className="h-5 w-5" />
         </Button>
       </nav>
 
       {mobileOpen ? (
-        <div className="fixed inset-0 z-[100] bg-[#07101f]/60 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
+        <div className="fixed inset-0 z-[100] bg-[#07101f]/60 backdrop-blur-sm xl:hidden" onClick={() => setMobileOpen(false)}>
           <div id="public-mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="absolute right-0 top-0 flex h-dvh w-[min(92vw,390px)] flex-col bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-[#e5e7ef] pb-5">
               <span className="text-lg font-semibold tracking-[-0.03em] text-[#0d1426]">Bennie Studio</span>
