@@ -399,9 +399,9 @@ test("presents Managed Website as the primary homepage offer", async ({ page }) 
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Your website, fully managed\./i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Start with the website\. Add growth later\./i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Build my free preview/i }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: /A better website\s+without the hassle\./i })).toBeVisible();
+  await expect(page.getByText(/Strategy, design and human review/i).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Start your website/i }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true }).first()).toBeVisible();
   await expect(page.getByText(/\$49/)).toHaveCount(0);
 });
