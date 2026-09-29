@@ -1553,8 +1553,9 @@ function GeneratePreviewPage() {
   );
   const [previewExpanded, setPreviewExpanded] = React.useState(false);
   const [previewDevice, setPreviewDevice] = React.useState<"desktop" | "tablet" | "mobile">("desktop");
+  const requestedPreviewMode = initialParams.get("mode");
   const [previewMode, setPreviewMode] = React.useState<"website" | "business">(
-    savedPreviewIntent.previewMode === "business" ? "business" : "website",
+    requestedPreviewMode === "business" || savedPreviewIntent.previewMode === "business" ? "business" : "website",
   );
   const [turnstileToken, setTurnstileToken] = React.useState("");
   const [honeypot, setHoneypot] = React.useState("");
