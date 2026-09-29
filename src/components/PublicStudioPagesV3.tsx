@@ -33,6 +33,34 @@ const primary =
 const secondary =
   "inline-flex min-h-12 items-center justify-center rounded-xl border border-white/22 bg-white/[0.035] px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.08]";
 
+async function submitPublicLead(input: {
+  name: string;
+  email: string;
+  phone?: string;
+  businessName?: string;
+  industry?: string;
+  message?: string;
+  formName: string;
+  leadType: string;
+}) {
+  const response = await fetch("/api/platform-leads", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...input,
+      sourcePage: `${window.location.pathname}${window.location.search}`,
+      pageTitle: document.title,
+      referrer: document.referrer || "",
+      country: navigator.language?.split("-")?.[1] || "",
+    }),
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.message || "We could not submit this right now. Please try again.");
+  }
+  return payload;
+}
+
 function StudioVisual({ image = "/images/studio-hero-v2.png", label = "Website direction" }: { image?: string; label?: string }) {
   return (
     <div className="bs3-device-wrap">
@@ -295,8 +323,33 @@ export function AboutStudioPage() {
 export function ResourcesStudioPage() {
   const [query, setQuery] = React.useState("");
   const [activeCategory, setActiveCategory] = React.useState("All");
+  const [subscriberEmail, setSubscriberEmail] = React.useState("");
   const [subscribed, setSubscribed] = React.useState(false);
+  const [subscriptionPending, setSubscriptionPending] = React.useState(false);
+  const [subscriptionError, setSubscriptionError] = React.useState("");
   const categories = ["All","Website Strategy","Design & UX","Copy & Messaging","Conversion","Case Studies","Tools & Resources"];
+
+  const subscribe = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (subscribed || subscriptionPending) return;
+    setSubscriptionError("");
+    setSubscriptionPending(true);
+    try {
+      const email = subscriberEmail.trim();
+      await submitPublicLead({
+        name: email.split("@")[0] || "Newsletter subscriber",
+        email,
+        formName: "Resources newsletter",
+        leadType: "newsletter_subscription",
+        message: "Subscribed from the Bennie Studio resources page.",
+      });
+      setSubscribed(true);
+    } catch (error: any) {
+      setSubscriptionError(error?.message || "We could not subscribe you right now. Please try again.");
+    } finally {
+      setSubscriptionPending(false);
+    }
+  };
   const filteredArticles = RESOURCE_ARTICLES.filter(({ category: cat, title, excerpt: copy }) => {
     const categoryMatch = activeCategory === "All" || cat.toLowerCase() === activeCategory.toLowerCase() || (activeCategory === "Website Strategy" && cat === "Business growth");
     const searchMatch = `${title} ${copy} ${cat}`.toLowerCase().includes(query.toLowerCase().trim());
@@ -362,7 +415,7 @@ export function ResourcesStudioPage() {
       <section className="bs3-dark">
         <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12 lg:items-center">
           <div className="lg:col-span-5"><p className="brand-kicker !text-[#9f93ff]">Stay in the loop</p><h2 className="mt-4 !text-white">Get better website thinking in your inbox.</h2><p className="mt-5 text-base leading-8 text-white/62">Join practical updates for service businesses — no hype, just useful advice, examples and launch checklists.</p></div>
-          <form onSubmit={(event) => { event.preventDefault(); setSubscribed(true); }} className="lg:col-span-7"><div className="flex flex-col gap-3 rounded-2xl border border-white/12 bg-white/[0.06] p-3 sm:flex-row"><label htmlFor="resource-email" className="sr-only">Email address</label><div className="flex min-h-12 flex-1 items-center gap-3 rounded-xl bg-white px-4"><Mail className="h-4 w-4 text-[#6252f4]" /><input id="resource-email" required type="email" placeholder="Your email address" className="min-w-0 flex-1 bg-transparent text-sm text-[#172033] outline-none placeholder:text-[#8d96a5]" /></div><button type="submit" className={primary}>{subscribed ? "You’re subscribed" : "Subscribe"}<ArrowRight className="ml-2 h-4 w-4" /></button></div><p className="mt-3 text-xs text-white/45">No spam. Unsubscribe anytime.</p></form>
+          <form onSubmit={subscribe} className="lg:col-span-7"><div className="flex flex-col gap-3 rounded-2xl border border-white/12 bg-white/[0.06] p-3 sm:flex-row"><label htmlFor="resource-email" className="sr-only">Email address</label><div className="flex min-h-12 flex-1 items-center gap-3 rounded-xl bg-white px-4"><Mail className="h-4 w-4 text-[#6252f4]" /><input id="resource-email" required type="email" value={subscriberEmail} onChange={(event) => setSubscriberEmail(event.target.value)} disabled={subscribed || subscriptionPending} placeholder="Your email address" className="min-w-0 flex-1 bg-transparent text-sm text-[#172033] outline-none placeholder:text-[#8d96a5] disabled:cursor-not-allowed disabled:opacity-65" /></div><button type="submit" disabled={subscribed || subscriptionPending} className={`${primary} disabled:cursor-not-allowed disabled:opacity-65`}>{subscriptionPending ? "Subscribing…" : subscribed ? "You’re subscribed" : "Subscribe"}<ArrowRight className="ml-2 h-4 w-4" /></button></div><p className="mt-3 text-xs text-white/45">No spam. Unsubscribe anytime.</p>{subscriptionError ? <p role="alert" className="mt-2 text-sm font-semibold text-red-200">{subscriptionError}</p> : null}</form>
         </div>
       </section>
     </>
@@ -372,10 +425,39 @@ export function ResourcesStudioPage() {
 export function ContactStudioPage() {
   const navigate = useNavigate();
   const [brief, setBrief] = React.useState({ name:"", company:"", email:"", interest:"New website design", details:"" });
-  const submit = (event: React.FormEvent) => {
+  const [submitting, setSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState("");
+
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    try { localStorage.setItem("bt_contact_brief", JSON.stringify(brief)); } catch {}
-    navigate("/generate-preview");
+    if (submitting) return;
+    setSubmitError("");
+    setSubmitting(true);
+    try {
+      await submitPublicLead({
+        name: brief.name.trim(),
+        email: brief.email.trim(),
+        businessName: brief.company.trim(),
+        industry: brief.interest,
+        message: brief.details.trim() || `Interested in: ${brief.interest}`,
+        formName: "Contact project brief",
+        leadType: "project_brief",
+      });
+      try { localStorage.setItem("bt_contact_brief", JSON.stringify(brief)); } catch {}
+      const params = new URLSearchParams({
+        mode: "business",
+        source: "contact",
+        name: brief.name.trim(),
+        business: brief.company.trim(),
+        email: brief.email.trim(),
+      });
+      if (brief.details.trim()) params.set("problem", brief.details.trim());
+      navigate(`/generate-preview?${params.toString()}`);
+    } catch (error: any) {
+      setSubmitError(error?.message || "We could not send your project brief. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -393,13 +475,14 @@ export function ContactStudioPage() {
             <div className="flex items-center gap-3"><MessageCircle className="h-5 w-5 text-[#9f93ff]" /><h3 className="!text-white">Book a call or send a message</h3></div>
             <p className="mt-2 text-sm text-white/55">Tell us a little about your project and we’ll take it from there.</p>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <label className="text-xs font-semibold text-white/75">Your name<input value={brief.name} onChange={(e)=>setBrief({...brief,name:e.target.value})} className="bs3-input mt-2" placeholder="Your name" /></label>
-              <label className="text-xs font-semibold text-white/75">Company<input value={brief.company} onChange={(e)=>setBrief({...brief,company:e.target.value})} className="bs3-input mt-2" placeholder="Company" /></label>
-              <label className="text-xs font-semibold text-white/75 sm:col-span-2">Work email<input type="email" value={brief.email} onChange={(e)=>setBrief({...brief,email:e.target.value})} className="bs3-input mt-2" placeholder="you@company.com" /></label>
+              <label className="text-xs font-semibold text-white/75">Your name<input required value={brief.name} onChange={(e)=>setBrief({...brief,name:e.target.value})} className="bs3-input mt-2" placeholder="Your name" /></label>
+              <label className="text-xs font-semibold text-white/75">Company<input required value={brief.company} onChange={(e)=>setBrief({...brief,company:e.target.value})} className="bs3-input mt-2" placeholder="Company" /></label>
+              <label className="text-xs font-semibold text-white/75 sm:col-span-2">Work email<input required type="email" value={brief.email} onChange={(e)=>setBrief({...brief,email:e.target.value})} className="bs3-input mt-2" placeholder="you@company.com" /></label>
               <label className="text-xs font-semibold text-white/75 sm:col-span-2">I’m interested in<select value={brief.interest} onChange={(e)=>setBrief({...brief,interest:e.target.value})} className="bs3-input mt-2"><option>New website design</option><option>Website redesign</option><option>Website audit</option><option>Ongoing website support</option></select></label>
               <label className="text-xs font-semibold text-white/75 sm:col-span-2">Tell us about your project<textarea value={brief.details} onChange={(e)=>setBrief({...brief,details:e.target.value})} className="bs3-input mt-2 min-h-28 resize-y" placeholder="A few details about your goals, timeline or questions..." /></label>
             </div>
-            <button type="submit" className={`${primary} mt-5 w-full`}>Start project brief<ArrowRight className="ml-2 h-4 w-4" /></button>
+            <button type="submit" disabled={submitting} className={`${primary} mt-5 w-full disabled:cursor-not-allowed disabled:opacity-65`}>{submitting ? "Sending brief…" : "Start project brief"}<ArrowRight className="ml-2 h-4 w-4" /></button>
+            {submitError ? <p role="alert" className="mt-3 text-sm font-semibold text-red-200">{submitError}</p> : null}
           </form>
         </div>
       </section>
@@ -413,7 +496,7 @@ export function ContactStudioPage() {
 
       <section className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center">
         <div className="lg:col-span-5"><p className="brand-kicker">Book a call</p><h2 className="mt-4">Speak with Bennie directly.</h2><p className="brand-copy mt-5">A focused call to discuss the business, current site and what a better direction could look like. Bring questions; leave with clarity.</p><div className="mt-6 space-y-3">{["Discuss goals and constraints","Review useful examples","Clarify scope and next steps","No pressure, no hard sell"].map(x=><p key={x} className="flex gap-3 text-sm font-semibold text-[#526071]"><Check className="h-4 w-4 text-[#6252f4]" />{x}</p>)}</div><Link to="/book-demo" className={`${primary} mt-7`}>Book a free 30-min call<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
-        <div className="lg:col-span-7"><div className="bs3-calendar"><div className="bs3-calendar-side"><p className="text-sm font-semibold text-white/60">Bennie Studio</p><h3 className="mt-3 !text-white">30-min discovery call</h3><p className="mt-5 text-sm leading-6 text-white/58">A focused conversation about your project, goals and website direction.</p></div><div className="bs3-calendar-grid"><p className="font-semibold text-[#172033]">Select a date and time</p><div className="mt-5 grid grid-cols-7 gap-2 text-center text-xs text-[#657186]">{Array.from({length:28},(_,i)=><span key={i} className={i===14?"bs3-day bs3-day-active":"bs3-day"}>{i+1}</span>)}</div><div className="mt-5 grid grid-cols-2 gap-2">{["9:00 AM","10:30 AM","1:00 PM","4:00 PM"].map(x=><span key={x} className="bs3-time">{x}</span>)}</div></div></div></div>
+        <div className="lg:col-span-7"><div className="bs3-calendar"><div className="bs3-calendar-side"><p className="text-sm font-semibold text-white/60">Bennie Studio</p><h3 className="mt-3 !text-white">30-min discovery call</h3><p className="mt-5 text-sm leading-6 text-white/58">A focused conversation about your project, goals and website direction.</p><Link to="/book-demo" className={`${primary} mt-6 w-full`}>Open live calendar<ArrowRight className="ml-2 h-4 w-4" /></Link></div><div className="bs3-calendar-grid"><p className="font-semibold text-[#172033]">Example booking view</p><p className="mt-1 text-xs leading-5 text-[#657186]">Dates and times below are illustrative. Open the live calendar to see current availability.</p><div className="mt-5 grid grid-cols-7 gap-2 text-center text-xs text-[#657186]" aria-hidden="true">{Array.from({length:28},(_,i)=><span key={i} className={i===14?"bs3-day bs3-day-active":"bs3-day"}>{i+1}</span>)}</div><div className="mt-5 grid grid-cols-2 gap-2" aria-hidden="true">{["9:00 AM","10:30 AM","1:00 PM","4:00 PM"].map(x=><span key={x} className="bs3-time">{x}</span>)}</div></div></div></div>
       </section>
 
       <section className="bs3-soft border-y border-[#e6e8ef]"><div className="brand-shell brand-section"><SectionHeader kicker="Prefer to write?" title="Send a project brief." copy="Share your goals and useful context. The preview flow gives the conversation a concrete starting point."/><div className="mt-10 grid gap-4 md:grid-cols-3">{[[Target,"Your goals","Tell us what you want the website to achieve."],[Users,"Your business","A little about the company and target audience."],[Globe2,"Inspiration","Share any useful references or existing website links."]].map(([Icon,t,c]:any)=><IconCard key={t} icon={Icon} title={t} copy={c}/>)}</div></div></section>
