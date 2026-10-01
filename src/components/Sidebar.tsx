@@ -80,19 +80,26 @@ export function Sidebar({
   );
   const [expandedSections, setExpandedSections] = React.useState<Record<string, boolean>>({
     "Sales & Leads": true,
-    "Customers & Delivery": true,
-    "Content & CMS": true,
-    "Plans & Revenue": true,
-    "Platform & System": true,
-    "Website Builder": true,
-    "Sales & Marketing": true,
-    "Business Ops": true,
-    "Platform Hub": true,
-    "Management": true,
-    "AI Systems": true,
-    "Core Settings": true,
-    "Finance": true,
-    "Support": true,
+    "Daily Operations": true,
+    "Daily": true,
+    "Website": true,
+    "Enquiries": true,
+    "Customers & Delivery": false,
+    "Content & CMS": false,
+    "Plans & Revenue": false,
+    "Platform & System": false,
+    "Growth": false,
+    "Service": false,
+    "Account": false,
+    "Website Builder": false,
+    "Sales & Marketing": false,
+    "Business Ops": false,
+    "Platform Hub": false,
+    "Management": false,
+    "AI Systems": false,
+    "Core Settings": false,
+    "Finance": false,
+    "Support": false,
   });
 
   const toggleSection = (label: string) => {
@@ -367,7 +374,11 @@ export function Sidebar({
       <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-hide">
         <nav className="space-y-6">
           {visibleNavGroups.map((group) => {
-            const isExpanded = expandedSections[group.label];
+            const groupHasActiveRoute = group.items.some((link: any) =>
+              location.pathname === link.to ||
+              ((link.to !== "/admin" && link.to !== "/dashboard") && location.pathname.startsWith(`${link.to}/`)),
+            );
+            const isExpanded = Boolean(expandedSections[group.label] || groupHasActiveRoute);
             
             return (
               <div key={group.label} className="space-y-1">
@@ -400,7 +411,9 @@ export function Sidebar({
                         const isEnabled = !link.featureId || isFeatureEnabled(link.featureId);
                         if (link.roles && !link.roles.includes(role)) return null;
 
-                        const isActive = location.pathname === link.to;
+                        const isActive =
+                          location.pathname === link.to ||
+                          ((link.to !== "/admin" && link.to !== "/dashboard") && location.pathname.startsWith(`${link.to}/`));
 
                         return (
                           <NavLink

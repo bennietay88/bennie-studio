@@ -24,7 +24,7 @@ const footerGroups = [
     { label: "Insights", href: "/resources" },
     { label: "Website Audit", href: "/website-audit" },
     { label: "Website Directions", href: "/templates" },
-    { label: "Generate Preview", href: "/generate-preview" },
+    { label: "Free Website Preview", href: "/generate-preview" },
   ]],
   ["Company", [
     { label: "About Bennie Studio", href: "/about" },
@@ -87,16 +87,16 @@ export function PublicSiteHeader() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center gap-3 xl:flex">
           <Link to={user ? "/dashboard" : "/login"} className="px-2 py-2 text-sm font-semibold text-[#697386] transition hover:text-[#5b4bff]">
             {user ? "Dashboard" : "Client login"}
           </Link>
           <Link
             to={user ? "/dashboard" : "/generate-preview"}
-            onClick={() => !user && trackPublicEvent({ eventType: "click_generate_preview", label: "Header Start Website", target: "/generate-preview" })}
+            onClick={() => !user && trackPublicEvent({ eventType: "click_generate_preview", label: "Header Free Preview", target: "/generate-preview" })}
             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#5746e8]"
           >
-            {user ? "Open Studio" : "Start your website"} <span className="ml-2">→</span>
+            {user ? "Open Studio" : "Get my free preview"} <span className="ml-2">→</span>
           </Link>
         </div>
 
@@ -119,7 +119,7 @@ export function PublicSiteHeader() {
             </div>
             <div className="mt-auto grid gap-3 border-t border-[#e5e7ef] pt-5">
               <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#cfd4df] px-5 text-sm font-semibold text-[#0d1426]">{user ? "Dashboard" : "Client login"}</Link>
-              <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{user ? "Open Studio" : "Start your website"} →</Link>
+              <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{user ? "Open Studio" : "Get my free preview"} →</Link>
             </div>
           </div>
         </div>

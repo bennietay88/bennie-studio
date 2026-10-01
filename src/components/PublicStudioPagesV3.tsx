@@ -208,7 +208,7 @@ export function ServicesStudioPage() {
             <p className="brand-kicker">What we do</p>
             <h2 className="mt-4">More than a website. A strategic growth asset.</h2>
             <p className="brand-copy mt-6">We combine strategy, messaging, design and technology to create websites that look exceptional, build trust and turn visitors into real enquiries.</p>
-            <Link to="/generate-preview" className={`${primary} mt-7`}>Start your website<ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <Link to="/generate-preview" className={`${primary} mt-7`}>Get my free preview<ArrowRight className="ml-2 h-4 w-4" /></Link>
           </div>
           <div className="lg:col-span-7">
             <div className="bs3-image-card">
@@ -284,7 +284,7 @@ export function AboutStudioPage() {
             <p className="brand-kicker">Our mission</p>
             <h2 className="mt-4">Better websites for real businesses.</h2>
             <p className="brand-copy mt-6">Bennie Studio exists to help good businesses look as good as the work they do. Strategy, design and technology are combined into a human-guided process so the website is easier to understand, trust and act on.</p>
-            <Link to="/generate-preview" className={`${primary} mt-7`}>Start your project<ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <Link to="/generate-preview" className={`${primary} mt-7`}>Get my free preview<ArrowRight className="ml-2 h-4 w-4" /></Link>
           </div>
           <div className="lg:col-span-7"><div className="bs3-image-card"><img src="/images/studio-process-v2.png" alt="Bennie Studio website review process" /></div></div>
         </div>
@@ -590,12 +590,12 @@ export function ProcessStudioPage() {
 
 export function WorkStudioPage() {
   const work = [
-    ["/template-assets/flagship-professional.jpg","Professional services","Professional advisory website","Authority-led structure with clearer services and a stronger consultation path."],
-    ["/template-assets/flagship-clinic.jpg","Healthcare","Clinic website","Treatment clarity, practitioner trust and a cleaner appointment journey."],
-    ["/template-assets/flagship-renovation.jpg","Local business","Renovation contractor","Project proof, service areas and a more direct quotation path."],
-    ["/template-assets/flagship-education.jpg","Education","Education provider","Programme clarity, teacher trust and a focused parent enquiry journey."],
-    ["/template-assets/flagship-beauty.jpg","Lifestyle","Beauty & wellness","A service-led visual system with stronger treatment discovery and booking actions."],
-    ["/images/studio-work-v2.png","Business services","Consulting business","Sharper positioning, proof and conversion flow for a specialist offer."],
+    ["/template-assets/flagship-professional.jpg","Professional services","Professional advisory website","Authority-led structure with clearer services and a stronger consultation path.","Concept direction"],
+    ["/template-assets/flagship-clinic.jpg","Healthcare","Clinic website","Treatment clarity, practitioner trust and a cleaner appointment journey.","Concept direction"],
+    ["/template-assets/flagship-renovation.jpg","Local business","Renovation contractor","Project proof, service areas and a more direct quotation path.","Concept direction"],
+    ["/template-assets/flagship-education.jpg","Education","Education provider","Programme clarity, teacher trust and a focused parent enquiry journey.","Concept direction"],
+    ["/template-assets/flagship-beauty.jpg","Lifestyle","Beauty & wellness","A service-led visual system with stronger treatment discovery and booking actions.","Concept direction"],
+    ["/images/studio-work-v2.png","Business services","Consulting business","Sharper positioning, proof and conversion flow for a specialist offer.","Concept direction"],
   ] as const;
 
   return (
@@ -605,7 +605,7 @@ export function WorkStudioPage() {
         title="Work that helps businesses look better and"
         accent="convert better."
         copy="Website directions designed around real business goals: stronger trust, clearer messaging and a more obvious path to enquiry."
-        primaryLabel="Start a project"
+        primaryLabel="Get my free preview"
         primaryHref="/generate-preview"
         secondaryLabel="Explore the process"
         secondaryHref="/how-it-works"
@@ -614,7 +614,7 @@ export function WorkStudioPage() {
         trust={["Strategic design","Built for performance","Real business context"]}
       />
       <section className="bg-white border-y border-[#e6e8ef]"><div className="brand-shell flex flex-wrap items-center justify-between gap-5 py-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8a7dff]">Designed across service categories</p><div className="flex flex-wrap gap-x-7 gap-y-3 text-sm font-semibold text-[#778193]"><span>Professional</span><span>Healthcare</span><span>Local service</span><span>Education</span><span>Lifestyle</span><span>Consulting</span></div></div></section>
-      <section className="brand-shell brand-section"><SectionHeader kicker="Selected work" title="Websites for different businesses. Better decisions across industries." copy="The visual direction changes with the business. The objective stays the same: make the offer easier to understand, trust and act on."/><div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{work.map(([img,cat,title,copy])=><article key={title} className="bs3-card bs3-card-hover overflow-hidden"><img src={img} alt="" className="aspect-[16/10] w-full object-cover" loading="lazy"/><div className="p-5"><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6252f4]">{cat}</p><h3 className="mt-2">{title}</h3><p className="mt-3 text-sm leading-6 text-[#657186]">{copy}</p><Link to="/generate-preview" className="mt-5 inline-flex items-center text-sm font-semibold text-[#172033]">Build a direction<ArrowRight className="ml-2 h-4 w-4"/></Link></div></article>)}</div></section>
+      <section className="brand-shell brand-section"><SectionHeader kicker="Selected work" title="Websites for different businesses. Better decisions across industries." copy="The visual direction changes with the business. The objective stays the same: make the offer easier to understand, trust and act on."/><div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{work.map(([img,cat,title,copy,evidence])=><article key={title} className="bs3-card bs3-card-hover overflow-hidden"><img src={img} alt="" className="aspect-[16/10] w-full object-cover" loading="lazy"/><div className="p-5"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6252f4]">{cat}</p><span className="rounded-full bg-[#f0efff] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#6252f4]">{evidence}</span></div><h3 className="mt-2">{title}</h3><p className="mt-3 text-sm leading-6 text-[#657186]">{copy}</p><Link to="/generate-preview" className="mt-5 inline-flex items-center text-sm font-semibold text-[#172033]">Build a direction<ArrowRight className="ml-2 h-4 w-4"/></Link></div></article>)}</div></section>
       <section className="bs3-soft border-y border-[#e6e8ef]"><div className="brand-shell brand-section"><SectionHeader kicker="Before & after thinking" title="A clear difference without losing the business." copy="A redesign should keep useful identity and evidence while improving hierarchy, readability and conversion clarity."/><div className="mt-10 grid gap-5 lg:grid-cols-2"><div className="bs3-compare"><span className="bs3-compare-label">Before</span><div className="h-full bg-[#f5f5f3] p-8"><p className="text-xs text-[#8992a1]">Existing website</p><h3 className="mt-7 max-w-[13ch] !text-[#343a46]">Useful business information, but harder to scan.</h3><div className="mt-8 h-36 bg-white/80"/></div></div><div className="bs3-compare bs3-compare-after"><span className="bs3-compare-label !bg-[#6252f4]">After</span><img src="/images/studio-work-v2.png" alt="" className="h-full w-full object-cover"/></div></div></div></section>
       <section className="bs3-dark"><div className="brand-shell brand-section"><SectionHeader dark kicker="Our process" title="From strategy to a website people can use." copy="The work moves from understanding the business to design, build and a reviewed launch."/><div className="mt-10 grid gap-4 md:grid-cols-4">{[["01",Search,"Strategy","Understand goals, audience and positioning."],["02",Layout,"Design","Create the visual direction and page system."],["03",Code2,"Build","Develop a responsive implementation."],["04",BarChart3,"Grow","Launch, measure and improve over time."]].map(([n,Icon,t,c]:any)=><article key={n} className="bs3-card-dark p-5"><span className="text-xs font-bold text-[#9f93ff]">{n}</span><Icon className="mt-5 h-5 w-5 text-[#9f93ff]"/><h3 className="mt-4 !text-white">{t}</h3><p className="mt-2 text-sm text-white/55">{c}</p></article>)}</div></div></section>
     </>

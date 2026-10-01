@@ -956,7 +956,7 @@ function PricingPage() {
         title="Professional websites for growing service businesses."
         copy="Choose the level of website management and growth support that fits where your business is now. The current setup fee, monthly service and commitment are shown before checkout."
         icon={Sparkles}
-        primaryLabel="Generate my preview"
+        primaryLabel="Get my free website preview"
         primaryHref="/generate-preview"
         secondaryLabel="See how it works"
         secondaryHref="/how-it-works"
@@ -2999,7 +2999,7 @@ function GeneratePreviewPage() {
             </div>
 
             {!salesMode ? (
-              <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-7 sm:flex-row sm:items-center sm:justify-between">
+              <div className="sticky bottom-4 z-20 mt-8 flex flex-col gap-4 rounded-2xl border border-white/10 bg-[#08101f]/95 p-4 shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-semibold text-white">Want this direction turned into your managed website?</p>
                   <p className="mt-1 text-sm leading-6 text-slate-300">Your preview details carry into the next step, so you do not start from zero again.</p>
@@ -3104,7 +3104,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
     }));
     trackPublicEvent({
       eventType: "audit_preview_clicked",
-      label: "See My Website Preview",
+      label: "Get my free website preview",
       target: "/generate-preview",
         metadata: { recommendedProduct, findingCount: report.findings.length },
     });
@@ -3221,7 +3221,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
             <p className="mt-1 text-sm font-bold text-slate-600">Choose your billing currency during checkout.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Link to="/generate-preview" onClick={savePreviewContext} className={primaryCtaClass}>See My Website Preview</Link>
+            <Link to="/generate-preview" onClick={savePreviewContext} className={primaryCtaClass}>Get my free website preview</Link>
             <Link to="/pricing#plans" onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: recommendedProduct, target: "/pricing", metadata: { recommendedProduct } })} className={secondaryCtaClass}>View Pricing</Link>
           </div>
         </div>
@@ -3320,13 +3320,13 @@ function WebsiteAuditPage() {
   return (
     <>
       <Hero
-        title="Get a practical website growth review"
-        copy="See what we found, why it matters, what should improve, and what a clearer website and enquiry journey could look like—without arbitrary scores or invented performance claims."
+        title="See what is holding your website back"
+        copy="Get a practical, evidence-based review of your website clarity, trust, mobile experience and enquiry path—plus a clearer direction for what to improve next."
         icon={FileSearch}
       />
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-xl border border-slate-200 bg-white p-7 shadow-sm">
-          <h2 className="text-3xl font-bold text-slate-950">What the audit checks</h2>
+          <h2 className="text-3xl font-bold text-slate-950">What we review</h2>
           <div className="mt-6 grid gap-3">
             {[
               ["Design clarity", "Does the page quickly explain what you offer?"],
@@ -3346,7 +3346,7 @@ function WebsiteAuditPage() {
             ))}
           </div>
           <div className="mt-8 rounded-xl bg-indigo-50 p-6">
-            <h3 className="text-2xl font-bold text-slate-950">What you’ll receive</h3>
+            <h3 className="text-2xl font-bold text-slate-950">Your review includes</h3>
             <div className="mt-5 grid gap-3">
               {[
                 "Homepage clarity review",
@@ -3366,9 +3366,9 @@ function WebsiteAuditPage() {
         </div>
         <form onSubmit={submitAudit} className="rounded-xl border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-200">Free audit request</p>
-          <h2 className="mt-4 text-3xl font-bold text-white">Send your website for review</h2>
+          <h2 className="mt-4 text-3xl font-bold text-white">Start with your website</h2>
           <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
-            No payment required. Start with your website, business name, and email. Industry, phone, and notes are optional.
+            No payment required. Share your website, business name and email. We will review the page evidence first; industry, phone and notes are optional.
           </p>
           {submitted ? (
             <div className="mt-8 rounded-3xl bg-emerald-500/10 p-6 text-emerald-100">
@@ -3399,7 +3399,7 @@ function WebsiteAuditPage() {
                   }}
                   className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/25 bg-white/10 px-6 py-3 text-sm font-bold text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
                 >
-                  See My Website Preview
+                  Get my free website preview
                 </Link>
               </div>}
             </div>
@@ -3586,7 +3586,7 @@ function PublicInfoPage({ kind }: { kind: "about" | "services" | "resources" | "
       eyebrow: "CONTACT BENNIE STUDIO",
       title: "Tell us what the website needs to help your business do.",
       body: "Start with a free website preview or book a short scope conversation. No card is required to see the initial direction.",
-      action: "Build my free preview",
+      action: "Get my free website preview",
       href: "/generate-preview",
     },
   }[kind];
