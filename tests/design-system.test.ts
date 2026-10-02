@@ -956,7 +956,7 @@ test("prospect preview chrome keeps the website visually primary and comparison-
   assert.doesNotMatch(sourceContactBlock, /<Textarea\b/);
 
   assert.match(generator, /text-sm leading-6 text-slate-300">\{copy\}/);
-  assert.match(generator, /text-sm leading-6 text-slate-300">Your preview details carry into the next step/);
+  assert.match(generator, /text-sm leading-6 text-slate-300">Your brief and website direction carry into the next step/);
 });
 
 
