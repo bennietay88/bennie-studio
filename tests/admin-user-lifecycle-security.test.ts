@@ -38,3 +38,17 @@ test("terminated users expose permanent deletion while suspended users can be re
   assert.match(admin, /Restore Access/);
   assert.match(admin, /\/api\/admin\/users\/\$\{encodeURIComponent\(userId\)\}\/status/);
 });
+
+
+test("admin lifecycle JSON bodies are parsed before privileged routes without consuming Stripe webhook bytes", () => {
+  const parserRegistration = api.indexOf("const jsonBodyParser = express.json");
+  const parserUse = api.indexOf("return jsonBodyParser(req, res, next)");
+  const adminStatusRoute = api.indexOf('"/api/admin/users/:userId/status"');
+  const webhookRoute = api.indexOf('"/api/webhook"');
+
+  assert.ok(parserRegistration >= 0, "expected reusable JSON body parser");
+  assert.ok(parserUse >= 0 && parserUse < adminStatusRoute, "JSON parser must run before admin user routes");
+  assert.ok(webhookRoute >= 0, "Stripe webhook route must remain registered");
+  assert.match(api, /if \(req\.path === "\/api\/webhook"\) return next\(\);/);
+  assert.match(api, /express\.raw\(\{ type: "application\/json" \}\)/);
+});
