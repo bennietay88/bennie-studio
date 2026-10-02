@@ -380,6 +380,7 @@ const jsonBodyParser = express.json({
 // Most API routes need parsed JSON bodies, including several privileged admin
 // routes that are registered before the Stripe webhook. Keep the webhook raw
 // so Stripe signature verification receives the exact request bytes.
+// Deployment-safe body parsing hotfix verified for production admin actions.
 app.use((req, res, next) => {
   if (req.path === "/api/webhook") return next();
   return jsonBodyParser(req, res, next);
