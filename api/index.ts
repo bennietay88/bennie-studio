@@ -370,6 +370,21 @@ function hashApiKey(apiKey: string) {
 
 const app = express();
 
+const jsonBodyParser = express.json({
+  limit: "1mb",
+  verify: (req: any, _res, buffer) => {
+    req.rawBody = buffer;
+  },
+});
+
+// Most API routes need parsed JSON bodies, including several privileged admin
+// routes that are registered before the Stripe webhook. Keep the webhook raw
+// so Stripe signature verification receives the exact request bytes.
+app.use((req, res, next) => {
+  if (req.path === "/api/webhook") return next();
+  return jsonBodyParser(req, res, next);
+});
+
 const normalizeCommercialMarket = (value: unknown) => {
   const market = String(value || "").toUpperCase();
   if (market === "MY") return "MY";
@@ -3321,12 +3336,6 @@ async function startServer() {
     methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Authorization", "Content-Type", "Idempotency-Key", "X-Request-ID", "X-API-Key"],
     maxAge: 600,
-  }));
-  app.use(express.json({
-    limit: "1mb",
-    verify: (req: any, _res, buffer) => {
-      req.rawBody = buffer;
-    },
   }));
 
   const publicAppUrl = () => String(process.env.APP_PUBLIC_URL || process.env.PUBLIC_APP_URL || "https://app.bennietay.com").replace(/\/+$/, "");
