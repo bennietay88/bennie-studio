@@ -5537,6 +5537,10 @@ export function WebsiteRenderer({
                   className="relative isolate overflow-hidden"
                   data-section-background="full"
                   style={{
+                    backgroundColor:
+                      section.settings?.backgroundColor ||
+                      section.settings?.bgColor ||
+                      undefined,
                     backgroundImage: `url(${section.settings?.backgroundImage})`,
                     backgroundSize: "cover",
                     backgroundPosition: section.settings?.backgroundPosition || "center",
