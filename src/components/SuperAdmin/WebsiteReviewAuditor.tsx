@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { normalizeWebsiteAuditResult } from "../../lib/websiteAudit";
 
-export function NeuralAuditor() {
+export function WebsiteReviewAuditor() {
   const navigate = useNavigate();
   const [url, setUrl] = useState("");
   const [auditing, setAuditing] = useState(false);

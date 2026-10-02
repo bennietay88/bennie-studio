@@ -151,7 +151,7 @@ export function Sidebar({
             { to: "/admin/daily_operations", icon: CalendarIcon, label: "Daily Operations" },
             { to: "/admin/inbound_leads", icon: Inbox, label: "Lead Inbox" },
             { to: "/admin/prospect_explorer", icon: Users, label: "Prospects", moduleId: "prospects" },
-            { to: "/admin/neural_auditor", icon: Globe, label: "Website Reviews", moduleId: "website_reviews" },
+            { to: "/admin/website_reviews", icon: Globe, label: "Website Reviews", moduleId: "website_reviews" },
             { to: "/admin/outreach_lab", icon: MessageSquare, label: "Outreach", moduleId: "outreach" },
             { to: "/admin/proposals_deals", icon: FileText, label: "Sales Pipeline", moduleId: "sales_pipeline" },
           ]
@@ -216,7 +216,7 @@ export function Sidebar({
           items: [
             { to: "/admin/sales_home", icon: Rocket, label: "Sales Home", permission: "sales" },
             { to: "/admin/prospect_explorer", icon: Users, label: "Prospecting", permission: "prospects" },
-            { to: "/admin/neural_auditor", icon: Globe, label: "Website Audits", permission: "prospects" },
+            { to: "/admin/website_reviews", icon: Globe, label: "Website Audits", permission: "prospects" },
             { to: "/admin/outreach_lab", icon: MessageSquare, label: "Outreach Hub", permission: "prospects" },
             { to: "/admin/proposals_deals", icon: FileText, label: "Sales Pipeline", permission: "sales" },
           ],

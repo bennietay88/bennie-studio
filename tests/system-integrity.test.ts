@@ -72,6 +72,20 @@ test("obsolete Vercel project hostname is not a runtime default", () => {
   assert.match(tenantDomains, /normalized\.endsWith\("\.vercel\.app"\)/);
 });
 
+test("website review admin uses the canonical non-legacy route and component", () => {
+  const sidebar = readFileSync("src/components/Sidebar.tsx", "utf8");
+  const dashboard = readFileSync("src/components/SuperAdminDashboard.tsx", "utf8");
+  const permissions = readFileSync("src/constants/staffPermissions.ts", "utf8");
+  assert.match(sidebar, /\/admin\/website_reviews/);
+  assert.doesNotMatch(sidebar, /\/admin\/neural_auditor/);
+  assert.match(dashboard, /WebsiteReviewAuditor/);
+  assert.match(dashboard, /last === "website_reviews"/);
+  assert.match(dashboard, /last === "neural_auditor"\) return "website_reviews"/);
+  assert.match(permissions, /website_reviews: "prospects"/);
+  assert.equal(existsSync("src/components/SuperAdmin/NeuralAuditor.tsx"), false);
+  assert.equal(existsSync("src/components/SuperAdmin/WebsiteReviewAuditor.tsx"), true);
+});
+
 test("full-section background replacement keeps color fallback and image controls", () => {
   assert.match(renderer, /data-section-background="full"/);
   assert.match(renderer, /backgroundColor:[\s\S]*section\.settings\?\.backgroundColor[\s\S]*section\.settings\?\.bgColor/);

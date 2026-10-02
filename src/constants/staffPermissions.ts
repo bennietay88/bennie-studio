@@ -26,7 +26,8 @@ export const ADMIN_TAB_PERMISSIONS: Record<string, StaffPermissionId> = {
   inbound_leads: "sales",
   sales_home: "sales",
   prospect_explorer: "prospects",
-  neural_auditor: "prospects",
+  website_reviews: "prospects",
+  neural_auditor: "prospects", // legacy route alias
   outreach_lab: "prospects",
   sales_automation: "sales",
   proposals_deals: "sales",

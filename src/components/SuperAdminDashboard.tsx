@@ -133,7 +133,7 @@ import { RevenueCommand } from "./SuperAdmin/RevenueCommand";
 import { FinanceDashboard } from "./SuperAdmin/FinanceDashboard";
 import { SalesHome } from "./SuperAdmin/SalesHome";
 import { ProspectExplorer } from "./SuperAdmin/ProspectExplorer";
-import { NeuralAuditor } from "./SuperAdmin/NeuralAuditor";
+import { WebsiteReviewAuditor } from "./SuperAdmin/WebsiteReviewAuditor";
 import { OutreachLab } from "./SuperAdmin/OutreachLab";
 import { ProposalsDeals } from "./SuperAdmin/ProposalsDeals";
 import { ClientOnboarding } from "./SuperAdmin/ClientOnboarding";
@@ -156,7 +156,7 @@ import { MarketingPlanEntitlements } from "./SuperAdmin/MarketingPlanEntitlement
 import { AdminFunnels } from "./SuperAdmin/AdminFunnels";
 
 const CUSTOMER_DASHBOARD_FEATURES = [
-  { id: "ai_synthesis", label: "Website Generator" },
+  { id: "ai_synthesis", label: "Website Build & Refresh" },
   { id: "advanced_seo", label: "Domain & SEO" },
   { id: "local_seo_geo", label: "Local SEO" },
   { id: "lead_crm", label: "Leads & CRM" },
@@ -227,7 +227,8 @@ export default function SuperAdminDashboard() {
     if (last === "finance") return "finance";
     if (last === "geo_pricing") return "plans";
     if (last === "prospect_explorer") return "prospect_explorer";
-    if (last === "neural_auditor") return "neural_auditor";
+    if (last === "website_reviews") return "website_reviews";
+    if (last === "neural_auditor") return "website_reviews"; // legacy bookmark compatibility
     if (last === "outreach_lab") return "outreach_lab";
     if (last === "mass_campaigns") return "sales_home";
     if (last === "webinar_engine") return "sales_home";
@@ -1467,7 +1468,7 @@ export default function SuperAdminDashboard() {
 
       {activeTab === "inbound_leads" && <AdminLeadInbox />}
       {activeTab === "prospect_explorer" && <ProspectExplorer />}
-      {activeTab === "neural_auditor" && <NeuralAuditor />}
+      {activeTab === "website_reviews" && <WebsiteReviewAuditor />}
       {activeTab === "outreach_lab" && <OutreachLab />}
       {activeTab === "proposals_deals" && <ProposalsDeals />}
       {activeTab === "projects" && <Projects />}

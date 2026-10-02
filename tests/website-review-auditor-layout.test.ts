@@ -2,9 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const source = readFileSync("src/components/SuperAdmin/NeuralAuditor.tsx", "utf8");
+const source = readFileSync("src/components/SuperAdmin/WebsiteReviewAuditor.tsx", "utf8");
 
-test("neural auditor remains inside the admin viewport", () => {
+test("website review auditor remains inside the admin viewport", () => {
   assert.match(source, /w-full min-w-0 max-w-full overflow-x-hidden/);
   assert.match(source, /xl:grid-cols-\[minmax\(0,1\.75fr\)_minmax\(300px,0\.9fr\)\]/);
   assert.match(source, /max-w-xl min-w-0 flex-col gap-3 sm:flex-row/);
