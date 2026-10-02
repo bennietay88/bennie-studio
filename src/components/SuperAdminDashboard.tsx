@@ -725,8 +725,10 @@ export default function SuperAdminDashboard() {
       );
       toast.success(
         payload?.businessDeactivated === false && payload?.associatedBusinessId
-          ? "User terminated; business deactivation needs attention"
-          : "User terminated and business disassociated",
+          ? "User terminated; linked business deactivation needs attention"
+          : payload?.associatedBusinessId
+            ? "User terminated and linked business deactivated"
+            : "User terminated",
       );
       setIsTerminateDialogOpen(false);
       setTerminatingUser(null);
@@ -744,7 +746,7 @@ export default function SuperAdminDashboard() {
     const user = users.find((u) => u.id === userId);
     const requiredText = user?.email || userId;
     const confirmation = window.prompt(
-      `This permanently deletes the terminated user's Supabase Auth login and profile. Eligible inactive businesses are preserved and detached. Type ${requiredText} to continue.`,
+      `This permanently deletes the terminated user's Supabase Auth login and profile. Businesses are preserved and detached. Internal trial/test business states without live Stripe billing are deactivated automatically; live billing must be cancelled first. Type ${requiredText} to continue.`,
     );
     if (confirmation !== requiredText) {
       toast.info("User deletion cancelled");
@@ -752,7 +754,7 @@ export default function SuperAdminDashboard() {
     }
 
     try {
-      await adminUserRequest(
+      const payload = await adminUserRequest(
         `/api/admin/users/${encodeURIComponent(userId)}`,
         {
           method: "DELETE",
@@ -761,7 +763,14 @@ export default function SuperAdminDashboard() {
       );
       setUsers((prev) => prev.filter((u) => u.id !== userId));
       setSelectedUsers((prev) => prev.filter((id) => id !== userId));
-      toast.success("User permanently deleted");
+      const reconciledBusinessCount = Array.isArray(payload?.reconciledInternalBusinessIds)
+        ? payload.reconciledInternalBusinessIds.length
+        : 0;
+      toast.success(
+        reconciledBusinessCount
+          ? `User permanently deleted; ${reconciledBusinessCount} internal business record(s) deactivated`
+          : "User permanently deleted",
+      );
     } catch (err: any) {
       console.error("Delete failed:", err);
       toast.error(err.message || "Failed to permanently delete user");
@@ -2998,8 +3007,8 @@ export default function SuperAdminDashboard() {
                     User will immediately lose all access to the platform.
                   </li>
                   <li>Account status will be marked as "Terminated".</li>
-                  <li>Associated business ownership remains but is locked.</li>
-                  <li>You can manually delete the record after termination.</li>
+                  <li>Linked business access is removed and the business is deactivated.</li>
+                  <li>Business ownership is retained until permanent user deletion or reassignment.</li>
                 </ul>
               </div>
             </div>
