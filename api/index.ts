@@ -5046,6 +5046,7 @@ async function startServer() {
           // request so public website reviews never remain queued forever.
           if (!dispatch.published) {
             const outcome = await processQueuedJob(job.id);
+            const outcomeError = "error" in outcome ? outcome.error : null;
             const refreshedJob = await getAsyncJob(supabaseAdmin, job.id);
             status = refreshedJob?.status || outcome.job?.status || job.status;
             report =
@@ -5054,7 +5055,7 @@ async function startServer() {
                 : null;
             jobError =
               status === "failed"
-                ? refreshedJob?.last_error || outcome.error || "Website audit failed."
+                ? refreshedJob?.last_error || outcomeError || "Website audit failed."
                 : null;
           }
 
