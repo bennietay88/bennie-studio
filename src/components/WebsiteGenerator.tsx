@@ -305,7 +305,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
             email: data.email,
             status: "active",
             plan: data.planId,
-            subscription_status: "pending",
+            subscription_status: "incomplete",
           }])
           .select()
           .single();
@@ -518,7 +518,12 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
       }
     } catch (err: any) {
       console.error("Website generation failed:", err);
-      toast.error("Generation failed: " + (err.message || "Unknown error"));
+      const rawMessage = String(err?.message || "");
+      const friendlyMessage =
+        /businesses_subscription_status_check|violates check constraint/i.test(rawMessage)
+          ? "We couldn't initialize the account billing state. Please retry."
+          : rawMessage || "Unknown error";
+      toast.error("Generation failed: " + friendlyMessage);
     } finally {
       setIsGenerating(false);
     }
