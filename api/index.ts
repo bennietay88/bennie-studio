@@ -1952,11 +1952,11 @@ async function startServer() {
         ] = await Promise.all([
           supabaseAdmin
             .from("user_subscriptions")
-            .select("status,renewal_state")
+            .select("status,renewal_state,stripe_subscription_id")
             .eq("user_id", userId),
           supabaseAdmin
             .from("businesses")
-            .select("id,name,status,subscription_status")
+            .select("id,name,status,subscription_status,stripe_subscription_id")
             .eq("owner_id", userId),
           supabaseAdmin
             .from("api_keys")
@@ -1967,33 +1967,54 @@ async function startServer() {
         if (businessError) throw businessError;
         if (apiKeyError) throw apiKeyError;
 
+        // Permanent deletion must never orphan a live external subscription. Internal
+        // trial/test states without a Stripe subscription are safe to clean up after
+        // the terminated auth user is removed.
         const protectedSubscription = (subscriptions || []).find(
-          (subscription: any) => !subscriptionAllowsPermanentDeletion(subscription.status),
+          (subscription: any) =>
+            !subscriptionAllowsPermanentDeletion(subscription.status)
+            && Boolean(String(subscription.stripe_subscription_id || "").trim()),
         );
         if (protectedSubscription) {
           return res.status(409).json({
-            error: "This user still has an active or protected subscription. End it before permanent deletion.",
+            error: "This user still has live Stripe billing. Cancel the managed service before permanent deletion.",
             subscriptionStatus: protectedSubscription.status || null,
             renewalState: protectedSubscription.renewal_state || null,
+            requiresBillingCancellation: true,
           });
         }
 
-        const protectedBusiness = (ownedBusinesses || []).find((business: any) => {
+        const isProtectedBusinessState = (business: any) => {
           const businessStatus = String(business.status || "").toLowerCase();
           return (
             ["active", "trial", "trialing"].includes(businessStatus)
             || !subscriptionAllowsPermanentDeletion(business.subscription_status)
           );
-        });
+        };
+
+        const protectedBusiness = (ownedBusinesses || []).find(
+          (business: any) =>
+            isProtectedBusinessState(business)
+            && Boolean(String(business.stripe_subscription_id || "").trim()),
+        );
         if (protectedBusiness) {
           return res.status(409).json({
-            error: "This user still owns an active or protected business. Deactivate/cancel or transfer that business before deleting the user.",
+            error: "This user still owns a business with live Stripe billing. Cancel or transfer that subscription before deleting the user.",
             businessId: protectedBusiness.id,
             businessName: protectedBusiness.name || null,
             businessStatus: protectedBusiness.status || null,
             subscriptionStatus: protectedBusiness.subscription_status || null,
+            requiresBillingCancellation: true,
           });
         }
+
+        const internalProtectedBusinessIds = (ownedBusinesses || [])
+          .filter(
+            (business: any) =>
+              isProtectedBusinessState(business)
+              && !Boolean(String(business.stripe_subscription_id || "").trim()),
+          )
+          .map((business: any) => business.id);
 
         const ownedBusinessIds = (ownedBusinesses || []).map((business: any) => business.id);
         const apiKeyIds = (apiKeys || []).map((key: any) => key.id);
@@ -2030,6 +2051,21 @@ async function startServer() {
           throw authDeleteError;
         }
 
+        // A terminated test/trial user can leave an internally protected business
+        // state behind even though there is no external subscription to cancel.
+        // Reconcile those records only after auth deletion succeeds.
+        if (internalProtectedBusinessIds.length) {
+          const { error: reconcileBusinessError } = await supabaseAdmin
+            .from("businesses")
+            .update({ status: "inactive", subscription_status: "canceled" })
+            .in("id", internalProtectedBusinessIds);
+          if (reconcileBusinessError) {
+            console.warn(
+              `[Admin User Deletion] User deleted but internal business reconciliation failed: ${reconcileBusinessError.message}`,
+            );
+          }
+        }
+
         await writeAdminUserAudit(
           req,
           "user.deleted",
@@ -2039,6 +2075,7 @@ async function startServer() {
             previousStatus: targetUser.status || null,
             detachedBusinessIds: ownedBusinessIds,
             detachedApiKeyIds: apiKeyIds,
+            reconciledInternalBusinessIds: internalProtectedBusinessIds,
             authUserDeleted: true,
           },
         );
@@ -2047,6 +2084,7 @@ async function startServer() {
           success: true,
           deletedUserId: userId,
           detachedBusinessIds: ownedBusinessIds,
+          reconciledInternalBusinessIds: internalProtectedBusinessIds,
         });
       } catch (error: any) {
         console.error("[Admin User Deletion] Failed:", error);
