@@ -140,8 +140,6 @@ const PublicFunnelPage = lazy(() =>
 );
 const MonthlyUpdateRequests = lazy(() => import("./components/MonthlyUpdateRequests"));
 const TeamManagement = lazy(() => import("./components/TeamManagement"));
-const PlanEditor = lazy(() => import("./components/PlanEditor"));
-const LandingPageEditor = lazy(() => import("./components/LandingPageEditor"));
 const AffiliateDashboard = lazy(() =>
   import("./components/AffiliateDashboard").then((m) => ({
     default: m.AffiliateDashboard,
@@ -255,14 +253,12 @@ function RouteRobotsMeta() {
     /^\/(admin|dashboard|checkout|login|signup|forgot-password|reset-password|profile)(\/|$)/.test(pathname) ||
     /^\/(manage-call|proposal|preview\/(?:template|prospect)|w)(\/|$)/.test(pathname) ||
     /^\/affiliate\/(login|signup)(\/|$)/.test(pathname);
-  // WordPress owns the canonical SEO surface. Keep the app and Vercel
-  // previews usable for conversions without allowing them to compete in search.
   const host = window.location.hostname.toLowerCase();
-  const appHost = host === "app.bennietay.com" || host.endsWith(".vercel.app");
-  const robots = appHost
-    ? "noindex,follow"
-    : privateRoute
-      ? "noindex,nofollow"
+  const isVercelPreview = host.endsWith(".vercel.app");
+  const robots = privateRoute
+    ? "noindex,nofollow"
+    : isVercelPreview
+      ? "noindex,follow"
       : "index,follow";
   return <Helmet><meta name="robots" content={robots} /></Helmet>;
 }
@@ -483,7 +479,6 @@ export default function App() {
               <Route path="/case-studies" element={<PublicMarketingPages />} />
               <Route path="/dental-clinics" element={<PublicMarketingPages />} />
               <Route path="/examples" element={<Navigate to="/case-studies" replace />} />
-              <Route path="/examples." element={<Navigate to="/case-studies" replace />} />
               <Route path="/website-audit" element={<PublicMarketingPages />} />
               <Route path="/generate-preview" element={<PublicMarketingPages />} />
               <Route path="/preview-order" element={<PublicMarketingPages />} />

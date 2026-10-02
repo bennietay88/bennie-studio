@@ -741,7 +741,7 @@ export function WebsiteRenderer({
               updatedAt: Date.now(),
             }));
           } else {
-            setError("The requested blueprint was not found in our neural archives.");
+            setError("The requested blueprint was not found in the template library.");
           }
         } catch (err: any) {
           console.error("Failed to fetch template preview:", err);

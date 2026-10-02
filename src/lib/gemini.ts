@@ -15,8 +15,8 @@ export const USE_CASE_LABELS: Record<string, string> = {
   seo: "SEO Optimization",
   chat: "Support Chat",
   ad_copy: "Ad Copywriter",
-  rewrite_section: "Neural Section Rewriter",
-  blog: "Neural Blog Writer",
+  rewrite_section: "Section Rewriter",
+  blog: "Blog Writer",
   image: "Visual Generation",
   marketing: "Strategy & Marketing"
 };

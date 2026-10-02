@@ -297,7 +297,7 @@ export function MarketingHub() {
             <div className="flex justify-between items-start">
               <div>
                 <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-                  <Megaphone className="h-7 w-7" /> AI Ad Generator
+                  <Megaphone className="h-7 w-7" /> Ad Copy Builder
                 </DialogTitle>
                 <DialogDescription className="text-red-100/80 font-medium">
                   Draft search and social campaign copy from your current business context.
@@ -397,7 +397,7 @@ export function MarketingHub() {
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-xl font-bold">
-                    Multi-Channel Ad Generator
+                    Multi-Channel Ad Copy
                   </h3>
                   <p className="text-slate-500 max-w-sm">
                     We'll create tailored ad copy for Facebook, Instagram, and

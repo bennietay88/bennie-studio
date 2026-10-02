@@ -56,7 +56,7 @@ test("public brand uses product-led positioning guardrails", async () => {
 
   assert.match(homepage, /managed website system/i);
   assert.match(homepage, /Managed, not handed off/i);
-  assert.match(homepage, /<button type="button" onClick=\{\(\) => go\("\/generate-preview"/);
+  assert.match(homepage, /<button type="button" onClick=\{\(\) => go\("\/website-audit"/);
   assert.doesNotMatch(chrome, /Website Design Orchard|Website Design Petaling Jaya|Website Design London/);
   assert.doesNotMatch(pricing, /hidden overflow-x-auto md:block/);
   assert.match(pricing, /<Button type="button" onClick=\{\(\) => handleSelect\(product\)\}/);
@@ -445,6 +445,7 @@ test("public-site credibility marquee is available to generated customer sites",
   ]);
 
   assert.match(homepage, /Managed website system/);
+  assert.match(homepage, /bennie-studio-hero-work\.webp/);
   assert.equal(SECTION_TEMPLATES.logo_marquee.type, "proof");
   assert.equal(SECTION_TEMPLATES.logo_marquee.settings?.variant, "logo_marquee");
   assert.match(renderer, /proofVariant === "logo_marquee"/);

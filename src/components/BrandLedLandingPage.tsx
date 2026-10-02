@@ -371,7 +371,7 @@ export default function BrandLedLandingPage() {
         <meta property="og:title" content="Bennie Studio | Managed Website System" />
         <meta property="og:description" content="Strategy, design, lead capture, hosting and ongoing improvement in one managed website service." />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://app.bennietay.com/images/bennie-studio-hero.webp" />
+        <meta property="og:image" content="https://app.bennietay.com/images/bennie-studio-hero-work.webp" />
         <meta name="twitter:card" content="summary_large_image" />
         {analyticsAllowed && platformSettings?.gaMeasurementId ? <script async src={`https://www.googletagmanager.com/gtag/js?id=${platformSettings.gaMeasurementId}`} /> : null}
         {analyticsAllowed && platformSettings?.gaMeasurementId ? (
@@ -430,12 +430,12 @@ export default function BrandLedLandingPage() {
               <div className="pointer-events-none absolute -inset-10 bg-[#5746e8]/10 blur-3xl" />
               <div className="relative overflow-hidden rounded-[1.15rem] border border-white/10 bg-[#080b15] shadow-[0_55px_140px_-55px_rgba(0,0,0,.95)]">
                 <img
-                  src="/images/bennie-studio-hero.webp"
-                  alt="Premium Bennie Studio website direction shown on desktop and mobile"
+                  src="/images/bennie-studio-hero-work.webp"
+                  alt="Bennie Studio concept website directions shown across desktop and mobile layouts"
                   width="1600"
-                  height="900"
+                  height="720"
                   sizes="(min-width: 1024px) 58vw, 100vw"
-                  className="aspect-[16/9] w-full object-cover"
+                  className="aspect-[20/9] w-full object-cover"
                   loading="eager"
                   decoding="async"
                   fetchPriority="high"
@@ -443,8 +443,8 @@ export default function BrandLedLandingPage() {
                 <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#0b1020]/55 to-transparent sm:w-32" />
               </div>
               <div className="relative mx-4 -mt-px flex flex-wrap items-center justify-between gap-2 border-x border-b border-white/10 bg-[#101827]/95 px-4 py-3 backdrop-blur sm:mx-8">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Tailored website direction</span>
-                <span className="text-[10px] font-semibold !text-white/60">Desktop + mobile · structure adapts to the business</span>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Illustrative concept directions</span>
+                <span className="text-[10px] font-semibold !text-white/60">Design studies · not client performance claims</span>
               </div>
             </motion.div>
           </div>

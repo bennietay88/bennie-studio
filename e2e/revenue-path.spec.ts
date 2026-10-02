@@ -358,7 +358,7 @@ test("connects the website growth review to a prefilled preview", async ({ page 
   await page.getByPlaceholder("Website URL").fill("https://example.test");
   await page.getByPlaceholder("Business name").fill("Example Studio");
   await page.getByPlaceholder("Email").fill("owner@example.test");
-  await page.getByRole("button", { name: /Start My Website Growth Review/i }).click();
+  await page.getByRole("button", { name: /Review my website/i }).click();
 
   await expect(page.getByRole("heading", { name: report.summary })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("What we found", { exact: true }).first()).toBeVisible();
@@ -504,7 +504,7 @@ test("preview order carries the captured lead into payment without signup", asyn
   });
 
   await page.goto("/preview-order");
-  await expect(page.getByRole("heading", { name: /Turn the Example Studio preview into the real site/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Turn the Example Studio direction into the real site/i })).toBeVisible();
   await expect(page.getByText(/No signup before payment/i)).toBeVisible();
   await expect(page.getByText(/(?:90-day|3-month) initial commitment/i).first()).toBeVisible();
   await expect(page.getByRole("button", { name: /Continue to secure checkout/i })).toBeVisible();

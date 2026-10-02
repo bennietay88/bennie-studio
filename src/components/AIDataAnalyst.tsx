@@ -109,10 +109,10 @@ export function AIDataAnalyst({
             </div>
             <div>
               <CardTitle className="text-lg font-bold">
-                Neural Growth Analyst
+                Growth Analyst
               </CardTitle>
               <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">
-                Real-time Strategic Intelligence
+                Real-time Business Intelligence
               </p>
             </div>
           </div>

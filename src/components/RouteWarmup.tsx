@@ -1,9 +1,8 @@
 import { useEffect } from "react";
 
 const publicImports = [
-  () => import("./LandingPage"),
+  () => import("./BrandLedLandingPage"),
   () => import("./OwnSalesSeoPage"),
-  () => import("./PortfolioPage"),
   () => import("./PublicMarketingPages"),
   () => import("./PublicBlogPostPage"),
   () => import("./BookDemo"),

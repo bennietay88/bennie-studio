@@ -54,7 +54,7 @@ export class ErrorBoundary extends Component<Props, State> {
         const errLower = this.state.error?.message?.toLowerCase() || "";
         if (errLower.includes("quota exceeded")) {
           errorMessage = "Daily Processing Limit Reached";
-          errorSubMessage = "Our neural servers have processed their maximum daily volume of syntheses. Limits reset at midnight PST. Please try again tomorrow or upgrade your plan.";
+          errorSubMessage = "Our AI processing service has reached its current daily limit. Please try again later or review your plan limits.";
         } else {
           const parsedError = JSON.parse(this.state.error?.message || "");
           if (parsedError.error) {

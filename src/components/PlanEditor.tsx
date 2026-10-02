@@ -41,7 +41,7 @@ const PlanEditor = () => {
     {
       name: "Core Infrastructure",
       features: [
-        { id: "ai_synthesis", label: "AI Website Generator" },
+        { id: "ai_synthesis", label: "Website Creation" },
         { id: "custom_domain", label: "Custom Domain Connection" },
         { id: "lead_crm", label: "Lead Capture & CRM" },
         { id: "analytics", label: "Performance Analytics" },
@@ -660,7 +660,7 @@ const PlanEditor = () => {
                 />
               </div>
               <p className="text-[10px] text-slate-400">
-                These limits are used by the generator, page manager, Local SEO dashboard, and upgrade prompts.
+                These limits are used by the website builder, page manager, Local SEO dashboard, and upgrade prompts.
               </p>
               <div className="space-y-1.5 pt-4">
                 <div className="flex items-center justify-between">

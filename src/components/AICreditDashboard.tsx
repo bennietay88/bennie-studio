@@ -158,7 +158,7 @@ export const AICreditDashboard: React.FC = () => {
                     <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 font-black text-[10px]">5 CREDITS</Badge>
                   </div>
                   <h4 className="text-sm font-black uppercase tracking-tight text-slate-900">Premium AI</h4>
-                  <p className="text-[11px] text-indigo-700 font-medium mt-1">GPT-4o • Agency-grade rewrite, complex strategy, and neural conversion hooks.</p>
+                  <p className="text-[11px] text-indigo-700 font-medium mt-1">GPT-4o • Agency-grade rewrite, complex strategy, and conversion messaging.</p>
                 </div>
               </div>
             </div>

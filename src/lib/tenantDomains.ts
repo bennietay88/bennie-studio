@@ -7,7 +7,6 @@ export const VERCEL_CNAME_TARGETS = [
 
 const DEFAULT_PLATFORM_HOSTS = [
   "app.bennietay.com",
-  "bennietay-studio.vercel.app",
   "localhost",
   "127.0.0.1",
   "::1",

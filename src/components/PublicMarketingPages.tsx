@@ -3281,6 +3281,27 @@ function WebsiteAuditPage() {
       }
       setAuditQueued(true);
 
+      if (auditPayload.status === "failed") {
+        throw new Error(auditPayload.error || "The website could not be analysed automatically. Your request was saved for manual follow-up.");
+      }
+
+      if (auditPayload.report) {
+        const normalizedReport = normalizeWebsiteAuditResult(auditPayload.report);
+        setAuditReport(normalizedReport);
+        setAuditQueued(false);
+        setSubmitted(true);
+        trackPublicEvent({
+          eventType: "website_audit_completed",
+          label: form.businessName,
+          target: "/website-audit",
+          metadata: {
+            findingCount: normalizedReport.findings.length,
+            recommendedPlan: normalizedReport.recommendedPlan,
+          },
+        });
+        return;
+      }
+
       for (let attempt = 0; attempt < 12; attempt += 1) {
         await new Promise((resolve) => window.setTimeout(resolve, 2500));
         const statusUrl = `/api/public/website-audit/jobs/${auditPayload.jobId}?leadId=${encodeURIComponent(savedLead.leadId)}&leadEmail=${encodeURIComponent(form.email)}`;

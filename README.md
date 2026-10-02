@@ -1,6 +1,6 @@
 # Bennie Tay Studio
 
-Professionally managed website service for Bennie Tay Studio. The app combines public sales pages, customer dashboards, managed website rendering/editing, CRM, appointments, CMS tools, content workflows, billing, affiliates, WordPress quotation flow, custom domains, and super-admin operations.
+Professionally managed website service for Bennie Tay Studio. The app combines public sales pages, customer dashboards, managed website rendering/editing, CRM, appointments, CMS tools, content workflows, billing, affiliates, custom domains, and super-admin operations.
 
 ## Stack
 
@@ -57,8 +57,8 @@ UPSTASH_REDIS_REST_TOKEN=
 Required for production custom-domain automation:
 
 ```text
-PLATFORM_HOSTS=app.bennietay.com,bennietay-studio.vercel.app
-VITE_PLATFORM_HOSTS=app.bennietay.com,bennietay-studio.vercel.app
+PLATFORM_HOSTS=app.bennietay.com
+VITE_PLATFORM_HOSTS=app.bennietay.com
 WAAS_ROOT_DOMAIN=growthos.app
 VITE_WAAS_ROOT_DOMAIN=growthos.app
 VERCEL_TOKEN=
@@ -152,8 +152,6 @@ SUPABASE_PROJECT_REF
 SUPABASE_DB_PASSWORD
 ```
 
-Historical full-schema snapshots live in `supabase/migrations/legacy_snapshots/` for reference only and are not part of the runnable migration chain.
-
 ## Custom Domains
 
 Tenant host routing is handled in root `middleware.ts` before cached/static app delivery:
@@ -167,11 +165,12 @@ Domain verification and Vercel Project Domain registration are handled by `/api/
 
 ## Async Jobs
 
-Long-running work uses the `public.async_jobs` table added by `supabase/migrations/202607250001_async_job_queue.sql`. The table is service-role only; clients read job state through API routes instead of direct Supabase access.
+Long-running work uses the `public.async_jobs` table created in the committed migration chain (including `supabase/migrations/202607250004_consolidated_supabase_updates.sql` and the later SEO foundation migration). The table is service-role only; clients read job state through API routes instead of direct Supabase access.
 
 Current worker coverage:
 
-- `website_audit`: queued version of the public website audit flow.
+- `website_audit`: queued public website review with inline processing fallback when QStash is unavailable.
+- `seo_audit`: queued technical SEO audit with the same inline fallback.
 - `ai_generation`: registered for queue inventory, but still synchronous until the authenticated generation UI is moved to polling.
 - `local_seo_audit`: registered for queue inventory; current Local SEO drafts remain deterministic client-side generation.
 
@@ -180,7 +179,7 @@ Worker endpoints:
 - `POST /api/jobs/process` processes a queued job when called with `Authorization: Bearer $JOB_WORKER_SECRET`.
 - `GET /api/jobs/:jobId` returns sanitized status/results to the owning user, platform staff, or super admin.
 
-Optional QStash dispatch is enabled with `QSTASH_TOKEN`, `JOB_WORKER_SECRET`, and `APP_PUBLIC_URL`. Without QStash, jobs remain queued for scheduled polling by cron or manual worker calls.
+Optional QStash dispatch is enabled with `QSTASH_TOKEN`, `JOB_WORKER_SECRET`, and `APP_PUBLIC_URL`. For supported audit jobs, request handlers process the job inline when QStash is unavailable, so the public flow does not depend on a worker cron.
 
 ## Observability
 
@@ -188,7 +187,7 @@ The app emits structured JSON logs for API requests and captures server/browser 
 
 Server-side:
 
-- `api/observability.ts` initializes `@sentry/node`.
+- `server/observability.ts` initializes `@sentry/node`.
 - API requests log `request_started` and `request_completed` with request ID, route, status code, duration, and Vercel invocation ID.
 - The global Express error handler captures sanitized exceptions and returns the request ID to the client.
 

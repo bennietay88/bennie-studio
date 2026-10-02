@@ -69,6 +69,6 @@ export const USE_CASE_LABELS: Record<AIUseCase, string> = {
   seo: "Agency-Grade Rewrite",
   chatbot: "AI Assistant",
   blog: "Content Engine",
-  marketing: "Campaign Generator",
+  marketing: "Campaign Copy",
   copy: "Conversion Review",
 };

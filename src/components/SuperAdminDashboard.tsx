@@ -119,9 +119,7 @@ import { cn, formatDate } from "../lib/utils";
 import { Joyride, type Step } from "react-joyride";
 import { AdminSupport } from "./AdminSupport";
 import { MonthlyUpdateQueue } from "./SuperAdmin/MonthlyUpdateQueue";
-import { TemplateGallery } from "./TemplateGallery";
 import { PoliciesCMS } from "./PoliciesCMS";
-import LandingPageEditor from "./LandingPageEditor";
 import PlanEditor from "./PlanEditor";
 import { RevenueDashboard } from "./RevenueDashboard";
 import { TemplateManager } from "./SuperAdmin/TemplateManager";
@@ -1420,9 +1418,9 @@ export default function SuperAdminDashboard() {
       <div className="flex h-screen items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-4">
            <div className="h-12 w-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white italic font-black text-3xl animate-bounce shadow-xl shadow-indigo-200">
-             G
+             B
            </div>
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] animate-pulse">Initializing GrowthOS</p>
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] animate-pulse">Initializing Bennie Studio</p>
         </div>
       </div>
     );

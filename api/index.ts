@@ -2,7 +2,6 @@ import express from "express";
 import compression from "compression";
 import cors from "cors";
 import path from "path";
-import { existsSync, readFileSync } from "node:fs";
 import dns from "node:dns";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
@@ -76,7 +75,6 @@ import {
 } from "../src/constants/deliveryStandards.js";
 import { buildInternalContentPrompt, INTERNAL_CONTENT_SYSTEM_PROMPT, InternalContentBriefSchema, parseInternalContentDraft, buildHumaniseContentPrompt, HUMANISE_CONTENT_SYSTEM_PROMPT, parseHumaniseContentDraft } from "../src/lib/internalAiContentEngine.js";
 import { buildDesignDirectionPrompt, DESIGN_DIRECTOR_SYSTEM_PROMPT, parseDesignDirection } from "../src/lib/designDirector.js";
-import { isMarketingRoute, renderMarketingDocument } from "../server/marketingSsr.js";
 import { buildPortableWebsiteFiles } from "../src/lib/websiteHandover.js";
 import { HANDOVER_GRACE_DAYS, handoverGraceUntil, subscriptionAllowsPermanentDeletion } from "../src/lib/billingLifecycle.js";
 import { nextStepForSubmission } from "../src/lib/funnelEngine.js";
@@ -180,38 +178,6 @@ refreshPlatformSettings().catch((error) => captureServerError(error, { phase: "p
 
 // Dist folder resolution
 const distPath = path.resolve(process.cwd(), "dist");
-
-function resolveMarketingClientScript() {
-  try {
-    const builtIndex = path.join(distPath, "index.html");
-    if (existsSync(builtIndex)) {
-      const html = readFileSync(builtIndex, "utf8");
-      const match = html.match(/<script[^>]+type="module"[^>]+src="([^"]+)"/i);
-      if (match?.[1]) return match[1];
-    }
-  } catch {
-    // Fall back to the Vite entry during local development.
-  }
-  return "/src/main.tsx";
-}
-
-function requestedMarketingMarket(req: any) {
-  const direct = String(req?.query?.market || "").toUpperCase();
-  if (["MY", "SG", "GB", "INTL"].includes(direct)) return direct;
-  // Vercel rewrites can move the original query string into the raw request
-  // URL even when Express' parsed query only contains the rewrite parameters.
-  const rawCandidates = [
-    String(req?.originalUrl || ""),
-    String(req?.url || ""),
-    String(req?.headers?.["x-forwarded-uri"] || ""),
-    String(req?.headers?.referer || ""),
-  ];
-  for (const raw of rawCandidates) {
-    const match = raw.match(/[?&]market=(MY|SG|GB|INTL)(?:&|$)/i);
-    if (match) return match[1].toUpperCase();
-  }
-  return "";
-}
 
 let stripeInstance: Stripe | null = null;
 const merchantStripeCache = new Map<
@@ -5070,11 +5036,35 @@ async function startServer() {
             console.warn(`[AsyncJobs:${job.id}] QStash dispatch skipped:`, error?.message || error);
             return { published: false, reason: "QStash dispatch failed" };
           });
-          return res.status(existing ? 200 : 202).json({
+
+          let status = job.status;
+          let report: any = null;
+          let jobError: string | null = null;
+
+          // QStash is an acceleration path, not a hard dependency. If it is
+          // unavailable, process the supported audit job in the current
+          // request so public website reviews never remain queued forever.
+          if (!dispatch.published) {
+            const outcome = await processQueuedJob(job.id);
+            const refreshedJob = await getAsyncJob(supabaseAdmin, job.id);
+            status = refreshedJob?.status || outcome.job?.status || job.status;
+            report =
+              status === "completed" && refreshedJob?.result?.report
+                ? normalizeWebsiteAuditResult(refreshedJob.result.report)
+                : null;
+            jobError =
+              status === "failed"
+                ? refreshedJob?.last_error || outcome.error || "Website audit failed."
+                : null;
+          }
+
+          return res.status(dispatch.published && !existing ? 202 : 200).json({
             success: true,
-            queued: true,
+            queued: status !== "completed",
             jobId: job.id,
-            status: job.status,
+            status,
+            report,
+            error: jobError,
             dispatch,
             requestId,
           });
@@ -12841,28 +12831,6 @@ async function startServer() {
       }
       res.status(500).json({ error: safeErrorMessage(error) });
     }
-  });
-
-  // Server-render the three public marketing entry points so crawlers and
-  // link unfurlers receive meaningful copy without executing JavaScript.
-  // Authenticated dashboards intentionally remain client-side rendered.
-  app.get("/api/marketing", (req, res) => {
-    const requestedPath = String(req.query.path || "/").split("?")[0];
-    if (!isMarketingRoute(requestedPath)) {
-      return res.status(404).json({ error: "Marketing route not found" });
-    }
-    res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
-    return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript(), requestedMarketingMarket(req)));
-  });
-
-  // Vercel mounts this single function at /api. Public marketing rewrites
-  // target that mount directly, so keep the route explicit instead of
-  // allowing the SPA fallback to serve the generic shell.
-  app.get("/api", (req, res, next) => {
-    const requestedPath = String(req.query.path || "").split("?")[0];
-    if (!isMarketingRoute(requestedPath)) return next();
-    res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
-    return res.type("html").send(renderMarketingDocument(requestedPath, resolveMarketingClientScript(), requestedMarketingMarket(req)));
   });
 
   // API 404 Catch-all (to prevent HTML responses for API errors)

@@ -2866,10 +2866,10 @@ export default function DashboardOverview() {
         >
           <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2.5rem] border border-slate-100 dark:border-slate-800">
             <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-2">
-              AI Neural Performance
+              AI Usage & Performance
             </h2>
             <p className="text-slate-500 font-medium">
-              Real-time telemetry from your business's AI orchestrator.
+              Usage and performance signals from the AI-assisted tools available in your workspace.
             </p>
           </div>
 
