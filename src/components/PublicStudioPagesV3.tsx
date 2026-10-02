@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Pricing as CommercialPricing } from "./Pricing";
 import { RESOURCE_ARTICLES } from "../content/resources";
+import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
 
 const primary =
   "inline-flex min-h-12 items-center justify-center rounded-xl bg-[#6252f4] px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_-25px_rgba(98,82,244,.9)] transition hover:-translate-y-0.5 hover:bg-[#5142de]";
@@ -82,8 +83,8 @@ function StudioHero({
   title,
   accent,
   copy,
-  primaryLabel = "Start your website",
-  primaryHref = "/generate-preview",
+  primaryLabel = "Get a website review",
+  primaryHref = "/website-audit",
   secondaryLabel,
   secondaryHref,
   image = "/images/studio-hero-v2.png",
@@ -177,22 +178,23 @@ export function ServicesStudioPage() {
     [MessageCircle, "Messaging & Positioning", "Clear page hierarchy and sharper copy make the offer easier to understand and easier to trust."],
     [MonitorSmartphone, "Design & User Experience", "A modern visual system designed around the brand, the category and the customer's decision journey."],
     [Code2, "Build & Integrations", "Responsive implementation with forms, analytics, tracking and the practical integrations needed for launch."],
-    [Users, "Human Review", "A real person reviews the message, layout, responsive behaviour and conversion path before launch."],
+    [Users, "Studio Review", "A real person reviews the message, layout, responsive behaviour and conversion path before launch."],
     [Rocket, "Launch & Support", "Technical launch, hosting, SSL, maintenance and the plan-based support needed after the site goes live."],
   ] as const;
 
   return (
     <>
-      <StudioHero
-        kicker="Bennie Studio · Website Services"
-        title="Strategic websites designed to"
-        accent="win trust and enquiries."
-        copy="We plan, design and build high-performing websites for service businesses. Clear messaging, modern design and a seamless experience — so you look credible and get more enquiries."
-        secondaryLabel="View our work"
-        secondaryHref="/case-studies"
-        image="/images/studio-hero-v2.png"
-        visualLabel="Strategy · design · build"
-      />
+      <section className="bs3-dark border-b border-white/10">
+        <div className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center">
+          <div className="lg:col-span-6">
+            <p className="brand-kicker !text-[#9f93ff]">Bennie Studio · Website Services</p>
+            <h1 className="mt-5 max-w-[12ch] !text-white">Strategic websites designed to win trust and enquiries.</h1>
+            <p className="mt-6 max-w-xl text-base leading-8 text-white/64">We plan, design, build and manage websites for service businesses. The work starts with the buyer, the offer and the proof — not a generic template.</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/website-audit" className={primary}>Get a website review<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/case-studies" className={secondary}>View our work</Link></div>
+          </div>
+          <div className="lg:col-span-6"><WebsiteConceptVisual title="Service business website" eyebrow="Strategy · design · build" index={0} className="rounded-[1.15rem] border border-white/10 shadow-2xl" /></div>
+        </div>
+      </section>
 
       <section className="bg-white border-y border-[#e8eaf1]">
         <div className="brand-shell grid gap-5 py-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -207,17 +209,10 @@ export function ServicesStudioPage() {
           <div className="lg:col-span-5">
             <p className="brand-kicker">What we do</p>
             <h2 className="mt-4">More than a website. A strategic growth asset.</h2>
-            <p className="brand-copy mt-6">We combine strategy, messaging, design and technology to create websites that look exceptional, build trust and turn visitors into real enquiries.</p>
-            <Link to="/generate-preview" className={`${primary} mt-7`}>Get my free preview<ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <p className="brand-copy mt-6">We combine strategy, messaging, design and delivery to create websites that look credible, build trust and turn visitors into real enquiries.</p>
+            <Link to="/website-audit" className={`${primary} mt-7`}>Get a website review<ArrowRight className="ml-2 h-4 w-4" /></Link>
           </div>
-          <div className="lg:col-span-7">
-            <div className="bs3-image-card">
-              <img src="/images/studio-process-v2.png" alt="Bennie Studio website strategy and design workflow" />
-              <span className="bs3-float-card left-[7%] top-[14%]">Strategy & positioning</span>
-              <span className="bs3-float-card right-[7%] top-[30%]">Design & build</span>
-              <span className="bs3-float-card bottom-[12%] left-[25%]">Human review</span>
-            </div>
-          </div>
+          <div className="lg:col-span-7"><div className="rounded-[1.2rem] border border-[#dfe3eb] bg-[#0d1426] p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#9f93ff]">How the studio thinks</p><div className="mt-6 divide-y divide-white/10">{[["01","What should a customer understand first?","Clarify the offer and who it is for."],["02","What proof earns trust?","Move evidence closer to the claims it supports."],["03","What action should the page drive?","Build the journey around one useful next step."]].map(([n,t,x])=><div key={n} className="grid gap-3 py-5 sm:grid-cols-[3rem_1fr]"><span className="text-xs font-bold text-[#9f93ff]">{n}</span><div><h3 className="!text-white">{t}</h3><p className="mt-2 text-sm leading-6 text-white/55">{x}</p></div></div>)}</div></div></div>
         </div>
       </section>
 
@@ -262,31 +257,27 @@ export function AboutStudioPage() {
   const values = [
     [HeartHandshake,"Human first","Real people, real feedback and real responsibility at the stages where judgement matters."],
     [BarChart3,"Business minded","Design decisions are tied back to trust, enquiries and commercial usefulness."],
-    [Sparkles,"Quality over quantity","The system is designed to make launch quality explicit instead of pushing volume."],
+    [Sparkles,"Quality over quantity","The studio process makes launch quality explicit instead of pushing volume."],
     [ShieldCheck,"Long-term partnership","The website stays managed and can evolve as the business grows."],
   ] as const;
 
   return (
     <>
-      <StudioHero
-        kicker="About Bennie Studio"
-        title="A modern studio for businesses that need a"
-        accent="better website."
-        copy="We design, build and manage websites for ambitious businesses — without the hassle. Thoughtful design, human support and real results, not just templates."
-        secondaryLabel="See how it works"
-        secondaryHref="/how-it-works"
-        image="/images/studio-process-v2.png"
-        visualLabel="Designed around real businesses"
-      />
+      <section className="border-b border-[#e6e8ef] bg-white">
+        <div className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-start">
+          <div className="lg:col-span-7"><p className="brand-kicker">About Bennie Studio</p><h1 className="mt-5 max-w-[13ch]">A web studio built around judgement, not volume.</h1><p className="brand-copy mt-6 max-w-2xl">We design, build and manage websites for service businesses. Modern tools remove repetitive work; Bennie Studio remains responsible for the strategy, design decisions, review and launch quality.</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/website-audit" className={primary}>Get a website review<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/how-it-works" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#d7dbe5] bg-white px-6 py-3 text-sm font-semibold text-[#172033] hover:border-[#aaa0ff]">See how it works</Link></div></div>
+          <aside className="lg:col-span-5 lg:border-l lg:border-[#e2e5ec] lg:pl-10"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6252f4]">What we take responsibility for</p><div className="mt-5 divide-y divide-[#e6e8ef]">{["Positioning and page hierarchy","Design and responsive behaviour","Content and proof placement","Pre-launch QA and customer approval","Ongoing managed improvements"].map((item)=><p key={item} className="flex items-center gap-3 py-4 text-sm font-semibold text-[#344054]"><Check className="h-4 w-4 text-[#6252f4]" />{item}</p>)}</div></aside>
+        </div>
+      </section>
       <section className="brand-shell brand-section">
         <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
           <div className="lg:col-span-5">
             <p className="brand-kicker">Our mission</p>
             <h2 className="mt-4">Better websites for real businesses.</h2>
-            <p className="brand-copy mt-6">Bennie Studio exists to help good businesses look as good as the work they do. Strategy, design and technology are combined into a human-guided process so the website is easier to understand, trust and act on.</p>
-            <Link to="/generate-preview" className={`${primary} mt-7`}>Get my free preview<ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <p className="brand-copy mt-6">Bennie Studio exists to help good businesses look as good as the work they do. Strategy, design and delivery are combined into a human-guided process so the website is easier to understand, trust and act on.</p>
+            <Link to="/website-audit" className={`${primary} mt-7`}>Get a website review<ArrowRight className="ml-2 h-4 w-4" /></Link>
           </div>
-          <div className="lg:col-span-7"><div className="bs3-image-card"><img src="/images/studio-process-v2.png" alt="Bennie Studio website review process" /></div></div>
+          <div className="lg:col-span-7"><div className="rounded-[1.2rem] border border-[#dfe3eb] bg-[#fbfcff] p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6252f4]">A managed studio relationship</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{["One accountable workflow","Clear review points","No invented proof","Customer approval before launch"].map((item)=><div key={item} className="rounded-xl border border-[#e1e5ed] bg-white p-4 text-sm font-semibold text-[#344054]"><Check className="mb-3 h-4 w-4 text-[#6252f4]" />{item}</div>)}</div></div></div>
         </div>
       </section>
       <section className="bs3-soft border-y border-[#e6e8ef]">
@@ -300,10 +291,10 @@ export function AboutStudioPage() {
           <div className="lg:col-span-5">
             <p className="brand-kicker !text-[#9f93ff]">Our difference</p>
             <h2 className="mt-4 !text-white">Every website is reviewed by a human.</h2>
-            <p className="mt-6 text-base leading-8 text-white/64">Automation can accelerate repetitive work. It does not replace judgement about credibility, content, design quality or whether a site actually makes sense to a customer.</p>
+            <p className="mt-6 text-base leading-8 text-white/64">Every paid website goes through studio review for credibility, content, design quality, responsive behaviour and whether the journey makes sense to a customer.</p>
             <div className="mt-7 space-y-3">{["Design and content review","Responsive and performance checks","Final launch sign-off"].map((x)=><p key={x} className="flex gap-3 text-sm font-semibold text-white/75"><Check className="h-4 w-4 text-[#9f93ff]" />{x}</p>)}</div>
           </div>
-          <div className="lg:col-span-7"><div className="bs3-image-card !border-white/10"><img src="/images/studio-process-v2.png" alt="Human website review at Bennie Studio" /><span className="bs3-float-card bottom-[12%] left-[10%]">A real person looks at every detail.</span></div></div>
+          <div className="lg:col-span-7"><div className="rounded-[1.2rem] border border-white/12 bg-white/[0.04] p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#9f93ff]">Before launch</p><div className="mt-5 space-y-4">{["Does the offer make sense quickly?","Is the proof credible and properly placed?","Does mobile feel deliberate, not compressed?","Do forms, links and primary actions work?","Has the customer approved the final website?"].map((item,index)=><div key={item} className="flex gap-4 border-b border-white/10 pb-4"><span className="text-xs font-bold text-[#9f93ff]">0{index+1}</span><p className="text-sm font-semibold text-white/75">{item}</p></div>)}</div></div></div>
         </div>
       </section>
       <section className="brand-shell brand-section">
@@ -358,19 +349,12 @@ export function ResourcesStudioPage() {
 
   return (
     <>
-      <StudioHero
-        kicker="Resources & insights"
-        title="Guides, insights and examples for businesses improving their website."
-        copy="Practical advice, proven frameworks and useful examples to help you build a clearer message, a better website and more customers."
-        primaryLabel="Run a free website audit"
-        primaryHref="/website-audit"
-        secondaryLabel="View the work"
-        secondaryHref="/case-studies"
-        image="/images/studio-insights-v2.png"
-        visualLabel="Practical website guidance"
-        trust={["Practical advice","Templates & checklists","Examples that work"]}
-        titleClassName="!max-w-[20ch]"
-      />
+      <section className="border-b border-[#e6e8ef] bg-white">
+        <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12 lg:items-end">
+          <div className="lg:col-span-8"><p className="brand-kicker">Resources & insights</p><h1 className="mt-5 max-w-[17ch]">Practical website thinking for service businesses.</h1><p className="brand-copy mt-6 max-w-2xl">Guides, examples and checklists about positioning, trust, page structure, conversion paths and maintaining a useful website after launch.</p></div>
+          <div className="flex flex-col gap-3 lg:col-span-4 lg:items-start"><Link to="/website-audit" className={primary}>Get a website review<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/case-studies" className="text-sm font-semibold text-[#526071] hover:text-[#6252f4]">View the work →</Link></div>
+        </div>
+      </section>
       <section className="bg-white border-y border-[#e6e8ef]">
         <div className="brand-shell py-6">
           <div className="relative max-w-2xl">
@@ -509,19 +493,7 @@ export function ContactStudioPage() {
 export function PricingStudioPage() {
   return (
     <>
-      <StudioHero
-        kicker="Simple pricing · clear scope"
-        title="Professional websites for"
-        accent="growing businesses."
-        copy="Choose the plan that matches your goals. Current setup fees, monthly service and commitments are shown before checkout so the commercial terms stay clear."
-        primaryLabel="Start your project"
-        primaryHref="/generate-preview"
-        secondaryLabel="Talk to our team"
-        secondaryHref="/contact"
-        image="/images/studio-hero-v2.png"
-        visualLabel="Pricing built around scope"
-        trust={["Clear scope","Human support","Built for results"]}
-      />
+      <section className="border-b border-[#e6e8ef] bg-white"><div className="brand-shell py-14 sm:py-20"><div className="max-w-3xl"><p className="brand-kicker">Simple pricing · clear scope</p><h1 className="mt-5 max-w-[14ch]">Choose the level of website support your business needs.</h1><p className="brand-copy mt-6">Setup fees, monthly service and commitments are shown before checkout. Start with a website review if you want a clearer recommendation before choosing a plan.</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/website-audit" className={primary}>Get a website review<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/contact" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#d7dbe5] bg-white px-6 py-3 text-sm font-semibold text-[#172033]">Talk to Bennie Studio</Link></div></div></div></section>
       <CommercialPricing hideIntro />
       <section className="bs3-soft border-y border-[#e6e8ef]">
         <div className="brand-shell brand-section">
@@ -560,23 +532,11 @@ export function ProcessStudioPage() {
 
   return (
     <>
-      <StudioHero
-        kicker="A clear process · a better website"
-        title="From brief to launch,"
-        accent="without the chaos."
-        copy="A simple, structured process designed to get you a high-performing website — with zero guesswork, clear communication and full human support."
-        primaryLabel="Start your project"
-        primaryHref="/generate-preview"
-        secondaryLabel="Explore the work"
-        secondaryHref="/case-studies"
-        image="/images/studio-process-v2.png"
-        visualLabel="Discover · plan · design · build · launch"
-        trust={["Clear milestones","Human review","Built to perform"]}
-      />
+      <section className="bs3-dark border-b border-white/10"><div className="brand-shell brand-section grid gap-10 lg:grid-cols-12 lg:items-end"><div className="lg:col-span-6"><p className="brand-kicker !text-[#9f93ff]">How Bennie Studio works</p><h1 className="mt-5 max-w-[11ch] !text-white">From business context to a reviewed launch.</h1><p className="mt-6 max-w-xl text-base leading-8 text-white/64">A clear studio process keeps strategy, design, feedback and launch responsibilities visible from the start.</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/website-audit" className={primary}>Start with a website review<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/case-studies" className={secondary}>Explore the work</Link></div></div><div className="grid gap-px overflow-hidden rounded-xl border border-white/12 bg-white/12 sm:grid-cols-3 lg:col-span-6">{[["01","Understand","Business, audience, offer and proof."],["02","Recommend","Structure, message and visual direction."],["03","Refine & launch","Human review, customer approval and QA."]].map(([n,t,x])=><div key={n} className="bg-[#0d1426] p-5"><p className="text-xs font-bold text-[#9f93ff]">{n}</p><h3 className="mt-3 !text-white">{t}</h3><p className="mt-2 text-sm leading-6 text-white/55">{x}</p></div>)}</div></div></section>
       <section className="bg-white border-y border-[#e6e8ef]"><div className="brand-shell grid gap-5 py-8 sm:grid-cols-5">{stages.map(([n,Icon,t])=><div key={n} className="flex items-center gap-3"><span className="bs3-icon"><Icon className="h-4 w-4"/></span><div><p className="text-[11px] font-bold text-[#6252f4]">{n}</p><p className="text-sm font-semibold text-[#172033]">{t}</p></div></div>)}</div></section>
-      <section className="bs3-soft border-b border-[#e6e8ef]"><div className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center"><div className="lg:col-span-5"><p className="brand-kicker">Simple. transparent. strategic.</p><h2 className="mt-4">A process built around you.</h2><p className="brand-copy mt-5">Strategy, design and technology are combined in a clear step-by-step process so you know what is happening, what is needed and what to expect.</p><div className="mt-6 space-y-3">{["Clear timelines and deliverables","Regular human review and feedback","Built for real business outcomes"].map(x=><p key={x} className="flex gap-3 text-sm font-semibold text-[#526071]"><Check className="h-4 w-4 text-[#6252f4]"/>{x}</p>)}</div></div><div className="lg:col-span-7"><div className="bs3-image-card"><img src="/images/studio-process-v2.png" alt="Bennie Studio website delivery process" /><span className="bs3-float-card right-[7%] top-[16%]">Real people. Strategic thinking.</span><span className="bs3-float-card bottom-[14%] right-[12%]">A smoother process.</span></div></div></div></section>
+      <section className="bs3-soft border-b border-[#e6e8ef]"><div className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center"><div className="lg:col-span-5"><p className="brand-kicker">Simple. transparent. strategic.</p><h2 className="mt-4">A process built around you.</h2><p className="brand-copy mt-5">Strategy, design and delivery are combined in a clear step-by-step process so you know what is happening, what is needed and what to expect.</p><div className="mt-6 space-y-3">{["Clear timelines and deliverables","Regular human review and feedback","Built for real business outcomes"].map(x=><p key={x} className="flex gap-3 text-sm font-semibold text-[#526071]"><Check className="h-4 w-4 text-[#6252f4]"/>{x}</p>)}</div></div><div className="lg:col-span-7"><div className="rounded-[1.2rem] border border-[#dfe3eb] bg-white p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6252f4]">What stays visible</p><div className="mt-5 grid gap-px overflow-hidden rounded-xl border border-[#e3e6ed] bg-[#e3e6ed] sm:grid-cols-2">{["What we need from you","What Bennie Studio is doing","What is ready for review","What happens before launch"].map((item)=><div key={item} className="bg-[#fbfcff] p-5"><Check className="h-4 w-4 text-[#6252f4]" /><p className="mt-3 text-sm font-semibold text-[#344054]">{item}</p></div>)}</div></div></div></div></section>
       <section className="brand-shell brand-section"><SectionHeader kicker="The process" title="Five steps. A better website." copy="Each stage is designed to be simple, collaborative and focused on results."/><div className="mt-10 space-y-4">{stages.map(([n,Icon,t,sub,time,deliverable])=><article key={n} className="bs3-card grid gap-5 p-6 lg:grid-cols-[70px_1.2fr_.75fr_.9fr] lg:items-center"><div className="flex items-center gap-3 lg:block"><span className="bs3-step">{n}</span></div><div><div className="flex items-center gap-3"><Icon className="h-5 w-5 text-[#6252f4]"/><h3>{t}</h3></div><p className="mt-2 text-sm text-[#8a7dff]">{sub}</p></div><div><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#657186]">Timeframe</p><p className="mt-2 text-sm font-semibold text-[#172033]">{time}</p></div><div><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#657186]">Key deliverables</p><p className="mt-2 text-sm text-[#526071]">{deliverable}</p></div></article>)}</div></section>
-      <section className="bs3-dark"><div className="brand-shell brand-section"><SectionHeader dark kicker="Human review at every stage" title="Real people. Real feedback. Better results." copy="The system supports the work; it does not replace professional judgement."/><div className="mt-10 grid gap-4 md:grid-cols-3">{[[Compass,"Strategy review","Goals, positioning, site structure and timeline."],[WandSparkles,"Design review","Homepage direction, key layouts and responsive behaviour."],[ShieldCheck,"Pre-launch review","Functionality, search basics and final sign-off."]].map(([Icon,t,c]:any)=><IconCard key={t} icon={Icon} title={t} copy={c} dark />)}</div></div></section>
+      <section className="bs3-dark"><div className="brand-shell brand-section"><SectionHeader dark kicker="Human review at every stage" title="Real people. Real feedback. Better results." copy="The workflow supports the work; professional judgement remains part of every review stage."/><div className="mt-10 grid gap-4 md:grid-cols-3">{[[Compass,"Strategy review","Goals, positioning, site structure and timeline."],[WandSparkles,"Design review","Homepage direction, key layouts and responsive behaviour."],[ShieldCheck,"Pre-launch review","Functionality, search basics and final sign-off."]].map(([Icon,t,c]:any)=><IconCard key={t} icon={Icon} title={t} copy={c} dark />)}</div></div></section>
       <section className="brand-shell brand-section"><div className="grid gap-10 lg:grid-cols-12 lg:items-start"><div className="lg:col-span-4"><p className="brand-kicker">Common questions</p><h2 className="mt-4">Questions about the process?</h2><p className="brand-copy mt-5">The delivery plan makes responsibilities and review points explicit before launch.</p></div><div className="lg:col-span-8"><Faqs items={[
         ["How long does a project take?","Timing depends on the agreed scope, the readiness of content and the feedback cycle."],
         ["What do I need to provide?","Business details, service information, useful brand assets and timely feedback are the usual inputs."],
@@ -590,32 +550,19 @@ export function ProcessStudioPage() {
 
 export function WorkStudioPage() {
   const work = [
-    ["/template-assets/flagship-professional.jpg","Professional services","Professional advisory website","Authority-led structure with clearer services and a stronger consultation path.","Concept direction"],
-    ["/template-assets/flagship-clinic.jpg","Healthcare","Clinic website","Treatment clarity, practitioner trust and a cleaner appointment journey.","Concept direction"],
-    ["/template-assets/flagship-renovation.jpg","Local business","Renovation contractor","Project proof, service areas and a more direct quotation path.","Concept direction"],
-    ["/template-assets/flagship-education.jpg","Education","Education provider","Programme clarity, teacher trust and a focused parent enquiry journey.","Concept direction"],
-    ["/template-assets/flagship-beauty.jpg","Lifestyle","Beauty & wellness","A service-led visual system with stronger treatment discovery and booking actions.","Concept direction"],
-    ["/images/studio-work-v2.png","Business services","Consulting business","Sharper positioning, proof and conversion flow for a specialist offer.","Concept direction"],
+    { category: "Professional services", title: "Professional advisory website", sample: "consultant", visualIndex: 0, challenge: "Expertise can feel interchangeable when services and proof are buried.", direction: "Lead with the specialist offer, move evidence earlier and make consultation the obvious next step." },
+    { category: "Healthcare", title: "Clinic website", sample: "dental", visualIndex: 1, challenge: "Patients need treatment clarity and practitioner reassurance before they are ready to book.", direction: "Explain treatments in plain language, establish trust early and keep appointment actions easy to find." },
+    { category: "Local service", title: "Renovation contractor", sample: "contractor", visualIndex: 3, challenge: "Generic contact forms produce weak enquiries without project context or proof.", direction: "Show project capability, service areas and process before asking for the details needed for a useful quote." },
+    { category: "Education", title: "Education provider", sample: "education", visualIndex: 0, challenge: "Parents need programmes, teachers, schedules and outcomes to be easy to compare.", direction: "Clarify programmes, establish teacher trust and make the trial-class journey obvious." },
+    { category: "Lifestyle", title: "Beauty & wellness", sample: "beauty", visualIndex: 2, challenge: "Mobile visitors need to compare treatments, visual quality and booking options quickly.", direction: "Group services clearly, bring proof closer to the offer and connect each decision point to booking." },
   ] as const;
 
   return (
     <>
-      <StudioHero
-        kicker="Our work"
-        title="Work that helps businesses look better and"
-        accent="convert better."
-        copy="Website directions designed around real business goals: stronger trust, clearer messaging and a more obvious path to enquiry."
-        primaryLabel="Get my free preview"
-        primaryHref="/generate-preview"
-        secondaryLabel="Explore the process"
-        secondaryHref="/how-it-works"
-        image="/images/studio-work-v2.png"
-        visualLabel="Different businesses · different directions"
-        trust={["Strategic design","Built for performance","Real business context"]}
-      />
-      <section className="bg-white border-y border-[#e6e8ef]"><div className="brand-shell flex flex-wrap items-center justify-between gap-5 py-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8a7dff]">Designed across service categories</p><div className="flex flex-wrap gap-x-7 gap-y-3 text-sm font-semibold text-[#778193]"><span>Professional</span><span>Healthcare</span><span>Local service</span><span>Education</span><span>Lifestyle</span><span>Consulting</span></div></div></section>
-      <section className="brand-shell brand-section"><SectionHeader kicker="Selected work" title="Websites for different businesses. Better decisions across industries." copy="The visual direction changes with the business. The objective stays the same: make the offer easier to understand, trust and act on."/><div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">{work.map(([img,cat,title,copy,evidence])=><article key={title} className="bs3-card bs3-card-hover overflow-hidden"><img src={img} alt="" className="aspect-[16/10] w-full object-cover" loading="lazy"/><div className="p-5"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6252f4]">{cat}</p><span className="rounded-full bg-[#f0efff] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#6252f4]">{evidence}</span></div><h3 className="mt-2">{title}</h3><p className="mt-3 text-sm leading-6 text-[#657186]">{copy}</p><Link to="/generate-preview" className="mt-5 inline-flex items-center text-sm font-semibold text-[#172033]">Build a direction<ArrowRight className="ml-2 h-4 w-4"/></Link></div></article>)}</div></section>
-      <section className="bs3-soft border-y border-[#e6e8ef]"><div className="brand-shell brand-section"><SectionHeader kicker="Before & after thinking" title="A clear difference without losing the business." copy="A redesign should keep useful identity and evidence while improving hierarchy, readability and conversion clarity."/><div className="mt-10 grid gap-5 lg:grid-cols-2"><div className="bs3-compare"><span className="bs3-compare-label">Before</span><div className="h-full bg-[#f5f5f3] p-8"><p className="text-xs text-[#8992a1]">Existing website</p><h3 className="mt-7 max-w-[13ch] !text-[#343a46]">Useful business information, but harder to scan.</h3><div className="mt-8 h-36 bg-white/80"/></div></div><div className="bs3-compare bs3-compare-after"><span className="bs3-compare-label !bg-[#6252f4]">After</span><img src="/images/studio-work-v2.png" alt="" className="h-full w-full object-cover"/></div></div></div></section>
+      <section className="border-b border-[#e6e8ef] bg-white"><div className="brand-shell py-14 sm:py-20"><p className="brand-kicker">Selected work</p><div className="mt-5 grid gap-8 lg:grid-cols-12 lg:items-end"><div className="lg:col-span-8"><h1 className="max-w-[15ch]">Website decisions for different businesses.</h1><p className="brand-copy mt-6 max-w-2xl">These are concept redesigns, not invented client results. Each example shows the business problem, the design direction and the customer journey Bennie Studio would recommend.</p></div><div className="flex flex-col gap-3 lg:col-span-4 lg:items-start"><Link to="/website-audit" className={primary}>See what we’d improve<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/how-it-works" className="text-sm font-semibold text-[#526071] hover:text-[#6252f4]">Explore the process →</Link></div></div></div></section>
+      <section className="bg-white border-y border-[#e6e8ef]"><div className="brand-shell flex flex-wrap items-center justify-between gap-5 py-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8a7dff]">Designed across service categories</p><div className="flex flex-wrap gap-x-7 gap-y-3 text-sm font-semibold text-[#778193]"><span>Professional</span><span>Healthcare</span><span>Local service</span><span>Education</span><span>Lifestyle</span></div></div></section>
+      <section className="brand-shell brand-section"><SectionHeader kicker="Concept redesigns" title="The website is the proof." copy="Instead of decorative industry imagery, each example shows a website direction and the reasoning behind it."/><div className="mt-10 grid gap-6 md:grid-cols-2">{work.map((item)=><article key={item.title} className="overflow-hidden rounded-[1.1rem] border border-[#dfe3eb] bg-white"><WebsiteConceptVisual title={item.title} eyebrow={`${item.category} · concept redesign`} index={item.visualIndex} className="aspect-[16/10] border-b border-[#e5e8ef]" /><div className="p-5 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6252f4]">{item.category}</p><span className="rounded-full bg-[#f0efff] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#6252f4]">Concept redesign</span></div><h3 className="mt-3">{item.title}</h3><div className="mt-5 grid gap-4 sm:grid-cols-2"><div><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a93a2]">Business challenge</p><p className="mt-2 text-sm leading-6 text-[#526071]">{item.challenge}</p></div><div><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6252f4]">Design direction</p><p className="mt-2 text-sm leading-6 text-[#526071]">{item.direction}</p></div></div><Link to={`/portfolio/sample/${item.sample}`} className="mt-6 inline-flex items-center text-sm font-semibold text-[#172033]">View the design decisions<ArrowRight className="ml-2 h-4 w-4"/></Link></div></article>)}</div></section>
+      <section className="bs3-soft border-y border-[#e6e8ef]"><div className="brand-shell brand-section"><SectionHeader kicker="Before & after thinking" title="A clear difference without losing the business." copy="A redesign should keep useful identity and evidence while improving hierarchy, readability and conversion clarity."/><div className="mt-10 grid gap-5 lg:grid-cols-2"><div className="bs3-compare"><span className="bs3-compare-label">Before</span><div className="h-full bg-[#f5f5f3] p-8"><p className="text-xs text-[#8992a1]">Existing website</p><h3 className="mt-7 max-w-[13ch] !text-[#343a46]">Useful business information, but harder to scan.</h3><div className="mt-8 h-36 bg-white/80"/></div></div><div className="bs3-compare bs3-compare-after"><span className="bs3-compare-label !bg-[#6252f4]">After</span><WebsiteConceptVisual title="Professional advisory website" eyebrow="Recommended direction" index={0} className="h-full min-h-[22rem]" /></div></div></div></section>
       <section className="bs3-dark"><div className="brand-shell brand-section"><SectionHeader dark kicker="Our process" title="From strategy to a website people can use." copy="The work moves from understanding the business to design, build and a reviewed launch."/><div className="mt-10 grid gap-4 md:grid-cols-4">{[["01",Search,"Strategy","Understand goals, audience and positioning."],["02",Layout,"Design","Create the visual direction and page system."],["03",Code2,"Build","Develop a responsive implementation."],["04",BarChart3,"Grow","Launch, measure and improve over time."]].map(([n,Icon,t,c]:any)=><article key={n} className="bs3-card-dark p-5"><span className="text-xs font-bold text-[#9f93ff]">{n}</span><Icon className="mt-5 h-5 w-5 text-[#9f93ff]"/><h3 className="mt-4 !text-white">{t}</h3><p className="mt-2 text-sm text-white/55">{c}</p></article>)}</div></div></section>
     </>
   );

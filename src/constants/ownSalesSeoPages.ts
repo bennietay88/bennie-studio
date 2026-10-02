@@ -166,10 +166,10 @@ const makeWebsiteDesignCityPage = (input: CitySalesPageInput) => publish({
   links: [
     { label: "View managed plans", href: "/#pricing" },
     { label: "See portfolio", href: "/portfolio" },
-    { label: "Generate preview", href: "/generate-preview" },
+    { label: "Website direction", href: "/generate-preview" },
     { label: "Discuss website scope", href: "/book-demo" },
   ],
-  primaryCta: `Generate My ${input.city} Website Preview`,
+  primaryCta: `See My ${input.city} Website Direction`,
   whatsappCta: `Ask About Website Design ${input.city}`,
 });
 
@@ -285,7 +285,7 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
       { question: "Can I add more pages later?", answer: "Yes. You can upgrade your plan when you need more pages, locations, landing pages, or advanced features." },
     ],
     links: standardLinks,
-    primaryCta: "Generate Free Website Preview",
+    primaryCta: "See Free Website Direction",
     whatsappCta: "Ask About Website Growth",
   }),
   publish({
@@ -385,10 +385,10 @@ export const OWN_SALES_SEO_PAGES: OwnSalesSeoPage[] = [
     links: [
       { label: "View managed plans", href: "/#pricing" },
       { label: "See portfolio", href: "/portfolio" },
-      { label: "Generate preview", href: "/generate-preview" },
+      { label: "Website direction", href: "/generate-preview" },
       { label: "Discuss website scope", href: "/book-demo" },
     ],
-    primaryCta: "Generate My UK Website Preview",
+    primaryCta: "See My UK Website Direction",
     whatsappCta: "Ask About UK Website Plans",
   }),
   publish({

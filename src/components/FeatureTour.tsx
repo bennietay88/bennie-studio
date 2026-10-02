@@ -34,9 +34,9 @@ const TOUR_STEPS: TourStep[] = [
     icon: Zap,
   },
   {
-    title: "AI Website Engine",
+    title: "Managed Website Workspace",
     description:
-      "Located under 'Website Builder', our Neural Engine generates high-conversion landing pages focused on sales psychology. Tip: Use the 'Visual Editor' to live-tweak your content.",
+      "Located under 'Website Builder', the workspace helps you review pages, content and conversion paths. Use the Visual Editor when you need hands-on changes.",
     icon: Globe,
   },
   {
@@ -54,7 +54,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     title: "Reputation Power",
     description:
-      "Trust is your biggest asset. Use the 'Reputation Manager' to collect and showcase 5-star reviews directly on your AI-generated website.",
+      "Trust is your biggest asset. Use the 'Reputation Manager' to collect and showcase 5-star reviews directly on your managed website.",
     icon: Star,
   },
   {

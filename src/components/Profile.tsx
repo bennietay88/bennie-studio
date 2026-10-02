@@ -596,7 +596,7 @@ export function Profile() {
                 This action is <strong>irreversible</strong>. Your managed subscription must already be ended. By continuing, you will permanently delete:
                 <ul className="list-disc pl-5 mt-3 space-y-1 text-xs">
                   <li>Your business profile and settings</li>
-                  <li>All generated websites and custom domains</li>
+                  <li>All managed websites and custom domains</li>
                   <li>All CRM leads and customer data</li>
                   <li>All scheduled appointments and blog posts</li>
                 </ul>

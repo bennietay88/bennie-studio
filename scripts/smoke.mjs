@@ -33,7 +33,7 @@ if (baseUrl) {
   const marketingMetadata = {
     "/": "Managed Websites That Generate Enquiries",
     "/pricing": "Managed Website Plans and Pricing",
-    "/generate-preview": "Free Website Preview Generator",
+    "/generate-preview": "Website Direction",
   };
 
   const response = await fetch(new URL("/api/health-check", baseUrl));

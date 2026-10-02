@@ -194,7 +194,7 @@ export default function LoginPage({
                 >
                   Privacy Policy
                 </button>
-                . I understand that AI-generated content requires human review.
+                . I understand that website drafts and changes are reviewed before publication.
               </label>
             </div>
           )}

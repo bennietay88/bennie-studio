@@ -365,7 +365,7 @@ test("connects the website growth review to a prefilled preview", async ({ page 
   await expect(page.getByText("The next enquiry action is not obvious")).toBeVisible();
   await expect(page.getByText(/\/100/)).toHaveCount(0);
 
-  await page.getByRole("link", { name: "See My Website Preview" }).click();
+  await page.getByRole("link", { name: "See recommended website direction" }).click();
   await expect(page).toHaveURL(/\/generate-preview/);
   await expect(page.getByText("Example Studio", { exact: true }).first()).toBeVisible();
   await expect(page.getByLabel("Current website URL")).toHaveValue("https://example.test");
@@ -401,7 +401,7 @@ test("presents Managed Website as the primary homepage offer", async ({ page }) 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /A better website\s+without the hassle\./i })).toBeVisible();
   await expect(page.getByText(/Strategy, design and human review/i).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /Start your website/i }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /See what we.d improve/i }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true }).first()).toBeVisible();
   await expect(page.getByText(/\$49/)).toHaveCount(0);
 });

@@ -41,16 +41,16 @@ const routeData: Record<MarketingRoute, { title: string; description: string; im
       </main>`,
   },
   "/generate-preview": {
-    title: "Free Website Preview Generator | Bennie Studio",
+    title: "Website Direction | Bennie Studio",
     description: "Share your business basics and get a tailored website direction before choosing a Bennie Studio managed website package.",
     image: "/og-preview.svg",
     body: `
       <main class="marketing-shell">
-        <p class="eyebrow">Free website preview</p>
+        <p class="eyebrow">Website direction</p>
         <h1>See a website direction built around your business.</h1>
         <p class="lede">Tell us your business type, location, service and enquiry goal. We’ll show the structure, proof and next action your website should lead with.</p>
-        <form class="preview-form" action="/generate-preview" method="get"><label>Your name<input name="name" required /></label><label>Business name<input name="business" required /></label><label>Email for your preview<input name="email" type="email" required /></label><label>City or area served<input name="city" required /></label><label>Main service<input name="service" required /></label><label>Do you currently have a website?<select name="websiteStatus"><option value="yes">I have a website</option><option value="no">I do not have a website yet</option></select></label><label>Biggest website problem<select name="problem" required><option value="">Choose one</option><option>No website</option><option>Outdated design</option><option>Not generating enquiries</option><option>Hard to update</option><option>Poor mobile experience</option><option>Slow website</option><option>Services are unclear</option><option>Low local visibility</option><option>No clear CTA</option><option>Other</option></select></label><button class="primary" type="submit">Generate my free preview</button></form>
-        <section><h2>What happens next</h2><ol><li>Generate a tailored preview direction.</li><li>Review the recommended managed website package.</li><li>Carry the preview brief into checkout or book a scope review.</li></ol><p>No card is required for the preview.</p></section>
+        <form class="preview-form" action="/generate-preview" method="get"><label>Your name<input name="name" required /></label><label>Business name<input name="business" required /></label><label>Email for your preview<input name="email" type="email" required /></label><label>City or area served<input name="city" required /></label><label>Main service<input name="service" required /></label><label>Do you currently have a website?<select name="websiteStatus"><option value="yes">I have a website</option><option value="no">I do not have a website yet</option></select></label><label>Biggest website problem<select name="problem" required><option value="">Choose one</option><option>No website</option><option>Outdated design</option><option>Not generating enquiries</option><option>Hard to update</option><option>Poor mobile experience</option><option>Slow website</option><option>Services are unclear</option><option>Low local visibility</option><option>No clear CTA</option><option>Other</option></select></label><button class="primary" type="submit">See my website direction</button></form>
+        <section><h2>What happens next</h2><ol><li>Prepare a tailored website direction.</li><li>Review the recommended direction and managed website package.</li><li>Carry the preview brief into checkout or book a scope review.</li></ol><p>No card is required to see the direction.</p></section>
       </main>`,
   },
 };

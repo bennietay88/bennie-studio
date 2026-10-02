@@ -373,7 +373,7 @@ export function IndustryContentManager() {
           <h3 className="mt-5 text-xl font-black text-slate-950">No {config.label.toLowerCase()} yet</h3>
           <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-600">
             Add the first {config.singularLabel.toLowerCase()} and it can be used by your
-            generated website sections and enquiry flows.
+            website sections and enquiry flows.
           </p>
           <Button onClick={openNewItem} className="mt-6 rounded-2xl bg-indigo-600 px-5">
             <Plus className="mr-2 h-4 w-4" />

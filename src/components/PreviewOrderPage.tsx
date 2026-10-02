@@ -173,10 +173,10 @@ export function PreviewOrderPage() {
         <section className="brand-shell py-16 sm:py-24">
           <div className="mx-auto max-w-2xl border border-[#dfe2ea] bg-white p-8 sm:p-10">
             <p className="brand-kicker">Preview required</p>
-            <h1 className="mt-4 text-4xl font-semibold text-[#141821]">Start with your website preview.</h1>
+            <h1 className="mt-4 text-4xl font-semibold text-[#141821]">Start with your website direction.</h1>
             <p className="mt-4 leading-7 text-[#526071]">The order is linked to the exact preview and lead information you already supplied, so there is no account form to repeat.</p>
             <Link to="/generate-preview" className="mt-7 inline-flex min-h-12 items-center bg-[#141821] px-6 font-semibold text-white">
-              Generate preview <ArrowRight className="ml-2 h-4 w-4" />
+              Prepare website direction <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </div>
         </section>
@@ -189,13 +189,13 @@ export function PreviewOrderPage() {
       <section className="border-b border-[#dfe2ea] bg-white">
         <div className="brand-shell py-10 sm:py-14">
           <Link to="/generate-preview" className="inline-flex items-center text-sm font-semibold text-[#526071] hover:text-[#141821]">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to preview
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to website direction
           </Link>
           <div className="mt-7 grid gap-8 lg:grid-cols-12 lg:items-end">
             <div className="lg:col-span-8">
               <p className="brand-kicker">Launch this website</p>
               <h1 className="mt-4 max-w-4xl text-[clamp(2.8rem,6vw,5.5rem)] font-semibold leading-[0.96] tracking-[-0.055em] text-[#141821]">
-                Turn the {businessName} preview into the real site.
+                Turn the {businessName} direction into the real site.
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-[#526071]">
                 Your business information and preview are already connected to this order. Pay first, then activate your account and confirm the remaining launch details.

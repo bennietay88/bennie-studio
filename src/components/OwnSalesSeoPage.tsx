@@ -442,7 +442,7 @@ export default function OwnSalesSeoPage() {
                       {plan.features.map((feature) => <div key={feature} className={isGrowth ? "flex gap-2 text-sm !text-white/80" : "flex gap-2 text-sm text-[#526071]"}><Check className={isGrowth ? "mt-0.5 h-4 w-4 shrink-0 text-[#b9b1ff]" : "mt-0.5 h-4 w-4 shrink-0 text-emerald-600"} /><span>{feature}</span></div>)}
                     </div>
                     <Button onClick={()=>{localStorage.setItem("bt_checkout_intent",JSON.stringify({productSlug:plan.id,market:revenueMarket,currency:coreOffer.prices[revenueMarket].currency,billingCycle:"monthly",savedAt:new Date().toISOString()}));navigate("/generate-preview");}} className={isGrowth ? "mt-6 min-h-12 w-full bg-white px-5 font-semibold text-[#101827] hover:bg-[#eeebff]" : "mt-6 min-h-12 w-full bg-[#141821] px-5 font-semibold text-white hover:bg-[#5746e8]"}>
-                      Generate preview <ArrowRight className="ml-2 h-4 w-4" />
+                      See website direction <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </article>
                 );

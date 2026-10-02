@@ -118,7 +118,7 @@ export const PLAN_POSITIONING: Record<BlueprintPlanId, string> = {
 export const UPGRADE_MESSAGES: Record<BlueprintPlanId, string> = {
   starter: "Upgrade to Managed Website for dedicated service and contact pages, stronger trust sections, and ongoing support.",
   business: "Upgrade to Website Growth for landing-page support, local SEO expansion, and priority improvements.",
-  growth: "You are already on the ongoing Website Growth structure for this generator.",
+  growth: "You are already on the ongoing Website Growth structure for this website.",
 };
 
 const startCase = (value: string) =>

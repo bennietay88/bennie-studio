@@ -269,7 +269,7 @@ export default function WaasSamplePage() {
             onClick={() => navigate("/generate-preview")}
             className={`rounded-xl px-5 font-bold text-white ${sample.button}`}
           >
-            Generate Similar
+            See my website direction
           </Button>
         </nav>
       </header>
@@ -292,7 +292,7 @@ export default function WaasSamplePage() {
                 className={`h-14 rounded-2xl px-8 font-semibold text-white ${sample.button}`}
               >
                 <MessageCircle className="mr-2 h-5 w-5" />
-                Generate Similar Website
+                See a direction for my business
               </Button>
               <Button
                 variant="outline"
@@ -430,7 +430,7 @@ export default function WaasSamplePage() {
                 onClick={() => navigate("/generate-preview")}
                 className={`h-14 rounded-2xl px-8 font-semibold text-white ${sample.button}`}
               >
-                Generate Similar Preview
+                See a direction for my business
               </Button>
             </div>
           </div>

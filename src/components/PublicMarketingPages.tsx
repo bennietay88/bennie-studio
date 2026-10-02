@@ -23,6 +23,7 @@ import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { SafeImage } from "./SafeImage";
+import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
 import { WAAS_TEMPLATE_PACKS } from "../constants/nicheTemplates";
 import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
 import {
@@ -105,8 +106,8 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
     description: "Strategy, messaging, design, build, human review, launch and ongoing website support for service businesses.",
   },
   about: {
-    title: "About Bennie Studio | Human-Reviewed Website Service",
-    description: "Learn how Bennie Studio combines modern website production with strategy, human review and managed support.",
+    title: "About Bennie Studio | Managed Website Studio",
+    description: "Learn how Bennie Studio plans, designs, reviews, launches and manages websites for service businesses.",
   },
   resources: {
     title: "Website Resources | Bennie Studio",
@@ -600,7 +601,7 @@ function ServicesPage() {
         title="Strategic websites designed to win trust and enquiries."
         copy="Bennie Studio combines strategy, messaging, design, build and human review into one managed website service for businesses that need something more considered than a generic template."
         icon={Sparkles}
-        primaryLabel="Start your website"
+        primaryLabel="See a website direction"
         primaryHref="/generate-preview"
         secondaryLabel="View the work"
         secondaryHref="/case-studies"
@@ -613,7 +614,7 @@ function ServicesPage() {
             <p className="brand-kicker">What we do</p>
             <h2 className="mt-4">More than a website. A strategic business asset.</h2>
             <p className="brand-copy mt-6">A strong website should make the offer easier to understand, make the business easier to trust and make the next step obvious. That is the job of the whole system.</p>
-            <Link to="/generate-preview" className={`${primaryCtaClass} mt-7`}>Start your website <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <Link to="/generate-preview" className={`${primaryCtaClass} mt-7`}>See a website direction <ArrowRight className="ml-2 h-4 w-4" /></Link>
           </div>
           <div className="bt-premium-card overflow-hidden bg-[#0b1020] p-3 lg:col-span-7">
             <img src="/images/studio-process-v2.png" alt="Bennie Studio website strategy and design system" className="aspect-[16/10] w-full rounded-[1rem] object-cover" loading="lazy" decoding="async" />
@@ -694,7 +695,7 @@ function AboutPage() {
         title="A modern studio for businesses that need a better website."
         copy="Bennie Studio is built around a simple idea: businesses should be able to get thoughtful strategy, strong design and reliable website delivery without managing a complicated agency process."
         icon={ShieldCheck}
-        primaryLabel="Start your website"
+        primaryLabel="See a website direction"
         primaryHref="/generate-preview"
         secondaryLabel="See how it works"
         secondaryHref="/how-it-works"
@@ -814,7 +815,7 @@ function ResourcesPage() {
             <h2 className="mt-4 max-w-3xl">See what a better direction could look like for your business.</h2>
             <p className="brand-copy mt-5">A preview gives you something concrete to react to before you choose a managed plan.</p>
           </div>
-          <Link to="/generate-preview" className={primaryCtaClass}>Start your website <ArrowRight className="ml-2 h-4 w-4" /></Link>
+          <Link to="/generate-preview" className={primaryCtaClass}>See a website direction <ArrowRight className="ml-2 h-4 w-4" /></Link>
         </div>
       </section>
     </>
@@ -830,7 +831,7 @@ function ContactPage() {
         icon={MessageCircle}
         primaryLabel="Book a free call"
         primaryHref="/book-demo"
-        secondaryLabel="Start with a preview"
+        secondaryLabel="See a website direction"
         secondaryHref="/generate-preview"
       />
 
@@ -841,7 +842,7 @@ function ContactPage() {
             <p className="brand-kicker mt-6">Prefer to start asynchronously?</p>
             <h2 className="mt-4">Send a clear business brief.</h2>
             <p className="brand-copy mt-5">The preview flow captures your business, goals, current website and visual direction so the conversation starts with useful context instead of a blank page.</p>
-            <Link to="/generate-preview" className={`${primaryCtaClass} mt-7`}>Start your website <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <Link to="/generate-preview" className={`${primaryCtaClass} mt-7`}>See a website direction <ArrowRight className="ml-2 h-4 w-4" /></Link>
           </article>
           <article className="bt-premium-card bg-[#0d1426] p-7 text-white sm:p-9">
             <MessageCircle className="h-6 w-6 text-[#b9b1ff]" />
@@ -956,7 +957,7 @@ function PricingPage() {
         title="Professional websites for growing service businesses."
         copy="Choose the level of website management and growth support that fits where your business is now. The current setup fee, monthly service and commitment are shown before checkout."
         icon={Sparkles}
-        primaryLabel="Get my free website preview"
+        primaryLabel="See recommended website direction"
         primaryHref="/generate-preview"
         secondaryLabel="See how it works"
         secondaryHref="/how-it-works"
@@ -2342,20 +2343,20 @@ function GeneratePreviewPage() {
         <div className="brand-shell relative grid gap-12 py-16 sm:py-20 lg:grid-cols-12 lg:items-center lg:py-24">
           <div className="lg:col-span-6">
             <p className="brand-kicker !text-[#9f93ff]">
-              {salesMode ? "Bennie Studio sales preview" : "From idea to a working website"}
+              {salesMode ? "Bennie Studio sales preview" : "Website direction for your business"}
             </p>
             {salesMode ? <p className="mt-3 inline-flex rounded-lg border border-[#9f93ff]/40 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-[#b9b1ff]">Internal mode · prospect email not required</p> : null}
             <h1 className="mt-5 !max-w-[13ch] !text-white">
-              Start your website with a <span className="bs3-accent">clear brief.</span>
+              Start with a <span className="bs3-accent">clear business brief.</span>
             </h1>
             <p className="brand-copy mt-6 !max-w-[39rem] !text-white/68">
-              Answer a few simple questions and we’ll create a tailored website direction and working preview — shaped around the business, reviewed by a human and ready for useful feedback.
+              Answer a few simple questions and Bennie Studio will prepare an initial website direction — shaped around the business and ready for useful feedback.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               {[
-                ["3–5 minutes", "Simple and guided"],
-                ["Live preview", "See the direction clearly"],
-                ["Human review", "Real expertise, real feedback"],
+                ["Clear brief", "Simple and guided"],
+                ["Website direction", "See the proposal clearly"],
+                ["Studio review", "Human judgement before launch"],
               ].map(([title,copy]) => (
                 <div key={title} className="flex gap-3">
                   <span className="bs3-icon !bg-white/[0.06] !text-[#9f93ff]"><Check className="h-4 w-4" /></span>
@@ -2365,17 +2366,7 @@ function GeneratePreviewPage() {
             </div>
           </div>
 
-          <div className="relative lg:col-span-6">
-            <div className="bs3-device-wrap">
-              <div className="bs3-laptop">
-                <div className="bs3-browser-dots"><span /><span /><span /></div>
-                <img src="/images/studio-hero-v2.png" alt="" loading="eager" decoding="async" />
-                <div className="bs3-screen-label">Personalised website direction</div>
-              </div>
-              <div className="bs3-phone" aria-hidden="true"><div className="bs3-phone-notch" /><img src="/images/studio-hero-v2.png" alt="" /></div>
-            </div>
-            <p className="absolute right-3 top-1 hidden rotate-[-6deg] text-sm font-semibold italic text-[#c9c4ff] lg:block">Your preview<br/>in minutes ↙</p>
-          </div>
+          <div className="relative lg:col-span-6"><WebsiteConceptVisual title="Tailored website direction" eyebrow="Bennie Studio concept" index={0} className="rounded-[1.25rem] border border-white/10 shadow-2xl" /><p className="mt-3 text-right text-xs font-semibold text-white/45">Initial direction · refined before launch</p></div>
         </div>
       </section>
 
@@ -2392,7 +2383,7 @@ function GeneratePreviewPage() {
               ["01", "Business", "Tell us about the business"],
               ["02", "Pages", "Shape the website scope"],
               ["03", "Style", "Choose the visual direction"],
-              ["04", "Finish", "Review and build the preview"],
+              ["04", "Finish", "Review the direction"],
             ].map(([number, label, copy], index) => (
               <div key={number} className={index === 0 ? "rounded-xl bg-[#0d1426] p-4 text-white" : "rounded-xl border border-[#eceef3] bg-white p-4"}>
                 <p className={index === 0 ? "text-xs font-bold !text-[#b9b1ff]" : "text-xs font-bold text-[#6252f4]"}>{number}</p>
@@ -2741,7 +2732,7 @@ function GeneratePreviewPage() {
               <div className="bt-premium-card overflow-hidden bg-white p-5 sm:p-6">
                 <div className="flex items-center gap-3">
                   <LayoutTemplate className="h-5 w-5 text-[#5746e8]" />
-                  <div><p className="text-sm font-bold text-[#172033]">Your website preview</p><p className="mt-1 text-xs text-[#657186]">Based on your answers, we create a tailored direction.</p></div>
+                  <div><p className="text-sm font-bold text-[#172033]">Your recommended website direction</p><p className="mt-1 text-xs text-[#657186]">Based on your answers, Bennie Studio prepares a tailored direction.</p></div>
                 </div>
                 <div className="mt-5 overflow-hidden rounded-xl border border-[#e5e8ef] bg-[#0b1020] p-2">
                   <img src="/images/studio-insights-v2.png" alt="" className="aspect-[16/10] w-full rounded-lg object-cover" />
@@ -2803,7 +2794,7 @@ function GeneratePreviewPage() {
       <section className="bg-white border-y border-[#e6e8ef]">
         <div className="brand-shell py-14 sm:py-16">
           <div className="grid gap-7 lg:grid-cols-12 lg:items-end">
-            <div className="lg:col-span-6"><p className="brand-kicker">What happens next</p><h2 className="mt-4">From your answers to a working preview.</h2></div>
+            <div className="lg:col-span-6"><p className="brand-kicker">What happens next</p><h2 className="mt-4">From your answers to a practical website direction.</h2></div>
             <p className="brand-copy lg:col-span-6">The brief becomes a practical plan and an interactive website direction, so you can see the decision before committing to a build.</p>
           </div>
           <div className="mt-9 grid gap-4 md:grid-cols-4">
@@ -2819,21 +2810,21 @@ function GeneratePreviewPage() {
 
       <section className="bs3-dark">
         <div className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center">
-          <div className="lg:col-span-5"><p className="brand-kicker !text-[#9f93ff]">Built around real people</p><h2 className="mt-4 !text-white">A human-guided process, from start to finish.</h2><p className="mt-5 text-base leading-8 text-white/62">The system helps prepare the direction. A real person still reviews the business context, design quality and next-step logic before launch.</p><Link to="/how-it-works" className={`${primaryCtaClass} mt-7`}>See how it works<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
-          <div className="lg:col-span-7"><div className="bs3-image-card !border-white/10"><img src="/images/studio-process-v2.png" alt="Bennie Studio human website review process" /><span className="bs3-float-card right-[8%] top-[15%]">Designed around your business.</span></div></div>
+          <div className="lg:col-span-5"><p className="brand-kicker !text-[#9f93ff]">Built around real people</p><h2 className="mt-4 !text-white">A human-guided process, from start to finish.</h2><p className="mt-5 text-base leading-8 text-white/62">Modern tools speed up preparation, but Bennie Studio reviews the business context, design quality and next-step logic before launch.</p><Link to="/how-it-works" className={`${primaryCtaClass} mt-7`}>See how it works<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
+          <div className="lg:col-span-7"><div className="rounded-[1.2rem] border border-white/12 bg-white/[0.04] p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#9f93ff]">Studio review before launch</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{["Business context","Message clarity","Responsive design","Forms and primary actions","Customer approval","Launch QA"].map((item)=><div key={item} className="border border-white/10 bg-white/[0.035] p-4 text-sm font-semibold text-white/72"><Check className="mb-3 h-4 w-4 text-[#9f93ff]" />{item}</div>)}</div></div></div>
         </div>
       </section>
 
       <section className="brand-shell brand-section">
         <div className="grid gap-10 lg:grid-cols-12 lg:items-start">
-          <div className="lg:col-span-4"><p className="brand-kicker">Common questions</p><h2 className="mt-4">Questions before you get started?</h2><p className="brand-copy mt-5">A few quick answers before you build the preview.</p></div>
+          <div className="lg:col-span-4"><p className="brand-kicker">Common questions</p><h2 className="mt-4">Questions before you get started?</h2><p className="brand-copy mt-5">A few quick answers before you review the direction.</p></div>
           <div className="lg:col-span-8 divide-y divide-[#e5e8ef] overflow-hidden rounded-2xl border border-[#e5e8ef] bg-white">
             {[
-              ["Is there a commitment to get a preview?","No. The preview is designed to give you something concrete to evaluate before deciding what to do next."],
-              ["How long does it take to get my preview?","The form itself is short. Generation time depends on whether we are reading an existing website and how much source material is available."],
-              ["Can I request changes to the preview?","Yes. The preview is a direction to review, not a locked final design."],
-              ["Do you work with businesses in my industry?","The system supports several service-business categories and adapts page structure to the selected business type."],
-              ["What happens after I approve the preview?","The next step is to confirm the appropriate commercial scope, delivery plan and launch requirements."],
+              ["Is there a commitment to see a website direction?","No. The direction is designed to give you something concrete to evaluate before deciding what to do next."],
+              ["How long does it take to prepare the direction?","The form itself is short. Preparation time depends on whether we are reading an existing website and how much source material is available."],
+              ["Can I request changes to the direction?","Yes. The direction is a starting point to review, not a locked final design."],
+              ["Do you work with businesses in my industry?","The studio supports several service-business categories and adapts page structure to the selected business type."],
+              ["What happens after I approve the direction?","The next step is to confirm the appropriate commercial scope, delivery plan and launch requirements."],
             ].map(([q,a])=><details key={q} className="px-5"><summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-sm font-semibold text-[#172033]">{q}<span className="text-[#6252f4]">+</span></summary><p className="pb-5 text-sm leading-7 text-[#657186]">{a}</p></details>)}
           </div>
         </div>
@@ -2842,7 +2833,7 @@ function GeneratePreviewPage() {
       {generating ? (
         <section className="border-y border-[#dfe2ea] bg-white">
           <div className="brand-shell py-12">
-            <p className="brand-kicker">Building the redesign</p>
+            <p className="brand-kicker">Preparing the website direction</p>
             <h2 className="mt-3 max-w-3xl text-2xl font-semibold tracking-[-0.025em] text-[#141821] sm:text-3xl">
               {previewMode === "website"
                 ? "Keeping the useful parts of the current site and rebuilding the weak ones."
@@ -2891,7 +2882,7 @@ function GeneratePreviewPage() {
                     {businessTypeLabel}
                   </span>
                   <span className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-slate-300">
-                    Interactive {generatedWebsite.pages.length}-page preview
+                    {generatedWebsite.pages.length}-page website concept
                   </span>
                 </div>
                 <h2 className="mt-5 max-w-4xl text-3xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">
@@ -2977,7 +2968,7 @@ function GeneratePreviewPage() {
 
               <div className="bg-[#edf0f5] p-2 sm:p-4">
                 <div className={(previewDevice==="mobile" ? "max-w-[430px] " : previewDevice==="tablet" ? "max-w-[820px] " : "max-w-full ") + (previewExpanded ? "max-h-[92vh] " : "max-h-[980px] ") + "bt-static-preview mx-auto overflow-y-auto bg-white shadow-[0_20px_55px_-35px_rgba(15,23,42,.5)] transition-all"}>
-                  <React.Suspense fallback={<div className="grid min-h-[40rem] place-items-center text-[#526071]">Rendering website…</div>}>
+                  <React.Suspense fallback={<div className="grid min-h-[40rem] place-items-center text-[#526071]">Preparing website…</div>}>
                     <PublicWebsiteRenderer initialData={generatedWebsite} />
                   </React.Suspense>
                 </div>
@@ -3002,7 +2993,7 @@ function GeneratePreviewPage() {
               <div className="sticky bottom-4 z-20 mt-8 flex flex-col gap-4 rounded-2xl border border-white/10 bg-[#08101f]/95 p-4 shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="font-semibold text-white">Want this direction turned into your managed website?</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-300">Your preview details carry into the next step, so you do not start from zero again.</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-300">Your brief and website direction carry into the next step, so you do not start from zero again.</p>
                 </div>
                 <Button onClick={() => action("click_launch_after_preview","Launch This Website","/preview-order")} className="min-h-12 bg-[#5746e8] px-6 font-semibold text-white hover:bg-[#4938db]">
                   Continue with this website <ArrowRight className="ml-2 h-4 w-4" />
@@ -3104,7 +3095,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
     }));
     trackPublicEvent({
       eventType: "audit_preview_clicked",
-      label: "Get my free website preview",
+      label: "See recommended website direction",
       target: "/generate-preview",
         metadata: { recommendedProduct, findingCount: report.findings.length },
     });
@@ -3221,7 +3212,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
             <p className="mt-1 text-sm font-bold text-slate-600">Choose your billing currency during checkout.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Link to="/generate-preview" onClick={savePreviewContext} className={primaryCtaClass}>Get my free website preview</Link>
+            <Link to="/generate-preview" onClick={savePreviewContext} className={primaryCtaClass}>See recommended website direction</Link>
             <Link to="/pricing#plans" onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: recommendedProduct, target: "/pricing", metadata: { recommendedProduct } })} className={secondaryCtaClass}>View Pricing</Link>
           </div>
         </div>
@@ -3365,11 +3356,14 @@ function WebsiteAuditPage() {
           </div>
         </div>
         <form onSubmit={submitAudit} className="rounded-xl border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-200">Free audit request</p>
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-200">Free website review</p>
           <h2 className="mt-4 text-3xl font-bold text-white">Start with your website</h2>
           <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
             No payment required. Share your website, business name and email. We will review the page evidence first; industry, phone and notes are optional.
           </p>
+          <Link to="/generate-preview?mode=business" className="mt-4 inline-flex text-sm font-semibold text-indigo-200 underline decoration-indigo-300/40 underline-offset-4 hover:text-white">
+            No website yet? Start with a business brief instead.
+          </Link>
           {submitted ? (
             <div className="mt-8 rounded-3xl bg-emerald-500/10 p-6 text-emerald-100">
               <Check className="mb-4 h-8 w-8" />
@@ -3395,11 +3389,11 @@ function WebsiteAuditPage() {
                 <Link
                   to="/generate-preview"
                   onClick={() => {
-                    trackPublicEvent({ eventType: "click_audit_thank_you_generate_preview", label: "Audit Thank You Generate Preview", target: "/generate-preview" });
+                    trackPublicEvent({ eventType: "click_audit_thank_you_direction", label: "Audit Thank You Website Direction", target: "/generate-preview" });
                   }}
                   className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/25 bg-white/10 px-6 py-3 text-sm font-bold text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
                 >
-                  Get my free website preview
+                  See recommended website direction
                 </Link>
               </div>}
             </div>
@@ -3417,7 +3411,7 @@ function WebsiteAuditPage() {
               <Input aria-label="WhatsApp or phone" placeholder="WhatsApp / phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
               <Textarea aria-label="Website improvement notes" placeholder="What do you want the website to improve? (optional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-28 rounded-2xl bg-white text-slate-950" />
               <Button type="submit" disabled={submitting} className="h-13 rounded-2xl bg-indigo-600 font-bold uppercase tracking-widest hover:bg-indigo-500">
-                {submitting ? "Reviewing Website..." : "Start My Website Growth Review"} <Search className="ml-2 h-4 w-4" />
+                {submitting ? "Reviewing Website..." : "Review my website"} <Search className="ml-2 h-4 w-4" />
               </Button>
             </div>
           )}
@@ -3586,7 +3580,7 @@ function PublicInfoPage({ kind }: { kind: "about" | "services" | "resources" | "
       eyebrow: "CONTACT BENNIE STUDIO",
       title: "Tell us what the website needs to help your business do.",
       body: "Start with a free website preview or book a short scope conversation. No card is required to see the initial direction.",
-      action: "Get my free website preview",
+      action: "See recommended website direction",
       href: "/generate-preview",
     },
   }[kind];
@@ -3619,7 +3613,12 @@ export default function PublicMarketingPages() {
     "how-it-works": ["Let's build a website that moves your business forward.", "A clear process, expert guidance and a reviewed launch."],
     "case-studies": ["Let's build a website that works for you.", "Modern design, better structure and a direction grounded in the business."],
     "generate-preview": ["See your website before you commit.", "Complete the brief, review the direction and decide what you want to do next."],
-  } as Record<string, [string, string]>)[pageKind] || ["See it applied to your business.", "Generate a real website direction first, then decide the right next step."];
+  } as Record<string, [string, string]>)[pageKind] || ["See it applied to your business.", "Start with a website review, then decide the right next step."];
+
+  const finalPrimary = pageKind === "website-audit"
+    ? { label: "See a website direction", href: "/generate-preview" }
+    : { label: "Get a website review", href: "/website-audit" };
+  const finalSecondary = { label: "View our work", href: "/case-studies" };
 
   const pageContent =
     nichePage
@@ -3664,8 +3663,8 @@ export default function PublicMarketingPages() {
             <p className="mt-4 max-w-2xl text-base !text-white/75">{finalCta[1]}</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-            <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#ece9ff]">Start your website <ArrowRight className="ml-2 h-4 w-4" /></Button>
-            <Button onClick={() => navigate("/book-demo")} variant="outline" className="min-h-12 border-white/30 bg-white/[0.04] px-6 font-semibold text-white hover:bg-white/10 hover:text-white">Book a free review</Button>
+            <Button onClick={() => navigate(finalPrimary.href)} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#ece9ff]">{finalPrimary.label} <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Button onClick={() => navigate(finalSecondary.href)} variant="outline" className="min-h-12 border-white/30 bg-white/[0.04] px-6 font-semibold text-white hover:bg-white/10 hover:text-white">{finalSecondary.label}</Button>
           </div>
         </div>
       </section>
