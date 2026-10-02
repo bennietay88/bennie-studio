@@ -3778,20 +3778,143 @@ export function WebsiteEditor({
                           </div>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold text-slate-600">
-                            Background Image URL
-                          </Label>
-                          <Input
-                            className="h-11 rounded-2xl bg-white"
-                            placeholder="https://..."
+                        <div className="space-y-4 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <Label className="text-xs font-black text-slate-800">
+                                Replace entire section background
+                              </Label>
+                              <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                                Upload one full-width artwork for this section. The section content stays editable on top, so a design refresh does not require changing every image placeholder.
+                              </p>
+                            </div>
+                            {section.settings?.backgroundFullBleed && section.settings?.backgroundImage ? (
+                              <Badge className="shrink-0 border-0 bg-indigo-600 text-white">Full section</Badge>
+                            ) : null}
+                          </div>
+
+                          <ImageUpload
+                            label=""
+                            description="Upload a full-section background artwork (JPG, PNG or WebP, max 5MB). It will cover the complete section."
                             value={section.settings?.backgroundImage || ""}
-                            onChange={(e) =>
+                            onUpload={(url) =>
                               updateSectionSettings(page.id, section.id, {
-                                backgroundImage: e.target.value,
+                                backgroundImage: url,
+                                backgroundFullBleed: Boolean(url),
+                                ...(url && section.settings?.backgroundOverlay === undefined
+                                  ? { backgroundOverlay: 15 }
+                                  : {}),
                               })
                             }
                           />
+
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                              Or paste background image URL
+                            </Label>
+                            <Input
+                              className="h-10 rounded-xl bg-white text-xs"
+                              placeholder="https://..."
+                              value={section.settings?.backgroundImage || ""}
+                              onChange={(e) => {
+                                const backgroundImage = e.target.value;
+                                updateSectionSettings(page.id, section.id, {
+                                  backgroundImage,
+                                  backgroundFullBleed: Boolean(backgroundImage.trim()),
+                                });
+                              }}
+                            />
+                          </div>
+
+                          {section.settings?.backgroundImage ? (
+                            <div className="grid gap-4 border-t border-indigo-100 pt-4 sm:grid-cols-2">
+                              <div className="space-y-2">
+                                <Label className="text-xs font-bold text-slate-600">Focal position</Label>
+                                <Select
+                                  value={section.settings?.backgroundPosition || "center"}
+                                  onValueChange={(backgroundPosition) =>
+                                    updateSectionSettings(page.id, section.id, { backgroundPosition })
+                                  }
+                                >
+                                  <SelectTrigger className="h-10 rounded-xl bg-white text-xs font-semibold">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="center">Center</SelectItem>
+                                    <SelectItem value="top">Top</SelectItem>
+                                    <SelectItem value="bottom">Bottom</SelectItem>
+                                    <SelectItem value="left">Left</SelectItem>
+                                    <SelectItem value="right">Right</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between gap-3">
+                                  <Label className="text-xs font-bold text-slate-600">Overlay</Label>
+                                  <Badge variant="outline" className="text-[9px] font-black">
+                                    {Math.max(0, Math.min(90, Number(section.settings?.backgroundOverlay ?? 15)))}%
+                                  </Badge>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="90"
+                                  step="5"
+                                  value={Math.max(0, Math.min(90, Number(section.settings?.backgroundOverlay ?? 15)))}
+                                  onChange={(event) =>
+                                    updateSectionSettings(page.id, section.id, {
+                                      backgroundOverlay: Number(event.target.value),
+                                    })
+                                  }
+                                  className="h-10 w-full cursor-pointer accent-indigo-600"
+                                  aria-label="Section background overlay strength"
+                                />
+                              </div>
+
+                              <div className="space-y-2 sm:col-span-2">
+                                <Label className="text-xs font-bold text-slate-600">Overlay color</Label>
+                                <div className="flex gap-2">
+                                  <Input
+                                    type="color"
+                                    className="h-10 w-12 cursor-pointer rounded-xl p-1"
+                                    value={section.settings?.backgroundOverlayColor || "#000000"}
+                                    onChange={(event) =>
+                                      updateSectionSettings(page.id, section.id, {
+                                        backgroundOverlayColor: event.target.value,
+                                      })
+                                    }
+                                  />
+                                  <Input
+                                    className="h-10 flex-1 rounded-xl bg-white text-xs font-mono"
+                                    value={section.settings?.backgroundOverlayColor || "#000000"}
+                                    onChange={(event) =>
+                                      updateSectionSettings(page.id, section.id, {
+                                        backgroundOverlayColor: event.target.value,
+                                      })
+                                    }
+                                  />
+                                </div>
+                              </div>
+
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="sm:col-span-2 h-10 rounded-xl bg-white text-xs font-bold"
+                                onClick={() =>
+                                  updateSectionSettings(page.id, section.id, {
+                                    backgroundImage: "",
+                                    backgroundFullBleed: false,
+                                    backgroundPosition: "center",
+                                    backgroundOverlay: 15,
+                                    backgroundOverlayColor: "#000000",
+                                  })
+                                }
+                              >
+                                Restore original section background
+                              </Button>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
 

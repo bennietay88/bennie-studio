@@ -291,6 +291,12 @@ export interface WebsiteSection {
     paddingLeft?: number;
     paddingRight?: number;
     backgroundImage?: string;
+    /** Opt-in full-section artwork mode. Legacy backgroundImage behaviour stays unchanged unless this is true. */
+    backgroundFullBleed?: boolean;
+    backgroundPosition?: "center" | "top" | "bottom" | "left" | "right";
+    /** 0-90 percentage overlay applied above full-section background artwork. */
+    backgroundOverlay?: number;
+    backgroundOverlayColor?: string;
     isContained?: boolean;
     textAlign?: "left" | "center" | "right";
     sourceDriven?: boolean;

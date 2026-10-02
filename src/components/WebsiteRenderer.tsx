@@ -1619,10 +1619,10 @@ export function WebsiteRenderer({
       styles.color = settings.textColor;
     }
 
-    if (settings.backgroundImage) {
+    if (settings.backgroundImage && !settings.backgroundFullBleed) {
       styles.backgroundImage = `url(${settings.backgroundImage})`;
       styles.backgroundSize = "cover";
-      styles.backgroundPosition = "center";
+      styles.backgroundPosition = settings.backgroundPosition || "center";
     }
 
     // Apply custom padding if enabled
@@ -2676,7 +2676,8 @@ export function WebsiteRenderer({
             ?.filter((s: WebsiteSection) => s.isVisible !== false)
             .map((section: WebsiteSection, idx: number) => {
               const sectionId = section.type;
-              switch (section.type) {
+              const renderedSection = (() => {
+                switch (section.type) {
                 case "problem":
                   return (
                     <motion.section
@@ -5500,7 +5501,61 @@ export function WebsiteRenderer({
                 }
                 default:
                   return null;
-              }
+                }
+              })();
+
+              if (!renderedSection) return null;
+
+              const fullSectionBackground =
+                Boolean(section.settings?.backgroundFullBleed) &&
+                Boolean(section.settings?.backgroundImage);
+
+              if (!fullSectionBackground) return renderedSection;
+
+              const overlayStrength = Math.max(
+                0,
+                Math.min(90, Number(section.settings?.backgroundOverlay ?? 15)),
+              );
+
+              const renderedWithTransparentSurface = React.isValidElement(renderedSection)
+                ? React.cloneElement(renderedSection as React.ReactElement<any>, {
+                    className: cn(
+                      (renderedSection.props as any)?.className,
+                      "!bg-transparent relative z-[1]",
+                    ),
+                    style: {
+                      ...((renderedSection.props as any)?.style || {}),
+                      backgroundColor: "transparent",
+                      backgroundImage: "none",
+                    },
+                  })
+                : renderedSection;
+
+              return (
+                <div
+                  key={`section-background-${section.id || `${section.type}-${idx}`}`}
+                  className="relative isolate overflow-hidden"
+                  data-section-background="full"
+                  style={{
+                    backgroundImage: `url(${section.settings?.backgroundImage})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: section.settings?.backgroundPosition || "center",
+                    backgroundRepeat: "no-repeat",
+                  }}
+                >
+                  {overlayStrength > 0 ? (
+                    <div
+                      className="pointer-events-none absolute inset-0 z-0"
+                      aria-hidden="true"
+                      style={{
+                        backgroundColor: section.settings?.backgroundOverlayColor || "#000000",
+                        opacity: overlayStrength / 100,
+                      }}
+                    />
+                  ) : null}
+                  {renderedWithTransparentSurface}
+                </div>
+              );
             })}
 
           {activePageSlug === "blog" && (
