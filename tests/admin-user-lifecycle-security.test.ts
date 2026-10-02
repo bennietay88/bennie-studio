@@ -21,8 +21,12 @@ test("super admin user lifecycle mutations are server-owned", () => {
   assert.equal(directProfileMutation.test(admin), false);
 });
 
-test("permanent admin deletion removes auth user without cascading owned businesses", () => {
+test("permanent admin deletion preserves businesses, cleans internal states, and protects live billing", () => {
   assert.match(api, /Terminate this user before permanently deleting the account/);
+  assert.match(api, /stripe_subscription_id/);
+  assert.match(api, /requiresBillingCancellation: true/);
+  assert.match(api, /internalProtectedBusinessIds/);
+  assert.match(api, /subscription_status: "canceled"/);
   assert.match(api, /\.from\("businesses"\)[\s\S]{0,300}?\.update\(\{ owner_id: null \}\)/);
   assert.match(api, /\.from\("api_keys"\)[\s\S]{0,300}?\.update\(\{ created_by: null \}\)/);
   assert.match(api, /supabaseAdmin\.auth\.admin\.deleteUser\(userId\)/);
