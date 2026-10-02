@@ -557,9 +557,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           owner_id: user.id,
           status: "active",
           plan: selectedPackage,
-          // New customers are activated through the paid checkout flow. Keep
-          // legacy trial records untouched, but do not create new trial states.
-          subscription_status: "pending",
+          // "incomplete" is the canonical pre-activation billing state used
+          // by the production database and checkout lifecycle.
+          subscription_status: "incomplete",
           marketing_status: "none",
           marketing_plan: "none",
         };
@@ -994,10 +994,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       }, 500);
     } catch (err: any) {
       console.error("Onboarding submission failed:", err);
-      setError(
-        err.message || "Your onboarding brief could not be submitted.",
-      );
-      toast.error(err.message || "Onboarding submission failed. Please retry.");
+      const rawMessage = String(err?.message || "");
+      const friendlyMessage =
+        /businesses_subscription_status_check|violates check constraint/i.test(rawMessage)
+          ? "We couldn't initialize your account billing state. Please retry in a moment."
+          : rawMessage || "Your onboarding brief could not be submitted.";
+      setError(friendlyMessage);
+      toast.error(friendlyMessage);
     } finally {
       setLoading(false);
     }
@@ -1946,7 +1949,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-                      <Card className="bg-slate-950 border-none rounded-[3rem] overflow-hidden relative group">
+                      <Card className="min-w-0 bg-slate-950 border-none rounded-[3rem] overflow-hidden relative group">
                         <div className="absolute top-0 right-0 h-64 w-64 bg-indigo-500/10 blur-[100px] group-hover:bg-indigo-500/20 transition-all duration-700" />
                         <CardContent className="p-12 space-y-10 relative z-10">
                           <div className="flex items-center justify-between">
@@ -2025,7 +2028,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         </CardContent>
                       </Card>
 
-                      <div className="flex flex-col justify-between py-4 space-y-8">
+                      <div className="min-w-0 flex flex-col justify-between py-4 space-y-8">
                         <div className="space-y-6 px-4">
                           <div className="flex gap-4 items-start">
                             <div className="h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center shrink-0 border border-slate-100">
@@ -2090,14 +2093,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                           onClick={submitOnboarding}
                           data-testid="onboarding-launch"
                           disabled={!agreed || loading || intakeBlockers.length > 0}
-                          className={`w-full h-20 text-xl font-black uppercase tracking-[0.3em] shadow-2xl rounded-[2rem] group transition-all ${
+                          className={`w-full min-h-16 sm:min-h-20 px-5 sm:px-8 py-4 text-sm sm:text-base lg:text-lg font-black uppercase tracking-[0.08em] sm:tracking-[0.12em] shadow-2xl rounded-[2rem] group transition-all whitespace-normal text-center leading-tight ${
                               agreed 
                                 ? "bg-slate-950 hover:bg-black text-white shadow-slate-200" 
                                 : "bg-slate-200 text-slate-400 cursor-not-allowed"
                             }`}
                           >
                             Submit onboarding brief{" "}
-                            <Zap className={`ml-4 h-6 w-6 group-hover:scale-125 transition-transform ${agreed ? "text-indigo-500" : "text-slate-400"}`} />
+                            <Zap className={`ml-2 sm:ml-3 h-5 w-5 sm:h-6 sm:w-6 shrink-0 group-hover:scale-125 transition-transform ${agreed ? "text-indigo-500" : "text-slate-400"}`} />
                           </Button>
                           <button
                             onClick={handleBack}
