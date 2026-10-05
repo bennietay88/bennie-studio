@@ -90,7 +90,9 @@ export function MyWebsitePage() {
   ];
   const healthyCount = healthChecks.filter((check) => check.ok).length;
   const isLive = ["live", "published"].includes(String(website?.status || ""));
-  const needsApproval = Boolean(website) && !Boolean(deliveryQuality.customerApprovalRecorded) && !isLive;
+  const internalReviewComplete = Boolean(deliveryQuality.internalCreativeReviewApproved && deliveryQuality.responsiveQaApproved);
+  const needsApproval = Boolean(website) && internalReviewComplete && !Boolean(deliveryQuality.customerApprovalRecorded) && !isLive;
+  const isPreparing = Boolean(website) && !internalReviewComplete && !isLive;
 
   return (
     <div className="space-y-6">
@@ -122,18 +124,18 @@ export function MyWebsitePage() {
         </div>
       </section>
 
-      <section className={`rounded-3xl border p-6 ${needsApproval ? "border-amber-200 bg-amber-50" : "border-emerald-100 bg-emerald-50/60"}`}>
-        <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${needsApproval ? "text-amber-700" : "text-emerald-700"}`}>Needs your attention</p>
+      <section className={`rounded-3xl border p-6 ${needsApproval ? "border-amber-200 bg-amber-50" : isPreparing ? "border-[#dfdcff] bg-[#f7f6ff]" : "border-emerald-100 bg-emerald-50/60"}`}>
+        <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${needsApproval ? "text-amber-700" : isPreparing ? "text-[#6252f4]" : "text-emerald-700"}`}>{needsApproval ? "Needs your attention" : isPreparing ? "Bennie Studio is preparing your draft" : "Website status"}</p>
         <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-xl font-black text-slate-950">{needsApproval ? "Your latest website draft is ready for review." : "Nothing is waiting for your approval right now."}</h2>
+            <h2 className="text-xl font-black text-slate-950">{needsApproval ? "Your latest website draft is ready for review." : isPreparing ? "Your website is being prepared for review." : "Nothing is waiting for your approval right now."}</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              {needsApproval ? "Review the current version and send one clear round of feedback so the build can keep moving." : "You can still request an update whenever your content, offer, contact details, or priorities change."}
+              {needsApproval ? "Review the current version and send one clear round of feedback so the build can keep moving." : isPreparing ? "Bennie Studio is completing creative and responsive checks before sending you the preview." : "You can still request an update whenever your content, offer, contact details, or priorities change."}
             </p>
           </div>
-          <Link to={needsApproval ? "/dashboard/approvals" : "/dashboard/update-requests"} className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-bold text-white hover:bg-[#5746e8]">
+          {isPreparing ? <span className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-[#dfdcff] bg-white px-5 text-sm font-bold text-[#6252f4]">Preparing your review</span> : <Link to={needsApproval ? "/dashboard/approvals" : "/dashboard/update-requests"} className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-bold text-white hover:bg-[#5746e8]">
             {needsApproval ? "Review website" : "Request an update"}
-          </Link>
+          </Link>}
         </div>
       </section>
 
