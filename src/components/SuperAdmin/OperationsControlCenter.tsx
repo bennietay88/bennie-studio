@@ -135,8 +135,20 @@ export function OperationsControlCenter() {
       dueDate: string;
       nextAction: string;
       priority: "high" | "medium" | "normal";
+      dueAt?: number;
+      overdue?: boolean;
       href: string;
     }> = [];
+    const now = Date.now();
+    const parseDueAt = (value: unknown) => {
+      if (typeof value !== "string" || !value) return undefined;
+      const time = new Date(value).getTime();
+      return Number.isFinite(time) ? time : undefined;
+    };
+    const formatDueDate = (value: unknown, fallback: string) => {
+      const dueAt = parseDueAt(value);
+      return dueAt ? new Date(dueAt).toLocaleDateString() : fallback;
+    };
 
     businesses.forEach((business) => {
       if (["unpaid", "past_due"].includes(String(business.subscription_status || "")) || business.status === "unpaid") {
@@ -193,9 +205,11 @@ export function OperationsControlCenter() {
           planOrService: project.type || "Website project",
           status: project.status || "open",
           owner: ["customer_review", "changes_requested"].includes(project.status) ? "Customer" : "Delivery",
-          dueDate: project.due_date || project.launch_target_at || "Set due date",
+          dueAt: parseDueAt(project.due_date || project.launch_target_at),
+          overdue: Boolean(parseDueAt(project.due_date || project.launch_target_at) && parseDueAt(project.due_date || project.launch_target_at)! < now),
+          dueDate: formatDueDate(project.due_date || project.launch_target_at, "Set due date"),
           nextAction: ["customer_review", "changes_requested"].includes(project.status) ? "Collect customer feedback or approval" : "Move project to next delivery stage",
-          priority: project.priority === "high" ? "high" : "normal",
+          priority: project.priority === "high" || Boolean(parseDueAt(project.due_date || project.launch_target_at) && parseDueAt(project.due_date || project.launch_target_at)! < now) ? "high" : "normal",
           href: "/admin/projects",
         });
       });
@@ -210,9 +224,11 @@ export function OperationsControlCenter() {
           planOrService: "Website approval",
           status: approval.status,
           owner: approval.status === "pending" ? "Customer" : "Delivery",
-          dueDate: approval.requested_at ? new Date(approval.requested_at).toLocaleDateString() : "Awaiting response",
+          dueAt: parseDueAt(approval.requested_at),
+          overdue: Boolean(parseDueAt(approval.requested_at) && parseDueAt(approval.requested_at)! < now - 3 * 86400000),
+          dueDate: formatDueDate(approval.requested_at, "Awaiting response"),
           nextAction: approval.status === "pending" ? "Follow up for approval decision" : "Review requested changes",
-          priority: approval.status === "changes_requested" ? "high" : "medium",
+          priority: approval.status === "changes_requested" || Boolean(parseDueAt(approval.requested_at) && parseDueAt(approval.requested_at)! < now - 3 * 86400000) ? "high" : "medium",
           href: "/admin/operations",
         });
       });
@@ -227,9 +243,11 @@ export function OperationsControlCenter() {
           planOrService: request.businesses?.plan || "Monthly update",
           status: request.status || "submitted",
           owner: request.status === "waiting_for_customer" ? "Customer" : "Support",
-          dueDate: request.estimated_response_at ? new Date(request.estimated_response_at).toLocaleDateString() : "2 business days",
+          dueAt: parseDueAt(request.estimated_response_at),
+          overdue: Boolean(parseDueAt(request.estimated_response_at) && parseDueAt(request.estimated_response_at)! < now),
+          dueDate: formatDueDate(request.estimated_response_at, "2 business days"),
           nextAction: request.status === "submitted" ? "Acknowledge and assign update request" : "Move request to next status",
-          priority: request.priority === "high" || request.priority === "launch_blocker" ? "high" : "normal",
+          priority: request.priority === "high" || request.priority === "launch_blocker" || Boolean(parseDueAt(request.estimated_response_at) && parseDueAt(request.estimated_response_at)! < now) ? "high" : "normal",
           href: "/admin/update-requests",
         });
       });
@@ -244,7 +262,9 @@ export function OperationsControlCenter() {
           planOrService: "Billing",
           status: event.event_type,
           owner: "Billing",
-          dueDate: event.due_at ? new Date(event.due_at).toLocaleDateString() : "Now",
+          dueAt: parseDueAt(event.due_at),
+          overdue: Boolean(parseDueAt(event.due_at) && parseDueAt(event.due_at)! < now),
+          dueDate: formatDueDate(event.due_at, "Now"),
           nextAction: "Resolve billing lifecycle event",
           priority: "high",
           href: "/admin/operations",
@@ -252,7 +272,14 @@ export function OperationsControlCenter() {
       });
 
     const priorityRank = { high: 0, medium: 1, normal: 2 };
-    return items.sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]).slice(0, 25);
+    return items.sort((a, b) => {
+      if (Boolean(a.overdue) !== Boolean(b.overdue)) return a.overdue ? -1 : 1;
+      if (priorityRank[a.priority] !== priorityRank[b.priority]) return priorityRank[a.priority] - priorityRank[b.priority];
+      if (a.dueAt && b.dueAt) return a.dueAt - b.dueAt;
+      if (a.dueAt) return -1;
+      if (b.dueAt) return 1;
+      return 0;
+    }).slice(0, 25);
   }, [approvals, billingEvents, businesses, projects, updateRequests]);
 
   const togglePermission = async (member: any, permission: string) => {
@@ -356,6 +383,7 @@ export function OperationsControlCenter() {
           <CardTitle className="flex items-center gap-2 text-xl">
             <ShieldCheck className="h-5 w-5 text-indigo-600" /> Command Queue
           </CardTitle>
+          <p className="mt-1 text-sm font-semibold text-slate-500">Overdue work is surfaced first, followed by high-impact items and the nearest due date.</p>
         </CardHeader>
         <CardContent className="space-y-3">
           {commandItems.map((item) => (
@@ -375,7 +403,7 @@ export function OperationsControlCenter() {
               </div>
               <div>
                 <p className="text-sm font-black text-slate-950">{item.nextAction}</p>
-                <p className="text-xs font-semibold text-slate-500">Due: {item.dueDate}</p>
+                <p className={item.overdue ? "text-xs font-black text-red-600" : "text-xs font-semibold text-slate-500"}>{item.overdue ? "Overdue · " : "Due: "}{item.dueDate}</p>
               </div>
               <Button size="sm" variant="outline" className="rounded-xl" onClick={() => window.location.assign(item.href)}>Open</Button>
             </div>
