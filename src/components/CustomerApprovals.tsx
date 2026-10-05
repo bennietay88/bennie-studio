@@ -88,7 +88,7 @@ export function CustomerApprovals() {
           <div className="space-y-2"><Label>Section (optional)</Label><Input value={sectionReference} onChange={(e) => setSectionReference(e.target.value)} placeholder="e.g. Hero / Services" /></div>
         </div>
         <div className="space-y-2"><Label>Feedback or approval note</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="List the exact changes needed, or leave an optional approval note." className="min-h-32"/></div>
-        <p className="text-xs font-semibold text-slate-500">Requesting changes creates a launch-blocking Bennie Studio work item tied to this website and, when supplied, the page and section above.</p>
+        <p className="text-xs font-semibold text-slate-500">Your feedback is grouped into one Bennie Studio revision task tied to this website. Add a page or section when it helps us act quickly.</p>
       </div><DialogFooter><Button variant="outline" onClick={() => respond("changes_requested")} disabled={saving}><MessageSquare className="mr-2 h-4 w-4"/>Request Changes</Button><Button onClick={() => respond("approved")} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700">{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}<CheckCircle2 className="mr-2 h-4 w-4"/>Approve Version</Button></DialogFooter></DialogContent></Dialog>
     </div>
   );
