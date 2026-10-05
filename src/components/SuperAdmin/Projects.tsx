@@ -120,9 +120,73 @@ export function Projects() {
     }
   };
 
+  const validateProjectStage = async (project: any, status: string) => {
+    const productionStages = ["in_production", "internal_review", "customer_review", "changes_requested", "approved", "domain_setup", "live"];
+    if (productionStages.includes(status) && !project.assigned_to) {
+      toast.error("Assign an internal owner before moving this project into production.");
+      return false;
+    }
+    if (productionStages.includes(status) && !project.target_launch_date) {
+      toast.error("Set a target launch date before moving this project into production.");
+      return false;
+    }
+    if (status === "customer_review" && !["internal_review", "changes_requested", "customer_review"].includes(String(project.status || ""))) {
+      toast.error("Complete Internal Review before sending the website to the customer.");
+      return false;
+    }
+    if (status === "customer_review") {
+      const { data: website, error: websiteError } = await supabase
+        .from("websites")
+        .select("id,seo")
+        .eq("business_id", project.business_id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const deliveryQuality = website?.seo?.deliveryQuality || {};
+      if (websiteError || !website || !deliveryQuality.internalCreativeReviewApproved || !deliveryQuality.responsiveQaApproved) {
+        toast.error("Customer review blocked: complete the creative and responsive internal review checklist first.");
+        return false;
+      }
+    }
+    if (status === "approved" && !["customer_review", "changes_requested", "approved"].includes(String(project.status || ""))) {
+      toast.error("Customer review must happen before the project can be marked approved.");
+      return false;
+    }
+    if (status === "live") {
+      const { data: website, error: websiteError } = await supabase
+        .from("websites")
+        .select("id,status,seo,updated_at")
+        .eq("business_id", project.business_id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (websiteError) {
+        toast.error("Could not verify website launch readiness.");
+        return false;
+      }
+      const deliveryQuality = website?.seo?.deliveryQuality || {};
+      const launchGate = website?.seo?.launchGate || {};
+      const missing = [
+        !deliveryQuality.internalCreativeReviewApproved ? "internal creative review" : "",
+        !deliveryQuality.responsiveQaApproved ? "responsive QA" : "",
+        !deliveryQuality.customerApprovalRecorded ? "customer approval" : "",
+        launchGate.ready !== true ? "recorded launch gate" : "",
+      ].filter(Boolean);
+      if (!website || missing.length) {
+        toast.error(`Launch blocked: complete ${missing.join(", ") || "website readiness"} first.`);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const saveProject = async () => {
     if (!editing?.business_id || !editing?.title.trim()) return toast.error("Customer and project title are required");
     setSaving(true);
+    if (!(await validateProjectStage(editing, String(editing.status || "")))) {
+      setSaving(false);
+      return;
+    }
     const payload = {
       business_id: editing.business_id,
       title: editing.title.trim(),
@@ -137,10 +201,20 @@ export function Projects() {
     };
     if (editing.id && reviewWebsite?.id) {
       setReviewSaving(true);
+      const { data: freshWebsite, error: freshWebsiteError } = await supabase
+        .from("websites")
+        .select("id,seo")
+        .eq("id", reviewWebsite.id)
+        .maybeSingle();
+      if (freshWebsiteError || !freshWebsite) {
+        setReviewSaving(false);
+        setSaving(false);
+        return toast.error("Could not refresh the latest review evidence.");
+      }
       const nextSeo = {
-        ...(reviewWebsite.seo || {}),
+        ...(freshWebsite.seo || {}),
         deliveryQuality: {
-          ...(reviewWebsite.seo?.deliveryQuality || {}),
+          ...(freshWebsite.seo?.deliveryQuality || {}),
           ...reviewChecklist,
           lastReviewedAt: new Date().toISOString(),
         },
