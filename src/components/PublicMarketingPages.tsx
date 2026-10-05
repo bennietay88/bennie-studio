@@ -2350,7 +2350,7 @@ function GeneratePreviewPage() {
               Start with a <span className="bs3-accent">clear business brief.</span>
             </h1>
             <p className="brand-copy mt-6 !max-w-[39rem] !text-white/68">
-              Answer a few simple questions and Bennie Studio will prepare an initial website direction — shaped around the business and ready for useful feedback.
+              Start with the essentials and Bennie Studio will prepare an initial website direction — shaped around the business and ready for useful feedback.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               {[
