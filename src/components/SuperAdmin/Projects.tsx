@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Briefcase, CalendarDays, Loader2, Plus, Search, Settings } from "lucide-react";
+import { Briefcase, CalendarDays, CheckCircle2, Loader2, Plus, Search, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
 import { Badge } from "../ui/badge";
@@ -33,6 +33,19 @@ const LEGACY_STAGE_MAP: Record<string, [string, number]> = {
 const labelFor = (status: string) => STAGES.find(([id]) => id === status)?.[1] || LEGACY_STAGE_MAP[status]?.[0] || status?.replace(/_/g, " ");
 const progressFor = (status: string) => STAGES.find(([id]) => id === status)?.[2] || LEGACY_STAGE_MAP[status]?.[1] || 0;
 
+const INTERNAL_REVIEW_ITEMS = [
+  {
+    key: "internalCreativeReviewApproved",
+    label: "Creative direction approved",
+    detail: "Message, hierarchy, imagery and visual direction have received an internal pass.",
+  },
+  {
+    key: "responsiveQaApproved",
+    label: "Responsive QA passed",
+    detail: "Desktop, tablet and mobile behaviour have been checked before customer review.",
+  },
+] as const;
+
 const blankProject = {
   id: "",
   business_id: "",
@@ -54,6 +67,9 @@ export function Projects() {
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
+  const [reviewWebsite, setReviewWebsite] = useState<any | null>(null);
+  const [reviewChecklist, setReviewChecklist] = useState<Record<string, boolean>>({});
+  const [reviewSaving, setReviewSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -73,13 +89,36 @@ export function Projects() {
 
   const visibleProjects = useMemo(() => projects.filter((project) => !query || [project.title, project.businesses?.name, project.status].filter(Boolean).some((value) => String(value).toLowerCase().includes(query.toLowerCase()))), [projects, query]);
 
-  const openNew = () => setEditing({ ...blankProject });
-  const openEdit = (project: any) => setEditing({
-    ...blankProject,
-    ...project,
-    assigned_to: project.assigned_to || "",
-    target_launch_date: project.target_launch_date || "",
-  });
+  const openNew = () => {
+    setReviewWebsite(null);
+    setReviewChecklist({});
+    setEditing({ ...blankProject });
+  };
+
+  const openEdit = async (project: any) => {
+    setEditing({
+      ...blankProject,
+      ...project,
+      assigned_to: project.assigned_to || "",
+      target_launch_date: project.target_launch_date || "",
+    });
+    setReviewWebsite(null);
+    setReviewChecklist({});
+    const { data: website } = await supabase
+      .from("websites")
+      .select("id,seo,updated_at")
+      .eq("business_id", project.business_id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (website) {
+      setReviewWebsite(website);
+      setReviewChecklist({
+        internalCreativeReviewApproved: Boolean(website.seo?.deliveryQuality?.internalCreativeReviewApproved),
+        responsiveQaApproved: Boolean(website.seo?.deliveryQuality?.responsiveQaApproved),
+      });
+    }
+  };
 
   const saveProject = async () => {
     if (!editing?.business_id || !editing?.title.trim()) return toast.error("Customer and project title are required");
@@ -96,12 +135,33 @@ export function Projects() {
       admin_notes: editing.admin_notes?.trim() || null,
       updated_at: new Date().toISOString(),
     };
+    if (editing.id && reviewWebsite?.id) {
+      setReviewSaving(true);
+      const nextSeo = {
+        ...(reviewWebsite.seo || {}),
+        deliveryQuality: {
+          ...(reviewWebsite.seo?.deliveryQuality || {}),
+          ...reviewChecklist,
+          lastReviewedAt: new Date().toISOString(),
+        },
+      };
+      const { error: reviewError } = await supabase
+        .from("websites")
+        .update({ seo: nextSeo, updated_at: new Date().toISOString() })
+        .eq("id", reviewWebsite.id);
+      setReviewSaving(false);
+      if (reviewError) {
+        setSaving(false);
+        return toast.error(reviewError.message);
+      }
+    }
+
     const result = editing.id
       ? await supabase.from("projects").update(payload).eq("id", editing.id)
       : await supabase.from("projects").insert(payload);
     setSaving(false);
     if (result.error) return toast.error(result.error.message);
-    toast.success(editing.id ? "Production project updated" : "Production project created");
+    toast.success(editing.id ? "Production project and review evidence updated" : "Production project created");
     setEditing(null);
     load();
   };
@@ -119,6 +179,20 @@ export function Projects() {
     if (status === "customer_review" && !["internal_review", "changes_requested", "customer_review"].includes(String(project.status || ""))) {
       toast.error("Complete Internal Review before sending the website to the customer.");
       return;
+    }
+    if (status === "customer_review") {
+      const { data: website, error: websiteError } = await supabase
+        .from("websites")
+        .select("id,seo")
+        .eq("business_id", project.business_id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const deliveryQuality = website?.seo?.deliveryQuality || {};
+      if (websiteError || !website || !deliveryQuality.internalCreativeReviewApproved || !deliveryQuality.responsiveQaApproved) {
+        toast.error("Customer review blocked: complete the creative and responsive internal review checklist first.");
+        return;
+      }
     }
     if (status === "approved" && !["customer_review", "changes_requested", "approved"].includes(String(project.status || ""))) {
       toast.error("Customer review must happen before the project can be marked approved.");
@@ -165,7 +239,25 @@ export function Projects() {
       <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"/><Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search customer, project, or stage..." className="h-11 rounded-xl pl-10"/></div>
       {loading ? <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600"/></div> : <div className="space-y-4">{visibleProjects.map((project) => <Card key={project.id} className="rounded-2xl border-slate-200"><CardContent className="space-y-5 p-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-black text-slate-950">{project.title || project.businesses?.name}</p><Badge variant="outline">{labelFor(project.status)}</Badge><Badge className={project.priority === "high" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600"}>{project.priority || "medium"}</Badge></div><p className="mt-1 text-xs font-semibold text-slate-500">{project.businesses?.name} · Owner: {project.assignee?.full_name || project.assignee?.email || "Unassigned"}</p></div><div className="w-full max-w-sm"><div className="mb-2 flex justify-between text-xs font-bold text-slate-500"><span>{labelFor(project.status)}</span><span>{progressFor(project.status)}%</span></div><Progress value={progressFor(project.status)} className="h-2"/></div><Button variant="outline" onClick={() => openEdit(project)} className="rounded-xl"><Settings className="mr-2 h-4 w-4"/>Configure</Button></div><div className="flex flex-wrap gap-2">{STAGES.map(([id, label]) => <Button key={id} size="sm" variant={project.status === id ? "default" : "outline"} onClick={() => moveProject(project, id)} className="rounded-xl text-xs">{label}</Button>)}</div>{project.target_launch_date && <p className="flex items-center gap-2 text-xs font-semibold text-slate-500"><CalendarDays className="h-4 w-4"/>Target launch: {new Date(`${project.target_launch_date}T00:00:00`).toLocaleDateString()}</p>}</CardContent></Card>)}{!visibleProjects.length && <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center"><Briefcase className="mx-auto h-10 w-10 text-slate-300"/><p className="mt-3 font-bold text-slate-600">No production projects found.</p></div>}</div>}
 
-      <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}><DialogContent className="max-w-xl rounded-3xl"><DialogHeader><DialogTitle>{editing?.id ? "Configure Production Project" : "Create Production Project"}</DialogTitle><DialogDescription>Set the customer, owner, delivery stage, launch target, and blockers.</DialogDescription></DialogHeader>{editing && <div className="grid gap-4 py-3 sm:grid-cols-2"><Field label="Customer"><Select value={editing.business_id} onValueChange={(value) => { const business = businesses.find((item) => item.id === value); setEditing({ ...editing, business_id: value, package_name: business?.plan || editing.package_name, title: editing.title || `${business?.name || "Customer"} Managed Website` }); }}><SelectTrigger><SelectValue placeholder="Select customer"/></SelectTrigger><SelectContent>{businesses.map((business) => <SelectItem key={business.id} value={business.id}>{business.name}</SelectItem>)}</SelectContent></Select></Field><Field label="Project owner"><Select value={editing.assigned_to || "unassigned"} onValueChange={(value) => setEditing({ ...editing, assigned_to: value === "unassigned" ? "" : value })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="unassigned">Unassigned</SelectItem>{staff.map((member) => <SelectItem key={member.id} value={member.id}>{member.full_name || member.email}</SelectItem>)}</SelectContent></Select></Field><div className="sm:col-span-2"><Field label="Project title"><Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })}/></Field></div><Field label="Stage"><Select value={editing.status} onValueChange={(value) => setEditing({ ...editing, status: value })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{STAGES.map(([id, label]) => <SelectItem key={id} value={id}>{label}</SelectItem>)}</SelectContent></Select></Field><Field label="Priority"><Select value={editing.priority} onValueChange={(value) => setEditing({ ...editing, priority: value })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select></Field><Field label="Plan / package"><Input value={editing.package_name} onChange={(e) => setEditing({ ...editing, package_name: e.target.value })}/></Field><Field label="Target launch"><Input type="date" value={editing.target_launch_date} onChange={(e) => setEditing({ ...editing, target_launch_date: e.target.value })}/></Field><div className="sm:col-span-2"><Field label="Blockers and internal notes"><Textarea value={editing.admin_notes} onChange={(e) => setEditing({ ...editing, admin_notes: e.target.value })} className="min-h-28"/></Field></div></div>}<DialogFooter><Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button><Button onClick={saveProject} disabled={saving} className="bg-indigo-600">{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Save Project</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}><DialogContent className="max-w-xl rounded-3xl"><DialogHeader><DialogTitle>{editing?.id ? "Configure Production Project" : "Create Production Project"}</DialogTitle><DialogDescription>Set the customer, owner, delivery stage, launch target, and blockers.</DialogDescription></DialogHeader>{editing && <div className="grid gap-4 py-3 sm:grid-cols-2"><Field label="Customer"><Select value={editing.business_id} onValueChange={(value) => { const business = businesses.find((item) => item.id === value); setEditing({ ...editing, business_id: value, package_name: business?.plan || editing.package_name, title: editing.title || `${business?.name || "Customer"} Managed Website` }); }}><SelectTrigger><SelectValue placeholder="Select customer"/></SelectTrigger><SelectContent>{businesses.map((business) => <SelectItem key={business.id} value={business.id}>{business.name}</SelectItem>)}</SelectContent></Select></Field><Field label="Project owner"><Select value={editing.assigned_to || "unassigned"} onValueChange={(value) => setEditing({ ...editing, assigned_to: value === "unassigned" ? "" : value })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="unassigned">Unassigned</SelectItem>{staff.map((member) => <SelectItem key={member.id} value={member.id}>{member.full_name || member.email}</SelectItem>)}</SelectContent></Select></Field><div className="sm:col-span-2"><Field label="Project title"><Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })}/></Field></div><Field label="Stage"><Select value={editing.status} onValueChange={(value) => setEditing({ ...editing, status: value })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{STAGES.map(([id, label]) => <SelectItem key={id} value={id}>{label}</SelectItem>)}</SelectContent></Select></Field><Field label="Priority"><Select value={editing.priority} onValueChange={(value) => setEditing({ ...editing, priority: value })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select></Field><Field label="Plan / package"><Input value={editing.package_name} onChange={(e) => setEditing({ ...editing, package_name: e.target.value })}/></Field><Field label="Target launch"><Input type="date" value={editing.target_launch_date} onChange={(e) => setEditing({ ...editing, target_launch_date: e.target.value })}/></Field>{editing.id && reviewWebsite && <div className="sm:col-span-2 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+  <div className="flex items-start justify-between gap-3">
+    <div>
+      <p className="text-sm font-black text-slate-950">Internal review checklist</p>
+      <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">Complete the two high-value checks before sending this website to the customer.</p>
+    </div>
+    <Badge className="bg-white text-indigo-700 hover:bg-white">{Object.values(reviewChecklist).filter(Boolean).length}/{INTERNAL_REVIEW_ITEMS.length}</Badge>
+  </div>
+  <div className="mt-3 space-y-2">
+    {INTERNAL_REVIEW_ITEMS.map((item) => {
+      const checked = Boolean(reviewChecklist[item.key]);
+      return <button key={item.key} type="button" aria-pressed={checked} onClick={() => setReviewChecklist((current) => ({ ...current, [item.key]: !checked }))} className="flex w-full items-start gap-3 rounded-xl border border-white bg-white/80 p-3 text-left transition hover:border-indigo-300">
+        <span className={"mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full " + (checked ? "bg-emerald-500 text-white" : "border border-slate-300 text-transparent")}><CheckCircle2 className="h-4 w-4" /></span>
+        <span><span className="block text-sm font-bold text-slate-900">{item.label}</span><span className="mt-0.5 block text-xs font-medium leading-5 text-slate-500">{item.detail}</span></span>
+      </button>;
+    })}
+  </div>
+</div>}
+<div className="sm:col-span-2"><Field label="Blockers and internal notes"><Textarea value={editing.admin_notes} onChange={(e) => setEditing({ ...editing, admin_notes: e.target.value })} className="min-h-28"/></Field></div></div>}<DialogFooter><Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button><Button onClick={saveProject} disabled={saving || reviewSaving} className="bg-indigo-600">{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Save Project</Button></DialogFooter></DialogContent></Dialog>
     </div>
   );
 }
