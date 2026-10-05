@@ -1075,6 +1075,35 @@ export default function DashboardOverview() {
           </div>
         </section>
 
+        <section className="rounded-3xl border border-indigo-100 bg-white p-5 shadow-sm md:p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                <ArrowRight className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700">
+                  Your next step
+                </p>
+                <h2 className="mt-1 text-lg font-black text-slate-950">
+                  {nextAction.title}
+                </h2>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  {nextAction.owner} · {nextAction.due}
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => navigate(nextAction.href)}
+              className="shrink-0 rounded-2xl bg-indigo-600 px-5 font-black hover:bg-indigo-700"
+            >
+              Continue
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </section>
+
         {business?.commercial_product_slug === "managed-website" && (
           <section className="flex flex-col gap-4 rounded-3xl border border-indigo-100 bg-indigo-50/70 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
