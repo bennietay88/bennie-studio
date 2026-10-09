@@ -2370,6 +2370,17 @@ function GeneratePreviewPage() {
         </div>
       </section>
 
+      <section className="border-b border-[#dfe2ea] bg-white" aria-label="See a website preview example before sharing details">
+        <div className="brand-shell flex flex-col gap-6 py-8 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#5746e8]">Preview an example first</p>
+            <h2 className="mt-2 text-2xl font-semibold text-[#141821]">See the format before you share your business details.</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#526071]">Explore a clearly labelled dental clinic demonstration. It is a concept, not a real client website or an evidence-backed performance result. You do not need to enter contact information to view it.</p>
+          </div>
+          <Link to="/portfolio/sample/dental" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Preview sample before lead form", target: "/portfolio/sample/dental" })} className="inline-flex min-h-12 shrink-0 items-center justify-center bg-[#141821] px-6 text-sm font-semibold text-white hover:bg-[#5746e8]">View sample website <ArrowRight className="ml-2 h-4 w-4" /></Link>
+        </div>
+      </section>
+
       <section id="preview-brief" className="bt-section-soft">
         <div className="brand-shell py-14 sm:py-20">
           <div className="mb-10 max-w-3xl">
@@ -2683,7 +2694,7 @@ function GeneratePreviewPage() {
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-[#141821]">{previewMode === "website" ? "2" : "4"}</span>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#b9b1ff]">{salesMode ? "Build prospect preview" : "Send the preview"}</p>
-                    <h3 className="mt-1 text-2xl font-semibold text-white">{salesMode ? "Generate a shareable direction." : "Where should we send it?"}</h3>
+                    <h3 className="mt-1 text-2xl font-semibold text-white">{salesMode ? "Generate a shareable direction." : "Link the preview to your email."}</h3>
                   </div>
                 </div>
 
@@ -2693,7 +2704,7 @@ function GeneratePreviewPage() {
                     <Input id="preview-name" autoComplete="name" value={form.contactName} onChange={(e) => setForm({...form, contactName:e.target.value})} placeholder="Your name" className="h-12 rounded-xl border-white/15 bg-white text-[#141821]" />
                   </div>
                   <div>
-                    <label htmlFor="preview-email" className="mb-2 block text-sm font-semibold text-slate-200">Email</label>
+                    <label htmlFor="preview-email" className="mb-2 block text-sm font-semibold text-slate-200">Email <span className="font-normal text-slate-400">(required to link your preview)</span></label>
                     <Input id="preview-email" required={!salesMode} autoComplete="email" type="email" value={form.email} onChange={(e) => setForm({...form, email:e.target.value})} placeholder="you@business.com" className="h-12 rounded-xl border-white/15 bg-white text-[#141821]" />
                   </div>
                   <div className="sm:col-span-2">
@@ -2723,7 +2734,7 @@ function GeneratePreviewPage() {
                   <Button type="submit" disabled={generating} className="min-h-14 rounded-xl bg-[#6758ff] px-7 text-base font-bold text-white shadow-[0_18px_35px_-22px_rgba(103,88,255,.85)] hover:bg-[#7a6cff]">
                     {generating ? "Building your website preview..." : previewMode === "website" ? "Build preview from my URL" : "Build preview from business details"} <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <p className="max-w-md text-xs leading-5 text-slate-400">No card required. Your details are used to prepare and follow up on the preview. Nothing is published without your approval.</p>
+                  <p className="max-w-md text-xs leading-5 text-slate-400">No card required. Your email links the preview to your request and allows us to follow up about it. No card is required and nothing is published without approval. See our privacy policy.</p>
                 </div>
               </section>
             </div>
