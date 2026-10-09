@@ -8,7 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
-import { CHECKOUT_CURRENCIES, COMMERCIAL_FALLBACK_PRODUCTS, CommercialMarket, CommercialProduct, type CommercialCurrency, formatCommitmentLabel, formatCommercialMoney, getCommercialPrice, getMinimumTermMonths, marketForCurrency } from "../lib/commercialPricing";
+import { CHECKOUT_CURRENCIES, COMMERCIAL_FALLBACK_PRODUCTS, CommercialMarket, CommercialProduct, type CommercialCurrency, formatCommitmentLabel, formatCommercialMoney, getCommercialPrice, getMinimumTermMonths, marketForCurrency, COMMERCIAL_MARKETS, getStoredMarket } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { PLAN_DELIVERY_STANDARDS, PUBLIC_DELIVERY_PROMISES, type PublicPlanSlug } from "../constants/deliveryStandards";
@@ -20,13 +20,15 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   const { profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const publicMarket: CommercialMarket = "INTL";
+  // The same market is used in public cards, the order review and Stripe checkout.
+  // Avoid showing a USD teaser followed by a different regional price at checkout.
+  const [checkoutCurrency, setCheckoutCurrency] = React.useState<CommercialCurrency>(() => COMMERCIAL_MARKETS[getStoredMarket()].currency);
+  const publicMarket: CommercialMarket = marketForCurrency(checkoutCurrency);
   const { products, loading } = usePublicCommercialPricing(publicMarket);
   const [billingCycle, setBillingCycle] = React.useState<"monthly" | "yearly">("monthly");
   const [pendingProduct, setPendingProduct] = React.useState<CommercialProduct | null>(null);
   const [termsAccepted, setTermsAccepted] = React.useState(false);
-  const [checkoutCurrency, setCheckoutCurrency] = React.useState<CommercialCurrency>("USD");
-  const checkoutMarket = marketForCurrency(checkoutCurrency);
+  const checkoutMarket = publicMarket;
   const { products: checkoutProducts, loading: checkoutPricingLoading } = usePublicCommercialPricing(checkoutMarket);
 
   const startCheckout = async (product: CommercialProduct) => {
@@ -106,9 +108,9 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   const managedPrice = getCommercialPrice(managed, publicMarket); const growthPrice = getCommercialPrice(growth, publicMarket); const premiumPrice = getCommercialPrice(premium, publicMarket);
   React.useEffect(() => {
     if (!loading) {
-      trackPublicEvent({ eventType: "plan_viewed", label: "Managed website plan comparison", target: "/pricing", metadata: { currency: "USD", products: products.map((product) => product.slug) } });
+      trackPublicEvent({ eventType: "plan_viewed", label: "Managed website plan comparison", target: "/pricing", metadata: { currency: checkoutCurrency, market: publicMarket, products: products.map((product) => product.slug) } });
     }
-  }, [loading, products]);
+  }, [loading, products, checkoutCurrency, publicMarket]);
   const annualAvailable = false;
   React.useEffect(() => { if (!annualAvailable && billingCycle === "yearly") setBillingCycle("monthly"); }, [annualAvailable, billingCycle]);
   const pendingCheckoutProduct = pendingProduct ? (checkoutProducts.find((item) => item.slug === pendingProduct.slug) || pendingProduct) : null;
@@ -145,11 +147,20 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
           <h2 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Three plans. One managed website system.</h2>
           <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Start with a professionally managed website, then add deeper conversion, SEO and growth support as the business needs it.</p>
         </div>
-        <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">USD base pricing · choose billing currency at checkout · each plan shows its current minimum term</p>
+        <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">Select your market below · setup and recurring charges are shown together · minimum terms are displayed per plan</p>
       </div>
     )}
 
-    <div className="mt-8 grid gap-4 lg:grid-cols-3">
+    <div className="mt-8 flex flex-col gap-3 border border-[#dfe2ea] bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Choose pricing currency">
+      <div>
+        <label htmlFor="pricing-currency" className="block text-sm font-semibold text-slate-950">Your billing currency</label>
+        <p className="mt-1 text-xs leading-5 text-slate-600">Prices are market-specific published rates, not currency-converted estimates. The same currency continues to the order summary.</p>
+      </div>
+      <select id="pricing-currency" value={checkoutCurrency} onChange={(event) => { setCheckoutCurrency(event.target.value as CommercialCurrency); setTermsAccepted(false); }} className="min-h-11 min-w-36 border border-slate-300 bg-white px-3 py-2 font-semibold text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600">
+        {CHECKOUT_CURRENCIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+      </select>
+    </div>
+    <div className="mt-6 grid gap-4 lg:grid-cols-3">
       {planSet.map(([product, price, bestFor], index) => {
         const isGrowth = product.slug === "website-growth";
         return (
@@ -161,7 +172,11 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
               </div>
             </div>
             <p className={isGrowth ? "mt-5 text-3xl font-semibold !text-white" : "mt-5 text-3xl font-semibold text-[#141821]"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#526071]"}>/month</span></p>
-            <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#526071]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "USD")} setup</p>
+            <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#526071]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || checkoutCurrency)} one-time setup</p>
+            <p className={isGrowth ? "mt-3 border-t border-white/20 pt-3 text-sm font-semibold !text-white" : "mt-3 border-t border-slate-200 pt-3 text-sm font-semibold text-slate-950"}>
+              First payment: {price?.monthlyPrice == null ? "Confirm by quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}
+            </p>
+            <p className={isGrowth ? "mt-1 text-xs !text-white/70" : "mt-1 text-xs text-slate-500"}>Setup + first month, before any applicable tax. Future months billed separately.</p>
             <p className={isGrowth ? "mt-2 text-xs font-semibold !text-white/65" : "mt-2 text-xs font-semibold text-[#687386]"}>{formatCommitmentLabel(getMinimumTermMonths(price))}, then month-to-month unless the agreed order states otherwise.</p>
             <p className={isGrowth ? "mt-4 text-sm leading-6 !text-white/70" : "mt-4 text-sm leading-6 text-[#526071]"}>{product.description}</p>
             {PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug] && (
@@ -230,7 +245,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
           ["Setup fee", "Strategy, content structure, design, development, tracking and launch setup."],
           ["Monthly service", "Hosting, SSL, maintenance, updates, analytics and the optimisation included in your plan."],
           ["Domain ownership", "If you already own your domain, it remains yours. Any managed transfer is confirmed before payment."],
-          ["Commitment and transfer", "Each product and market displays its current initial commitment before payment. The agreed order records that term; renewal, cancellation and export arrangements are covered in the written Terms."],
+          ["Commitment and transfer", "Each plan shows its initial commitment. Before you pay, review the written Terms for renewal, cancellation notice, and any supported data export or transfer. A managed-platform site may not be portable as standalone source code."],
         ].map(([title, body]) => <div key={title} className="border-t border-slate-200 pt-4"><p className="font-semibold text-slate-950">{title}</p><p className="mt-2 text-sm leading-6 text-slate-600">{body}</p></div>)}
       </div>
       <div className="lg:col-start-5 lg:col-span-8">
@@ -238,6 +253,15 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
       </div>
     </section>
 
+    <section className="mt-9 border-t border-slate-200 pt-7" aria-label="Before you commit">
+      <h3 className="text-xl font-semibold text-slate-950">Still comparing options?</h3>
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Explore clearly labelled design examples before you choose, or ask us to confirm the exact page count, delivery scope, required content and exit options in writing. We do not present illustrative demos as completed client results.</p>
+      <div className="mt-4 flex flex-wrap gap-4 text-sm font-semibold text-indigo-700">
+        <Link to="/case-studies" className="underline underline-offset-4">Explore project examples</Link>
+        <Link to="/generate-preview" className="underline underline-offset-4">Try a free website direction</Link>
+        <Link to="/terms" className="underline underline-offset-4">Read service terms</Link>
+      </div>
+    </section>
     {currentPlan && <p className="mt-8 text-center text-xs font-semibold text-slate-500">Current account entitlement: {currentPlan}. Existing subscriptions remain on their original plan.</p>}
 
     {pendingProduct && pendingPrice && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Order summary" onClick={(event) => { if (event.target === event.currentTarget) closeOrderSummary(); }}><div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-xl bg-white p-5 shadow-2xl sm:p-7" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">Order summary</p><h3 className="mt-2 text-2xl font-semibold text-slate-950">{pendingProduct.name}</h3></div><button type="button" onClick={closeOrderSummary} className="relative z-10 grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border border-transparent text-2xl leading-none text-slate-500 transition hover:border-slate-200 hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" aria-label="Close order summary" data-order-summary-close="true">×</button></div><div className="mt-6 space-y-3 border-y border-slate-200 py-5 text-sm font-semibold text-slate-700"><div className="flex flex-col gap-1 sm:flex-row sm:justify-between"><label htmlFor="checkout-currency">Billing currency</label><select id="checkout-currency" value={checkoutCurrency} onChange={(event) => { setCheckoutCurrency(event.target.value as CommercialCurrency); setTermsAccepted(false); }} className="border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900">{CHECKOUT_CURRENCIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div><div className="flex justify-between"><span>Setup fee</span><span>{formatCommercialMoney(pendingPrice.setupFee || 0, pendingPrice.currency)}</span></div><div className="flex justify-between"><span>First month</span><span>{formatCommercialMoney(billingCycle === "monthly" ? pendingMonthly : (pendingPrice.annualPrice || 0), pendingPrice.currency)}</span></div><div className="flex justify-between"><span>Initial commitment</span><span>{pendingTermMonths} month{pendingTermMonths === 1 ? "" : "s"}</span></div><div className="flex justify-between border-t border-slate-200 pt-3 text-slate-950"><span>Due today</span><span>{formatCommercialMoney(dueToday, pendingPrice.currency)}</span></div></div>{pendingStandard ? <div className="mt-5 rounded-xl bg-slate-50 p-4"><p className="text-xs font-black uppercase tracking-[0.08em] text-slate-500">Managed delivery included</p><ul className="mt-3 space-y-2 text-xs font-semibold leading-5 text-slate-700">{[pendingStandard.pages, pendingStandard.revisions, pendingStandard.targetFirstDraft, pendingStandard.updates, pendingStandard.targetUpdateTurnaround].map((item) => <li key={item} className="flex gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />{item}</li>)}</ul></div> : null}<p className="mt-4 text-xs leading-5 text-slate-500">Your first payment includes the one-time setup fee and the first month of managed service. The site is human-reviewed, quality-checked and requires your approval before launch.</p><p className="mt-2 text-xs font-semibold leading-5 text-emerald-700">No account is required before payment. New customers activate their Bennie Studio portal after Stripe confirms the payment.</p><label className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs font-semibold leading-5 text-slate-700"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 shrink-0" /><span>I confirm this scope, {pendingTermMonths}-month initial commitment and recurring managed service, and agree to the <Link to={`/terms?market=${checkoutMarket}`} target="_blank" className="text-indigo-600 underline underline-offset-2">Terms of Service</Link> and <Link to="/privacy" target="_blank" className="text-indigo-600 underline underline-offset-2">Privacy Policy</Link>.</span></label><Button disabled={!termsAccepted || checkoutPricingLoading} onClick={() => { const product = pendingProduct; setPendingProduct(null); void startCheckout(product); }} className="mt-6 min-h-12 w-full bg-indigo-600 font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60">Continue to secure checkout <ArrowRight className="ml-2 h-4 w-4" /></Button></div></div>}
