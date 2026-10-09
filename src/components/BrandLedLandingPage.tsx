@@ -22,6 +22,7 @@ import {
   formatCommercialMoney,
   getCommercialPrice,
   getMinimumTermMonths,
+  getStoredMarket,
 } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { DELIVERY_STANDARD_VERSION, PUBLIC_DELIVERY_PROMISES } from "../constants/deliveryStandards";
@@ -116,7 +117,10 @@ const faqs = [
   ["What stays mine?", "Your domain and the business assets you supply remain yours. Any managed transfer, export or platform arrangements are confirmed in the written terms before payment."],
   ["Do I need professional photography before we start?", "No. The design can launch with suitable approved assets and clear media placeholders. When real business photography is supplied, it is placed into the planned visual system."],
   ["What happens after launch?", "Managed plans include hosting, maintenance, tracking and plan-based updates. Higher tiers add deeper conversion, landing-page, SEO and growth work."],
-  ["Can I preview the website before paying?", "Yes. The website direction shows a tailored starting point for your business before you choose a managed plan."],
+  ["Can I preview the website before paying?", "Yes. The free website direction gives you a tailored starting point, not a finished or published website. You can also view clearly labelled concept examples before sharing your own business brief. No card is required for a direction preview."],
+  ["Who supplies text and photos?", "You provide accurate business information, approvals, branding and any assets you wish us to use. The plan's content and design scope is confirmed in your order; additional content production or professional photography is quoted separately where needed."],
+  ["What does the first payment cover?", "The first payment ordinarily combines the one-time setup fee and the first month of managed service. View the current amount in your chosen billing currency, applicable term and plan scope on the pricing page before you accept the order."],
+  ["Can I cancel or move my website?", "Review the initial minimum term, renewal and cancellation notice in the Terms before payment. Your domain and supplied business assets remain yours; any website export or transfer is subject to the written managed-platform and handover terms. A standalone source-code export is not automatically included."],
   ["Do you use AI or automation?", "Yes. Modern tools help accelerate parts of production, but strategy, design decisions, review, QA and launch remain human-guided. Raw automated output is not published as a finished customer website."],
 ];
 
@@ -274,7 +278,7 @@ function WorkShowcase() {
 
 export default function BrandLedLandingPage() {
   const navigate = useNavigate();
-  const market = "INTL" as const;
+  const [market] = React.useState(getStoredMarket);
   const { products } = usePublicCommercialPricing(market);
   const [platformSettings, setPlatformSettings] = React.useState<any>(null);
   const [verifiedProof, setVerifiedProof] = React.useState<any[]>([]);
@@ -404,21 +408,30 @@ export default function BrandLedLandingPage() {
               <p className="brand-kicker !text-[#b9b1ff]">Websites for ambitious service businesses</p>
               <h1 className="mt-5 !max-w-[13ch] !text-white">A better website <span className="bt-gradient-title block">without the hassle.</span></h1>
               <p className="brand-copy brand-muted-on-dark mt-7 !max-w-xl">
-                Strategy, design and human review — so you get a website that looks credible, feels considered and gives customers a clear reason to enquire.
+                Bennie Studio plans, builds, hosts and manages your business website. See a tailored direction before paying, review clear setup and monthly costs, and keep a team responsible after launch.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <button type="button" onClick={() => go("/website-audit", "Hero website review")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
-                  See what we’d improve <ArrowRight className="ml-2 h-4 w-4" />
+                <button type="button" onClick={() => go("/generate-preview", "Hero free preview")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
+                  Preview my website direction <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => go("/case-studies", "Hero work")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
-                  View our work
+                <button type="button" onClick={() => go("/pricing", "Hero plans")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
+                  Compare plans & pricing
                 </button>
               </div>
               <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm !text-white/65">
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Website review first</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> No card for the free direction</span>
                 <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Reviewed before launch</span>
                 <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Managed after launch</span>
               </div>
+              <p className="mt-5 text-sm leading-6 !text-white/70">
+                Plans from {formatCommercialMoney(getCommercialPrice(managed, market)?.monthlyPrice, getCommercialPrice(managed, market)?.currency || "USD")}/month
+                {" "}plus {formatCommercialMoney(getCommercialPrice(managed, market)?.setupFee, getCommercialPrice(managed, market)?.currency || "USD")} one-time setup.{" "}
+                <Link to="/pricing" className="font-semibold text-white underline underline-offset-4">See first payment, full scope & commitment</Link>
+              </p>
+              <p className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs !text-white/60">
+                <Link to="/case-studies" className="underline underline-offset-4">View labelled examples</Link>
+                <Link to="/book-demo" className="underline underline-offset-4">Speak to the studio</Link>
+              </p>
             </div>
 
             <motion.div
@@ -461,6 +474,13 @@ export default function BrandLedLandingPage() {
             </div>
 
             <div className="mt-11"><WorkShowcase /></div>
+            <div className="mt-5 flex flex-col gap-4 border border-[#dfe2ea] bg-[#f8f8ff] p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-[#141821]">See what is a concept and what is verified customer work.</p>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-[#687386]">The visuals above are illustrative design studies, not paid-customer case studies. Our portfolio is a separate multi-platform design library; customer results are shown only with permission.</p>
+              </div>
+              <a href="https://portfolio.bennietay.com/" target="_blank" rel="noopener noreferrer" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Portfolio library", target: "https://portfolio.bennietay.com/" })} className="inline-flex min-h-11 shrink-0 items-center justify-center border border-[#dfe2ea] bg-white px-5 text-sm font-semibold text-[#141821] hover:border-[#5746e8]">Open portfolio library <ArrowRight className="ml-2 h-4 w-4" /></a>
+            </div>
 
             <div className="mt-5 grid gap-px overflow-hidden rounded-[1rem] border border-[#dfe2ea] bg-[#dfe2ea] md:grid-cols-3">
               {workDirections.map(([category, direction, copy], index) => (
@@ -629,7 +649,8 @@ export default function BrandLedLandingPage() {
                           <h3 className={isGrowth ? "mt-2 !text-white" : "mt-2"}>{product.name}</h3>
                         </div>
                         <p className={isGrowth ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
-                        <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "USD")} setup</p>
+                        <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "USD")} one-time setup</p>
+                        <p className={isGrowth ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>First payment: {price?.monthlyPrice == null ? "By quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}</p>
                         <p className={isGrowth ? "mt-2 text-xs font-semibold !text-white/65" : "mt-2 text-xs font-semibold text-[#687386]"}>{formatCommitmentLabel(getMinimumTermMonths(price))}, then month-to-month unless the accepted order states otherwise.</p>
                         <div className={isGrowth ? "mt-6 space-y-3 border-t border-white/25 pt-5" : "mt-6 space-y-3 border-t border-[#dfe2ea] pt-5"}>
                           {planComparisonRows.map(([label, values]) => (
