@@ -6542,6 +6542,81 @@ async function startServer() {
     },
   );
 
+  // Commercial data integrity is read-only. Never recreate historical leads from
+  // anonymous tracking events: those events do not contain a verified enquiry.
+  app.get(
+    "/api/admin/revenue-health",
+    authenticate,
+    superAdminOnly,
+    rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: "admin-revenue-health", key: (req) => req.user?.id || getClientIp(req) }),
+    async (_req: any, res: any) => {
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      try {
+        const [
+          leads, trackedLeads, previewEvents, checkoutEvents, salesTasks,
+          prospects, messages, calls, proposals, customerServices, checkouts
+        ] = await Promise.all([
+          supabaseAdmin.from("leads").select("id,status,created_at,first_response_at,next_follow_up_at").order("created_at", { ascending: false }).limit(1000),
+          supabaseAdmin.from("tracking_events").select("metadata").eq("event_type", "platform_lead_submitted").gte("created_at", since).limit(1000),
+          supabaseAdmin.from("tracking_events").select("event_type,metadata").in("event_type", ["preview_generated", "preview_lead_captured"]).gte("created_at", since).limit(1000),
+          supabaseAdmin.from("tracking_events").select("event_type,metadata").eq("event_type", "checkout_started").gte("created_at", since).limit(1000),
+          supabaseAdmin.from("sales_tasks").select("id,lead_id,prospect_id,status,due_at,task_type").limit(2000),
+          supabaseAdmin.from("prospects").select("id,outreach_status,converted_at").limit(2000),
+          supabaseAdmin.from("sales_messages").select("direction,status,channel").gte("created_at", since).limit(2000),
+          supabaseAdmin.from("sales_call_bookings").select("id,status,created_at").limit(1000),
+          supabaseAdmin.from("proposals").select("id,status,created_at").limit(1000),
+          supabaseAdmin.from("customer_services").select("id,status,stripe_subscription_id,product_slug").limit(1000),
+          supabaseAdmin.from("stripe_webhook_events").select("event_type,status").gte("created_at", since).limit(1000),
+        ]);
+        const queries = [leads, trackedLeads, previewEvents, checkoutEvents, salesTasks, prospects, messages, calls, proposals, customerServices, checkouts];
+        const failed = queries.find((response) => response.error);
+        if (failed?.error) throw failed.error;
+        const leadRows = leads.data || [];
+        const taskRows = salesTasks.data || [];
+        const leadIds = new Set(leadRows.map((row: any) => row.id));
+        const trackedIds = Array.from(new Set((trackedLeads.data || []).map((event: any) => String(event.metadata?.leadId || "")).filter(Boolean)));
+        const taskLeadIds = new Set(taskRows.filter((task: any) => task.status === "open" || task.status === "completed").map((task: any) => task.lead_id).filter(Boolean));
+        const now = Date.now();
+        const openTasks = taskRows.filter((task: any) => task.status === "open");
+        const recentLeads = leadRows.filter((lead: any) => lead.created_at >= since);
+        const completedCheckoutWebhooks = (checkouts.data || []).filter((event: any) => event.event_type === "checkout.session.completed" && event.status === "completed").length;
+        res.setHeader("Cache-Control", "no-store");
+        return res.json({
+          periodDays: 30,
+          generatedAt: new Date().toISOString(),
+          counts: {
+            actualLeads30d: recentLeads.length,
+            trackedLeadEvents30d: (trackedLeads.data || []).length,
+            trackedLeadIdsNotInActiveCRM: trackedIds.filter((id) => !leadIds.has(id)).length,
+            newLeadsWithoutFollowUpTask: recentLeads.filter((lead: any) => lead.status === "new" && !taskLeadIds.has(lead.id)).length,
+            pendingLeadResponses: leadRows.filter((lead: any) => lead.status === "new" && !lead.first_response_at).length,
+            previewsGenerated30d: (previewEvents.data || []).filter((event: any) => event.event_type === "preview_generated").length,
+            checkoutStartedEvents30d: (checkoutEvents.data || []).length,
+            overdueOpenTasks: openTasks.filter((task: any) => task.due_at && Date.parse(task.due_at) <= now).length,
+            openSalesTasks: openTasks.length,
+            deliveredOutreach30d: (messages.data || []).filter((message: any) => message.direction === "outbound" && message.status === "delivered").length,
+            bouncedOutreach30d: (messages.data || []).filter((message: any) => message.direction === "outbound" && message.status === "bounced").length,
+            recordedInboundReplies30d: (messages.data || []).filter((message: any) => message.direction === "inbound").length,
+            bookedCalls: (calls.data || []).filter((call: any) => !["cancelled", "declined"].includes(call.status)).length,
+            proposals: (proposals.data || []).length,
+            convertedProspects: (prospects.data || []).filter((prospect: any) => Boolean(prospect.converted_at)).length,
+            activeStripeLinkedServices: (customerServices.data || []).filter((service: any) => service.status === "active" && Boolean(service.stripe_subscription_id)).length,
+            checkoutCompletedWebhookEvents30d: completedCheckoutWebhooks,
+          },
+          notes: [
+            "Tracking events are not proof of a saved or qualified lead.",
+            "A checkout webhook is not proof of a currently paying customer; test transactions can be recorded.",
+            "Missing lead references may be test records that were deleted. Do not recreate them from events.",
+            "Counts represent records in the connected studio database, not external email or payments.",
+          ],
+        });
+      } catch (error: any) {
+        console.error("Revenue health overview failed:", error?.message || error);
+        return res.status(503).json({ error: "Revenue integrity checks temporarily unavailable" });
+      }
+    },
+  );
+
   app.get(
     "/api/admin/leads",
     authenticate,
