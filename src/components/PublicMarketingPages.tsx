@@ -549,6 +549,8 @@ function Hero({
   imageSrc?: string;
 }) {
   const primaryContent = <>{primaryLabel} <ArrowRight className="ml-2 h-4 w-4" /></>;
+  const isAuditPage = /what your website could improve/i.test(title);
+  const visualIndex = /clinic|dent/i.test(title) ? 1 : /beauty|salon|wellness/i.test(title) ? 2 : /renovation|contractor|local service/i.test(title) || imageSrc.includes("work") ? 3 : /tuition|education/i.test(title) ? 4 : 0;
   return (
     <section className="brand-grid-bg relative overflow-hidden border-b border-white/10 bg-[#0b1020] text-white">
       <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#5746e8]/20 blur-3xl" />
@@ -569,15 +571,28 @@ function Hero({
             <span>Tailored structure</span><span>Desktop + mobile</span><span>Managed after launch</span>
           </div>
         </div>
-        <div className="relative lg:col-span-6 lg:-mr-8 xl:-mr-14">
-          <div className="pointer-events-none absolute -inset-8 bg-[#5746e8]/10 blur-3xl" />
-          <div className="relative overflow-hidden rounded-[1.15rem] border border-white/10 bg-[#080b15] shadow-[0_55px_140px_-55px_rgba(0,0,0,.95)]">
-            <img src={imageSrc} alt="" width="1600" height="900" sizes="(min-width: 1024px) 44vw, 100vw" className="aspect-[16/9] w-full object-cover" loading="eager" decoding="async" />
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#080b15] via-[#080b15]/75 to-transparent px-5 pb-5 pt-16">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Managed website direction</p>
-              <p className="mt-2 max-w-md text-sm font-semibold !text-white">The visual direction changes. The operating system underneath stays disciplined.</p>
+        <div className="relative lg:col-span-6">
+          {isAuditPage ? (
+            <div className="overflow-hidden rounded-2xl border border-white/15 bg-[#f9fafc] p-4 text-slate-900 shadow-[0_45px_100px_-55px_rgba(0,0,0,.75)] sm:p-6" aria-label="Illustrative website review report preview">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-4">
+                <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-indigo-600">Bennie Studio website review</p><p className="mt-1 text-base font-semibold text-slate-900">Practical findings, not guesswork.</p></div>
+                <span className="rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-semibold text-indigo-700">Sample format</span>
+              </div>
+              <div className="mt-5 space-y-3">
+                {[
+                  ["01", "First impression", "Is your core service obvious in the first few seconds?", "Clarity"],
+                  ["02", "Customer next step", "Can a visitor find a quotation, booking or contact action?", "Enquiry"],
+                  ["03", "Trust and evidence", "Are genuine credentials and proof easy to evaluate?", "Confidence"],
+                ].map(([n,h,d,label]) => <div key={n} className="grid grid-cols-[2.25rem_1fr] gap-3 rounded-xl border border-slate-200 bg-white p-4">
+                  <span className="text-xs font-bold text-indigo-600">{n}</span>
+                  <div><p className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold text-slate-900">{h}<span className="rounded bg-slate-100 px-2 py-1 text-[9px] text-slate-600">{label}</span></p><p className="mt-2 text-xs leading-5 text-slate-600">{d}</p></div>
+                </div>)}
+              </div>
+              <p className="mt-4 text-xs leading-5 text-slate-500">Example questions only. Your actual review is generated from accessible evidence on your website.</p>
             </div>
-          </div>
+          ) : (
+            <WebsiteConceptVisual title={title} eyebrow="Responsive business website design example" index={visualIndex} hero className="relative border border-white/10" />
+          )}
         </div>
       </div>
     </section>
@@ -3408,12 +3423,16 @@ function WebsiteAuditPage() {
     <>
       {linkedJobId && <Helmet><meta name="robots" content="noindex,nofollow" /><meta name="referrer" content="no-referrer" /></Helmet>}
       <Hero
-        title="See what is holding your website back"
-        copy="Get a practical, evidence-based review of your website clarity, trust, mobile experience and enquiry path—plus a clearer direction for what to improve next."
+        title="Find out what your website could improve."
+        copy="Start with your website address. Get an automated, evidence-based review of your messaging, trust signals and enquiry journey — then see practical next steps."
         icon={FileSearch}
+        primaryLabel="Start my free review"
+        primaryHref="#review-form"
+        secondaryLabel="I don't have a website yet"
+        secondaryHref="/generate-preview?mode=business"
       />
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-xl border border-slate-200 bg-white p-7 shadow-sm">
+        <div className="order-2 rounded-xl border border-slate-200 bg-white p-7 shadow-sm lg:order-1">
           <h2 className="text-3xl font-bold text-slate-950">What we review</h2>
           <div className="mt-6 grid gap-3">
             {[
@@ -3452,11 +3471,11 @@ function WebsiteAuditPage() {
             </div>
           </div>
         </div>
-        <form onSubmit={submitAudit} className="rounded-xl border border-slate-200 bg-slate-950 p-7 text-white shadow-xl">
+        <form id="review-form" onSubmit={submitAudit} className="order-1 scroll-mt-28 rounded-xl border border-slate-200 bg-slate-950 p-6 text-white shadow-xl sm:p-8 lg:order-2">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-200">Free website review</p>
-          <h2 className="mt-4 text-3xl font-bold text-white">Start with your website</h2>
+          <h2 className="mt-4 text-3xl font-bold text-white">Enter your website. See what to improve.</h2>
           <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
-            No payment required. Share your website, business name and email. We will review the page evidence first; industry, phone and notes are optional.
+            Get a free, automated assessment using publicly accessible page evidence. We need your website, business name and email to send your private report.
           </p>
           <Link to="/generate-preview?mode=business" className="mt-4 inline-flex text-sm font-semibold text-indigo-200 underline decoration-indigo-300/40 underline-offset-4 hover:text-white">
             No website yet? Start with a business brief instead.
@@ -3510,15 +3529,27 @@ function WebsiteAuditPage() {
                   {error}
                 </div>
               )}
-              <Input aria-label="Website URL" required placeholder="Website URL" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Input aria-label="Business name" required placeholder="Business name" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Input aria-label="Email" required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Input aria-label="Industry or business type" placeholder="Industry / business type (optional)" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Input aria-label="WhatsApp or phone" placeholder="WhatsApp / phone (optional)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl bg-white text-slate-950" />
-              <Textarea aria-label="Website improvement notes" placeholder="What do you want the website to improve? (optional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-28 rounded-2xl bg-white text-slate-950" />
-              <Button type="submit" disabled={submitting} className="h-13 rounded-2xl bg-indigo-600 font-bold uppercase tracking-widest hover:bg-indigo-500">
-                {submitting ? "Reviewing Website..." : "Review my website"} <Search className="ml-2 h-4 w-4" />
+              <label className="space-y-2 text-sm font-semibold text-white">Your website URL
+                <Input aria-label="Website URL" type="url" required placeholder="https://yourbusiness.com" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className="h-13 rounded-xl border-indigo-100 bg-white text-slate-950" />
+              </label>
+              <label className="space-y-2 text-sm font-semibold text-white">Business name
+                <Input aria-label="Business name" required placeholder="Your business or company" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-xl bg-white text-slate-950" />
+              </label>
+              <label className="space-y-2 text-sm font-semibold text-white">Where should we email the review?
+                <Input aria-label="Email" required type="email" placeholder="you@yourbusiness.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-xl bg-white text-slate-950" />
+              </label>
+              <details className="rounded-xl border border-white/20 bg-white/[.05] px-4 py-3">
+                <summary className="cursor-pointer text-sm font-semibold text-white">Optional: tell us more about your business</summary>
+                <div className="mt-4 grid gap-3">
+                  <Input aria-label="Industry or business type" placeholder="Industry or business type" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-xl bg-white text-slate-950" />
+                  <Input aria-label="WhatsApp or phone" placeholder="WhatsApp / phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-xl bg-white text-slate-950" />
+                  <Textarea aria-label="Website improvement notes" placeholder="What would you like to improve?" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-24 rounded-xl bg-white text-slate-950" />
+                </div>
+              </details>
+              <Button type="submit" disabled={submitting} className="min-h-13 rounded-xl bg-indigo-600 px-6 font-semibold text-white hover:bg-indigo-500">
+                {submitting ? "Starting your review..." : "Get my free website review"} <Search className="ml-2 h-4 w-4" />
               </Button>
+              <p className="text-xs leading-6 text-white/65">No payment card required. Findings are based on accessible site evidence, not a full human usability test. Your email is used to deliver the requested report.</p>
             </div>
           )}
         </form>
