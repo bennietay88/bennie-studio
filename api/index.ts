@@ -6617,6 +6617,48 @@ async function startServer() {
     },
   );
 
+  // Operator-invoked, idempotent repair for real saved enquiries only.
+  // Missing tracking event IDs are deliberately never turned into CRM leads.
+  app.post(
+    "/api/admin/revenue-health/repair-follow-ups",
+    authenticate,
+    superAdminOnly,
+    rateLimit({ windowMs: 60 * 60 * 1000, max: 3, keyPrefix: "repair-sales-followups", key: (req) => req.user?.id || getClientIp(req) }),
+    async (_req: any, res: any) => {
+      try {
+        const [leads, tasks] = await Promise.all([
+          supabaseAdmin.from("leads").select("id,status,next_follow_up_at,automation_next_action,created_at").eq("status","new").limit(1000),
+          supabaseAdmin.from("sales_tasks").select("lead_id,status,task_type").not("lead_id","is",null).limit(2000),
+        ]);
+        if (leads.error || tasks.error) throw leads.error || tasks.error;
+        const tasked = new Set((tasks.data || []).filter((task: any) =>
+          ["open", "completed"].includes(String(task.status)) && task.task_type === "new_lead_response"
+        ).map((task: any) => task.lead_id));
+        const missing = (leads.data || []).filter((lead: any) => !tasked.has(lead.id));
+        let created = 0;
+        const failed: string[] = [];
+        for (const lead of missing) {
+          const { error } = await supabaseAdmin.from("sales_tasks").insert({
+            lead_id: lead.id,
+            title: "Respond to saved website enquiry",
+            task_type: "new_lead_response",
+            status: "open",
+            priority: "high",
+            due_at: lead.next_follow_up_at || new Date().toISOString(),
+            notes: lead.automation_next_action || "Review this saved enquiry and respond personally. Task recovered by revenue integrity check.",
+          });
+          if (error) failed.push(lead.id);
+          else created++;
+        }
+        res.setHeader("Cache-Control", "no-store");
+        return res.json({ reviewedNewLeads: (leads.data || []).length, created, failedCount: failed.length, success: failed.length === 0 });
+      } catch (error: any) {
+        console.error("Lead follow-up recovery failed:", error?.message || error);
+        return res.status(503).json({ error: "Could not repair follow-up tasks. No lead records were modified." });
+      }
+    },
+  );
+
   app.get(
     "/api/admin/leads",
     authenticate,
