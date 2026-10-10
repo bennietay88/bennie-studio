@@ -632,7 +632,7 @@ function ServicesPage() {
             <Link to="/generate-preview" className={`${primaryCtaClass} mt-7`}>See a website direction <ArrowRight className="ml-2 h-4 w-4" /></Link>
           </div>
           <div className="bt-premium-card overflow-hidden bg-[#0b1020] p-3 lg:col-span-7">
-            <img src="/images/studio-process-v2.png" alt="Bennie Studio website strategy and design system" className="aspect-[16/10] w-full rounded-[1rem] object-cover" loading="lazy" decoding="async" />
+            <WebsiteConceptVisual title="Professional service website" eyebrow="Business-first design direction" index={0} className="aspect-[16/10]" />
           </div>
         </div>
       </section>
@@ -725,7 +725,7 @@ function AboutPage() {
             <p className="brand-copy mt-6">The goal is not to produce more pages. It is to make good businesses easier to understand, easier to trust and easier to contact. Strategy, design and technology are useful only when they serve that goal.</p>
           </div>
           <div className="bt-premium-card overflow-hidden p-3 lg:col-span-7">
-            <img src="/images/studio-process-v2.png" alt="Bennie Studio reviewing a website direction" className="aspect-[16/10] w-full rounded-[1rem] object-cover" loading="lazy" decoding="async" />
+            <WebsiteConceptVisual title="Healthcare website" eyebrow="Responsive design concept" index={1} className="aspect-[16/10]" />
           </div>
         </div>
       </section>
