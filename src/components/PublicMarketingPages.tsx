@@ -2734,7 +2734,7 @@ function GeneratePreviewPage() {
                   <Button type="submit" disabled={generating} className="min-h-14 rounded-xl bg-[#6758ff] px-7 text-base font-bold text-white shadow-[0_18px_35px_-22px_rgba(103,88,255,.85)] hover:bg-[#7a6cff]">
                     {generating ? "Building your website preview..." : previewMode === "website" ? "Build preview from my URL" : "Build preview from business details"} <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <p className="max-w-md text-xs leading-5 text-slate-400">No card required. Your email links the preview to your request and allows us to follow up about it. No card is required and nothing is published without approval. See our privacy policy.</p>
+                  <p className="max-w-md text-xs leading-5 text-slate-400">Your email links this free preview to your enquiry. No payment card is required and nothing is published without approval. See our privacy policy.</p>
                 </div>
               </section>
             </div>
@@ -3001,15 +3001,34 @@ function GeneratePreviewPage() {
             </div>
 
             {!salesMode ? (
-              <div className="sticky bottom-4 z-20 mt-8 flex flex-col gap-4 rounded-2xl border border-white/10 bg-[#08101f]/95 p-4 shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-semibold text-white">Want this direction turned into your managed website?</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-300">Your brief and website direction carry into the next step, so you do not start from zero again.</p>
+              <>
+                <div className="mt-8 rounded-2xl border border-white/15 bg-white/[0.06] p-5 sm:p-7" aria-label="Recommended next steps for your business">
+                  <p className="text-xs font-bold uppercase tracking-[0.13em] text-indigo-200">Your opportunity brief · suggested review priorities</p>
+                  <h3 className="mt-2 text-xl font-semibold text-white">Turn this design direction into a practical business website.</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-200">This is a design concept based on your brief, not a measured website audit or a forecast of leads. Before quoting, Bennie Studio should confirm your real content, target audience, main enquiry action and final page scope.</p>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    {[
+                      ["Customer action", generatedPrimaryCta || "A clear enquiry or booking path"],
+                      ["Website scope", `${generatedWebsite.pages.length} concept pages to review and prioritise`],
+                      ["Human validation", "Check proof, content accuracy, delivery scope and budget"],
+                    ].map(([label, detail]) => <div key={label} className="rounded-xl border border-white/10 bg-[#0b1020]/60 p-4"><p className="text-xs font-semibold text-indigo-200">{label}</p><p className="mt-2 text-sm leading-6 text-white">{detail}</p></div>)}
+                  </div>
                 </div>
-                <Button onClick={() => action("click_launch_after_preview","Launch This Website","/preview-order")} className="min-h-12 bg-[#5746e8] px-6 font-semibold text-white hover:bg-[#4938db]">
-                  Continue with this website <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
+                <div className="sticky bottom-4 z-20 mt-5 flex flex-col gap-4 rounded-2xl border border-indigo-300/20 bg-[#08101f]/95 p-4 shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-white">Like this direction? Discuss the next step with us.</p>
+                    <p className="mt-1 max-w-xl text-sm leading-6 text-slate-300">Ask for a human review and clear scope before committing, or continue to the secure managed website order.</p>
+                  </div>
+                  <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                    <Button onClick={() => action("preview_consultation_clicked", "Preview website review", "/book-demo")} className="min-h-12 bg-white px-5 font-semibold text-slate-950 hover:bg-indigo-100">
+                      Request a website review <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" onClick={() => action("click_launch_after_preview","Continue with website","/preview-order")} className="min-h-12 border-white/30 bg-transparent px-5 font-semibold text-white hover:bg-white/10 hover:text-white">
+                      Review plan & payment
+                    </Button>
+                  </div>
+                </div>
+              </>
             ) : null}
           </div>
         </section>
