@@ -364,9 +364,9 @@ export default function BrandLedLandingPage() {
         <section className="brand-on-dark brand-grid-bg relative overflow-hidden bg-[#0b1020]">
           <div className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#5b4bff]/20 blur-3xl" />
           <div className="brand-shell relative grid gap-14 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
-            <div className="lg:col-span-5">
+            <div className="lg:col-span-6">
               <p className="brand-kicker !text-[#b9b1ff]">Designed for service businesses that need enquiries</p>
-              <h1 className="mt-5 !max-w-[13ch] !text-white">A website that earns trust <span className="bt-gradient-title block">and makes enquiries easier.</span></h1>
+              <h1 className="bt-sales-hero-title mt-5 !text-white">A website that earns trust <span className="bt-gradient-title block">and makes enquiries easier.</span></h1>
               <p className="brand-copy brand-muted-on-dark mt-7 !max-w-xl">
                 We design, build and manage websites that help customers understand your business and take the next step. Start with a free website review or explore a new design direction — then launch with a team behind you.
               </p>
@@ -394,7 +394,7 @@ export default function BrandLedLandingPage() {
               </p>
             </div>
 
-            <div className="relative lg:col-span-7 lg:-mr-5">
+            <div className="relative lg:col-span-6">
               <div className="pointer-events-none absolute -inset-10 rounded-full bg-[#5746e8]/10 blur-3xl" />
               <WebsiteConceptVisual
                 title="Professional service website"
