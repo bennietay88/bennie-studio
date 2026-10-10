@@ -24,12 +24,12 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   // Avoid showing a USD teaser followed by a different regional price at checkout.
   const [checkoutCurrency, setCheckoutCurrency] = React.useState<CommercialCurrency>(() => COMMERCIAL_MARKETS[getStoredMarket()].currency);
   const publicMarket: CommercialMarket = marketForCurrency(checkoutCurrency);
-  const { products, loading } = usePublicCommercialPricing(publicMarket);
+  const { products, loading, error: pricingError } = usePublicCommercialPricing(publicMarket);
   const [billingCycle, setBillingCycle] = React.useState<"monthly" | "yearly">("monthly");
   const [pendingProduct, setPendingProduct] = React.useState<CommercialProduct | null>(null);
   const [termsAccepted, setTermsAccepted] = React.useState(false);
   const checkoutMarket = publicMarket;
-  const { products: checkoutProducts, loading: checkoutPricingLoading } = usePublicCommercialPricing(checkoutMarket);
+  const { products: checkoutProducts, loading: checkoutPricingLoading, error: checkoutPricingError } = usePublicCommercialPricing(checkoutMarket);
 
   const startCheckout = async (product: CommercialProduct) => {
     let previewId: string | null = null;
@@ -74,12 +74,18 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   };
 
   const handleSelect = async (product: CommercialProduct) => {
-    if (onSelectPlan || product.salesMotion !== "self_serve") return startCheckout(product);
+    if (loading || pricingError) { toast.error("Wait for verified market pricing before selecting a plan."); return; }
+    const currentProduct = products.find((item) => item.slug === product.slug);
+    if (!currentProduct || !getCommercialPrice(currentProduct, publicMarket)) {
+      toast.error("This market's price is unavailable. Please contact Bennie Studio.");
+      return;
+    }
+    if (onSelectPlan || currentProduct.salesMotion !== "self_serve") return startCheckout(currentProduct);
     // Self-serve selection always opens the order review. The server remains
     // authoritative for live Stripe availability and fails closed if a market
     // has not been activated yet.
     setTermsAccepted(false);
-    setPendingProduct(product);
+    setPendingProduct(currentProduct);
   };
 
   const closeOrderSummary = React.useCallback(() => {
@@ -114,7 +120,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   const annualAvailable = false;
   React.useEffect(() => { if (!annualAvailable && billingCycle === "yearly") setBillingCycle("monthly"); }, [annualAvailable, billingCycle]);
   const pendingCheckoutProduct = pendingProduct ? (checkoutProducts.find((item) => item.slug === pendingProduct.slug) || pendingProduct) : null;
-  const pendingPrice = pendingCheckoutProduct ? getCommercialPrice(pendingCheckoutProduct, checkoutMarket) : null;
+  const pendingPrice = pendingCheckoutProduct && !checkoutPricingLoading && !checkoutPricingError ? getCommercialPrice(pendingCheckoutProduct, checkoutMarket) : null;
   const pendingMonthly = pendingPrice?.monthlyPrice || 0;
   const dueToday = pendingPrice?.billingInterval === "one_time" ? (pendingPrice?.monthlyPrice || 0) : ((pendingPrice?.setupFee || 0) + (billingCycle === "monthly" ? pendingMonthly : (pendingPrice?.annualPrice || 0)));
   const pendingTermMonths = getMinimumTermMonths(pendingPrice);
@@ -135,7 +141,10 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   ];
 
   return <div id="plans" aria-busy={loading} className={cn("brand-shell scroll-mt-24", hideIntro ? "py-14 sm:py-20" : "py-14 sm:py-20")}>
-    {loading ? <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-slate-500" aria-live="polite"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading pricing…</div> : null}
+    <div aria-live="polite" aria-atomic="true">
+      {loading ? <div role="status" className="mb-4 flex items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-900"><Loader2 className="h-4 w-4 animate-spin" /> Checking current {COMMERCIAL_MARKETS[publicMarket].label} rates…</div> : null}
+      {pricingError ? <div role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">Verified prices are temporarily unavailable. Plan details remain visible; please contact the studio for a quote. Checkout has been disabled.</div> : null}
+    </div>
     <div className="relative h-0 overflow-visible" aria-hidden="true">
       {planSet.map(([product]) => (
         <span key={product.slug} id={`plan-${product.slug}`} className="absolute -top-24" data-plan-anchor={product.slug} />
@@ -161,9 +170,11 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
         {CHECKOUT_CURRENCIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
       </select>
     </div>
-    <div className="mt-6 grid gap-4 lg:grid-cols-3">
+    <div className="mt-6 grid gap-4 lg:grid-cols-3" aria-busy={loading}>
+
       {planSet.map(([product, price, bestFor], index) => {
         const isGrowth = product.slug === "website-growth";
+        const priceReady = !loading && !pricingError && Boolean(price);
         return (
           <article key={product.slug} className={cn("border p-6 lg:p-7", isGrowth ? "border-[#101827] bg-[#101827] text-white shadow-[0_28px_80px_-48px_rgba(15,23,42,.75)]" : "border-[#dfe2ea] bg-white")}>
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -172,10 +183,10 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
                 <h3 className={isGrowth ? "mt-2 text-2xl font-semibold !text-white" : "mt-2 text-2xl font-semibold text-[#141821]"}>{product.name}</h3>
               </div>
             </div>
-            <p className={isGrowth ? "mt-5 text-3xl font-semibold !text-white" : "mt-5 text-3xl font-semibold text-[#141821]"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#526071]"}>/month</span></p>
-            <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#526071]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || checkoutCurrency)} one-time setup</p>
+            <p className={isGrowth ? "mt-5 text-3xl font-semibold !text-white" : "mt-5 text-3xl font-semibold text-[#141821]"}>{priceReady ? formatCommercialMoney(price?.monthlyPrice, price?.currency || checkoutCurrency) : loading ? "Checking…" : "Ask for quote"}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#526071]"}>/month</span></p>
+            <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#526071]"}>+ {priceReady ? formatCommercialMoney(price?.setupFee, price?.currency || checkoutCurrency) : "—"} one-time setup</p>
             <p className={isGrowth ? "mt-3 border-t border-white/20 pt-3 text-sm font-semibold !text-white" : "mt-3 border-t border-slate-200 pt-3 text-sm font-semibold text-slate-950"}>
-              First payment: {price?.monthlyPrice == null ? "Confirm by quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}
+              First payment: {!priceReady || price?.monthlyPrice == null ? "Confirm by quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}
             </p>
             <p className={isGrowth ? "mt-1 text-xs !text-white/70" : "mt-1 text-xs text-slate-500"}>Setup + first month, before any applicable tax. Future months billed separately.</p>
             <p className={isGrowth ? "mt-2 text-xs font-semibold !text-white/65" : "mt-2 text-xs font-semibold text-[#687386]"}>{formatCommitmentLabel(getMinimumTermMonths(price))}, then month-to-month unless the agreed order states otherwise.</p>
@@ -207,8 +218,8 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
                 </div>
               ))}
             </div>
-            <Button type="button" disabled={loading} onClick={() => handleSelect(product)} className={cn("mt-6 min-h-12 w-full px-5 font-semibold", isGrowth ? "bg-white text-[#101827] hover:bg-[#eeebff]" : "bg-[#141821] text-white hover:bg-[#5746e8]")}>
-              {product.salesMotion === "self_serve" ? "Choose plan" : "Discuss plan"} <ArrowRight className="ml-2 h-4 w-4" />
+            <Button type="button" disabled={!priceReady} onClick={() => handleSelect(product)} className={cn("mt-6 min-h-12 w-full px-5 font-semibold", isGrowth ? "bg-white text-[#101827] hover:bg-[#eeebff]" : "bg-[#141821] text-white hover:bg-[#5746e8]")}>
+              {!priceReady ? loading ? "Verifying rates…" : "Contact for pricing" : product.salesMotion === "self_serve" ? "Choose plan" : "Discuss plan"} <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </article>
         );
@@ -265,7 +276,8 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
     </section>
     {currentPlan && <p className="mt-8 text-center text-xs font-semibold text-slate-500">Current account entitlement: {currentPlan}. Existing subscriptions remain on their original plan.</p>}
 
-    {pendingProduct && pendingPrice && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Order summary" onClick={(event) => { if (event.target === event.currentTarget) closeOrderSummary(); }}><div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-xl bg-white p-5 shadow-2xl sm:p-7" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">Order summary</p><h3 className="mt-2 text-2xl font-semibold text-slate-950">{pendingProduct.name}</h3></div><button type="button" onClick={closeOrderSummary} className="relative z-10 grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border border-transparent text-2xl leading-none text-slate-500 transition hover:border-slate-200 hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" aria-label="Close order summary" data-order-summary-close="true">×</button></div><div className="mt-6 space-y-3 border-y border-slate-200 py-5 text-sm font-semibold text-slate-700"><div className="flex flex-col gap-1 sm:flex-row sm:justify-between"><label htmlFor="checkout-currency">Billing currency</label><select id="checkout-currency" value={checkoutCurrency} onChange={(event) => { const currency = event.target.value as CommercialCurrency; setCheckoutCurrency(currency); persistCommercialMarket(marketForCurrency(currency)); setTermsAccepted(false); }} className="border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900">{CHECKOUT_CURRENCIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div><div className="flex justify-between"><span>Setup fee</span><span>{formatCommercialMoney(pendingPrice.setupFee || 0, pendingPrice.currency)}</span></div><div className="flex justify-between"><span>First month</span><span>{formatCommercialMoney(billingCycle === "monthly" ? pendingMonthly : (pendingPrice.annualPrice || 0), pendingPrice.currency)}</span></div><div className="flex justify-between"><span>Initial commitment</span><span>{pendingTermMonths} month{pendingTermMonths === 1 ? "" : "s"}</span></div><div className="flex justify-between border-t border-slate-200 pt-3 text-slate-950"><span>Due today, before tax</span><span>{formatCommercialMoney(dueToday, pendingPrice.currency)}</span></div><div className="flex justify-between gap-4 text-xs text-slate-600"><span>Estimated total over initial {pendingTermMonths}-month term, including setup</span><span className="shrink-0 font-semibold">{formatCommercialMoney(minimumInitialTermTotal, pendingPrice.currency)}</span></div></div>{pendingStandard ? <div className="mt-5 rounded-xl bg-slate-50 p-4"><p className="text-xs font-black uppercase tracking-[0.08em] text-slate-500">Managed delivery included</p><ul className="mt-3 space-y-2 text-xs font-semibold leading-5 text-slate-700">{[pendingStandard.pages, pendingStandard.revisions, pendingStandard.targetFirstDraft, pendingStandard.updates, pendingStandard.targetUpdateTurnaround].map((item) => <li key={item} className="flex gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />{item}</li>)}</ul></div> : null}<p className="mt-4 text-xs leading-5 text-slate-500">Your first payment includes the one-time setup fee and the first month of managed service. The site is human-reviewed, quality-checked and requires your approval before launch.</p><p className="mt-2 text-xs font-semibold leading-5 text-emerald-700">No account is required before payment. New customers activate their Bennie Studio portal after Stripe confirms the payment.</p><label className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs font-semibold leading-5 text-slate-700"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 shrink-0" /><span>I confirm this scope, {pendingTermMonths}-month initial commitment and recurring managed service, and agree to the <Link to={`/terms?market=${checkoutMarket}`} target="_blank" className="text-indigo-600 underline underline-offset-2">Terms of Service</Link> and <Link to="/privacy" target="_blank" className="text-indigo-600 underline underline-offset-2">Privacy Policy</Link>.</span></label><Button disabled={!termsAccepted || checkoutPricingLoading} onClick={() => { const product = pendingProduct; setPendingProduct(null); void startCheckout(product); }} className="mt-6 min-h-12 w-full bg-indigo-600 font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60">Continue to secure checkout <ArrowRight className="ml-2 h-4 w-4" /></Button></div></div>}
+    {pendingProduct && (checkoutPricingLoading || checkoutPricingError || !pendingPrice) ? <div role="status" aria-live="polite" className="mt-5 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-900">{checkoutPricingLoading ? "Verifying current order amounts…" : "This market's checkout rates are unavailable. Please contact the studio."}</div> : null}
+    {pendingProduct && pendingPrice && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Order summary" onClick={(event) => { if (event.target === event.currentTarget) closeOrderSummary(); }}><div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-xl bg-white p-5 shadow-2xl sm:p-7" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">Order summary</p><h3 className="mt-2 text-2xl font-semibold text-slate-950">{pendingProduct.name}</h3></div><button type="button" onClick={closeOrderSummary} className="relative z-10 grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border border-transparent text-2xl leading-none text-slate-500 transition hover:border-slate-200 hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" aria-label="Close order summary" data-order-summary-close="true">×</button></div><div className="mt-6 space-y-3 border-y border-slate-200 py-5 text-sm font-semibold text-slate-700"><div className="flex flex-col gap-1 sm:flex-row sm:justify-between"><label htmlFor="checkout-currency">Billing currency</label><select id="checkout-currency" value={checkoutCurrency} onChange={(event) => { const currency = event.target.value as CommercialCurrency; setCheckoutCurrency(currency); persistCommercialMarket(marketForCurrency(currency)); setTermsAccepted(false); }} className="border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900">{CHECKOUT_CURRENCIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div><div className="flex justify-between"><span>Setup fee</span><span>{formatCommercialMoney(pendingPrice.setupFee || 0, pendingPrice.currency)}</span></div><div className="flex justify-between"><span>First month</span><span>{formatCommercialMoney(billingCycle === "monthly" ? pendingMonthly : (pendingPrice.annualPrice || 0), pendingPrice.currency)}</span></div><div className="flex justify-between"><span>Initial commitment</span><span>{pendingTermMonths} month{pendingTermMonths === 1 ? "" : "s"}</span></div><div className="flex justify-between border-t border-slate-200 pt-3 text-slate-950"><span>Due today, before tax</span><span>{formatCommercialMoney(dueToday, pendingPrice.currency)}</span></div><div className="flex justify-between gap-4 text-xs text-slate-600"><span>Estimated total over initial {pendingTermMonths}-month term, including setup</span><span className="shrink-0 font-semibold">{formatCommercialMoney(minimumInitialTermTotal, pendingPrice.currency)}</span></div></div>{pendingStandard ? <div className="mt-5 rounded-xl bg-slate-50 p-4"><p className="text-xs font-black uppercase tracking-[0.08em] text-slate-500">Managed delivery included</p><ul className="mt-3 space-y-2 text-xs font-semibold leading-5 text-slate-700">{[pendingStandard.pages, pendingStandard.revisions, pendingStandard.targetFirstDraft, pendingStandard.updates, pendingStandard.targetUpdateTurnaround].map((item) => <li key={item} className="flex gap-2"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />{item}</li>)}</ul></div> : null}<p className="mt-4 text-xs leading-5 text-slate-500">Your first payment includes the one-time setup fee and the first month of managed service. The site is human-reviewed, quality-checked and requires your approval before launch.</p><p className="mt-2 text-xs font-semibold leading-5 text-emerald-700">No account is required before payment. New customers activate their Bennie Studio portal after Stripe confirms the payment.</p><label className="mt-5 flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs font-semibold leading-5 text-slate-700"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 shrink-0" /><span>I confirm this scope, {pendingTermMonths}-month initial commitment and recurring managed service, and agree to the <Link to={`/terms?market=${checkoutMarket}`} target="_blank" className="text-indigo-600 underline underline-offset-2">Terms of Service</Link> and <Link to="/privacy" target="_blank" className="text-indigo-600 underline underline-offset-2">Privacy Policy</Link>.</span></label><Button disabled={!termsAccepted || checkoutPricingLoading || Boolean(checkoutPricingError) || !pendingPrice} onClick={() => { const product = pendingProduct; setPendingProduct(null); void startCheckout(product); }} className="mt-6 min-h-12 w-full bg-indigo-600 font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60">Continue to secure checkout <ArrowRight className="ml-2 h-4 w-4" /></Button></div></div>}
   </div>;
 };
 export default Pricing;
