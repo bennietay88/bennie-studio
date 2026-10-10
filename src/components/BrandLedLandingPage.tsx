@@ -239,7 +239,7 @@ function WorkShowcase() {
 export default function BrandLedLandingPage() {
   const navigate = useNavigate();
   const [market] = React.useState(getStoredMarket);
-  const { products } = usePublicCommercialPricing(market);
+  const { products, loading: pricingLoading, error: pricingError } = usePublicCommercialPricing(market);
   const [platformSettings, setPlatformSettings] = React.useState<any>(null);
   const [verifiedProof, setVerifiedProof] = React.useState<any[]>([]);
   const [manageCookies, setManageCookies] = React.useState(false);
@@ -384,8 +384,11 @@ export default function BrandLedLandingPage() {
                 <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Managed after launch</span>
               </div>
               <p className="mt-5 text-sm leading-6 !text-white/70">
-                Plans from {formatCommercialMoney(getCommercialPrice(managed, market)?.monthlyPrice, getCommercialPrice(managed, market)?.currency || "USD")}/month
-                {" "}plus {formatCommercialMoney(getCommercialPrice(managed, market)?.setupFee, getCommercialPrice(managed, market)?.currency || "USD")} one-time setup.{" "}
+                {pricingLoading
+                  ? "Checking current regional prices."
+                  : pricingError || !getCommercialPrice(managed, market)
+                  ? "Ask for verified local pricing."
+                  : <>Plans from {formatCommercialMoney(getCommercialPrice(managed, market)?.monthlyPrice, getCommercialPrice(managed, market)?.currency || "USD")}/month plus {formatCommercialMoney(getCommercialPrice(managed, market)?.setupFee, getCommercialPrice(managed, market)?.currency || "USD")} one-time setup.</>}{" "}
                 <Link to="/pricing" className="font-semibold text-white underline underline-offset-4">See first payment, full scope & commitment</Link>
               </p>
               <p className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs !text-white/60">
@@ -578,15 +581,16 @@ export default function BrandLedLandingPage() {
                 <div className="grid gap-4 lg:grid-cols-3">
                   {priced.map(({ product, price }, index) => {
                     const isGrowth = product.slug === "website-growth";
+                    const priceReady = !pricingLoading && !pricingError && Boolean(price);
                     return (
                       <article key={product.slug} className={isGrowth ? "border border-[#101827] bg-[#101827] p-6 text-white shadow-[0_24px_70px_-45px_rgba(15,23,42,.6)]" : "border border-[#dfe2ea] bg-white p-6"}>
                         <div>
                           <p className={isGrowth ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{isGrowth ? "Recommended" : planBestFor[index]}</p>
                           <h3 className={isGrowth ? "mt-2 !text-white" : "mt-2"}>{product.name}</h3>
                         </div>
-                        <p className={isGrowth ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD")}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
-                        <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {formatCommercialMoney(price?.setupFee, price?.currency || "USD")} one-time setup</p>
-                        <p className={isGrowth ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>First payment: {price?.monthlyPrice == null ? "By quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}</p>
+                        <p className={isGrowth ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{priceReady ? formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD") : pricingLoading ? "Checking…" : "Ask for quote"}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
+                        <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {priceReady ? formatCommercialMoney(price?.setupFee, price?.currency || "USD") : "—"} one-time setup</p>
+                        <p className={isGrowth ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>First payment: {!priceReady || price?.monthlyPrice == null ? "By quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}</p>
                         <p className={isGrowth ? "mt-2 text-xs font-semibold !text-white/65" : "mt-2 text-xs font-semibold text-[#687386]"}>{formatCommitmentLabel(getMinimumTermMonths(price))}, then month-to-month unless the accepted order states otherwise.</p>
                         <div className={isGrowth ? "mt-6 space-y-3 border-t border-white/25 pt-5" : "mt-6 space-y-3 border-t border-[#dfe2ea] pt-5"}>
                           {planComparisonRows.map(([label, values]) => (
