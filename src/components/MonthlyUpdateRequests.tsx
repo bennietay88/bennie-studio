@@ -41,7 +41,7 @@ export default function MonthlyUpdateRequests() {
           .select("*")
           .eq("business_id", profile.businessId)
           .order("created_at", { ascending: false })
-          .limit(20),
+          .limit(100),
         supabase.from("settings").select("content").eq("id", "plans").maybeSingle(),
       ]);
       if (businessData) setBusiness(businessData);
@@ -72,6 +72,11 @@ export default function MonthlyUpdateRequests() {
     !["declined", "cancelled"].includes(String(request.status || "")),
   ).length;
   const remainingAllowance = Math.max(0, monthlyAllowance - usedAllowance);
+  const activeRequests = requests.filter((item) => ["submitted", "acknowledged", "in_progress", "waiting_for_customer"].includes(String(item.status || "")));
+  const completedThisMonth = requests.filter((item) =>
+    item.status === "completed" && String(item.completed_at || item.updated_at || "").startsWith(currentAllowancePeriod)
+  );
+  const awaitingCustomer = requests.filter((item) => item.status === "waiting_for_customer");
   const publicPlanSlug = legacyPlanToPublicPlanSlug(business?.plan);
   const updateStandard = PLAN_DELIVERY_STANDARDS[publicPlanSlug];
 
@@ -155,6 +160,13 @@ export default function MonthlyUpdateRequests() {
         </p>
       </div>
 
+      <section className="grid gap-3 sm:grid-cols-3" aria-label="Your managed website support activity">
+        {[
+          ["Updates in progress", activeRequests.length, "Submitted, acknowledged or being worked on"],
+          ["Completed this month", completedThisMonth.length, "Based only on completed request records"],
+          ["Needs your response", awaitingCustomer.length, "Your studio is waiting on you"],
+        ].map(([label, value, explanation]) => <div key={String(label)} className="rounded-2xl border border-slate-200 bg-white p-5"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p><p className="mt-2 text-3xl font-semibold tabular-nums text-slate-950">{value}</p><p className="mt-1 text-xs leading-5 text-slate-500">{explanation}</p></div>)}
+      </section>
       <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <Card className="rounded-3xl">
           <CardHeader>
@@ -239,7 +251,7 @@ export default function MonthlyUpdateRequests() {
             <CardTitle className="flex items-center gap-2">
               <CalendarCheck className="h-5 w-5 text-indigo-600" /> Request History
             </CardTitle>
-            <CardDescription>Track updates you have asked for.</CardDescription>
+            <CardDescription>Real service records only: when we acknowledge, work on or complete an update, its status changes here.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {requests.length === 0 ? (
@@ -262,8 +274,23 @@ export default function MonthlyUpdateRequests() {
 	                      {request.completion_details && <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Completed: {request.completion_details}</p>}
 	                      {request.estimated_response_at && <p className="mt-2 text-xs font-bold text-slate-400">Estimated response: {new Date(request.estimated_response_at).toLocaleDateString()}</p>}
 	                    </div>
-                    <Badge variant="outline" className="capitalize">{request.status}</Badge>
+                    <Badge variant="outline" className="capitalize">{String(request.status || "submitted").replace(/_/g, " ")}</Badge>
                   </div>
+                  {["submitted","acknowledged","in_progress","waiting_for_customer","completed"].includes(String(request.status)) && (
+                    <div className="mt-4" aria-label={`Current delivery status: ${String(request.status).replace(/_/g, " ")}`}>
+                      <div className="flex gap-1">
+                        {["submitted","acknowledged","in_progress","completed"].map((step, i) => {
+                          const rank: Record<string,number> = {submitted:0,acknowledged:1,in_progress:2,waiting_for_customer:2,completed:3};
+                          return <span key={step} className={`h-2 flex-1 rounded-full ${i <= (rank[String(request.status)] ?? 0) ? "bg-indigo-600" : "bg-slate-100"}`} />;
+                        })}
+                      </div>
+                      <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-slate-500">
+                        <span>Submitted {request.submitted_at ? new Date(request.submitted_at).toLocaleDateString() : ""}</span>
+                        {request.status === "waiting_for_customer" ? <span className="font-semibold text-amber-700">Your response is needed</span> : null}
+                        {request.status === "completed" && request.completed_at ? <span>Completed {new Date(request.completed_at).toLocaleDateString()}</span> : null}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}
