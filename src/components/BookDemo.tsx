@@ -99,6 +99,7 @@ export default function BookDemo() {
   const initialMarket: RevenueMarket = requestedMarket === "MY" || requestedMarket === "SG" || requestedMarket === "GB" ? requestedMarket : requestedMarket === "INTL" ? "US" : (saved.market || "US");
   const [loading, setLoading] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
+  const [bookingConfirmed, setBookingConfirmed] = React.useState(false);
   const [slots, setSlots] = React.useState<string[]>([]);
   const [availabilityError, setAvailabilityError] = React.useState("");
   const [timezone, setTimezone] = React.useState("Asia/Kuala_Lumpur");
@@ -146,8 +147,11 @@ export default function BookDemo() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!form.selectedSlot || !slots.includes(form.selectedSlot)) {
-      toast.error("Choose one of the currently available call times.");
+    // When the calendar has no availability, do not block a qualified enquiry.
+    // Keep a booked call and a follow-up request as distinctly labelled states.
+    const requestFollowUp = slots.length === 0;
+    if (!requestFollowUp && (!form.selectedSlot || !slots.includes(form.selectedSlot))) {
+      toast.error("Choose a confirmed time, or retry availability.");
       return;
     }
     const normalizedWebsiteUrl = normalizeWebsiteUrl(form.websiteUrl);
@@ -204,6 +208,13 @@ export default function BookDemo() {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.message || "Your request could not be saved.");
+      if (requestFollowUp) {
+        setBookingConfirmed(false);
+        setSubmitted(true);
+        trackPublicEvent({ eventType: "consultation_followup_requested", label: form.company, target: "/book-demo", metadata: { market: form.market, hasPreview: Boolean(saved.previewId) } });
+        toast.success("Your website review request has been saved. No call time has been booked.");
+        return;
+      }
       const bookingResponse = await fetch("/api/public/call-bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -225,7 +236,14 @@ export default function BookDemo() {
         }),
       });
       const bookingPayload = await bookingResponse.json().catch(() => ({}));
-      if (!bookingResponse.ok) throw new Error(bookingPayload.error || "The selected time is no longer available.");
+      if (!bookingResponse.ok) {
+        // The lead is persisted; do not invite an accidental duplicate submission.
+        setBookingConfirmed(false);
+        setSubmitted(true);
+        toast.error("Your request was saved, but the calendar did not confirm a booking.");
+        return;
+      }
+      setBookingConfirmed(true);
       setManageUrl(bookingPayload.manageUrl || (bookingPayload.booking?.confirmation_token ? `/manage-call/${bookingPayload.booking.confirmation_token}` : ""));
       setSubmitted(true);
       toast.success(isGrowthPartner ? "Your growth consultation is confirmed." : "Your website review is confirmed.");
@@ -274,14 +292,16 @@ export default function BookDemo() {
               {submitted ? (
                 <div className="py-10 text-center">
                   <div className="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>
-                  <h2 className="mt-6 text-3xl font-bold">Call confirmed</h2>
+                  <h2 className="mt-6 text-3xl font-bold">{bookingConfirmed ? "Call confirmed" : "Review request received"}</h2>
                   <p className="mx-auto mt-3 max-w-md font-semibold leading-7 text-slate-300">
-                    Your time is reserved. We’ll review your website and goals before the call so the conversation starts with useful context.
+                    {bookingConfirmed
+                      ? "Your time is reserved. We’ll review your website and goals before the call so the conversation starts with useful context."
+                      : "Your enquiry has been saved for a personal follow-up. No appointment is reserved yet. We’ll contact you using the details you supplied to arrange next steps."}
                   </p>
                   <Button onClick={() => navigate("/case-studies")} className="mt-7 min-h-12 rounded-lg bg-white px-6 text-slate-950 hover:bg-indigo-100">
                     View case studies <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  {manageUrl && <Button variant="ghost" onClick={() => navigate(new URL(manageUrl, window.location.origin).pathname)} className="mt-3 min-h-11 rounded-xl text-indigo-200 hover:bg-white/10 hover:text-white">Reschedule or cancel</Button>}
+                  {bookingConfirmed && manageUrl && <Button variant="ghost" onClick={() => navigate(new URL(manageUrl, window.location.origin).pathname)} className="mt-3 min-h-11 rounded-xl text-indigo-200 hover:bg-white/10 hover:text-white">Reschedule or cancel</Button>}
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="min-w-0 space-y-5">
@@ -307,20 +327,21 @@ export default function BookDemo() {
                   </div>
                   <Field icon={Globe2} label="Current website" id="call-website"><Input id="call-website" value={form.websiteUrl} onChange={(e) => update("websiteUrl", e.target.value)} placeholder="https://... (optional)" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    {([ ["monthlyEnquiries", "Current monthly enquiries", ["0–10", "11–30", "31–100", "100+"]], ["marketingSpend", "Approx. monthly marketing spend", ["None", "<RM3k", "RM3k–10k", "RM10k–30k", "RM30k+"]], ["businessSize", "Business size", ["Solo", "2–5", "6–20", "21–50", "50+"]], ["objective", "Main website objective", ["More enquiries", "Better-quality enquiries", "More bookings", "More quotation requests", "Local SEO", "Conversion improvement", "New website", "Other"]], ["timing", "Target timing", ["Immediately", "Within 30 days", "1–3 months", "Researching"]], ["investment", "Investment level", ["RM3k–5k/month", "RM5k–10k/month", "RM10k+/month", "Not sure"]] ] as const).map(([key, label, options]) => <Field key={key} icon={Building2} label={label} id={`call-${key}`}><select id={`call-${key}`} value={form[key]} onChange={(e) => update(key, e.target.value)} className="h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-semibold text-slate-950"><option value="">Select (optional)</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></Field>)}
+                    {([ ["monthlyEnquiries", "Current monthly enquiries", ["0–10", "11–30", "31–100", "100+"]], ["marketingSpend", "Marketing spend today", ["No paid marketing", "Limited paid marketing", "Regular paid marketing", "Not sure"]], ["businessSize", "Business size", ["Solo", "2–5", "6–20", "21–50", "50+"]], ["objective", "Main website objective", ["More enquiries", "Better-quality enquiries", "More bookings", "More quotation requests", "Local SEO", "Conversion improvement", "New website", "Other"]], ["timing", "Target timing", ["Immediately", "Within 30 days", "1–3 months", "Researching"]], ["investment", "Budget preference", ["Would like a fixed quote", "Open to a managed monthly service", "Need guidance on pricing", "Not sure"]] ] as const).map(([key, label, options]) => <Field key={key} icon={Building2} label={label} id={`call-${key}`}><select id={`call-${key}`} value={form[key]} onChange={(e) => update(key, e.target.value)} className="h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-semibold text-slate-950"><option value="">Select (optional)</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></Field>)}
                   </div>
-                  <Field icon={CalendarDays} label={`Available 30-minute times · ${timezone}`} id="call-slot">
-                    <select id="call-slot" required value={form.selectedSlot} onChange={(event) => update("selectedSlot", event.target.value)} className="h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-semibold text-slate-950">
-                      <option value="">Choose a confirmed time</option>
+                  <Field icon={CalendarDays} label={slots.length ? `Available 30-minute times · ${timezone}` : "Call scheduling"} id="call-slot">
+                    <select id="call-slot" required={slots.length > 0} disabled={slots.length === 0} value={form.selectedSlot} onChange={(event) => update("selectedSlot", event.target.value)} className="h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-semibold text-slate-950">
+                      <option value="">{slots.length ? "Choose a confirmed time" : "No confirmed slots currently available"}</option>
                       {slots.map((slot) => <option key={slot} value={slot}>{new Date(slot).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</option>)}
                     </select>
+                    {slots.length === 0 && <p className="mt-2 text-xs leading-5 text-indigo-100">You can still request a personal follow-up below. Submitting will not reserve a call time.</p>}
                     {availabilityError && <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold text-amber-200"><span>{availabilityError}</span><button type="button" onClick={loadAvailability} className="rounded-lg border border-white/20 px-3 py-1.5 font-bold text-white hover:bg-white/10">Retry</button></div>}
                   </Field>
                   <Field icon={MessageSquare} label="What needs to improve?" id="call-message"><Textarea id="call-message" value={form.message} onChange={(e) => update("message", e.target.value)} placeholder="Where do enquiries come from today? What makes them unsuitable? What would you like to improve, and when?" className="min-h-28 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
                   <Button type="submit" disabled={loading} className="h-auto min-h-13 w-full whitespace-normal rounded-lg bg-indigo-500 px-6 py-3 text-center font-bold text-white shadow-xl shadow-indigo-950/30 hover:bg-indigo-400">
-                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Confirming time</> : <>{isGrowthPartner ? "Confirm Growth Consultation" : "Confirm Website Review"} <ArrowRight className="ml-2 h-4 w-4" /></>}
+                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving your request</> : <>{slots.length === 0 ? "Request a personal follow-up" : isGrowthPartner ? "Confirm Growth Consultation" : "Confirm Website Review"} <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>
-                  <p className="text-center text-xs font-semibold leading-5 text-slate-400">Your selected time is reserved immediately. Rescheduling remains available through support.</p>
+                  <p className="text-center text-xs font-semibold leading-5 text-slate-400">{slots.length > 0 ? "A time is reserved only after the calendar confirms it. If confirmation fails, we keep your enquiry for follow-up." : "No slot is booked. We will contact you to discuss suitable times and your requirements."}</p>
                 </form>
               )}
             </div>
