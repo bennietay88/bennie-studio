@@ -161,7 +161,7 @@ export default function BookDemo() {
     }
     setLoading(true);
     trackPublicEvent({
-      eventType: isGrowthPartner ? "growth_partner_consultation_requested" : "managed_website_review_requested",
+      eventType: "consultation_form_submitted",
       label: form.company,
       target: "/book-demo",
       metadata: { market: form.market, industry: form.industry, hasWebsite: Boolean(form.websiteUrl) },
@@ -196,7 +196,7 @@ export default function BookDemo() {
           firstTouch: saved.attribution?.firstTouch,
           lastTouch: saved.attribution?.lastTouch,
           message: [
-            `Confirmed slot requested: ${form.selectedSlot}`,
+            requestFollowUp ? "No available calendar slot; personal follow-up requested, not a confirmed booking." : `Preferred slot (awaiting confirmation): ${form.selectedSlot}`,
             `Market: ${REVENUE_MARKETS[form.market].label}`,
             saved.location ? `Location: ${saved.location}` : null,
             saved.service ? `Primary service: ${saved.service}` : null,
@@ -244,6 +244,7 @@ export default function BookDemo() {
         return;
       }
       setBookingConfirmed(true);
+      trackPublicEvent({ eventType: "consultation_booking_confirmed", label: form.company, target: "/book-demo", metadata: { market: form.market, selectedProduct: requestedProduct } });
       setManageUrl(bookingPayload.manageUrl || (bookingPayload.booking?.confirmation_token ? `/manage-call/${bookingPayload.booking.confirmation_token}` : ""));
       setSubmitted(true);
       toast.success(isGrowthPartner ? "Your growth consultation is confirmed." : "Your website review is confirmed.");
