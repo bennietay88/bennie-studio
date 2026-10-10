@@ -4505,8 +4505,15 @@ async function startServer() {
             raw_fields: { ...(lead.raw_fields || {}), auditDeliveryStatus: delivery, auditJobId: job.id, auditReportReadyAt: new Date().toISOString() },
           }).eq("id", lead.id).then(({error}) => { if (error) console.warn("Audit delivery status update failed", error.message); });
         }
-        // Existing lead response task remains the only follow-up task: do not
-        // create duplicates, and never mark a prospect as converted.
+        // Update the existing open lead-response task with real audit outcome.
+        // Preserve its original due date and do not create duplicate tasks.
+        await supabaseAdmin.from("sales_tasks").update({
+          title: "Follow up on completed website review",
+          priority: "high",
+          notes: `The automated website review has completed for ${String(report.analyzedUrl || "").slice(0,250)}. Transactional report email status: ${delivery}. Review the stored report on the linked lead before contacting the prospect. Discuss verified findings and suitability; never promise rankings or enquiries.`,
+        }).eq("lead_id", job.payload.leadId).eq("task_type", "new_lead_response").eq("status", "open")
+          .then(({ error }) => { if (error) console.warn("Audit follow-up update failed", error.message); });
+        // Do not create duplicate sales tasks or mark leads as converted.
       }
       return { success: true, report, deliveryStatus: delivery, completedAt: new Date().toISOString() };
     }
