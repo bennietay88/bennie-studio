@@ -43,23 +43,56 @@ export function PublicSiteHeader() {
   const { user } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const mobileTriggerRef = React.useRef<HTMLButtonElement>(null);
+  const mobileDialogRef = React.useRef<HTMLDivElement>(null);
+  const mobileCloseRef = React.useRef<HTMLButtonElement>(null);
+  const previouslyFocusedRef = React.useRef<HTMLElement | null>(null);
   const isActive = React.useCallback((href: string) =>
     href === "/" ? location.pathname === "/" : location.pathname === href || location.pathname.startsWith(`${href}/`),
   [location.pathname]);
 
   React.useEffect(() => {
     if (!mobileOpen) return;
+    previouslyFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : mobileTriggerRef.current;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    mobileCloseRef.current?.focus();
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMobileOpen(false);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobileOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const dialog = mobileDialogRef.current;
+      if (!dialog) return;
+      const controls = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )).filter((element) => element.getClientRects().length > 0);
+      if (!controls.length) { event.preventDefault(); dialog.focus(); return; }
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !dialog.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (active === last || !dialog.contains(active))) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
+      const previous = previouslyFocusedRef.current;
+      if (previous?.isConnected) previous.focus();
+      else mobileTriggerRef.current?.focus();
     };
   }, [mobileOpen]);
+
+  React.useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#e8eaf0] bg-white/94 shadow-[0_10px_30px_-28px_rgba(15,23,42,.45)] backdrop-blur-xl">
@@ -93,24 +126,24 @@ export function PublicSiteHeader() {
           </Link>
           <Link
             to={user ? "/dashboard" : "/website-audit"}
-            onClick={() => !user && trackPublicEvent({ eventType: "click_generate_preview", label: "Header Website Review", target: "/website-audit" })}
+            onClick={() => !user && trackPublicEvent({ eventType: "website_audit_cta_clicked", label: "Header Website Review", target: "/website-audit" })}
             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#5746e8]"
           >
             {user ? "Open Studio" : "Get a website review"} <span className="ml-2">→</span>
           </Link>
         </div>
 
-        <Button type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="shrink-0 lg:hidden" aria-label="Open navigation menu" aria-expanded={mobileOpen} aria-controls="public-mobile-navigation">
+        <Button ref={mobileTriggerRef} type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="shrink-0 lg:hidden" aria-label="Open navigation menu" aria-expanded={mobileOpen} aria-controls="public-mobile-navigation">
           <Menu className="h-5 w-5" />
         </Button>
       </nav>
 
       {mobileOpen ? (
         <div className="fixed inset-0 z-[100] bg-[#07101f]/60 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
-          <div id="public-mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="absolute right-0 top-0 flex h-dvh w-[min(92vw,390px)] flex-col bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div ref={mobileDialogRef} tabIndex={-1} id="public-mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="absolute right-0 top-0 flex h-dvh w-[min(92vw,390px)] flex-col bg-white p-6 shadow-2xl focus:outline-none" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-[#e5e7ef] pb-5">
               <span className="text-lg font-semibold tracking-[-0.03em] text-[#0d1426]">Bennie Studio</span>
-              <Button type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Close navigation menu"><X className="h-5 w-5" /></Button>
+              <Button ref={mobileCloseRef} type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Close navigation menu"><X className="h-5 w-5" /></Button>
             </div>
             <div className="flex flex-col py-4">
               {publicNavItems.map((item) => (
