@@ -4453,7 +4453,62 @@ async function startServer() {
         leadEmail: job.payload?.leadEmail || null,
         requestId: job.id,
       });
-      return { success: true, report, completedAt: new Date().toISOString() };
+
+      // Deliver the completed report without asking the prospect to stay on the page.
+      // This is a transactional response to an explicitly requested free audit.
+      // Failure to deliver email must not turn a completed, saved audit into a failed job.
+      const reportUrl = `${publicAppUrl()}/website-audit?report=${encodeURIComponent(job.id)}&key=${encodeURIComponent(String(job.payload?.reportAccessKey || ""))}`;
+      let delivery: "sent" | "not_configured" | "failed" | "skipped" = "skipped";
+      if (job.payload?.leadEmail && job.payload?.leadId && job.payload?.reportAccessKey) {
+        if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+          delivery = "not_configured";
+        } else {
+          try {
+            const safeWebsite = escapeHtml(String(job.payload?.businessName || report.analyzedUrl || "your website").slice(0, 160));
+            const findings = (report.findings || []).slice(0, 3);
+            const findingHtml = findings.map((finding: any) => `<li><strong>${escapeHtml(String(finding.title || "").slice(0, 140))}</strong>: ${escapeHtml(String(finding.recommendation || "").slice(0, 280))}</li>`).join("");
+            const linkHtml = escapeHtml(reportUrl);
+            const emailHtml = `<div style="font-family:Arial,sans-serif;color:#182034;line-height:1.7;max-width:640px;margin:auto"><p style="color:#5746e8;font-weight:700">Bennie Studio · Free website review</p><h1>Your website review is ready</h1><p>We completed an automated review of <strong>${safeWebsite}</strong> based on publicly accessible page evidence. Findings may need human validation, especially on JavaScript-heavy websites.</p><h2>Recommended improvements</h2><ul>${findingHtml}</ul><p style="margin:28px 0"><a href="${linkHtml}" style="background:#5746e8;color:white;text-decoration:none;padding:14px 20px;border-radius:7px">Open your private review</a></p><p>Prefer to discuss your website with a person? <a href="${publicAppUrl()}/book-demo">Request a website consultation</a>.</p><p style="font-size:12px;color:#64748b">This is a requested review, not a guarantee of traffic, rankings, conversions or sales. The private link can be opened by anyone who possesses it.</p></div>`;
+            const textBody = [
+              "Your Bennie Studio website review is ready.",
+              `Website: ${report.analyzedUrl}`,
+              "Top recommendations:",
+              ...findings.map((finding: any, i: number) => `${i + 1}. ${finding.title}: ${finding.recommendation}`),
+              `Open the review: ${reportUrl}`,
+              `Discuss with the studio: ${publicAppUrl()}/book-demo`,
+              "This automated review is based on accessible page evidence. It is not a guarantee of rankings or revenue.",
+            ].join("\n\n");
+            const { data, error } = await getResend().emails.send({
+              from: process.env.RESEND_FROM_EMAIL,
+              to: String(job.payload.leadEmail),
+              replyTo: process.env.SALES_REPLY_TO || undefined,
+              subject: "Your Bennie Studio website review is ready",
+              html: emailHtml,
+              text: textBody,
+            }, { idempotencyKey: `requested-website-audit-${job.id}` });
+            if (error || !data?.id) throw new Error("AUDIT_EMAIL_NOT_ACCEPTED");
+            delivery = "sent";
+          } catch (emailError: any) {
+            delivery = "failed";
+            console.warn(`[WebsiteAudit:${job.id}] Report email was not delivered:`, emailError?.message || emailError);
+          }
+        }
+      }
+      if (job.payload?.leadId && job.payload?.leadEmail) {
+        const { data: lead } = await supabaseAdmin.from("leads")
+          .select("id,raw_fields")
+          .eq("id", job.payload.leadId)
+          .eq("email", job.payload.leadEmail)
+          .maybeSingle();
+        if (lead) {
+          await supabaseAdmin.from("leads").update({
+            raw_fields: { ...(lead.raw_fields || {}), auditDeliveryStatus: delivery, auditJobId: job.id, auditReportReadyAt: new Date().toISOString() },
+          }).eq("id", lead.id).then(({error}) => { if (error) console.warn("Audit delivery status update failed", error.message); });
+        }
+        // Existing lead response task remains the only follow-up task: do not
+        // create duplicates, and never mark a prospect as converted.
+      }
+      return { success: true, report, deliveryStatus: delivery, completedAt: new Date().toISOString() };
     }
 
     if (job.job_type === "seo_audit") {
@@ -4976,26 +5031,35 @@ async function startServer() {
     }
   });
 
-  app.get("/api/public/website-audit/jobs/:jobId", async (req: any, res: any) => {
+  app.get("/api/public/website-audit/jobs/:jobId",
+    rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: "public-website-audit-status" }),
+    async (req: any, res: any) => {
     if (!UUID_SCHEMA.safeParse(req.params.jobId).success) {
       return res.status(400).json({ error: "Invalid job ID" });
     }
+    const accessKey = String(req.query.key || "");
     const leadId = String(req.query.leadId || "");
     const leadEmail = String(req.query.leadEmail || "");
-    if (!UUID_SCHEMA.safeParse(leadId).success || !EMAIL_SCHEMA.safeParse(leadEmail).success) {
-      return res.status(400).json({ error: "Lead verification is required." });
+    if (!accessKey && (!UUID_SCHEMA.safeParse(leadId).success || !EMAIL_SCHEMA.safeParse(leadEmail).success)) {
+      return res.status(400).json({ error: "Valid report access is required." });
     }
 
     try {
       const job = await getAsyncJob(supabaseAdmin, req.params.jobId);
       if (!job || job.job_type !== "website_audit") return res.status(404).json({ error: "Audit job not found" });
-      if (job.payload?.leadId !== leadId || job.payload?.leadEmail !== leadEmail) {
-        return res.status(403).json({ error: "Forbidden" });
-      }
+      const jobKey = String(job.payload?.reportAccessKey || "");
+      const secureKeyMatch = accessKey.length === jobKey.length && accessKey.length >= 48 &&
+        crypto.timingSafeEqual(Buffer.from(accessKey), Buffer.from(jobKey));
+      const legacyMatch = !accessKey && job.payload?.leadId === leadId && job.payload?.leadEmail === leadEmail;
+      if (!secureKeyMatch && !legacyMatch) return res.status(403).json({ error: "Report link is invalid." });
 
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("Referrer-Policy", "no-referrer");
       return res.json({
         id: job.id,
+        businessName: job.payload?.businessName || "",
         status: job.status,
+        deliveryStatus: job.status === "completed" ? job.result?.deliveryStatus || "unknown" : "pending",
         report: job.status === "completed" && job.result?.report
           ? normalizeWebsiteAuditResult(job.result.report)
           : null,
@@ -5069,14 +5133,23 @@ async function startServer() {
       try {
         if (body.async) {
           await assertPublicAuditUrl(body.url);
+          // Only send a report for an actual saved enquiry. A caller must not be
+          // able to trigger unsolicited reports to arbitrary email addresses.
+          if (!body.leadId || !body.leadEmail) return res.status(400).json({ error: "Save your review enquiry first." });
+          const { data: matchingLead, error: leadLookupError } = await supabaseAdmin.from("leads")
+            .select("id")
+            .eq("id", body.leadId).eq("email", body.leadEmail).maybeSingle();
+          if (leadLookupError) throw leadLookupError;
+          if (!matchingLead) return res.status(403).json({ error: "The website review request could not be verified." });
           const { job, existing } = await createAsyncJob(supabaseAdmin, {
             jobType: "website_audit",
             payload: {
               url: body.url,
               businessName: body.businessName || null,
               industry: body.industry || null,
-              leadId: body.leadId || null,
-              leadEmail: body.leadEmail || null,
+              leadId: body.leadId,
+              leadEmail: body.leadEmail,
+              reportAccessKey: crypto.randomBytes(32).toString("hex"),
             },
             idempotencyKey: `website_audit:${crypto.createHash("sha256").update(`${body.url}:${body.leadId || ""}:${body.leadEmail || ""}`).digest("hex")}`,
           });
@@ -5113,6 +5186,10 @@ async function startServer() {
             jobId: job.id,
             status,
             report,
+            // The token belongs to this verified submitter; it is also emailed
+            // on completion. No customer contact data is placed in the URL.
+            reportUrl: `/website-audit?report=${encodeURIComponent(job.id)}&key=${encodeURIComponent(String(job.payload?.reportAccessKey || ""))}`,
+            deliveryStatus: status === "completed" ? (await getAsyncJob(supabaseAdmin, job.id))?.result?.deliveryStatus || "unknown" : "pending",
             error: jobError,
             dispatch,
             requestId,
