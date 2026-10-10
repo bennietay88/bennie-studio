@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { motion } from "motion/react";
+import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
 import {
   ArrowRight,
   Check,
@@ -212,66 +212,26 @@ function SystemVisual() {
 }
 
 function WorkShowcase() {
+  const examples = [
+    { title: "Professional advisory website", eyebrow: "Credibility and consultation", index: 0, label: "Professional services", copy: "A calm, expertise-led direction that helps buyers understand the service and request a consultation." },
+    { title: "Modern dental clinic website", eyebrow: "Clarity and appointment booking", index: 1, label: "Healthcare", copy: "A welcoming, treatment-led experience with accessible appointment routes and patient information." },
+    { title: "Residential renovation website", eyebrow: "Trust and quotation requests", index: 3, label: "Home services", copy: "A project-led visual style that explains renovation services and helps visitors request a useful quote." },
+  ] as const;
   return (
-    <div className="relative overflow-hidden rounded-[1.2rem] border border-[#dfe2ea] bg-[#0b1020] p-4 shadow-[0_34px_90px_-55px_rgba(15,23,42,.75)] sm:p-6 lg:p-8">
-      <div className="pointer-events-none absolute -right-20 top-0 h-64 w-64 rounded-full bg-[#5b49f2]/20 blur-3xl" />
-      <div className="relative grid gap-4 lg:grid-cols-[1.02fr_.98fr]">
-        <article className="overflow-hidden rounded-[.9rem] bg-[#f7f4ed] shadow-2xl">
-          <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
-            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#6b6257]">Professional services</span>
-            <span className="h-2 w-16 rounded-full bg-[#d6d0c6]" />
-          </div>
-          <div className="grid min-h-[19rem] gap-5 p-5 sm:grid-cols-[1.05fr_.95fr] sm:p-6">
-            <div className="flex flex-col justify-between">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7468ef]">Authority-led</p>
-                <p className="mt-4 text-3xl font-semibold leading-[.98] text-[#171717]">Expertise made easier to choose.</p>
-                <div className="mt-5 h-2 w-full bg-[#ddd7cd]" /><div className="mt-2 h-2 w-4/5 bg-[#e7e2da]" />
-              </div>
-              <div className="mt-6 flex gap-2"><span className="bg-[#171717] px-3 py-2 text-[9px] font-semibold text-white">Book consultation</span><span className="border border-black/10 px-3 py-2 text-[9px] font-semibold">See credentials</span></div>
-            </div>
-            <div className="relative overflow-hidden rounded-xl bg-[linear-gradient(145deg,#d7d2ca,#9d9489)]">
-              <div className="absolute bottom-4 left-4 right-4 rounded-lg bg-white/88 p-3 backdrop-blur">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#6f675e]">Proof before claims</p>
-                <div className="mt-2 h-2 w-2/3 bg-[#d6d0c6]" />
-              </div>
-            </div>
+    <div className="grid gap-6 lg:grid-cols-3">
+      {examples.map((item) => (
+        <article key={item.title} className="group overflow-hidden rounded-[1.2rem] border border-[#e0e3ec] bg-white shadow-[0_24px_65px_-50px_rgba(15,23,42,.28)] transition hover:-translate-y-1 hover:shadow-[0_30px_80px_-52px_rgba(15,23,42,.36)]">
+          <WebsiteConceptVisual title={item.title} eyebrow={item.eyebrow} index={item.index} className="rounded-none border-b border-slate-200 shadow-none" />
+          <div className="p-6">
+            <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#5746e8]">{item.label} · Illustrative concept</p>
+            <h3 className="mt-3 text-xl font-semibold text-[#152032]">{item.title}</h3>
+            <p className="mt-3 text-sm leading-7 text-[#5b687a]">{item.copy}</p>
+            <Link to="/case-studies" className="mt-5 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#5746e8] hover:underline">
+              Explore design decisions <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </article>
-
-        <div className="grid gap-4">
-          <article className="overflow-hidden rounded-[.9rem] bg-white shadow-2xl">
-            <div className="grid min-h-[10.5rem] grid-cols-[1.1fr_.9fr]">
-              <div className="p-5">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#4e9a87]">Clinic / healthcare</p>
-                <p className="mt-3 text-xl font-semibold leading-tight text-[#14211e]">Confidence before the appointment.</p>
-                <div className="mt-4 flex gap-2"><span className="bg-[#173f36] px-3 py-2 text-[9px] font-semibold text-white">Book visit</span><span className="bg-[#e8f5f1] px-3 py-2 text-[9px] font-semibold text-[#276655]">Treatments</span></div>
-              </div>
-              <div className="bg-[linear-gradient(145deg,#dceee8,#9bc9bb)] p-4">
-                <div className="h-full rounded-lg border border-white/70 bg-white/30 p-3">
-                  <span className="block h-8 w-8 rounded-full bg-white/80" />
-                  <div className="mt-6 h-2 w-full bg-white/70" /><div className="mt-2 h-2 w-3/5 bg-white/50" />
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <article className="overflow-hidden rounded-[.9rem] bg-[#111a2d] shadow-2xl">
-            <div className="grid min-h-[10.5rem] grid-cols-[1fr_.85fr]">
-              <div className="p-5">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] !text-[#91a9ff]">Local service</p>
-                <p className="mt-3 text-xl font-semibold leading-tight !text-white">Fast proof. Clear service area. Easy quote.</p>
-                <div className="mt-4 h-2 w-4/5 bg-white/15" /><div className="mt-2 h-2 w-2/3 bg-white/10" />
-              </div>
-              <div className="m-4 rounded-lg bg-white p-3">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#6f7785]">Request a quote</p>
-                <div className="mt-3 h-7 border border-[#e5e7eb]" /><div className="mt-2 h-7 border border-[#e5e7eb]" />
-                <div className="mt-2 h-7 bg-[#4f46e5]" />
-              </div>
-            </div>
-          </article>
-        </div>
-      </div>
+      ))}
     </div>
   );
 }
@@ -405,21 +365,21 @@ export default function BrandLedLandingPage() {
           <div className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#5b4bff]/20 blur-3xl" />
           <div className="brand-shell relative grid gap-14 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
             <div className="lg:col-span-5">
-              <p className="brand-kicker !text-[#b9b1ff]">Websites for ambitious service businesses</p>
-              <h1 className="mt-5 !max-w-[13ch] !text-white">A better website <span className="bt-gradient-title block">without the hassle.</span></h1>
+              <p className="brand-kicker !text-[#b9b1ff]">Designed for service businesses that need enquiries</p>
+              <h1 className="mt-5 !max-w-[13ch] !text-white">A website that earns trust <span className="bt-gradient-title block">and makes enquiries easier.</span></h1>
               <p className="brand-copy brand-muted-on-dark mt-7 !max-w-xl">
-                Bennie Studio plans, builds, hosts and manages your business website. See a tailored direction before paying, review clear setup and monthly costs, and keep a team responsible after launch.
+                We design, build and manage websites that help customers understand your business and take the next step. Start with a free website review or explore a new design direction — then launch with a team behind you.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <button type="button" onClick={() => go("/generate-preview", "Hero free preview")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
-                  Preview my website direction <ArrowRight className="ml-2 h-4 w-4" />
+                <button type="button" onClick={() => go("/website-audit", "Hero existing website review")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
+                  Review my current website <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => go("/pricing", "Hero plans")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
-                  Compare plans & pricing
+                <button type="button" onClick={() => go("/generate-preview?mode=business", "Hero new website direction")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
+                  I need a new website
                 </button>
               </div>
               <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm !text-white/65">
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> No card for the free direction</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Free first review</span>
                 <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Reviewed before launch</span>
                 <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Managed after launch</span>
               </div>
@@ -434,32 +394,20 @@ export default function BrandLedLandingPage() {
               </p>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="relative lg:col-span-7 lg:-mr-8 xl:-mr-14"
-            >
-              <div className="pointer-events-none absolute -inset-10 bg-[#5746e8]/10 blur-3xl" />
-              <div className="relative overflow-hidden rounded-[1.15rem] border border-white/10 bg-[#080b15] shadow-[0_55px_140px_-55px_rgba(0,0,0,.95)]">
-                <img
-                  src="/images/bennie-studio-hero-work.webp"
-                  alt="Bennie Studio concept website directions shown across desktop and mobile layouts"
-                  width="1600"
-                  height="720"
-                  sizes="(min-width: 1024px) 58vw, 100vw"
-                  className="aspect-[20/9] w-full object-cover"
-                  loading="eager"
-                  decoding="async"
-                  fetchPriority="high"
-                />
-                <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#0b1020]/55 to-transparent sm:w-32" />
+            <div className="relative lg:col-span-7 lg:-mr-5">
+              <div className="pointer-events-none absolute -inset-10 rounded-full bg-[#5746e8]/10 blur-3xl" />
+              <WebsiteConceptVisual
+                title="Professional service website"
+                eyebrow="Premium responsive website direction"
+                index={0}
+                hero
+                className="relative border border-white/10"
+              />
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-white/65">
+                <span>One credible, customer-focused direction — not a collage of interfaces.</span>
+                <Link to="/case-studies" className="font-semibold text-white underline underline-offset-4">See more examples</Link>
               </div>
-              <div className="relative mx-4 -mt-px flex flex-wrap items-center justify-between gap-2 border-x border-b border-white/10 bg-[#101827]/95 px-4 py-3 backdrop-blur sm:mx-8">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Illustrative concept directions</span>
-                <span className="text-[10px] font-semibold !text-white/60">Design studies · not client performance claims</span>
-              </div>
-            </motion.div>
+            </div>
           </div>
         </section>
 
@@ -468,32 +416,20 @@ export default function BrandLedLandingPage() {
             <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-7">
                 <p className="brand-kicker">Selected work</p>
-                <h2 className="mt-4">Website directions shaped by the business.</h2>
+                <h2 className="mt-4">See the quality before you choose a plan.</h2>
               </div>
-              <p className="brand-copy lg:col-span-5">The work starts with the buyer, the proof available and the action the business needs. These concept directions show the decisions before the decoration.</p>
+              <p className="brand-copy lg:col-span-5">Three distinct, fully composed website concepts. Each shows the kind of responsive presentation, credible messaging and enquiry path we can build around a real business.</p>
             </div>
 
             <div className="mt-11"><WorkShowcase /></div>
             <div className="mt-5 flex flex-col gap-4 border border-[#dfe2ea] bg-[#f8f8ff] p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#141821]">See what is a concept and what is verified customer work.</p>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-[#687386]">The visuals above are illustrative design studies, not paid-customer case studies. Our portfolio is a separate multi-platform design library; customer results are shown only with permission.</p>
+                <p className="text-sm font-semibold text-[#141821]">What are these website examples?</p>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-[#687386]">These are fictional brand concepts demonstrating visual quality; the businesses and photographs are illustrative. See the separate multi-platform portfolio library for more inspiration. Genuine customer evidence is shown only with approval.</p>
               </div>
               <a href="https://portfolio.bennietay.com/" target="_blank" rel="noopener noreferrer" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Portfolio library", target: "https://portfolio.bennietay.com/" })} className="inline-flex min-h-11 shrink-0 items-center justify-center border border-[#dfe2ea] bg-white px-5 text-sm font-semibold text-[#141821] hover:border-[#5746e8]">Open portfolio library <ArrowRight className="ml-2 h-4 w-4" /></a>
             </div>
 
-            <div className="mt-5 grid gap-px overflow-hidden rounded-[1rem] border border-[#dfe2ea] bg-[#dfe2ea] md:grid-cols-3">
-              {workDirections.map(([category, direction, copy], index) => (
-                <article key={category} className="bg-white p-5 sm:p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#5746e8]">{category}</p>
-                    <span className="text-[10px] font-semibold text-[#526071]">0{index + 1}</span>
-                  </div>
-                  <h3 className="mt-4 text-xl">{direction}</h3>
-                  <p className="mt-3 text-sm leading-6 text-[#687386]">{copy}</p>
-                </article>
-              ))}
-            </div>
             <button onClick={() => go("/case-studies", "Homepage all examples")} className="mt-8 inline-flex items-center font-semibold">
               View all website work <ArrowRight className="ml-2 h-4 w-4" />
             </button>
@@ -718,7 +654,7 @@ export default function BrandLedLandingPage() {
               <p className="mt-4 max-w-xl !text-white/75">Start with a website review. See what needs attention first, then decide whether you want Bennie Studio to prepare a direction and manage the build.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-              <button onClick={() => go("/website-audit", "Final free preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821]">Get a website review <ArrowRight className="ml-2 inline h-4 w-4" /></button>
+              <button onClick={() => go("/website-audit", "Final website review")} className="min-h-12 bg-white px-6 font-semibold text-[#141821]">Get a website review <ArrowRight className="ml-2 inline h-4 w-4" /></button>
               <button onClick={() => go("/book-demo", "Final book review")} className="min-h-12 border border-white/30 bg-white/[0.04] px-6 font-semibold text-white">Book a free call</button>
             </div>
           </div>
