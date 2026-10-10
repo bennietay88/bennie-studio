@@ -335,7 +335,7 @@ export default function BrandLedLandingPage() {
         <meta property="og:title" content="Bennie Studio | Managed Website System" />
         <meta property="og:description" content="Strategy, design, lead capture, hosting and ongoing improvement in one managed website service." />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://app.bennietay.com/images/bennie-studio-hero-work.webp" />
+        <meta property="og:image" content="https://app.bennietay.com/og-preview.svg" />
         <meta name="twitter:card" content="summary_large_image" />
         {analyticsAllowed && platformSettings?.gaMeasurementId ? <script async src={`https://www.googletagmanager.com/gtag/js?id=${platformSettings.gaMeasurementId}`} /> : null}
         {analyticsAllowed && platformSettings?.gaMeasurementId ? (
