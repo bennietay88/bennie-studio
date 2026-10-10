@@ -3405,6 +3405,7 @@ function WebsiteAuditPage() {
 
   return (
     <>
+      {linkedJobId && <Helmet><meta name="robots" content="noindex,nofollow" /><meta name="referrer" content="no-referrer" /></Helmet>}
       <Hero
         title="See what is holding your website back"
         copy="Get a practical, evidence-based review of your website clarity, trust, mobile experience and enquiry path—plus a clearer direction for what to improve next."
