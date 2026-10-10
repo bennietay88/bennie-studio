@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowUpRight, CalendarDays, Check, Menu, Phone, Sparkles } from "lucide-react";
+import { ArrowUpRight, Menu } from "lucide-react";
 import { cn } from "../lib/utils";
 
 /**
