@@ -538,6 +538,7 @@ function Hero({
   secondaryLabel,
   secondaryHref,
   imageSrc = "/images/studio-hero-v2.png",
+  variant = "default",
 }: {
   title: string;
   copy: string;
@@ -547,9 +548,10 @@ function Hero({
   secondaryLabel?: string;
   secondaryHref?: string;
   imageSrc?: string;
+  variant?: "default" | "audit";
 }) {
   const primaryContent = <>{primaryLabel} <ArrowRight className="ml-2 h-4 w-4" /></>;
-  const isAuditPage = /what your website could improve/i.test(title);
+  const isAuditPage = variant === "audit";
   const visualIndex = /clinic|dent/i.test(title) ? 1 : /beauty|salon|wellness/i.test(title) ? 2 : /renovation|contractor|local service/i.test(title) || imageSrc.includes("work") ? 3 : /tuition|education/i.test(title) ? 4 : 0;
   return (
     <section className="brand-grid-bg relative overflow-hidden border-b border-white/10 bg-[#0b1020] text-white">
@@ -561,9 +563,9 @@ function Hero({
           <p className="brand-copy brand-muted-on-dark mt-6">{copy}</p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             {primaryHref.startsWith("#") ? (
-              <a href={primaryHref} onClick={() => trackPublicEvent({ eventType: "click_generate_preview", label: primaryLabel, target: primaryHref })} className="inline-flex min-h-12 items-center justify-center bg-white px-6 text-sm font-semibold text-[#141821] hover:-translate-y-0.5 hover:bg-[#eeebff]">{primaryContent}</a>
+              <a href={primaryHref} onClick={() => trackPublicEvent({ eventType: isAuditPage ? "website_audit_cta_clicked" : "public_section_cta_clicked", label: primaryLabel, target: primaryHref })} className="inline-flex min-h-12 items-center justify-center bg-white px-6 text-sm font-semibold text-[#141821] hover:-translate-y-0.5 hover:bg-[#eeebff]">{primaryContent}</a>
             ) : (
-              <Link to={primaryHref} onClick={() => trackPublicEvent({ eventType: "click_primary_cta", label: primaryLabel, target: primaryHref })} className="inline-flex min-h-12 items-center justify-center bg-white px-6 text-sm font-semibold text-[#141821] hover:-translate-y-0.5 hover:bg-[#eeebff]">{primaryContent}</Link>
+              <Link to={primaryHref} onClick={() => trackPublicEvent({ eventType: isAuditPage ? "website_audit_cta_clicked" : "public_section_cta_clicked", label: primaryLabel, target: primaryHref })} className="inline-flex min-h-12 items-center justify-center bg-white px-6 text-sm font-semibold text-[#141821] hover:-translate-y-0.5 hover:bg-[#eeebff]">{primaryContent}</Link>
             )}
             {secondaryLabel && secondaryHref ? <Link to={secondaryHref} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 text-sm font-semibold text-white hover:bg-white/[0.08]">{secondaryLabel}</Link> : null}
           </div>
@@ -3424,6 +3426,7 @@ function WebsiteAuditPage() {
       {linkedJobId && <Helmet><meta name="robots" content="noindex,nofollow" /><meta name="referrer" content="no-referrer" /></Helmet>}
       <Hero
         title="Find out what your website could improve."
+        variant="audit"
         copy="Start with your website address. Get an automated, evidence-based review of your messaging, trust signals and enquiry journey — then see practical next steps."
         icon={FileSearch}
         primaryLabel="Start my free review"
@@ -3431,8 +3434,8 @@ function WebsiteAuditPage() {
         secondaryLabel="I don't have a website yet"
         secondaryHref="/generate-preview?mode=business"
       />
-      <section className="mx-auto grid max-w-7xl gap-8 px-5 py-14 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="order-2 rounded-xl border border-slate-200 bg-white p-7 shadow-sm lg:order-1">
+      <section className="brand-shell grid min-w-0 gap-8 py-12 sm:py-16 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="order-2 min-w-0 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 lg:order-1">
           <h2 className="text-3xl font-bold text-slate-950">What we review</h2>
           <div className="mt-6 grid gap-3">
             {[
@@ -3471,7 +3474,7 @@ function WebsiteAuditPage() {
             </div>
           </div>
         </div>
-        <form id="review-form" onSubmit={submitAudit} className="order-1 scroll-mt-28 rounded-xl border border-slate-200 bg-slate-950 p-6 text-white shadow-xl sm:p-8 lg:order-2">
+        <form id="review-form" onSubmit={submitAudit} className="order-1 min-w-0 scroll-mt-28 rounded-xl border border-slate-200 bg-slate-950 p-5 text-white shadow-xl sm:p-8 lg:order-2">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-200">Free website review</p>
           <h2 className="mt-4 text-3xl font-bold text-white">Enter your website. See what to improve.</h2>
           <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
@@ -3554,9 +3557,9 @@ function WebsiteAuditPage() {
           )}
         </form>
       </section>
-      {error && !submitted && linkedJobId && <p role="alert" className="mx-auto max-w-7xl px-5 text-sm font-semibold text-rose-700">{error}</p>}
+      {error && !submitted && linkedJobId && <p role="alert" className="brand-shell text-sm font-semibold text-rose-700">{error}</p>}
       {auditReport ? (
-        <section className="mx-auto max-w-7xl px-5 pb-20">
+        <section className="brand-shell pb-20">
           <WebsiteAuditResultView report={auditReport} form={form} />
         </section>
       ) : null}
