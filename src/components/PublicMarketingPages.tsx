@@ -3530,7 +3530,7 @@ function WebsiteAuditPage() {
                 </div>
               )}
               <label className="space-y-2 text-sm font-semibold text-white">Your website URL
-                <Input aria-label="Website URL" type="url" required placeholder="https://yourbusiness.com" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className="h-13 rounded-xl border-indigo-100 bg-white text-slate-950" />
+                <Input aria-label="Website URL" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" required placeholder="https://yourbusiness.com" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className="h-13 rounded-xl border-indigo-100 bg-white text-slate-950" />
               </label>
               <label className="space-y-2 text-sm font-semibold text-white">Business name
                 <Input aria-label="Business name" required placeholder="Your business or company" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-xl bg-white text-slate-950" />
