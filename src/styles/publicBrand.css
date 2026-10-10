@@ -932,7 +932,9 @@
 }
 
 .brand-public .brand-shell {
-  width: min(calc(100% - 2.25rem), 84rem);
+  /* Keep desktop sections at 90% with an editorial reading cap.
+     Mobile rules below retain full-width content with safe padding. */
+  width: min(90%, 84rem);
 }
 
 .brand-public .brand-section {
