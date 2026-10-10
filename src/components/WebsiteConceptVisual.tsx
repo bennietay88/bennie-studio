@@ -141,13 +141,32 @@ export function WebsiteConceptVisual({
             <span style={{backgroundColor:concept.accent,color:concept.accentText}} className="hidden items-center gap-2 rounded-sm px-3 py-2 text-[10px] font-semibold sm:inline-flex">{concept.primary}<ArrowUpRight className="h-3 w-3" /></span>
             <Menu className="h-4 w-4 md:hidden" aria-hidden="true" />
           </div>
-          <div className={cn("grid grid-cols-[1.06fr_.94fr] gap-0",hero?"min-h-[20rem] sm:min-h-[23rem]":"min-h-[13rem] sm:min-h-[17rem]")}>
-            <div className="flex flex-col justify-center px-5 py-7 sm:px-8 sm:py-10 lg:px-10">
-              <p className="text-[8px] font-semibold uppercase tracking-[.16em] opacity-65 sm:text-[10px]">{concept.eyebrow}</p>
-              <p className={cn("mt-3 font-serif font-medium leading-[1.06] tracking-[-.045em]",hero?"text-[clamp(1.35rem,2.4vw,2.9rem)]":"text-[clamp(1rem,2vw,2.1rem)]")}>
+          {/* Mobile websites deserve their own composition, not a squeezed desktop split. */}
+          <div className="sm:hidden">
+            <div className="px-5 pb-6 pt-7">
+              <p className="text-[10px] font-bold uppercase tracking-[.13em] opacity-70">{concept.eyebrow}</p>
+              <p className="mt-3 max-w-[22rem] font-serif text-[clamp(1.9rem,8vw,2.75rem)] font-medium leading-[1.08] tracking-[-.04em]">
                 {concept.headline}<br /><span className="italic">{concept.emphasis}</span>
               </p>
-              <p className={cn("mt-3 max-w-[18rem] leading-[1.5] opacity-75",hero?"text-[10px] sm:text-xs":"text-[9px] sm:text-[11px]")}>{concept.description}</p>
+              <p className="mt-3 max-w-[22rem] text-[13px] leading-6 opacity-80">{concept.description}</p>
+              <span style={{backgroundColor:concept.accent,color:concept.accentText}} className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-sm px-4 py-2.5 text-[12px] font-semibold">
+                {concept.primary}<ArrowUpRight className="h-4 w-4" />
+              </span>
+            </div>
+            <div className="relative overflow-hidden bg-[#e7e3dc]">
+              <img src={concept.image} alt={concept.alt} className="block aspect-[16/10] w-full object-cover object-center" loading={hero ? "eager" : "lazy"} decoding="async" />
+              <span className="pointer-events-none absolute bottom-3 left-3 rounded-sm bg-[#111827]/70 px-3 py-1.5 text-[10px] font-semibold text-white">
+                Illustrative {concept.label.toLowerCase()} design
+              </span>
+            </div>
+          </div>
+          <div className={cn("hidden grid-cols-[1.06fr_.94fr] gap-0 sm:grid",hero?"min-h-[23rem]":"min-h-[17rem]")}>
+            <div className="flex flex-col justify-center px-5 py-7 sm:px-8 sm:py-10 lg:px-10">
+              <p className="text-[8px] font-semibold uppercase tracking-[.16em] opacity-65 sm:text-[10px]">{concept.eyebrow}</p>
+              <p className={cn("mt-3 font-serif font-medium leading-[1.06] tracking-[-.045em]",hero?"text-[clamp(1.6rem,2.7vw,2.9rem)]":"text-[clamp(1.25rem,2vw,2.1rem)]")}>
+                {concept.headline}<br /><span className="italic">{concept.emphasis}</span>
+              </p>
+              <p className={cn("mt-3 max-w-[18rem] leading-[1.5] opacity-75",hero?"text-xs sm:text-sm":"text-[11px] sm:text-xs")}>{concept.description}</p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <span style={{backgroundColor:concept.accent,color:concept.accentText}} className="inline-flex items-center gap-1 px-3 py-2 text-[9px] font-semibold">{concept.primary}<ArrowUpRight className="h-3 w-3" /></span>
                 <span className="hidden items-center gap-1 border border-current/20 px-3 py-2 text-[9px] font-semibold sm:inline-flex">{concept.secondary}</span>
@@ -185,16 +204,16 @@ export function WebsiteConceptVisual({
               </span>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-px border-t border-black/[.07] bg-black/[.08]">
+          <div className="flex gap-px overflow-x-auto border-t border-black/[.07] bg-black/[.08] sm:grid sm:grid-cols-3">
             {concept.categories.map((item,i) => (
-              <div key={item} style={{backgroundColor:concept.soft}} className="flex min-h-12 items-center gap-2 px-2 py-3 text-[9px] font-semibold sm:min-h-14 sm:px-5">
+              <div key={item} style={{backgroundColor:concept.soft}} className="flex min-h-12 min-w-[9rem] flex-1 items-center gap-2 px-3 py-3 text-[10px] font-semibold sm:min-h-14 sm:min-w-0 sm:px-5">
                 <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-current/15 text-[9px]">{i+1}</span><span className="leading-tight">{item}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-between gap-3 px-1 pt-2 text-[9px] font-semibold text-slate-600 sm:px-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1 pt-2 text-[11px] font-semibold text-slate-600 sm:px-2">
         <span>{eyebrow} · {title}</span>
         <span className="shrink-0 rounded bg-white px-2 py-1 text-[9px] text-slate-600">Illustrative concept</span>
       </div>
