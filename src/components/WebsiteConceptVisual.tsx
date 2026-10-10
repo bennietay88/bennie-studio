@@ -7,7 +7,7 @@ import { cn } from "../lib/utils";
  * These are design demonstrations, not client projects or fabricated results.
  * Prefer real finished customer work when approval is available.
  *
- * Photography: third-party Unsplash images; not photographs of actual clients.
+ * Photography: locally hosted editorial concept assets; not photographs of actual clients.
  */
 type Concept = {
   brand: string;
@@ -38,7 +38,7 @@ const concepts: Concept[] = [
     primary: "Arrange a consultation",
     secondary: "Explore expertise",
     categories: ["Strategic planning", "Business advisory", "Financial clarity"],
-    image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1100&q=82",
+    image: "/template-assets/flagship-professional.jpg",
     alt: "Sunlit contemporary professional office used as illustrative concept photography",
     ink: "#19312c", soft: "#f2f0e9", accent: "#315e4c", accentText: "#ffffff",
     fallback: "/template-assets/flagship-professional.jpg",
@@ -53,7 +53,7 @@ const concepts: Concept[] = [
     primary: "Book an appointment",
     secondary: "Our treatments",
     categories: ["General dentistry", "Smile consultations", "Patient care"],
-    image: "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?auto=format&fit=crop&w=1100&q=82",
+    image: "/template-assets/flagship-clinic.jpg",
     alt: "Dental practice photography illustrating a fictional clinic website",
     ink: "#163e3c", soft: "#eaf3f0", accent: "#1e6c63", accentText: "#ffffff",
     fallback: "/template-assets/flagship-clinic.jpg",
@@ -68,7 +68,7 @@ const concepts: Concept[] = [
     primary: "View treatments",
     secondary: "Book your visit",
     categories: ["Skin treatments", "Body therapy", "Wellness rituals"],
-    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1100&q=82",
+    image: "/template-assets/flagship-beauty.jpg",
     alt: "Wellness spa treatment space used as illustrative concept photography",
     ink: "#3d323a", soft: "#f6eee9", accent: "#8d686f", accentText: "#ffffff",
     fallback: "/template-assets/flagship-beauty.jpg",
@@ -83,7 +83,7 @@ const concepts: Concept[] = [
     primary: "Discuss your project",
     secondary: "View our services",
     categories: ["Home renovations", "Interior fit-outs", "Project planning"],
-    image: "https://images.unsplash.com/photo-1721134111286-b3c4a5772ea9?auto=format&fit=crop&w=1100&q=82",
+    image: "/template-assets/flagship-renovation.jpg",
     alt: "Modern residential interior used as illustrative renovation website imagery",
     ink: "#342d27", soft: "#f4f0e9", accent: "#725e48", accentText: "#ffffff",
     fallback: "/template-assets/flagship-renovation.jpg",
@@ -98,7 +98,7 @@ const concepts: Concept[] = [
     primary: "Explore programmes",
     secondary: "Book a visit",
     categories: ["Small classes", "Patient teachers", "Confident learners"],
-    image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1100&q=82",
+    image: "/template-assets/flagship-education.jpg",
     alt: "Learning environment image used for a fictional education website concept",
     ink: "#293953", soft: "#eef2fa", accent: "#3866a0", accentText: "#ffffff",
     fallback: "/template-assets/flagship-education.jpg",
@@ -153,9 +153,36 @@ export function WebsiteConceptVisual({
                 <span className="hidden items-center gap-1 border border-current/20 px-3 py-2 text-[9px] font-semibold sm:inline-flex">{concept.secondary}</span>
               </div>
             </div>
-            <div className="relative min-h-full overflow-hidden" style={{backgroundColor:concept.accent}}>
-              <img src={concept.image} alt={concept.alt} onError={(event) => { const image = event.currentTarget; if (image.dataset.fallback !== "true") { image.dataset.fallback = "true"; image.src = concept.fallback; } else { image.style.display = "none"; } }} className="absolute inset-0 h-full w-full object-cover" loading={hero?"eager":"lazy"} decoding="async" referrerPolicy="no-referrer" />
-              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+            <div className={cn(
+              "relative min-w-0 overflow-hidden bg-[#e7e3dc]",
+              hero ? "min-h-[21rem] sm:min-h-[23rem]" : "min-h-[14rem] sm:min-h-[17rem]"
+            )}>
+              {/* In-flow media establishes an intrinsic height. The old absolute-only
+                  photo had no guaranteed size and could leave a tall blank colour panel. */}
+              <img
+                src={concept.image}
+                alt={concept.alt}
+                className={cn(
+                  "relative block h-full w-full object-cover object-center",
+                  hero ? "min-h-[21rem] aspect-[4/5] sm:min-h-[23rem]" : "min-h-[14rem] aspect-[4/5] sm:min-h-[17rem]"
+                )}
+                loading={hero ? "eager" : "lazy"}
+                decoding="async"
+                onError={(event) => {
+                  const image = event.currentTarget;
+                  if (image.dataset.fallback !== "used" && concept.fallback !== concept.image) {
+                    image.dataset.fallback = "used";
+                    image.src = concept.fallback;
+                  } else {
+                    image.alt = "Website concept photograph unavailable";
+                    image.style.opacity = "0";
+                  }
+                }}
+              />
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent" />
+              <span className="pointer-events-none absolute bottom-3 left-3 rounded-sm border border-white/30 bg-[#111827]/60 px-3 py-1.5 text-[9px] font-medium tracking-wide text-white backdrop-blur-sm sm:bottom-4 sm:left-4">
+                {concept.label} · Design illustration
+              </span>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-px border-t border-black/[.07] bg-black/[.08]">
