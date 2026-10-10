@@ -9,37 +9,67 @@ type PublicPricingPayload = {
   products?: Array<Omit<CommercialProduct, "prices"> & { price?: CommercialProduct["prices"][number] | null }>;
 };
 
+type PricingState = {
+  market: CommercialMarket | null;
+  products: CommercialProduct[];
+  loading: boolean;
+  error: string | null;
+};
+
+// Never display rates from the previous country under a newly selected currency.
+// If pricing cannot be verified, show package descriptions without any amounts.
+const unpricedProducts = (): CommercialProduct[] =>
+  COMMERCIAL_FALLBACK_PRODUCTS.map((product) => ({ ...product, prices: [] }));
+
 export function usePublicCommercialPricing(market: CommercialMarket) {
-  const [products, setProducts] = React.useState<CommercialProduct[]>(COMMERCIAL_FALLBACK_PRODUCTS);
-  const [loading, setLoading] = React.useState(true);
+  const [state, setState] = React.useState<PricingState>({
+    market: null,
+    products: unpricedProducts(),
+    loading: true,
+    error: null,
+  });
 
   React.useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
+    const controller = new AbortController();
+    setState({ market, products: unpricedProducts(), loading: true, error: null });
 
-    fetch(`/api/public/pricing?market=${market}`, { cache: "no-store" })
+    fetch(`/api/public/pricing?market=${encodeURIComponent(market)}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
       .then(async (response) => {
-        if (!response.ok) throw new Error("Pricing unavailable");
+        if (!response.ok) throw new Error("Live pricing is temporarily unavailable.");
         return response.json() as Promise<PublicPricingPayload>;
       })
       .then((payload) => {
-        if (cancelled || !Array.isArray(payload.products) || payload.products.length === 0) return;
-        setProducts(payload.products.map((product) => ({
+        if (controller.signal.aborted) return;
+        if (!Array.isArray(payload.products) || payload.products.length === 0)
+          throw new Error("Live pricing is temporarily unavailable.");
+        const products = payload.products.map((product) => ({
           ...product,
-          prices: product.price ? [product.price] : [],
-        })) as CommercialProduct[]);
+          // Never substitute a price from a different billing market.
+          prices: product.price?.market === market ? [product.price] : [],
+        })) as CommercialProduct[];
+        setState({ market, products, loading: false, error: null });
       })
-      .catch(() => {
-        if (!cancelled) setProducts(COMMERCIAL_FALLBACK_PRODUCTS);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setState({
+          market,
+          products: unpricedProducts(),
+          loading: false,
+          error: error instanceof Error ? error.message : "Live pricing is temporarily unavailable.",
+        });
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [market]);
 
-  return { products, loading };
+  // Market changes take effect during render, *before* the fetch effect runs.
+  const marketMatches = state.market === market;
+  return {
+    products: marketMatches ? state.products : unpricedProducts(),
+    loading: !marketMatches || state.loading,
+    error: marketMatches ? state.error : null,
+  };
 }
