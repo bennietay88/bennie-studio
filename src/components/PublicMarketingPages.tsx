@@ -3252,6 +3252,13 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
 }
 
 function WebsiteAuditPage() {
+  const location = useLocation();
+  const reportQuery = React.useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const linkedJobId = reportQuery.get("report") || "";
+  const linkedAccessKey = reportQuery.get("key") || "";
+  const [loadingSharedReport, setLoadingSharedReport] = React.useState(Boolean(linkedJobId && linkedAccessKey));
+  const [reportLink, setReportLink] = React.useState("");
+  const [deliveryStatus, setDeliveryStatus] = React.useState("");
   const [submitted, setSubmitted] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -3265,6 +3272,40 @@ function WebsiteAuditPage() {
     phone: "",
     notes: "",
   });
+
+  React.useEffect(() => {
+    if (!linkedJobId || !linkedAccessKey) return;
+    if (!/^[0-9a-f-]{36}$/i.test(linkedJobId) || !/^[0-9a-f]{64}$/i.test(linkedAccessKey)) {
+      setLoadingSharedReport(false);
+      setError("This report link is incomplete or invalid.");
+      return;
+    }
+    let cancelled = false;
+    const loadReport = async () => {
+      try {
+        const response = await fetch(`/api/public/website-audit/jobs/${encodeURIComponent(linkedJobId)}?key=${encodeURIComponent(linkedAccessKey)}`, { cache: "no-store", referrerPolicy: "no-referrer" });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "The website report could not be loaded.");
+        if (cancelled) return;
+        if (payload.businessName) setForm((prev) => ({ ...prev, businessName: payload.businessName }));
+        setDeliveryStatus(payload.deliveryStatus || "");
+        setReportLink(`/website-audit?report=${encodeURIComponent(linkedJobId)}&key=${encodeURIComponent(linkedAccessKey)}`);
+        setSubmitted(true);
+        setAuditQueued(["queued", "processing"].includes(payload.status));
+        if (payload.status === "completed" && payload.report) {
+          setAuditReport(normalizeWebsiteAuditResult(payload.report));
+        } else if (payload.status === "failed") {
+          setError("The automatic review could not be completed. Your original request remains with Bennie Studio.");
+        }
+      } catch (err: any) {
+        if (!cancelled) setError(err?.message || "Unable to load this report.");
+      } finally {
+        if (!cancelled) setLoadingSharedReport(false);
+      }
+    };
+    void loadReport();
+    return () => { cancelled = true; };
+  }, [linkedJobId, linkedAccessKey]);
 
   const submitAudit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -3310,6 +3351,8 @@ function WebsiteAuditPage() {
         throw new Error(auditPayload?.error || "Your request was saved, but the audit could not be queued.");
       }
       setAuditQueued(true);
+      if (auditPayload.reportUrl) setReportLink(auditPayload.reportUrl);
+      if (auditPayload.deliveryStatus) setDeliveryStatus(auditPayload.deliveryStatus);
 
       if (auditPayload.status === "failed") {
         throw new Error(auditPayload.error || "The website could not be analysed automatically. Your request was saved for manual follow-up.");
@@ -3342,6 +3385,7 @@ function WebsiteAuditPage() {
           const normalizedReport = normalizeWebsiteAuditResult(statusPayload.report);
           setAuditReport(normalizedReport);
           setAuditQueued(false);
+          setDeliveryStatus(statusPayload.deliveryStatus || "");
           trackPublicEvent({ eventType: "website_audit_completed", label: form.businessName, target: "/website-audit", metadata: { findingCount: normalizedReport.findings.length, recommendedPlan: normalizedReport.recommendedPlan } });
           break;
         }
@@ -3415,7 +3459,7 @@ function WebsiteAuditPage() {
           <Link to="/generate-preview?mode=business" className="mt-4 inline-flex text-sm font-semibold text-indigo-200 underline decoration-indigo-300/40 underline-offset-4 hover:text-white">
             No website yet? Start with a business brief instead.
           </Link>
-          {submitted ? (
+          {loadingSharedReport ? <p role="status" className="mt-8 text-sm font-semibold text-indigo-100">Loading your private website review…</p> : submitted ? (
             <div className="mt-8 rounded-3xl bg-emerald-500/10 p-6 text-emerald-100">
               <Check className="mb-4 h-8 w-8" />
               <p className="text-xl font-bold">{auditReport ? "Website audit complete." : "Audit request saved."}</p>
@@ -3423,10 +3467,19 @@ function WebsiteAuditPage() {
                 {auditReport
                   ? "Your review is based on observable page evidence and practical recommendations—not a numerical rating."
                   : auditQueued
-                    ? "Your website audit is queued for background processing. We have saved the request and can follow up with the result."
+                    ? "Your audit is processing. We will email the review if transactional email is configured. You can also save the private link below."
                     : "The website could not be analysed automatically. Your request is saved for manual follow-up."}
               </p>
               {!auditReport && error && <p className="mt-4 rounded-xl bg-amber-400/10 p-3 text-sm font-bold text-amber-100">{error}</p>}
+              {reportLink && <div className="mt-4 rounded-xl border border-emerald-300/20 bg-white/5 p-4">
+                <p className="text-xs font-semibold text-emerald-100">Your private report link</p>
+                <p className="mt-1 text-xs leading-5 text-emerald-100/80">Save this link. Anyone with it can view the business website review once processing completes.</p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <a href={reportLink} rel="noreferrer" className="inline-flex min-h-10 items-center rounded-lg bg-white px-4 text-sm font-semibold text-slate-900 hover:bg-indigo-50">Open report</a>
+                  <button type="button" onClick={() => { void navigator.clipboard.writeText(new URL(reportLink, window.location.origin).href); }} className="min-h-10 rounded-lg border border-white/25 px-4 text-sm font-semibold text-white">Copy private link</button>
+                </div>
+                {["not_configured","failed"].includes(deliveryStatus) && <p className="mt-3 text-xs text-amber-200">Email delivery was not confirmed. Save this link or contact the studio.</p>}
+              </div>}
               {!auditReport && <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <Link
                   to="/book-demo"
@@ -3468,6 +3521,7 @@ function WebsiteAuditPage() {
           )}
         </form>
       </section>
+      {error && !submitted && linkedJobId && <p role="alert" className="mx-auto max-w-7xl px-5 text-sm font-semibold text-rose-700">{error}</p>}
       {auditReport ? (
         <section className="mx-auto max-w-7xl px-5 pb-20">
           <WebsiteAuditResultView report={auditReport} form={form} />
