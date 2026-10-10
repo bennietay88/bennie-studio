@@ -5031,6 +5031,38 @@ async function startServer() {
     }
   });
 
+  // Recovery path when a browser disconnects or serverless execution stops
+  // before an inline audit finishes. Reuse the existing authenticated Vercel
+  // cron rather than relying on an in-browser polling session.
+  app.get("/api/cron/website-audits", async (req: any, res: any) => {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
+    try {
+      const staleBefore = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const { data: stale, error: staleError } = await supabaseAdmin.from("async_jobs")
+        .update({ status: "queued", locked_at: null, locked_by: null, run_after: new Date().toISOString() })
+        .eq("job_type", "website_audit").eq("status", "processing").lt("locked_at", staleBefore)
+        .select("id").limit(5);
+      if (staleError) throw staleError;
+      const { data: queued, error: pendingError } = await supabaseAdmin.from("async_jobs")
+        .select("id").eq("job_type", "website_audit").in("status", ["queued", "failed"])
+        .lte("run_after", new Date().toISOString()).order("created_at", { ascending: true }).limit(2);
+      if (pendingError) throw pendingError;
+      const completed: string[] = [];
+      const failures: string[] = [];
+      for (const job of queued || []) {
+        const outcome = await processQueuedJob(job.id);
+        if (outcome.processed && outcome.job?.status === "completed") completed.push(job.id);
+        else if (outcome.processed) failures.push(job.id);
+      }
+      res.setHeader("Cache-Control", "no-store");
+      return res.json({ recoveredStaleJobs: stale?.length || 0, processed: (queued || []).length, completed: completed.length, failedAttempts: failures.length });
+    } catch (err: any) {
+      console.error("[WebsiteAuditCron] Retry failed", err?.message || err);
+      return res.status(503).json({ error: "Website audit recovery temporarily unavailable." });
+    }
+  });
+
   app.get("/api/public/website-audit/jobs/:jobId",
     rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: "public-website-audit-status" }),
     async (req: any, res: any) => {
