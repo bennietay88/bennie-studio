@@ -414,7 +414,7 @@ export function DashboardLayout({
           </header>
 
           <main className={cn("flex-1 overflow-x-hidden overflow-y-auto p-3 pb-24 transition-colors duration-300 sm:p-10 sm:pb-10", isAdminRole && "bg-slate-50/70 dark:bg-slate-950/40")}>
-            <div className="mx-auto min-w-0 max-w-7xl">
+            <div className="mx-auto w-full min-w-0 max-w-[1600px] lg:w-[90%]">
               <Breadcrumbs />
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
