@@ -16,7 +16,7 @@ export const RESOURCE_ARTICLES: ResourceArticle[] = [
     title: "How to plan a website that actually gets results",
     excerpt: "A practical step-by-step approach to planning structure, messaging and launch.",
     readTime: "10 min read",
-    image: "/images/studio-insights-v2.png",
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1100&q=82",
     intro: "A useful website plan starts with the decision you need a visitor to make. Before choosing sections, colours or technology, make the offer understandable, prove why it matters and give the right person a clear next step.",
     sections: [
       { heading: "Start with the buying decision", body: "Write down who the website is for, what they are trying to solve and what would make them comfortable taking the next step. This becomes the filter for every page and removes sections that exist only because another website has them." },
@@ -30,7 +30,7 @@ export const RESOURCE_ARTICLES: ResourceArticle[] = [
     title: "7 website elements that build trust",
     excerpt: "The practical signals that make a service business easier to believe and contact.",
     readTime: "8 min read",
-    image: "/images/studio-work-v2.png",
+    image: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1100&q=82",
     intro: "Trust is not one testimonial block near the bottom of a page. It is the result of small signals working together: clear expertise, specific proof, visible process and a next step that feels safe.",
     sections: [
       { heading: "Clarity before persuasion", body: "Say what you do, who it is for and what changes for the customer in the first screen. A visitor should not need to decode a clever headline before they can decide whether the business is relevant." },
@@ -44,7 +44,7 @@ export const RESOURCE_ARTICLES: ResourceArticle[] = [
     title: "How to write website copy that converts",
     excerpt: "A simple framework for clearer, more useful service-business messaging.",
     readTime: "12 min read",
-    image: "/images/studio-process-v2.png",
+    image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1100&q=82",
     intro: "Conversion-focused copy is not louder copy. It is copy that answers the next question in a visitor’s mind with enough detail to make the next action feel sensible.",
     sections: [
       { heading: "Use the customer’s language", body: "Start with the phrases customers use when they describe the problem, desired outcome and buying concern. Keep the business language where it helps precision, but do not make visitors translate internal jargon." },
@@ -128,7 +128,7 @@ export const RESOURCE_ARTICLES: ResourceArticle[] = [
     title: "When to redesign your website",
     excerpt: "Signs that the current site is costing trust, clarity or conversion.",
     readTime: "7 min read",
-    image: "/images/studio-work-v2.png",
+    image: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1100&q=82",
     intro: "A redesign is worth considering when the current site creates a measurable business or customer problem—not simply because the visual style feels dated.",
     sections: [
       { heading: "The business has changed", body: "New services, a sharper audience or a different commercial model can make an old page structure actively misleading. The website should reflect the business customers can buy today." },
