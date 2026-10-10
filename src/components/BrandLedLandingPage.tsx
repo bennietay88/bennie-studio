@@ -213,9 +213,9 @@ function SystemVisual() {
 
 function WorkShowcase() {
   const examples = [
-    { title: "Professional advisory website", eyebrow: "Credibility and consultation", index: 0, label: "Professional services", copy: "A calm, expertise-led direction that helps buyers understand the service and request a consultation." },
-    { title: "Modern dental clinic website", eyebrow: "Clarity and appointment booking", index: 1, label: "Healthcare", copy: "A welcoming, treatment-led experience with accessible appointment routes and patient information." },
-    { title: "Residential renovation website", eyebrow: "Trust and quotation requests", index: 3, label: "Home services", copy: "A project-led visual style that explains renovation services and helps visitors request a useful quote." },
+    { title: "Professional advisory website", eyebrow: "Credibility and consultation", index: 0, sample: "consultant", label: "Professional services", copy: "A calm, expertise-led direction that helps buyers understand the service and request a consultation." },
+    { title: "Modern dental clinic website", eyebrow: "Clarity and appointment booking", index: 1, sample: "dental", label: "Healthcare", copy: "A welcoming, treatment-led experience with accessible appointment routes and patient information." },
+    { title: "Residential renovation website", eyebrow: "Trust and quotation requests", index: 3, sample: "contractor", label: "Home services", copy: "A project-led visual style that explains renovation services and helps visitors request a useful quote." },
   ] as const;
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -226,7 +226,7 @@ function WorkShowcase() {
             <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#5746e8]">{item.label} · Illustrative concept</p>
             <h3 className="mt-3 text-xl font-semibold text-[#152032]">{item.title}</h3>
             <p className="mt-3 text-sm leading-7 text-[#5b687a]">{item.copy}</p>
-            <Link to="/case-studies" className="mt-5 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#5746e8] hover:underline">
+            <Link to={`/portfolio/sample/${item.sample}`} onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: `View ${item.label} example`, target: `/portfolio/sample/${item.sample}` })} className="mt-5 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#5746e8] hover:underline">
               Explore design decisions <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
