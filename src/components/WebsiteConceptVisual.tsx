@@ -25,6 +25,7 @@ type Concept = {
   accent: string;
   accentText: string;
   label: string;
+  fallback: string;
 };
 
 const concepts: Concept[] = [
@@ -40,6 +41,7 @@ const concepts: Concept[] = [
     image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1100&q=82",
     alt: "Sunlit contemporary professional office used as illustrative concept photography",
     ink: "#19312c", soft: "#f2f0e9", accent: "#315e4c", accentText: "#ffffff",
+    fallback: "/template-assets/flagship-professional.jpg",
     label: "Professional services"
   },
   {
@@ -54,6 +56,7 @@ const concepts: Concept[] = [
     image: "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?auto=format&fit=crop&w=1100&q=82",
     alt: "Dental practice photography illustrating a fictional clinic website",
     ink: "#163e3c", soft: "#eaf3f0", accent: "#1e6c63", accentText: "#ffffff",
+    fallback: "/template-assets/flagship-clinic.jpg",
     label: "Clinic and healthcare"
   },
   {
@@ -68,6 +71,7 @@ const concepts: Concept[] = [
     image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1100&q=82",
     alt: "Wellness spa treatment space used as illustrative concept photography",
     ink: "#3d323a", soft: "#f6eee9", accent: "#8d686f", accentText: "#ffffff",
+    fallback: "/template-assets/flagship-beauty.jpg",
     label: "Beauty and wellness"
   },
   {
@@ -82,6 +86,7 @@ const concepts: Concept[] = [
     image: "https://images.unsplash.com/photo-1721134111286-b3c4a5772ea9?auto=format&fit=crop&w=1100&q=82",
     alt: "Modern residential interior used as illustrative renovation website imagery",
     ink: "#342d27", soft: "#f4f0e9", accent: "#725e48", accentText: "#ffffff",
+    fallback: "/template-assets/flagship-renovation.jpg",
     label: "Home services"
   },
   {
@@ -96,6 +101,7 @@ const concepts: Concept[] = [
     image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1100&q=82",
     alt: "Learning environment image used for a fictional education website concept",
     ink: "#293953", soft: "#eef2fa", accent: "#3866a0", accentText: "#ffffff",
+    fallback: "/template-assets/flagship-education.jpg",
     label: "Education"
   },
 ];
@@ -148,7 +154,7 @@ export function WebsiteConceptVisual({
               </div>
             </div>
             <div className="relative min-h-full overflow-hidden" style={{backgroundColor:concept.accent}}>
-              <img src={concept.image} alt={concept.alt} className="absolute inset-0 h-full w-full object-cover" loading={hero?"eager":"lazy"} decoding="async" referrerPolicy="no-referrer" />
+              <img src={concept.image} alt={concept.alt} onError={(event) => { const image = event.currentTarget; if (image.dataset.fallback !== "true") { image.dataset.fallback = "true"; image.src = concept.fallback; } else { image.style.display = "none"; } }} className="absolute inset-0 h-full w-full object-cover" loading={hero?"eager":"lazy"} decoding="async" referrerPolicy="no-referrer" />
               <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
             </div>
           </div>
