@@ -10,6 +10,8 @@ export const SalesHome: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [health, setHealth] = React.useState<null | { generatedAt: string; counts: Record<string, number>; notes: string[] }>(null);
   const [healthError, setHealthError] = React.useState("");
+  const [repairing, setRepairing] = React.useState(false);
+  const [repairResult, setRepairResult] = React.useState("");
   const [data, setData] = React.useState({ leads: [] as any[], prospects: [] as any[], proposals: [] as any[], events: [] as any[] });
 
   const load = React.useCallback(async () => {
@@ -41,6 +43,28 @@ export const SalesHome: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  const repairMissingFollowUps = React.useCallback(async () => {
+    if (!window.confirm("Create follow-up tasks only for existing new lead records that have no response task? Historical tracking events will not be used to recreate leads.")) return;
+    setRepairing(true);
+    setRepairResult("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sign in first.");
+      const response = await fetch("/api/admin/revenue-health/repair-follow-ups", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Task repair failed.");
+      setRepairResult(`Follow-up tasks created: ${data.created}. Failures: ${data.failedCount}. No historical event-only leads were recreated.`);
+      await load();
+    } catch (error: any) {
+      setRepairResult(error?.message || "Could not create follow-up tasks.");
+    } finally {
+      setRepairing(false);
+    }
+  }, [load]);
 
   React.useEffect(() => { void load(); }, [load]);
 
@@ -85,6 +109,8 @@ export const SalesHome: React.FC = () => {
           ["Converted prospect records", health.counts.convertedProspects],
         ].map(([label, value]) => <div key={String(label)} className="flex justify-between gap-4 border-b border-indigo-100 pb-2"><span className="text-slate-600">{label}</span><strong className="tabular-nums text-slate-950">{value}</strong></div>)}</div>
         <p className="mt-3 text-xs text-slate-600">Do not recreate missing leads from anonymous events. Check for test data removal and actual form deliveries first.</p>
+        {health.counts.newLeadsWithoutFollowUpTask > 0 && <button type="button" disabled={repairing} onClick={() => void repairMissingFollowUps()} className="mt-3 rounded-lg border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-800 hover:bg-indigo-100 disabled:opacity-50">{repairing ? "Checking saved leads…" : `Create ${health.counts.newLeadsWithoutFollowUpTask} missing follow-up task(s)`}</button>}
+        {repairResult && <p role="status" className="mt-2 text-sm font-medium text-indigo-800">{repairResult}</p>}
       </details>
     </div>}
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
