@@ -3242,8 +3242,9 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
             <p className="mt-1 text-sm font-bold text-slate-600">Choose your billing currency during checkout.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Link to="/generate-preview" onClick={savePreviewContext} className={primaryCtaClass}>See recommended website direction</Link>
-            <Link to="/pricing#plans" onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: recommendedProduct, target: "/pricing", metadata: { recommendedProduct } })} className={secondaryCtaClass}>View Pricing</Link>
+            <Link to="/book-demo" onClick={() => { savePreviewContext(); trackPublicEvent({ eventType: "audit_review_consultation_requested", label: recommendedProduct, target: "/book-demo", metadata: { findingCount: report.findings.length } }); }} className={primaryCtaClass}>Discuss my website review <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <Link to="/generate-preview" onClick={savePreviewContext} className={secondaryCtaClass}>See a website direction</Link>
+            <Link to="/pricing#plans" onClick={() => trackPublicEvent({ eventType: "recommended_plan_viewed", label: recommendedProduct, target: "/pricing", metadata: { recommendedProduct } })} className={secondaryCtaClass}>Compare pricing</Link>
           </div>
         </div>
       </section>
