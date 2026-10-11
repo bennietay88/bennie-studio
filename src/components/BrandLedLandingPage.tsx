@@ -329,8 +329,8 @@ export default function BrandLedLandingPage() {
   return (
     <div className="brand-public min-h-screen overflow-x-hidden bg-[#f6f7fb] text-[#10131c]">
       <Helmet>
-        <title>Bennie Studio | Managed Website System for Service Businesses</title>
-        <meta name="description" content="A managed website system combining strategy, design, lead capture, hosting and ongoing improvement for service businesses that need stronger trust and qualified enquiries." />
+        <title>Bennie Studio | Done-for-You Websites & Management</title>
+        <meta name="description" content="Bennie Studio plans, designs, launches and manages professional websites for service businesses. Clear project scope, transparent pricing and ongoing support." />
         <link rel="canonical" href="https://app.bennietay.com/" />
         <meta property="og:title" content="Bennie Studio | Managed Website System" />
         <meta property="og:description" content="Strategy, design, lead capture, hosting and ongoing improvement in one managed website service." />
@@ -365,21 +365,21 @@ export default function BrandLedLandingPage() {
           <div className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#5b4bff]/20 blur-3xl" />
           <div className="brand-shell relative grid gap-14 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
             <div className="lg:col-span-6">
-              <p className="brand-kicker !text-[#b9b1ff]">Designed for service businesses that need enquiries</p>
-              <h1 className="bt-sales-hero-title mt-5 !text-white">A website that earns trust <span className="bt-gradient-title block">and makes enquiries easier.</span></h1>
+              <p className="brand-kicker !text-[#b9b1ff]">Done-for-you websites for service businesses</p>
+              <h1 className="bt-sales-hero-title mt-5 !text-white">Your business website, <span className="bt-gradient-title block">built and managed for you.</span></h1>
               <p className="brand-copy brand-muted-on-dark mt-7 !max-w-xl">
-                We design, build and manage websites that help customers understand your business and take the next step. Start with a free website review or explore a new design direction — then launch with a team behind you.
+                Bennie Studio designs, launches and looks after professional websites for service businesses. We make it easier for customers to understand your services and get in touch, while managing hosting, maintenance and agreed updates.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <button type="button" onClick={() => go("/website-audit", "Hero existing website review")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
-                  Review my current website <ArrowRight className="ml-2 h-4 w-4" />
+                <button type="button" onClick={() => go("/book-demo", "Hero discuss managed website")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
+                  Discuss my website <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => go("/generate-preview?mode=business", "Hero new website direction")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
-                  I need a new website
+                <button type="button" onClick={() => go("/pricing", "Hero view managed website pricing")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
+                  View plans & pricing
                 </button>
               </div>
               <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm !text-white/65">
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Free first review</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Clear scope and costs</span>
                 <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Reviewed before launch</span>
                 <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Managed after launch</span>
               </div>
@@ -393,7 +393,7 @@ export default function BrandLedLandingPage() {
               </p>
               <p className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs !text-white/60">
                 <Link to="/case-studies" className="underline underline-offset-4">View labelled examples</Link>
-                <Link to="/book-demo" className="underline underline-offset-4">Speak to the studio</Link>
+                <Link to="/website-audit" className="underline underline-offset-4">Optional website audit</Link>
               </p>
             </div>
 
@@ -418,8 +418,8 @@ export default function BrandLedLandingPage() {
           <div className="brand-shell brand-section">
             <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-7">
-                <p className="brand-kicker">Selected work</p>
-                <h2 className="mt-4">See the quality before you choose a plan.</h2>
+                <p className="brand-kicker">Illustrative website concepts</p>
+                <h2 className="mt-4">Explore what your website could look like.</h2>
               </div>
               <p className="brand-copy lg:col-span-5">Three distinct, fully composed website concepts. Each shows the kind of responsive presentation, credible messaging and enquiry path we can build around a real business.</p>
             </div>
@@ -574,13 +574,13 @@ export default function BrandLedLandingPage() {
             <div className="grid gap-10 lg:grid-cols-12">
               <div className="lg:col-span-4">
                 <p className="brand-kicker">Simple, transparent pricing</p>
-                <h2 className="mt-4">Choose the right level of support.</h2>
-                <p className="brand-copy mt-5">Start with the website you need now. Add deeper conversion, SEO and growth support when your business is ready for it.</p>
+                <h2 className="mt-4">Start with the service you need.</h2>
+                <p className="brand-copy mt-5">Managed Website covers setup and day-to-day care. Website Growth adds agreed improvements. <Link to="/pricing" className="font-semibold text-[#5746e8] underline underline-offset-4">Compare all plans and commitment terms</Link>.</p>
               </div>
               <div className="lg:col-span-8">
-                <div className="grid gap-4 lg:grid-cols-3">
-                  {priced.map(({ product, price }, index) => {
-                    const isGrowth = product.slug === "website-growth";
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {priced.slice(0, 2).map(({ product, price }, index) => {
+                    const isGrowth = product.slug === "managed-website";
                     const priceReady = !pricingLoading && !pricingError && Boolean(price);
                     return (
                       <article key={product.slug} className={isGrowth ? "border border-[#101827] bg-[#101827] p-6 text-white shadow-[0_24px_70px_-45px_rgba(15,23,42,.6)]" : "border border-[#dfe2ea] bg-white p-6"}>
@@ -655,11 +655,11 @@ export default function BrandLedLandingPage() {
             <div>
               <p className="text-sm font-semibold !text-white/70">Ready for a better website?</p>
               <h2 className="mt-2 max-w-2xl !text-white">Let’s build a website that moves your business forward.</h2>
-              <p className="mt-4 max-w-xl !text-white/75">Start with a website review. See what needs attention first, then decide whether you want Bennie Studio to prepare a direction and manage the build.</p>
+              <p className="mt-4 max-w-xl !text-white/75">Tell us what your business needs, and we will discuss an appropriate managed website scope, the setup and monthly costs, and the next step.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-              <button onClick={() => go("/website-audit", "Final website review")} className="min-h-12 bg-white px-6 font-semibold text-[#141821]">Get a website review <ArrowRight className="ml-2 inline h-4 w-4" /></button>
-              <button onClick={() => go("/book-demo", "Final book review")} className="min-h-12 border border-white/30 bg-white/[0.04] px-6 font-semibold text-white">Book a free call</button>
+              <button onClick={() => go("/book-demo", "Final discuss website")} className="min-h-12 bg-white px-6 font-semibold text-[#141821]">Discuss my website <ArrowRight className="ml-2 inline h-4 w-4" /></button>
+              <button onClick={() => go("/pricing", "Final view plans")} className="min-h-12 border border-white/30 bg-white/[0.04] px-6 font-semibold text-white">View plans & pricing</button>
             </div>
           </div>
         </section>

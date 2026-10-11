@@ -3,6 +3,7 @@ import { CalendarClock, CheckCircle2, Copy, ExternalLink, Mail, MessageSquare, S
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
 import { getOutreachObservation } from "../../lib/salesAutomation";
+import { EmailTemplateHub, buildEmailTemplateDraft, recommendedTemplateId, hasUnresolvedEmailPlaceholders } from "./EmailTemplateHub";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -29,6 +30,7 @@ export function OutreachLab() {
   const [selectedId, setSelectedId] = React.useState("");
   const [channel, setChannel] = React.useState<"email" | "whatsapp">("email");
   const [draft, setDraft] = React.useState("");
+  const [templateId, setTemplateId] = React.useState("enquiry");
   const [search, setSearch] = React.useState("");
   const [view, setView] = React.useState<"due" | "engaged" | "all">("due");
   const [finding, setFinding] = React.useState("");
@@ -59,12 +61,13 @@ export function OutreachLab() {
   React.useEffect(() => {
     if (!selected) return;
     setFinding(getOutreachObservation(selected.notes));
+    setTemplateId(recommendedTemplateId(selected.outreach_status || "not_started"));
     confirmationId.current = crypto.randomUUID();
   }, [selectedId]);
 
   React.useEffect(() => {
-    if (selected) setDraft(buildDraft({ ...selected, notes: finding }, channel));
-  }, [selectedId, channel, finding]);
+    if (selected) setDraft(channel === "email" ? buildEmailTemplateDraft(templateId, selected, finding) : buildDraft({ ...selected, notes: finding }, channel));
+  }, [selectedId, channel, finding, templateId]);
 
   React.useEffect(() => {
     if (selectedId || !prospects.length) return;
@@ -108,6 +111,7 @@ export function OutreachLab() {
 
   const openContact = async () => {
     if (!selected || !draft.trim()) return;
+    if (hasUnresolvedEmailPlaceholders(draft)) return toast.error("Complete every [bracketed detail] before contacting a prospect.");
     if (finding.trim().length < 10) return toast.error("Add one specific, verified website observation before opening outreach.");
     const prepared = await saveOutreach("prepare");
     if (channel === "email") {
@@ -138,6 +142,8 @@ export function OutreachLab() {
         </div>
       </div>
 
+      <EmailTemplateHub selectedId={templateId} onSelect={(id) => { setChannel("email"); setTemplateId(id); }} />
+
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <Card className="overflow-hidden rounded-3xl border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100 p-5"><CardTitle className="text-base">Choose a prospect</CardTitle><div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Prospect view">{([['due','Due now'],['engaged','Engaged'],['all','All']] as const).map(([value,label]) => <button key={value} type="button" onClick={() => setView(value)} className={`min-h-9 rounded-xl px-3 text-xs font-black ${view === value ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-600"}`}>{label}</button>)}</div></CardHeader>
@@ -166,11 +172,11 @@ export function OutreachLab() {
                   <div><label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Pipeline status</label><Select value={selected.outreach_status || "not_started"} onValueChange={(value) => void updateProspect(selected.id, { outreach_status: value }).catch((error) => toast.error(error.message))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{status.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select></div>
                 </div>
                 <div className="space-y-2"><label htmlFor="verified-outreach-finding" className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Verified website observation</label><Textarea id="verified-outreach-finding" value={finding} onChange={(event) => setFinding(event.target.value)} placeholder="Example: The first screen does not state the service area or show a quotation CTA." className="min-h-24 rounded-2xl border-amber-200 bg-amber-50 p-4 font-semibold leading-6 text-amber-950" /><p className="text-xs font-semibold leading-5 text-slate-500">Use one fact you checked on the live website. Never invent rankings, traffic, revenue, or conversion loss.</p></div>
-                <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} className="min-h-[300px] rounded-2xl bg-slate-50 p-5 font-medium leading-7" aria-label="Outreach draft" />
+                <div className="space-y-2"><label htmlFor="outreach-draft" className="text-xs font-bold uppercase tracking-wider text-slate-500">Editable email draft</label><Textarea id="outreach-draft" value={draft} onChange={(event) => setDraft(event.target.value)} className="min-h-[300px] rounded-2xl bg-slate-50 p-5 font-medium leading-7" aria-label="Outreach draft" />{hasUnresolvedEmailPlaceholders(draft) && <p className="text-xs font-semibold text-amber-700">Replace every [bracketed detail] with verified facts before sending.</p>}</div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                   <Button type="button" variant="outline" onClick={() => void copyDraft().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl"><Copy className="mr-2 h-4 w-4" /> Copy</Button>
                   <Button type="button" onClick={() => void openContact().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl bg-slate-950 px-6 text-white hover:bg-indigo-600">{channel === "email" ? <Mail className="mr-2 h-4 w-4" /> : <MessageSquare className="mr-2 h-4 w-4" />} Open {channel === "email" ? "email" : "WhatsApp"} <Send className="ml-2 h-4 w-4" /></Button>
-                  <Button type="button" variant="outline" disabled={working || finding.trim().length < 10} onClick={() => void markContacted()} className="min-h-11 rounded-xl">I sent it — log follow-up</Button>
+                  <Button type="button" variant="outline" disabled={working || finding.trim().length < 10 || hasUnresolvedEmailPlaceholders(draft)} onClick={() => void markContacted()} className="min-h-11 rounded-xl">I sent it — log follow-up</Button>
                 </div>
               </div>
             )}

@@ -258,7 +258,7 @@ export default function BookDemo() {
   return (
     <div className="brand-public min-h-screen bg-[#f6f7fb] text-[#141821]">
       <Helmet>
-        <title>{isGrowthPartner ? "Book a Website Growth Partner Consultation | Bennie Studio" : "Book a Managed Website Review | Bennie Studio"}</title>
+        <title>{isGrowthPartner ? "Book a Website Growth Partner Consultation | Bennie Studio" : "Discuss Your Website | Bennie Studio"}</title>
         <meta name="description" content={isGrowthPartner ? "Book a Website Growth Partner consultation to scope conversion priorities, landing pages, local SEO expansion, traffic, and ongoing growth work." : "Book a focused review of your website, offer and enquiry path with Bennie Studio."} />
         <link rel="canonical" href="https://app.bennietay.com/book-demo" />
       </Helmet>
@@ -270,10 +270,10 @@ export default function BookDemo() {
             <div className="min-w-0 lg:col-span-5">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-300">{isGrowthPartner ? "Growth Partner consultation" : "Managed Website consultation"}</p>
               <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.03] tracking-tight text-white sm:text-5xl">
-                {isGrowthPartner ? "Plan the next stage of your website growth." : "Turn more website visitors into real enquiries."}
+                {isGrowthPartner ? "Plan the next stage of your website growth." : "Let’s discuss the website your business needs."}
               </h1>
               <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-slate-300">
-                {isGrowthPartner ? "Bring your current website, traffic sources, enquiry baseline and growth priorities. We’ll scope conversion work, landing pages, local SEO expansion, experiments, implementation priorities and commercial fit." : "Bring your current website, business goals, or prepared review. We’ll discuss what is getting in the way, what should change first, and whether Bennie Studio is the right partner to build it."}
+                {isGrowthPartner ? "Bring your current website, traffic sources, enquiry baseline and growth priorities. We’ll scope conversion work, landing pages, local SEO expansion, experiments, implementation priorities and commercial fit." : "Tell us a little about your business and website needs. We’ll discuss the scope, what we can manage for you, and the costs before you decide. No account required to enquire."}
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
                 {[
@@ -307,8 +307,8 @@ export default function BookDemo() {
               ) : (
                 <form onSubmit={handleSubmit} className="min-w-0 space-y-5">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">Book a call</p>
-                    <h2 className="mt-2 text-2xl font-bold text-white">{isGrowthPartner ? "Tell us enough to scope the growth work properly." : "Tell us enough to prepare properly."}</h2>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">A short, no-obligation conversation</p>
+                    <h2 className="mt-2 text-2xl font-bold text-white">{isGrowthPartner ? "Tell us enough to scope the growth work properly." : "Tell us about your website."}</h2>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field icon={User} label="Your name" id="call-name"><Input id="call-name" required value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Your name" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
