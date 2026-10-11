@@ -213,9 +213,9 @@ function SystemVisual() {
 
 function WorkShowcase() {
   const examples = [
-    { title: "Professional advisory website", eyebrow: "Credibility and consultation", index: 0, sample: "consultant", label: "Professional services", copy: "A calm, expertise-led direction that helps buyers understand the service and request a consultation." },
-    { title: "Modern dental clinic website", eyebrow: "Clarity and appointment booking", index: 1, sample: "dental", label: "Healthcare", copy: "A welcoming, treatment-led experience with accessible appointment routes and patient information." },
-    { title: "Residential renovation website", eyebrow: "Trust and quotation requests", index: 3, sample: "contractor", label: "Home services", copy: "A project-led visual style that explains renovation services and helps visitors request a useful quote." },
+    { title: "Residential renovation website", eyebrow: "Trust and quotation requests", index: 3, sample: "contractor", label: "Home services", scenario: "Client A", copy: "Fictional renovation-company brief: make completed work easy to explore and put a useful quotation path next to each service." },
+    { title: "Professional advisory website", eyebrow: "Credibility and consultation", index: 0, sample: "consultant", label: "Professional services", scenario: "Client B", copy: "Fictional advisory-firm brief: make expertise understandable and give prospective customers a clear way to book a consultation." },
+    { title: "Modern dental clinic website", eyebrow: "Clarity and appointment booking", index: 1, sample: "dental", label: "Healthcare", scenario: "Client C", copy: "Fictional dental-practice brief: explain treatments and practitioner information and make appointment requests easy to find." },
   ] as const;
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -223,9 +223,10 @@ function WorkShowcase() {
         <article key={item.title} className="group overflow-hidden rounded-[1.2rem] border border-[#e0e3ec] bg-white shadow-[0_24px_65px_-50px_rgba(15,23,42,.28)] transition hover:-translate-y-1 hover:shadow-[0_30px_80px_-52px_rgba(15,23,42,.36)]">
           <WebsiteConceptVisual title={item.title} eyebrow={item.eyebrow} index={item.index} className="rounded-none border-b border-slate-200 shadow-none" />
           <div className="p-6">
-            <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#5746e8]">{item.label} · Illustrative concept</p>
+            <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#5746e8]">{item.scenario} · Fictional brief · {item.label}</p>
             <h3 className="mt-3 text-xl font-semibold text-[#152032]">{item.title}</h3>
             <p className="mt-3 text-sm leading-7 text-[#5b687a]">{item.copy}</p>
+            <p className="mt-3 text-xs leading-5 text-[#7e8796]">Independent concept project; no client commissioned this work and no business results are claimed.</p>
             <Link to={`/portfolio/sample/${item.sample}`} onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: `View ${item.label} example`, target: `/portfolio/sample/${item.sample}` })} className="mt-5 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#5746e8] hover:underline">
               Explore design decisions <ArrowRight className="h-4 w-4" />
             </Link>
