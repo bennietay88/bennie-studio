@@ -382,7 +382,7 @@ const jsonBodyParser = express.json({
 // so Stripe signature verification receives the exact request bytes.
 // Deployment-safe body parsing hotfix verified for production admin actions.
 app.use((req, res, next) => {
-  if (req.path === "/api/webhook") return next();
+  if (req.path === "/api/webhook" || req.path === "/api/webhooks/resend") return next();
   return jsonBodyParser(req, res, next);
 });
 
@@ -8264,13 +8264,13 @@ async function startServer() {
     }
   });
 
-  app.post("/api/webhooks/resend", async (req: any, res) => {
+  app.post("/api/webhooks/resend", express.raw({ type: "application/json", limit: "1mb" }), async (req: any, res) => {
     const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
     if (!webhookSecret) return res.status(503).json({ error: "Webhook is not configured" });
     let event: any;
     try {
       event = getResend().webhooks.verify({
-        payload: req.rawBody?.toString("utf8") || JSON.stringify(req.body),
+        payload: Buffer.isBuffer(req.body) ? req.body.toString("utf8") : "",
         headers: {
           id: String(req.headers["svix-id"] || req.headers["webhook-id"] || ""),
           timestamp: String(req.headers["svix-timestamp"] || req.headers["webhook-timestamp"] || ""),
@@ -13197,3 +13197,7 @@ startServer().catch(err => {
 
 // Export for Vercel
 export default app;
+
+
+// Vercel must leave webhook request streams untouched for signature verification.
+export const config = { api: { bodyParser: false } };
