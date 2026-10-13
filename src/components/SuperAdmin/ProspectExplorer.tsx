@@ -69,12 +69,12 @@ const toTitle = (value: string) =>
     .replace(/_/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-const buildPreviewUrl = (prospect: any) => {
-  const params = new URLSearchParams();
-  params.set("business", prospect.name || "Prospect");
-  if (prospect.industry) params.set("industry", prospect.industry);
-  if (prospect.location) params.set("location", prospect.location);
-  return `${window.location.origin}/website-audit?${params.toString()}`;
+const isRecipientReviewUrl = (value?: string | null) => {
+  if (!value) return false;
+  try {
+    const parsed = new URL(value, window.location.origin);
+    return parsed.pathname === "/website-audit" && Boolean(parsed.searchParams.get("report") && parsed.searchParams.get("key"));
+  } catch { return false; }
 };
 
 export function ProspectExplorer() {
@@ -295,55 +295,50 @@ export function ProspectExplorer() {
     }
   };
 
-  const runQuickAudit = async (prospect: any) => {
-    if (!prospect.domain) {
-      toast.error("Add a public website domain before preparing a review.");
-      return;
-    }
+  const prepareRecipientReview = async (prospect: any, options: { refresh?: boolean } = {}) => {
+    if (!options.refresh && isRecipientReviewUrl(prospect.preview_url)) return prospect.preview_url;
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
       toast.error("Your admin session has expired. Sign in again and retry.");
-      return;
+      return "";
     }
-    const auditResponse = await fetch("/api/admin/website-audit", {
+    const response = await fetch(`/api/admin/prospects/${encodeURIComponent(prospect.id)}/website-review`, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ url: /^https?:\/\//i.test(prospect.domain) ? prospect.domain : `https://${prospect.domain}` }),
+      headers: { Authorization: `Bearer ${session.access_token}` },
     });
-    const payload = await auditResponse.json().catch(() => ({}));
-    if (!auditResponse.ok || !payload?.report) {
-      toast.error(payload?.error || "The website could not be analysed. No review was created.");
-      return;
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.reportUrl || !payload?.report) {
+      toast.error(payload?.error || "The website could not be analysed. No recipient review was created.");
+      return "";
     }
-    const report = normalizeWebsiteAuditResult(payload.report);
-    const nextFollowUp = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
-    const ok = await updateProspect(prospect.id, {
-      audit_score: null,
-      last_audit_at: new Date().toISOString(),
-      website_status: "unknown",
-      opportunity_level: report.findings.some((finding) => finding.priority === "high") ? "high" : "medium",
-      outreach_status: prospect.outreach_status === "not_started" ? "queued" : prospect.outreach_status,
-      next_follow_up_at: prospect.next_follow_up_at || nextFollowUp,
-    });
-    if (ok) toast.success(`Website growth review prepared with ${report.findings.length} opportunities.`);
+    const updated = {
+      ...prospect,
+      preview_url: payload.reportUrl,
+      preview_generated_at: payload.preparedAt,
+      last_audit_at: payload.preparedAt,
+      opportunity_level: payload.report.findings?.some((finding: any) => finding.priority === "high") ? "high" : "medium",
+    };
+    setProspects((current) => current.map((item) => item.id === prospect.id ? { ...item, ...updated, _score: scoreProspect({ ...item, ...updated }) } : item));
+    setSelectedProspect((current: any) => current?.id === prospect.id ? { ...current, ...updated } : current);
+    return payload.reportUrl as string;
+  };
+
+  const runQuickAudit = async (prospect: any) => {
+    const reviewTab = window.open("about:blank", "_blank");
+    const reportUrl = await prepareRecipientReview(prospect, { refresh: true });
+    if (!reportUrl) { reviewTab?.close(); return; }
+    if (reviewTab) reviewTab.location.href = reportUrl;
+    else await navigator.clipboard.writeText(reportUrl).catch(() => undefined);
+    toast.success("Website review prepared and saved. The recipient link opens the findings and recommended direction.");
   };
 
   const generatePreviewLink = async (prospect: any) => {
-    const previewUrl = buildPreviewUrl(prospect);
-    const generatedAt = new Date().toISOString();
-    const ok = await updateProspect(prospect.id, {
-      preview_url: previewUrl,
-      preview_generated_at: prospect.preview_generated_at || generatedAt,
-    });
-    if (ok) {
-      await navigator.clipboard.writeText(previewUrl).catch(() => undefined);
-      toast.success("Preview/audit link saved and copied");
-      return previewUrl;
-    }
-    return "";
+    const previewUrl = await prepareRecipientReview(prospect);
+    if (!previewUrl) return "";
+    await navigator.clipboard.writeText(previewUrl).catch(() => undefined);
+    window.open(previewUrl, "_blank", "noopener,noreferrer");
+    toast.success("Recipient website review link copied and opened.");
+    return previewUrl;
   };
 
   const resetCsvImport = () => {
@@ -819,13 +814,9 @@ export function ProspectExplorer() {
   }, [conversionMarket, conversionProduct, conversionProspect]);
 
   const preparePreviewAndEmail = async (prospect: any) => {
-    let next = prospect;
-    if (!prospect.preview_url) {
-      const previewUrl = await generatePreviewLink(prospect);
-      if (!previewUrl) return;
-      next = { ...prospect, preview_url: previewUrl, preview_generated_at: new Date().toISOString() };
-    }
-    openOutreachComposer(next);
+    const previewUrl = await prepareRecipientReview(prospect);
+    if (!previewUrl) return;
+    openOutreachComposer({ ...prospect, preview_url: previewUrl });
   };
 
   const convertProspect = async () => {

@@ -5255,6 +5255,83 @@ async function startServer() {
   );
 
   app.post(
+    "/api/admin/prospects/:prospectId/website-review",
+    authenticate,
+    rateLimit({
+      windowMs: 60 * 60 * 1000,
+      max: 60,
+      keyPrefix: "admin-prospect-website-review",
+      key: (req) => req.user?.id || getClientIp(req),
+    }),
+    async (req: any, res: any) => {
+      if (!UUID_SCHEMA.safeParse(req.params.prospectId).success) {
+        return res.status(400).json({ error: "Invalid prospect ID" });
+      }
+
+      const requestId = crypto.randomUUID();
+      try {
+        const profile = await getProfileForUser(req.user.id);
+        if (!canManageSalesOperations(profile)) {
+          return res.status(403).json({ error: "Sales access required" });
+        }
+
+        const { data: prospect, error: prospectError } = await supabaseAdmin
+          .from("prospects")
+          .select("id,name,domain,industry,location")
+          .eq("id", req.params.prospectId)
+          .maybeSingle();
+        if (prospectError) throw prospectError;
+        if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+        if (!prospect.domain) return res.status(422).json({ error: "Add a public website domain before preparing a review." });
+
+        const rawUrl = /^https?:\/\//i.test(String(prospect.domain)) ? String(prospect.domain) : `https://${prospect.domain}`;
+        const parsedUrl = PUBLIC_URL_SCHEMA.safeParse(rawUrl);
+        if (!parsedUrl.success) return res.status(422).json({ error: "Enter a valid public website URL." });
+
+        const report = await runWebsiteAudit({
+          url: parsedUrl.data,
+          businessName: prospect.name,
+          industry: prospect.industry,
+          requestId,
+        });
+        const reportAccessKey = crypto.randomBytes(32).toString("hex");
+        const { job } = await createAsyncJob(supabaseAdmin, {
+          jobType: "website_audit",
+          payload: {
+            url: parsedUrl.data,
+            businessName: prospect.name || null,
+            industry: prospect.industry || null,
+            reportAccessKey,
+            prospectId: prospect.id,
+          },
+        });
+        await completeAsyncJob(supabaseAdmin, job.id, { report, deliveryStatus: "skipped" });
+
+        const reportUrl = `${publicAppUrl()}/website-audit?report=${encodeURIComponent(job.id)}&key=${encodeURIComponent(reportAccessKey)}`;
+        const preparedAt = new Date().toISOString();
+        const { error: updateError } = await supabaseAdmin.from("prospects").update({
+          preview_url: reportUrl,
+          preview_generated_at: preparedAt,
+          last_audit_at: preparedAt,
+          opportunity_level: report.findings.some((finding: any) => finding.priority === "high") ? "high" : "medium",
+        }).eq("id", prospect.id);
+        if (updateError) throw updateError;
+
+        res.setHeader("Cache-Control", "private, no-store");
+        return res.json({ success: true, report, reportUrl, preparedAt, findingCount: report.findings.length });
+      } catch (error: any) {
+        console.warn(`[AdminProspectWebsiteReview:${requestId}]`, error?.message || error);
+        const userMessage = error?.message === "PRIVATE_AUDIT_URL"
+          ? "Private or local network URLs cannot be analysed."
+          : error?.message === "INVALID_AUDIT_URL"
+            ? "Enter a valid public website URL."
+            : "The website could not be reached or analysed. Check the URL and try again.";
+        return res.status(422).json({ error: userMessage, requestId });
+      }
+    },
+  );
+
+  app.post(
     "/api/admin/ai-credit-balances/sync",
     authenticate,
     superAdminOnly,
