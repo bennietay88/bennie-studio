@@ -3,7 +3,7 @@ import { CalendarClock, CheckCircle2, Copy, ExternalLink, Mail, MessageSquare, S
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
 import { getOutreachObservation } from "../../lib/salesAutomation";
-import { EmailTemplateHub, buildEmailTemplateDraft, recommendedTemplateId, hasUnresolvedEmailPlaceholders } from "./EmailTemplateHub";
+import { EMAIL_TEMPLATES, EmailTemplateHub, buildEmailTemplateDraft, recommendedTemplateId, hasUnresolvedEmailPlaceholders } from "./EmailTemplateHub";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -31,6 +31,7 @@ export function OutreachLab() {
   const [channel, setChannel] = React.useState<"email" | "whatsapp">("email");
   const [draft, setDraft] = React.useState("");
   const [templateId, setTemplateId] = React.useState("enquiry");
+  const [templateChosenByUser, setTemplateChosenByUser] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const [view, setView] = React.useState<"due" | "engaged" | "all">("due");
   const [finding, setFinding] = React.useState("");
@@ -61,9 +62,14 @@ export function OutreachLab() {
   React.useEffect(() => {
     if (!selected) return;
     setFinding(getOutreachObservation(selected.notes));
-    setTemplateId(recommendedTemplateId(selected.outreach_status || "not_started"));
     confirmationId.current = crypto.randomUUID();
   }, [selectedId]);
+
+  React.useEffect(() => {
+    if (selected && !templateChosenByUser) {
+      setTemplateId(recommendedTemplateId(selected.outreach_status || "not_started"));
+    }
+  }, [selected?.outreach_status, selectedId, templateChosenByUser]);
 
   React.useEffect(() => {
     if (selected) setDraft(channel === "email" ? buildEmailTemplateDraft(templateId, selected, finding) : buildDraft({ ...selected, notes: finding }, channel));
@@ -142,7 +148,7 @@ export function OutreachLab() {
         </div>
       </div>
 
-      <EmailTemplateHub selectedId={templateId} onSelect={(id) => { setChannel("email"); setTemplateId(id); }} />
+      <EmailTemplateHub selectedId={templateId} onSelect={(id) => { setChannel("email"); setTemplateId(id); setTemplateChosenByUser(true); }} />
 
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <Card className="overflow-hidden rounded-3xl border-slate-200 shadow-sm">
@@ -172,7 +178,8 @@ export function OutreachLab() {
                   <div><label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Pipeline status</label><Select value={selected.outreach_status || "not_started"} onValueChange={(value) => void updateProspect(selected.id, { outreach_status: value }).catch((error) => toast.error(error.message))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{status.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select></div>
                 </div>
                 <div className="space-y-2"><label htmlFor="verified-outreach-finding" className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Verified website observation</label><Textarea id="verified-outreach-finding" value={finding} onChange={(event) => setFinding(event.target.value)} placeholder="Example: The first screen does not state the service area or show a quotation CTA." className="min-h-24 rounded-2xl border-amber-200 bg-amber-50 p-4 font-semibold leading-6 text-amber-950" /><p className="text-xs font-semibold leading-5 text-slate-500">Use one fact you checked on the live website. Never invent rankings, traffic, revenue, or conversion loss.</p></div>
-                <div className="space-y-2"><label htmlFor="outreach-draft" className="text-xs font-bold uppercase tracking-wider text-slate-500">Editable email draft</label><Textarea id="outreach-draft" value={draft} onChange={(event) => setDraft(event.target.value)} className="min-h-[300px] rounded-2xl bg-slate-50 p-5 font-medium leading-7" aria-label="Outreach draft" />{hasUnresolvedEmailPlaceholders(draft) && <p className="text-xs font-semibold text-amber-700">Replace every [bracketed detail] with verified facts before sending.</p>}</div>
+                {channel === "email" && <div><label htmlFor="outreach-template-choice" className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Email template · currently applied</label><Select value={templateId} onValueChange={(value) => { setTemplateId(value); setTemplateChosenByUser(true); }}><SelectTrigger id="outreach-template-choice" className="mt-2 rounded-xl"><SelectValue placeholder="Choose a template" /></SelectTrigger><SelectContent>{EMAIL_TEMPLATES.map((template) => <SelectItem key={template.id} value={template.id}>{template.name} · {template.stage}</SelectItem>)}</SelectContent></Select><p className="mt-1 text-xs text-slate-500">Changing this selection rewrites the draft below. You can also choose a template from the cards above.</p></div>}
+                <div className="space-y-2"><label htmlFor="outreach-draft" className="text-xs font-bold uppercase tracking-wider text-slate-500">Editable {channel === "email" ? "email" : "WhatsApp"} draft</label><Textarea id="outreach-draft" value={draft} onChange={(event) => setDraft(event.target.value)} className="min-h-[300px] rounded-2xl bg-slate-50 p-5 font-medium leading-7" aria-label="Outreach draft" />{hasUnresolvedEmailPlaceholders(draft) && <p className="text-xs font-semibold text-amber-700">Replace every [bracketed detail] with verified facts before sending.</p>}</div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                   <Button type="button" variant="outline" onClick={() => void copyDraft().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl"><Copy className="mr-2 h-4 w-4" /> Copy</Button>
                   <Button type="button" onClick={() => void openContact().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl bg-slate-950 px-6 text-white hover:bg-indigo-600">{channel === "email" ? <Mail className="mr-2 h-4 w-4" /> : <MessageSquare className="mr-2 h-4 w-4" />} Open {channel === "email" ? "email" : "WhatsApp"} <Send className="ml-2 h-4 w-4" /></Button>

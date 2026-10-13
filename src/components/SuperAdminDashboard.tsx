@@ -269,6 +269,7 @@ export default function SuperAdminDashboard() {
   const [allPayouts, setAllPayouts] = useState<any[]>([]);
   const [allPartners, setAllPartners] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [trafficDays, setTrafficDays] = useState(30);
   const [trafficMetrics, setTrafficMetrics] = useState<{
     aggregate: {
       totalViews: number;
@@ -877,8 +878,9 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const fetchTrafficMetrics = async (days = 30) => {
+  const fetchTrafficMetrics = async (days = trafficDays) => {
     try {
+      setTrafficDays(days);
       setTrafficMetrics((prev) => ({ ...prev, loading: true }));
       const {
         data: { session },
@@ -2235,8 +2237,7 @@ export default function SuperAdminDashboard() {
                   <p className="text-slate-400 font-bold tracking-tight text-sm uppercase mt-1">Page views, clicks, registrations, leads, and source analysis</p>
                 </div>
                 <div className="flex gap-2">
-                   <Button variant="outline" onClick={() => fetchTrafficMetrics(7)} className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest">7 Days</Button>
-                   <Button variant="outline" onClick={() => fetchTrafficMetrics(30)} className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest">30 Days</Button>
+                   {[7, 30, 90].map((days) => <Button key={days} variant={trafficDays === days ? "default" : "outline"} onClick={() => void fetchTrafficMetrics(days)} className="rounded-xl h-8 text-[8px] font-black uppercase tracking-widest">{days} Days</Button>)}
                 </div>
               </div>
 
@@ -2264,7 +2265,7 @@ export default function SuperAdminDashboard() {
               </div>
 
               <Card className="rounded-[2rem] border-slate-100 p-8 min-h-[400px]">
-                <h2 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white mb-8">Ecosystem Traffic Flow</h2>
+                <div className="mb-8 flex flex-wrap items-end justify-between gap-2"><div><h2 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">Daily activity</h2><p className="mt-1 text-xs font-semibold text-slate-400">UTC · {trafficDays} days · tracked visits may include admin and automated traffic</p></div></div>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <AreaChart data={trafficMetrics.trend}>
@@ -2278,9 +2279,9 @@ export default function SuperAdminDashboard() {
                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} stroke="#94a3b8" />
                        <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} stroke="#94a3b8" />
                        <Tooltip />
-                       <Area type="monotone" dataKey="views" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorViews)" />
-                       <Area type="monotone" dataKey="clicks" stroke="#8b5cf6" strokeWidth={2} fillOpacity={0} />
-                       <Area type="monotone" dataKey="registrations" stroke="#10b981" strokeWidth={2} fillOpacity={0} />
+                       <Area type="linear" dataKey="views" name="Page views" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorViews)" />
+                       <Area type="linear" dataKey="clicks" name="CTA / link clicks" stroke="#8b5cf6" strokeWidth={2} fillOpacity={0} />
+                       <Area type="linear" dataKey="registrations" name="Registrations" stroke="#10b981" strokeWidth={2} fillOpacity={0} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>

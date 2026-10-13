@@ -11626,10 +11626,24 @@ async function startServer() {
     superAdminOnly,
     async (req, res) => {
       try {
-        const days = parseInt(req.query.days as string) || 30;
+        const requestedDays = parseInt(req.query.days as string) || 30;
+        const days = Math.min(90, Math.max(1, requestedDays));
         const since = new Date();
         since.setDate(since.getDate() - days);
         const sinceIso = since.toISOString();
+
+        const fetchAllRows = async (buildQuery: (from: number, to: number) => any) => {
+          const rows: any[] = [];
+          const pageSize = 1000;
+          for (let from = 0; ; from += pageSize) {
+            const { data, error } = await buildQuery(from, from + pageSize - 1);
+            if (error) throw error;
+            const page = data || [];
+            rows.push(...page);
+            if (page.length < pageSize) break;
+          }
+          return rows;
+        };
 
         const [
           pageViewsResult,
@@ -11638,18 +11652,18 @@ async function startServer() {
           businessesResult,
           leadsResult,
         ] = await Promise.allSettled([
-          supabaseAdmin
+          fetchAllRows((from, to) => supabaseAdmin
             .from("page_views")
             .select("visitor_id, session_id, page_path, referrer, created_at")
             .gte("created_at", sinceIso)
             .order("created_at", { ascending: false })
-            .limit(5000),
-          supabaseAdmin
+            .range(from, to)),
+          fetchAllRows((from, to) => supabaseAdmin
             .from("tracking_events")
             .select("event_type, source_platform, source_page, metadata, created_at")
             .gte("created_at", sinceIso)
             .order("created_at", { ascending: false })
-            .limit(5000),
+            .range(from, to)),
           supabaseAdmin
             .from("profiles")
             .select("id, created_at")
@@ -11667,13 +11681,14 @@ async function startServer() {
             .limit(5000),
         ]);
 
-        const unwrapRows = <T = any>(result: PromiseSettledResult<{ data: T[] | null; error: any }>) => {
+        const unwrapRows = <T = any>(result: PromiseSettledResult<any>): T[] => {
           if (result.status !== "fulfilled") return [];
-          if (result.value.error) {
+          if (Array.isArray(result.value)) return result.value;
+          if (result.value?.error) {
             console.warn("Traffic metric source unavailable:", result.value.error.message);
             return [];
           }
-          return result.value.data || [];
+          return result.value?.data || [];
         };
 
         const pageViews = unwrapRows<any>(pageViewsResult);
@@ -11716,11 +11731,11 @@ async function startServer() {
           .map(([path, count]) => ({ path, count }))
           .sort((a, b) => Number(b.count) - Number(a.count));
 
-        const dateKeys = Array.from({ length: days }, (_, index) => {
-          const date = new Date();
-          date.setDate(date.getDate() - (days - 1 - index));
-          return date.toISOString().slice(0, 10);
-        });
+        const utcToday = new Date();
+        const utcMidnight = Date.UTC(utcToday.getUTCFullYear(), utcToday.getUTCMonth(), utcToday.getUTCDate());
+        const dateKeys = Array.from({ length: days }, (_, index) =>
+          new Date(utcMidnight - (days - 1 - index) * 86400000).toISOString().slice(0, 10),
+        );
         const trend = dateKeys.map((date) => {
           const views = actualPageViews.filter((view) => String(view.created_at || "").startsWith(date));
           const dailyVisitors = new Set(views.map((view) => view.visitor_id).filter(Boolean));
