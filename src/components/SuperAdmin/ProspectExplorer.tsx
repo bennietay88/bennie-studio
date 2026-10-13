@@ -48,10 +48,14 @@ import {
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
+import { EMAIL_TEMPLATES, buildEmailTemplateDraft, hasUnresolvedEmailPlaceholders, recommendedTemplateId } from "./EmailTemplateHub";
+import { getOutreachObservation } from "../../lib/salesAutomation";
 
 const WEBSITE_STATUSES = ["unknown", "no_website", "weak", "average", "strong"];
 const OPPORTUNITY_LEVELS = ["low", "medium", "high"];
 const OUTREACH_STATUSES = ["not_started", "queued", "contacted", "replied", "call_booked", "won", "lost"];
+const CONTACTED_OUTREACH_STATUSES = ["contacted", "replied", "call_booked", "won"];
+const NOT_CONTACTED_OUTREACH_STATUSES = ["not_started", "queued"];
 
 const cleanDomain = (value: string) =>
   value
@@ -85,6 +89,10 @@ export function ProspectExplorer() {
   const [outreachProspect, setOutreachProspect] = useState<any | null>(null);
   const [outreachSubject, setOutreachSubject] = useState("");
   const [outreachBody, setOutreachBody] = useState("");
+  const [outreachTemplateId, setOutreachTemplateId] = useState("enquiry");
+  const [outreachObservation, setOutreachObservation] = useState("");
+  const [outreachContactFirstName, setOutreachContactFirstName] = useState("");
+  const [outreachDraftTouched, setOutreachDraftTouched] = useState(false);
   const [outreachRequestId, setOutreachRequestId] = useState("");
   const [outreachReplyToMessageId, setOutreachReplyToMessageId] = useState<string | null>(null);
   const [outreachSending, setOutreachSending] = useState(false);
@@ -112,6 +120,20 @@ export function ProspectExplorer() {
   const [importingCsv, setImportingCsv] = useState(false);
   const csvFileInputRef = useRef<HTMLInputElement | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const applyOutreachTemplate = (templateId: string, prospect = outreachProspect, observation = outreachObservation, firstName = outreachContactFirstName) => {
+    if (!prospect) return;
+    const generated = buildEmailTemplateDraft(templateId, { ...prospect, contact_first_name: firstName }, observation);
+    const [subjectLine, ...bodyLines] = generated.split("\n");
+    setOutreachSubject(subjectLine.replace(/^Subject:\s*/i, ""));
+    setOutreachBody(bodyLines.join("\n").trim());
+    setOutreachDraftTouched(false);
+  };
+
+  useEffect(() => {
+    if (!outreachProspect || outreachReplyToMessageId || outreachDraftTouched) return;
+    applyOutreachTemplate(outreachTemplateId, outreachProspect, outreachObservation, outreachContactFirstName);
+  }, [outreachProspect?.id, outreachTemplateId, outreachObservation, outreachContactFirstName, outreachReplyToMessageId, outreachDraftTouched]);
 
   const csvPreview = useMemo(() => {
     if (!csvText.trim()) {
@@ -493,10 +515,13 @@ export function ProspectExplorer() {
             .some((value) => String(value).toLowerCase().includes(query));
         const matchesIndustry = industryFilter === "all" || p.industry === industryFilter;
         const matchesStatus = statusFilter === "all" || p.outreach_status === statusFilter;
+        const outreachStatus = p.outreach_status || "not_started";
         const now = Date.now();
         const matchesQuick = quickFilter === "all"
           || (quickFilter === "follow_up_due" && p.next_follow_up_at && new Date(p.next_follow_up_at).getTime() <= now)
           || (quickFilter === "high" && p.opportunity_level === "high")
+          || (quickFilter === "contacted" && CONTACTED_OUTREACH_STATUSES.includes(outreachStatus))
+          || (quickFilter === "not_contacted" && NOT_CONTACTED_OUTREACH_STATUSES.includes(outreachStatus))
           || (quickFilter === "audit_not_sent" && !p.last_audit_at)
           || (quickFilter === "preview" && Boolean(p.preview_url))
           || (quickFilter === "replied" && p.outreach_status === "replied")
@@ -619,11 +644,19 @@ export function ProspectExplorer() {
 
   const stats = useMemo(() => {
     const high = prospects.filter((p) => p.opportunity_level === "high").length;
-    const contacted = prospects.filter((p) => ["contacted", "replied", "call_booked", "won"].includes(p.outreach_status)).length;
+    const contacted = prospects.filter((p) => CONTACTED_OUTREACH_STATUSES.includes(p.outreach_status || "not_started")).length;
+    const notContacted = prospects.filter((p) => NOT_CONTACTED_OUTREACH_STATUSES.includes(p.outreach_status || "not_started")).length;
     const booked = prospects.filter((p) => p.outreach_status === "call_booked").length;
     const due = prospects.filter((p) => p.next_follow_up_at && new Date(p.next_follow_up_at) <= new Date()).length;
-    return { total: prospects.length, high, contacted, booked, due };
+    return { total: prospects.length, high, contacted, notContacted, booked, due };
   }, [prospects]);
+
+  const selectSummaryFilter = (filter: string) => {
+    setSearchQuery("");
+    setIndustryFilter("all");
+    setStatusFilter("all");
+    setQuickFilter(filter);
+  };
 
   const exportCsv = () => {
     const rows = [
@@ -862,17 +895,25 @@ export function ProspectExplorer() {
     const previewLine = prospect.preview_url
       ? `\n\nI also prepared a quick preview for you: ${prospect.preview_url}`
       : "";
+    const initialTemplateId = replyToMessage ? "interested" : recommendedTemplateId(prospect.outreach_status || "not_started");
+    const initialObservation = getOutreachObservation(prospect.notes);
+    const contactFirstName = String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0];
     setOutreachProspect(prospect);
     setOutreachReplyToMessageId(replyToMessage?.id || null);
+    setOutreachTemplateId(initialTemplateId);
+    setOutreachObservation(initialObservation);
+    setOutreachContactFirstName(contactFirstName || "");
+    setOutreachDraftTouched(false);
     if (replyToMessage) {
       const priorSubject = String(replyToMessage.subject || `Website conversation with ${prospect.name}`).replace(/^Re:\s*/i, "");
       setOutreachSubject(`Re: ${priorSubject}`);
       setOutreachBody(`Hi ${prospect.name},\n\nThanks for your reply.\n\n\n\nBest,\nBennie`);
     } else {
-      setOutreachSubject(`Quick website idea for ${prospect.name}`);
-      setOutreachBody(
-        `Hi ${prospect.name},\n\nI came across your business and noticed a few practical opportunities to improve how your website turns visitors into enquiries.${previewLine}\n\nIf useful, I can share the key recommendations and what I would prioritise first.\n\nBest,\nBennie`,
-      );
+      const generated = buildEmailTemplateDraft(initialTemplateId, { ...prospect, contact_first_name: contactFirstName }, initialObservation);
+      const [subjectLine, ...bodyLines] = generated.split("\n");
+      setOutreachSubject(subjectLine.replace(/^Subject:\s*/i, ""));
+      const body = bodyLines.join("\n").trim();
+      setOutreachBody(previewLine ? body.replace("\n\nBest,\nBennie", `${previewLine}\n\nBest,\nBennie`) : body);
     }
     setOutreachRequestId(crypto.randomUUID());
   };
@@ -882,6 +923,9 @@ export function ProspectExplorer() {
     setOutreachProspect(null);
     setOutreachSubject("");
     setOutreachBody("");
+    setOutreachObservation("");
+    setOutreachContactFirstName("");
+    setOutreachDraftTouched(false);
     setOutreachReplyToMessageId(null);
     setOutreachRequestId("");
   };
@@ -890,6 +934,14 @@ export function ProspectExplorer() {
     if (!outreachProspect || !outreachBody.trim()) return;
     if (!outreachSubject.trim()) {
       toast.error("Add an email subject");
+      return;
+    }
+    if (!outreachReplyToMessageId && outreachObservation.trim().length < 10) {
+      toast.error("Add one specific website observation you verified before sending a first-touch email.");
+      return;
+    }
+    if (hasUnresolvedEmailPlaceholders(`${outreachSubject}\n${outreachBody}`)) {
+      toast.error("Complete every bracketed detail before sending.");
       return;
     }
 
@@ -915,9 +967,8 @@ export function ProspectExplorer() {
             channel: "email",
             subject: outreachSubject.trim(),
             bodyText: outreachBody.trim(),
-            observation: outreachReplyToMessageId
-              ? "Personal reply sent from Prospect Explorer."
-              : "Direct email outreach sent from Prospect Explorer.",
+            observation: outreachReplyToMessageId ? "Personal reply sent from Prospect Explorer." : outreachObservation.trim(),
+            templateId: outreachTemplateId,
             replyToMessageId: outreachReplyToMessageId,
             requestId: outreachRequestId || crypto.randomUUID(),
           }),
@@ -951,6 +1002,9 @@ export function ProspectExplorer() {
       setOutreachProspect(null);
       setOutreachSubject("");
       setOutreachBody("");
+      setOutreachObservation("");
+      setOutreachContactFirstName("");
+      setOutreachDraftTouched(false);
       setOutreachReplyToMessageId(null);
       setOutreachRequestId("");
       if (selectedProspect?.id === outreachProspect.id) {
@@ -1120,27 +1174,37 @@ export function ProspectExplorer() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         {[
-          ["Total", stats.total, Users],
-          ["High Opportunity", stats.high, Zap],
-          ["Contacted", stats.contacted, MessageSquare],
-          ["Calls Booked", stats.booked, CalendarDays],
-          ["Due Follow-Up", stats.due, Shield],
-        ].map(([label, value, Icon]: any) => (
-          <Card key={label} className="rounded-3xl border-slate-100 shadow-sm">
-            <CardContent className="p-5">
-              <Icon className="h-5 w-5 text-indigo-600" />
-              <p className="mt-4 text-xs font-semibold text-slate-400">{label}</p>
-              <p className="text-3xl font-black text-slate-950">{value}</p>
-            </CardContent>
+          { label: "Total", value: stats.total, Icon: Users, filter: "all" },
+          { label: "High Opportunity", value: stats.high, Icon: Zap, filter: "high" },
+          { label: "Contacted", value: stats.contacted, Icon: MessageSquare, filter: "contacted" },
+          { label: "Calls Booked", value: stats.booked, Icon: CalendarDays, filter: "call_booked" },
+          { label: "Due Follow-Up", value: stats.due, Icon: Shield, filter: "follow_up_due" },
+          { label: "Not Contacted", value: stats.notContacted, Icon: UserPlus, filter: "not_contacted" },
+        ].map(({ label, value, Icon, filter }) => (
+          <Card
+            key={label}
+            className={`rounded-3xl border-slate-100 p-0 shadow-sm transition-colors ${quickFilter === filter ? "border-indigo-300 ring-2 ring-indigo-100" : "hover:border-indigo-200 hover:shadow-md"}`}
+          >
+            <button
+              type="button"
+              aria-pressed={quickFilter === filter}
+              aria-label={`${label}: ${value}. Filter prospects`}
+              onClick={() => selectSummaryFilter(filter)}
+              className="flex h-full w-full flex-col rounded-3xl p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            >
+              <Icon className="h-5 w-5 text-indigo-600" aria-hidden="true" />
+              <span className="mt-4 text-xs font-semibold text-slate-400">{label}</span>
+              <span className="text-3xl font-black text-slate-950">{value}</span>
+            </button>
           </Card>
         ))}
       </div>
 
       <Card className="rounded-[2rem] border-slate-100 shadow-sm overflow-hidden">
         <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white p-4">
-          {[["all","All"],["follow_up_due","Follow-up due"],["high","High opportunity"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
+          {[["all","All"],["follow_up_due","Follow-up due"],["high","High opportunity"],["contacted","Contacted"],["not_contacted","Not contacted"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
         </div>
         <div className="grid gap-3 border-b border-slate-100 bg-slate-50 p-4 xl:grid-cols-[1fr_190px_190px_220px_auto]">
           <div className="relative">
@@ -1187,7 +1251,7 @@ export function ProspectExplorer() {
               <SelectItem value="followup_desc">Latest follow-up first</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" className="rounded-xl px-6" onClick={() => { setSearchQuery(""); setIndustryFilter("all"); setStatusFilter("all"); setSortMode("newest"); }}>
+          <Button variant="outline" className="rounded-xl px-6" onClick={() => { setSearchQuery(""); setIndustryFilter("all"); setStatusFilter("all"); setQuickFilter("all"); setSortMode("newest"); }}>
             <Filter className="h-4 w-4 mr-2 text-slate-400" /> Reset
           </Button>
         </div>
@@ -1645,10 +1709,35 @@ export function ProspectExplorer() {
                 </p>
               </div>
 
+              {!outreachReplyToMessageId && (
+                <>
+                  <Field label="Message type">
+                    <Select value={outreachTemplateId} onValueChange={setOutreachTemplateId}>
+                      <SelectTrigger aria-label="Choose an email template" className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {EMAIL_TEMPLATES.filter((template) => template.stage === "First contact" || template.stage === "Contacted").map((template) => (
+                          <SelectItem key={template.id} value={template.id}>{template.name} · {template.problem}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="mt-1 text-xs font-medium text-slate-500">Pick the template that matches a real issue you saw. It only fills a draft.</p>
+                  </Field>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field label="Contact first name (optional)">
+                      <Input value={outreachContactFirstName} onChange={(event) => setOutreachContactFirstName(event.target.value)} placeholder="Use only if verified" className="h-11 rounded-xl" />
+                    </Field>
+                    <Field label="Verified website observation">
+                      <Input value={outreachObservation} onChange={(event) => setOutreachObservation(event.target.value)} placeholder="One specific thing you checked" className="h-11 rounded-xl" />
+                    </Field>
+                  </div>
+                  {outreachObservation.trim().length < 10 && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-900">Add a specific observation from the live site before sending. The engine will not send a generic first-touch message.</p>}
+                </>
+              )}
+
               <Field label="Subject">
                 <Input
                   value={outreachSubject}
-                  onChange={(event) => setOutreachSubject(event.target.value)}
+                  onChange={(event) => { setOutreachDraftTouched(true); setOutreachSubject(event.target.value); }}
                   maxLength={160}
                   className="h-11 rounded-xl"
                 />
@@ -1657,7 +1746,7 @@ export function ProspectExplorer() {
               <Field label="Message">
                 <Textarea
                   value={outreachBody}
-                  onChange={(event) => setOutreachBody(event.target.value)}
+                  onChange={(event) => { setOutreachDraftTouched(true); setOutreachBody(event.target.value); }}
                   maxLength={10000}
                   className="!h-56 min-h-56 max-h-72 resize-y overflow-auto rounded-2xl [field-sizing:fixed]"
                 />
@@ -1682,7 +1771,7 @@ export function ProspectExplorer() {
             <Button
               type="button"
               onClick={sendOutreach}
-              disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim()}
+              disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() || (!outreachReplyToMessageId && outreachObservation.trim().length < 10) || hasUnresolvedEmailPlaceholders(`${outreachSubject}\n${outreachBody}`)}
               className="rounded-xl bg-indigo-600 hover:bg-indigo-700"
             >
               {outreachSending ? (
@@ -1938,4 +2027,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Info({ label, value }: { label: string; value: string }) {
   return <div className="rounded-2xl border border-slate-200 p-4"><p className="text-xs font-semibold text-slate-400">{label}</p><p className="mt-2 break-words text-sm font-bold text-slate-800">{value}</p></div>;
 }
- 

@@ -7896,6 +7896,7 @@ async function startServer() {
           action: z.enum(["prepare", "contacted", "send"]),
           channel: z.enum(["email", "whatsapp"]),
           observation: z.string().trim().max(1000).optional(),
+          templateId: z.string().trim().max(80).regex(/^[a-z][a-z0-9-]*$/i).optional(),
           subject: z.string().trim().max(160).optional(),
           bodyText: z.string().trim().min(1).max(10000),
           replyToMessageId: UUID_SCHEMA.optional().nullable(),
@@ -7961,6 +7962,14 @@ async function startServer() {
         CONTACT_CHANNEL_MISSING: {
           status: 409,
           message: "Add a valid contact for this channel.",
+        },
+        OUTREACH_OBSERVATION_REQUIRED: {
+          status: 400,
+          message: "Add one specific, verified observation before sending a first-touch email.",
+        },
+        OUTREACH_PLACEHOLDER_UNRESOLVED: {
+          status: 400,
+          message: "Complete every bracketed detail before sending.",
         },
         OUTREACH_REQUEST_CONFLICT: {
           status: 409,
