@@ -8285,11 +8285,22 @@ async function startServer() {
       const now = new Date().toISOString();
       if (event.type === "email.received") {
         await recordSalesReply(supabaseAdmin, event, async () => {
-          // Sending-only keys cannot read incoming email. Keep the optional receiving
-          // credential server-side; never silently replace a failed read with fake text.
+          // Keep the optional receiving credential server-side. Permission failures
+          // are recorded as a manual-review task instead of failing delivery.
           const receiver = process.env.RESEND_RECEIVING_API_KEY ? new Resend(process.env.RESEND_RECEIVING_API_KEY) : getResend();
           const received = await receiver.emails.receiving.get(event.data.email_id);
-          if (received.error || !received.data) throw new Error("REPLY_RETRIEVAL_UNAVAILABLE");
+          if (received.error || !received.data) {
+            const statusCode = Number((received.error as any)?.statusCode || (received.error as any)?.status || 0);
+            if (statusCode === 401 || statusCode === 403) {
+              // Preserve the reply and stop its sequence even when this key cannot
+              // read inbound content. The original remains available in Resend.
+              structuredLog("warn", "sales_reply_body_unavailable", {
+                reason: "receiving_api_key_required",
+              });
+              return `[Reply body unavailable. Add a receiving-capable RESEND_RECEIVING_API_KEY and review this email in Resend (email ID: ${event.data.email_id}).]`;
+            }
+            throw new Error("REPLY_RETRIEVAL_UNAVAILABLE");
+          }
           return received.data.text || received.data.html?.replace(/<[^>]+>/g, " ") || "";
         }, now);
       } else {
