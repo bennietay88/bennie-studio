@@ -58,7 +58,7 @@ export const RESOURCE_ARTICLES: ResourceArticle[] = [
     title: "How to measure website success",
     excerpt: "Focus on the metrics that connect website activity with enquiries and sales.",
     readTime: "9 min read",
-    image: "/template-assets/flagship-professional.jpg",
+    image: "/template-assets/concept-professional-v2.jpg",
     intro: "A website report full of visits can still hide a weak buying journey. Measurement should connect what people do on the site with the commercial action the business actually needs.",
     sections: [
       { heading: "Define the primary conversion", body: "Pick the action that represents a useful opportunity: a qualified enquiry, booking, quote request or call. Keep softer signals such as guide downloads and email subscriptions as supporting evidence." },
@@ -72,7 +72,7 @@ export const RESOURCE_ARTICLES: ResourceArticle[] = [
     title: "Mobile-first design: what it means",
     excerpt: "How to make a site easier to use when most visitors arrive on a phone.",
     readTime: "8 min read",
-    image: "/template-assets/flagship-clinic.jpg",
+    image: "/template-assets/concept-clinic-v2.jpg",
     intro: "Mobile-first design is not simply shrinking a desktop layout. It means deciding what deserves attention when space, time and patience are limited.",
     sections: [
       { heading: "Prioritise the first decision", body: "The mobile opening should establish relevance and make the primary action easy to find. Secondary navigation and decorative detail can wait until the visitor has context." },
@@ -86,7 +86,7 @@ export const RESOURCE_ARTICLES: ResourceArticle[] = [
     title: "What a strong redesign should improve",
     excerpt: "Use the original site as a baseline instead of changing design for its own sake.",
     readTime: "6 min read",
-    image: "/template-assets/flagship-renovation.jpg",
+    image: "/template-assets/concept-renovation-v2.jpg",
     intro: "A redesign earns its cost by making the business easier to understand, trust and choose. A new colour palette is not a result on its own.",
     sections: [
       { heading: "Keep useful identity", body: "Carry forward the facts, language and recognition that customers already rely on. Change the parts that create confusion or friction, not everything simply to make the work look new." },
@@ -100,7 +100,7 @@ export const RESOURCE_ARTICLES: ResourceArticle[] = [
     title: "The website launch checklist",
     excerpt: "A practical checklist for content, mobile, SEO, forms and launch quality.",
     readTime: "5 min read",
-    image: "/template-assets/flagship-education.jpg",
+    image: "/template-assets/concept-education-v2.jpg",
     intro: "Launch day should confirm that the website works as a customer experience, not just that the deployment completed.",
     sections: [
       { heading: "Content and proof", body: "Check page titles, service descriptions, contact details, claims, testimonials and imagery. Every important promise should be clear and supportable." },
@@ -114,7 +114,7 @@ export const RESOURCE_ARTICLES: ResourceArticle[] = [
     title: "How to turn more visitors into customers",
     excerpt: "Clarify the offer, strengthen proof and make the next step easier to take.",
     readTime: "11 min read",
-    image: "/template-assets/flagship-beauty.jpg",
+    image: "/template-assets/concept-beauty-v2.jpg",
     intro: "More conversion usually comes from reducing uncertainty, not adding pressure. Visitors need to understand the offer, recognise that it fits and know what happens next.",
     sections: [
       { heading: "Tighten the offer", body: "Group services around the decisions customers make and explain the useful difference between options. A long list of capabilities is rarely as helpful as a clear route to the right one." },

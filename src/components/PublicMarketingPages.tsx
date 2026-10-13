@@ -1401,24 +1401,24 @@ const resolvePreviewStockAsset = (input: {
   // Every preview niche resolves to a local bundled fallback. We intentionally
   // use broad visual families instead of hot-linking a third-party stock API.
   if (/clinic|dental|dentist|medical|physio|therapy|health/.test(key)) {
-    return "/template-assets/flagship-clinic.jpg";
+    return "/template-assets/concept-clinic-v2.jpg";
   }
   if (/beauty|salon|spa|aesthetic|wellness/.test(key)) {
-    return "/template-assets/flagship-beauty.jpg";
+    return "/template-assets/concept-beauty-v2.jpg";
   }
   if (/tuition|education|childcare|school|learning/.test(key)) {
-    return "/template-assets/flagship-education.jpg";
+    return "/template-assets/concept-education-v2.jpg";
   }
   if (/renovation|contractor|local-service|local service|handyman|plumb|electric|roof|hvac|air[ -]?con|cleaning|pest|builder|construction|locksmith|landscap|garden|painting|flooring|carpentr|repair|interior/.test(key)) {
-    return "/template-assets/flagship-renovation.jpg";
+    return "/template-assets/concept-renovation-v2.jpg";
   }
   if (/restaurant|catering|boutique|retail|florist|photograph|personal-brand|creator/.test(key)) {
-    return "/template-assets/flagship-professional.jpg";
+    return "/template-assets/concept-professional-v2.jpg";
   }
   if (/account|bookkeep|law|consult|coach|real-estate|mortgage|insurance|recruit|it-support|agency|professional/.test(key)) {
-    return "/template-assets/flagship-professional.jpg";
+    return "/template-assets/concept-professional-v2.jpg";
   }
-  return "/template-assets/flagship-professional.jpg";
+  return "/template-assets/concept-professional-v2.jpg";
 };
 
 

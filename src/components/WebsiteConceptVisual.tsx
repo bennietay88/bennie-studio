@@ -38,10 +38,10 @@ const concepts: Concept[] = [
     primary: "Arrange a consultation",
     secondary: "Explore expertise",
     categories: ["Strategic planning", "Business advisory", "Financial clarity"],
-    image: "/template-assets/flagship-professional.jpg",
+    image: "/template-assets/concept-professional-v2.jpg",
     alt: "Sunlit contemporary professional office used as illustrative concept photography",
     ink: "#19312c", soft: "#f2f0e9", accent: "#315e4c", accentText: "#ffffff",
-    fallback: "/template-assets/flagship-professional.jpg",
+    fallback: "/template-assets/concept-professional-v2.jpg",
     label: "Professional services"
   },
   {
@@ -53,10 +53,10 @@ const concepts: Concept[] = [
     primary: "Book an appointment",
     secondary: "Our treatments",
     categories: ["General dentistry", "Smile consultations", "Patient care"],
-    image: "/template-assets/flagship-clinic.jpg",
+    image: "/template-assets/concept-clinic-v2.jpg",
     alt: "Dental practice photography illustrating a fictional clinic website",
     ink: "#163e3c", soft: "#eaf3f0", accent: "#1e6c63", accentText: "#ffffff",
-    fallback: "/template-assets/flagship-clinic.jpg",
+    fallback: "/template-assets/concept-clinic-v2.jpg",
     label: "Clinic and healthcare"
   },
   {
@@ -68,10 +68,10 @@ const concepts: Concept[] = [
     primary: "View treatments",
     secondary: "Book your visit",
     categories: ["Skin treatments", "Body therapy", "Wellness rituals"],
-    image: "/template-assets/flagship-beauty.jpg",
+    image: "/template-assets/concept-beauty-v2.jpg",
     alt: "Wellness spa treatment space used as illustrative concept photography",
     ink: "#3d323a", soft: "#f6eee9", accent: "#8d686f", accentText: "#ffffff",
-    fallback: "/template-assets/flagship-beauty.jpg",
+    fallback: "/template-assets/concept-beauty-v2.jpg",
     label: "Beauty and wellness"
   },
   {
@@ -83,10 +83,10 @@ const concepts: Concept[] = [
     primary: "Discuss your project",
     secondary: "View our services",
     categories: ["Home renovations", "Interior fit-outs", "Project planning"],
-    image: "/template-assets/flagship-renovation.jpg",
+    image: "/template-assets/concept-renovation-v2.jpg",
     alt: "Modern residential interior used as illustrative renovation website imagery",
     ink: "#342d27", soft: "#f4f0e9", accent: "#725e48", accentText: "#ffffff",
-    fallback: "/template-assets/flagship-renovation.jpg",
+    fallback: "/template-assets/concept-renovation-v2.jpg",
     label: "Home services"
   },
   {
@@ -98,10 +98,10 @@ const concepts: Concept[] = [
     primary: "Explore programmes",
     secondary: "Book a visit",
     categories: ["Small classes", "Patient teachers", "Confident learners"],
-    image: "/template-assets/flagship-education.jpg",
+    image: "/template-assets/concept-education-v2.jpg",
     alt: "Learning environment image used for a fictional education website concept",
     ink: "#293953", soft: "#eef2fa", accent: "#3866a0", accentText: "#ffffff",
-    fallback: "/template-assets/flagship-education.jpg",
+    fallback: "/template-assets/concept-education-v2.jpg",
     label: "Education"
   },
 ];
