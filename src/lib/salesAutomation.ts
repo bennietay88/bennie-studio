@@ -33,6 +33,8 @@ export type SalesMessage = {
   classification?: ReplyClassification | null;
   prospect_id?: string | null;
   lead_id?: string | null;
+  reply_to_message_id?: string | null;
+  provider_payload?: Record<string, any> | null;
 };
 
 export type SalesCallBooking = {

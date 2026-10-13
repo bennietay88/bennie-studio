@@ -3,44 +3,74 @@ import { BookOpen, Search, ShieldCheck } from "lucide-react";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
-type Template = { id: string; name: string; problem: string; stage: string; subject: string; body: string; note: string };
+export type EmailTemplate = { id: string; name: string; problem: string; stage: string; subject: string; body: string; note: string };
 
-export const EMAIL_TEMPLATES: Template[] = [
+export const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
     id: "enquiry", name: "Enquiry / quotation friction", problem: "Quotation journey", stage: "First contact",
-    note: "Use when you verified a real issue with quotation or contact steps.",
-    subject: "A quotation improvement idea for {{company}}",
-    body: "Hi {{company}} team,\n\nI reviewed your website and noticed {{finding}}.\n\nOne practical improvement I'd recommend is [a specific improvement verified against the website].\n\nI run Bennie Studio and build and manage websites for service businesses. Would a short visual explanation be useful?\n\nBest,\nBennie\nBennie Studio\n\nIf you'd prefer no more emails, reply stop.",
+    note: "A concise first note when you found friction in a real quote or contact path.",
+    subject: "One enquiry-path idea for {{company}}",
+    body: "Hi {{first_name}},\n\nI was looking at {{company}}’s website and noticed {{finding}}.\n\nWould it help if I sent one specific idea for making that step clearer to a potential customer?\n\nI run Bennie Studio, where we design and manage websites for service businesses.\n\nBest,\nBennie\nBennie Studio\n\nIf you’d rather not hear from me, reply stop.",
   },
   {
     id: "portfolio", name: "Portfolio not supporting enquiries", problem: "Portfolio / trust", stage: "First contact",
-    note: "For renovation, design and proof-led companies with a verified portfolio gap.",
-    subject: "A portfolio-to-enquiry idea for {{company}}",
-    body: "Hi {{company}} team,\n\nLooking through your work, I noticed {{finding}}.\n\nA possible improvement would be [specific, verified suggestion connecting projects to the next enquiry step].\n\nBennie Studio designs and manages websites for service businesses. Would you like a quick visual example?\n\nBest,\nBennie\nBennie Studio\n\nReply stop if you'd rather not receive more emails.",
+    note: "For project-led firms where the work gallery is hard to connect to a next step.",
+    subject: "A project-page suggestion for {{company}}",
+    body: "Hi {{first_name}},\n\nI looked through {{company}}’s project pages and noticed {{finding}}.\n\nI have one idea for making the work easier to evaluate and enquire about. Would you like me to send it over?\n\nBest,\nBennie\nBennie Studio\n\nReply stop if you’d rather not receive more emails.",
   },
   {
     id: "services", name: "Services hard to compare", problem: "Service clarity", stage: "First contact",
-    note: "For confusing or incomplete service paths confirmed on the live site.",
-    subject: "One service-page idea for {{company}}",
-    body: "Hi {{company}} team,\n\nI looked at your services and noticed {{finding}}.\n\nI'd suggest [one change you checked that makes the customer's next step clearer].\n\nI run Bennie Studio, where we develop and manage service-business websites. Would a short before-and-after direction be useful?\n\nBest,\nBennie\nBennie Studio\n\nTo opt out, reply stop.",
+    note: "When customers have to work to understand or compare the listed services.",
+    subject: "A service-page idea for {{company}}",
+    body: "Hi {{first_name}},\n\nI was comparing the services on {{company}}’s website and noticed {{finding}}.\n\nWould a clearer way to present that choice be useful? I can send a short outline tailored to the page I saw.\n\nBest,\nBennie\nBennie Studio\n\nReply stop to opt out.",
   },
   {
     id: "mobile", name: "Mobile contact problem", problem: "Mobile UX", stage: "First contact",
-    note: "Only choose after checking the actual mobile experience.",
-    subject: "A mobile enquiry suggestion for {{company}}",
-    body: "Hi {{company}} team,\n\nI checked your site on mobile and noticed {{finding}}.\n\nOne simple thing I would change is [a specific, tested mobile change].\n\nI build and look after service-business websites at Bennie Studio. Can I share a short recording with the suggestion?\n\nBest,\nBennie\nBennie Studio\n\nReply stop if you'd prefer no follow-up.",
+    note: "Only use after checking the actual mobile page and recording a specific issue.",
+    subject: "A mobile-page observation for {{company}}",
+    body: "Hi {{first_name}},\n\nI checked {{company}}’s website on my phone and noticed {{finding}}.\n\nWould a marked-up screenshot of that spot be useful? It would show the issue and one possible fix.\n\nBest,\nBennie\nBennie Studio\n\nReply stop if you’d prefer no follow-up.",
   },
   {
     id: "no-site", name: "No official site linked", problem: "No website", stage: "First contact",
-    note: "Verify that the business listing really lacks a website link; do not assume they have no site.",
-    subject: "Managed website question for {{company}}",
-    body: "Hi {{company}} team,\n\nI found your business through [verified source] but couldn't see an official website linked there — I may have missed it.\n\nBennie Studio builds and manages websites, including hosting and agreed updates. Is a website something you're considering at the moment?\n\nBest,\nBennie\nBennie Studio\n\nIf you don't want further emails, reply stop.",
+    note: "Only after checking the source listing and confirming an official site is not linked.",
+    subject: "A website question for {{company}}",
+    body: "Hi {{first_name}},\n\nI found {{company}} through {{finding}} and couldn’t see an official website linked there — I may have missed it.\n\nIs a website something you’re considering this year? If so, I can share a simple example of what a managed site could cover.\n\nBest,\nBennie\nBennie Studio\n\nReply stop to opt out.",
   },
   {
     id: "managed", name: "Website maintenance responsibility", problem: "Ongoing care", stage: "First contact",
-    note: "For businesses that may need a person responsible for regular upkeep.",
-    subject: "Website management at {{company}}",
-    body: "Hi {{company}} team,\n\nWhile looking at your website I noticed {{finding}}.\n\nI run Bennie Studio. We design and manage business websites, covering hosting, maintenance and agreed updates. Do you already have someone responsible for keeping the site up to date?\n\nBest,\nBennie\nBennie Studio\n\nReply stop to opt out.",
+    note: "When a visible site detail suggests updates may be getting missed.",
+    subject: "Who looks after {{company}}’s website?",
+    body: "Hi {{first_name}},\n\nI noticed {{finding}} while looking at {{company}}’s website.\n\nDo you already have someone looking after updates and maintenance? If not, I can send a short outline of how our managed service works.\n\nBest,\nBennie\nBennie Studio\n\nReply stop to opt out.",
+  },
+  {
+    id: "booking", name: "Appointment booking friction", problem: "Booking journey", stage: "First contact",
+    note: "For clinics, salons and appointment-based businesses after testing the booking path.",
+    subject: "A booking-path idea for {{company}}",
+    body: "Hi {{first_name}},\n\nI tried the appointment journey on {{company}}’s site and noticed {{finding}}.\n\nWould one practical suggestion for making booking easier to reach be useful?\n\nBest,\nBennie\nBennie Studio\n\nReply stop to opt out.",
+  },
+  {
+    id: "local", name: "Service area clarity", problem: "Local service area", stage: "First contact",
+    note: "For local businesses when the service area is missing or hard to find on the live site.",
+    subject: "A service-area suggestion for {{company}}",
+    body: "Hi {{first_name}},\n\nI checked {{company}}’s website and noticed {{finding}}.\n\nWould it be useful if I sent a quick outline for making the areas you serve easier for customers to confirm?\n\nBest,\nBennie\nBennie Studio\n\nReply stop to opt out.",
+  },
+  {
+    id: "trust", name: "Trust and proof placement", problem: "Trust signals", stage: "First contact",
+    note: "When genuine credentials, process details or customer proof are difficult to find.",
+    subject: "A trust-building idea for {{company}}",
+    body: "Hi {{first_name}},\n\nI was looking at {{company}}’s website and noticed {{finding}}.\n\nI have one idea for bringing that reassurance closer to the service decision. Would you like me to send it?\n\nBest,\nBennie\nBennie Studio\n\nReply stop to opt out.",
+  },
+  {
+    id: "pricing-clarity", name: "Pricing and scope clarity", problem: "Pricing clarity", stage: "First contact",
+    note: "When customers cannot tell what is included or how to request a suitable quote.",
+    subject: "A pricing-page idea for {{company}}",
+    body: "Hi {{first_name}},\n\nI looked at {{company}}’s pricing information and noticed {{finding}}.\n\nWould a short suggestion for making the scope or next step clearer be useful?\n\nBest,\nBennie\nBennie Studio\n\nReply stop to opt out.",
+  },
+  {
+    id: "location", name: "Location and contact details", problem: "Contact details", stage: "First contact",
+    note: "For a verified gap in location, hours or contact options on a key page.",
+    subject: "A contact-details suggestion for {{company}}",
+    body: "Hi {{first_name}},\n\nI checked {{company}}’s contact information and noticed {{finding}}.\n\nWould it help if I sent one suggestion for making the right contact option easier to find?\n\nBest,\nBennie\nBennie Studio\n\nReply stop to opt out.",
   },
   {
     id: "follow-up", name: "Respectful first follow-up", problem: "No response", stage: "Contacted",
@@ -71,8 +101,12 @@ export const EMAIL_TEMPLATES: Template[] = [
 export function buildEmailTemplateDraft(id: string, prospect: any, finding: string) {
   const template = EMAIL_TEMPLATES.find((item) => item.id === id) || EMAIL_TEMPLATES[0];
   const company = String(prospect?.name || "[business name]").trim();
+  const contactName = String(prospect?.contact_first_name || prospect?.contact_name || "").trim().split(/\s+/)[0];
   const observation = finding.trim().length >= 10 ? finding.trim().replace(/\.$/, "") : "[a verified website observation]";
-  const fill = (value: string) => value.replace(/\{\{company\}\}/g, company).replace(/\{\{finding\}\}/g, observation);
+  const fill = (value: string) => value
+    .replace(/\{\{company\}\}/g, company)
+    .replace(/\{\{first_name\}\}/g, contactName || `${company} team`)
+    .replace(/\{\{finding\}\}/g, observation);
   const market = String(prospect?.location || "");
   const isSG = /(^|[,\s])(?:SG|Singapore)(?=$|[,\s])/i.test(market);
   const subject = fill(template.subject);
@@ -100,7 +134,7 @@ export function EmailTemplateHub({ selectedId, onSelect }: { selectedId: string;
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div><p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-indigo-700"><BookOpen className="h-4 w-4" /> Email Template Hub</p>
         <h2 className="mt-2 text-2xl font-bold text-slate-950">Messages by problem and buyer stage</h2>
-        <p className="mt-2 max-w-2xl text-sm text-slate-600">Choose from ten different starting points. Templates populate the editable outreach draft below; nothing sends automatically.</p></div>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600">Choose a message for the specific issue you verified. Templates fill the draft; you review and send each one yourself.</p></div>
       <span className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-700"><ShieldCheck className="h-4 w-4" /> Human reviewed</span>
     </div>
     <div className="mt-5 grid gap-3 md:grid-cols-[1.2fr_1fr_1fr]">

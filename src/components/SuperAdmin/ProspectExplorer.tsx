@@ -52,8 +52,6 @@ import { Textarea } from "../ui/textarea";
 const WEBSITE_STATUSES = ["unknown", "no_website", "weak", "average", "strong"];
 const OPPORTUNITY_LEVELS = ["low", "medium", "high"];
 const OUTREACH_STATUSES = ["not_started", "queued", "contacted", "replied", "call_booked", "won", "lost"];
-const CONTACTED_OUTREACH_STATUSES = ["contacted", "replied", "call_booked", "won"];
-const NOT_CONTACTED_OUTREACH_STATUSES = ["not_started", "queued"];
 
 const cleanDomain = (value: string) =>
   value
@@ -495,13 +493,10 @@ export function ProspectExplorer() {
             .some((value) => String(value).toLowerCase().includes(query));
         const matchesIndustry = industryFilter === "all" || p.industry === industryFilter;
         const matchesStatus = statusFilter === "all" || p.outreach_status === statusFilter;
-        const outreachStatus = p.outreach_status || "not_started";
         const now = Date.now();
         const matchesQuick = quickFilter === "all"
           || (quickFilter === "follow_up_due" && p.next_follow_up_at && new Date(p.next_follow_up_at).getTime() <= now)
           || (quickFilter === "high" && p.opportunity_level === "high")
-          || (quickFilter === "contacted" && CONTACTED_OUTREACH_STATUSES.includes(outreachStatus))
-          || (quickFilter === "not_contacted" && NOT_CONTACTED_OUTREACH_STATUSES.includes(outreachStatus))
           || (quickFilter === "audit_not_sent" && !p.last_audit_at)
           || (quickFilter === "preview" && Boolean(p.preview_url))
           || (quickFilter === "replied" && p.outreach_status === "replied")
@@ -624,19 +619,11 @@ export function ProspectExplorer() {
 
   const stats = useMemo(() => {
     const high = prospects.filter((p) => p.opportunity_level === "high").length;
-    const contacted = prospects.filter((p) => CONTACTED_OUTREACH_STATUSES.includes(p.outreach_status || "not_started")).length;
-    const notContacted = prospects.filter((p) => NOT_CONTACTED_OUTREACH_STATUSES.includes(p.outreach_status || "not_started")).length;
+    const contacted = prospects.filter((p) => ["contacted", "replied", "call_booked", "won"].includes(p.outreach_status)).length;
     const booked = prospects.filter((p) => p.outreach_status === "call_booked").length;
     const due = prospects.filter((p) => p.next_follow_up_at && new Date(p.next_follow_up_at) <= new Date()).length;
-    return { total: prospects.length, high, contacted, notContacted, booked, due };
+    return { total: prospects.length, high, contacted, booked, due };
   }, [prospects]);
-
-  const selectSummaryFilter = (filter: string) => {
-    setSearchQuery("");
-    setIndustryFilter("all");
-    setStatusFilter("all");
-    setQuickFilter(filter);
-  };
 
   const exportCsv = () => {
     const rows = [
@@ -1133,37 +1120,27 @@ export function ProspectExplorer() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-5">
         {[
-          { label: "Total", value: stats.total, Icon: Users, filter: "all" },
-          { label: "High Opportunity", value: stats.high, Icon: Zap, filter: "high" },
-          { label: "Contacted", value: stats.contacted, Icon: MessageSquare, filter: "contacted" },
-          { label: "Calls Booked", value: stats.booked, Icon: CalendarDays, filter: "call_booked" },
-          { label: "Due Follow-Up", value: stats.due, Icon: Shield, filter: "follow_up_due" },
-          { label: "Not Contacted", value: stats.notContacted, Icon: UserPlus, filter: "not_contacted" },
-        ].map(({ label, value, Icon, filter }) => (
-          <Card
-            key={label}
-            className={`rounded-3xl border-slate-100 p-0 shadow-sm transition-colors ${quickFilter === filter ? "border-indigo-300 ring-2 ring-indigo-100" : "hover:border-indigo-200 hover:shadow-md"}`}
-          >
-            <button
-              type="button"
-              aria-pressed={quickFilter === filter}
-              aria-label={`${label}: ${value}. Filter prospects`}
-              onClick={() => selectSummaryFilter(filter)}
-              className="flex h-full w-full flex-col rounded-3xl p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-            >
-              <Icon className="h-5 w-5 text-indigo-600" aria-hidden="true" />
-              <span className="mt-4 text-xs font-semibold text-slate-400">{label}</span>
-              <span className="text-3xl font-black text-slate-950">{value}</span>
-            </button>
+          ["Total", stats.total, Users],
+          ["High Opportunity", stats.high, Zap],
+          ["Contacted", stats.contacted, MessageSquare],
+          ["Calls Booked", stats.booked, CalendarDays],
+          ["Due Follow-Up", stats.due, Shield],
+        ].map(([label, value, Icon]: any) => (
+          <Card key={label} className="rounded-3xl border-slate-100 shadow-sm">
+            <CardContent className="p-5">
+              <Icon className="h-5 w-5 text-indigo-600" />
+              <p className="mt-4 text-xs font-semibold text-slate-400">{label}</p>
+              <p className="text-3xl font-black text-slate-950">{value}</p>
+            </CardContent>
           </Card>
         ))}
       </div>
 
       <Card className="rounded-[2rem] border-slate-100 shadow-sm overflow-hidden">
         <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white p-4">
-          {[["all","All"],["follow_up_due","Follow-up due"],["high","High opportunity"],["contacted","Contacted"],["not_contacted","Not contacted"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
+          {[["all","All"],["follow_up_due","Follow-up due"],["high","High opportunity"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
         </div>
         <div className="grid gap-3 border-b border-slate-100 bg-slate-50 p-4 xl:grid-cols-[1fr_190px_190px_220px_auto]">
           <div className="relative">
@@ -1210,7 +1187,7 @@ export function ProspectExplorer() {
               <SelectItem value="followup_desc">Latest follow-up first</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" className="rounded-xl px-6" onClick={() => { setSearchQuery(""); setIndustryFilter("all"); setStatusFilter("all"); setQuickFilter("all"); setSortMode("newest"); }}>
+          <Button variant="outline" className="rounded-xl px-6" onClick={() => { setSearchQuery(""); setIndustryFilter("all"); setStatusFilter("all"); setSortMode("newest"); }}>
             <Filter className="h-4 w-4 mr-2 text-slate-400" /> Reset
           </Button>
         </div>
@@ -1961,3 +1938,4 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Info({ label, value }: { label: string; value: string }) {
   return <div className="rounded-2xl border border-slate-200 p-4"><p className="text-xs font-semibold text-slate-400">{label}</p><p className="mt-2 break-words text-sm font-bold text-slate-800">{value}</p></div>;
 }
+ 

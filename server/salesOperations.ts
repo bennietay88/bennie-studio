@@ -307,6 +307,7 @@ export async function sendDirectProspectOutreach(
     subject?: string;
     bodyText: string;
     observation?: string;
+    templateId?: string;
     replyToMessageId?: string | null;
     requestId: string;
     actorId: string;
@@ -318,6 +319,13 @@ export async function sendDirectProspectOutreach(
     await db.from("prospects").select("*").eq("id", input.prospectId).maybeSingle(),
   );
   if (!prospect) throw new Error("CONTACT_NOT_FOUND");
+
+  if (!input.replyToMessageId && String(input.observation || "").trim().length < 10) {
+    throw new Error("OUTREACH_OBSERVATION_REQUIRED");
+  }
+  if (/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(`${input.subject || ""}\n${input.bodyText}`)) {
+    throw new Error("OUTREACH_PLACEHOLDER_UNRESOLVED");
+  }
 
   if (
     [prospect.status, prospect.outreach_status].some((status) =>
@@ -412,6 +420,7 @@ export async function sendDirectProspectOutreach(
       directSend: true,
       actorId: input.actorId,
       observation: input.observation || null,
+      templateId: input.templateId || null,
       replyToMessageId,
     },
   };
