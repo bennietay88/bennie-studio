@@ -537,7 +537,7 @@ function Hero({
   primaryHref = "/generate-preview",
   secondaryLabel,
   secondaryHref,
-  imageSrc = "/images/studio-hero-v2.png",
+  imageSrc = "/images/studio-hero-v3.jpg",
   variant = "default",
 }: {
   title: string;
@@ -622,7 +622,7 @@ function ServicesPage() {
         primaryHref="/generate-preview"
         secondaryLabel="View the work"
         secondaryHref="/case-studies"
-        imageSrc="/images/studio-process-v2.png"
+        imageSrc="/images/studio-process-v3.jpg"
       />
 
       <section className="brand-shell brand-section">
@@ -716,7 +716,7 @@ function AboutPage() {
         primaryHref="/generate-preview"
         secondaryLabel="See how it works"
         secondaryHref="/how-it-works"
-        imageSrc="/images/studio-process-v2.png"
+        imageSrc="/images/studio-process-v3.jpg"
       />
 
       <section className="brand-shell brand-section">
@@ -796,7 +796,7 @@ function ResourcesPage() {
         primaryHref="/website-audit"
         secondaryLabel="Generate a preview"
         secondaryHref="/generate-preview"
-        imageSrc="/images/studio-work-v2.png"
+        imageSrc="/images/studio-work-v3.jpg"
       />
 
       <section className="brand-shell brand-section">
@@ -991,7 +991,7 @@ function HowItWorksPage() {
         title="From brief to launch, without the chaos."
         copy="A clear process takes you from business brief to strategy, design, human review, customer approval, launch and ongoing support — with one managed workflow."
         icon={Rocket}
-        imageSrc="/images/studio-process-v2.png"
+        imageSrc="/images/studio-process-v3.jpg"
       />
       <section className="brand-shell brand-section">
         <div className="grid gap-10 lg:grid-cols-12">
@@ -1148,7 +1148,7 @@ function CaseStudiesPage() {
         title="Work that shows how different businesses need different websites."
         copy="Explore demonstration builds and verified customer proof where approved evidence is available. The goal is to show structure, messaging, visual direction and enquiry flow without inventing results."
         icon={Sparkles}
-        imageSrc="/images/studio-work-v2.png"
+        imageSrc="/images/studio-work-v3.jpg"
       />
 
       {verifiedProof.length ? (
@@ -2763,7 +2763,7 @@ function GeneratePreviewPage() {
                   <div><p className="text-sm font-bold text-[#172033]">Your recommended website direction</p><p className="mt-1 text-xs text-[#657186]">Based on your answers, Bennie Studio prepares a tailored direction.</p></div>
                 </div>
                 <div className="mt-5 overflow-hidden rounded-xl border border-[#e5e8ef] bg-[#0b1020] p-2">
-                  <img src="/images/studio-insights-v2.png" alt="" className="aspect-[16/10] w-full rounded-lg object-cover" />
+                  <img src="/images/studio-insights-v3.jpg" alt="" className="aspect-[16/10] w-full rounded-lg object-cover" />
                 </div>
                 <div className="mt-5 space-y-4">
                   {[

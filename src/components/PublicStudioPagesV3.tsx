@@ -62,7 +62,7 @@ async function submitPublicLead(input: {
   return payload;
 }
 
-function StudioVisual({ image = "/images/studio-hero-v2.png", label = "Website direction" }: { image?: string; label?: string }) {
+function StudioVisual({ image = "/images/studio-hero-v3.jpg", label = "Website direction" }: { image?: string; label?: string }) {
   return (
     <div className="bs3-device-wrap">
       <div className="bs3-laptop">
@@ -87,7 +87,7 @@ function StudioHero({
   primaryHref = "/website-audit",
   secondaryLabel,
   secondaryHref,
-  image = "/images/studio-hero-v2.png",
+  image = "/images/studio-hero-v3.jpg",
   visualLabel,
   trust = ["Strategy-led", "Human review", "Built for growth"],
   titleClassName = "!max-w-[15ch]",
