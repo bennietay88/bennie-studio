@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseProspectCsv } from "../src/lib/prospectImport.ts";
+import { attachUploaderOutreachDeclaration, parseProspectCsv } from "../src/lib/prospectImport.ts";
 
 test("imports existing Bennie enriched prospect-list format", () => {
   const csv = [
@@ -66,4 +66,20 @@ test("accepts the current qualified prospect export shape", () => {
   assert.equal(result.prospects[0].location, "Brighton, UK");
   assert.equal(result.prospects[0].contact_phone, "07590477434");
   assert.match(result.prospects[0].notes, /Priority 99\/100/);
+});
+
+test("uploaded email contacts receive an uploader authorization declaration, not fabricated recipient opt-in", () => {
+  const original = { name: "Example Co", contact_email: "hello@example.com", notes: "Research from business website" };
+  const declared = attachUploaderOutreachDeclaration(original, "2026-10-14T08:00:00.000Z");
+  assert.match(declared.notes, /Manual outreach authorization declared by CSV uploader/);
+  assert.match(declared.notes, /2026-10-14T08:00:00.000Z/);
+  assert.match(declared.notes, /not verified recipient opt-in/);
+  assert.match(declared.notes, /Research from business website/);
+  assert.equal(declared.marketing_consent, undefined);
+  assert.equal(declared.consent_timestamp, undefined);
+  assert.equal(declared.consent_source, undefined);
+  assert.equal(original.notes, "Research from business website");
+
+  const withoutEmail = attachUploaderOutreachDeclaration({ name: "Phone Only", contact_email: null, notes: null }, "2026-10-14T08:00:00.000Z");
+  assert.equal(withoutEmail.notes, null);
 });
