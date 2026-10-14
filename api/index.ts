@@ -64,7 +64,7 @@ import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
 import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
-import { parseProspectCsv } from "../src/lib/prospectImport.js";
+import { attachUploaderOutreachDeclaration, parseProspectCsv } from "../src/lib/prospectImport.js";
 import { hasDocumentedMarketingConsent } from "../src/lib/salesAutomation.js";
 import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, getMinimumTermMonths } from "../src/lib/commercialPricing.js";
 import { DEFAULT_LAUNCH_FLAGS, normalizeLaunchFlags, type LaunchFlags } from "../src/lib/launchFlags.js";
@@ -7479,7 +7479,12 @@ async function startServer() {
       });
       const duplicates = Object.values(skippedReasons).reduce((total, n) => total + n, 0);
       if (!rows.length) return res.json({ prospects: [], imported: 0, duplicates, skippedReasons, submitted: parsed.prospects.length + parsed.duplicates });
-      const { data, error } = await supabaseAdmin.from("prospects").insert(rows.map((row) => ({ ...row, created_by: req.user.id }))).select("*");
+      // CSV upload is the operator's declaration of authority for manual outreach.
+      // Preserve provenance without inventing a recipient opt-in or overriding suppression.
+      const importedAt = new Date().toISOString();
+      const { data, error } = await supabaseAdmin.from("prospects").insert(
+        rows.map((row) => ({ ...attachUploaderOutreachDeclaration(row, importedAt), created_by: req.user.id })),
+      ).select("*");
       if (error) throw error;
       return res.status(201).json({ prospects: data || [], imported: data?.length || 0, duplicates, skippedReasons, submitted: parsed.prospects.length + parsed.duplicates });
     } catch {
