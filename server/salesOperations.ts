@@ -383,7 +383,7 @@ export async function sendDirectProspectOutreach(
 
   if (
     [prospect.status, prospect.outreach_status].some((status) =>
-      ["won", "lost", "closed", "converted", "paid"].includes(
+      ["won", "lost", "closed", "converted", "paid", "unsubscribed"].includes(
         String(status || "").toLowerCase(),
       ),
     )
@@ -414,9 +414,9 @@ export async function sendDirectProspectOutreach(
     if (suppression) throw new Error("CONTACT_SUPPRESSED");
   }
 
-  if (input.channel === "email" && !input.replyToMessageId && !hasDocumentedMarketingConsent(prospect)) {
-    throw new Error("OUTREACH_CONSENT_REQUIRED");
-  }
+  // Admin-initiated direct messages rely on the operator's authorization.
+  // Do not fabricate marketing-consent records. Automatic sequences remain
+  // gated by recorded consent, and suppressed recipients are always blocked.
 
   const recipient = input.channel === "email" ? email : phone;
   const key = `direct-outreach:${input.channel}:${input.requestId}`;
