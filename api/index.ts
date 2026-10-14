@@ -65,6 +65,7 @@ import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
 import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { parseProspectCsv } from "../src/lib/prospectImport.js";
+import { hasDocumentedMarketingConsent } from "../src/lib/salesAutomation.js";
 import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, getMinimumTermMonths } from "../src/lib/commercialPricing.js";
 import { DEFAULT_LAUNCH_FLAGS, normalizeLaunchFlags, type LaunchFlags } from "../src/lib/launchFlags.js";
 import {
@@ -8064,6 +8065,10 @@ async function startServer() {
           status: 400,
           message: "Add one specific, verified observation before sending a first-touch email.",
         },
+        OUTREACH_CONSENT_REQUIRED: {
+          status: 409,
+          message: "Email not sent: record the recipient's explicit opt-in, original date and source before using Resend.",
+        },
         OUTREACH_PLACEHOLDER_UNRESOLVED: {
           status: 400,
           message: "Complete every bracketed detail before sending.",
@@ -8323,6 +8328,9 @@ async function startServer() {
       const recipient = normalizeSalesEmail(entity.email || entity.contact_email);
       if (!EMAIL_SCHEMA.safeParse(recipient).success) return res.status(400).json({ error: "Contact has no valid email" });
       if (await isSalesSuppressed(supabaseAdmin, recipient)) return res.status(409).json({ error: "This contact is suppressed" });
+      if (!["inbound", "proposal"].includes(String(sequence.audience_type || "cold")) && !hasDocumentedMarketingConsent(entity)) {
+        return res.status(409).json({ error: "Record verified email marketing opt-in before enrolling this contact." });
+      }
       if ([entity.status, entity.outreach_status].some((status) => ["won", "lost", "closed", "converted", "paid", "meeting", "call_booked", "appointment_booked", "replied"].includes(String(status).toLowerCase()))) {
         return res.status(409).json({ error: "This contact has replied, is closed or has a booked call. Use a personal follow-up." });
       }

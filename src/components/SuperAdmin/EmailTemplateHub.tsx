@@ -1,5 +1,4 @@
 import React from "react";
-import { appendRecipientReviewLink } from "../../lib/salesAutomation";
 import { BookOpen, Search, ShieldCheck } from "lucide-react";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -11,7 +10,7 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     id: "enquiry", name: "Enquiry / quotation friction", problem: "Quotation journey", stage: "First contact",
     note: "A concise first note when you found friction in a real quote or contact path.",
     subject: "One enquiry-path idea for {{company}}",
-    body: "Hi {{first_name}},\n\nI was looking at {{company}}’s website and noticed {{finding}}.\n\nWould it help if I sent one specific idea for making that step clearer to a potential customer?\n\nI run Bennie Studio, where we design and manage websites for service businesses.\n\nBest,\nBennie\nBennie Studio\n\nIf you’d rather not hear from me, reply stop.",
+    body: "Hi {{first_name}},\n\nI noticed this on {{company}}’s website: {{finding}}.\n\nFor a service business, making the next step clear can help visitors understand how to request a quotation.\n\nI run Bennie Studio, where we build and manage enquiry-focused websites. Would a short example of how I would improve that section be useful?\n\nBest,\nBennie\nBennie Studio\n\nIf this is not relevant, reply stop and I will not follow up.",
   },
   {
     id: "portfolio", name: "Portfolio not supporting enquiries", problem: "Portfolio / trust", stage: "First contact",
@@ -112,10 +111,9 @@ export function buildEmailTemplateDraft(id: string, prospect: any, finding: stri
   const isSG = /(^|[,\s])(?:SG|Singapore)(?=$|[,\s])/i.test(market);
   const subject = fill(template.subject);
   const body = fill(template.body);
-  const linkedBody = template.stage === "First contact" || template.id === "follow-up"
-    ? appendRecipientReviewLink(body, prospect?.preview_url)
-    : body;
-  return "Subject: " + (isSG && template.stage === "First contact" ? "<ADV> " : "") + subject + "\n\n" + linkedBody;
+  // Do not silently append an audit link to a first-touch email that asks permission to share it.
+  // Operators can add a recipient-safe audit link manually when it matches the chosen CTA.
+  return "Subject: " + (isSG && template.stage === "First contact" ? "<ADV> " : "") + subject + "\n\n" + body;
 }
 export function recommendedTemplateId(status: string) {
   if (status === "replied") return "interested";

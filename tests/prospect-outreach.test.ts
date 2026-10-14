@@ -40,3 +40,12 @@ test("prospect table headers expose clickable directional sort controls", () => 
   assert.match(ui, /ArrowUpDown/);
   assert.match(ui, /aria-sort=/);
 });
+
+test("prospect composer is responsive, has bounded scrolling, and fails closed without opt-in", () => {
+  assert.match(ui, /min-h-0 min-w-0 flex-1 overflow-y-auto/);
+  assert.match(ui, /shrink-0 gap-3 border-t/);
+  assert.match(ui, /hasDocumentedMarketingConsent\(outreachProspect\)/);
+  assert.match(ui, /Record verified opt-in/);
+  assert.match(sales, /OUTREACH_CONSENT_REQUIRED/);
+  assert.match(api, /OUTREACH_CONSENT_REQUIRED/);
+});

@@ -50,7 +50,7 @@ import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 import { EMAIL_TEMPLATES, buildEmailTemplateDraft, hasUnresolvedEmailPlaceholders, recommendedTemplateId } from "./EmailTemplateHub";
-import { getOutreachObservation, getConfirmedReviewObservation } from "../../lib/salesAutomation";
+import { getOutreachObservation, getConfirmedReviewObservation, hasDocumentedMarketingConsent } from "../../lib/salesAutomation";
 
 const WEBSITE_STATUSES = ["unknown", "no_website", "weak", "average", "strong"];
 const OPPORTUNITY_LEVELS = ["low", "medium", "high"];
@@ -99,6 +99,10 @@ export function ProspectExplorer() {
   const [outreachRequestId, setOutreachRequestId] = useState("");
   const [outreachReplyToMessageId, setOutreachReplyToMessageId] = useState<string | null>(null);
   const [outreachSending, setOutreachSending] = useState(false);
+  const [outreachConsentSource, setOutreachConsentSource] = useState("");
+  const [outreachConsentTimestamp, setOutreachConsentTimestamp] = useState("");
+  const [outreachConsentConfirmed, setOutreachConsentConfirmed] = useState(false);
+  const [outreachConsentSaving, setOutreachConsentSaving] = useState(false);
   const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
   const reviewCache = useRef<Map<string, { url: string; observation: string }>>(new Map());
   const [engagement, setEngagement] = useState<{ messages: any[]; tasks: any[]; events: any[] } | null>(null);
@@ -973,6 +977,39 @@ export function ProspectExplorer() {
       setOutreachBody(bodyLines.join("\n").trim());
     }
     setOutreachRequestId(crypto.randomUUID());
+    setOutreachConsentSource("");
+    setOutreachConsentTimestamp("");
+    setOutreachConsentConfirmed(false);
+  };
+
+  const recordOutreachConsent = async () => {
+    if (!outreachProspect || outreachConsentSaving) return;
+    const consentDate = new Date(outreachConsentTimestamp);
+    if (!outreachConsentConfirmed || outreachConsentSource.trim().length < 10
+      || !Number.isFinite(consentDate.getTime()) || consentDate.getTime() > Date.now()) {
+      toast.error("Verify explicit opt-in and record its actual date and evidence source.");
+      return;
+    }
+    setOutreachConsentSaving(true);
+    try {
+      const { data, error } = await supabase.from("prospects").update({
+        marketing_consent: true,
+        consent_timestamp: consentDate.toISOString(),
+        consent_source: outreachConsentSource.trim(),
+        consent_email: outreachProspect.contact_email.trim().toLowerCase(),
+      }).eq("id", outreachProspect.id)
+        .select("marketing_consent,consent_timestamp,consent_source,consent_email,contact_email").single();
+      if (error || !data || !hasDocumentedMarketingConsent(data)) {
+        throw new Error(error?.message || "Consent evidence could not be verified in the database.");
+      }
+      setOutreachProspect((current: any) => current ? { ...current, ...data } : current);
+      setProspects((current) => current.map((p) => p.id === outreachProspect.id ? { ...p, ...data } : p));
+      toast.success("Email permission evidence saved.");
+    } catch (error: any) {
+      toast.error(error?.message || "Permission evidence could not be saved.");
+    } finally {
+      setOutreachConsentSaving(false);
+    }
   };
 
   const closeOutreachComposer = () => {
@@ -985,12 +1022,19 @@ export function ProspectExplorer() {
     setOutreachDraftTouched(false);
     setOutreachReplyToMessageId(null);
     setOutreachRequestId("");
+    setOutreachConsentSource("");
+    setOutreachConsentTimestamp("");
+    setOutreachConsentConfirmed(false);
   };
 
   const sendOutreach = async () => {
     if (!outreachProspect || !outreachBody.trim()) return;
     if (!outreachSubject.trim()) {
       toast.error("Add an email subject");
+      return;
+    }
+    if (!outreachReplyToMessageId && !hasDocumentedMarketingConsent(outreachProspect)) {
+      toast.error("Resend requires documented recipient opt-in. Record the actual permission evidence first.");
       return;
     }
     if (!outreachReplyToMessageId && outreachObservation.trim().length < 10) {
@@ -1054,7 +1098,7 @@ export function ProspectExplorer() {
       toast.success(
         payload?.alreadySent
           ? "This email was already sent; no duplicate was created."
-          : "Email sent from Bennie Studio",
+          : "Email accepted by provider. Delivery confirmation is pending.",
       );
       setOutreachProspect(null);
       setOutreachSubject("");
@@ -1768,96 +1812,119 @@ export function ProspectExplorer() {
           if (!open) closeOutreachComposer();
         }}
       >
-        <DialogContent className="max-w-xl rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-black tracking-tight">
-              Send email outreach
-            </DialogTitle>
+        <DialogContent className="!flex h-[min(92dvh,920px)] w-[calc(100vw-2rem)] !max-w-5xl min-w-0 flex-col gap-0 overflow-hidden rounded-3xl p-0">
+          <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-5 pr-14 sm:px-7">
+            <DialogTitle className="text-xl font-black tracking-tight">Review email outreach</DialogTitle>
             <DialogDescription>
-              Send directly from Bennie Studio. A successful send updates the prospect's outreach status and follow-up automatically.
+              Review the recipient, evidence and message before submitting. Provider acceptance does not confirm inbox delivery.
             </DialogDescription>
           </DialogHeader>
 
-          {outreachProspect && (
-            <div className="space-y-4 py-2">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold text-slate-400">Recipient</p>
-                <p className="mt-1 text-sm font-bold text-slate-900">{outreachProspect.name}</p>
-                <p className="mt-1 break-all text-xs font-semibold text-slate-500">
-                  {outreachProspect.contact_email}
-                </p>
-              </div>
-
-              {!outreachReplyToMessageId && (
-                <>
-                  <Field label="Message type">
-                    <Select value={outreachTemplateId} onValueChange={setOutreachTemplateId}>
-                      <SelectTrigger aria-label="Choose an email template" className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {EMAIL_TEMPLATES.filter((template) => template.stage === "First contact" || template.stage === "Contacted").map((template) => (
-                          <SelectItem key={template.id} value={template.id}>{template.name} · {template.problem}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="mt-1 text-xs font-medium text-slate-500">Pick the template that matches a real issue you saw. It only fills a draft.</p>
-                  </Field>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Contact first name (optional)">
-                      <Input value={outreachContactFirstName} onChange={(event) => setOutreachContactFirstName(event.target.value)} placeholder="Use only if verified" className="h-11 rounded-xl" />
-                    </Field>
-                    <Field label="Verified website observation">
-                      <Input value={outreachObservation} onChange={(event) => setOutreachObservation(event.target.value)} placeholder="One specific thing you checked" className="h-11 rounded-xl" />
-                    </Field>
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-7">
+            {outreachProspect && (
+              <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+                <section className="min-w-0 space-y-4" aria-label="Recipient and evidence">
+                  <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-xs font-semibold text-slate-500">Recipient</p>
+                    <p className="mt-1 break-words text-sm font-bold text-slate-900">{outreachProspect.name}</p>
+                    <p className="mt-1 break-all text-xs font-semibold text-slate-600">{outreachProspect.contact_email}</p>
                   </div>
-                  {outreachObservation.trim().length < 10 && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-900">Add a specific observation from the live site before sending. The engine will not send a generic first-touch message.</p>}
-                </>
-              )}
+                  {!outreachReplyToMessageId && (
+                    <>
+                      <Field label="Message type">
+                        <Select value={outreachTemplateId} onValueChange={setOutreachTemplateId}>
+                          <SelectTrigger aria-label="Choose an email template" className="h-11 w-full min-w-0 rounded-xl">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {EMAIL_TEMPLATES.filter((template) => template.stage === "First contact" || template.stage === "Contacted").map((template) => (
+                              <SelectItem key={template.id} value={template.id}>{template.name} · {template.problem}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="mt-1 text-xs font-medium leading-5 text-slate-500">Choose a template that matches a verified issue. Switching templates will replace an untouched draft.</p>
+                      </Field>
+                      <Field label="Contact first name (optional)">
+                        <Input value={outreachContactFirstName} onChange={(event) => setOutreachContactFirstName(event.target.value)} placeholder="Only if verified" className="h-11 w-full min-w-0 rounded-xl" />
+                      </Field>
+                      <Field label="Verified website observation">
+                        <Textarea value={outreachObservation} onChange={(event) => setOutreachObservation(event.target.value)}
+                          placeholder="Quote the exact issue you personally checked, on the relevant page."
+                          className="min-h-24 w-full min-w-0 resize-y rounded-xl" />
+                      </Field>
+                      {outreachObservation.trim().length < 10 && (
+                        <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-900">
+                          Add one specific, substantiated observation. Do not guess rankings, traffic or lost sales.
+                        </p>
+                      )}
+                      <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-sm font-bold text-slate-900">Recipient email permission</p>
+                        {hasDocumentedMarketingConsent(outreachProspect) ? (
+                          <div className="space-y-1 text-xs font-medium text-emerald-800">
+                            <p><CheckCircle2 className="mr-1 inline h-4 w-4" />Documented opt-in recorded</p>
+                            <p className="break-words text-slate-600">Source: {outreachProspect.consent_source}</p>
+                            <p className="text-slate-600">Opt-in: {new Date(outreachProspect.consent_timestamp).toLocaleString()}</p>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-xs leading-5 text-amber-900">Resend cannot be used for unsolicited prospecting. An email listed publicly on a website is not permission.</p>
+                            <Field label="Original date and time of explicit opt-in">
+                              <Input type="datetime-local" value={outreachConsentTimestamp} onChange={(event) => setOutreachConsentTimestamp(event.target.value)} className="h-11 w-full min-w-0 rounded-xl" />
+                            </Field>
+                            <Field label="Verifiable opt-in source">
+                              <Textarea value={outreachConsentSource} onChange={(event) => setOutreachConsentSource(event.target.value)}
+                                placeholder="Example: newsletter form submission record or written request, with source reference"
+                                className="min-h-20 w-full min-w-0 resize-y rounded-xl" />
+                            </Field>
+                            <label className="flex items-start gap-2 text-xs font-medium leading-5 text-slate-700">
+                              <input type="checkbox" checked={outreachConsentConfirmed} onChange={(event) => setOutreachConsentConfirmed(event.target.checked)} className="mt-1" />
+                              I have checked evidence that this recipient expressly requested marketing email from Bennie Studio.
+                            </label>
+                            <Button type="button" variant="outline" onClick={() => void recordOutreachConsent()}
+                              disabled={outreachConsentSaving || !outreachConsentConfirmed || outreachConsentSource.trim().length < 10 || !outreachConsentTimestamp}
+                              className="w-full rounded-xl">
+                              {outreachConsentSaving ? "Saving evidence…" : "Record verified opt-in"}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </section>
 
-              <Field label="Subject">
-                <Input
-                  value={outreachSubject}
-                  onChange={(event) => { setOutreachDraftTouched(true); setOutreachSubject(event.target.value); }}
-                  maxLength={160}
-                  className="h-11 rounded-xl"
-                />
-              </Field>
+                <section className="min-w-0 space-y-4" aria-label="Editable email">
+                  <Field label="Subject">
+                    <Input value={outreachSubject}
+                      onChange={(event) => { setOutreachDraftTouched(true); setOutreachSubject(event.target.value); }}
+                      maxLength={160} className="h-11 w-full min-w-0 rounded-xl" />
+                  </Field>
+                  <Field label="Message">
+                    <Textarea value={outreachBody}
+                      onChange={(event) => { setOutreachDraftTouched(true); setOutreachBody(event.target.value); }}
+                      maxLength={10000} className="min-h-[340px] w-full min-w-0 resize-y rounded-2xl leading-6" />
+                  </Field>
+                  <p className="text-xs font-medium leading-5 text-slate-500">
+                    Keep one clear call to action. The audit link is not added automatically; include it only when it supports this specific message.
+                  </p>
+                  <p className="text-xs font-medium leading-5 text-slate-500">
+                    Email is submitted through your configured provider. WhatsApp opens externally through wa.me and is not automatically delivered.
+                  </p>
+                </section>
+              </div>
+            )}
+          </div>
 
-              <Field label="Message">
-                <Textarea
-                  value={outreachBody}
-                  onChange={(event) => { setOutreachDraftTouched(true); setOutreachBody(event.target.value); }}
-                  maxLength={10000}
-                  className="!h-56 min-h-56 max-h-72 resize-y overflow-auto rounded-2xl [field-sizing:fixed]"
-                />
-              </Field>
-
-              <p className="text-xs font-semibold leading-5 text-slate-500">
-                Email is sent through the configured Resend account. WhatsApp continues to open through wa.me because no WhatsApp API is configured.
-              </p>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={closeOutreachComposer}
-              disabled={outreachSending}
-              className="rounded-xl"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={sendOutreach}
-              disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() || (!outreachReplyToMessageId && outreachObservation.trim().length < 10) || hasUnresolvedEmailPlaceholders(`${outreachSubject}\n${outreachBody}`)}
-              className="rounded-xl bg-indigo-600 hover:bg-indigo-700"
-            >
-              {outreachSending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="mr-2 h-4 w-4" />
-              )}
+          <DialogFooter className="!mx-0 !mb-0 shrink-0 gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
+            <Button type="button" variant="outline" onClick={closeOutreachComposer}
+              disabled={outreachSending} className="rounded-xl">Cancel</Button>
+            <Button type="button" onClick={sendOutreach}
+              disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() || (
+                !outreachReplyToMessageId && (
+                  outreachObservation.trim().length < 10 || !hasDocumentedMarketingConsent(outreachProspect)
+                )
+              ) || hasUnresolvedEmailPlaceholders(outreachSubject + "\n" + outreachBody)}
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-700">
+              {outreachSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
               {outreachSending ? "Sending…" : "Send email"}
             </Button>
           </DialogFooter>

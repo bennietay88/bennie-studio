@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { classifyReply, saveOutreachObservation } from "../src/lib/salesAutomation.js";
+import { classifyReply, hasDocumentedMarketingConsent, saveOutreachObservation } from "../src/lib/salesAutomation.js";
 
 type Db = Pick<SupabaseClient, "from">;
 type Row = Record<string, any>;
@@ -133,9 +133,15 @@ export async function runSalesDelivery(input: {
           result.deferred++;
           continue;
         }
+        // Standalone prospect messages are marketing unless they reply to a verified inbound conversation.
+        if (message.prospect_id && !message.reply_to_message_id && !hasDocumentedMarketingConsent(contact)) {
+          await release({ status: "draft", error: "Documented recipient opt-in required for prospect email." });
+          result.deliveryBlocked++;
+          continue;
+        }
       }
       if (message.enrollment_id) {
-        const { data: enrollment } = checked(await db.from("outreach_enrollments").select("*, outreach_sequences(status)")
+        const { data: enrollment } = checked(await db.from("outreach_enrollments").select("*, outreach_sequences(status,audience_type)")
           .eq("id", message.enrollment_id).maybeSingle());
         if (!enrollment || enrollment.status !== "active" || enrollment.outreach_sequences?.status !== "active") {
           await release({ status: candidate.status });
@@ -145,6 +151,13 @@ export async function runSalesDelivery(input: {
         const table = enrollment.lead_id ? "leads" : "prospects";
         const { data: contact } = checked(await db.from(table).select("*")
           .eq("id", enrollment.lead_id || enrollment.prospect_id).maybeSingle());
+        // Queued marketing must require evidence of recipient opt-in, not merely approval.
+        const audience = String(enrollment.outreach_sequences?.audience_type || "cold");
+        if (!["inbound", "proposal"].includes(audience) && !hasDocumentedMarketingConsent(contact)) {
+          await release({ status: "draft", error: "Documented recipient opt-in is required before marketing email." });
+          result.deliveryBlocked++;
+          continue;
+        }
         const { data: siblings } = checked(await db.from("sales_messages").select("*").eq("enrollment_id", enrollment.id));
         const replied = (siblings || []).some((row) => row.direction === "inbound" || row.status === "replied");
         if (!contact || replied || [contact.status, contact.outreach_status].some((status) => STOPPED_CONTACT.includes(String(status).toLowerCase()))) {
@@ -391,6 +404,10 @@ export async function sendDirectProspectOutreach(
     if (suppression) throw new Error("CONTACT_SUPPRESSED");
   }
 
+  if (input.channel === "email" && !input.replyToMessageId && !hasDocumentedMarketingConsent(prospect)) {
+    throw new Error("OUTREACH_CONSENT_REQUIRED");
+  }
+
   const recipient = input.channel === "email" ? email : phone;
   const key = `direct-outreach:${input.channel}:${input.requestId}`;
   const { data: prior } = checked(
@@ -428,11 +445,12 @@ export async function sendDirectProspectOutreach(
     const { data: parent } = checked(
       await db
         .from("sales_messages")
-        .select("id,prospect_id")
+        .select("id,prospect_id,direction")
         .eq("id", input.replyToMessageId)
         .maybeSingle(),
     );
-    if (!parent || parent.prospect_id !== prospect.id) {
+    // A reply exemption only applies to a genuine inbound message from this prospect.
+    if (!parent || parent.prospect_id !== prospect.id || parent.direction !== "inbound") {
       throw new Error("OUTREACH_REPLY_CONFLICT");
     }
     replyToMessageId = parent.id;

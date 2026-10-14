@@ -4,7 +4,7 @@ import {
   canManageSalesOperations, deliveryStatus, normalizeSalesEmail, recordSalesDeliveryEvent,
   recordSalesReply, runSalesDelivery, saveManualOutreach, saveSalesCallOutcome, suppressSalesRecipient,
 } from "../server/salesOperations.ts";
-import { classifyReply, getOutreachObservation, toLocalFollowUpInput } from "../src/lib/salesAutomation.ts";
+import { classifyReply, getOutreachObservation, hasDocumentedMarketingConsent, toLocalFollowUpInput } from "../src/lib/salesAutomation.ts";
 import { parseProspectCsv } from "../src/lib/prospectImport.ts";
 
 type Row = Record<string, any>;
@@ -67,14 +67,42 @@ class Query {
 
 function fixture() {
   return new MemoryDb({
-    prospects: [{ id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "queued", contact_email: "clinic@example.com", notes: "Keep this research\nSecond note" }],
-    outreach_sequences: [{ id: "s1", status: "active" }],
+    prospects: [{ id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "queued", contact_email: "clinic@example.com", notes: "Keep this research\nSecond note", marketing_consent: true, consent_timestamp: "2026-08-25T10:00:00.000Z", consent_source: "Newsletter preference form submitted by recipient", consent_email: "clinic@example.com" }],
+    outreach_sequences: [{ id: "s1", status: "active", audience_type: "cold" }],
     outreach_enrollments: [{ id: "e1", sequence_id: "s1", prospect_id: "p1", status: "active" }],
     outreach_sequence_steps: [{ id: "step1", sequence_id: "s1", step_order: 1, delay_hours: 0 }, { id: "step2", sequence_id: "s1", step_order: 2, delay_hours: 48 }],
     sales_messages: [{ id: "m1", enrollment_id: "e1", prospect_id: "p1", recipient: "clinic@example.com", status: "approved", direction: "outbound", channel: "email", scheduled_at: "2026-08-28T10:00:00.000Z", body_text: "Approved message", idempotency_key: "send-1", provider_payload: { stepId: "step1", stepOrder: 1, delayHours: 0 } }],
   });
 }
 const run = (db: MemoryDb, send = async (_message: Row) => ({ id: "provider-1" })) => runSalesDelivery({ db: db as any, send, now: new Date(NOW) });
+
+test("marketing opt-in requires boolean permission, actual timestamp and meaningful source", () => {
+  const good = { marketing_consent: true, consent_timestamp: "2026-08-25T10:00:00.000Z", consent_source: "Original subscriber form confirmation", consent_email: "clinic@example.com", contact_email: "clinic@example.com" };
+  assert.equal(hasDocumentedMarketingConsent(good, new Date(NOW)), true);
+  assert.equal(hasDocumentedMarketingConsent({ ...good, marketing_consent: false }, new Date(NOW)), false);
+  assert.equal(hasDocumentedMarketingConsent({ ...good, consent_source: "website" }, new Date(NOW)), false);
+  assert.equal(hasDocumentedMarketingConsent({ ...good, contact_email: "new@example.com" }, new Date(NOW)), false);
+  assert.equal(hasDocumentedMarketingConsent({ ...good, consent_timestamp: "2027-01-01T00:00:00Z" }, new Date(NOW)), false);
+});
+
+test("unconsented standalone prospect marketing is also blocked at delivery", async () => {
+  const db = fixture(); let sends = 0;
+  db.tables.prospects[0].marketing_consent = false;
+  db.tables.sales_messages[0].enrollment_id = null;
+  const outcome = await run(db, async () => { sends++; return { id: "unexpected" }; });
+  assert.equal(sends, 0);
+  assert.equal(outcome.deliveryBlocked, 1);
+  assert.equal(db.tables.sales_messages[0].status, "draft");
+});
+
+test("unconsented cold marketing cannot enter the provider and is returned to draft", async () => {
+  const db = fixture(); let sends = 0;
+  db.tables.prospects[0].marketing_consent = false;
+  const outcome = await run(db, async () => { sends++; return { id: "unexpected" }; });
+  assert.equal(sends, 0);
+  assert.equal(outcome.deliveryBlocked, 1);
+  assert.equal(db.tables.sales_messages[0].status, "draft");
+});
 
 test("two concurrent workers claim and send the message once", async () => {
   const db = fixture(); let sent = 0;

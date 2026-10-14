@@ -18,10 +18,10 @@ test("confirmed audit evidence is used, not unverified assumptions", () => {
   ] }), "");
 });
 
-test("new outreach drafts include exactly one persisted review link and no placeholders", () => {
+test("new outreach drafts present verified findings without automatically exposing the audit link", () => {
   for (const templateId of ["enquiry", "portfolio", "services", "mobile", "booking", "follow-up"]) {
     const draft = buildEmailTemplateDraft(templateId, prospect, finding);
-    assert.equal(draft.split(reviewUrl).length - 1, 1, templateId);
+    assert.equal(draft.split(reviewUrl).length - 1, 0, templateId);
     assert.equal(hasUnresolvedEmailPlaceholders(draft), false, templateId);
     assert.match(draft, /No clear contact or booking action/);
   }
@@ -31,16 +31,18 @@ test("missing verified observation uses cautious wording rather than a placehold
   const draft = buildEmailTemplateDraft("enquiry", prospect, "");
   assert.equal(hasUnresolvedEmailPlaceholders(draft), false);
   assert.match(draft, /deserves a closer look/);
-  assert.match(draft, /website-audit\?/);
+  assert.doesNotMatch(draft, /website-audit\?/);
 });
 
 test("review link is not duplicated by repeated draft rendering", () => {
   const draft = buildEmailTemplateDraft("enquiry", prospect, finding);
-  assert.equal(appendRecipientReviewLink(draft, reviewUrl), draft);
+  const first = appendRecipientReviewLink(draft, reviewUrl);
+  assert.equal(first.split(reviewUrl).length - 1, 1);
+  assert.equal(appendRecipientReviewLink(first, reviewUrl), first);
   assert.equal(appendRecipientReviewLink("Hello", "javascript:alert(1)"), "Hello");
 });
 
-test("prospect workflow loads evidence from an existing report and persists URL in draft", () => {
+test("prospect workflow loads evidence from an existing report but does not auto-insert report URL into the draft", () => {
   const ui = readFileSync("src/components/SuperAdmin/ProspectExplorer.tsx", "utf8");
   assert.match(ui, /getConfirmedReviewObservation\(payload\.report\)/);
   assert.match(ui, /\/api\/public\/website-audit\/jobs\/\$\{encodeURIComponent\(jobId\)\}/);
