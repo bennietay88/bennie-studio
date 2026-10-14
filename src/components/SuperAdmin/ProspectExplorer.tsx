@@ -1451,7 +1451,7 @@ export function ProspectExplorer() {
           if (!open && !importingCsv) resetCsvImport();
         }}
       >
-        <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-2xl overflow-hidden rounded-3xl p-0">
+        <DialogContent className="h-[calc(100dvh-2rem)] max-h-[56rem] max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-3xl p-0">
           <div className="border-b border-slate-100 px-6 pb-4 pt-6">
             <DialogHeader>
               <DialogTitle className="text-xl font-black tracking-tight text-slate-950">
@@ -1464,7 +1464,7 @@ export function ProspectExplorer() {
             </DialogHeader>
           </div>
 
-          <div className="min-h-0 space-y-4 overflow-y-auto px-6 py-5">
+          <div className="min-h-0 space-y-4 overflow-y-auto overscroll-contain px-6 py-5">
             <input
               ref={csvFileInputRef}
               type="file"
