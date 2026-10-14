@@ -318,3 +318,20 @@ export function parseProspectCsv(csv: string): { prospects: Record<string, any>[
 
   return { prospects, duplicates };
 }
+
+/**
+ * Record the importer's declared authorization for manual sales outreach.
+ * This is not evidence that the recipient expressly opted into marketing.
+ * Never populate marketing_consent, consent_timestamp or consent_source here.
+ */
+export const attachUploaderOutreachDeclaration = (
+  prospect: Record<string, any>,
+  declaredAt: string,
+): Record<string, any> => {
+  if (!prospect.contact_email) return { ...prospect };
+  const declaration = `Manual outreach authorization declared by CSV uploader at ${declaredAt}. This is an uploader declaration, not verified recipient opt-in.`;
+  return {
+    ...prospect,
+    notes: [String(prospect.notes || "").trim(), declaration].filter(Boolean).join("\n"),
+  };
+};
