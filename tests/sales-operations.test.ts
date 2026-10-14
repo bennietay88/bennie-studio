@@ -184,11 +184,16 @@ test("duplicate inbound callbacks create one reply and one task without reopenin
   assert.equal(db.tables.prospects[0].outreach_status, "replied");
 });
 
-test("reply retrieval failure still stops follow-ups and does not fabricate reply content", async () => {
+test("reply retrieval failure still stops follow-ups and retains a manual-review reply", async () => {
   const db = fixture(); Object.assign(db.tables.sales_messages[0], { status: "sent", sent_at: NOW });
-  await assert.rejects(recordSalesReply(db as any, inbound, async () => { throw new Error("Sending key cannot read"); }, NOW));
+  await recordSalesReply(db as any, inbound, async () => { throw new Error("Sending key cannot read"); }, NOW);
   assert.equal(db.tables.outreach_enrollments[0].status, "stopped");
-  assert.equal(db.tables.sales_messages.length, 1);
+  assert.equal(db.tables.sales_messages.length, 2);
+  const reply = db.tables.sales_messages.find((message) => message.direction === "inbound");
+  assert.equal(reply?.status, "replied");
+  assert.match(reply?.body_text || "", /body retrieval failed/i);
+  assert.doesNotMatch(reply?.body_text || "", /Sending key cannot read/i);
+  assert.equal(db.tables.sales_tasks.length, 1);
 });
 
 test("opt-outs suppress further sales without creating a reply-sales task", async () => {

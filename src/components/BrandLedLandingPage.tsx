@@ -440,6 +440,18 @@ export default function BrandLedLandingPage() {
           </div>
         </section>
 
+        <section aria-label="Choose a website engagement" className="border-y border-[#dfe2ea] bg-[#f8f8ff]">
+          <div className="brand-shell py-8 sm:py-10">
+            <h2 className="text-2xl font-semibold text-[#141821]">Need ongoing management, or a website you own?</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#566074]">Bennie Studio is for owners who want a continuing website service, including hosting, maintenance and agreed updates. If you prefer a fixed-price build with your own WordPress website and no required SiteSprint subscription, choose the dedicated owned-website service.</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link to="/book-demo" className="inline-flex min-h-11 items-center bg-[#141821] px-5 text-sm font-semibold text-white">Discuss managed website service <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <a href="https://sitesprint.bennietay.com/pricing" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center border border-[#c9cce0] bg-white px-5 text-sm font-semibold text-[#141821]">Compare owned WordPress packages ↗</a>
+              <a href="https://web.bennietay.com/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-[#5145bb]">Malaysia starter websites ↗</a>
+            </div>
+          </div>
+        </section>
+
         <ServiceAssuranceStrip />
 
         <section id="system" className="brand-shell brand-section">

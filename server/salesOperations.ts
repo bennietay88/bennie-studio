@@ -270,7 +270,17 @@ export async function recordSalesReply(db: Db, event: Row, getBody: () => Promis
   const key = `resend:inbound:${event.data.email_id}`;
   const { data: existing } = checked(await db.from("sales_messages").select("id,classification,body_text")
     .eq("idempotency_key", key).maybeSingle());
-  const text = existing?.body_text || (await getBody()).slice(0, 50_000);
+  // Preserve the inbound reply and create a human-review task even when
+  // Resend receiving content is temporarily unavailable. Otherwise repeated
+  // 503 callbacks can disable the provider webhook and hide all new replies.
+  let text = existing?.body_text || "";
+  if (!text) {
+    try {
+      text = (await getBody()).slice(0, 50_000);
+    } catch {
+      text = "[Reply received but body retrieval failed. Review this message in the Resend inbox before responding.]";
+    }
+  }
   const classification = existing?.classification || classifyReply(text);
   checked(await db.from("sales_messages").upsert({
     id: salesRecordId(key), idempotency_key: key, enrollment_id: prior.enrollment_id,
