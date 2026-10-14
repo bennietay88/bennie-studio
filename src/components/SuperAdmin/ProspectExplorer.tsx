@@ -50,7 +50,7 @@ import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 import { EMAIL_TEMPLATES, buildEmailTemplateDraft, hasUnresolvedEmailPlaceholders, recommendedTemplateId } from "./EmailTemplateHub";
-import { getOutreachObservation, getConfirmedReviewObservation, hasDocumentedMarketingConsent } from "../../lib/salesAutomation";
+import { getOutreachObservation, getConfirmedReviewObservation } from "../../lib/salesAutomation";
 
 const WEBSITE_STATUSES = ["unknown", "no_website", "weak", "average", "strong"];
 const OPPORTUNITY_LEVELS = ["low", "medium", "high"];
@@ -1003,10 +1003,6 @@ export function ProspectExplorer() {
       toast.error("Add an email subject");
       return;
     }
-    if (!outreachReplyToMessageId && !hasDocumentedMarketingConsent(outreachProspect)) {
-      toast.error("Resend requires documented recipient opt-in. Record the actual permission evidence first.");
-      return;
-    }
     if (!outreachReplyToMessageId && outreachObservation.trim().length < 10) {
       toast.error("Add one specific website observation you verified before sending a first-touch email.");
       return;
@@ -1786,14 +1782,14 @@ export function ProspectExplorer() {
           <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-5 pr-14 sm:px-7">
             <DialogTitle className="text-xl font-black tracking-tight">Review email outreach</DialogTitle>
             <DialogDescription>
-              Review the recipient, evidence and message before submitting. Provider acceptance does not confirm inbox delivery.
+              Review the recipient and message before sending. Provider acceptance does not confirm inbox delivery.
             </DialogDescription>
           </DialogHeader>
 
           <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-7">
             {outreachProspect && (
               <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-                <section className="min-w-0 space-y-4" aria-label="Recipient and evidence">
+                <section className="min-w-0 space-y-4" aria-label="Recipient and message context">
                   <div className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <p className="text-xs font-semibold text-slate-500">Recipient</p>
                     <p className="mt-1 break-words text-sm font-bold text-slate-900">{outreachProspect.name}</p>
@@ -1863,16 +1859,14 @@ export function ProspectExplorer() {
               className="rounded-xl">
               <Copy className="mr-2 h-4 w-4" />Copy email draft
             </Button>
-            {(outreachReplyToMessageId || hasDocumentedMarketingConsent(outreachProspect)) && (
-              <Button type="button" onClick={sendOutreach}
-                disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() ||
-                  (!outreachReplyToMessageId && outreachObservation.trim().length < 10) ||
-                  hasUnresolvedEmailPlaceholders(outreachSubject + "\n" + outreachBody)}
-                className="rounded-xl bg-indigo-600 hover:bg-indigo-700">
-                {outreachSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                {outreachSending ? "Sending…" : "Send email"}
-              </Button>
-            )}
+            <Button type="button" onClick={sendOutreach}
+              disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() ||
+                (!outreachReplyToMessageId && outreachObservation.trim().length < 10) ||
+                hasUnresolvedEmailPlaceholders(outreachSubject + "\n" + outreachBody)}
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-700">
+              {outreachSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              {outreachSending ? "Sending…" : "Send email"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
