@@ -33,31 +33,40 @@ export function OutreachLab() {
   const [templateId, setTemplateId] = React.useState("enquiry");
   const [templateChosenByUser, setTemplateChosenByUser] = React.useState(false);
   const [search, setSearch] = React.useState("");
-  const [view, setView] = React.useState<"due" | "engaged" | "all">("due");
+  const [view, setView] = React.useState<"due" | "engaged" | "all">("all");
   const [finding, setFinding] = React.useState("");
   const [loading, setLoading] = React.useState(true);
+  const [suppressedEmails, setSuppressedEmails] = React.useState<Set<string>>(new Set());
+  const [suppressionUnavailable, setSuppressionUnavailable] = React.useState(false);
   const [working, setWorking] = React.useState(false);
   const confirmationId = React.useRef(crypto.randomUUID());
 
   const fetchProspects = React.useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("prospects").select("*").order("next_follow_up_at", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false });
-    if (error) toast.error(error.message || "Could not load prospects");
-    setProspects(data || []);
+    const [prospectResult, suppressedResult] = await Promise.all([
+      supabase.from("prospects").select("*").order("next_follow_up_at", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false }).limit(5000),
+      supabase.from("sales_suppressions").select("email").not("email", "is", null),
+    ]);
+    if (prospectResult.error) toast.error(prospectResult.error.message || "Could not load prospects");
+    if (suppressedResult.error) toast.error("Suppression status unavailable; outreach is disabled until it can be checked.");
+    setSuppressedEmails(new Set((suppressedResult.data || []).map((row) => String(row.email || "").toLowerCase().trim())));
+    setSuppressionUnavailable(Boolean(suppressedResult.error));
+    setProspects(prospectResult.data || []);
     setLoading(false);
   }, []);
 
   React.useEffect(() => { void fetchProspects(); }, [fetchProspects]);
 
   const selected = prospects.find((prospect) => prospect.id === selectedId);
+  const selectedSuppressed = suppressionUnavailable || Boolean(selected?.contact_email && suppressedEmails.has(String(selected.contact_email).toLowerCase().trim()));
   const filtered = prospects.filter((prospect) => {
     const query = search.trim().toLowerCase();
     const matchesSearch = !query || [prospect.name, prospect.domain, prospect.industry, prospect.location].some((value) => String(value || "").toLowerCase().includes(query));
-    const isDue = prospect.next_follow_up_at && new Date(prospect.next_follow_up_at) <= new Date() && !["won", "lost"].includes(prospect.outreach_status);
+    const isDue = !suppressedEmails.has(String(prospect.contact_email || "").toLowerCase().trim()) && prospect.next_follow_up_at && new Date(prospect.next_follow_up_at) <= new Date() && !["won", "lost"].includes(prospect.outreach_status);
     const isEngaged = ["replied", "call_booked"].includes(prospect.outreach_status);
     return matchesSearch && (view === "all" || (view === "due" && isDue) || (view === "engaged" && isEngaged));
   });
-  const due = prospects.filter((prospect) => prospect.next_follow_up_at && new Date(prospect.next_follow_up_at) <= new Date() && !["won", "lost"].includes(prospect.outreach_status)).length;
+  const due = prospects.filter((prospect) => !suppressedEmails.has(String(prospect.contact_email || "").toLowerCase().trim()) && prospect.next_follow_up_at && new Date(prospect.next_follow_up_at) <= new Date() && !["won", "lost"].includes(prospect.outreach_status)).length;
 
   React.useEffect(() => {
     if (!selected) return;
@@ -104,12 +113,14 @@ export function OutreachLab() {
   const markContacted = async () => {
     setWorking(true);
     try {
+      if (channel === "email") throw new Error("Email sends are logged automatically. Confirm only manual WhatsApp outreach here.");
       await saveOutreach("contacted");
       toast.success("Sent message confirmed and follow-up recorded.");
     } catch (error: any) { toast.error(error.message); } finally { setWorking(false); }
   };
 
   const copyDraft = async () => {
+    if (selectedSuppressed) throw new Error("This recipient is suppressed; contact is blocked.");
     await saveOutreach("prepare");
     await navigator.clipboard.writeText(draft);
     toast.success("Draft copied. Review it before sending.");
@@ -117,21 +128,37 @@ export function OutreachLab() {
 
   const openContact = async () => {
     if (!selected || !draft.trim()) return;
+    if (selectedSuppressed) return toast.error("This recipient is suppressed. Outreach is blocked.");
     if (hasUnresolvedEmailPlaceholders(draft)) return toast.error("Complete every [bracketed detail] before contacting a prospect.");
     if (finding.trim().length < 10) return toast.error("Add one specific, verified website observation before opening outreach.");
-    const prepared = await saveOutreach("prepare");
     if (channel === "email") {
-      if (!selected.contact_email) return toast.error("This prospect has no email address.");
       const [subjectLine, ...bodyLines] = draft.split("\n");
       const subject = subjectLine.replace(/^Subject:\s*/i, "");
-      window.location.href = `mailto:${prepared.recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n").trim())}`;
-    } else {
-      const phone = prepared.recipient;
-      if (!phone) return toast.error("This prospect has no WhatsApp number.");
-      // The awaited safety check can outlive the browser's popup permission.
-      window.location.assign(`https://wa.me/${phone}?text=${encodeURIComponent(draft)}`);
+      if (!subject.trim()) return toast.error("A subject is required.");
+      try {
+        setWorking(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Sign in to continue.");
+        const response = await fetch(`/api/admin/prospects/${selected.id}/outreach`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: "send", channel: "email", observation: finding.trim(), subject,
+            bodyText: bodyLines.join("\n").trim(), templateId, requestId: confirmationId.current }),
+        });
+        const outcome = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(outcome.error || "Email was not sent.");
+        confirmationId.current = crypto.randomUUID();
+        toast.success(outcome.alreadySent ? "This email was already recorded." : "Email sent and follow-up recorded.");
+        await fetchProspects();
+      } catch (error: any) { toast.error(error.message); }
+      finally { setWorking(false); }
+      return;
     }
-    toast.info("Draft opened. Confirm below only after you send it.");
+    const prepared = await saveOutreach("prepare");
+    const phone = prepared.recipient;
+    if (!phone) return toast.error("This prospect has no WhatsApp number.");
+    window.location.assign(`https://wa.me/${phone}?text=${encodeURIComponent(draft)}`);
+    toast.info("WhatsApp opened. Confirm below only after you send it.");
   };
 
   return (
@@ -140,7 +167,7 @@ export function OutreachLab() {
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">Human-approved outreach</p>
           <h1 className="mt-2 text-4xl font-black tracking-tight text-slate-950 dark:text-white">Outreach workbench</h1>
-          <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">Prepare a specific message from an observable website finding, open it in your chosen channel, then record the follow-up. Nothing sends automatically.</p>
+          <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">Prepare a specific message from an observable website finding, open it in your chosen channel, then record the follow-up. Email sends only when you click Send email. WhatsApp requires manual confirmation.</p>
         </div>
         <div className="flex gap-3">
           <Badge variant="outline" className="rounded-xl px-4 py-2 text-sm"><CalendarClock className="mr-2 h-4 w-4 text-rose-500" /> {due} due</Badge>
@@ -173,6 +200,7 @@ export function OutreachLab() {
               <div className="grid min-h-[420px] place-items-center rounded-3xl border-2 border-dashed border-slate-200 text-center"><div><ShieldCheck className="mx-auto h-10 w-10 text-slate-300" /><p className="mt-4 font-black text-slate-700">Select a prospect to prepare outreach.</p></div></div>
             ) : (
               <div className="space-y-5">
+                {selectedSuppressed && <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">{suppressionUnavailable ? "Suppression status cannot be verified. Sending is blocked until data is available." : "This address is suppressed. Further sales outreach is blocked."}</p>}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div><label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Channel</label><Select value={channel} onValueChange={(value) => setChannel(value as "email" | "whatsapp")}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="email">Email</SelectItem><SelectItem value="whatsapp">WhatsApp</SelectItem></SelectContent></Select></div>
                   <div><label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Pipeline status</label><Select value={selected.outreach_status || "not_started"} onValueChange={(value) => void updateProspect(selected.id, { outreach_status: value }).catch((error) => toast.error(error.message))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{status.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select></div>
@@ -182,8 +210,8 @@ export function OutreachLab() {
                 <div className="space-y-2"><label htmlFor="outreach-draft" className="text-xs font-bold uppercase tracking-wider text-slate-500">Editable {channel === "email" ? "email" : "WhatsApp"} draft</label><Textarea id="outreach-draft" value={draft} onChange={(event) => setDraft(event.target.value)} className="min-h-[300px] rounded-2xl bg-slate-50 p-5 font-medium leading-7" aria-label="Outreach draft" />{hasUnresolvedEmailPlaceholders(draft) && <p className="text-xs font-semibold text-amber-700">Replace every [bracketed detail] with verified facts before sending.</p>}</div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                   <Button type="button" variant="outline" onClick={() => void copyDraft().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl"><Copy className="mr-2 h-4 w-4" /> Copy</Button>
-                  <Button type="button" onClick={() => void openContact().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl bg-slate-950 px-6 text-white hover:bg-indigo-600">{channel === "email" ? <Mail className="mr-2 h-4 w-4" /> : <MessageSquare className="mr-2 h-4 w-4" />} Open {channel === "email" ? "email" : "WhatsApp"} <Send className="ml-2 h-4 w-4" /></Button>
-                  <Button type="button" variant="outline" disabled={working || finding.trim().length < 10 || hasUnresolvedEmailPlaceholders(draft)} onClick={() => void markContacted()} className="min-h-11 rounded-xl">I sent it — log follow-up</Button>
+                  <Button type="button" disabled={working || selectedSuppressed} onClick={() => void openContact().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl bg-slate-950 px-6 text-white hover:bg-indigo-600">{channel === "email" ? <Mail className="mr-2 h-4 w-4" /> : <MessageSquare className="mr-2 h-4 w-4" />} {channel === "email" ? "Send email" : "Open WhatsApp"} <Send className="ml-2 h-4 w-4" /></Button>
+                  {channel === "whatsapp" && <Button type="button" variant="outline" disabled={working || selectedSuppressed || finding.trim().length < 10 || hasUnresolvedEmailPlaceholders(draft)} onClick={() => void markContacted()} className="min-h-11 rounded-xl">I sent it — log follow-up</Button>}
                 </div>
               </div>
             )}

@@ -3435,6 +3435,10 @@ async function startServer() {
         text: `${message.body_text}\n\nStop receiving these emails: ${unsubscribeUrl}`,
         replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
         bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
+        headers: {
+          "List-Unsubscribe": `<${unsubscribeUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
         tags: [{ name: "sales_message_id", value: message.id }],
       }, { idempotencyKey: message.idempotency_key });
       if (error || !data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
@@ -3443,6 +3447,8 @@ async function startServer() {
   });
 
   const sendDirectSalesEmail = async (message: any) => {
+    const target = normalizeSalesEmail(message.recipient);
+    if (!target || await isSalesSuppressed(supabaseAdmin, target)) throw new Error("CONTACT_SUPPRESSED");
     await refreshPlatformSettings();
     const unsubscribeUrl = `${publicAppUrl()}/api/public/unsubscribe/${message.unsubscribe_token}`;
     const html = `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
@@ -3460,7 +3466,11 @@ async function startServer() {
         || platformSettings?.supportEmail
         || undefined,
       bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
-      tags: [{ name: "sales_message_id", value: message.id }],
+      headers: {
+          "List-Unsubscribe": `<${unsubscribeUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+        tags: [{ name: "sales_message_id", value: message.id }],
     }, { idempotencyKey: message.idempotency_key });
     if (error || !data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
     return { id: data.id };
@@ -7455,12 +7465,22 @@ async function startServer() {
         }
         if ((data || []).length < 1000) break;
       }
-      const rows = parsed.prospects.filter((row) => !(row.domain && domains.has(row.domain)) && !(row.contact_email && emails.has(row.contact_email))
-        && !names.has(`${row.name.toLowerCase()}|${(row.location || "").toLowerCase()}`));
-      if (!rows.length) return res.json({ prospects: [], imported: 0, duplicates: parsed.duplicates + parsed.prospects.length });
+      const skippedReasons = { withinFile: parsed.duplicates, existingEmail: 0, existingDomain: 0, existingBusiness: 0 };
+      const rows = parsed.prospects.filter((row) => {
+        const businessKey = `${row.name.toLowerCase()}|${(row.location || "").toLowerCase()}`;
+        if (row.contact_email && emails.has(row.contact_email)) { skippedReasons.existingEmail++; return false; }
+        if (row.domain && domains.has(row.domain)) { skippedReasons.existingDomain++; return false; }
+        if (names.has(businessKey)) { skippedReasons.existingBusiness++; return false; }
+        if (row.domain) domains.add(row.domain);
+        if (row.contact_email) emails.add(row.contact_email);
+        names.add(businessKey);
+        return true;
+      });
+      const duplicates = Object.values(skippedReasons).reduce((total, n) => total + n, 0);
+      if (!rows.length) return res.json({ prospects: [], imported: 0, duplicates, skippedReasons, submitted: parsed.prospects.length + parsed.duplicates });
       const { data, error } = await supabaseAdmin.from("prospects").insert(rows.map((row) => ({ ...row, created_by: req.user.id }))).select("*");
       if (error) throw error;
-      return res.status(201).json({ prospects: data || [], imported: data?.length || 0, duplicates: parsed.duplicates + parsed.prospects.length - rows.length });
+      return res.status(201).json({ prospects: data || [], imported: data?.length || 0, duplicates, skippedReasons, submitted: parsed.prospects.length + parsed.duplicates });
     } catch {
       return res.status(503).json({ error: "Prospect import could not be completed. Please retry; existing records will be checked again." });
     }
@@ -8056,6 +8076,10 @@ async function startServer() {
           status: 409,
           message: "The selected reply no longer belongs to this prospect.",
         },
+        OUTREACH_TOO_SOON: {
+          status: 409,
+          message: "This address was contacted within 72 hours. Wait before sending another cold email.",
+        },
         OUTREACH_SEND_IN_PROGRESS: {
           status: 409,
           message: "This message is already being sent. Wait before retrying.",
@@ -8258,6 +8282,12 @@ async function startServer() {
       const updates: Record<string, any> = { status: "approved", updated_at: new Date().toISOString() };
       if (body.subject !== undefined) updates.subject = body.subject;
       if (body.bodyText !== undefined) updates.body_text = body.bodyText;
+      const { data: candidate, error: candidateError } = await supabaseAdmin.from("sales_messages").select("recipient,subject,body_text,status").eq("id", req.params.messageId).maybeSingle();
+      if (candidateError) throw candidateError;
+      if (!candidate || candidate.status !== "draft") return res.status(409).json({ error: "Only draft messages can be approved" });
+      const finalText = `${updates.subject ?? candidate.subject ?? ""}\n${updates.body_text ?? candidate.body_text ?? ""}`;
+      if (/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(finalText)) return res.status(422).json({ error: "Resolve all email placeholders before approval." });
+      if (await isSalesSuppressed(supabaseAdmin, normalizeSalesEmail(candidate.recipient))) return res.status(409).json({ error: "This recipient has opted out or bounced. Approval blocked." });
       if (body.sendNow) updates.scheduled_at = new Date().toISOString();
       const { data, error } = await supabaseAdmin.from("sales_messages").update(updates).eq("id", req.params.messageId).eq("status", "draft").select("*").maybeSingle();
       if (error) throw error;
@@ -8302,11 +8332,16 @@ async function startServer() {
       }
       const startAt = new Date();
       const { data: enrollment, error: enrollmentError } = await supabaseAdmin.from("outreach_enrollments").insert({ sequence_id: sequence.id, lead_id: body.leadId || null, prospect_id: body.prospectId || null, status: "pending", current_step: 0, next_run_at: startAt.toISOString(), metadata: { observation: body.observation, createdBy: req.user.id } }).select("*").single();
+      if (enrollmentError?.code === "23505") return res.status(409).json({ error: "Contact already has an active or pending sequence." });
       if (enrollmentError) throw enrollmentError;
       const rawFields = entity.raw_fields || {};
       const businessName = entity.business_name || entity.company_name || rawFields.businessName || rawFields.companyName || entity.name || "your business";
-      const firstName = String(entity.name || "there").trim().split(/\s+/)[0];
-      const values: Record<string, string> = { business_name: businessName, first_name: firstName, observation: body.observation };
+      const firstName = String(entity.contact_first_name || entity.contact_name || rawFields.contactFirstName || rawFields.contactName || "").trim().split(/\s+/)[0] || `${businessName} team`;
+      const savedReview = typeof entity.preview_url === "string" && /\/website-audit\?/.test(entity.preview_url)
+        ? entity.preview_url : "";
+      const values: Record<string, string> = {
+        business_name: businessName, first_name: firstName, observation: body.observation, review_link: savedReview,
+      };
       let elapsedHours = 0;
       const rows = steps.map((step: any, index: number) => {
         elapsedHours += Number(step.delay_hours || 0);
@@ -8318,10 +8353,12 @@ async function startServer() {
           recipient,
           channel: step.channel,
           subject: render(step.subject_template || "A note from Bennie Studio"),
-          body_text: render(step.body_template),
+          body_text: render(step.body_template) + (savedReview && ["audit", "preview"].includes(sequence.audience_type) && !step.body_template.includes("{{review_link}}")
+            ? `\n\nYour website review: ${savedReview}` : ""),
           status: step.requires_approval || index === 0 ? "draft" : "queued",
           scheduled_at: new Date(startAt.getTime() + elapsedHours * 3600000).toISOString(),
-          provider_payload: { sequenceId: sequence.id, stepId: step.id, stepOrder: step.step_order, delayHours: step.delay_hours, stopOnReply: true },
+          provider_payload: { sequenceId: sequence.id, stepId: step.id, stepOrder: step.step_order, delayHours: step.delay_hours,
+            stopOnReply: true, templateId: `${sequence.name} / Step ${step.step_order}`, observation: body.observation, reviewUrl: savedReview || null },
         };
       });
       const { data: messages, error: messageError } = await supabaseAdmin.from("sales_messages").insert(rows).select("*");
@@ -8338,15 +8375,22 @@ async function startServer() {
     }
   });
 
+  // Email security scanners prefetch GET links. GET must never unsubscribe.
   app.get("/api/public/unsubscribe/:token", async (req, res) => {
+    if (!UUID_SCHEMA.safeParse(req.params.token).success) return res.status(400).send("Invalid unsubscribe link");
+    res.setHeader("Cache-Control", "no-store");
+    return res.type("html").send(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Unsubscribe</title><body style="font-family:system-ui;background:#f8fafc;color:#0f172a;padding:48px"><main style="max-width:520px;margin:auto;background:white;padding:36px;border-radius:20px"><h1>Stop Bennie Studio sales emails?</h1><p>Confirm below to opt out of future sales outreach.</p><form method="post" action="/api/public/unsubscribe/${req.params.token}"><button style="cursor:pointer;padding:12px 20px;background:#0f172a;color:white;border:0;border-radius:10px">Unsubscribe</button></form></main></body></html>`);
+  });
+  app.post("/api/public/unsubscribe/:token", async (req, res) => {
     if (!UUID_SCHEMA.safeParse(req.params.token).success) return res.status(400).send("Invalid unsubscribe link");
     try {
       const { data: message, error } = await supabaseAdmin.from("sales_messages").select("recipient").eq("unsubscribe_token", req.params.token).maybeSingle();
       if (error) throw error;
       if (message?.recipient) await suppressSalesRecipient(supabaseAdmin, message.recipient, "opt_out", "email_unsubscribe", new Date().toISOString());
-      return res.type("html").send("<!doctype html><html><body style='font-family:system-ui;background:#f8fafc;color:#0f172a;padding:60px'><main style='max-width:560px;margin:auto;background:white;padding:40px;border-radius:24px'><h1>You have been unsubscribed.</h1><p>Bennie Studio will not send further sales follow-ups to this address.</p></main></body></html>");
+      res.setHeader("Cache-Control", "no-store");
+      return res.type("html").send("<!doctype html><html><body style='font-family:system-ui;padding:60px'><main style='max-width:560px;margin:auto'><h1>You have been unsubscribed.</h1><p>Bennie Studio will not send further sales follow-ups to this address.</p></main></body></html>");
     } catch {
-      return res.status(503).type("text").send("We could not save your request. Please retry this link.");
+      return res.status(503).type("text").send("We could not save your request. Please retry.");
     }
   });
 
@@ -8947,6 +8991,8 @@ async function startServer() {
   // tenant tables; the server validates published state and records events with
   // the service role.
   const sendFunnelEmail = async ({ to, subject, html }: { to: string; subject: string; html: string }) => {
+    const recipient = normalizeSalesEmail(to);
+    if (!recipient || await isSalesSuppressed(supabaseAdmin, recipient)) throw new Error("CONTACT_SUPPRESSED");
     const resend = getResend();
     const { error } = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "onboarding@resend.dev",

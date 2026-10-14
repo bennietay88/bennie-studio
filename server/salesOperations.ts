@@ -55,6 +55,9 @@ export async function suppressSalesRecipient(db: Db, recipient: string, reason: 
   }
   checked(await db.from("sales_messages").update({ status: "suppressed", updated_at: now })
     .ilike("recipient", exactEmailPattern(email)).eq("direction", "outbound").in("status", PENDING));
+  // A suppressed prospect must never remain in the contact-due queue.
+  checked(await db.from("prospects").update({ next_follow_up_at: null, updated_at: now })
+    .ilike("contact_email", exactEmailPattern(email)));
   const { data } = checked(await db.from("sales_messages").select("enrollment_id,lead_id,prospect_id")
     .ilike("recipient", exactEmailPattern(email)));
   for (const id of new Set((data || []).map((row) => row.enrollment_id).filter(Boolean))) {
@@ -119,6 +122,17 @@ export async function runSalesDelivery(input: {
         await release({ status: "suppressed", error: "Recipient is on the suppression list" });
         result.suppressed++;
         continue;
+      }
+      if (!message.enrollment_id && (message.prospect_id || message.lead_id)) {
+        const table = message.prospect_id ? "prospects" : "leads";
+        const id = message.prospect_id || message.lead_id;
+        const { data: contact } = checked(await db.from(table).select("*").eq("id", id).maybeSingle());
+        if (!contact || [contact.status, contact.outreach_status].some((state) =>
+          ["won", "lost", "closed", "converted", "paid", "unsubscribed"].includes(String(state || "").toLowerCase()))) {
+          await release({ status: "cancelled", error: "Contact is closed or unavailable" });
+          result.deferred++;
+          continue;
+        }
       }
       if (message.enrollment_id) {
         const { data: enrollment } = checked(await db.from("outreach_enrollments").select("*, outreach_sequences(status)")
@@ -207,6 +221,9 @@ export async function recordSalesDeliveryEvent(db: Db, event: Row, now: string) 
     if (!updated) throw new Error("DELIVERY_EVENT_CONFLICT"); // provider can retry
   }
   if (["bounced", "complained", "suppressed"].includes(status)) {
+    // Preserve the provider outcome for support diagnostics without exposing it in an email.
+    const reason = String(event.data?.bounce?.message || event.data?.bounce?.reason || event.data?.reason || "").slice(0, 500);
+    if (reason) checked(await db.from("sales_messages").update({ error: reason, updated_at: now }).eq("id", message.id));
     await suppressSalesRecipient(db, message.recipient, status === "suppressed" ? "bounced" : status, "resend_webhook", now);
   }
 }
@@ -214,9 +231,22 @@ export async function recordSalesDeliveryEvent(db: Db, event: Row, now: string) 
 export async function recordSalesReply(db: Db, event: Row, getBody: () => Promise<string>, now: string) {
   const sender = normalizeSalesEmail(event.data?.from);
   if (!sender || !event.data?.email_id) throw new Error("INVALID_REPLY_EVENT");
-  const { data: prior } = checked(await db.from("sales_messages").select("*")
-    .ilike("recipient", exactEmailPattern(sender)).eq("direction", "outbound").not("sent_at", "is", null)
-    .order("sent_at", { ascending: false }).limit(1).maybeSingle());
+  // Prefer the explicit outbound provider Message-ID when available.
+  // Mailbox heuristics are a fallback, never a substitute for threading evidence.
+  const referenceId = String(event.data?.in_reply_to || event.data?.inReplyTo || event.data?.headers?.["in-reply-to"] || "").replace(/[<>]/g, "").trim();
+  let prior: Row | null = null;
+  if (referenceId) {
+    const { data } = checked(await db.from("sales_messages").select("*")
+      .eq("provider_message_id", referenceId).eq("direction", "outbound").maybeSingle());
+    prior = data;
+  }
+  if (prior && normalizeSalesEmail(prior.recipient) !== sender) prior = null;
+  if (!prior) {
+    const { data } = checked(await db.from("sales_messages").select("*")
+      .ilike("recipient", exactEmailPattern(sender)).eq("direction", "outbound").not("sent_at", "is", null)
+      .order("sent_at", { ascending: false }).limit(1).maybeSingle());
+    prior = data;
+  }
   if (!prior) return; // Unrelated inbound email is not a sales lead.
   const { data: related } = checked(await db.from("sales_messages").select("enrollment_id")
     .ilike("recipient", exactEmailPattern(sender)).not("enrollment_id", "is", null));
@@ -234,6 +264,7 @@ export async function recordSalesReply(db: Db, event: Row, getBody: () => Promis
     prospect_id: prior.prospect_id, lead_id: prior.lead_id, direction: "inbound", channel: "email", recipient: sender,
     subject: String(event.data.subject || "Reply").slice(0, 500), body_text: text, status: "replied",
     sent_at: event.created_at || now, provider_message_id: event.data.email_id, reply_to_message_id: prior.id, classification,
+    provider_payload: { attribution: referenceId && prior.provider_message_id === referenceId ? "message_id" : "sender_latest_fallback" },
   }, { onConflict: "idempotency_key", ignoreDuplicates: true }));
   if (prior.prospect_id) {
     checked(await db.from("prospects").update({ outreach_status: "replied", updated_at: now })
@@ -381,6 +412,13 @@ export async function sendDirectProspectOutreach(
       providerMessageId: prior.provider_message_id || null,
       alreadySent: true,
     };
+  }
+  if (!prior && !input.replyToMessageId && input.channel === "email") {
+    const earliest = new Date(new Date(now).getTime() - 72 * 3_600_000).toISOString();
+    const { data: recent } = checked(await db.from("sales_messages").select("id")
+      .eq("direction", "outbound").eq("channel", "email")
+      .ilike("recipient", exactEmailPattern(email)).gte("sent_at", earliest).limit(1).maybeSingle());
+    if (recent) throw new Error("OUTREACH_TOO_SOON");
   }
   if (prior?.status === "sending") throw new Error("OUTREACH_SEND_IN_PROGRESS");
   if (prior?.status === "failed") throw new Error("OUTREACH_SEND_UNCERTAIN");

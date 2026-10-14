@@ -15,7 +15,7 @@
   "crons": [
     {
       "path": "/api/cron/sales-automation",
-      "schedule": "0 1 * * *"
+      "schedule": "0 9 * * *"
     },
     {
       "path": "/api/internal/billing/process-cancellations",

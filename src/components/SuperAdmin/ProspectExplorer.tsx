@@ -16,6 +16,7 @@ import {
   ExternalLink,
   CalendarDays,
   Copy,
+  RefreshCw,
   Mail,
   Phone,
   Send,
@@ -49,7 +50,7 @@ import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 import { EMAIL_TEMPLATES, buildEmailTemplateDraft, hasUnresolvedEmailPlaceholders, recommendedTemplateId } from "./EmailTemplateHub";
-import { getOutreachObservation } from "../../lib/salesAutomation";
+import { getOutreachObservation, getConfirmedReviewObservation } from "../../lib/salesAutomation";
 
 const WEBSITE_STATUSES = ["unknown", "no_website", "weak", "average", "strong"];
 const OPPORTUNITY_LEVELS = ["low", "medium", "high"];
@@ -80,6 +81,8 @@ const isRecipientReviewUrl = (value?: string | null) => {
 export function ProspectExplorer() {
   const [prospects, setProspects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [prospectTotal, setProspectTotal] = useState(0);
+  const [lastImportSummary, setLastImportSummary] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [industryFilter, setIndustryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -96,6 +99,8 @@ export function ProspectExplorer() {
   const [outreachRequestId, setOutreachRequestId] = useState("");
   const [outreachReplyToMessageId, setOutreachReplyToMessageId] = useState<string | null>(null);
   const [outreachSending, setOutreachSending] = useState(false);
+  const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
+  const reviewCache = useRef<Map<string, { url: string; observation: string }>>(new Map());
   const [engagement, setEngagement] = useState<{ messages: any[]; tasks: any[]; events: any[] } | null>(null);
   const [engagementLoading, setEngagementLoading] = useState(false);
   const [conversionProspect, setConversionProspect] = useState<any | null>(null);
@@ -173,18 +178,44 @@ export function ProspectExplorer() {
   const fetchProspects = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("prospects")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1000);
-
-      if (error) throw error;
-      let rows = (data || []).map((prospect) => ({ ...prospect, _score: scoreProspect(prospect) }));
-      const { data: { session } } = await supabase.auth.getSession();
+      // Fetch all pages. A 1,000-row client cap previously hid later imports.
+      const loaded: any[] = [];
+      let recordedTotal = 0;
+      for (let offset = 0; offset < 20000; offset += 500) {
+        const { data, error, count } = await supabase.from("prospects")
+          .select("*", { count: "exact" })
+          .order("created_at", { ascending: false }).order("id", { ascending: false })
+          .range(offset, offset + 499);
+        if (error) throw error;
+        if (count !== null) recordedTotal = count;
+        loaded.push(...(data || []));
+        if ((data || []).length < 500) break;
+      }
+      setProspectTotal(recordedTotal || loaded.length);
+      let rows = loaded.map((prospect) => ({ ...prospect, _score: scoreProspect(prospect) }));
+      const [sessionResult, suppressionResult, deliveryResult] = await Promise.all([
+        supabase.auth.getSession(),
+        supabase.from("sales_suppressions").select("email").not("email", "is", null),
+        supabase.from("sales_messages").select("prospect_id,status,sent_at,created_at,error,provider_message_id")
+          .eq("direction", "outbound").eq("channel", "email")
+          .order("created_at", { ascending: false }).limit(5000),
+      ]);
+      if (suppressionResult.error) { console.warn("Suppression status unavailable", suppressionResult.error); toast.error("Suppression status unavailable. Email actions are blocked until refresh succeeds."); }
+      if (deliveryResult.error) console.warn("Email delivery status unavailable", deliveryResult.error);
+      const blocked = new Set((suppressionResult.data || []).map((record) => String(record.email || "").toLowerCase().trim()));
+      const deliveryByProspect = new Map<string, any>();
+      for (const message of deliveryResult.data || []) {
+        if (message.prospect_id && !deliveryByProspect.has(message.prospect_id)) deliveryByProspect.set(message.prospect_id, message);
+      }
+      rows = rows.map((p) => ({ ...p,
+        _suppressed: blocked.has(String(p.contact_email || "").toLowerCase().trim()),
+        _contactSafetyUnknown: Boolean(suppressionResult.error),
+        _latestDelivery: deliveryByProspect.get(p.id) || null,
+      }));
+      const session = sessionResult.data.session;
       if (session?.access_token) {
         try {
-          const inboxResponse = await fetch("/api/admin/sales-inbox", { headers: { Authorization: `Bearer ${session.access_token}` } });
+          const inboxResponse = await fetch("/api/admin/sales-inbox", { headers: { Authorization: `Bearer ${session.access_token}` }, cache: "no-store" });
           if (inboxResponse.ok) {
             const inbox = await inboxResponse.json();
             const byProspect = new Map((inbox.conversations || []).map((conversation: any) => [conversation.prospect?.id, conversation]));
@@ -199,14 +230,12 @@ export function ProspectExplorer() {
               } : prospect;
             });
           }
-        } catch (inboxError) {
-          console.warn("Sales inbox summary unavailable:", inboxError);
-        }
+        } catch (inboxError) { console.warn("Sales inbox summary unavailable:", inboxError); }
       }
       setProspects(rows);
     } catch (error: any) {
       console.error("Error fetching prospects:", error);
-      toast.error("Failed to load prospects. Apply the prospecting migration if this is the first run.");
+      toast.error("Could not load the prospect list. Check your Sales permission and retry.");
     } finally {
       setLoading(false);
     }
@@ -297,6 +326,8 @@ export function ProspectExplorer() {
 
   const prepareRecipientReview = async (prospect: any, options: { refresh?: boolean } = {}) => {
     if (!options.refresh && isRecipientReviewUrl(prospect.preview_url)) return prospect.preview_url;
+    setReviewLoadingId(prospect.id);
+    try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
       toast.error("Your admin session has expired. Sign in again and retry.");
@@ -311,6 +342,7 @@ export function ProspectExplorer() {
       toast.error(payload?.error || "The website could not be analysed. No recipient review was created.");
       return "";
     }
+    reviewCache.current.set(prospect.id, { url: payload.reportUrl, observation: getConfirmedReviewObservation(payload.report) });
     const updated = {
       ...prospect,
       preview_url: payload.reportUrl,
@@ -321,6 +353,12 @@ export function ProspectExplorer() {
     setProspects((current) => current.map((item) => item.id === prospect.id ? { ...item, ...updated, _score: scoreProspect({ ...item, ...updated }) } : item));
     setSelectedProspect((current: any) => current?.id === prospect.id ? { ...current, ...updated } : current);
     return payload.reportUrl as string;
+    } catch (error: any) {
+      toast.error(error?.message || "Website review could not be prepared.");
+      return "";
+    } finally {
+      setReviewLoadingId((current) => current === prospect.id ? null : current);
+    }
   };
 
   const runQuickAudit = async (prospect: any) => {
@@ -473,14 +511,19 @@ export function ProspectExplorer() {
         );
       }
 
-      const importedProspects = (payload.prospects || []).map((prospect: any) => ({
-        ...prospect,
-        _score: scoreProspect(prospect),
-      }));
-      setProspects((current) => [...importedProspects, ...current]);
+      // Always reconcile with the server after import, rather than append an unverified local list.
+      // The refresh also exposes imported prospects previously hidden by filters.
+      setQuickFilter("all");
+      setSearchQuery("");
+      setIndustryFilter("all");
+      setStatusFilter("all");
+      setSortMode("newest");
+      await fetchProspects();
 
       const imported = Number(payload.imported || 0);
       const duplicates = Number(payload.duplicates || 0);
+      const reasons = payload.skippedReasons || {};
+      setLastImportSummary(`Import: ${imported} added, ${duplicates} skipped. ${Number(reasons.existingEmail || 0)} duplicate emails, ${Number(reasons.existingDomain || 0)} duplicate domains, ${Number(reasons.existingBusiness || 0)} business matches, ${Number(reasons.withinFile || 0)} duplicates within CSV.`);
       resetCsvImport();
       setIsImportModalOpen(false);
 
@@ -513,7 +556,7 @@ export function ProspectExplorer() {
         const outreachStatus = p.outreach_status || "not_started";
         const now = Date.now();
         const matchesQuick = quickFilter === "all"
-          || (quickFilter === "follow_up_due" && p.next_follow_up_at && new Date(p.next_follow_up_at).getTime() <= now)
+          || (quickFilter === "follow_up_due" && !p._suppressed && !p._contactSafetyUnknown && p.next_follow_up_at && new Date(p.next_follow_up_at).getTime() <= now)
           || (quickFilter === "high" && p.opportunity_level === "high")
           || (quickFilter === "contacted" && CONTACTED_OUTREACH_STATUSES.includes(outreachStatus))
           || (quickFilter === "not_contacted" && NOT_CONTACTED_OUTREACH_STATUSES.includes(outreachStatus))
@@ -642,7 +685,7 @@ export function ProspectExplorer() {
     const contacted = prospects.filter((p) => CONTACTED_OUTREACH_STATUSES.includes(p.outreach_status || "not_started")).length;
     const notContacted = prospects.filter((p) => NOT_CONTACTED_OUTREACH_STATUSES.includes(p.outreach_status || "not_started")).length;
     const booked = prospects.filter((p) => p.outreach_status === "call_booked").length;
-    const due = prospects.filter((p) => p.next_follow_up_at && new Date(p.next_follow_up_at) <= new Date()).length;
+    const due = prospects.filter((p) => !p._suppressed && !p._contactSafetyUnknown && p.next_follow_up_at && new Date(p.next_follow_up_at) <= new Date()).length;
     return { total: prospects.length, high, contacted, notContacted, booked, due };
   }, [prospects]);
 
@@ -655,7 +698,7 @@ export function ProspectExplorer() {
 
   const exportCsv = () => {
     const rows = [
-      ["Name", "Domain", "Industry", "Location", "Email", "Phone", "WhatsApp", "Social", "Website Status", "Opportunity", "Outreach Status", "Next Follow Up", "Preview URL", "Notes"],
+      ["Name", "Domain", "Industry", "Location", "Email", "Phone", "WhatsApp", "Social", "Website Status", "Opportunity", "Outreach Status", "Next Follow Up", "Preview URL", "Notes", "Email Delivery", "Email Sent At", "Email Error", "Suppressed"],
       ...sortedProspects.map((p) => [
         p.name,
         p.domain || "",
@@ -671,6 +714,10 @@ export function ProspectExplorer() {
         p.next_follow_up_at || "",
         p.preview_url || "",
         p.notes || "",
+        p._latestDelivery?.status || "",
+        p._latestDelivery?.sent_at || "",
+        p._latestDelivery?.error || "",
+        p._suppressed ? "yes" : "no",
       ]),
     ];
     const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -814,9 +861,28 @@ export function ProspectExplorer() {
   }, [conversionMarket, conversionProduct, conversionProspect]);
 
   const preparePreviewAndEmail = async (prospect: any) => {
+    if (prospect._suppressed || prospect._contactSafetyUnknown) return toast.error("Recipient is suppressed or suppression status is unavailable. Outreach is blocked.");
+    if (!prospect.domain || prospect.website_status === "no_website") {
+      openOutreachComposer(prospect);
+      return;
+    }
     const previewUrl = await prepareRecipientReview(prospect);
     if (!previewUrl) return;
-    openOutreachComposer({ ...prospect, preview_url: previewUrl });
+    let observation = reviewCache.current.get(prospect.id)?.observation || "";
+    if (!observation) {
+      try {
+        const parsed = new URL(previewUrl);
+        const jobId = parsed.searchParams.get("report");
+        const key = parsed.searchParams.get("key");
+        if (jobId && key) {
+          const response = await fetch(`/api/public/website-audit/jobs/${encodeURIComponent(jobId)}?key=${encodeURIComponent(key)}`, { cache: "no-store" });
+          const payload = response.ok ? await response.json() : null;
+          observation = getConfirmedReviewObservation(payload?.report);
+          if (observation) reviewCache.current.set(prospect.id, { url: previewUrl, observation });
+        }
+      } catch { /* Do not invent an observation for inaccessible older reports. */ }
+    }
+    openOutreachComposer({ ...prospect, preview_url: previewUrl }, undefined, observation);
   };
 
   const convertProspect = async () => {
@@ -877,17 +943,18 @@ export function ProspectExplorer() {
     }
   };
 
-  const openOutreachComposer = (prospect: any, replyToMessage?: any) => {
+  const openOutreachComposer = (prospect: any, replyToMessage?: any, auditObservation = "") => {
+    if (prospect._suppressed || prospect._contactSafetyUnknown) {
+      toast.error("Recipient is suppressed or suppression status cannot be checked.");
+      return;
+    }
     if (!prospect.contact_email) {
       toast.error("Add an email address for this prospect first.");
       return;
     }
 
-    const previewLine = prospect.preview_url
-      ? `\n\nI also prepared a quick preview for you: ${prospect.preview_url}`
-      : "";
-    const initialTemplateId = replyToMessage ? "interested" : recommendedTemplateId(prospect.outreach_status || "not_started");
-    const initialObservation = getOutreachObservation(prospect.notes);
+    const initialTemplateId = replyToMessage ? "interested" : (!prospect.domain || prospect.website_status === "no_website") ? "no-site" : recommendedTemplateId(prospect.outreach_status || "not_started");
+    const initialObservation = auditObservation || reviewCache.current.get(prospect.id)?.observation || getOutreachObservation(prospect.notes) || "";
     const contactFirstName = String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0];
     setOutreachProspect(prospect);
     setOutreachReplyToMessageId(replyToMessage?.id || null);
@@ -903,8 +970,7 @@ export function ProspectExplorer() {
       const generated = buildEmailTemplateDraft(initialTemplateId, { ...prospect, contact_first_name: contactFirstName }, initialObservation);
       const [subjectLine, ...bodyLines] = generated.split("\n");
       setOutreachSubject(subjectLine.replace(/^Subject:\s*/i, ""));
-      const body = bodyLines.join("\n").trim();
-      setOutreachBody(previewLine ? body.replace("\n\nBest,\nBennie", `${previewLine}\n\nBest,\nBennie`) : body);
+      setOutreachBody(bodyLines.join("\n").trim());
     }
     setOutreachRequestId(crypto.randomUUID());
   };
@@ -998,6 +1064,8 @@ export function ProspectExplorer() {
       setOutreachDraftTouched(false);
       setOutreachReplyToMessageId(null);
       setOutreachRequestId("");
+      // Re-read the provider state immediately so the list reflects this send.
+      void fetchProspects();
       if (selectedProspect?.id === outreachProspect.id) {
         void loadEngagement(outreachProspect.id);
       }
@@ -1021,7 +1089,7 @@ export function ProspectExplorer() {
 
     return (
       <div className="flex flex-wrap gap-1.5">
-        {prospect.contact_email && (
+        {prospect.contact_email && !prospect._suppressed && !prospect._contactSafetyUnknown && (
           <Button
             type="button"
             variant="outline"
@@ -1246,6 +1314,11 @@ export function ProspectExplorer() {
             <Filter className="h-4 w-4 mr-2 text-slate-400" /> Reset
           </Button>
         </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3 text-xs font-semibold text-slate-600">
+          <span>Showing {sortedProspects.length} of {prospects.length} loaded prospects · {prospectTotal} in database</span>
+          <Button variant="outline" size="sm" onClick={() => void fetchProspects()} disabled={loading}><RefreshCw className="mr-1 h-3 w-3" /> Refresh list</Button>
+          {lastImportSummary && <p className="w-full text-indigo-700">{lastImportSummary}</p>}
+        </div>
         <CardContent className="p-0">
           <div className="divide-y divide-slate-100 xl:hidden">
             {loading ? (
@@ -1273,6 +1346,13 @@ export function ProspectExplorer() {
                       <Badge variant="outline" className="capitalize">{toTitle(prospect.outreach_status || "not_started")}</Badge>
                       {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
                     </div>
+                    {(prospect._latestDelivery || prospect._suppressed) && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold">
+                        {prospect._latestDelivery && <Badge variant="outline">Email: {toTitle(prospect._latestDelivery.status)}</Badge>}
+                        {prospect._suppressed && <Badge className="bg-rose-100 text-rose-700">Suppressed · do not contact</Badge>}
+                        {prospect._latestDelivery?.error && <span className="text-rose-600">{prospect._latestDelivery.error}</span>}
+                      </div>
+                    )}
                     <div className="mt-4 rounded-2xl bg-slate-50 p-4">
                       <p className="text-xs font-semibold text-slate-500">Recommended next action</p>
                       <p className="mt-1 text-sm font-semibold text-slate-900">{prospect.recommended_next_action || scored.recommendedNextAction}</p>
@@ -1293,9 +1373,9 @@ export function ProspectExplorer() {
                       <div><Label className="text-xs font-semibold text-slate-500">Outreach status</Label><Select value={prospect.outreach_status || "not_started"} onValueChange={(value) => updateProspect(prospect.id, { outreach_status: value })}><SelectTrigger className="mt-1 h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{toTitle(status)}</SelectItem>)}</SelectContent></Select></div>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2">
-                      <Button variant="outline" className="h-11 rounded-xl" onClick={() => runQuickAudit(prospect)}><Zap className="mr-2 h-4 w-4" />Audit</Button>
-                      <Button variant="outline" className="h-11 rounded-xl" onClick={() => generatePreviewLink(prospect)}><Copy className="mr-2 h-4 w-4" />Preview</Button>
-                      {prospect.contact_email && !prospect.converted_business_id && <Button className="col-span-2 h-11 rounded-xl bg-indigo-600" onClick={() => preparePreviewAndEmail(prospect)}><Send className="mr-2 h-4 w-4" />Prepare & Email</Button>}
+                      <Button variant="outline" className="h-11 rounded-xl" disabled={reviewLoadingId === prospect.id} onClick={() => runQuickAudit(prospect)}><Zap className="mr-2 h-4 w-4" />Audit</Button>
+                      <Button variant="outline" className="h-11 rounded-xl" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="mr-2 h-4 w-4" />Preview</Button>
+                      {prospect.contact_email && !prospect._suppressed && !prospect._contactSafetyUnknown && !prospect.converted_business_id && <Button className="col-span-2 h-11 rounded-xl bg-indigo-600" disabled={reviewLoadingId === prospect.id} onClick={() => preparePreviewAndEmail(prospect)}><Send className="mr-2 h-4 w-4" />Prepare & Email</Button>}
                       {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="outline" className="col-span-2 h-11 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="mr-2 h-4 w-4" />Convert to customer</Button>}
                     </div>
                   </div>
@@ -1370,9 +1450,17 @@ export function ProspectExplorer() {
                             <span className="mt-1 block truncate text-xs font-semibold text-slate-500">{prospect._latestReply.preview}</span>
                           </button>
                         )}
-                        {!prospect._latestReply && prospect._latestOutbound?.status && (
-                          <p className="mt-2 text-xs font-bold text-slate-400">Email: {toTitle(prospect._latestOutbound.status)}</p>
+                        {prospect._latestDelivery && (
+                          <div className="mt-2 text-xs font-semibold">
+                            <span className={["bounced","failed","complained"].includes(prospect._latestDelivery.status) ? "text-rose-700" : prospect._latestDelivery.status === "delivered" ? "text-emerald-700" : "text-slate-500"}>
+                              Email: {toTitle(prospect._latestDelivery.status)}
+                            </span>
+                            {prospect._latestDelivery.sent_at && <span className="ml-2 text-slate-400">{format(new Date(prospect._latestDelivery.sent_at), "MMM dd")}</span>}
+                            {prospect._latestDelivery.error && <p className="mt-1 max-w-[220px] truncate text-rose-600" title={prospect._latestDelivery.error}>{prospect._latestDelivery.error}</p>}
+                          </div>
                         )}
+                        {prospect._suppressed && <p className="mt-1 text-xs font-bold text-rose-700">Suppressed · do not contact</p>}
+                        {prospect._contactSafetyUnknown && <p className="mt-1 text-xs font-bold text-amber-700">Safety check unavailable · sending blocked</p>}
                       </td>
                       <td className="px-6 py-6">
                         <Input
@@ -1385,9 +1473,9 @@ export function ProspectExplorer() {
                       </td>
                       <td className="px-6 py-6 text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
-                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Preview</Button>
-                          {prospect.contact_email && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
+                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
+                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Preview</Button>
+                          {prospect.contact_email && !prospect._suppressed && !prospect._contactSafetyUnknown && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
                           {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="h-3 w-3 mr-1.5" />Convert</Button>}
                           {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
                           <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 hover:bg-rose-50 hover:text-rose-600" onClick={() => deleteProspect(prospect.id)}><Trash2 className="h-4 w-4" /></Button>

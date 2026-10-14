@@ -1,4 +1,5 @@
 import React from "react";
+import { appendRecipientReviewLink } from "../../lib/salesAutomation";
 import { BookOpen, Search, ShieldCheck } from "lucide-react";
 import { Input } from "../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -102,7 +103,7 @@ export function buildEmailTemplateDraft(id: string, prospect: any, finding: stri
   const template = EMAIL_TEMPLATES.find((item) => item.id === id) || EMAIL_TEMPLATES[0];
   const company = String(prospect?.name || "[business name]").trim();
   const contactName = String(prospect?.contact_first_name || prospect?.contact_name || "").trim().split(/\s+/)[0];
-  const observation = finding.trim().length >= 10 ? finding.trim().replace(/\.$/, "") : "[a verified website observation]";
+  const observation = finding.trim().length >= 10 ? finding.trim().replace(/\.$/, "") : "a point in the enquiry journey that deserves a closer look";
   const fill = (value: string) => value
     .replace(/\{\{company\}\}/g, company)
     .replace(/\{\{first_name\}\}/g, contactName || `${company} team`)
@@ -110,7 +111,11 @@ export function buildEmailTemplateDraft(id: string, prospect: any, finding: stri
   const market = String(prospect?.location || "");
   const isSG = /(^|[,\s])(?:SG|Singapore)(?=$|[,\s])/i.test(market);
   const subject = fill(template.subject);
-  return "Subject: " + (isSG && template.stage === "First contact" ? "<ADV> " : "") + subject + "\n\n" + fill(template.body);
+  const body = fill(template.body);
+  const linkedBody = template.stage === "First contact" || template.id === "follow-up"
+    ? appendRecipientReviewLink(body, prospect?.preview_url)
+    : body;
+  return "Subject: " + (isSG && template.stage === "First contact" ? "<ADV> " : "") + subject + "\n\n" + linkedBody;
 }
 export function recommendedTemplateId(status: string) {
   if (status === "replied") return "interested";

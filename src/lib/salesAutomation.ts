@@ -99,3 +99,40 @@ export const toLocalFollowUpInput = (value?: string | null) => {
   const pad = (number: number) => String(number).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
+
+
+/**
+ * Only use evidence the audit marked as confirmed. Findings awaiting review
+ * must never be presented to a prospect as an observed fact.
+ */
+export const getConfirmedReviewObservation = (report?: {
+  findings?: Array<{ observation?: string; whatWeFound?: string; priority?: string }>;
+} | null) => {
+  const findings = report?.findings || [];
+  const verified = findings.find((finding) =>
+    finding.observation === "confirmed" &&
+    String(finding.whatWeFound || "").trim().length >= 10 &&
+    !/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(String(finding.whatWeFound || "")),
+  );
+  return String(verified?.whatWeFound || "").trim().replace(/[.!?]$/, "");
+};
+
+/** Keep the review link attached to every generated/re-generated first-touch draft. */
+export const appendRecipientReviewLink = (body: string, reportUrl?: string | null) => {
+  const raw = String(reportUrl || "").trim();
+  if (!raw || body.includes(raw)) return body;
+  try {
+    const link = new URL(raw);
+    if (!["https:", "http:"].includes(link.protocol) ||
+        link.pathname !== "/website-audit" ||
+        !link.searchParams.get("report") || !link.searchParams.get("key")) return body;
+  } catch {
+    return body;
+  }
+  const attachment = `\n\nI prepared a short website review with the findings and a suggested direction: ${raw}`;
+  const signature = "\n\nBest,\n";
+  const offset = body.lastIndexOf(signature);
+  return offset >= 0
+    ? body.slice(0, offset) + attachment + body.slice(offset)
+    : body + attachment;
+};
