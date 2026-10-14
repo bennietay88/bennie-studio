@@ -1558,6 +1558,9 @@ export function ProspectExplorer() {
               <DialogDescription>
                 Upload one CSV file. Bennie maps common prospect columns automatically,
                 checks the file before import, and skips duplicates.
+                Imported email addresses are treated as authorized by the uploader for manual outreach.
+                This records your declaration, not independently verified recipient opt-in.
+                Suppressions and provider sending policies still apply.
               </DialogDescription>
             </DialogHeader>
           </div>
