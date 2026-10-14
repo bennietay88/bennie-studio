@@ -99,10 +99,6 @@ export function ProspectExplorer() {
   const [outreachRequestId, setOutreachRequestId] = useState("");
   const [outreachReplyToMessageId, setOutreachReplyToMessageId] = useState<string | null>(null);
   const [outreachSending, setOutreachSending] = useState(false);
-  const [outreachConsentSource, setOutreachConsentSource] = useState("");
-  const [outreachConsentTimestamp, setOutreachConsentTimestamp] = useState("");
-  const [outreachConsentConfirmed, setOutreachConsentConfirmed] = useState(false);
-  const [outreachConsentSaving, setOutreachConsentSaving] = useState(false);
   const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
   const reviewCache = useRef<Map<string, { url: string; observation: string }>>(new Map());
   const [engagement, setEngagement] = useState<{ messages: any[]; tasks: any[]; events: any[] } | null>(null);
@@ -977,39 +973,6 @@ export function ProspectExplorer() {
       setOutreachBody(bodyLines.join("\n").trim());
     }
     setOutreachRequestId(crypto.randomUUID());
-    setOutreachConsentSource("");
-    setOutreachConsentTimestamp("");
-    setOutreachConsentConfirmed(false);
-  };
-
-  const recordOutreachConsent = async () => {
-    if (!outreachProspect || outreachConsentSaving) return;
-    const consentDate = new Date(outreachConsentTimestamp);
-    if (!outreachConsentConfirmed || outreachConsentSource.trim().length < 10
-      || !Number.isFinite(consentDate.getTime()) || consentDate.getTime() > Date.now()) {
-      toast.error("Verify explicit opt-in and record its actual date and evidence source.");
-      return;
-    }
-    setOutreachConsentSaving(true);
-    try {
-      const { data, error } = await supabase.from("prospects").update({
-        marketing_consent: true,
-        consent_timestamp: consentDate.toISOString(),
-        consent_source: outreachConsentSource.trim(),
-        consent_email: outreachProspect.contact_email.trim().toLowerCase(),
-      }).eq("id", outreachProspect.id)
-        .select("marketing_consent,consent_timestamp,consent_source,consent_email,contact_email").single();
-      if (error || !data || !hasDocumentedMarketingConsent(data)) {
-        throw new Error(error?.message || "Consent evidence could not be verified in the database.");
-      }
-      setOutreachProspect((current: any) => current ? { ...current, ...data } : current);
-      setProspects((current) => current.map((p) => p.id === outreachProspect.id ? { ...p, ...data } : p));
-      toast.success("Email permission evidence saved.");
-    } catch (error: any) {
-      toast.error(error?.message || "Permission evidence could not be saved.");
-    } finally {
-      setOutreachConsentSaving(false);
-    }
   };
 
   const closeOutreachComposer = () => {
@@ -1022,9 +985,16 @@ export function ProspectExplorer() {
     setOutreachDraftTouched(false);
     setOutreachReplyToMessageId(null);
     setOutreachRequestId("");
-    setOutreachConsentSource("");
-    setOutreachConsentTimestamp("");
-    setOutreachConsentConfirmed(false);
+  };
+
+  const copyOutreachDraft = async () => {
+    if (!outreachProspect || !outreachSubject.trim() || !outreachBody.trim()) return;
+    try {
+      await navigator.clipboard.writeText(`To: ${outreachProspect.contact_email}\nSubject: ${outreachSubject.trim()}\n\n${outreachBody.trim()}`);
+      toast.success("Email draft copied.");
+    } catch {
+      toast.error("Could not copy the draft. Check clipboard permissions.");
+    }
   };
 
   const sendOutreach = async () => {
@@ -1857,37 +1827,7 @@ export function ProspectExplorer() {
                           Add one specific, substantiated observation. Do not guess rankings, traffic or lost sales.
                         </p>
                       )}
-                      <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <p className="text-sm font-bold text-slate-900">Recipient email permission</p>
-                        {hasDocumentedMarketingConsent(outreachProspect) ? (
-                          <div className="space-y-1 text-xs font-medium text-emerald-800">
-                            <p><CheckCircle2 className="mr-1 inline h-4 w-4" />Documented opt-in recorded</p>
-                            <p className="break-words text-slate-600">Source: {outreachProspect.consent_source}</p>
-                            <p className="text-slate-600">Opt-in: {new Date(outreachProspect.consent_timestamp).toLocaleString()}</p>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-xs leading-5 text-amber-900">Resend cannot be used for unsolicited prospecting. An email listed publicly on a website is not permission.</p>
-                            <Field label="Original date and time of explicit opt-in">
-                              <Input type="datetime-local" value={outreachConsentTimestamp} onChange={(event) => setOutreachConsentTimestamp(event.target.value)} className="h-11 w-full min-w-0 rounded-xl" />
-                            </Field>
-                            <Field label="Verifiable opt-in source">
-                              <Textarea value={outreachConsentSource} onChange={(event) => setOutreachConsentSource(event.target.value)}
-                                placeholder="Example: newsletter form submission record or written request, with source reference"
-                                className="min-h-20 w-full min-w-0 resize-y rounded-xl" />
-                            </Field>
-                            <label className="flex items-start gap-2 text-xs font-medium leading-5 text-slate-700">
-                              <input type="checkbox" checked={outreachConsentConfirmed} onChange={(event) => setOutreachConsentConfirmed(event.target.checked)} className="mt-1" />
-                              I have checked evidence that this recipient expressly requested marketing email from Bennie Studio.
-                            </label>
-                            <Button type="button" variant="outline" onClick={() => void recordOutreachConsent()}
-                              disabled={outreachConsentSaving || !outreachConsentConfirmed || outreachConsentSource.trim().length < 10 || !outreachConsentTimestamp}
-                              className="w-full rounded-xl">
-                              {outreachConsentSaving ? "Saving evidence…" : "Record verified opt-in"}
-                            </Button>
-                          </>
-                        )}
-                      </div>
+
                     </>
                   )}
                 </section>
@@ -1917,16 +1857,22 @@ export function ProspectExplorer() {
           <DialogFooter className="!mx-0 !mb-0 shrink-0 gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
             <Button type="button" variant="outline" onClick={closeOutreachComposer}
               disabled={outreachSending} className="rounded-xl">Cancel</Button>
-            <Button type="button" onClick={sendOutreach}
-              disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() || (
-                !outreachReplyToMessageId && (
-                  outreachObservation.trim().length < 10 || !hasDocumentedMarketingConsent(outreachProspect)
-                )
-              ) || hasUnresolvedEmailPlaceholders(outreachSubject + "\n" + outreachBody)}
-              className="rounded-xl bg-indigo-600 hover:bg-indigo-700">
-              {outreachSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-              {outreachSending ? "Sending…" : "Send email"}
+            <Button type="button" variant="outline" onClick={() => void copyOutreachDraft()}
+              disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() ||
+                hasUnresolvedEmailPlaceholders(outreachSubject + "\n" + outreachBody)}
+              className="rounded-xl">
+              <Copy className="mr-2 h-4 w-4" />Copy email draft
             </Button>
+            {(outreachReplyToMessageId || hasDocumentedMarketingConsent(outreachProspect)) && (
+              <Button type="button" onClick={sendOutreach}
+                disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() ||
+                  (!outreachReplyToMessageId && outreachObservation.trim().length < 10) ||
+                  hasUnresolvedEmailPlaceholders(outreachSubject + "\n" + outreachBody)}
+                className="rounded-xl bg-indigo-600 hover:bg-indigo-700">
+                {outreachSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                {outreachSending ? "Sending…" : "Send email"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
