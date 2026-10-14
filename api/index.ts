@@ -8065,10 +8065,6 @@ async function startServer() {
           status: 400,
           message: "Add one specific, verified observation before sending a first-touch email.",
         },
-        OUTREACH_CONSENT_REQUIRED: {
-          status: 409,
-          message: "Email not sent: record the recipient's explicit opt-in, original date and source before using Resend.",
-        },
         OUTREACH_PLACEHOLDER_UNRESOLVED: {
           status: 400,
           message: "Complete every bracketed detail before sending.",
