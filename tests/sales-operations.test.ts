@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   canManageSalesOperations, deliveryStatus, normalizeSalesEmail, recordSalesDeliveryEvent,
-  recordSalesReply, runSalesDelivery, saveManualOutreach, saveSalesCallOutcome, suppressSalesRecipient,
+  recordSalesReply, runSalesDelivery, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient,
 } from "../server/salesOperations.ts";
 import { classifyReply, getOutreachObservation, hasDocumentedMarketingConsent, toLocalFollowUpInput } from "../src/lib/salesAutomation.ts";
 import { parseProspectCsv } from "../src/lib/prospectImport.ts";
@@ -28,12 +28,14 @@ class Query {
   constructor(public db: MemoryDb, public table: string) {}
   select(_columns = "*") { return this; }
   update(values: Row) { this.op = "update"; this.values = values; return this; }
+  insert(values: Row) { this.op = "insert"; this.values = values; return this; }
   upsert(values: Row, options: any = {}) { this.op = "upsert"; this.values = values; this.conflict = options.onConflict || "id"; this.ignore = options.ignoreDuplicates; return this; }
   eq(key: string, value: any) { this.filters.push((row) => key.split(".").reduce((v, k) => v?.[k], row) === value); return this; }
   in(key: string, values: any[]) { this.filters.push((row) => values.includes(row[key])); return this; }
   is(key: string, value: any) { this.filters.push((row) => (row[key] ?? null) === value); return this; }
   not(key: string, _op: string, _value: any) { this.filters.push((row) => row[key] != null); return this; }
   lte(key: string, value: any) { this.filters.push((row) => row[key] <= value); return this; }
+  gte(key: string, value: any) { this.filters.push((row) => row[key] >= value); return this; }
   ilike(key: string, value: string) { this.filters.push((row) => String(row[key] || "").toLowerCase() === value.replace(/\\([\\_%])/g, "$1").toLowerCase()); return this; }
   contains(key: string, value: Row) { this.filters.push((row) => Object.entries(value).every(([k, v]) => row[key]?.[k] === v)); return this; }
   order(key: string, options: any = {}) { this.ordering.push([key, options.ascending !== false]); return this; }
@@ -54,6 +56,7 @@ class Query {
     for (const [key, ascending] of [...this.ordering].reverse()) rows.sort((a, b) => String(a[key]).localeCompare(String(b[key])) * (ascending ? 1 : -1));
     rows = rows.slice(0, this.count);
     if (this.op === "update") rows.forEach((row) => Object.assign(row, this.values));
+    if (this.op === "insert") { const row = structuredClone(this.values); table.push(row); rows = [row]; }
     if (this.op === "upsert") {
       const existing = table.find((row) => row[this.conflict] === this.values[this.conflict]);
       if (existing) { if (!this.ignore) Object.assign(existing, this.values); rows = [existing]; }
@@ -75,6 +78,54 @@ function fixture() {
   });
 }
 const run = (db: MemoryDb, send = async (_message: Row) => ({ id: "provider-1" })) => runSalesDelivery({ db: db as any, send, now: new Date(NOW) });
+
+
+test("admin direct email sends without adding fabricated consent evidence", async () => {
+  const db = new MemoryDb({
+    prospects: [{ id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "not_started",
+      contact_email: "clinic@example.com", marketing_consent: false, notes: "" }],
+  });
+  let sendCount = 0;
+  const input = {
+    prospectId: "p1", channel: "email" as const,
+    subject: "Your website", bodyText: "Hello, I have a suggestion about your contact page.",
+    observation: "Verified the contact page has no clear enquiry button",
+    requestId: "direct-test-1", actorId: "admin-1",
+    deliver: async (_message: Row) => { sendCount++; return { id: "provider-direct-1" }; },
+  };
+  const first = await sendDirectProspectOutreach(db as any, input, NOW);
+  assert.equal(first.alreadySent, false);
+  assert.equal(sendCount, 1);
+  assert.equal(first.message.status, "sent");
+  assert.equal(first.prospect.outreach_status, "contacted");
+  assert.equal(first.prospect.marketing_consent, false);
+  assert.equal(first.prospect.consent_timestamp, undefined);
+  const retry = await sendDirectProspectOutreach(db as any, input, NOW);
+  assert.equal(retry.alreadySent, true);
+  assert.equal(sendCount, 1);
+  await assert.rejects(sendDirectProspectOutreach(db as any, { ...input, requestId: "direct-test-2" }, NOW),
+    /OUTREACH_TOO_SOON/);
+});
+
+test("admin direct email respects suppression and unsubscribed status", async () => {
+  const base = { id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "not_started",
+    contact_email: "clinic@example.com", marketing_consent: false, notes: "" };
+  const input = {
+    prospectId: "p1", channel: "email" as const, subject: "Website",
+    bodyText: "Hello, I have a relevant observation.",
+    observation: "Verified the contact page has no clear enquiry button",
+    requestId: "blocked-test", actorId: "admin-1",
+    deliver: async (_message: Row) => { throw Error("Should never reach provider"); },
+  };
+  const suppressed = new MemoryDb({
+    prospects: [base], sales_suppressions: [{ id: "s1", email: "clinic@example.com" }],
+  });
+  await assert.rejects(sendDirectProspectOutreach(suppressed as any, input, NOW), /CONTACT_SUPPRESSED/);
+  assert.equal(suppressed.tables.sales_messages.length, 0);
+  const unsubscribed = new MemoryDb({ prospects: [{ ...base, outreach_status: "unsubscribed" }] });
+  await assert.rejects(sendDirectProspectOutreach(unsubscribed as any, input, NOW), /CONTACT_CLOSED/);
+  assert.equal(unsubscribed.tables.sales_messages.length, 0);
+});
 
 test("marketing opt-in requires boolean permission, actual timestamp and meaningful source", () => {
   const good = { marketing_consent: true, consent_timestamp: "2026-08-25T10:00:00.000Z", consent_source: "Original subscriber form confirmation", consent_email: "clinic@example.com", contact_email: "clinic@example.com" };
