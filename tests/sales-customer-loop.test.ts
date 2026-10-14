@@ -51,7 +51,10 @@ test("prospect conversion creates the connected customer handoff", () => {
 test("preview-to-outreach workflow is visible in the prospect table", () => {
   assert.match(prospects, /Prepare & Email/);
   assert.match(prospects, /preview_generated_at/);
-  assert.match(prospects, /\/api\/admin\/website-audit/);
+  // One authenticated, prospect-specific review is persisted before composing an email.
+  assert.match(prospects, /\/api\/admin\/prospects\/\$\{encodeURIComponent\(prospect\.id\)\}\/website-review/);
+  assert.match(prospects, /getConfirmedReviewObservation\(payload\.report\)/);
+  assert.match(prospects, /openOutreachComposer\(\{ \.\.\.prospect, preview_url: previewUrl \}/);
 });
 
 test("approval requests and customer responses update lifecycle", () => {

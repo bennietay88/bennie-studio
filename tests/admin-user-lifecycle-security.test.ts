@@ -53,6 +53,8 @@ test("admin lifecycle JSON bodies are parsed before privileged routes without co
   assert.ok(parserRegistration >= 0, "expected reusable JSON body parser");
   assert.ok(parserUse >= 0 && parserUse < adminStatusRoute, "JSON parser must run before admin user routes");
   assert.ok(webhookRoute >= 0, "Stripe webhook route must remain registered");
-  assert.match(api, /if \(req\.path === "\/api\/webhook"\) return next\(\);/);
+  // Both signed providers must see the raw request bytes; admin JSON must still be parsed.
+  assert.match(api, /if \(req\.path === "\/api\/webhook" \|\| req\.path === "\/api\/webhooks\/resend"\) return next\(\);/);
+  assert.match(api, /app\.post\("\/api\/webhooks\/resend", express\.raw/);
   assert.match(api, /express\.raw\(\{ type: "application\/json" \}\)/);
 });

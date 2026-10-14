@@ -56,10 +56,15 @@ test("public brand uses product-led positioning guardrails", async () => {
 
   assert.match(homepage, /managed website system/i);
   assert.match(homepage, /Managed, not handed off/i);
-  assert.match(homepage, /<button type="button" onClick=\{\(\) => go\("\/website-audit"/);
+  // The hero now prioritises a qualified managed-service conversation; the audit remains discoverable.
+  assert.match(homepage, /<button type="button" onClick=\{\(\) => go\("\/book-demo", "Hero discuss managed website"\)/);
+  assert.match(homepage, /<button type="button" onClick=\{\(\) => go\("\/pricing", "Hero view managed website pricing"\)/);
+  assert.match(homepage, /<Link to="\/website-audit"[^>]*>Optional website audit<\/Link>/);
   assert.doesNotMatch(chrome, /Website Design Orchard|Website Design Petaling Jaya|Website Design London/);
   assert.doesNotMatch(pricing, /hidden overflow-x-auto md:block/);
-  assert.match(pricing, /<Button type="button" onClick=\{\(\) => handleSelect\(product\)\}/);
+  // Price verification must fail closed before a customer can choose a plan.
+  assert.match(pricing, /<Button type="button" disabled=\{!priceReady\} onClick=\{\(\) => handleSelect\(product\)\}/);
+  assert.match(pricing, /if \(loading \|\| pricingError\) \{ toast\.error\("Wait for verified market pricing/);
 });
 
 test("all catalogue templates resolve to WCAG AA text contrast", () => {
@@ -445,7 +450,9 @@ test("public-site credibility marquee is available to generated customer sites",
   ]);
 
   assert.match(homepage, /Managed website system/);
-  assert.match(homepage, /bennie-studio-hero-work\.webp/);
+  // Marquee is a customer-site section capability, independent of the homepage hero artwork.
+  assert.match(homepage, /<WebsiteConceptVisual[\s\S]*?hero[\s\S]*?className=/);
+  assert.match(homepage, /fictional brand concepts demonstrating visual quality/);
   assert.equal(SECTION_TEMPLATES.logo_marquee.type, "proof");
   assert.equal(SECTION_TEMPLATES.logo_marquee.settings?.variant, "logo_marquee");
   assert.match(renderer, /proofVariant === "logo_marquee"/);
@@ -956,7 +963,8 @@ test("prospect preview chrome keeps the website visually primary and comparison-
   assert.doesNotMatch(sourceContactBlock, /<Textarea\b/);
 
   assert.match(generator, /text-sm leading-6 text-slate-300">\{copy\}/);
-  assert.match(generator, /text-sm leading-6 text-slate-300">Your brief and website direction carry into the next step/);
+  assert.match(generator, /The brief becomes a practical plan and an interactive website direction/);
+  assert.match(generator, /This is a design concept based on your brief, not a measured website audit or a forecast of leads/);
 });
 
 

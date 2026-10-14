@@ -31,11 +31,12 @@ test("route warmup points at current public implementations", () => {
   assert.doesNotMatch(warmup, /PortfolioPage/);
 });
 
-test("homepage uses the current concept artwork with an honest label", () => {
-  assert.match(homepage, /bennie-studio-hero-work\.webp/);
-  assert.match(homepage, /Illustrative concept directions/);
-  assert.match(homepage, /not client performance claims/);
-  assert.equal(existsSync("public/images/bennie-studio-hero-work.webp"), true);
+test("homepage uses the current composed concept hero and labels illustrative proof honestly", () => {
+  assert.match(homepage, /import \{ WebsiteConceptVisual \} from "\.\/WebsiteConceptVisual"/);
+  assert.match(homepage, /<WebsiteConceptVisual[\s\S]*?hero[\s\S]*?className=/);
+  assert.match(homepage, /Illustrative website concepts/);
+  assert.match(homepage, /These are fictional brand concepts demonstrating visual quality/);
+  assert.match(homepage, /Genuine customer evidence is shown only with approval/);
 });
 
 test("sitemap contains current canonical marketing routes only", () => {

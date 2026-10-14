@@ -425,12 +425,22 @@ test("other local service previews use the contractor blueprint family", () => {
   assert.equal(inferBlueprintNiche("Roofing company"), "contractor");
 });
 
-test("generated previews include local stock fallbacks and browser image recovery", async () => {
-  const { readFileSync } = await import("node:fs");
+test("generated previews use bundled concept assets and recover failed image loads", async () => {
+  const { readFileSync, existsSync } = await import("node:fs");
   const previewSource = readFileSync("src/components/PublicMarketingPages.tsx", "utf8");
   const rendererSource = readFileSync("src/components/WebsiteRenderer.tsx", "utf8");
 
-  assert.match(previewSource, /flagship-renovation\.jpg/);
+  // Asset family is local, avoiding hotlinked stock photography or a retired file.
+  assert.match(previewSource, /const resolvePreviewStockAsset =/);
+  const conceptImages = [
+    "concept-clinic-v2.jpg", "concept-beauty-v2.jpg",
+    "concept-education-v2.jpg", "concept-renovation-v2.jpg",
+    "concept-professional-v2.jpg",
+  ];
+  for (const image of conceptImages) {
+    assert.ok(previewSource.includes(`/template-assets/${image}`), `Preview resolver missing ${image}`);
+    assert.ok(existsSync(`public/template-assets/${image}`), `Bundled preview image missing: ${image}`);
+  }
   assert.match(previewSource, /heroFallbackImageUrl: previewMode === "website" \? undefined : previewStockImage/);
   assert.match(rendererSource, /applySectionImageFallback/);
   assert.match(rendererSource, /fallbackImageUrl/);
