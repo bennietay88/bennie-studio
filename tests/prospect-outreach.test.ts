@@ -41,13 +41,15 @@ test("prospect table headers expose clickable directional sort controls", () => 
   assert.match(ui, /aria-sort=/);
 });
 
-test("prospect composer removes opt-in form, supports copying a draft, and protects Resend sending", () => {
+test("prospect composer supports direct sends without per-recipient consent forms", () => {
   assert.match(ui, /min-h-0 min-w-0 flex-1 overflow-y-auto/);
   assert.match(ui, /shrink-0 gap-3 border-t/);
-  assert.match(ui, /hasDocumentedMarketingConsent\(outreachProspect\)/);
+  assert.doesNotMatch(ui, /hasDocumentedMarketingConsent\(outreachProspect\)/);
   assert.doesNotMatch(ui, /Recipient email permission/);
   assert.doesNotMatch(ui, /Record verified opt-in/);
   assert.match(ui, /Copy email draft/);
-  assert.match(sales, /OUTREACH_CONSENT_REQUIRED/);
-  assert.match(api, /OUTREACH_CONSENT_REQUIRED/);
+  assert.doesNotMatch(sales, /OUTREACH_CONSENT_REQUIRED/);
+  assert.doesNotMatch(api, /OUTREACH_CONSENT_REQUIRED/);
+  assert.match(sales, /CONTACT_SUPPRESSED/);
+  assert.match(sales, /hasDocumentedMarketingConsent\(contact\)/);
 });
