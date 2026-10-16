@@ -15,14 +15,11 @@ const OUTREACH_STATUSES = ["not_started", "queued", "contacted", "replied", "cal
 
 const buildDraft = (prospect: any, channel: "email" | "whatsapp") => {
   const name = prospect.name || "there";
-  const domain = prospect.domain ? ` (${prospect.domain})` : "";
-  const finding = prospect.notes?.trim()
-    ? prospect.notes.trim().split("\n")[0]
-    : "[add a specific observation you verified on this website]";
+  const finding = String(prospect.notes || "").trim().split("\n")[0] || "[add a verified website observation]";
   if (channel === "whatsapp") {
-    return `Hi ${name} team — I reviewed your website${domain}. I noticed that ${finding.replace(/^[A-Z]/, (letter: string) => letter.toLowerCase())}. I can send you a short, practical website review showing what I would change and why. Would that be useful? — Bennie`;
+    return `Hi ${name} team, I noticed ${finding} on your website. A useful first change would be to put the main quote or contact action beside the relevant service and make it easy to reach on mobile. Bennie Studio can build and manage that improvement. Would a scope and price be useful? — Bennie`;
   }
-  return `Subject: A practical website improvement for ${name}\n\nHi ${name} team,\n\nI reviewed your website${domain} and noticed that ${finding.replace(/^[A-Z]/, (letter: string) => letter.toLowerCase())}.\n\nI can prepare a short website review showing the change I would recommend and why.\n\nWould that be useful?\n\nBest,\nBennie`;
+  return `Subject: One useful website change for ${name}\n\nHi ${name} team,\n\nI noticed ${finding} on your website.\n\nA useful first change would be to make the main quote or contact action clearer beside the service details. Bennie Studio can implement and maintain it.\n\nWould a scope and price be useful?\n\nBennie\nBennie Studio`;
 };
 
 export function OutreachLab() {
