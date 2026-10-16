@@ -122,20 +122,33 @@ export const toLocalFollowUpInput = (value?: string | null) => {
 
 
 /**
- * Only use evidence the audit marked as confirmed. Findings awaiting review
- * must never be presented to a prospect as an observed fact.
+ * Use confirmed audit evidence and the corresponding specific recommendation.
+ * Low-confidence or placeholder findings are never inserted into outreach.
  */
-export const getConfirmedReviewObservation = (report?: {
-  findings?: Array<{ observation?: string; whatWeFound?: string; priority?: string }>;
-} | null) => {
+export const getConfirmedReviewInsight = (report?: {
+  findings?: Array<{ observation?: string; whatWeFound?: string; recommendation?: string; priority?: string }>;
+} | null): { observation: string; recommendation: string } | null => {
   const findings = report?.findings || [];
-  const verified = findings.find((finding) =>
-    finding.observation === "confirmed" &&
-    String(finding.whatWeFound || "").trim().length >= 10 &&
-    !/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(String(finding.whatWeFound || "")),
-  );
-  return String(verified?.whatWeFound || "").trim().replace(/[.!?]$/, "");
+  const valid = (value: unknown) => {
+    const text = String(value || "").replace(/\s+/g, " ").trim();
+    return text.length >= 10 && text.length <= 500 &&
+      !/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}|https?:\/\//i.test(text);
+  };
+  const priorities: Record<string, number> = { high: 0, medium: 1, low: 2 };
+  const match = findings
+    .filter((finding) => finding.observation === "confirmed" &&
+      valid(finding.whatWeFound) && valid(finding.recommendation))
+    .sort((a, b) => (priorities[a.priority || ""] ?? 3) - (priorities[b.priority || ""] ?? 3))[0];
+  if (!match) return null;
+  return {
+    observation: String(match.whatWeFound).replace(/\s+/g, " ").trim().replace(/[.!?]$/, ""),
+    recommendation: String(match.recommendation).replace(/\s+/g, " ").trim().replace(/[.!?]$/, ""),
+  };
 };
+
+export const getConfirmedReviewObservation = (report?: {
+  findings?: Array<{ observation?: string; whatWeFound?: string; recommendation?: string; priority?: string }>;
+} | null) => getConfirmedReviewInsight(report)?.observation || "";
 
 /** Keep the review link attached to every generated/re-generated first-touch draft. */
 export const appendRecipientReviewLink = (body: string, reportUrl?: string | null) => {
