@@ -33,7 +33,8 @@ test("first contact templates ask one concrete reply question without unsupporte
 test("follow-ups offer an explicit close-out option", () => {
   for (const id of ["follow-up", "follow-up-last"]) {
     const draft = buildEmailTemplateDraft(id, prospect, finding);
-    assert.match(draft, /homepage concept/i);
+    assert.match(draft, /change|fix|recommended first/i);
+    assert.doesNotMatch(draft, /https?:\/\//i);
     assert.doesNotMatch(draft, /reply stop|no.obligation/i);
     assert.equal(hasUnresolvedEmailPlaceholders(draft), false);
   }
@@ -64,4 +65,19 @@ test("sending layer retains one-click unsubscribe without repeating it in prospe
   for (const item of EMAIL_TEMPLATES) {
     assert.doesNotMatch(item.body, /reply stop|unsubscribe|opt.?out/i, item.id);
   }
+});
+
+test("verified actionable recommendation is included directly instead of linking to a report", () => {
+  const recommendation = "Put a Request a Quote button beside the main service description";
+  const draft = buildEmailTemplateDraft("enquiry", prospect, finding, recommendation);
+  assert.match(draft, /Put a Request a Quote button beside the main service description/);
+  assert.match(draft, /the main contact button is missing/);
+  assert.match(draft, /scope and price/i);
+  assert.doesNotMatch(draft, /https?:\/\/|website-audit\?|homepage concept|send you the review/i);
+});
+
+test("default recommendations remain useful when only a verified observation exists", () => {
+  const draft = buildEmailTemplateDraft("mobile", prospect, finding);
+  assert.match(draft, /easy to tap/i);
+  assert.equal(hasUnresolvedEmailPlaceholders(draft), false);
 });
