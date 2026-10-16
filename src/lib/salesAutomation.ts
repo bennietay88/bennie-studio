@@ -126,7 +126,7 @@ export const toLocalFollowUpInput = (value?: string | null) => {
  * Low-confidence or placeholder findings are never inserted into outreach.
  */
 export const getConfirmedReviewInsight = (report?: {
-  findings?: Array<{ observation?: string; whatWeFound?: string; recommendation?: string; priority?: string }>;
+  findings?: Array<{ id?: string; category?: string; observation?: string; whatWeFound?: string; recommendation?: string; priority?: string }>;
 } | null): { observation: string; recommendation: string } | null => {
   const findings = report?.findings || [];
   const valid = (value: unknown) => {
@@ -135,10 +135,18 @@ export const getConfirmedReviewInsight = (report?: {
       !/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}|https?:\/\//i.test(text);
   };
   const priorities: Record<string, number> = { high: 0, medium: 1, low: 2 };
+  // Lead with a commercially actionable improvement, not an obscure technical scan detail.
+  const buyerRelevance: Record<string, number> = {
+    cta: 0, offer: 1, form: 2, trust: 3, local: 4, headings: 5,
+    faq: 6, links: 7, mobile: 8, metadata: 9, https: 10, accessible: 11,
+    alt: 12, "technical-discovery": 13,
+  };
+  const relevance = (finding: { id?: string; category?: string }) =>
+    buyerRelevance[finding.id || ""] ?? (/enquiry|service|booking|trust/i.test(finding.category || "") ? 5 : 14);
   const match = findings
     .filter((finding) => finding.observation === "confirmed" &&
       valid(finding.whatWeFound) && valid(finding.recommendation))
-    .sort((a, b) => (priorities[a.priority || ""] ?? 3) - (priorities[b.priority || ""] ?? 3))[0];
+    .sort((a, b) => relevance(a) - relevance(b) || (priorities[a.priority || ""] ?? 3) - (priorities[b.priority || ""] ?? 3))[0];
   if (!match) return null;
   return {
     observation: String(match.whatWeFound).replace(/\s+/g, " ").trim().replace(/[.!?]$/, ""),
@@ -147,7 +155,7 @@ export const getConfirmedReviewInsight = (report?: {
 };
 
 export const getConfirmedReviewObservation = (report?: {
-  findings?: Array<{ observation?: string; whatWeFound?: string; recommendation?: string; priority?: string }>;
+  findings?: Array<{ id?: string; category?: string; observation?: string; whatWeFound?: string; recommendation?: string; priority?: string }>;
 } | null) => {
   const confirmed = (report?.findings || []).find((finding) =>
     finding.observation === "confirmed" &&
