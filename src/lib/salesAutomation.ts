@@ -77,7 +77,7 @@ export const classifyReply = (value: string): ReplyClassification => {
   if (/\b(?:later|next month|not now|circle back)\b/.test(text)) return "not_now";
   if (/\b(?:price|cost|expensive|budget|already have|need to think)\b/.test(text)) return "objection";
   if (/\b(?:how|what|when|where|which)\b|\?/.test(text)) return "question";
-  if (/\b(?:interested|yes|book|call|show me|send it)\b/.test(text)) return "interested";
+  if (/\b(?:interested|yes|sure|book|call|show me|send it|send over|please send|go ahead|preview|homepage concept)\b/.test(text) || /\bplease do\b/.test(text)) return "interested";
   return "unknown";
 };
 
