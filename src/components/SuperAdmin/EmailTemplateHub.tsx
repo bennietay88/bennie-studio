@@ -75,7 +75,7 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
     id: "follow-up", name: "Day 3 — specific follow-up", problem: "No response", stage: "Contacted",
     note: "Send only when allowed, with no reply/opt-out and a genuine earlier message. Do not automatically send from a reminder.",
-    subject: "Re: {{company}}'s website enquiry path",
+    subject: "Following up on {{company}}'s website",
     body: "Hi {{first_name}},\n\nI sent a note about {{finding}} at {{company}}.\n\nRather than a full redesign pitch, I have one practical change in mind for that page.\n\nWould you like me to send it, or is website improvement not a priority right now?\n\nBest,\nBennie\nBennie Studio\n\nIf this isn't relevant, reply stop and I won't contact you again.",
   },
   {
@@ -108,7 +108,7 @@ export function buildEmailTemplateDraft(id: string, prospect: any, finding: stri
   const template = EMAIL_TEMPLATES.find((item) => item.id === id) || EMAIL_TEMPLATES[0];
   const company = String(prospect?.name || "[business name]").trim();
   const contactName = String(prospect?.contact_first_name || prospect?.contact_name || "").trim().split(/\s+/)[0];
-  const observation = finding.trim().length >= 10 ? finding.trim().replace(/\.$/, "") : "a point in the enquiry journey that deserves a closer look";
+  const observation = finding.trim().length >= 10 ? finding.trim().replace(/\.$/, "") : "[add a specific, verified page or listing observation]";
   const fill = (value: string) => value
     .replace(/\{\{company\}\}/g, company)
     .replace(/\{\{first_name\}\}/g, contactName || `${company} team`)
