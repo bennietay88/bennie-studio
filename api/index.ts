@@ -64,6 +64,7 @@ import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
 import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
+import { buildProspectFollowUpPlan, bulkManageProspectFollowUps, scheduleProspectFollowUpPlan, syncProspectNextFollowUp } from "../server/prospectFollowUps.js";
 import { attachUploaderOutreachDeclaration, parseProspectCsv } from "../src/lib/prospectImport.js";
 import { hasDocumentedMarketingConsent } from "../src/lib/salesAutomation.js";
 import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, getMinimumTermMonths } from "../src/lib/commercialPricing.js";
@@ -7580,6 +7581,62 @@ async function startServer() {
     }
   });
 
+  // Scheduled CRM reminders are distinct from marketing emails. Existing email
+  // sequences still require documented consent and operator approval.
+  app.post("/api/admin/prospects/:prospectId/follow-up-plan", authenticate, async (req: any, res: any) => {
+    const id = String(req.params.prospectId || "");
+    if (!UUID_SCHEMA.safeParse(id).success) return res.status(400).json({ error: "Invalid prospect ID" });
+    const body = validateBody(z.object({
+      days: z.array(z.number().int().min(1).max(365)).min(1).max(12),
+      startAt: z.string().datetime({ offset: true }),
+    }).strict(), req, res);
+    if (!body) return;
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      const { data: prospect, error } = await supabaseAdmin.from("prospects")
+        .select("id,name,contact_email,status,outreach_status,converted_business_id").eq("id", id).maybeSingle();
+      if (error) throw error;
+      if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+      if (prospect.converted_business_id || ["won", "lost"].includes(prospect.outreach_status)
+        || ["lost", "converted"].includes(prospect.status)) {
+        return res.status(409).json({ error: "Closed or converted prospects cannot receive a new follow-up plan." });
+      }
+      if (prospect.contact_email && await isSalesSuppressed(supabaseAdmin, normalizeSalesEmail(prospect.contact_email))) {
+        return res.status(409).json({ error: "Recipient is suppressed. Follow-up scheduling is blocked." });
+      }
+      buildProspectFollowUpPlan(body.startAt, body.days);
+      const result = await scheduleProspectFollowUpPlan(supabaseAdmin, prospect, req.user.id, body.startAt, body.days);
+      return res.json(result);
+    } catch (error: any) {
+      if (/follow-up date|follow-ups|start date|future/i.test(String(error?.message || ""))) {
+        return res.status(400).json({ error: error.message });
+      }
+      console.error("[Prospect Follow-up Plan] Failed:", error?.message || error);
+      return res.status(503).json({ error: "Follow-up plan could not be saved." });
+    }
+  });
+
+  app.post("/api/admin/prospects/bulk", authenticate, async (req: any, res: any) => {
+    const body = validateBody(z.object({
+      ids: z.array(UUID_SCHEMA).min(1).max(100),
+      action: z.enum(["stop_follow_up", "delete"]),
+    }).strict(), req, res);
+    if (!body) return;
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      return res.json(await bulkManageProspectFollowUps(supabaseAdmin, body.ids, body.action));
+    } catch (error: any) {
+      const message = String(error?.message || "");
+      if (/Some selected prospects|Converted customer|currently sending|Some prospects|Select 1 to 100/.test(message)) {
+        return res.status(409).json({ error: message });
+      }
+      console.error("[Prospect Bulk Action] Failed:", message);
+      return res.status(503).json({ error: "Bulk action could not be completed. Refresh the list before retrying." });
+    }
+  });
+
   app.post("/api/admin/prospects/:prospectId/follow-up", authenticate, async (req: any, res: any) => {
     const prospectId = String(req.params.prospectId || "");
     if (!UUID_SCHEMA.safeParse(prospectId).success) return res.status(400).json({ error: "Invalid prospect ID" });
@@ -7642,6 +7699,9 @@ async function startServer() {
         .maybeSingle();
       if (error) throw error;
       if (!data) return res.status(404).json({ error: "Sales task not found" });
+      if (data.prospect_id && data.task_type === "follow_up") {
+        await syncProspectNextFollowUp(supabaseAdmin, data.prospect_id);
+      }
       return res.json({ task: data });
     } catch (error: any) {
       console.error("[Sales Task Update] Failed:", error?.message || error);
