@@ -1199,7 +1199,13 @@ export function ProspectExplorer() {
     const whatsappNumber = String(
       prospect.contact_whatsapp || prospect.contact_phone || "",
     ).replace(/[^0-9]/g, "");
-    const whatsappText = `Hi ${prospect.name}, I came across your business and noticed a few practical website improvements that could help generate more enquiries.${prospect.preview_url ? ` I prepared a quick preview here: ${prospect.preview_url}` : ""} Would you like me to send the key recommendations?`;
+    const verifiedNote = getOutreachObservation(prospect.notes);
+    const inlineFix = reviewCache.current.get(prospect.id)?.recommendation || "";
+    const whatsappText = verifiedNote && inlineFix
+      ? `Hi ${prospect.name} team, I checked your website and noticed ${verifiedNote}. I would improve that by ${inlineFix}. Bennie Studio builds and manages enquiry-focused websites. Would a scope and price for that change be useful? — Bennie`
+      : verifiedNote
+        ? `Hi ${prospect.name} team, I noticed ${verifiedNote} on your website. I would make the main quote or contact action easier to find on that page. Bennie Studio can implement and maintain it. Would a scope and price be useful? — Bennie`
+        : `Hi ${prospect.name} team, I help service businesses build and manage sites with a clearer path to contact, quote or book. Is improving the website a priority this quarter? — Bennie`;
     const whatsappHref = whatsappNumber
       ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappText)}`
       : "";
@@ -2015,6 +2021,12 @@ export function ProspectExplorer() {
                         <Textarea value={outreachObservation} onChange={(event) => setOutreachObservation(event.target.value)}
                           placeholder="Quote the exact issue you personally checked, on the relevant page."
                           className="min-h-24 w-full min-w-0 resize-y rounded-xl" />
+                      </Field>
+                      <Field label="Recommended fix (included in the email)">
+                        <Textarea value={outreachRecommendation} onChange={(event) => setOutreachRecommendation(event.target.value)}
+                          placeholder="One specific recommendation from the verified audit, or an improvement you checked yourself."
+                          className="min-h-24 w-full min-w-0 resize-y rounded-xl" />
+                        <p className="mt-1 text-xs text-slate-500">The verified audit fix is filled automatically. If none exists, a practical suggestion from the selected message type will appear in the draft.</p>
                       </Field>
                       {outreachObservation.trim().length < 10 && (
                         <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-900">
