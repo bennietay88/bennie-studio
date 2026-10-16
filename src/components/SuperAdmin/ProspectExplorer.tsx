@@ -1430,6 +1430,17 @@ export function ProspectExplorer() {
           <Button variant="outline" size="sm" onClick={() => void fetchProspects()} disabled={loading}><RefreshCw className="mr-1 h-3 w-3" /> Refresh list</Button>
           {lastImportSummary && <p className="w-full text-indigo-700">{lastImportSummary}</p>}
         </div>
+        {selectedIds.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-indigo-100 bg-indigo-50/70 px-5 py-3">
+            <span className="mr-2 text-sm font-semibold text-indigo-900">{selectedIds.length} selected</span>
+            <Button size="sm" variant="outline" className="rounded-xl bg-white" onClick={() => toggleVisibleSelection(!allVisibleSelected)}>
+              {allVisibleSelected ? "Unselect visible" : `Select all ${visibleIds.length} visible`}
+            </Button>
+            <Button size="sm" variant="outline" className="rounded-xl bg-white" onClick={() => setSelectedIds([])}>Clear selection</Button>
+            <Button size="sm" variant="outline" className="rounded-xl bg-white" onClick={() => setBulkAction("stop_follow_up")}><Check className="mr-1.5 h-4 w-4" />Stop follow-up</Button>
+            <Button size="sm" variant="outline" className="rounded-xl border-rose-200 bg-white text-rose-700 hover:bg-rose-50" onClick={() => setBulkAction("delete")}><Trash2 className="mr-1.5 h-4 w-4" />Delete selected</Button>
+          </div>
+        )}
         <CardContent className="p-0">
           <div className="divide-y divide-slate-100 xl:hidden">
             {loading ? (
@@ -1445,6 +1456,12 @@ export function ProspectExplorer() {
                 return (
                   <div key={`mobile-${prospect.id}`} className="p-5 sm:p-6">
                     <div className="flex items-start justify-between gap-3">
+                      <Checkbox
+                        checked={selectedIds.includes(prospect.id)}
+                        onCheckedChange={(checked) => toggleSelected(prospect.id, checked === true)}
+                        aria-label={`Select ${prospect.name}`}
+                        className="mt-1"
+                      />
                       <button type="button" onClick={() => setSelectedProspect(prospect)} className="min-w-0 text-left">
                         <span className="block truncate text-base font-semibold text-slate-950 dark:text-white">{prospect.name}</span>
                         <span className="mt-1 block text-sm text-slate-500">{prospect.industry || "No industry"}{prospect.location ? ` · ${prospect.location}` : ""}</span>
@@ -1480,7 +1497,13 @@ export function ProspectExplorer() {
                       </button>
                     )}
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      <div><Label className="text-xs font-semibold text-slate-500">Follow-up</Label><Input type="date" className="mt-1 h-11 rounded-xl" value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""} onChange={(event) => void setFollowUp(prospect, event.target.value)} /></div>
+                      <div>
+                        <Label className="text-xs font-semibold text-slate-500">Follow-up</Label>
+                        <Input type="date" className="mt-1 h-11 rounded-xl" value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""} onChange={(event) => void setFollowUp(prospect, event.target.value)} />
+                        <Button type="button" size="sm" variant="link" className="mt-1 h-7 px-0 text-indigo-700" onClick={() => openFollowUpPlan(prospect)} disabled={Boolean(prospect.converted_business_id) || ["won","lost"].includes(prospect.outreach_status)}>
+                          <CalendarDays className="mr-1 h-3.5 w-3.5" /> Schedule 3 / 7 days
+                        </Button>
+                      </div>
                       <div><Label className="text-xs font-semibold text-slate-500">Outreach status</Label><Select value={prospect.outreach_status || "not_started"} onValueChange={(value) => updateProspect(prospect.id, { outreach_status: value })}><SelectTrigger className="mt-1 h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{toTitle(status)}</SelectItem>)}</SelectContent></Select></div>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2">
@@ -1498,6 +1521,11 @@ export function ProspectExplorer() {
             <table className="w-full min-w-[1180px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50">
+                  <th className="px-4 py-4">
+                    <Checkbox checked={allVisibleSelected}
+                      onCheckedChange={(checked) => toggleVisibleSelection(checked === true)}
+                      aria-label="Select all visible prospects" />
+                  </th>
                   <SortableHeader label="Company" sortMode={sortMode} ascMode="name_asc" descMode="name_desc" onChange={setSortMode} />
                   <SortableHeader label="Contact" sortMode={sortMode} ascMode="contact_asc" descMode="contact_desc" onChange={setSortMode} />
                   <SortableHeader label="Website" sortMode={sortMode} ascMode="website_asc" descMode="website_desc" onChange={setSortMode} />
@@ -1510,12 +1538,17 @@ export function ProspectExplorer() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr><td colSpan={8} className="py-20 text-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" /><p className="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Loading prospects...</p></td></tr>
+                  <tr><td colSpan={9} className="py-20 text-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" /><p className="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Loading prospects...</p></td></tr>
                 ) : sortedProspects.length === 0 ? (
-                  <tr><td colSpan={8} className="py-20 text-center"><p className="text-slate-400 font-bold text-sm">No prospects found.</p></td></tr>
+                  <tr><td colSpan={9} className="py-20 text-center"><p className="text-slate-400 font-bold text-sm">No prospects found.</p></td></tr>
                 ) : (
                   sortedProspects.map((prospect) => (
                     <tr key={prospect.id} className="hover:bg-slate-50/50 transition-colors align-top">
+                      <td className="px-4 py-6">
+                        <Checkbox checked={selectedIds.includes(prospect.id)}
+                          onCheckedChange={(checked) => toggleSelected(prospect.id, checked === true)}
+                          aria-label={`Select ${prospect.name}`} />
+                      </td>
                       <td className="px-6 py-6">
                         <div className="flex items-start gap-3">
                           <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center"><Globe className="h-5 w-5 text-slate-400" /></div>
@@ -1580,6 +1613,11 @@ export function ProspectExplorer() {
                           value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""}
                           onChange={(e) => void setFollowUp(prospect, e.target.value)}
                         />
+                        <Button type="button" size="sm" variant="link" className="mt-1 h-7 px-0 text-xs font-semibold text-indigo-700"
+                          disabled={Boolean(prospect.converted_business_id) || ["won","lost"].includes(prospect.outreach_status)}
+                          onClick={() => openFollowUpPlan(prospect)}>
+                          <CalendarDays className="mr-1 h-3.5 w-3.5" /> 3 / 7 day plan
+                        </Button>
                         {prospect.preview_url && <a href={prospect.preview_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600"><LinkIcon className="h-3 w-3" /> Preview link</a>}
                       </td>
                       <td className="px-6 py-6 text-right">
@@ -2084,6 +2122,11 @@ export function ProspectExplorer() {
             </div>
           )}
           <DialogFooter className="flex-wrap">
+            {selectedProspect && !selectedProspect.converted_business_id && !["won","lost"].includes(selectedProspect.outreach_status) && (
+              <Button variant="outline" className="rounded-xl" onClick={() => { const prospect = selectedProspect; setSelectedProspect(null); openFollowUpPlan(prospect); }}>
+                <CalendarDays className="mr-2 h-4 w-4" />Schedule follow-ups
+              </Button>
+            )}
             {selectedProspect?.preview_url && <a href={selectedProspect.preview_url} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-bold"><ExternalLink className="mr-2 h-4 w-4"/>Open Preview</a>}
             {selectedProspect && !selectedProspect.converted_business_id && (
               <Button variant="outline" onClick={() => openConversion(selectedProspect)} className="rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50">
