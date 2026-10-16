@@ -8373,6 +8373,7 @@ async function startServer() {
         leadId: UUID_SCHEMA.optional(),
         prospectId: UUID_SCHEMA.optional(),
         observation: z.string().trim().min(10, "Add a specific verified observation").max(1000),
+        recommendation: z.string().trim().min(10).max(500).optional(),
       }).refine((value) => Boolean(value.leadId) !== Boolean(value.prospectId), { message: "Choose one lead or prospect" }), req, res);
       if (!body) return;
       const { data: sequence, error: sequenceError } = await supabaseAdmin.from("outreach_sequences").select("*, outreach_sequence_steps(*)").eq("id", body.sequenceId).single();
@@ -8409,7 +8410,8 @@ async function startServer() {
       const savedReview = typeof entity.preview_url === "string" && /\/website-audit\?/.test(entity.preview_url)
         ? entity.preview_url : "";
       const values: Record<string, string> = {
-        business_name: businessName, first_name: firstName, observation: body.observation, review_link: savedReview,
+        business_name: businessName, first_name: firstName, observation: body.observation,
+        recommendation: body.recommendation || "Place a clear quote or contact action beside the relevant service and make it easy to use on mobile",
       };
       let elapsedHours = 0;
       const rows = steps.map((step: any, index: number) => {
@@ -8422,8 +8424,7 @@ async function startServer() {
           recipient,
           channel: step.channel,
           subject: render(step.subject_template || "A note from Bennie Studio"),
-          body_text: render(step.body_template) + (savedReview && ["audit", "preview"].includes(sequence.audience_type) && !step.body_template.includes("{{review_link}}")
-            ? `\n\nYour website review: ${savedReview}` : ""),
+          body_text: render(step.body_template),
           status: step.requires_approval || index === 0 ? "draft" : "queued",
           scheduled_at: new Date(startAt.getTime() + elapsedHours * 3600000).toISOString(),
           provider_payload: { sequenceId: sequence.id, stepId: step.id, stepOrder: step.step_order, delayHours: step.delay_hours,
