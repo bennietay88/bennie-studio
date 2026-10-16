@@ -1653,6 +1653,56 @@ export function ProspectExplorer() {
         </div>
       </div>
 
+      <Dialog open={Boolean(scheduleProspect)} onOpenChange={(open) => { if (!open && !scheduleSaving) setScheduleProspect(null); }}>
+        <DialogContent className="max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Schedule follow-ups</DialogTitle>
+            <DialogDescription>Plan reminders for {scheduleProspect?.name}. Replaces their existing open follow-up reminders; no emails are sent automatically.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5 py-2">
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" type="button" variant={followUpDays === "3,7" ? "default" : "outline"} onClick={() => setFollowUpDays("3,7")} className="rounded-xl">Day 3 + 7</Button>
+              <Button size="sm" type="button" variant={followUpDays === "3,7,14" ? "default" : "outline"} onClick={() => setFollowUpDays("3,7,14")} className="rounded-xl">Day 3 + 7 + 14</Button>
+            </div>
+            <Field label="Start date">
+              <Input type="date" className="rounded-xl" value={followUpStartDate} onChange={(event) => setFollowUpStartDate(event.target.value)} />
+            </Field>
+            <Field label="Days after start date (comma-separated)">
+              <Input inputMode="numeric" className="rounded-xl" value={followUpDays} onChange={(event) => setFollowUpDays(event.target.value)} placeholder="3,7,14,30" />
+            </Field>
+            <p className="text-xs leading-5 text-slate-500">Up to 12 reminders, 1–365 days after the start date. Due at 9:00 AM in your local time. Review each due item in Sales Automation / Today before sending any outreach. Replies and opt-outs must be respected.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-xl" disabled={scheduleSaving} onClick={() => setScheduleProspect(null)}>Cancel</Button>
+            <Button className="rounded-xl bg-indigo-600 hover:bg-indigo-700" disabled={scheduleSaving} onClick={() => void saveFollowUpPlan()}>
+              {scheduleSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save schedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(bulkAction)} onOpenChange={(open) => { if (!open && !bulkSaving) setBulkAction(null); }}>
+        <DialogContent className="max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>{bulkAction === "delete" ? "Delete selected prospects?" : "Stop following up?"}</DialogTitle>
+            <DialogDescription>
+              {bulkAction === "delete"
+                ? `Delete ${selectedIds.length} selected prospect records? This cannot be undone. Unsent sequence emails and scheduled tasks will be cancelled first. Converted customers are protected.`
+                : `Stop follow-ups for ${selectedIds.length} prospects? Records remain in your pipeline marked Lost, and pending sequence emails and sales tasks will be cancelled.`}
+            </DialogDescription>
+          </DialogHeader>
+          <p className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">Emails already sent cannot be recalled. In-progress sends cannot be cancelled. Only the selected prospects are affected.</p>
+          <DialogFooter>
+            <Button variant="outline" className="rounded-xl" disabled={bulkSaving} onClick={() => setBulkAction(null)}>Cancel</Button>
+            <Button className={bulkAction === "delete" ? "rounded-xl bg-rose-600 text-white hover:bg-rose-700" : "rounded-xl bg-indigo-600 hover:bg-indigo-700"}
+              disabled={bulkSaving} onClick={() => void executeBulkAction()}>
+              {bulkSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {bulkAction === "delete" ? `Delete ${selectedIds.length}` : `Stop ${selectedIds.length} follow-ups`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="rounded-3xl max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
