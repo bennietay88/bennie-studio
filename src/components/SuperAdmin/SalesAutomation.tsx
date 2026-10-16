@@ -17,13 +17,23 @@ import { Textarea } from "../ui/textarea";
 type ContactOption = { id: string; kind: "lead" | "prospect"; name: string; email: string; detail: string; observation?: string };
 
 const suggestedReply = (message: SalesMessage) => {
-  if (["unsubscribe", "not_interested"].includes(message.classification || "")) return "No further sales outreach. This recipient is suppressed; respect their request.";
-  const opener = "Thanks for the honest reply.";
-  if (message.classification === "objection") return `${opener} I do not want to push past a concern. Which part feels least workable right now: the scope, setup fee, monthly commitment, or timing? I can answer that directly and tell you if a smaller starting point is the better fit.`;
-  if (message.classification === "question") return `${opener} I will answer this specifically. Before I do, is your main priority getting the website live, improving the enquiry journey, or having someone manage ongoing changes?`;
-  if (message.classification === "interested") return `${opener} The useful next step is a short call where I can confirm the website scope and enquiry path. I can then send one clear proposal with the timing and commercial terms.`;
-  if (message.classification === "not_now") return `${opener} I will close the active follow-up for now. When would it be genuinely useful for me to check back?`;
-  return `${opener} I have read your note and will respond personally with the most relevant next step.`;
+  const intent = message.classification || "unknown";
+  if (["unsubscribe", "not_interested"].includes(intent)) {
+    return "Do not send a sales follow-up. Honour the recipient's preference and confirm their suppression status.";
+  }
+  if (intent === "interested") {
+    return "Acknowledge their exact interest, explain one relevant way Bennie Studio could help, and ask if a 15-minute scoping call would be useful. Do not send a generic pitch.";
+  }
+  if (intent === "objection") {
+    return "Answer the specific objection first. If it concerns price or scope, distinguish setup from ongoing management and ask which part needs to change for the project to be viable.";
+  }
+  if (intent === "question") {
+    return "Answer the actual question clearly, then suggest one proportionate next step. Do not replace the answer with another sales question.";
+  }
+  if (intent === "not_now") {
+    return "Respect the timing. Ask whether there is a particular month to revisit; if they do not invite a later contact, close the active follow-up.";
+  }
+  return "Read the message and respond personally to its content. If intent is unclear, ask one clarifying question rather than sending another template.";
 };
 
 const api = async (path: string, options: RequestInit = {}) => {
