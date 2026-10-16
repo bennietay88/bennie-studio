@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { EMAIL_TEMPLATES, buildEmailTemplateDraft, hasUnresolvedEmailPlaceholders } from "../src/components/SuperAdmin/EmailTemplateHub.tsx";
 
 const prospect = { name: "Example Services", location: "Kuala Lumpur", contact_first_name: "Alex" };
@@ -22,7 +23,8 @@ test("first contact templates ask one concrete reply question without unsupporte
     assert.match(draft, /the main contact button/);
     const messageBody = draft.slice(draft.indexOf("\n\n") + 2);
     assert.ok((messageBody.match(/\?/g) || []).length === 1, template.id);
-    assert.match(draft, /reply stop/i);
+    assert.doesNotMatch(draft, /reply stop|no.obligation|no pressure|not a priority/i);
+    assert.ok(draft.length < 520, template.id);
     assert.doesNotMatch(draft, /guarantee|double your leads|100% growth/i);
     assert.equal(hasUnresolvedEmailPlaceholders(draft), false, template.id);
   }
@@ -31,8 +33,8 @@ test("first contact templates ask one concrete reply question without unsupporte
 test("follow-ups offer an explicit close-out option", () => {
   for (const id of ["follow-up", "follow-up-last"]) {
     const draft = buildEmailTemplateDraft(id, prospect, finding);
-    assert.match(draft, /close/i);
-    assert.match(draft, /reply stop/i);
+    assert.match(draft, /homepage concept/i);
+    assert.doesNotMatch(draft, /reply stop|no.obligation/i);
     assert.equal(hasUnresolvedEmailPlaceholders(draft), false);
   }
 });
@@ -47,4 +49,19 @@ test("unverified observations and personalisation are never presented as finishe
 test("Singapore advertising subject prefix remains intact", () => {
   const draft = buildEmailTemplateDraft("enquiry", { ...prospect, location: "Singapore" }, finding);
   assert.match(draft, /^Subject: <ADV> /);
+});
+
+test("reply-to-sale messages ask for a call or a concrete proposal decision", () => {
+  assert.match(buildEmailTemplateDraft("interested", prospect, finding), /15 minutes/);
+  assert.match(buildEmailTemplateDraft("proposal", prospect, finding), /proceed/);
+  assert.match(buildEmailTemplateDraft("call", prospect, finding), /booked discussion/);
+});
+
+test("sending layer retains one-click unsubscribe without repeating it in prospect copy", () => {
+  const api = readFileSync("api/index.ts", "utf8");
+  assert.match(api, /"List-Unsubscribe"/);
+  assert.match(api, /Stop receiving these emails: \$\{unsubscribeUrl\}/);
+  for (const item of EMAIL_TEMPLATES) {
+    assert.doesNotMatch(item.body, /reply stop|unsubscribe|opt.?out/i, item.id);
+  }
 });
