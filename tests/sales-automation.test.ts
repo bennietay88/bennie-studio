@@ -13,6 +13,10 @@ test("replies outrank other observable sales signals", () => {
 
 test("reply classification keeps opt-outs and buying intent distinct", () => {
   assert.equal(classifyReply("Please unsubscribe me"), "unsubscribe");
+  assert.equal(classifyReply("STOP"), "unsubscribe");
+  assert.equal(classifyReply("Stop!"), "unsubscribe");
+  assert.equal(classifyReply("Opt out"), "unsubscribe");
+  assert.equal(classifyReply("Please stop sending me emails"), "unsubscribe");
   assert.equal(classifyReply("Yes, send it and let us book a call"), "interested");
   assert.equal(classifyReply("The price is beyond our budget"), "objection");
 });
