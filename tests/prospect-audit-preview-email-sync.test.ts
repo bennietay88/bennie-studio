@@ -27,10 +27,10 @@ test("new outreach drafts present verified findings without automatically exposi
   }
 });
 
-test("missing verified observation uses cautious wording rather than a placeholder", () => {
+test("missing verified observation is blocked until a human records evidence", () => {
   const draft = buildEmailTemplateDraft("enquiry", prospect, "");
-  assert.equal(hasUnresolvedEmailPlaceholders(draft), false);
-  assert.match(draft, /deserves a closer look/);
+  assert.equal(hasUnresolvedEmailPlaceholders(draft), true);
+  assert.match(draft, /add a specific, verified page or listing observation/);
   assert.doesNotMatch(draft, /website-audit\?/);
 });
 
