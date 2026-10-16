@@ -171,9 +171,14 @@ export function SalesAutomation() {
   };
 
   const completeTask = async (id: string) => {
-    const { error } = await supabase.from("sales_tasks").update({ status: "completed", updated_at: new Date().toISOString() }).eq("id", id);
-    if (error) return toast.error(error.message);
-    await load();
+    try {
+      await api(`/api/admin/sales-tasks/${encodeURIComponent(id)}`, {
+        method: "PATCH", body: JSON.stringify({ status: "completed" }),
+      });
+      await load();
+    } catch (error: any) {
+      toast.error(error?.message || "Task could not be completed.");
+    }
   };
 
   return (
