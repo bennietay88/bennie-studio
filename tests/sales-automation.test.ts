@@ -18,6 +18,8 @@ test("reply classification keeps opt-outs and buying intent distinct", () => {
   assert.equal(classifyReply("Opt out"), "unsubscribe");
   assert.equal(classifyReply("Please stop sending me emails"), "unsubscribe");
   assert.equal(classifyReply("Yes, send it and let us book a call"), "interested");
+  assert.equal(classifyReply("Sure, please send the preview"), "interested");
+  assert.equal(classifyReply("Go ahead with the homepage concept"), "interested");
   assert.equal(classifyReply("The price is beyond our budget"), "objection");
 });
 
