@@ -148,9 +148,16 @@ export const getConfirmedReviewInsight = (report?: {
 
 export const getConfirmedReviewObservation = (report?: {
   findings?: Array<{ observation?: string; whatWeFound?: string; recommendation?: string; priority?: string }>;
-} | null) => getConfirmedReviewInsight(report)?.observation || "";
+} | null) => {
+  const confirmed = (report?.findings || []).find((finding) =>
+    finding.observation === "confirmed" &&
+    String(finding.whatWeFound || "").trim().length >= 10 &&
+    !/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(String(finding.whatWeFound || "")),
+  );
+  return String(confirmed?.whatWeFound || "").trim().replace(/[.!?]$/, "");
+};
 
-/** Keep the review link attached to every generated/re-generated first-touch draft. */
+/** Optional explicit review sharing after the prospect requests a link; never auto-attach it. */
 export const appendRecipientReviewLink = (body: string, reportUrl?: string | null) => {
   const raw = String(reportUrl || "").trim();
   if (!raw || body.includes(raw)) return body;
