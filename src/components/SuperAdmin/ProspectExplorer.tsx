@@ -352,7 +352,7 @@ export function ProspectExplorer() {
   const saveFollowUpPlan = async () => {
     if (!scheduleProspect || scheduleSaving) return;
     const parts = followUpDays.split(",").map((value) => value.trim()).filter(Boolean);
-    if (!parts.length || parts.length > 12 || parts.some((value) => !/^\\d+$/.test(value))) {
+    if (!parts.length || parts.length > 12 || parts.some((value) => !/^\d+$/.test(value))) {
       toast.error("Enter 1–12 day offsets, separated by commas (for example: 3,7,14).");
       return;
     }
