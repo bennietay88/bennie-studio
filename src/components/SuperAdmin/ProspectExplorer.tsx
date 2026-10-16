@@ -51,7 +51,7 @@ import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 import { EMAIL_TEMPLATES, buildEmailTemplateDraft, hasUnresolvedEmailPlaceholders, recommendedTemplateId } from "./EmailTemplateHub";
-import { getOutreachObservation, getConfirmedReviewObservation } from "../../lib/salesAutomation";
+import { getOutreachObservation, getConfirmedReviewObservation, getConfirmedReviewInsight } from "../../lib/salesAutomation";
 
 const WEBSITE_STATUSES = ["unknown", "no_website", "weak", "average", "strong"];
 const OPPORTUNITY_LEVELS = ["low", "medium", "high"];
@@ -95,13 +95,14 @@ export function ProspectExplorer() {
   const [outreachBody, setOutreachBody] = useState("");
   const [outreachTemplateId, setOutreachTemplateId] = useState("enquiry");
   const [outreachObservation, setOutreachObservation] = useState("");
+  const [outreachRecommendation, setOutreachRecommendation] = useState("");
   const [outreachContactFirstName, setOutreachContactFirstName] = useState("");
   const [outreachDraftTouched, setOutreachDraftTouched] = useState(false);
   const [outreachRequestId, setOutreachRequestId] = useState("");
   const [outreachReplyToMessageId, setOutreachReplyToMessageId] = useState<string | null>(null);
   const [outreachSending, setOutreachSending] = useState(false);
   const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
-  const reviewCache = useRef<Map<string, { url: string; observation: string }>>(new Map());
+  const reviewCache = useRef<Map<string, { url: string; observation: string; recommendation: string }>>(new Map());
   const [engagement, setEngagement] = useState<{ messages: any[]; tasks: any[]; events: any[] } | null>(null);
   const [engagementLoading, setEngagementLoading] = useState(false);
   const [conversionProspect, setConversionProspect] = useState<any | null>(null);
@@ -136,7 +137,7 @@ export function ProspectExplorer() {
 
   const applyOutreachTemplate = (templateId: string, prospect = outreachProspect, observation = outreachObservation, firstName = outreachContactFirstName) => {
     if (!prospect) return;
-    const generated = buildEmailTemplateDraft(templateId, { ...prospect, contact_first_name: firstName }, observation);
+    const generated = buildEmailTemplateDraft(templateId, { ...prospect, contact_first_name: firstName }, observation, outreachRecommendation);
     const [subjectLine, ...bodyLines] = generated.split("\n");
     setOutreachSubject(subjectLine.replace(/^Subject:\s*/i, ""));
     setOutreachBody(bodyLines.join("\n").trim());
@@ -146,7 +147,7 @@ export function ProspectExplorer() {
   useEffect(() => {
     if (!outreachProspect || outreachReplyToMessageId || outreachDraftTouched) return;
     applyOutreachTemplate(outreachTemplateId, outreachProspect, outreachObservation, outreachContactFirstName);
-  }, [outreachProspect?.id, outreachTemplateId, outreachObservation, outreachContactFirstName, outreachReplyToMessageId, outreachDraftTouched]);
+  }, [outreachProspect?.id, outreachTemplateId, outreachObservation, outreachRecommendation, outreachContactFirstName, outreachReplyToMessageId, outreachDraftTouched]);
 
   const csvPreview = useMemo(() => {
     if (!csvText.trim()) {
@@ -434,7 +435,8 @@ export function ProspectExplorer() {
       toast.error(payload?.error || "The website could not be analysed. No recipient review was created.");
       return "";
     }
-    reviewCache.current.set(prospect.id, { url: payload.reportUrl, observation: getConfirmedReviewObservation(payload.report) });
+    const insight = getConfirmedReviewInsight(payload.report);
+    reviewCache.current.set(prospect.id, { url: payload.reportUrl, observation: insight?.observation || getConfirmedReviewObservation(payload.report), recommendation: insight?.recommendation || "" });
     const updated = {
       ...prospect,
       preview_url: payload.reportUrl,
@@ -978,8 +980,9 @@ export function ProspectExplorer() {
         if (jobId && key) {
           const response = await fetch(`/api/public/website-audit/jobs/${encodeURIComponent(jobId)}?key=${encodeURIComponent(key)}`, { cache: "no-store" });
           const payload = response.ok ? await response.json() : null;
-          observation = getConfirmedReviewObservation(payload?.report);
-          if (observation) reviewCache.current.set(prospect.id, { url: previewUrl, observation });
+          const insight = getConfirmedReviewInsight(payload?.report);
+          observation = insight?.observation || getConfirmedReviewObservation(payload?.report);
+          if (observation) reviewCache.current.set(prospect.id, { url: previewUrl, observation, recommendation: insight?.recommendation || "" });
         }
       } catch { /* Do not invent an observation for inaccessible older reports. */ }
     }
@@ -1056,11 +1059,13 @@ export function ProspectExplorer() {
 
     const initialTemplateId = replyToMessage ? "interested" : (!prospect.domain || prospect.website_status === "no_website") ? "no-site" : recommendedTemplateId(prospect.outreach_status || "not_started");
     const initialObservation = auditObservation || reviewCache.current.get(prospect.id)?.observation || getOutreachObservation(prospect.notes) || "";
+    const initialRecommendation = reviewCache.current.get(prospect.id)?.recommendation || "";
     const contactFirstName = String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0];
     setOutreachProspect(prospect);
     setOutreachReplyToMessageId(replyToMessage?.id || null);
     setOutreachTemplateId(initialTemplateId);
     setOutreachObservation(initialObservation);
+    setOutreachRecommendation(initialRecommendation);
     setOutreachContactFirstName(contactFirstName || "");
     setOutreachDraftTouched(false);
     if (replyToMessage) {
@@ -1068,7 +1073,7 @@ export function ProspectExplorer() {
       setOutreachSubject(`Re: ${priorSubject}`);
       setOutreachBody(`Hi ${prospect.name},\n\nThanks for your reply.\n\n\n\nBest,\nBennie`);
     } else {
-      const generated = buildEmailTemplateDraft(initialTemplateId, { ...prospect, contact_first_name: contactFirstName }, initialObservation);
+      const generated = buildEmailTemplateDraft(initialTemplateId, { ...prospect, contact_first_name: contactFirstName }, initialObservation, initialRecommendation);
       const [subjectLine, ...bodyLines] = generated.split("\n");
       setOutreachSubject(subjectLine.replace(/^Subject:\s*/i, ""));
       setOutreachBody(bodyLines.join("\n").trim());
@@ -1082,6 +1087,7 @@ export function ProspectExplorer() {
     setOutreachSubject("");
     setOutreachBody("");
     setOutreachObservation("");
+    setOutreachRecommendation("");
     setOutreachContactFirstName("");
     setOutreachDraftTouched(false);
     setOutreachReplyToMessageId(null);
@@ -2032,7 +2038,7 @@ export function ProspectExplorer() {
                       maxLength={10000} className="min-h-[340px] w-full min-w-0 resize-y rounded-2xl leading-6" />
                   </Field>
                   <p className="text-xs font-medium leading-5 text-slate-500">
-                    Keep one clear call to action. The audit link is not added automatically; include it only when it supports this specific message.
+                    The email contains the finding and a practical fix. No audit or preview link is necessary; share one only after the recipient requests it.
                   </p>
                   <p className="text-xs font-medium leading-5 text-slate-500">
                     Email is submitted through your configured provider. WhatsApp opens externally through wa.me and is not automatically delivered.
