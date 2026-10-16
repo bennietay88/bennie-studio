@@ -31,6 +31,7 @@ import {
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { Checkbox } from "../ui/checkbox";
 import { Badge } from "../ui/badge";
 import { supabase } from "../../lib/supabase";
 import { toast } from "sonner";
@@ -125,6 +126,13 @@ export function ProspectExplorer() {
   const [importingCsv, setImportingCsv] = useState(false);
   const csvFileInputRef = useRef<HTMLInputElement | null>(null);
   const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [scheduleProspect, setScheduleProspect] = useState<any | null>(null);
+  const [followUpDays, setFollowUpDays] = useState("3,7");
+  const [followUpStartDate, setFollowUpStartDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [bulkAction, setBulkAction] = useState<"stop_follow_up" | "delete" | null>(null);
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   const applyOutreachTemplate = (templateId: string, prospect = outreachProspect, observation = outreachObservation, firstName = outreachContactFirstName) => {
     if (!prospect) return;
@@ -309,18 +317,102 @@ export function ProspectExplorer() {
     return true;
   };
 
+  const adminProspectRequest = async (url: string, body: Record<string, unknown>) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error("Your admin session has expired.");
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify(body),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload?.error || "Operation failed");
+    return payload;
+  };
+
   const deleteProspect = async (id: string) => {
-    if (!confirm("Remove this prospect from the internal sales list?")) return;
-
+    if (!confirm("Delete this prospect? Scheduled follow-ups and unsent emails will be cancelled. This cannot be undone.")) return;
     try {
-      const { error } = await supabase.from("prospects").delete().eq("id", id);
-      if (error) throw error;
-
-      setProspects(prospects.filter((p) => p.id !== id));
-      toast.success("Prospect removed");
+      await adminProspectRequest("/api/admin/prospects/bulk", { ids: [id], action: "delete" });
+      setProspects((current) => current.filter((prospect) => prospect.id !== id));
+      setSelectedIds((current) => current.filter((selected) => selected !== id));
+      toast.success("Prospect deleted and pending follow-ups cancelled.");
+      void fetchProspects();
     } catch (error: any) {
-      console.error("Error deleting prospect:", error);
-      toast.error("Failed to remove prospect");
+      toast.error(error?.message || "Prospect could not be deleted.");
+    }
+  };
+
+  const openFollowUpPlan = (prospect: any) => {
+    setScheduleProspect(prospect);
+    setFollowUpDays("3,7");
+    setFollowUpStartDate(format(new Date(), "yyyy-MM-dd"));
+  };
+
+  const saveFollowUpPlan = async () => {
+    if (!scheduleProspect || scheduleSaving) return;
+    const parts = followUpDays.split(",").map((value) => value.trim()).filter(Boolean);
+    if (!parts.length || parts.length > 12 || parts.some((value) => !/^\\d+$/.test(value))) {
+      toast.error("Enter 1–12 day offsets, separated by commas (for example: 3,7,14).");
+      return;
+    }
+    const days = [...new Set(parts.map(Number))].sort((a, b) => a - b);
+    if (days.some((day) => day < 1 || day > 365)) {
+      toast.error("Day offsets must be from 1 to 365.");
+      return;
+    }
+    const startAt = new Date(`${followUpStartDate}T09:00:00`);
+    if (!followUpStartDate || !Number.isFinite(startAt.getTime())) {
+      toast.error("Choose a valid start date.");
+      return;
+    }
+    try {
+      setScheduleSaving(true);
+      const payload = await adminProspectRequest(
+        `/api/admin/prospects/${encodeURIComponent(scheduleProspect.id)}/follow-up-plan`,
+        { startAt: startAt.toISOString(), days },
+      );
+      if (payload.prospect) {
+        setProspects((current) => current.map((item) => item.id === scheduleProspect.id ? { ...item, ...payload.prospect } : item));
+        setSelectedProspect((current: any) => current?.id === scheduleProspect.id ? { ...current, ...payload.prospect } : current);
+      }
+      toast.success(`${days.length} follow-up reminder${days.length === 1 ? "" : "s"} scheduled.`);
+      if (selectedProspect?.id === scheduleProspect.id) void loadEngagement(scheduleProspect.id);
+      setScheduleProspect(null);
+    } catch (error: any) {
+      toast.error(error?.message || "Could not schedule follow-ups.");
+    } finally {
+      setScheduleSaving(false);
+    }
+  };
+
+  const toggleSelected = (id: string, checked: boolean) => {
+    setSelectedIds((current) => checked ? [...new Set([...current, id])] : current.filter((item) => item !== id));
+  };
+
+  const executeBulkAction = async () => {
+    if (!bulkAction || !selectedIds.length || bulkSaving) return;
+    const ids = [...selectedIds];
+    let completed = 0;
+    try {
+      setBulkSaving(true);
+      for (let i = 0; i < ids.length; i += 100) {
+        const chunk = ids.slice(i, i + 100);
+        await adminProspectRequest("/api/admin/prospects/bulk", { ids: chunk, action: bulkAction });
+        completed += chunk.length;
+      }
+      toast.success(bulkAction === "delete"
+        ? `${completed} prospects deleted; pending actions cancelled.`
+        : `${completed} prospects marked Lost; follow-ups and pending emails cancelled.`);
+      setSelectedIds([]);
+      setBulkAction(null);
+    } catch (error: any) {
+      toast.error(`${completed} processed. ${error?.message || "Bulk action failed."} Refresh and review remaining prospects.`);
+      setSelectedIds(ids.slice(completed));
+      setBulkAction(null);
+    } finally {
+      setBulkSaving(false);
+      await fetchProspects();
     }
   };
 
@@ -655,6 +747,15 @@ export function ProspectExplorer() {
     });
     return rows;
   }, [filteredProspects, sortMode]);
+
+  const visibleIds = useMemo(() => sortedProspects.map((prospect) => String(prospect.id)), [sortedProspects]);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+  const toggleVisibleSelection = (checked: boolean) => {
+    const visible = new Set(visibleIds);
+    setSelectedIds((current) => checked
+      ? [...new Set([...current, ...visibleIds])]
+      : current.filter((id) => !visible.has(id)));
+  };
 
 
   const replyCenterProspects = useMemo(
