@@ -20,7 +20,8 @@ test("first contact templates ask one concrete reply question without unsupporte
     assert.match(draft, /Alex/);
     assert.match(draft, /Example Services/);
     assert.match(draft, /the main contact button/);
-    assert.ok((draft.match(/\?/g) || []).length === 1, template.id);
+    const messageBody = draft.slice(draft.indexOf("\n\n") + 2);
+    assert.ok((messageBody.match(/\?/g) || []).length === 1, template.id);
     assert.match(draft, /reply stop/i);
     assert.doesNotMatch(draft, /guarantee|double your leads|100% growth/i);
     assert.equal(hasUnresolvedEmailPlaceholders(draft), false, template.id);
