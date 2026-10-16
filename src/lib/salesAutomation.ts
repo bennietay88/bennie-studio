@@ -71,7 +71,8 @@ export const getObservablePriority = (input: {
 export const classifyReply = (value: string): ReplyClassification => {
   // Classify the new reply, not the original sales email quoted underneath it.
   const text = value.split(/\n\s*(?:On .+wrote:|From:|>)/i)[0].toLowerCase();
-  if (/\b(?:unsubscribe|remove me|stop (?:email(?:ing)?|contacting)|do not contact|don't contact)\b/.test(text)) return "unsubscribe";
+  if (/^(?:stop|unsubscribe|remove me|opt[ -]?out)[!.\s]*$/.test(text) ||
+    /\b(?:unsubscribe|remove me|opt out|stop (?:email(?:ing)?|contacting|sending)|do not contact|don't contact|no (?:more|further) emails)\b/.test(text)) return "unsubscribe";
   if (/\b(?:not interested|no thanks|no thank you)\b/.test(text)) return "not_interested";
   if (/\b(?:later|next month|not now|circle back)\b/.test(text)) return "not_now";
   if (/\b(?:price|cost|expensive|budget|already have|need to think)\b/.test(text)) return "objection";
