@@ -59,6 +59,45 @@ const OUTREACH_STATUSES = ["not_started", "queued", "contacted", "replied", "cal
 const CONTACTED_OUTREACH_STATUSES = ["contacted", "replied", "call_booked", "won"];
 const NOT_CONTACTED_OUTREACH_STATUSES = ["not_started", "queued"];
 
+const PROSPECT_COLUMN_WIDTHS_KEY = "bt_prospect_explorer_column_widths_v1";
+const DEFAULT_PROSPECT_COLUMN_WIDTHS = {
+  select: 48,
+  company: 280,
+  contact: 200,
+  website: 165,
+  opportunity: 170,
+  score: 240,
+  outreach: 190,
+  nextStep: 200,
+  actions: 300,
+};
+const PROSPECT_COLUMN_WIDTH_LIMITS: Record<keyof typeof DEFAULT_PROSPECT_COLUMN_WIDTHS, [number, number]> = {
+  select: [40, 88],
+  company: [160, 520],
+  contact: [140, 420],
+  website: [120, 340],
+  opportunity: [160, 300],
+  score: [170, 440],
+  outreach: [150, 380],
+  nextStep: [160, 400],
+  actions: [220, 520],
+};
+type ProspectColumnWidths = typeof DEFAULT_PROSPECT_COLUMN_WIDTHS;
+
+function readProspectColumnWidths(): ProspectColumnWidths {
+  try {
+    const saved = typeof window === "undefined" ? null : window.localStorage.getItem(PROSPECT_COLUMN_WIDTHS_KEY);
+    const parsed = saved ? JSON.parse(saved) : {};
+    return Object.fromEntries(Object.entries(DEFAULT_PROSPECT_COLUMN_WIDTHS).map(([key, fallback]) => {
+      const [min, max] = PROSPECT_COLUMN_WIDTH_LIMITS[key as keyof ProspectColumnWidths];
+      const candidate = Number(parsed?.[key]);
+      return [key, Number.isFinite(candidate) ? Math.min(max, Math.max(min, candidate)) : fallback];
+    })) as ProspectColumnWidths;
+  } catch {
+    return DEFAULT_PROSPECT_COLUMN_WIDTHS;
+  }
+}
+
 const cleanDomain = (value: string) =>
   value
     .trim()
@@ -80,6 +119,7 @@ const isRecipientReviewUrl = (value?: string | null) => {
 };
 
 export function ProspectExplorer() {
+  const [columnWidths, setColumnWidths] = useState<ProspectColumnWidths>(readProspectColumnWidths);
   const [prospects, setProspects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [prospectTotal, setProspectTotal] = useState(0);
@@ -134,6 +174,18 @@ export function ProspectExplorer() {
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [bulkAction, setBulkAction] = useState<"stop_follow_up" | "delete" | null>(null);
   const [bulkSaving, setBulkSaving] = useState(false);
+
+  useEffect(() => {
+    const saveTimer = window.setTimeout(() => {
+      try { window.localStorage.setItem(PROSPECT_COLUMN_WIDTHS_KEY, JSON.stringify(columnWidths)); } catch {}
+    }, 180);
+    return () => window.clearTimeout(saveTimer);
+  }, [columnWidths]);
+
+  const setColumnWidth = (column: keyof ProspectColumnWidths, width: number) => {
+    const [min, max] = PROSPECT_COLUMN_WIDTH_LIMITS[column];
+    setColumnWidths((current) => ({ ...current, [column]: Math.min(max, Math.max(min, width)) }));
+  };
 
   const applyOutreachTemplate = (templateId: string, prospect = outreachProspect, observation = outreachObservation, firstName = outreachContactFirstName) => {
     if (!prospect) return;
@@ -752,6 +804,7 @@ export function ProspectExplorer() {
 
   const visibleIds = useMemo(() => sortedProspects.map((prospect) => String(prospect.id)), [sortedProspects]);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+  const prospectTableWidth = Object.values(columnWidths).reduce((total, width) => total + width, 0);
   const toggleVisibleSelection = (checked: boolean) => {
     const visible = new Set(visibleIds);
     setSelectedIds((current) => checked
@@ -1439,7 +1492,10 @@ export function ProspectExplorer() {
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3 text-xs font-semibold text-slate-600">
           <span>Showing {sortedProspects.length} of {prospects.length} loaded prospects · {prospectTotal} in database</span>
-          <Button variant="outline" size="sm" onClick={() => void fetchProspects()} disabled={loading}><RefreshCw className="mr-1 h-3 w-3" /> Refresh list</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setColumnWidths(DEFAULT_PROSPECT_COLUMN_WIDTHS)}>Reset column widths</Button>
+            <Button variant="outline" size="sm" onClick={() => void fetchProspects()} disabled={loading}><RefreshCw className="mr-1 h-3 w-3" /> Refresh list</Button>
+          </div>
           {lastImportSummary && <p className="w-full text-indigo-700">{lastImportSummary}</p>}
         </div>
         {selectedIds.length > 0 && (
@@ -1530,22 +1586,25 @@ export function ProspectExplorer() {
             )}
           </div>
           <div className="hidden overflow-x-auto xl:block">
-            <table className="w-full min-w-[1180px] text-left border-collapse">
+            <table className="min-w-full border-collapse text-left" style={{ width: `${prospectTableWidth}px`, tableLayout: "fixed" }}>
+              <colgroup>
+                {Object.entries(columnWidths).map(([column, width]) => <col key={column} style={{ width: `${width}px` }} />)}
+              </colgroup>
               <thead>
                 <tr className="bg-slate-50/50">
-                  <th className="px-4 py-4">
-                    <Checkbox checked={allVisibleSelected}
-                      onCheckedChange={(checked) => toggleVisibleSelection(checked === true)}
-                      aria-label="Select all visible prospects" />
+                  <th className="relative px-3 py-4" style={{ width: columnWidths.select }}>
+                    <Checkbox checked={allVisibleSelected} onCheckedChange={(checked) => toggleVisibleSelection(checked === true)} aria-label="Select all visible prospects" />
                   </th>
-                  <SortableHeader label="Company" sortMode={sortMode} ascMode="name_asc" descMode="name_desc" onChange={setSortMode} />
-                  <SortableHeader label="Contact" sortMode={sortMode} ascMode="contact_asc" descMode="contact_desc" onChange={setSortMode} />
-                  <SortableHeader label="Website" sortMode={sortMode} ascMode="website_asc" descMode="website_desc" onChange={setSortMode} />
-                  <SortableHeader label="Opportunity" sortMode={sortMode} ascMode="opportunity_asc" descMode="opportunity_desc" onChange={setSortMode} />
-                  <SortableHeader label="Score / next action" sortMode={sortMode} ascMode="score_asc" descMode="score_desc" onChange={setSortMode} />
-                  <SortableHeader label="Outreach" sortMode={sortMode} ascMode="outreach_asc" descMode="outreach_desc" onChange={setSortMode} />
-                  <SortableHeader label="Next Step" sortMode={sortMode} ascMode="followup_asc" descMode="followup_desc" onChange={setSortMode} />
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-slate-400">Actions</th>
+                  <SortableHeader label="Company" column="company" width={columnWidths.company} onResize={setColumnWidth} sortMode={sortMode} ascMode="name_asc" descMode="name_desc" onChange={setSortMode} />
+                  <SortableHeader label="Contact" column="contact" width={columnWidths.contact} onResize={setColumnWidth} sortMode={sortMode} ascMode="contact_asc" descMode="contact_desc" onChange={setSortMode} />
+                  <SortableHeader label="Website" column="website" width={columnWidths.website} onResize={setColumnWidth} sortMode={sortMode} ascMode="website_asc" descMode="website_desc" onChange={setSortMode} />
+                  <SortableHeader label="Opportunity" column="opportunity" width={columnWidths.opportunity} onResize={setColumnWidth} sortMode={sortMode} ascMode="opportunity_asc" descMode="opportunity_desc" onChange={setSortMode} />
+                  <SortableHeader label="Score / next action" column="score" width={columnWidths.score} onResize={setColumnWidth} sortMode={sortMode} ascMode="score_asc" descMode="score_desc" onChange={setSortMode} />
+                  <SortableHeader label="Outreach" column="outreach" width={columnWidths.outreach} onResize={setColumnWidth} sortMode={sortMode} ascMode="outreach_asc" descMode="outreach_desc" onChange={setSortMode} />
+                  <SortableHeader label="Next Step" column="nextStep" width={columnWidths.nextStep} onResize={setColumnWidth} sortMode={sortMode} ascMode="followup_asc" descMode="followup_desc" onChange={setSortMode} />
+                  <th className="relative px-3 py-4 text-right text-xs font-semibold text-slate-400" style={{ width: columnWidths.actions }}>
+                    <span>Actions</span><ColumnResizeControls label="Actions" width={columnWidths.actions} minWidth={PROSPECT_COLUMN_WIDTH_LIMITS.actions[0]} maxWidth={PROSPECT_COLUMN_WIDTH_LIMITS.actions[1]} onResize={(width) => setColumnWidth("actions", width)} />
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -1561,7 +1620,7 @@ export function ProspectExplorer() {
                           onCheckedChange={(checked) => toggleSelected(prospect.id, checked === true)}
                           aria-label={`Select ${prospect.name}`} />
                       </td>
-                      <td className="px-6 py-6">
+                      <td className="min-w-0 px-3 py-6">
                         <div className="flex items-start gap-3">
                           <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center"><Globe className="h-5 w-5 text-slate-400" /></div>
                           <div className="min-w-0">
@@ -1571,27 +1630,27 @@ export function ProspectExplorer() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-6">
+                      <td className="min-w-0 px-3 py-6">
                         {renderContactActions(prospect)}
                         <p className="mt-2 text-xs font-semibold text-slate-400">{prospect.contact_email || prospect.contact_phone || prospect.contact_whatsapp || "No contact yet"}</p>
                       </td>
-                      <td className="px-6 py-6">
+                      <td className="min-w-0 px-3 py-6">
                         <Badge className="rounded-full border-none bg-slate-100 px-3 py-0.5 text-xs font-black uppercase text-slate-600">{toTitle(prospect.website_status || "unknown")}</Badge>
                         <p className="mt-2 text-xs font-bold text-slate-500">Website review: {prospect.last_audit_at ? "Prepared" : "Not prepared"}</p>
                         <p className="text-xs font-bold text-slate-400">{prospect.last_audit_at ? format(new Date(prospect.last_audit_at), "MMM dd, yyyy") : "No audit date"}</p>
                       </td>
-                      <td className="px-6 py-6">
+                      <td className="min-w-0 px-3 py-6">
                         <Select value={prospect.opportunity_level || "medium"} onValueChange={(value) => updateProspect(prospect.id, { opportunity_level: value })}>
-                          <SelectTrigger className="h-9 w-32 rounded-xl"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-9 w-full min-w-0 rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>{OPPORTUNITY_LEVELS.map((level) => <SelectItem key={level} value={level}>{toTitle(level)}</SelectItem>)}</SelectContent>
                         </Select>
                       </td>
-                      <td className="px-6 py-6">
+                      <td className="min-w-0 px-3 py-6">
                         {(() => { const scored = prospect._score || scoreProspect(prospect); return <><div className="flex items-center gap-2"><span className="text-lg font-black text-slate-900">{prospect.qualification_score ?? scored.score}</span><Badge className="rounded-full border-none bg-indigo-50 text-xs font-black uppercase text-indigo-700">{prospect.qualification_category || scored.category.replace("_", " ")}</Badge></div><p className="mt-1 text-xs font-semibold text-indigo-600">{prospect.recommended_next_action || scored.recommendedNextAction}</p><p className="mt-1 text-xs font-semibold text-slate-400">{scored.factors.slice(0, 2).map((factor) => `+${factor.points} ${factor.label}`).join(" · ") || "Needs more evidence"}</p></>; })()}
                       </td>
-                      <td className="px-6 py-6">
+                      <td className="min-w-0 px-3 py-6">
                         <Select value={prospect.outreach_status || "not_started"} onValueChange={(value) => updateProspect(prospect.id, { outreach_status: value })}>
-                          <SelectTrigger className="h-9 w-40 rounded-xl"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-9 w-full min-w-0 rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{toTitle(status)}</SelectItem>)}</SelectContent>
                         </Select>
                         {prospect._latestReply && (
@@ -1618,10 +1677,10 @@ export function ProspectExplorer() {
                         {prospect._suppressed && <p className="mt-1 text-xs font-bold text-rose-700">Suppressed · do not contact</p>}
                         {prospect._contactSafetyUnknown && <p className="mt-1 text-xs font-bold text-amber-700">Safety check unavailable · sending blocked</p>}
                       </td>
-                      <td className="px-6 py-6">
+                      <td className="min-w-0 px-3 py-6">
                         <Input
                           type="date"
-                          className="h-9 w-40 rounded-xl"
+                          className="h-9 w-full min-w-0 rounded-xl"
                           value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""}
                           onChange={(e) => void setFollowUp(prospect, e.target.value)}
                         />
@@ -1632,8 +1691,8 @@ export function ProspectExplorer() {
                         </Button>
                         {prospect.preview_url && <a href={prospect.preview_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600"><LinkIcon className="h-3 w-3" /> Preview link</a>}
                       </td>
-                      <td className="px-6 py-6 text-right">
-                        <div className="flex justify-end gap-2">
+                      <td className="min-w-0 px-3 py-6 text-right">
+                        <div className="flex flex-wrap justify-end gap-1">
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Preview</Button>
                           {prospect.contact_email && !prospect._suppressed && !prospect._contactSafetyUnknown && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
@@ -2276,12 +2335,18 @@ export function ProspectExplorer() {
 
 function SortableHeader({
   label,
+  column,
+  width,
+  onResize,
   sortMode,
   ascMode,
   descMode,
   onChange,
 }: {
   label: string;
+  column: keyof ProspectColumnWidths;
+  width: number;
+  onResize: (column: keyof ProspectColumnWidths, width: number) => void;
   sortMode: string;
   ascMode: string;
   descMode: string;
@@ -2295,24 +2360,70 @@ function SortableHeader({
   return (
     <th
       aria-sort={ascending ? "ascending" : descending ? "descending" : "none"}
-      className="px-6 py-4 text-xs font-semibold text-slate-400"
+      className="relative px-3 py-4 text-xs font-semibold text-slate-400"
+      style={{ width }}
     >
+      <div className="flex min-w-0 items-center justify-between gap-1">
+        <button
+          type="button"
+          onClick={() => onChange(nextMode)}
+          className="group inline-flex min-w-0 items-center gap-1.5 text-left transition-colors hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+          title={ascending ? `Sort ${label} descending` : `Sort ${label} ascending`}
+        >
+          <span className="truncate">{label}</span>
+          {ascending ? <ArrowUp className="h-3.5 w-3.5 shrink-0 text-indigo-600" /> : descending ? <ArrowDown className="h-3.5 w-3.5 shrink-0 text-indigo-600" /> : <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-slate-300 transition-colors group-hover:text-indigo-500" />}
+        </button>
+        <ColumnResizeControls label={label} width={width} minWidth={PROSPECT_COLUMN_WIDTH_LIMITS[column][0]} maxWidth={PROSPECT_COLUMN_WIDTH_LIMITS[column][1]} onResize={(nextWidth) => onResize(column, nextWidth)} />
+      </div>
+    </th>
+  );
+}
+
+function ColumnResizeControls({ label, width, minWidth = 40, maxWidth = 520, onResize }: { label: string; width: number; minWidth?: number; maxWidth?: number; onResize: (width: number) => void }) {
+  const startRef = useRef<{ x: number; width: number; pointerId: number } | null>(null);
+
+  const beginDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    startRef.current = { x: event.clientX, width, pointerId: event.pointerId };
+    const onMove = (moveEvent: PointerEvent) => {
+      const start = startRef.current;
+      if (!start || moveEvent.pointerId !== start.pointerId) return;
+      onResize(start.width + moveEvent.clientX - start.x);
+    };
+    const finish = (upEvent: PointerEvent) => {
+      if (startRef.current?.pointerId !== upEvent.pointerId) return;
+      startRef.current = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
+  };
+
+  return (
+    <span className="inline-flex shrink-0 items-center gap-0.5" role="group" aria-label={`${label} column width`}>
+      <button type="button" disabled={width <= minWidth} className="grid h-6 w-6 place-items-center rounded text-slate-500 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-30" aria-label={`Narrow ${label} column`} title={`Narrow ${label} column`} onClick={() => onResize(width - 24)}>−</button>
+      <button type="button" disabled={width >= maxWidth} className="grid h-6 w-6 place-items-center rounded text-slate-500 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-30" aria-label={`Widen ${label} column`} title={`Widen ${label} column`} onClick={() => onResize(width + 24)}>+</button>
       <button
         type="button"
-        onClick={() => onChange(nextMode)}
-        className="group inline-flex items-center gap-1.5 whitespace-nowrap transition-colors hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
-        title={ascending ? `Sort ${label} descending` : `Sort ${label} ascending`}
-      >
-        <span>{label}</span>
-        {ascending ? (
-          <ArrowUp className="h-3.5 w-3.5 text-indigo-600" />
-        ) : descending ? (
-          <ArrowDown className="h-3.5 w-3.5 text-indigo-600" />
-        ) : (
-          <ArrowUpDown className="h-3.5 w-3.5 text-slate-300 transition-colors group-hover:text-indigo-500" />
-        )}
-      </button>
-    </th>
+        role="separator"
+        aria-orientation="vertical"
+        className="ml-0.5 h-8 w-2 cursor-col-resize touch-none rounded-sm border-l border-slate-300 bg-transparent hover:border-indigo-500 hover:bg-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        aria-label={`Drag to resize ${label} column; use left and right arrow keys to adjust`}
+        aria-valuemin={minWidth}
+        aria-valuemax={maxWidth}
+        aria-valuenow={width}
+        onPointerDown={beginDrag}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+            event.preventDefault();
+            onResize(width + (event.key === "ArrowRight" ? 16 : -16));
+          }
+        }}
+      />
+    </span>
   );
 }
 

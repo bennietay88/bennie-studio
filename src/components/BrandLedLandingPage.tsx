@@ -365,24 +365,22 @@ export default function BrandLedLandingPage() {
           <div className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#5b4bff]/20 blur-3xl" />
           <div className="brand-shell relative grid gap-14 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
             <div className="lg:col-span-6">
-              <p className="brand-kicker !text-[#b9b1ff]">Done-for-you websites for service businesses</p>
-              <h1 className="bt-sales-hero-title mt-5 !text-white">Look credible. <span className="bt-gradient-title block">Make enquiries easy.</span></h1>
+              <p className="brand-kicker !text-[#b9b1ff]">A managed website for service businesses</p>
+              <h1 className="bt-sales-hero-title mt-5 !text-white">Win trust before <span className="bt-gradient-title block">the first conversation.</span></h1>
               <p className="brand-copy brand-muted-on-dark mt-7 !max-w-xl">
-                Give customers a professional, mobile-ready place to understand your services and contact you. Bennie Studio handles the website strategy, design, launch, hosting and agreed updates, so you can focus on your clients.
+                Get a clear, professional website built around your services and the questions customers need answered. Bennie Studio handles the design, launch, hosting and agreed updates.
               </p>
-              <div className="mt-7 inline-flex max-w-xl flex-col gap-1 border border-indigo-300/30 bg-indigo-400/10 px-4 py-3 text-sm text-white"><strong className="!text-white">See your website direction before deciding</strong><span className="!text-white/80">Get a tailored starting concept for your business. No payment card required.</span></div>
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <button type="button" onClick={() => go("/generate-preview", "Hero free website direction")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
-                  See my free website direction <ArrowRight className="ml-2 h-4 w-4" />
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button type="button" onClick={() => go("/pricing", "Hero choose a website plan")} className="inline-flex min-h-14 items-center justify-center bg-white px-7 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
+                  See plans & pricing <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => go("/pricing", "Hero view managed website pricing")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
-                  View plans & pricing
+                <button type="button" onClick={() => go("/generate-preview", "Hero free website direction")} className="min-h-11 px-3 text-sm font-semibold text-white/80 underline decoration-white/35 underline-offset-4 transition hover:text-white">
+                  Or preview a free website direction
                 </button>
               </div>
               <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm !text-white/65">
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Free website direction, no card required</span>
                 <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Your approval before launch</span>
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Clearly disclosed recurring costs</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Clear setup and monthly costs</span>
               </div>
               <p className="mt-5 text-sm leading-6 !text-white/70">
                 {pricingLoading
@@ -390,15 +388,13 @@ export default function BrandLedLandingPage() {
                   : pricingError || !getCommercialPrice(managed, market)
                   ? "Ask for verified local pricing."
                   : <>Plans from {formatCommercialMoney(getCommercialPrice(managed, market)?.monthlyPrice, getCommercialPrice(managed, market)?.currency || "USD")}/month plus {formatCommercialMoney(getCommercialPrice(managed, market)?.setupFee, getCommercialPrice(managed, market)?.currency || "USD")} one-time setup.</>}{" "}
-                <Link to="/pricing" className="font-semibold text-white underline underline-offset-4">See first payment, full scope & commitment</Link>
+                <Link to="/pricing" className="font-semibold text-white underline underline-offset-4">See first payment and terms</Link>
               </p>
               <p className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs !text-white/70">
                 <span>Launch offer: first month of management free with the optional 12-month plan. Setup fee still applies.</span>
-                <Link to="/pricing" className="font-semibold text-white underline underline-offset-4">Compare offers</Link>
               </p>
               <p className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs !text-white/60">
-                <Link to="/case-studies" className="underline underline-offset-4">Explore design examples</Link>
-                <Link to="/book-demo" className="underline underline-offset-4">Prefer to talk? Ask us a question</Link>
+                <Link to="/book-demo" className="font-semibold text-white underline underline-offset-4">Talk through your website</Link>
               </p>
             </div>
 
@@ -415,6 +411,29 @@ export default function BrandLedLandingPage() {
                 <span>One credible, customer-focused direction — not a collage of interfaces.</span>
                 <Link to="/case-studies" className="font-semibold text-white underline underline-offset-4">See more examples</Link>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b border-[#dfe2ea] bg-white" aria-labelledby="subscription-snapshot-title">
+          <div className="brand-shell grid gap-6 py-8 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="brand-kicker">One managed website subscription</p>
+              <h2 id="subscription-snapshot-title" className="mt-2 text-2xl">A professional website, with ongoing care included.</h2>
+              <p className="mt-2 text-sm leading-6 text-[#526071]">
+                {pricingLoading
+                  ? "Checking current regional pricing."
+                  : pricingError || !getCommercialPrice(managed, market)
+                  ? "See current local pricing and full plan terms."
+                  : <>From {formatCommercialMoney(getCommercialPrice(managed, market)?.monthlyPrice, getCommercialPrice(managed, market)?.currency || "USD")}/month, plus {formatCommercialMoney(getCommercialPrice(managed, market)?.setupFee, getCommercialPrice(managed, market)?.currency || "USD")} one-time setup.</>}
+                {" "}{formatCommitmentLabel(getMinimumTermMonths(getCommercialPrice(managed, market)))}. Eligible new customers can choose the first-month-free offer; setup still applies.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+              <button type="button" onClick={() => go("/pricing", "Subscription snapshot choose a plan")} className="inline-flex min-h-12 items-center justify-center bg-[#141821] px-6 font-semibold text-white transition hover:bg-[#5746e8]">
+                Compare plans & subscribe <ArrowRight className="ml-2 h-4 w-4" />
+              </button>
+              <Link to="/pricing" className="text-center text-xs font-semibold text-[#526071] underline underline-offset-4">Review first payment, scope & terms</Link>
             </div>
           </div>
         </section>

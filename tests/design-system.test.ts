@@ -57,7 +57,9 @@ test("public brand uses product-led positioning guardrails", async () => {
   assert.match(homepage, /managed website system/i);
   assert.match(homepage, /Hero free website direction/);
   assert.match(homepage, /Managed, not handed off/i);
-  assert.match(homepage, /<button type="button" onClick=\{\(\) => go\("\/pricing", "Hero view managed website pricing"\)/);
+  assert.match(homepage, /<button type="button" onClick=\{\(\) => go\("\/pricing", "Hero choose a website plan"\)/);
+  assert.match(homepage, /See plans & pricing/);
+  assert.match(homepage, /Or preview a free website direction/);
   assert.match(homepage, /<Link to="\/book-demo"/);
   assert.doesNotMatch(chrome, /Website Design Orchard|Website Design Petaling Jaya|Website Design London/);
   assert.doesNotMatch(pricing, /hidden overflow-x-auto md:block/);

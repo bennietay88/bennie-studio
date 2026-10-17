@@ -437,12 +437,13 @@ test("presents Managed Website as the primary homepage offer", async ({ page }) 
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Look credible\.\s*Make enquiries easy\./i })).toBeVisible();
-  await expect(page.getByText(/Give customers a professional, mobile-ready place/i).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /See my free website direction/i }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Win trust before\s*the first conversation\./i })).toBeVisible();
+  await expect(page.getByText(/Get a clear, professional website built around your services/i).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /See plans & pricing/i }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Or preview a free website direction/i }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true }).first()).toBeVisible();
   await expect(page.getByText(/\$49/)).toHaveCount(0);
-  await page.getByRole("button", { name: /See my free website direction/i }).first().click();
+  await page.getByRole("button", { name: /Or preview a free website direction/i }).first().click();
   await expect(page).toHaveURL(/\/generate-preview$/);
   await expect(page.getByLabel("Main service")).toBeVisible();
 });

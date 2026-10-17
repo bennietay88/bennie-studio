@@ -43,6 +43,8 @@ export function PublicSiteHeader() {
   const { user } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const primaryHref = user ? "/dashboard" : location.pathname === "/" ? "/pricing" : "/generate-preview";
+  const primaryLabel = user ? "Open Studio" : location.pathname === "/" ? "Choose a website plan" : "See free website direction";
   const mobileTriggerRef = React.useRef<HTMLButtonElement>(null);
   const mobileDialogRef = React.useRef<HTMLDivElement>(null);
   const mobileCloseRef = React.useRef<HTMLButtonElement>(null);
@@ -125,11 +127,11 @@ export function PublicSiteHeader() {
             {user ? "Dashboard" : "Client login"}
           </Link>
           <Link
-            to={user ? "/dashboard" : "/generate-preview"}
-            onClick={() => !user && trackPublicEvent({ eventType: "sales_cta_clicked", label: "Header free website direction", target: "/generate-preview" })}
+            to={primaryHref}
+            onClick={() => !user && trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref })}
             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#5746e8]"
           >
-            {user ? "Open Studio" : "See free website direction"} <span className="ml-2">→</span>
+            {primaryLabel} <span className="ml-2">→</span>
           </Link>
         </div>
 
@@ -152,7 +154,7 @@ export function PublicSiteHeader() {
             </div>
             <div className="mt-auto grid gap-3 border-t border-[#e5e7ef] pt-5">
               <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#cfd4df] px-5 text-sm font-semibold text-[#0d1426]">{user ? "Dashboard" : "Client login"}</Link>
-              <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{user ? "Open Studio" : "See free website direction"} →</Link>
+              <Link to={primaryHref} onClick={() => { if (!user) trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref }); setMobileOpen(false); }} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{primaryLabel} →</Link>
             </div>
           </div>
         </div>
