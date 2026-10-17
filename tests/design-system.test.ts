@@ -55,11 +55,10 @@ test("public brand uses product-led positioning guardrails", async () => {
   ]);
 
   assert.match(homepage, /managed website system/i);
+  assert.match(homepage, /Hero free website direction/);
   assert.match(homepage, /Managed, not handed off/i);
-  // The hero now prioritises a qualified managed-service conversation; the audit remains discoverable.
-  assert.match(homepage, /<button type="button" onClick=\{\(\) => go\("\/book-demo", "Hero discuss managed website"\)/);
   assert.match(homepage, /<button type="button" onClick=\{\(\) => go\("\/pricing", "Hero view managed website pricing"\)/);
-  assert.match(homepage, /<Link to="\/website-audit"[^>]*>Optional website audit<\/Link>/);
+  assert.match(homepage, /<Link to="\/book-demo"/);
   assert.doesNotMatch(chrome, /Website Design Orchard|Website Design Petaling Jaya|Website Design London/);
   assert.doesNotMatch(pricing, /hidden overflow-x-auto md:block/);
   // Price verification must fail closed before a customer can choose a plan.
@@ -452,7 +451,7 @@ test("public-site credibility marquee is available to generated customer sites",
   assert.match(homepage, /Managed website system/);
   // Marquee is a customer-site section capability, independent of the homepage hero artwork.
   assert.match(homepage, /<WebsiteConceptVisual[\s\S]*?hero[\s\S]*?className=/);
-  assert.match(homepage, /fictional brand concepts demonstrating visual quality/);
+  assert.match(homepage, /original studio concepts/i);
   assert.equal(SECTION_TEMPLATES.logo_marquee.type, "proof");
   assert.equal(SECTION_TEMPLATES.logo_marquee.settings?.variant, "logo_marquee");
   assert.match(renderer, /proofVariant === "logo_marquee"/);

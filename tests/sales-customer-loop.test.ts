@@ -181,7 +181,7 @@ test("final launch uses a fresh content-aware live crawler", () => {
 });
 
 test("deterministic commercial lifecycle e2e covers evidence, outreach, conversion, access, launch QA and approval", () => {
-  assert.match(commercialLifecycleE2e, /api\/admin\/website-audit/);
+  assert.match(commercialLifecycleE2e, /api\/admin\/prospects\/\$\{prospectId\}\/website-review/);
   assert.match(commercialLifecycleE2e, /Prepare & Email/);
   assert.match(commercialLifecycleE2e, /Send email/);
   assert.match(commercialLifecycleE2e, /direction: "inbound"/);

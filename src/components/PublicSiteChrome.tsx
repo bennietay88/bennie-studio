@@ -105,7 +105,7 @@ export function PublicSiteHeader() {
           </span>
         </Link>
 
-        <div className="hidden items-center gap-4 lg:flex xl:gap-7">
+        <div className="hidden items-center gap-4 xl:flex xl:gap-7">
           {publicNavItems.map((item) => (
             <Link
               key={item.href}
@@ -120,26 +120,26 @@ export function PublicSiteHeader() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center gap-3 xl:flex">
           <Link to={user ? "/dashboard" : "/login"} className="px-2 py-2 text-sm font-semibold text-[#697386] transition hover:text-[#5b4bff]">
             {user ? "Dashboard" : "Client login"}
           </Link>
           <Link
-            to={user ? "/dashboard" : "/book-demo"}
-            onClick={() => !user && trackPublicEvent({ eventType: "sales_cta_clicked", label: "Header discuss website", target: "/book-demo" })}
+            to={user ? "/dashboard" : "/generate-preview"}
+            onClick={() => !user && trackPublicEvent({ eventType: "sales_cta_clicked", label: "Header free website direction", target: "/generate-preview" })}
             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#5746e8]"
           >
-            {user ? "Open Studio" : "Discuss my website"} <span className="ml-2">→</span>
+            {user ? "Open Studio" : "See free website direction"} <span className="ml-2">→</span>
           </Link>
         </div>
 
-        <Button ref={mobileTriggerRef} type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="shrink-0 lg:hidden" aria-label="Open navigation menu" aria-expanded={mobileOpen} aria-controls="public-mobile-navigation">
+        <Button ref={mobileTriggerRef} type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="shrink-0 xl:hidden" aria-label="Open navigation menu" aria-expanded={mobileOpen} aria-controls="public-mobile-navigation">
           <Menu className="h-5 w-5" />
         </Button>
       </nav>
 
       {mobileOpen ? (
-        <div className="fixed inset-0 z-[100] bg-[#07101f]/60 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
+        <div className="fixed inset-0 z-[100] bg-[#07101f]/60 backdrop-blur-sm xl:hidden" onClick={() => setMobileOpen(false)}>
           <div ref={mobileDialogRef} tabIndex={-1} id="public-mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="absolute right-0 top-0 flex h-dvh w-[min(92vw,390px)] flex-col bg-white p-6 shadow-2xl focus:outline-none" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-[#e5e7ef] pb-5">
               <span className="text-lg font-semibold tracking-[-0.03em] text-[#0d1426]">Bennie Studio</span>
@@ -152,7 +152,7 @@ export function PublicSiteHeader() {
             </div>
             <div className="mt-auto grid gap-3 border-t border-[#e5e7ef] pt-5">
               <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#cfd4df] px-5 text-sm font-semibold text-[#0d1426]">{user ? "Dashboard" : "Client login"}</Link>
-              <Link to={user ? "/dashboard" : "/book-demo"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{user ? "Open Studio" : "Discuss my website"} →</Link>
+              <Link to={user ? "/dashboard" : "/generate-preview"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{user ? "Open Studio" : "See free website direction"} →</Link>
             </div>
           </div>
         </div>

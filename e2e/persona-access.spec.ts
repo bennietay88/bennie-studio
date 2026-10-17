@@ -155,6 +155,15 @@ async function signInAs(page: Page, persona: Persona, state?: CustomerState) {
   await page.getByTestId("auth-submit").click();
   const expected = persona.role === "super_admin" || persona.role === "platform_staff" ? "/admin" : "/dashboard";
   await page.waitForURL((url) => url.pathname === expected);
+  if (expected === "/dashboard") {
+    // waitForURL observes the auth redirect before the dashboard's lazy chunks
+    // finish loading. Settling the shell here prevents the next direct route
+    // navigation from cancelling those imports in Firefox and WebKit.
+    await page
+      .getByRole("link", { name: "Overview", exact: true })
+      .or(page.getByRole("heading", { name: "Subscription access paused" }))
+      .waitFor({ state: "visible" });
+  }
 }
 
 test("business admin can open team management", async ({ page }) => {

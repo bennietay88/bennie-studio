@@ -26,7 +26,7 @@ const samples = {
   dental: {
     name: "SmileHaus Dental Clinic",
     eyebrow: "Dental Clinic Concept Case Study",
-    headline: "Gentle dental care, built for bookings.",
+    headline: "Gentle dental care, made easy.",
     description:
       "A clinic-ready website demo with treatment explanations, dentist trust sections, WhatsApp booking, patient FAQs, operating hours, and local search structure for Kuala Lumpur patients.",
     challenge: "Patients need treatment clarity, practitioner reassurance, and location confidence before they are ready to book.",
@@ -280,7 +280,7 @@ export default function WaasSamplePage() {
             <Badge className={`mb-6 w-fit rounded-full px-4 py-2 hover:opacity-100 ${sample.soft}`}>
               {sample.eyebrow}
             </Badge>
-            <h1 className="text-4xl font-black leading-none tracking-tight sm:text-6xl lg:text-7xl">
+            <h1 className="max-w-[28ch] text-4xl font-black leading-none tracking-tight sm:text-6xl lg:text-6xl">
               {sample.headline}
             </h1>
             <p className="mt-8 max-w-2xl text-lg font-medium leading-8 text-slate-600">

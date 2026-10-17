@@ -82,6 +82,7 @@ import { HANDOVER_GRACE_DAYS, handoverGraceUntil, subscriptionAllowsPermanentDel
 import { nextStepForSubmission } from "../src/lib/funnelEngine.js";
 import { processDueFunnelWorkflowRuns, runFunnelAutomations } from "../server/funnelAutomation.js";
 import { runFinalLaunchCrawler } from "../server/finalLaunchQa.js";
+import { isNewIntroOfferCustomer } from "./introOfferEligibility.js";
 
 dotenv.config();
 initServerObservability();
@@ -9801,6 +9802,23 @@ async function startServer() {
     return res.json({ success: true, permissions: body.permissions });
   });
 
+  // Optional acquisition offer for NEW customers only. A one-time fixed-value
+  // coupon offsets the first monthly charge, not future recurring invoices.
+  // This preserves immediate setup payment and normal paid-subscription activation.
+  const INTRO_OFFER_CODE = "FIRST_MONTH_FREE_12M";
+  const INTRO_OFFER_TERM_MONTHS = 12;
+  async function createIntroOfferCoupon(stripe: any, amount: number, currency: string, reference: string) {
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error("INTRO_OFFER_INVALID_AMOUNT");
+    return stripe.coupons.create({
+      amount_off: Math.round(amount * 100),
+      currency: currency.toLowerCase(),
+      duration: "once",
+      max_redemptions: 1,
+      name: "First managed-service month free — 12-month commitment",
+      metadata: { offerCode: INTRO_OFFER_CODE, checkoutReference: reference },
+    }, { idempotencyKey: `bt-firstmonth12-${crypto.createHash("sha256").update(`${reference}:${currency}:${amount}`).digest("hex")}` });
+  }
+
   app.post(
     "/api/public/plan-checkout",
     rateLimit({ windowMs: 60 * 60 * 1000, max: 5, keyPrefix: "public-plan-checkout" }),
@@ -9811,6 +9829,7 @@ async function startServer() {
         currency: z.enum(["USD", "GBP", "MYR", "SGD"]).optional().default("USD"),
         customerEmail: EMAIL_SCHEMA.optional().nullable(),
         referralCode: z.string().trim().max(120).optional().nullable(),
+        introOffer: z.literal("FIRST_MONTH_FREE_12M").optional(),
         termsAccepted: z.literal(true),
       }), req, res);
       if (!body) return;
@@ -9846,10 +9865,17 @@ async function startServer() {
 
         const monthly = Number(price.recurring_monthly_price || 0);
         const setup = Number(price.recurring_setup_fee || 0);
-        const termMonths = getMinimumTermMonths({ minimumTermMonths: price.minimum_term_months }, COMMERCIAL_RECURRING_COMMITMENT_MONTHS);
+        const isIntroOffer = body.introOffer === INTRO_OFFER_CODE;
+        if (isIntroOffer && !body.customerEmail) {
+          return res.status(400).json({ error: "Enter your email to check introductory offer eligibility." });
+        }
+        const termMonths = isIntroOffer ? INTRO_OFFER_TERM_MONTHS : getMinimumTermMonths({ minimumTermMonths: price.minimum_term_months }, COMMERCIAL_RECURRING_COMMITMENT_MONTHS);
         const termsAcceptedAt = new Date().toISOString();
         const checkoutRef = crypto.randomUUID();
         const stripe = await getStripe();
+        if (isIntroOffer && !(await isNewIntroOfferCustomer(body.customerEmail, stripe, supabaseAdmin))) {
+          return res.status(409).json({ error: "This offer is available to new Bennie Studio customers only." });
+        }
         // Test-mode QA cannot use live-mode Price IDs from the commercial
         // catalogue. Build equivalent inline prices only when the deployment
         // is explicitly configured with the Stripe test key and test flag.
@@ -9908,6 +9934,7 @@ async function startServer() {
           if (setup > 0) await verifyStripePrice(price.recurring_stripe_setup_price_id, setup, false);
         }
 
+        const introCoupon = isIntroOffer ? await createIntroOfferCoupon(stripe, monthly, String(price.currency || commercialCurrencyForMarket(market)), checkoutRef) : null;
         const affiliateAttribution = await resolvePlatformAffiliateAttribution(body.referralCode);
 
         const { data: business, error: businessError } = await supabaseAdmin
@@ -9942,6 +9969,7 @@ async function startServer() {
           tax_id_collection: { enabled: true },
           ...(body.customerEmail ? { customer_email: body.customerEmail } : {}),
           line_items: lineItems,
+          ...(introCoupon ? { discounts: [{ coupon: introCoupon.id }] } : {}),
           success_url: `${publicAppUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}&public_order=1&preview_id=${encodeURIComponent(checkoutRef)}&direct_checkout=1`,
           cancel_url: `${publicAppUrl()}/pricing?product=${encodeURIComponent(product.slug)}&cancelled=1`,
           metadata: {
@@ -9950,6 +9978,8 @@ async function startServer() {
             market,
             currency: price.currency || commercialCurrencyForMarket(market),
             termMonths: String(termMonths),
+            introOffer: isIntroOffer ? INTRO_OFFER_CODE : "",
+            introOfferDiscount: isIntroOffer ? String(monthly) : "0",
             previewId: checkoutRef,
             publicOrder: "1",
             directCheckout: "1",
@@ -9967,6 +9997,7 @@ async function startServer() {
               directCheckout: "1",
               affiliateId: affiliateAttribution?.id || "",
               termMonths: String(termMonths),
+              introOffer: isIntroOffer ? INTRO_OFFER_CODE : "",
               termsVersion: COMMERCIAL_TERMS_VERSION,
               termsAcceptedAt,
             },
@@ -9983,7 +10014,9 @@ async function startServer() {
           url: session.url,
           checkoutRef,
           businessId: business.id,
-          dueToday: monthly + setup,
+          dueToday: setup + (isIntroOffer ? 0 : monthly),
+          introOfferDiscount: isIntroOffer ? monthly : 0,
+          introOffer: isIntroOffer ? INTRO_OFFER_CODE : null,
           monthly,
           setup,
           currency: price.currency || commercialCurrencyForMarket(market),
@@ -10019,6 +10052,7 @@ async function startServer() {
         productSlug: z.enum(["managed-website", "website-growth", "growth-partner"]),
         currency: z.enum(["USD", "GBP", "MYR", "SGD"]).optional().default("USD"),
         referralCode: z.string().trim().max(120).optional().nullable(),
+        introOffer: z.literal("FIRST_MONTH_FREE_12M").optional(),
         termsAccepted: z.literal(true),
       }), req, res);
       if (!body) return;
@@ -10078,9 +10112,14 @@ async function startServer() {
 
         const monthly = Number(price.recurring_monthly_price || 0);
         const setup = Number(price.recurring_setup_fee || 0);
-        const termMonths = getMinimumTermMonths({ minimumTermMonths: price.minimum_term_months }, COMMERCIAL_DEFAULT_COMMITMENT_MONTHS);
+        const isIntroOffer = body.introOffer === INTRO_OFFER_CODE;
+        const stripe = await getStripe();
+        if (isIntroOffer && !(await isNewIntroOfferCustomer(body.email, stripe, supabaseAdmin))) {
+          return res.status(409).json({ error: "This offer is available to new Bennie Studio customers only." });
+        }
+        const termMonths = isIntroOffer ? INTRO_OFFER_TERM_MONTHS : getMinimumTermMonths({ minimumTermMonths: price.minimum_term_months }, COMMERCIAL_DEFAULT_COMMITMENT_MONTHS);
         const termsAcceptedAt = new Date().toISOString();
-        const dueToday = monthly + setup;
+        const dueToday = setup + (isIntroOffer ? 0 : monthly);
         const referralCode =
           body.referralCode
           || lead.raw_fields?.referralCode
@@ -10171,9 +10210,14 @@ async function startServer() {
           monthlyPrice: monthly,
           currency: price.currency || "USD",
           minimumTermMonths: termMonths,
+          introOffer: isIntroOffer ? INTRO_OFFER_CODE : null,
+          discountAmount: isIntroOffer ? monthly : 0,
         }];
 
-        let orderId = existingOrder?.id || null;
+        // Do not reuse an order created under different price/commitment terms.
+        let orderId = existingOrder?.items?.[0]?.introOffer === (isIntroOffer ? INTRO_OFFER_CODE : null)
+          && Number(existingOrder?.items?.[0]?.minimumTermMonths || 0) === termMonths
+          ? existingOrder?.id || null : null;
         if (!orderId) {
           const { data: order, error: orderError } = await supabaseAdmin
             .from("orders")
@@ -10191,7 +10235,6 @@ async function startServer() {
           orderId = order.id;
         }
 
-        const stripe = await getStripe();
         const lineItems: any[] = [
           { price: price.recurring_stripe_monthly_price_id, quantity: 1 },
         ];
@@ -10221,6 +10264,7 @@ async function startServer() {
         };
         await verifyStripePrice(price.recurring_stripe_monthly_price_id, monthly, true);
         if (setup > 0) await verifyStripePrice(price.recurring_stripe_setup_price_id, setup, false);
+        const introCoupon = isIntroOffer ? await createIntroOfferCoupon(stripe, monthly, String(price.currency || "USD"), body.previewId) : null;
 
         const session = await stripe.checkout.sessions.create({
           mode: "subscription",
@@ -10230,6 +10274,7 @@ async function startServer() {
           tax_id_collection: { enabled: true },
           customer_email: body.email,
           line_items: lineItems,
+          ...(introCoupon ? { discounts: [{ coupon: introCoupon.id }] } : {}),
           success_url: `${publicAppUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}&public_order=1&preview_id=${encodeURIComponent(body.previewId)}`,
           cancel_url: `${publicAppUrl()}/preview-order?cancelled=1`,
           metadata: {
@@ -10238,6 +10283,8 @@ async function startServer() {
             market,
             currency: price.currency || "USD",
             termMonths: String(termMonths),
+            introOffer: isIntroOffer ? INTRO_OFFER_CODE : "",
+            introOfferDiscount: isIntroOffer ? String(monthly) : "0",
             orderId,
             leadId: lead.id,
             previewId: body.previewId,
@@ -10257,6 +10304,7 @@ async function startServer() {
               publicOrder: "1",
               affiliateId: affiliateAttribution?.id || "",
               termMonths: String(termMonths),
+              introOffer: isIntroOffer ? INTRO_OFFER_CODE : "",
               termsVersion: COMMERCIAL_TERMS_VERSION,
               termsAcceptedAt,
             },
@@ -10273,6 +10321,7 @@ async function startServer() {
           next_follow_up_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
           raw_fields: {
             ...(lead.raw_fields || {}),
+            introOffer: isIntroOffer ? INTRO_OFFER_CODE : null,
             selectedProduct: product.slug,
             checkoutOrderId: orderId,
             checkoutStartedAt: new Date().toISOString(),

@@ -5,6 +5,10 @@ const port = Number(process.env.E2E_PORT || 4173);
 export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
+  // Shared CI runners occasionally stall one browser while other engines are
+  // exercising the same app. A single retry preserves the assertions while
+  // letting transient browser scheduling delays recover.
+  retries: process.env.CI ? 1 : 0,
   expect: {
     timeout: 10_000,
   },

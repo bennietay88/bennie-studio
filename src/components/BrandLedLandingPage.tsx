@@ -25,7 +25,7 @@ import {
   getStoredMarket,
 } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
-import { DELIVERY_STANDARD_VERSION, PUBLIC_DELIVERY_PROMISES } from "../constants/deliveryStandards";
+import { PUBLIC_DELIVERY_PROMISES } from "../constants/deliveryStandards";
 
 const CONSENT_KEY = "bt_sales_cookie_consent";
 const CONSENT_VERSION = "uk-sales-consent-v1";
@@ -119,7 +119,7 @@ const faqs = [
   ["What happens after launch?", "Managed plans include hosting, maintenance, tracking and plan-based updates. Higher tiers add deeper conversion, landing-page, SEO and growth work."],
   ["Can I preview the website before paying?", "Yes. The free website direction gives you a tailored starting point, not a finished or published website. You can also view clearly labelled concept examples before sharing your own business brief. No card is required for a direction preview."],
   ["Who supplies text and photos?", "You provide accurate business information, approvals, branding and any assets you wish us to use. The plan's content and design scope is confirmed in your order; additional content production or professional photography is quoted separately where needed."],
-  ["What does the first payment cover?", "The first payment ordinarily combines the one-time setup fee and the first month of managed service. View the current amount in your chosen billing currency, applicable term and plan scope on the pricing page before you accept the order."],
+  ["What does the first payment cover?", "Normally, setup plus the first monthly managed-service fee. New customers choosing the optional 12-month introductory offer receive the first monthly service fee free, so only the one-time setup fee is due initially (before tax). Normal monthly service fees begin in month 2. The 12-month initial obligation and total cost are shown before checkout."],
   ["Can I cancel or move my website?", "Review the initial minimum term, renewal and cancellation notice in the Terms before payment. Your domain and supplied business assets remain yours; any website export or transfer is subject to the written managed-platform and handover terms. A standalone source-code export is not automatically included."],
   ["Do you use AI or automation?", "Yes. Modern tools help accelerate parts of production, but strategy, design decisions, review, QA and launch remain human-guided. Raw automated output is not published as a finished customer website."],
 ];
@@ -213,9 +213,9 @@ function SystemVisual() {
 
 function WorkShowcase() {
   const examples = [
-    { title: "Residential renovation website", eyebrow: "Trust and quotation requests", index: 3, sample: "contractor", label: "Home services", scenario: "Client A", copy: "Fictional renovation-company brief: make completed work easy to explore and put a useful quotation path next to each service." },
-    { title: "Professional advisory website", eyebrow: "Credibility and consultation", index: 0, sample: "consultant", label: "Professional services", scenario: "Client B", copy: "Fictional advisory-firm brief: make expertise understandable and give prospective customers a clear way to book a consultation." },
-    { title: "Modern dental clinic website", eyebrow: "Clarity and appointment booking", index: 1, sample: "dental", label: "Healthcare", scenario: "Client C", copy: "Fictional dental-practice brief: explain treatments and practitioner information and make appointment requests easy to find." },
+    { title: "Residential renovation website", eyebrow: "Trust and quotation requests", index: 3, sample: "contractor", label: "Home services", scenario: "Concept 01", copy: "A project-first layout that makes services, finished-work galleries and quotation requests easy to explore." },
+    { title: "Professional advisory website", eyebrow: "Credibility and consultation", index: 0, sample: "consultant", label: "Professional services", scenario: "Concept 02", copy: "An authority-led layout that introduces services clearly and gives visitors a direct consultation route." },
+    { title: "Modern dental clinic website", eyebrow: "Clarity and appointment booking", index: 1, sample: "dental", label: "Healthcare", scenario: "Concept 03", copy: "A patient-focused layout with clear treatment explanations, practitioner details and appointment enquiries." },
   ] as const;
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -223,12 +223,11 @@ function WorkShowcase() {
         <article key={item.title} className="group overflow-hidden rounded-[1.2rem] border border-[#e0e3ec] bg-white shadow-[0_24px_65px_-50px_rgba(15,23,42,.28)] transition hover:-translate-y-1 hover:shadow-[0_30px_80px_-52px_rgba(15,23,42,.36)]">
           <WebsiteConceptVisual title={item.title} eyebrow={item.eyebrow} index={item.index} className="rounded-none border-b border-slate-200 shadow-none" />
           <div className="p-6">
-            <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#5746e8]">{item.scenario} · Fictional brief · {item.label}</p>
+            <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#5746e8]">{item.scenario} · {item.label}</p>
             <h3 className="mt-3 text-xl font-semibold text-[#152032]">{item.title}</h3>
             <p className="mt-3 text-sm leading-7 text-[#5b687a]">{item.copy}</p>
-            <p className="mt-3 text-xs leading-5 text-[#7e8796]">Independent concept project; no client commissioned this work and no business results are claimed.</p>
             <Link to={`/portfolio/sample/${item.sample}`} onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: `View ${item.label} example`, target: `/portfolio/sample/${item.sample}` })} className="mt-5 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#5746e8] hover:underline">
-              Explore design decisions <ArrowRight className="h-4 w-4" />
+              View this website concept <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </article>
@@ -367,22 +366,23 @@ export default function BrandLedLandingPage() {
           <div className="brand-shell relative grid gap-14 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
             <div className="lg:col-span-6">
               <p className="brand-kicker !text-[#b9b1ff]">Done-for-you websites for service businesses</p>
-              <h1 className="bt-sales-hero-title mt-5 !text-white">Your business website, <span className="bt-gradient-title block">built and managed for you.</span></h1>
+              <h1 className="bt-sales-hero-title mt-5 !text-white">Look credible. <span className="bt-gradient-title block">Make enquiries easy.</span></h1>
               <p className="brand-copy brand-muted-on-dark mt-7 !max-w-xl">
-                Bennie Studio designs, launches and looks after professional websites for service businesses. We make it easier for customers to understand your services and get in touch, while managing hosting, maintenance and agreed updates.
+                Give customers a professional, mobile-ready place to understand your services and contact you. Bennie Studio handles the website strategy, design, launch, hosting and agreed updates, so you can focus on your clients.
               </p>
+              <div className="mt-7 inline-flex max-w-xl flex-col gap-1 border border-indigo-300/30 bg-indigo-400/10 px-4 py-3 text-sm text-white"><strong className="!text-white">See your website direction before deciding</strong><span className="!text-white/80">Get a tailored starting concept for your business. No payment card required.</span></div>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <button type="button" onClick={() => go("/book-demo", "Hero discuss managed website")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
-                  Discuss my website <ArrowRight className="ml-2 h-4 w-4" />
+                <button type="button" onClick={() => go("/generate-preview", "Hero free website direction")} className="inline-flex min-h-12 items-center justify-center bg-white px-6 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
+                  See my free website direction <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
                 <button type="button" onClick={() => go("/pricing", "Hero view managed website pricing")} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 font-semibold text-white transition hover:bg-white/[0.08]">
                   View plans & pricing
                 </button>
               </div>
               <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm !text-white/65">
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Clear scope and costs</span>
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Reviewed before launch</span>
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Managed after launch</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Free website direction, no card required</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Your approval before launch</span>
+                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Clearly disclosed recurring costs</span>
               </div>
               <p className="mt-5 text-sm leading-6 !text-white/70">
                 {pricingLoading
@@ -392,9 +392,13 @@ export default function BrandLedLandingPage() {
                   : <>Plans from {formatCommercialMoney(getCommercialPrice(managed, market)?.monthlyPrice, getCommercialPrice(managed, market)?.currency || "USD")}/month plus {formatCommercialMoney(getCommercialPrice(managed, market)?.setupFee, getCommercialPrice(managed, market)?.currency || "USD")} one-time setup.</>}{" "}
                 <Link to="/pricing" className="font-semibold text-white underline underline-offset-4">See first payment, full scope & commitment</Link>
               </p>
+              <p className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs !text-white/70">
+                <span>Launch offer: first month of management free with the optional 12-month plan. Setup fee still applies.</span>
+                <Link to="/pricing" className="font-semibold text-white underline underline-offset-4">Compare offers</Link>
+              </p>
               <p className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs !text-white/60">
-                <Link to="/case-studies" className="underline underline-offset-4">View labelled examples</Link>
-                <Link to="/website-audit" className="underline underline-offset-4">Optional website audit</Link>
+                <Link to="/case-studies" className="underline underline-offset-4">Explore design examples</Link>
+                <Link to="/book-demo" className="underline underline-offset-4">Prefer to talk? Ask us a question</Link>
               </p>
             </div>
 
@@ -417,38 +421,31 @@ export default function BrandLedLandingPage() {
 
         <section className="border-y border-[#dfe2ea] bg-white">
           <div className="brand-shell brand-section">
+            <div className="mb-10 grid gap-5 border border-[#dfe2ea] bg-[#f8f8ff] p-5 sm:p-7 md:grid-cols-3" aria-label="Your first steps with Bennie Studio">
+              <div><p className="text-xs font-bold uppercase tracking-wider text-[#5746e8]">01 · Explore</p><p className="mt-2 text-base font-semibold text-[#141821]">See a free website direction</p><p className="mt-2 text-sm leading-6 text-[#526071]">Share your business and see an illustrative starting direction before making a purchasing decision.</p></div>
+              <div><p className="text-xs font-bold uppercase tracking-wider text-[#5746e8]">02 · Understand</p><p className="mt-2 text-base font-semibold text-[#141821]">Confirm the full costs and scope</p><p className="mt-2 text-sm leading-6 text-[#526071]">Review page count, revisions, monthly service, setup fee, commitment and handover terms before payment.</p></div>
+              <div><p className="text-xs font-bold uppercase tracking-wider text-[#5746e8]">03 · Approve</p><p className="mt-2 text-base font-semibold text-[#141821]">Launch only after your review</p><p className="mt-2 text-sm leading-6 text-[#526071]">A paid website goes through studio checks and your approval before publication. Managed support follows.</p></div>
+            </div>
             <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-7">
-                <p className="brand-kicker">Illustrative website concepts</p>
-                <h2 className="mt-4">Explore what your website could look like.</h2>
+                <p className="brand-kicker">Selected website concept demos</p>
+                <h2 className="mt-4">Imagine your business looking this good.</h2>
               </div>
-              <p className="brand-copy lg:col-span-5">Three distinct, fully composed website concepts. Each shows the kind of responsive presentation, credible messaging and enquiry path we can build around a real business.</p>
+              <p className="brand-copy lg:col-span-5">Explore three approaches to presenting services, building confidence and making it easy for customers to enquire.</p>
             </div>
 
             <div className="mt-11"><WorkShowcase /></div>
             <div className="mt-5 flex flex-col gap-4 border border-[#dfe2ea] bg-[#f8f8ff] p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#141821]">What are these website examples?</p>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-[#687386]">These are fictional brand concepts demonstrating visual quality; the businesses and photographs are illustrative. See the separate multi-platform portfolio library for more inspiration. Genuine customer evidence is shown only with approval.</p>
+                <p className="text-sm font-semibold text-[#141821]">Explore our design concepts</p>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-[#687386]">These are original studio concepts—not commissioned client projects. See how the layout, messaging and enquiry journey could work for your business.</p>
               </div>
-              <a href="https://portfolio.bennietay.com/" target="_blank" rel="noopener noreferrer" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Portfolio library", target: "https://portfolio.bennietay.com/" })} className="inline-flex min-h-11 shrink-0 items-center justify-center border border-[#dfe2ea] bg-white px-5 text-sm font-semibold text-[#141821] hover:border-[#5746e8]">Open portfolio library <ArrowRight className="ml-2 h-4 w-4" /></a>
+              <a href="https://portfolio.bennietay.com/" target="_blank" rel="noopener noreferrer" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Portfolio library", target: "https://portfolio.bennietay.com/" })} className="inline-flex min-h-11 shrink-0 items-center justify-center border border-[#dfe2ea] bg-white px-5 text-sm font-semibold text-[#141821] hover:border-[#5746e8]">Browse more website ideas <ArrowRight className="ml-2 h-4 w-4" /></a>
             </div>
 
             <button onClick={() => go("/case-studies", "Homepage all examples")} className="mt-8 inline-flex items-center font-semibold">
               View all website work <ArrowRight className="ml-2 h-4 w-4" />
             </button>
-          </div>
-        </section>
-
-        <section aria-label="Choose a website engagement" className="border-y border-[#dfe2ea] bg-[#f8f8ff]">
-          <div className="brand-shell py-8 sm:py-10">
-            <h2 className="text-2xl font-semibold text-[#141821]">Need ongoing management, or a website you own?</h2>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-[#566074]">Bennie Studio is for owners who want a continuing website service, including hosting, maintenance and agreed updates. If you prefer a fixed-price build with your own WordPress website and no required SiteSprint subscription, choose the dedicated owned-website service.</p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link to="/book-demo" className="inline-flex min-h-11 items-center bg-[#141821] px-5 text-sm font-semibold text-white">Discuss managed website service <ArrowRight className="ml-2 h-4 w-4" /></Link>
-              <a href="https://sitesprint.bennietay.com/pricing" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center border border-[#c9cce0] bg-white px-5 text-sm font-semibold text-[#141821]">Compare owned WordPress packages ↗</a>
-              <a href="https://web.bennietay.com/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-[#5145bb]">Malaysia starter websites ↗</a>
-            </div>
           </div>
         </section>
 
@@ -482,8 +479,8 @@ export default function BrandLedLandingPage() {
           <div className="brand-shell brand-section">
             <div className="grid gap-10 lg:grid-cols-12">
               <div className="lg:col-span-5">
-                <p className="brand-kicker !text-[#b9b1ff]">Reviewed delivery · Standard {DELIVERY_STANDARD_VERSION}</p>
-                <h2 className="mt-4 !text-white">Nothing goes live on the first draft.</h2>
+                <p className="brand-kicker !text-[#b9b1ff]">Built with a clear review process</p>
+                <h2 className="mt-4 !text-white">Your business deserves more than a first draft.</h2>
                 <p className="mt-5 max-w-xl text-base leading-7 !text-white/65">
                   Every paid website is reviewed for message clarity, design quality, responsive behaviour and conversion logic before it reaches launch. Customer approval stays part of the process.
                 </p>

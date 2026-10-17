@@ -22,6 +22,7 @@ import { DEFAULT_POLICIES } from "../constants/defaultPolicies";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { COMMERCIAL_MARKETS, getMinimumTermMonths, getStoredMarket, type CommercialMarket } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
+import { INTRO_OFFER_CODE } from "../lib/introOffer";
 
 interface PolicyPageProps {
   type:
@@ -46,6 +47,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
   const [error, setError] = useState(false);
   const [commercialMarket] = useState<CommercialMarket>(() => getStoredMarket());
   const { products: commercialProducts, loading: commercialTermsLoading } = usePublicCommercialPricing(commercialMarket);
+  const introductoryOfferRequested = new URLSearchParams(window.location.search).get("introOffer") === INTRO_OFFER_CODE;
 
   const slugMap: Record<PolicyPageProps["type"], string> = {
     privacy: "privacy-policy",
@@ -201,6 +203,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
                       <span key={item.slug} className="border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">{item.name}: {item.months} month{item.months === 1 ? "" : "s"}</span>
                     ))}
                   </div>
+                  {introductoryOfferRequested ? <p className="mt-4 border-t border-indigo-200 pt-4 text-sm font-semibold leading-6 text-indigo-950">Optional first-month-free introductory offer: a 12-month minimum commitment applies to this new order. The first monthly managed-service fee is discounted to zero; any one-time setup fee remains payable at checkout. The normal monthly fee applies from month 2, and service continues month-to-month after month 12 subject to these Terms. The exact charges and full initial-term total are shown in the order review.</p> : null}
                   <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">The plan/market term shown on the accepted order or proposal governs that specific order if it differs from the current catalogue.</p>
                 </div>
               ) : null}

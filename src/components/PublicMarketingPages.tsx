@@ -1190,9 +1190,9 @@ function CaseStudiesPage() {
       <section className="brand-shell brand-section">
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <p className="brand-kicker">Working demonstrations</p>
-            <h2 className="mt-4">Examples of structure and conversion strategy.</h2>
-            <p className="brand-copy mt-5">These are demonstrations, not claimed customer results. Use them to inspect hierarchy, service presentation, proof placement and enquiry flow.</p>
+            <p className="brand-kicker">Explore website designs</p>
+            <h2 className="mt-4">Website ideas designed for real buying decisions.</h2>
+            <p className="brand-copy mt-5">Explore concept layouts for different types of businesses, from appointment bookings to quote requests.</p>
             <a href="https://portfolio.bennietay.com" target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center text-sm font-bold text-[#141821]">Open live portfolio <ExternalLink className="ml-2 h-4 w-4" /></a>
           </div>
           <div className="border-t border-[#dfe2ea] lg:col-span-8">
@@ -1200,13 +1200,13 @@ function CaseStudiesPage() {
               <article key={item.title} className="grid gap-6 border-b border-[#dfe2ea] py-7 md:grid-cols-[1.05fr_1fr]">
                 <TemplatePreviewThumbnail templateId={item.templateId} templateName={item.title} className="min-h-56" />
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.06em] text-[#5b4bff]">{item.industry} · demonstration</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.06em] text-[#5b4bff]">{item.industry} · concept design</p>
                   <h3 className="mt-3">{item.title}</h3>
                   <p className="mt-4 text-sm leading-6 text-[#5f6673]"><strong className="text-[#141821]">Challenge:</strong> {item.challenge}</p>
                   <p className="mt-3 text-sm leading-6 text-[#5f6673]"><strong className="text-[#141821]">Strategy:</strong> {item.strategy}</p>
-                  <p className="mt-3 text-sm leading-6 text-[#5f6673]"><strong className="text-[#141821]">Intended outcome:</strong> {item.outcome}</p>
+                  <p className="mt-3 text-sm leading-6 text-[#5f6673]"><strong className="text-[#141821]">Designed for:</strong> {item.outcome}</p>
                   <div className="mt-5 flex flex-wrap gap-2">
-                    <Link to={item.href} className={secondaryCtaClass}>Explore demo</Link>
+                    <Link to={item.href} className={secondaryCtaClass}>See the design</Link>
                     <Link to={`/generate-preview?industry=${item.industryId}&template=${item.templateId}`} className={primaryCtaClass}>Generate similar</Link>
                   </div>
                 </div>
@@ -1573,7 +1573,7 @@ function GeneratePreviewPage() {
   const [previewDevice, setPreviewDevice] = React.useState<"desktop" | "tablet" | "mobile">("desktop");
   const requestedPreviewMode = initialParams.get("mode");
   const [previewMode, setPreviewMode] = React.useState<"website" | "business">(
-    requestedPreviewMode === "business" || savedPreviewIntent.previewMode === "business" ? "business" : "website",
+    requestedPreviewMode === "website" || (!requestedPreviewMode && Boolean(initialParams.get("website"))) || (!requestedPreviewMode && savedPreviewIsCurrent && savedPreviewIntent.previewMode === "website") ? "website" : "business",
   );
   const [turnstileToken, setTurnstileToken] = React.useState("");
   const [honeypot, setHoneypot] = React.useState("");
@@ -2392,7 +2392,7 @@ function GeneratePreviewPage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#5746e8]">Preview an example first</p>
             <h2 className="mt-2 text-2xl font-semibold text-[#141821]">See the format before you share your business details.</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#526071]">Explore a clearly labelled dental clinic demonstration. It is a concept, not a real client website or an evidence-backed performance result. You do not need to enter contact information to view it.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#526071]">See a working dental clinic concept and explore the layout, mobile presentation and appointment journey. No contact information needed.</p>
           </div>
           <Link to="/portfolio/sample/dental" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Preview sample before lead form", target: "/portfolio/sample/dental" })} className="inline-flex min-h-12 shrink-0 items-center justify-center bg-[#141821] px-6 text-sm font-semibold text-white hover:bg-[#5746e8]">View sample website <ArrowRight className="ml-2 h-4 w-4" /></Link>
         </div>
@@ -2751,7 +2751,7 @@ function GeneratePreviewPage() {
                   <Button type="submit" disabled={generating} className="min-h-14 rounded-xl bg-[#6758ff] px-7 text-base font-bold text-white shadow-[0_18px_35px_-22px_rgba(103,88,255,.85)] hover:bg-[#7a6cff]">
                     {generating ? "Building your website preview..." : previewMode === "website" ? "Build preview from my URL" : "Build preview from business details"} <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <p className="max-w-md text-xs leading-5 text-slate-400">Your email links this free preview to your enquiry. No payment card is required and nothing is published without approval. See our privacy policy.</p>
+                  <p className="max-w-md text-xs leading-5 text-slate-400">Free to explore—no card required. Your email lets you return to your preview. See our privacy policy.</p>
                 </div>
               </section>
             </div>

@@ -179,8 +179,12 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   await page.route(`**/api/admin/prospects/${prospectId}/engagement`, (route) =>
     json(route, { messages: engagementMessages, tasks: [] }),
   );
-  await page.route("**/api/admin/website-audit", (route) =>
-    json(route, {
+  let reviewRequestCount = 0;
+  await page.route(`**/api/admin/prospects/${prospectId}/website-review`, (route) => {
+    reviewRequestCount += 1;
+    return json(route, {
+      reportUrl: `${appOrigin}/website-audit?report=review-e2e&key=review-key-e2e`,
+      preparedAt: new Date().toISOString(),
       report: {
         schemaVersion: 2,
         analyzedUrl: "https://example.test",
@@ -197,13 +201,14 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
           observation: "confirmed",
         }],
       },
-    }),
-  );
+    });
+  });
   await page.route(`**/api/admin/prospects/${prospectId}/outreach`, async (route) => {
     const payload = await route.request().postDataJSON();
     expect(payload.action).toBe("send");
     expect(payload.channel).toBe("email");
-    expect(String(payload.bodyText)).toContain("/website-audit?");
+    expect(String(payload.bodyText)).toContain("Primary enquiry action is not prominent");
+    expect(String(payload.bodyText)).not.toContain("/website-audit?");
     outreachSent = true;
     prospect.outreach_status = "contacted";
     engagementMessages.push({
@@ -293,16 +298,17 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   await expect(prospectRow).toBeVisible();
 
   await page.getByRole("button", { name: "Audit", exact: true }).click();
-  await expect.poll(() => Boolean(prospect.last_audit_at)).toBe(true);
-  await expect.poll(() => prospect.outreach_status).toBe("queued");
+  await expect.poll(() => reviewRequestCount).toBeGreaterThan(0);
+  await expect.poll(() => prospect.outreach_status).toBe("not_started");
 
   await page.getByRole("button", { name: "Preview", exact: true }).click();
-  await expect.poll(() => String(prospect.preview_url || "")).toContain("/website-audit?");
-  await expect.poll(() => Boolean(prospect.preview_generated_at)).toBe(true);
+  await expect.poll(() => reviewRequestCount).toBeGreaterThan(0);
+  expect(reviewRequestCount).toBeGreaterThan(0);
 
   await page.getByRole("button", { name: "Prepare & Email", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Send email outreach" })).toBeVisible();
-  await expect(page.locator("textarea").first()).toHaveValue(/\/website-audit\?/);
+  await expect(page.getByRole("heading", { name: "Review email outreach" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /Quote the exact issue you personally checked/i })).toHaveValue(/Primary enquiry action is not prominent/);
+  await expect(page.locator("textarea").last()).not.toHaveValue(/\/website-audit\?/);
   await page.getByRole("button", { name: "Send email", exact: true }).click();
   await expect.poll(() => outreachSent).toBe(true);
   await expect.poll(() => prospect.outreach_status).toBe("contacted");

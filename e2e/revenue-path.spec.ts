@@ -1,4 +1,5 @@
 import { expect, Page, Route, test } from "@playwright/test";
+import { COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice } from "../src/lib/commercialPricing";
 
 const userId = "00000000-0000-4000-8000-000000000001";
 const businessId = "00000000-0000-4000-8000-000000000101";
@@ -215,6 +216,20 @@ async function mockSupabaseAndStripe(page: Page) {
   });
 
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
+  await page.route("**/api/public/pricing**", (route) => {
+    const market = new URL(route.request().url()).searchParams.get("market") || "MY";
+    return json(route, {
+      products: COMMERCIAL_FALLBACK_PRODUCTS.map((product) => ({
+        ...product,
+        price: {
+          ...getCommercialPrice(product, market as "MY" | "SG" | "GB" | "INTL"),
+          monthlyConfigured: product.salesMotion === "self_serve",
+          recurringConfigured: product.salesMotion === "self_serve",
+          recurringConfigStatus: product.salesMotion === "self_serve" ? "live" : "draft",
+        },
+      })),
+    });
+  });
 
   const handleSupabaseRequest = async (route: Route) => {
     const request = route.request();
@@ -297,6 +312,27 @@ async function mockSupabaseAndStripe(page: Page) {
   return calls;
 }
 
+async function mockAnonymousPublicDependencies(page: Page) {
+  await page.route("https://ipapi.co/json/", (route) => json(route, { country_code: "US", country_name: "United States" }));
+  await page.route("**/auth/v1/**", (route) => json(route, { user: null, session: null }));
+  await page.route("**/rest/v1/**", (route) => json(route, []));
+  await page.route("**/api/platform-events", (route) => json(route, { success: true }));
+  await page.route("**/api/public/pricing**", (route) => {
+    const market = new URL(route.request().url()).searchParams.get("market") || "INTL";
+    return json(route, {
+      products: COMMERCIAL_FALLBACK_PRODUCTS.map((product) => ({
+        ...product,
+        price: {
+          ...getCommercialPrice(product, market as "MY" | "SG" | "GB" | "INTL"),
+          monthlyConfigured: product.salesMotion === "self_serve",
+          recurringConfigured: product.salesMotion === "self_serve",
+          recurringConfigStatus: product.salesMotion === "self_serve" ? "live" : "draft",
+        },
+      })),
+    });
+  });
+}
+
 test("covers signup and a usable billing handoff", async ({ page }) => {
   const calls = await mockSupabaseAndStripe(page);
 
@@ -355,18 +391,19 @@ test("connects the website growth review to a prefilled preview", async ({ page 
   await page.route("**/api/public/website-audit", (route) => json(route, { success: true, queued: true, jobId, status: "queued" }, 202));
 
   await page.goto("/website-audit");
-  await page.getByPlaceholder("Website URL").fill("https://example.test");
-  await page.getByPlaceholder("Business name").fill("Example Studio");
-  await page.getByPlaceholder("Email").fill("owner@example.test");
-  await page.getByRole("button", { name: /Review my website/i }).click();
+  await page.getByLabel("Website URL").fill("https://example.test");
+  await page.getByLabel("Business name").fill("Example Studio");
+  await page.getByLabel("Email").fill("owner@example.test");
+  await page.getByRole("button", { name: /Get my free website review/i }).click();
 
   await expect(page.getByRole("heading", { name: report.summary })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("What we found", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("The next enquiry action is not obvious")).toBeVisible();
   await expect(page.getByText(/\/100/)).toHaveCount(0);
 
-  await page.getByRole("link", { name: "See recommended website direction" }).click();
+  await page.getByRole("link", { name: "See a website direction" }).click();
   await expect(page).toHaveURL(/\/generate-preview/);
+  await page.getByRole("button", { name: /I already have a website/i }).click();
   await expect(page.getByText("Example Studio", { exact: true }).first()).toBeVisible();
   await expect(page.getByLabel("Current website URL")).toHaveValue("https://example.test");
 });
@@ -386,9 +423,10 @@ test("records a Growth Partner consultation through the public booking flow", as
   await page.goto("/book-demo?product=growth-partner&market=INTL");
   await expect(page).toHaveURL(/\/book-demo/);
   await page.getByLabel("Your name").fill("Jane Buyer");
-  await page.getByLabel("Work email").fill("jane@example.test");
+  await page.getByLabel("Email", { exact: true }).fill("jane@example.test");
   await page.getByRole("textbox", { name: "Business" }).fill("Example Services");
-  await page.getByLabel("Industry").fill("Professional services");
+  await page.getByText("Optional: add website details or choose a call time").click();
+  await page.getByLabel("Industry (optional)").fill("Professional services");
   await page.getByLabel(/Available 30-minute times/i).selectOption({ index: 1 });
   await page.getByRole("button", { name: /Confirm Growth Consultation/i }).click();
   await expect(page.getByRole("heading", { name: "Call confirmed" })).toBeVisible();
@@ -399,22 +437,26 @@ test("presents Managed Website as the primary homepage offer", async ({ page }) 
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /A better website\s+without the hassle\./i })).toBeVisible();
-  await expect(page.getByText(/Strategy, design and human review/i).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /See what we.d improve/i }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Look credible\.\s*Make enquiries easy\./i })).toBeVisible();
+  await expect(page.getByText(/Give customers a professional, mobile-ready place/i).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /See my free website direction/i }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true }).first()).toBeVisible();
   await expect(page.getByText(/\$49/)).toHaveCount(0);
+  await page.getByRole("button", { name: /See my free website direction/i }).first().click();
+  await expect(page).toHaveURL(/\/generate-preview$/);
+  await expect(page.getByLabel("Main service")).toBeVisible();
 });
 
 test("routes homepage industry links and pricing details to the intended destinations", async ({ page }) => {
+  await mockAnonymousPublicDependencies(page);
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
 
   await page.goto("/");
-  await page.getByRole("link", { name: "Professional Services", exact: true }).first().click();
+  await page.getByRole("link", { name: /Professional services.*Credibility, expertise/i }).first().click();
   await expect(page).toHaveURL(/\/professional-services-website-design$/);
 
   await page.goto("/");
-  await page.getByRole("button", { name: "View plan" }).nth(1).click();
+  await page.locator("article").filter({ has: page.getByRole("heading", { name: "Website Growth", exact: true }) }).getByRole("button", { name: "View plan" }).click();
   await expect(page).toHaveURL(/\/pricing#plan-website-growth$/);
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
 });
@@ -424,15 +466,19 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
   await page.route("**/auth/v1/**", (route) => json(route, { user: null, session: null }));
   await page.route("**/rest/v1/**", (route) => json(route, []));
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
-  await page.route("**/api/public/pricing**", (route) => json(route, {
-    products: [
+  await page.route("**/api/public/pricing**", (route) => {
+    const requestedMarket = new URL(route.request().url()).searchParams.get("market") || "INTL";
+    const market = requestedMarket as "MY" | "SG" | "GB" | "INTL";
+    const currency = market === "MY" ? "MYR" : market === "SG" ? "SGD" : market === "GB" ? "GBP" : "USD";
+    return json(route, {
+      products: [
       {
         slug: "managed-website",
         name: "Managed Website",
         description: "Managed website",
         productType: "managed_website",
         salesMotion: "self_serve",
-        price: { market: "INTL", currency: "USD", monthlyPrice: 89, setupFee: 299, annualPrice: null, monthlyConfigured: true, recurringConfigured: true, recurringConfigStatus: "live", billingInterval: "month" },
+        price: { market, currency, monthlyPrice: 89, setupFee: 299, annualPrice: null, monthlyConfigured: true, recurringConfigured: true, recurringConfigStatus: "live", billingInterval: "month" },
       },
       {
         slug: "website-growth",
@@ -441,7 +487,7 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
         productType: "website_growth",
         salesMotion: "self_serve",
         includesProductSlug: "managed-website",
-        price: { market: "INTL", currency: "USD", monthlyPrice: 179, setupFee: 599, annualPrice: null, monthlyConfigured: true, recurringConfigured: true, recurringConfigStatus: "live", billingInterval: "month" },
+        price: { market, currency, monthlyPrice: 179, setupFee: 599, annualPrice: null, monthlyConfigured: true, recurringConfigured: true, recurringConfigStatus: "live", billingInterval: "month" },
       },
       {
         slug: "growth-partner",
@@ -449,14 +495,16 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
         description: "Growth partner",
         productType: "growth_partner",
         salesMotion: "self_serve",
-        price: { market: "INTL", currency: "USD", monthlyPrice: 349, setupFee: 1199, annualPrice: null, monthlyConfigured: true, recurringConfigured: true, recurringConfigStatus: "live", billingInterval: "month" },
+        price: { market, currency, monthlyPrice: 349, setupFee: 1199, annualPrice: null, monthlyConfigured: true, recurringConfigured: true, recurringConfigStatus: "live", billingInterval: "month" },
       },
-    ],
-  }));
+      ],
+    });
+  });
   await page.route("**/api/public/plan-checkout", async (route) => {
     const payload = await route.request().postDataJSON();
     expect(payload.productSlug).toBe("website-growth");
     expect(payload.currency).toBe("USD");
+    expect(payload.introOffer).toBe("FIRST_MONTH_FREE_12M");
     await json(route, {
       success: true,
       url: "/checkout/success?session_id=cs_e2e_public&public_order=1&preview_id=checkout_e2e_12345678&direct_checkout=1",
@@ -477,13 +525,16 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
   await expect(plansSection).toBeVisible();
   const growthCard = plansSection.locator("article").filter({ hasText: "Website Growth" });
   await expect(growthCard).toBeVisible();
+  await page.getByRole("checkbox", { name: /new-customer offer/i }).check();
   await growthCard.getByRole("button", { name: /Choose plan/i }).click();
   await expect(page.getByRole("dialog", { name: "Order summary" })).toBeVisible();
   await expect(page.getByText(/No account is required before payment/i)).toBeVisible();
-  await page.getByLabel("Billing currency").selectOption("GBP");
-  await expect(page.getByLabel("Billing currency")).toHaveValue("GBP");
-  await page.getByLabel("Billing currency").selectOption("USD");
+  await page.getByRole("dialog", { name: "Order summary" }).getByLabel("Billing currency", { exact: true }).selectOption("GBP");
+  await expect(page.getByRole("dialog", { name: "Order summary" }).getByLabel("Billing currency", { exact: true })).toHaveValue("GBP");
+  await page.getByRole("dialog", { name: "Order summary" }).getByLabel("Billing currency", { exact: true }).selectOption("USD");
+  await expect(page.getByRole("dialog", { name: "Order summary" }).getByText("12 months")).toBeVisible();
   await page.getByRole("dialog", { name: "Order summary" }).getByRole("checkbox").check();
+  await page.getByRole("dialog", { name: "Order summary" }).getByLabel("Email for offer eligibility").fill("buyer@example.test");
   await page.getByRole("button", { name: /Continue to secure checkout/i }).click();
   await expect(page).toHaveURL(/\/checkout\/success\?/);
   await expect(page).not.toHaveURL(/\/signup/);
@@ -506,7 +557,9 @@ test("preview order carries the captured lead into payment without signup", asyn
   await page.goto("/preview-order");
   await expect(page.getByRole("heading", { name: /Turn the Example Studio direction into the real site/i })).toBeVisible();
   await expect(page.getByText(/No signup before payment/i)).toBeVisible();
-  await expect(page.getByText(/(?:90-day|3-month) initial commitment/i).first()).toBeVisible();
+  await expect(page.getByText("3 months", { exact: true })).toBeVisible();
+  await page.getByRole("checkbox", { name: /Optional: first month of management free/i }).check();
+  await expect(page.getByText(/12-month initial commitment/i).first()).toBeVisible();
   await expect(page.getByRole("button", { name: /Continue to secure checkout/i })).toBeVisible();
 });
 
@@ -632,6 +685,7 @@ test("internal sales preview asks for company and URL without requiring prospect
   await mockSupabaseAndStripe(page);
   await page.goto("/generate-preview?sales=1");
   await expect(page.getByText(/Internal mode · prospect email not required/i)).toBeVisible();
+  await page.getByRole("button", { name: /I already have a website/i }).click();
   await expect(page.getByLabel("Company name")).toBeVisible();
   await expect(page.getByLabel("Website URL").first()).toBeVisible();
 

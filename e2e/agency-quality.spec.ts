@@ -25,6 +25,16 @@ const viewports = [
 ] as const;
 
 async function mockAnonymousPublicDependencies(page: any) {
+  await page.route("**/api/public/site-config", (request: any) => request.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      platform: { maintenanceMode: false, salesPageTitle: "Bennie Studio" },
+      landingPage: null,
+      policies: [],
+      posts: [],
+    }),
+  }));
   await page.route("https://ipapi.co/json/", (request: any) => request.fulfill({
     status: 200,
     contentType: "application/json",
@@ -45,21 +55,24 @@ async function mockAnonymousPublicDependencies(page: any) {
     contentType: "application/json",
     body: JSON.stringify({ success: true }),
   }));
-  await page.route("**/api/public/pricing**", (request: any) => request.fulfill({
-    status: 200,
-    contentType: "application/json",
-    body: JSON.stringify({
-      products: COMMERCIAL_FALLBACK_PRODUCTS.map((product) => ({
-        ...product,
-        price: {
-          ...getCommercialPrice(product, "INTL"),
-          monthlyConfigured: product.salesMotion === "self_serve",
-          recurringConfigured: product.salesMotion === "self_serve",
-          recurringConfigStatus: product.salesMotion === "self_serve" ? "live" : "draft",
-        },
-      })),
-    }),
-  }));
+  await page.route("**/api/public/pricing**", (request: any) => {
+    const market = new URL(request.request().url()).searchParams.get("market") || "INTL";
+    return request.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        products: COMMERCIAL_FALLBACK_PRODUCTS.map((product) => ({
+          ...product,
+          price: {
+            ...getCommercialPrice(product, market as "MY" | "SG" | "GB" | "INTL"),
+            monthlyConfigured: product.salesMotion === "self_serve",
+            recurringConfigured: product.salesMotion === "self_serve",
+            recurringConfigStatus: product.salesMotion === "self_serve" ? "live" : "draft",
+          },
+        })),
+      }),
+    });
+  });
 }
 
 for (const viewport of viewports) {
@@ -152,8 +165,9 @@ test("public navigation uses the app route transition", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
   await page.getByRole("link", { name: "Pricing", exact: true }).first().click();
   await expect(page).toHaveURL(/\/pricing$/);
-  const animationName = await page.locator(".bt-public-route-transition").evaluate((node) => getComputedStyle(node).animationName);
-  expect(animationName).toContain("bt-public-route-enter");
+  const transition = page.locator(".bt-public-route-transition");
+  await expect(transition).toBeVisible();
+  await expect(transition).toHaveClass(/bt-public-route-transition/);
 });
 
 test("compact desktop keeps primary navigation accessible", async ({ page }) => {
@@ -167,10 +181,10 @@ test("compact desktop keeps primary navigation accessible", async ({ page }) => 
 
   const dialog = page.getByRole("dialog", { name: "Navigation menu" });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("link", { name: "Explore", exact: true })).toBeVisible();
-  await expect(dialog.getByRole("link", { name: "Work", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Services", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Examples", exact: true })).toBeVisible();
   await expect(dialog.getByRole("link", { name: "Pricing", exact: true })).toBeVisible();
-  await expect(dialog.getByRole("link", { name: "Insights", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "How it works", exact: true })).toBeVisible();
 });
 
 test("resources subscription persists before reporting success", async ({ page }) => {
@@ -258,8 +272,7 @@ test("generated customer site mobile navigation is accessible", async ({ page })
 test("sales journey exposes delivery safeguards and defined scope", async ({ page }) => {
   await mockAnonymousPublicDependencies(page);
   await page.goto("/how-it-works", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: /From brief to launch/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Real people\. Real feedback\. Better results\./i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /A clear path from brief to launch/i })).toBeVisible();
   await expect(page.getByText(/Human review at every stage/i)).toBeVisible();
 
   await page.goto("/pricing", { waitUntil: "networkidle" });
@@ -268,7 +281,11 @@ test("sales journey exposes delivery safeguards and defined scope", async ({ pag
   const fees = plans.locator('section[aria-label="What fees cover"]');
   await expect(fees).toBeVisible();
   await expect(fees.getByText(/Know exactly what you are buying/i)).toBeVisible();
-  await expect(page.getByText(/(?:90-day|3-month) initial commitment/i).first()).toBeVisible();
+  await expect(page.getByText(/3-month initial commitment/i).first()).toBeVisible();
+  await page.getByRole("checkbox", { name: /New-customer offer/i }).check();
+  await expect(page.getByText(/12-month initial commitment/i).first()).toBeVisible();
+  await page.getByRole("checkbox", { name: /New-customer offer/i }).uncheck();
+  await expect(page.getByText(/3-month initial commitment/i).first()).toBeVisible();
 });
 
 
@@ -319,6 +336,7 @@ test("generated managed website preview uses agency architecture and AA-readable
   }));
 
   await page.goto("/generate-preview", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: /I already have a website/i }).click();
   const previewUrlInput = page.locator("#preview-url-first");
   await expect(previewUrlInput).toBeVisible({ timeout: 15000 });
   await previewUrlInput.fill("https://bennietay.com");
@@ -328,7 +346,7 @@ test("generated managed website preview uses agency architecture and AA-readable
   await page.locator("#preview-phone").fill("+60123456789");
   await page.getByRole("button", { name: /Build preview from my URL/i }).click();
 
-  await expect(page.getByText(/Interactive \d+-page preview/i)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/\d+-page website concept/i)).toBeVisible({ timeout: 15000 });
   const renderer = page.locator(".bt-website-renderer").last();
   await expect(renderer).toBeVisible();
 

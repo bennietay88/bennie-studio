@@ -34,9 +34,9 @@ test("route warmup points at current public implementations", () => {
 test("homepage uses the current composed concept hero and labels illustrative proof honestly", () => {
   assert.match(homepage, /import \{ WebsiteConceptVisual \} from "\.\/WebsiteConceptVisual"/);
   assert.match(homepage, /<WebsiteConceptVisual[\s\S]*?hero[\s\S]*?className=/);
-  assert.match(homepage, /Illustrative website concepts/);
-  assert.match(homepage, /These are fictional brand concepts demonstrating visual quality/);
-  assert.match(homepage, /Genuine customer evidence is shown only with approval/);
+  assert.match(homepage, /Selected website concept demos/);
+  assert.match(homepage, /original studio concepts/i);
+  assert.match(homepage, /not commissioned client projects/i);
 });
 
 test("sitemap contains current canonical marketing routes only", () => {

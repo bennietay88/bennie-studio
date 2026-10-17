@@ -15,6 +15,7 @@ import {
 } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
+import { INTRO_OFFER_CODE, getIntroductoryQuote } from "../lib/introOffer";
 import { PLAN_DELIVERY_STANDARDS, type PublicPlanSlug } from "../constants/deliveryStandards";
 
 type PreviewIntent = {
@@ -92,6 +93,7 @@ export function PreviewOrderPage() {
   );
   const [showAlternatives, setShowAlternatives] = React.useState(false);
   const [termsAccepted, setTermsAccepted] = React.useState(false);
+  const [introOfferEnabled, setIntroOfferEnabled] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -106,8 +108,9 @@ export function PreviewOrderPage() {
   const price = selected ? getCommercialPrice(selected, checkoutMarket) : null;
   const monthly = Number(price?.monthlyPrice || 0);
   const setup = Number(price?.setupFee || 0);
-  const dueToday = monthly + setup;
-  const commitmentMonths = getMinimumTermMonths(price);
+  const introQuote = getIntroductoryQuote(monthly, setup, getMinimumTermMonths(price), introOfferEnabled);
+  const dueToday = introQuote.dueToday;
+  const commitmentMonths = introQuote.termMonths;
   const deliveryStandard = selected ? PLAN_DELIVERY_STANDARDS[selected.slug as PublicPlanSlug] : null;
   const fit = selected ? fitCopy[selected.slug] || fitCopy["website-growth"] : fitCopy["website-growth"];
   const businessName = intent.previewProfile?.businessName || intent.businessName || "Your business";
@@ -152,6 +155,7 @@ export function PreviewOrderPage() {
           productSlug: selected.slug,
           currency: checkoutCurrency,
           referralCode: intent.attribution?.referralCode || localStorage.getItem("bt_platform_affiliate_ref") || undefined,
+          introOffer: introOfferEnabled ? INTRO_OFFER_CODE : undefined,
           termsAccepted: true,
         }),
       });
@@ -301,6 +305,7 @@ export function PreviewOrderPage() {
                 {CHECKOUT_CURRENCIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
               <h2 className="mt-3 text-3xl font-semibold !text-white">{selected?.name || "Website Growth"}</h2>
+              <label className="mt-5 flex cursor-pointer gap-3 border border-indigo-300/30 bg-indigo-500/15 p-4 text-sm leading-6 text-white"><input type="checkbox" checked={introOfferEnabled} onChange={(event) => { setIntroOfferEnabled(event.target.checked); setTermsAccepted(false); }} className="mt-1 h-4 w-4 shrink-0 accent-indigo-500" /><span><strong>Optional: first month of management free</strong> with a 12-month initial commitment. Setup is payable today; regular monthly billing starts in month 2. Leave unchecked for the standard shorter term.</span></label>
 
               {loading ? <p className="mt-6 !text-white/70">Loading current price…</p> : (
                 <>
@@ -310,8 +315,8 @@ export function PreviewOrderPage() {
                       <span className="font-semibold !text-white">{formatCommercialMoney(setup, price?.currency || "USD")}</span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
-                      <span className="!text-white/70">First month</span>
-                      <span className="font-semibold !text-white">{formatCommercialMoney(monthly, price?.currency || "USD")}</span>
+                      <span className="!text-white/70">First month of service</span>
+                      <span className="font-semibold !text-white">{introOfferEnabled ? <><s className="mr-2 !text-white/50">{formatCommercialMoney(monthly, price?.currency || "USD")}</s> {formatCommercialMoney(0, price?.currency || "USD")}</> : formatCommercialMoney(monthly, price?.currency || "USD")}</span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
                       <span className="!text-white/70">Initial commitment</span>
@@ -324,7 +329,7 @@ export function PreviewOrderPage() {
                   </div>
 
                   <p className="mt-5 text-sm leading-6 !text-white/70">
-                    Then {formatCommercialMoney(monthly, price?.currency || "USD")}/month. {formatCommitmentLabel(commitmentMonths)}, then month-to-month unless the accepted order states otherwise.
+                    {introOfferEnabled ? "First month of service is discounted in full; website setup is not free. " : ""}Then {formatCommercialMoney(monthly, price?.currency || "USD")}/month from month {introOfferEnabled ? "2" : "1"}. Estimated total across the initial {commitmentMonths}-month term, including setup: {formatCommercialMoney(introQuote.totalInitialTerm, price?.currency || "USD")}, before tax. After that, month-to-month under the accepted terms.
                   </p>
                   {deliveryStandard ? (
                     <div className="mt-5 border-t border-white/15 pt-5">
@@ -336,7 +341,7 @@ export function PreviewOrderPage() {
                   ) : null}
                   <label className="mt-5 flex items-start gap-3 border border-white/15 bg-white/[0.04] p-4 text-xs font-semibold leading-5 !text-white/75">
                     <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 shrink-0" />
-                    <span>I confirm this scope, {commitmentMonths}-month initial commitment and recurring managed service, and agree to the <Link to={`/terms?market=${checkoutMarket}`} target="_blank" className="!text-[#c7c1ff] underline underline-offset-2">Terms of Service</Link> and <Link to="/privacy" target="_blank" className="!text-[#c7c1ff] underline underline-offset-2">Privacy Policy</Link>.</span>
+                    <span>I confirm this scope, {commitmentMonths}-month initial commitment and recurring managed service, and agree to the <Link to={`/terms?market=${checkoutMarket}&introOffer=${introOfferEnabled ? INTRO_OFFER_CODE : ""}`} target="_blank" className="!text-[#c7c1ff] underline underline-offset-2">Terms of Service</Link> and <Link to="/privacy" target="_blank" className="!text-[#c7c1ff] underline underline-offset-2">Privacy Policy</Link>.</span>
                   </label>
 
                   {error ? <div className="mt-5 border border-rose-300/30 bg-rose-400/10 p-4 text-sm font-semibold text-rose-100">{error}</div> : null}
