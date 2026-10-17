@@ -25,6 +25,11 @@ test("new outreach drafts present verified findings without automatically exposi
     assert.equal(hasUnresolvedEmailPlaceholders(draft), false, templateId);
     assert.match(draft, /No clear contact or booking action/);
   }
+  const introduction = buildEmailTemplateDraft("introduction", prospect, finding);
+  assert.match(introduction, /short website review/);
+  assert.doesNotMatch(introduction, /No clear contact or booking action|practical improvement|https?:\/\//);
+  const auditFollowUp = buildEmailTemplateDraft("audit-follow-up", prospect, finding);
+  assert.match(auditFollowUp, /website-audit\?report=/);
 });
 
 test("missing verified observation is blocked until a human records evidence", () => {
@@ -77,10 +82,14 @@ test("sequence enrollment never appends a website audit link to outbound message
   assert.match(api, /recommendation: body\.recommendation/);
 });
 
-test("prospect composer shows the audit fix inline and WhatsApp does not embed its review URL", () => {
+test("prospect composer keeps the first email simple and schedules the prepared audit separately", () => {
   const ui = readFileSync("src/components/SuperAdmin/ProspectExplorer.tsx", "utf8");
   assert.match(ui, /getConfirmedReviewInsight/);
-  assert.match(ui, /Recommended fix \(included in the email\)/);
-  assert.match(ui, /outreachRecommendation/);
+  assert.match(ui, /Review first email/);
+  assert.doesNotMatch(ui, /Recommended fix \(included in the email\)/);
+  assert.doesNotMatch(ui, /outreachRecommendation/);
+  const operations = readFileSync("server/salesOperations.ts", "utf8");
+  assert.match(operations, /directAuditFollowUp: true/);
+  assert.match(operations, /delayHours = 72/);
   assert.doesNotMatch(ui, /prospect\.preview_url \? ` I prepared a quick preview here:/);
 });

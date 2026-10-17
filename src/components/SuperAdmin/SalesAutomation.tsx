@@ -58,7 +58,6 @@ export function SalesAutomation() {
   const [selectedSequence, setSelectedSequence] = React.useState("");
   const [selectedContact, setSelectedContact] = React.useState("");
   const [observation, setObservation] = React.useState("");
-  const [recommendation, setRecommendation] = React.useState("");
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -88,8 +87,12 @@ export function SalesAutomation() {
 
   React.useEffect(() => { void load(); }, [load]);
 
+  const now = new Date();
   const activeSequences = sequences.filter((item) => item.status === "active");
-  const drafts = messages.filter((item) => item.status === "draft");
+  const selectedSequenceDetails = sequences.find((item) => item.id === selectedSequence);
+  const simpleIntroSequence = selectedSequenceDetails?.name === "Cold website review";
+  const drafts = messages.filter((item) => item.status === "draft" &&
+    (!item.provider_payload?.directAuditFollowUp || !item.scheduled_at || new Date(item.scheduled_at) <= now));
   const replies = messages.filter((item) => item.direction === "inbound" || item.status === "replied");
   const sentEmailMessages = messages.filter((item) => item.direction === "outbound" && item.channel === "email" && Boolean(item.sent_at));
   const repliedMessageIds = new Set(replies.map((item) => item.reply_to_message_id).filter(Boolean));
@@ -117,7 +120,6 @@ export function SalesAutomation() {
   const bounceRate = acceptedCount ? Math.round((bounceCount / acceptedCount) * 100) : null;
   const upcomingCalls = bookings.filter((item) => item.status === "booked" && new Date(item.start_at) >= new Date());
   const openTasks = tasks.filter((item) => item.status === "open");
-  const now = new Date();
   const endOfToday = new Date(now);
   endOfToday.setHours(23, 59, 59, 999);
   const overdueTasks = openTasks.filter((item) => item.due_at && new Date(item.due_at) <= now);
@@ -137,10 +139,10 @@ export function SalesAutomation() {
   const enroll = async () => {
     const contact = contacts.find((item) => `${item.kind}:${item.id}` === selectedContact);
     if (!contact || !selectedSequence) return toast.error("Choose an active sequence and contact.");
-    if (observation.trim().length < 10) return toast.error("Add one specific, verified website finding (at least 10 characters) before enrolling.");
+    if (!simpleIntroSequence && observation.trim().length < 10) return toast.error("Add one specific, verified website finding (at least 10 characters) before enrolling.");
     setWorking(true);
     try {
-      await api("/api/admin/sales-automation/enroll", { method: "POST", body: JSON.stringify({ sequenceId: selectedSequence, [contact.kind === "lead" ? "leadId" : "prospectId"]: contact.id, observation: observation.trim(), recommendation: recommendation.trim() || undefined }) });
+      await api("/api/admin/sales-automation/enroll", { method: "POST", body: JSON.stringify({ sequenceId: selectedSequence, [contact.kind === "lead" ? "leadId" : "prospectId"]: contact.id, observation: observation.trim() || undefined }) });
       toast.success("Contact enrolled. Review the first email in the approval queue.");
       setObservation("");
       await load();
@@ -237,11 +239,11 @@ export function SalesAutomation() {
 
         <TabsContent value="control" className="mt-6 space-y-6">
           <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Sequences</CardTitle></CardHeader><CardContent className="space-y-3">{sequences.map((sequence) => <div key={sequence.id} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4"><div><p className="font-black text-slate-950">{sequence.name}</p><p className="mt-1 text-xs font-semibold text-slate-500">{sequence.settings?.purpose as string || sequence.audience_type} · first message approval</p></div><Button variant="outline" onClick={() => void toggleSequence(sequence)} className="rounded-xl">{sequence.status === "active" ? <><Pause className="mr-2 h-4 w-4" /> Pause</> : <><Play className="mr-2 h-4 w-4" /> Activate</>}</Button></div>)}</CardContent></Card>
-          <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Enrol a qualified contact</CardTitle></CardHeader><CardContent className="space-y-4"><div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-950"><strong>Evidence gate:</strong> add one observation you verified on the real website. Do not use traffic, ranking, revenue, or conversion claims unless measured.</div><Select value={selectedSequence} onValueChange={setSelectedSequence}><SelectTrigger className="rounded-xl"><SelectValue placeholder="Choose an active sequence" /></SelectTrigger><SelectContent>{activeSequences.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select><Select value={selectedContact} onValueChange={(value) => { setSelectedContact(value); const match = contacts.find((item) => `${item.kind}:${item.id}` === value); setObservation(match?.observation?.split("\n")[0] || ""); setRecommendation(""); }}><SelectTrigger className="rounded-xl"><SelectValue placeholder="Choose a lead or prospect" /></SelectTrigger><SelectContent>{contacts.map((item) => <SelectItem key={`${item.kind}:${item.id}`} value={`${item.kind}:${item.id}`}>{item.name} · {item.detail}</SelectItem>)}</SelectContent></Select><Textarea value={observation} onChange={(event) => setObservation(event.target.value)} placeholder="Example: The service and location are not stated in the first screen." className="min-h-28 rounded-xl" /><Textarea value={recommendation} onChange={(event) => setRecommendation(event.target.value)} placeholder="Specific fix to include in the email, e.g. Put a Request a Quote button beside the service description." className="min-h-28 rounded-xl" /><p className="text-xs text-slate-500">The first email includes the actual finding and this fix—not an audit or preview link.</p><Button onClick={() => void enroll()} disabled={working || !activeSequences.length} className="w-full rounded-xl bg-indigo-600 text-white"><Users className="mr-2 h-4 w-4" /> Enrol and prepare first draft</Button></CardContent></Card>
+          <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Enrol a qualified contact</CardTitle></CardHeader><CardContent className="space-y-4"><div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm font-semibold leading-6 text-indigo-950">{simpleIntroSequence ? "The cold website sequence starts with a brief introduction. Its prepared website review is a separate follow-up, scheduled three days later. First messages still require approval." : "Enroll a qualified contact in an active sequence. First messages still require approval."}</div><Select value={selectedSequence} onValueChange={setSelectedSequence}><SelectTrigger className="rounded-xl"><SelectValue placeholder="Choose an active sequence" /></SelectTrigger><SelectContent>{activeSequences.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select><Select value={selectedContact} onValueChange={(value) => { setSelectedContact(value); const match = contacts.find((item) => `${item.kind}:${item.id}` === value); setObservation(match?.observation?.split("\n")[0] || ""); }}><SelectTrigger className="rounded-xl"><SelectValue placeholder="Choose a lead or prospect" /></SelectTrigger><SelectContent>{contacts.map((item) => <SelectItem key={`${item.kind}:${item.id}`} value={`${item.kind}:${item.id}`}>{item.name} · {item.detail}</SelectItem>)}</SelectContent></Select>{!simpleIntroSequence && <Textarea value={observation} onChange={(event) => setObservation(event.target.value)} placeholder="One specific, verified observation from the live website." className="min-h-24 rounded-xl" />}<p className="text-xs text-slate-500">{simpleIntroSequence ? "Prepare the recipient’s audit before enrolling them. The findings remain out of the first email." : "Keep the observation factual; do not guess rankings, traffic, revenue, or lost sales."}</p><Button onClick={() => void enroll()} disabled={working || !activeSequences.length} className="w-full rounded-xl bg-indigo-600 text-white"><Users className="mr-2 h-4 w-4" /> Enrol and prepare first draft</Button></CardContent></Card>
         </TabsContent>
 
         <TabsContent value="queue" className="mt-6 space-y-4">
-          {drafts.length === 0 ? <Empty icon={MailCheck} title="No messages need approval" description="New first-step drafts will appear here before anything can send." /> : drafts.map((message) => <Card key={message.id} className="rounded-3xl border-slate-200"><CardContent className="p-6"><div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 flex-1"><div className="flex flex-wrap gap-2"><Badge variant="outline">{message.channel}</Badge><Badge className="bg-amber-100 text-amber-800">Approval required</Badge></div><p className="mt-4 text-xs font-black uppercase tracking-wider text-slate-500">To {message.recipient}</p><p className="mt-2 font-black text-slate-950">{message.subject}</p><Textarea value={message.body_text} onChange={(event) => setMessages((current) => current.map((item) => item.id === message.id ? { ...item, body_text: event.target.value } : item))} className="mt-3 min-h-48 rounded-2xl bg-slate-50 leading-7" /></div><Button onClick={() => void approve(message)} disabled={working} className="rounded-xl bg-slate-950 text-white hover:bg-indigo-600"><Check className="mr-2 h-4 w-4" /> Approve & queue</Button></div></CardContent></Card>)}
+          {drafts.length === 0 ? <Empty icon={MailCheck} title="No messages need approval" description="First-message drafts and due audit follow-ups appear here for review." /> : drafts.map((message) => <Card key={message.id} className="rounded-3xl border-slate-200"><CardContent className="p-6"><div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 flex-1"><div className="flex flex-wrap gap-2"><Badge variant="outline">{message.channel}</Badge><Badge className="bg-amber-100 text-amber-800">Approval required</Badge></div><p className="mt-4 text-xs font-black uppercase tracking-wider text-slate-500">To {message.recipient}</p><p className="mt-2 font-black text-slate-950">{message.subject}</p><Textarea value={message.body_text} onChange={(event) => setMessages((current) => current.map((item) => item.id === message.id ? { ...item, body_text: event.target.value } : item))} className="mt-3 min-h-48 rounded-2xl bg-slate-50 leading-7" /></div><Button onClick={() => void approve(message)} disabled={working} className="rounded-xl bg-slate-950 text-white hover:bg-indigo-600"><Check className="mr-2 h-4 w-4" /> Approve & queue</Button></div></CardContent></Card>)}
         </TabsContent>
 
         <TabsContent value="calls" className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">

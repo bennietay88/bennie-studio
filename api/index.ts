@@ -8063,6 +8063,7 @@ async function startServer() {
           templateId: z.string().trim().max(80).regex(/^[a-z][a-z0-9-]*$/i).optional(),
           subject: z.string().trim().max(160).optional(),
           bodyText: z.string().trim().min(1).max(10000),
+          reviewUrl: z.string().trim().url().max(2000).nullable().optional(),
           replyToMessageId: UUID_SCHEMA.optional().nullable(),
           requestId: UUID_SCHEMA,
         }),
@@ -8129,7 +8130,7 @@ async function startServer() {
         },
         OUTREACH_OBSERVATION_REQUIRED: {
           status: 400,
-          message: "Add one specific, verified observation before sending a first-touch email.",
+          message: "Prepare a website review or add one specific verified observation before sending this follow-up.",
         },
         OUTREACH_PLACEHOLDER_UNRESOLVED: {
           status: 400,
@@ -8349,13 +8350,14 @@ async function startServer() {
       const updates: Record<string, any> = { status: "approved", updated_at: new Date().toISOString() };
       if (body.subject !== undefined) updates.subject = body.subject;
       if (body.bodyText !== undefined) updates.body_text = body.bodyText;
-      const { data: candidate, error: candidateError } = await supabaseAdmin.from("sales_messages").select("recipient,subject,body_text,status").eq("id", req.params.messageId).maybeSingle();
+      const { data: candidate, error: candidateError } = await supabaseAdmin.from("sales_messages").select("recipient,subject,body_text,status,scheduled_at,provider_payload").eq("id", req.params.messageId).maybeSingle();
       if (candidateError) throw candidateError;
       if (!candidate || candidate.status !== "draft") return res.status(409).json({ error: "Only draft messages can be approved" });
       const finalText = `${updates.subject ?? candidate.subject ?? ""}\n${updates.body_text ?? candidate.body_text ?? ""}`;
       if (/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(finalText)) return res.status(422).json({ error: "Resolve all email placeholders before approval." });
       if (await isSalesSuppressed(supabaseAdmin, normalizeSalesEmail(candidate.recipient))) return res.status(409).json({ error: "This recipient has opted out or bounced. Approval blocked." });
-      if (body.sendNow) updates.scheduled_at = new Date().toISOString();
+      const futureAuditFollowUp = candidate.provider_payload?.directAuditFollowUp && candidate.scheduled_at && new Date(candidate.scheduled_at) > new Date();
+      if (body.sendNow && !futureAuditFollowUp) updates.scheduled_at = new Date().toISOString();
       const { data, error } = await supabaseAdmin.from("sales_messages").update(updates).eq("id", req.params.messageId).eq("status", "draft").select("*").maybeSingle();
       if (error) throw error;
       if (!data) return res.status(409).json({ error: "Only draft messages can be approved" });
@@ -8373,7 +8375,7 @@ async function startServer() {
         sequenceId: UUID_SCHEMA,
         leadId: UUID_SCHEMA.optional(),
         prospectId: UUID_SCHEMA.optional(),
-        observation: z.string().trim().min(10, "Add a specific verified observation").max(1000),
+        observation: z.string().trim().max(1000).optional(),
         recommendation: z.string().trim().min(10).max(500).optional(),
       }).refine((value) => Boolean(value.leadId) !== Boolean(value.prospectId), { message: "Choose one lead or prospect" }), req, res);
       if (!body) return;
@@ -8401,8 +8403,11 @@ async function startServer() {
       if (!steps.length || steps.some((step: any) => step.channel !== "email" || !String(step.body_template || "").trim())) {
         return res.status(409).json({ error: "The sequence needs valid email steps before enrolment. WhatsApp remains manual." });
       }
+      if (steps.some((step: any) => String(step.body_template || "").includes("{{observation}}")) && String(body.observation || "").trim().length < 10) {
+        return res.status(400).json({ error: "Add one specific verified observation for this sequence." });
+      }
       const startAt = new Date();
-      const { data: enrollment, error: enrollmentError } = await supabaseAdmin.from("outreach_enrollments").insert({ sequence_id: sequence.id, lead_id: body.leadId || null, prospect_id: body.prospectId || null, status: "pending", current_step: 0, next_run_at: startAt.toISOString(), metadata: { observation: body.observation, createdBy: req.user.id } }).select("*").single();
+      const { data: enrollment, error: enrollmentError } = await supabaseAdmin.from("outreach_enrollments").insert({ sequence_id: sequence.id, lead_id: body.leadId || null, prospect_id: body.prospectId || null, status: "pending", current_step: 0, next_run_at: startAt.toISOString(), metadata: { observation: body.observation || null, createdBy: req.user.id } }).select("*").single();
       if (enrollmentError?.code === "23505") return res.status(409).json({ error: "Contact already has an active or pending sequence." });
       if (enrollmentError) throw enrollmentError;
       const rawFields = entity.raw_fields || {};
@@ -8410,9 +8415,19 @@ async function startServer() {
       const firstName = String(entity.contact_first_name || entity.contact_name || rawFields.contactFirstName || rawFields.contactName || "").trim().split(/\s+/)[0] || `${businessName} team`;
       const savedReview = typeof entity.preview_url === "string" && /\/website-audit\?/.test(entity.preview_url)
         ? entity.preview_url : "";
+      let safeSavedReview = "";
+      try {
+        const reviewUrl = new URL(savedReview, publicAppUrl());
+        if (reviewUrl.origin === new URL(publicAppUrl()).origin && reviewUrl.pathname === "/website-audit" &&
+          reviewUrl.searchParams.get("report") && reviewUrl.searchParams.get("key")) safeSavedReview = reviewUrl.toString();
+      } catch { /* Keep invalid or external report links out of scheduled email. */ }
+      if (steps.some((step: any) => String(step.body_template || "").includes("{{review_url}}")) && !safeSavedReview) {
+        return res.status(409).json({ error: "Prepare the recipient's website review before enrolling them in this sequence." });
+      }
       const values: Record<string, string> = {
-        business_name: businessName, first_name: firstName, observation: body.observation,
+        business_name: businessName, first_name: firstName, observation: body.observation || "",
         recommendation: body.recommendation || "Place a clear quote or contact action beside the relevant service and make it easy to use on mobile",
+        review_url: safeSavedReview,
       };
       let elapsedHours = 0;
       const rows = steps.map((step: any, index: number) => {
@@ -8429,7 +8444,7 @@ async function startServer() {
           status: step.requires_approval || index === 0 ? "draft" : "queued",
           scheduled_at: new Date(startAt.getTime() + elapsedHours * 3600000).toISOString(),
           provider_payload: { sequenceId: sequence.id, stepId: step.id, stepOrder: step.step_order, delayHours: step.delay_hours,
-            stopOnReply: true, templateId: `${sequence.name} / Step ${step.step_order}`, observation: body.observation, reviewUrl: savedReview || null },
+            stopOnReply: true, templateId: `${sequence.name} / Step ${step.step_order}`, observation: body.observation || null, reviewUrl: safeSavedReview || null },
         };
       });
       const { data: messages, error: messageError } = await supabaseAdmin.from("sales_messages").insert(rows).select("*");

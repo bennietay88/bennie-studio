@@ -1,17 +1,9 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
 import {
   ArrowRight,
   Check,
-  ChevronRight,
-  Layers3,
-  LineChart,
-  MousePointerClick,
-  ShieldCheck,
-  Sparkles,
-  Wrench,
 } from "lucide-react";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { trackPublicEvent } from "../lib/publicTracking";
@@ -25,7 +17,6 @@ import {
   getStoredMarket,
 } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
-import { PUBLIC_DELIVERY_PROMISES } from "../constants/deliveryStandards";
 
 const CONSENT_KEY = "bt_sales_cookie_consent";
 const CONSENT_VERSION = "uk-sales-consent-v1";
@@ -39,202 +30,15 @@ type Consent = {
   version: string;
 };
 
-const systemModules = [
-  {
-    id: "positioning",
-    step: "01",
-    label: "Positioning",
-    title: "Make the offer understandable in seconds.",
-    copy: "Define the audience, core service, evidence and strongest next step before decoration gets a vote.",
-    icon: Sparkles,
-    bullets: ["Audience and offer", "Proof hierarchy", "Primary enquiry action"],
-  },
-  {
-    id: "design",
-    step: "02",
-    label: "Design system",
-    title: "Turn strategy into a distinctive visual direction.",
-    copy: "Composition, typography, media and page hierarchy adapt to the business instead of repainting one generic template.",
-    icon: Layers3,
-    bullets: ["Brand-led composition", "Desktop + mobile", "Reusable page system"],
-  },
-  {
-    id: "conversion",
-    step: "03",
-    label: "Lead capture",
-    title: "Give intent somewhere useful to go.",
-    copy: "Calls, WhatsApp, bookings, consultation requests and quote forms are placed around how customers actually buy.",
-    icon: MousePointerClick,
-    bullets: ["Clear CTAs", "Buyer-specific paths", "Lead capture built in"],
-  },
-  {
-    id: "management",
-    step: "04",
-    label: "Managed growth",
-    title: "Keep the website useful after launch.",
-    copy: "Hosting, SSL, maintenance, analytics and plan-based improvements remain part of the service after the launch date.",
-    icon: LineChart,
-    bullets: ["Hosting + maintenance", "Analytics", "Plan-based improvement"],
-  },
-] as const;
-
-const managedComparison = [
-  ["Launch", "Project handoff", "Start of the managed service"],
-  ["Hosting + SSL", "Often separate", "Managed with the website"],
-  ["Content changes", "Quoted ad hoc", "Plan-based update allowance"],
-  ["Conversion work", "Usually launch-only", "Continues by plan"],
-  ["Ownership", "Files and handoff", "Clear business assets + managed delivery"],
-] as const;
-
-const workDirections = [
-  ["Professional services", "Authority-led", "Expertise, evidence and a clear consultation path."],
-  ["Clinics & healthcare", "Trust-led", "Patient confidence, service clarity and an easy booking path."],
-  ["Local services", "Conversion-led", "Fast proof, service-area clarity and a focused quote journey."],
-] as const;
-
-const industries = [
-  { label: "Professional services", path: "/professional-services-website-design", description: "Credibility, expertise and qualified consultation enquiries." },
-  { label: "Clinics & healthcare", path: "/clinic-website-design", description: "Patient trust, treatment clarity and appointment paths." },
-  { label: "Consultants", path: "/consultant-website-design", description: "Authority positioning, offers, proof and book-call journeys." },
-  { label: "Contractors", path: "/renovation-contractor-website-design", description: "Projects, service areas, quote requests and local trust." },
-  { label: "Accounting & finance", path: "/accounting-firm-website-design", description: "Service clarity, credentials and consultation conversion." },
-  { label: "Education", path: "/tuition-centre-website-design", description: "Programme clarity, parent confidence and trial enquiries." },
-  { label: "Beauty & wellness", path: "/beauty-salon-website-design", description: "Premium service presentation, proof and bookings." },
-  { label: "Local service businesses", path: "/local-service-website-design", description: "Fast mobile actions, reviews, service areas and quotes." },
-] as const;
-
-const process = [
-  ["01", "Strategy", "We define the audience, offer, proof and strongest enquiry path."],
-  ["02", "Design", "The system chooses the right visual structure and builds the site architecture around the business."],
-  ["03", "Review", "Bennie Studio art-directs and quality-checks the build, then you review and approve the final website before launch."],
-  ["04", "Grow", "The site stays hosted, maintained and improved as the business changes."],
-];
-
 const faqs = [
-  ["How is my website tailored?", "The page structure, hierarchy, content direction, proof placement and enquiry path are selected around your business brief, audience and strongest customer action."],
-  ["Who reviews my website before launch?", "Every paid build goes through Bennie Studio's internal creative review, responsive QA, production-quality checks and customer approval before it can be published."],
-  ["Why is there an initial commitment?", "The initial period covers strategy, build, launch and the first managed-service cycle. The current minimum term is shown on each plan and again in the order summary before payment; after it ends, service continues month-to-month under the written renewal, cancellation and transfer terms."],
-  ["What stays mine?", "Your domain and the business assets you supply remain yours. Any managed transfer, export or platform arrangements are confirmed in the written terms before payment."],
-  ["Do I need professional photography before we start?", "No. The design can launch with suitable approved assets and clear media placeholders. When real business photography is supplied, it is placed into the planned visual system."],
-  ["What happens after launch?", "Managed plans include hosting, maintenance, tracking and plan-based updates. Higher tiers add deeper conversion, landing-page, SEO and growth work."],
-  ["Can I preview the website before paying?", "Yes. The free website direction gives you a tailored starting point, not a finished or published website. You can also view clearly labelled concept examples before sharing your own business brief. No card is required for a direction preview."],
-  ["Who supplies text and photos?", "You provide accurate business information, approvals, branding and any assets you wish us to use. The plan's content and design scope is confirmed in your order; additional content production or professional photography is quoted separately where needed."],
-  ["What does the first payment cover?", "Normally, setup plus the first monthly managed-service fee. New customers choosing the optional 12-month introductory offer receive the first monthly service fee free, so only the one-time setup fee is due initially (before tax). Normal monthly service fees begin in month 2. The 12-month initial obligation and total cost are shown before checkout."],
-  ["Can I cancel or move my website?", "Review the initial minimum term, renewal and cancellation notice in the Terms before payment. Your domain and supplied business assets remain yours; any website export or transfer is subject to the written managed-platform and handover terms. A standalone source-code export is not automatically included."],
-  ["Do you use AI or automation?", "Yes. Modern tools help accelerate parts of production, but strategy, design decisions, review, QA and launch remain human-guided. Raw automated output is not published as a finished customer website."],
+  ["What do I pay to get started?", "The first payment is setup plus the first month of service. The pricing step shows your selected plan, market currency, due-today amount and full initial commitment before checkout."],
+  ["What happens after launch?", "Your plan continues to cover managed hosting, maintenance and its stated update allowance. Higher tiers include additional conversion, local SEO and growth work."],
+  ["Who approves the website before it goes live?", "Bennie Studio reviews the build, then you review and approve it before publication. Your plan covers hosting, maintenance and the stated update allowance after launch."],
+  ["What if I cancel or move my website?", "Your domain and supplied business assets remain yours. Review the plan's initial term, cancellation notice and handover options in the written terms before checkout."],
+  ["Can I see a direction before buying?", "Yes. The free preview is an illustrative starting direction, not the finished paid website. No card is required."],
 ];
 
 
-
-const serviceAssurances = [
-  [ShieldCheck, "Studio review", "A Bennie Studio review happens before the customer review stage."],
-  [Layers3, "Defined scope", "Pages, revision allowance and delivery targets are shown before payment."],
-  [Wrench, "Managed launch", "Hosting, SSL, launch QA and website publication stay under one managed workflow."],
-  [LineChart, "Ongoing service", "Updates, tracking and plan-based improvements continue after launch."],
-] as const;
-
-function ServiceAssuranceStrip() {
-  return (
-    <section className="border-b border-[#dfe2ea] bg-white" aria-label="Managed service assurances">
-      <div className="brand-shell grid sm:grid-cols-2 lg:grid-cols-4">
-        {serviceAssurances.map(([Icon, title, detail]) => (
-          <div key={title} className="border-b border-[#dfe2ea] px-5 py-6 sm:border-r lg:border-b-0 lg:px-6">
-            <Icon className="h-5 w-5 text-[#5746e8]" />
-            <p className="mt-4 font-semibold text-[#141821]">{title}</p>
-            <p className="mt-2 text-sm leading-6 text-[#687386]">{detail}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function SystemVisual() {
-  return (
-    <div className="relative min-h-[31rem] overflow-hidden rounded-[1.2rem] border border-[#20283a] bg-[#090d18] p-5 shadow-[0_34px_90px_-55px_rgba(15,23,42,.8)] sm:p-7">
-      <div className="pointer-events-none absolute -right-24 -top-20 h-72 w-72 rounded-full bg-[#6654ff]/25 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-[#8d7bff]/10 blur-3xl" />
-
-      <div className="relative mx-auto max-w-[41rem] pt-10 sm:pt-8">
-        <div className="overflow-hidden rounded-[1rem] border border-white/10 bg-[#111827] shadow-[0_36px_90px_-45px_rgba(0,0,0,.9)]">
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-            <div className="flex gap-1.5"><span className="h-2 w-2 rounded-full bg-white/20" /><span className="h-2 w-2 rounded-full bg-white/15" /><span className="h-2 w-2 rounded-full bg-white/10" /></div>
-            <span className="text-[9px] font-semibold uppercase tracking-[0.14em] !text-white/70">Managed website system</span>
-          </div>
-          <div className="grid gap-5 p-5 sm:grid-cols-[1.05fr_.95fr] sm:p-7">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.13em] !text-[#b9b1ff]">Positioning first</p>
-              <p className="mt-3 max-w-xs text-3xl font-semibold leading-[1.02] !text-white sm:text-4xl">Clear enough to trust. Built to convert.</p>
-              <p className="mt-4 max-w-sm text-xs leading-5 !text-white/70">Offer, proof and next action are decided before visual polish. The page system follows the buying journey.</p>
-              <div className="mt-6 flex gap-2">
-                <span className="bg-white px-3 py-2 text-[10px] font-semibold text-[#101827]">Primary action</span>
-                <span className="border border-white/15 px-3 py-2 text-[10px] font-semibold !text-white/65">Proof path</span>
-              </div>
-            </div>
-            <div className="grid gap-3">
-              <div className="rounded-xl bg-[#ece9ff] p-4">
-                <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#5746e8]">Proof hierarchy</p>
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  <span className="h-16 bg-white" /><span className="h-16 bg-white" /><span className="h-16 bg-white" />
-                </div>
-                <div className="mt-3 h-2 w-3/4 bg-[#c8c2ff]" />
-                <div className="mt-2 h-2 w-1/2 bg-[#d9d5ff]" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                  <MousePointerClick className="h-4 w-4 text-[#b9b1ff]" />
-                  <p className="mt-5 text-xs font-semibold !text-white">Lead capture</p>
-                  <p className="mt-1 text-[10px] leading-4 !text-white/70">One useful next step.</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                  <LineChart className="h-4 w-4 text-[#b9b1ff]" />
-                  <p className="mt-5 text-xs font-semibold !text-white">Managed growth</p>
-                  <p className="mt-1 text-[10px] leading-4 !text-white/70">Improve after launch.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute left-0 top-0 hidden -translate-x-5 rounded-xl border border-white/10 bg-[#111827]/95 p-4 shadow-xl backdrop-blur md:block">
-          <Sparkles className="h-4 w-4 text-[#b9b1ff]" />
-          <p className="mt-3 text-xs font-semibold !text-white">Strategy</p>
-          <p className="mt-1 text-[10px] !text-white/70">Audience · offer · proof</p>
-        </div>
-        <div className="absolute right-0 top-2 hidden translate-x-5 rounded-xl border border-white/10 bg-[#111827]/95 p-4 shadow-xl backdrop-blur md:block">
-          <Layers3 className="h-4 w-4 text-[#b9b1ff]" />
-          <p className="mt-3 text-xs font-semibold !text-white">Design system</p>
-          <p className="mt-1 text-[10px] !text-white/70">Hierarchy · media · type</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function WorkShowcase() {
-  const examples = [
-    { title: "Residential renovation website", eyebrow: "Trust and quotation requests", index: 3, sample: "contractor", label: "Home services", scenario: "Concept 01", copy: "A project-first layout that makes services, finished-work galleries and quotation requests easy to explore." },
-    { title: "Professional advisory website", eyebrow: "Credibility and consultation", index: 0, sample: "consultant", label: "Professional services", scenario: "Concept 02", copy: "An authority-led layout that introduces services clearly and gives visitors a direct consultation route." },
-    { title: "Modern dental clinic website", eyebrow: "Clarity and appointment booking", index: 1, sample: "dental", label: "Healthcare", scenario: "Concept 03", copy: "A patient-focused layout with clear treatment explanations, practitioner details and appointment enquiries." },
-  ] as const;
-  return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      {examples.map((item) => (
-        <article key={item.title} className="group overflow-hidden rounded-[1.2rem] border border-[#e0e3ec] bg-white shadow-[0_24px_65px_-50px_rgba(15,23,42,.28)] transition hover:-translate-y-1 hover:shadow-[0_30px_80px_-52px_rgba(15,23,42,.36)]">
-          <WebsiteConceptVisual title={item.title} eyebrow={item.eyebrow} index={item.index} className="rounded-none border-b border-slate-200 shadow-none" />
-          <div className="p-6">
-            <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#5746e8]">{item.scenario} · {item.label}</p>
-            <h3 className="mt-3 text-xl font-semibold text-[#152032]">{item.title}</h3>
-            <p className="mt-3 text-sm leading-7 text-[#5b687a]">{item.copy}</p>
-            <Link to={`/portfolio/sample/${item.sample}`} onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: `View ${item.label} example`, target: `/portfolio/sample/${item.sample}` })} className="mt-5 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#5746e8] hover:underline">
-              View this website concept <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </article>
-      ))}
-    </div>
-  );
-}
 
 export default function BrandLedLandingPage() {
   const navigate = useNavigate();
@@ -371,11 +175,8 @@ export default function BrandLedLandingPage() {
                 Get a clear, professional website built around your services and the questions customers need answered. Bennie Studio handles the design, launch, hosting and agreed updates.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <button type="button" onClick={() => go("/pricing", "Hero choose a website plan")} className="inline-flex min-h-14 items-center justify-center bg-white px-7 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
-                  See plans & pricing <ArrowRight className="ml-2 h-4 w-4" />
-                </button>
-                <button type="button" onClick={() => go("/generate-preview", "Hero free website direction")} className="min-h-11 px-3 text-sm font-semibold text-white/80 underline decoration-white/35 underline-offset-4 transition hover:text-white">
-                  Or preview a free website direction
+                <button type="button" onClick={() => { trackPublicEvent({ eventType: "sales_cta_clicked", label: "Hero compare plans", target: "#plans" }); document.getElementById("plans")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="inline-flex min-h-14 items-center justify-center bg-white px-7 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
+                  Compare the 3 plans <ArrowRight className="ml-2 h-4 w-4" />
                 </button>
               </div>
               <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm !text-white/65">
@@ -393,135 +194,51 @@ export default function BrandLedLandingPage() {
               <p className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs !text-white/70">
                 <span>Launch offer: first month of management free with the optional 12-month plan. Setup fee still applies.</span>
               </p>
-              <p className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs !text-white/60">
-                <Link to="/book-demo" className="font-semibold text-white underline underline-offset-4">Talk through your website</Link>
-              </p>
             </div>
 
             <div className="relative lg:col-span-6">
-              <div className="pointer-events-none absolute -inset-10 rounded-full bg-[#5746e8]/10 blur-3xl" />
-              <WebsiteConceptVisual
-                title="Professional service website"
-                eyebrow="Premium responsive website direction"
-                index={0}
-                hero
-                className="relative border border-white/10"
-              />
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-white/65">
-                <span>One credible, customer-focused direction — not a collage of interfaces.</span>
-                <Link to="/case-studies" className="font-semibold text-white underline underline-offset-4">See more examples</Link>
+              <div className="absolute -inset-10 rounded-full bg-[#5746e8]/10 blur-3xl" />
+              <div className="relative border border-white/12 bg-[#111827]/90 p-6 shadow-[0_35px_100px_-50px_rgba(0,0,0,.8)] sm:p-8">
+                <p className="text-xs font-bold uppercase tracking-[.14em] text-[#b9b1ff]">A website should make this clear</p>
+                <h2 className="mt-4 max-w-lg text-2xl !text-white">A clear website. One team to manage it.</h2>
+                <div className="mt-7 divide-y divide-white/10">
+                  {[
+                    ["01", "What you do", "Clear services and who they are for."],
+                    ["02", "Why trust you", "Relevant proof, credentials and real work."],
+                    ["03", "What to do next", "One easy route to enquire, book or get a quote."],
+                  ].map(([number, title, detail]) => (
+                    <div key={number} className="grid gap-2 py-4 sm:grid-cols-[2.5rem_1fr] sm:gap-4">
+                      <span className="text-xs font-bold text-[#b9b1ff]">{number}</span>
+                      <div><p className="font-semibold !text-white">{title}</p><p className="mt-1 text-sm leading-6 !text-white/60">{detail}</p></div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="border-b border-[#dfe2ea] bg-white" aria-labelledby="subscription-snapshot-title">
-          <div className="brand-shell grid gap-6 py-8 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div>
-              <p className="brand-kicker">One managed website subscription</p>
-              <h2 id="subscription-snapshot-title" className="mt-2 text-2xl">A professional website, with ongoing care included.</h2>
-              <p className="mt-2 text-sm leading-6 text-[#526071]">
-                {pricingLoading
-                  ? "Checking current regional pricing."
-                  : pricingError || !getCommercialPrice(managed, market)
-                  ? "See current local pricing and full plan terms."
-                  : <>From {formatCommercialMoney(getCommercialPrice(managed, market)?.monthlyPrice, getCommercialPrice(managed, market)?.currency || "USD")}/month, plus {formatCommercialMoney(getCommercialPrice(managed, market)?.setupFee, getCommercialPrice(managed, market)?.currency || "USD")} one-time setup.</>}
-                {" "}{formatCommitmentLabel(getMinimumTermMonths(getCommercialPrice(managed, market)))}. Eligible new customers can choose the first-month-free offer; setup still applies.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
-              <button type="button" onClick={() => go("/pricing", "Subscription snapshot choose a plan")} className="inline-flex min-h-12 items-center justify-center bg-[#141821] px-6 font-semibold text-white transition hover:bg-[#5746e8]">
-                Compare plans & subscribe <ArrowRight className="ml-2 h-4 w-4" />
-              </button>
-              <Link to="/pricing" className="text-center text-xs font-semibold text-[#526071] underline underline-offset-4">Review first payment, scope & terms</Link>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-y border-[#dfe2ea] bg-white">
+        <section className="border-y border-[#dfe2ea] bg-white" aria-labelledby="managed-value-title">
           <div className="brand-shell brand-section">
-            <div className="mb-10 grid gap-5 border border-[#dfe2ea] bg-[#f8f8ff] p-5 sm:p-7 md:grid-cols-3" aria-label="Your first steps with Bennie Studio">
-              <div><p className="text-xs font-bold uppercase tracking-wider text-[#5746e8]">01 · Explore</p><p className="mt-2 text-base font-semibold text-[#141821]">See a free website direction</p><p className="mt-2 text-sm leading-6 text-[#526071]">Share your business and see an illustrative starting direction before making a purchasing decision.</p></div>
-              <div><p className="text-xs font-bold uppercase tracking-wider text-[#5746e8]">02 · Understand</p><p className="mt-2 text-base font-semibold text-[#141821]">Confirm the full costs and scope</p><p className="mt-2 text-sm leading-6 text-[#526071]">Review page count, revisions, monthly service, setup fee, commitment and handover terms before payment.</p></div>
-              <div><p className="text-xs font-bold uppercase tracking-wider text-[#5746e8]">03 · Approve</p><p className="mt-2 text-base font-semibold text-[#141821]">Launch only after your review</p><p className="mt-2 text-sm leading-6 text-[#526071]">A paid website goes through studio checks and your approval before publication. Managed support follows.</p></div>
+            <div className="max-w-3xl">
+              <p className="brand-kicker">One team from launch through ongoing care</p>
+              <h2 id="managed-value-title" className="mt-4">A website that stays looked after.</h2>
+              <p className="brand-copy mt-4">Get the build, hosting and agreed updates under one clear plan, with the website reviewed and approved before it goes live.</p>
             </div>
-            <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
-              <div className="lg:col-span-7">
-                <p className="brand-kicker">Selected website concept demos</p>
-                <h2 className="mt-4">Imagine your business looking this good.</h2>
-              </div>
-              <p className="brand-copy lg:col-span-5">Explore three approaches to presenting services, building confidence and making it easy for customers to enquire.</p>
-            </div>
-
-            <div className="mt-11"><WorkShowcase /></div>
-            <div className="mt-5 flex flex-col gap-4 border border-[#dfe2ea] bg-[#f8f8ff] p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-[#141821]">Explore our design concepts</p>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-[#687386]">These are original studio concepts—not commissioned client projects. See how the layout, messaging and enquiry journey could work for your business.</p>
-              </div>
-              <a href="https://portfolio.bennietay.com/" target="_blank" rel="noopener noreferrer" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Portfolio library", target: "https://portfolio.bennietay.com/" })} className="inline-flex min-h-11 shrink-0 items-center justify-center border border-[#dfe2ea] bg-white px-5 text-sm font-semibold text-[#141821] hover:border-[#5746e8]">Browse more website ideas <ArrowRight className="ml-2 h-4 w-4" /></a>
-            </div>
-
-            <button onClick={() => go("/case-studies", "Homepage all examples")} className="mt-8 inline-flex items-center font-semibold">
-              View all website work <ArrowRight className="ml-2 h-4 w-4" />
-            </button>
-          </div>
-        </section>
-
-        <ServiceAssuranceStrip />
-
-        <section id="system" className="brand-shell brand-section">
-          <div className="grid gap-10 lg:grid-cols-12 lg:items-start">
-            <div className="lg:col-span-5">
-              <p className="brand-kicker">What Bennie Studio does</p>
-              <h2 className="mt-4 max-w-xl">Make the important website decisions before polishing the interface.</h2>
-              <p className="brand-copy mt-5">The work starts with what the customer needs to understand, what evidence earns trust and what action should happen next.</p>
-              <button onClick={() => go("/how-it-works", "Homepage studio process")} className="mt-7 inline-flex items-center font-semibold text-[#141821]">See the studio process <ArrowRight className="ml-2 h-4 w-4" /></button>
-            </div>
-            <div className="border-t border-[#dfe2ea] lg:col-span-7">
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
               {[
-                ["01", "Position the offer", "Clarify the audience, strongest service, evidence and reason to choose the business."],
-                ["02", "Shape the customer journey", "Decide what belongs on each page and where proof and enquiry actions need to appear."],
-                ["03", "Design for the business", "Use composition, typography, media and responsive behaviour that fit the category and brand."],
-                ["04", "Review before launch", "Check the message, design, mobile experience, forms and customer approval before publishing."],
-              ].map(([number,title,copy]) => (
-                <article key={number} className="grid gap-4 border-b border-[#dfe2ea] py-6 sm:grid-cols-[3rem_1fr]">
-                  <span className="text-xs font-bold text-[#5746e8]">{number}</span>
-                  <div><h3 className="text-lg">{title}</h3><p className="mt-2 text-sm leading-6 text-[#687386]">{copy}</p></div>
+                ["Made for your business", "Present your services, customer proof and next step clearly."],
+                ["Checked before launch", "Responsive pages and enquiry paths reviewed before your approval."],
+                ["Managed month to month", "Hosting, maintenance and the update allowance stated in your plan."],
+              ].map(([title, detail]) => (
+                <article key={title} className="border-t-2 border-[#5746e8] bg-[#f8f8ff] p-5">
+                  <h3 className="text-base">{title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[#687386]">{detail}</p>
                 </article>
               ))}
             </div>
           </div>
         </section>
-
-        <section className="border-y border-[#dfe2ea] bg-[#101827] text-white">
-          <div className="brand-shell brand-section">
-            <div className="grid gap-10 lg:grid-cols-12">
-              <div className="lg:col-span-5">
-                <p className="brand-kicker !text-[#b9b1ff]">Built with a clear review process</p>
-                <h2 className="mt-4 !text-white">Your business deserves more than a first draft.</h2>
-                <p className="mt-5 max-w-xl text-base leading-7 !text-white/65">
-                  Every paid website is reviewed for message clarity, design quality, responsive behaviour and conversion logic before it reaches launch. Customer approval stays part of the process.
-                </p>
-                <button onClick={() => go("/how-it-works", "Homepage delivery standard")} className="mt-7 inline-flex items-center font-semibold text-white">
-                  See the delivery standard <ArrowRight className="ml-2 h-4 w-4" />
-                </button>
-              </div>
-              <div className="grid gap-3 lg:col-span-7 sm:grid-cols-2">
-                {PUBLIC_DELIVERY_PROMISES.slice(0, 4).map((promise, index) => (
-                  <div key={promise} className="border border-white/15 bg-white/[0.035] p-5">
-                    <p className="text-[10px] font-black uppercase tracking-[0.12em] !text-[#b9b1ff]">
-                      0{index + 1}
-                    </p>
-                    <p className="mt-3 text-sm font-semibold leading-6 !text-white/80">{promise}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        
 
         {verifiedProof.length ? (
           <section className="brand-on-dark bg-[#0b1020]">
@@ -548,116 +265,48 @@ export default function BrandLedLandingPage() {
           </section>
         ) : null}
 
-        <section className="border-y border-[#dfe2ea] bg-[#f0efff]">
+        <section id="plans" className="scroll-mt-24 border-y border-[#dfe2ea] bg-white">
           <div className="brand-shell brand-section">
-            <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
-              <div className="lg:col-span-6">
-                <p className="brand-kicker">Built for trust-sensitive sales</p>
-                <h2 className="mt-4">Built around how customers decide.</h2>
-              </div>
-              <p className="brand-copy lg:col-span-6">Different industries need different proof, page depth and enquiry paths. The underlying system stays consistent; the buying journey does not.</p>
-            </div>
-            <div className="mt-10 grid gap-3 md:grid-cols-2">
-              {industries.map((industry, index) => (
-                <Link
-                  key={industry.label}
-                  to={industry.path}
-                  onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: `Industry ${industry.label}`, target: industry.path })}
-                  className="group grid min-h-36 grid-cols-[3rem_1fr_auto] gap-4 border border-[#d8d6f1] bg-white/75 p-5 transition hover:-translate-y-0.5 hover:border-[#b8b0ff] hover:bg-white"
-                >
-                  <span className="text-xs font-semibold text-[#5746e8]">{String(index + 1).padStart(2, "0")}</span>
-                  <span><span className="block text-lg font-semibold text-[#141821]">{industry.label}</span><span className="mt-2 block text-sm leading-6 text-[#687386]">{industry.description}</span></span>
-                  <ChevronRight className="mt-1 h-5 w-5 text-[#5746e8] transition-transform group-hover:translate-x-1" />
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="brand-shell brand-section">
-          <div className="grid gap-10 lg:grid-cols-12">
-            <div className="lg:col-span-4">
-              <p className="brand-kicker">Managed, not handed off</p>
-              <h2 className="mt-4">Launch is the beginning.</h2>
-              <p className="brand-copy mt-5">This is the operating difference between buying a one-off website project and using a managed website service.</p>
-            </div>
-            <div className="overflow-hidden border border-[#dfe2ea] bg-white lg:col-span-8">
-              <div className="grid grid-cols-[1fr_1fr] border-b border-[#dfe2ea] bg-[#f3f4f8] sm:grid-cols-[1.1fr_1fr_1fr]">
-                <div className="hidden px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#526071] sm:block">Area</div>
-                <div className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#526071]">Project-only build</div>
-                <div className="bg-[#101827] px-5 py-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#b9b1ff]">Bennie Studio</div>
-              </div>
-              {managedComparison.map(([area, project, managed]) => (
-                <div key={area} className="grid grid-cols-[1fr_1fr] border-b border-[#dfe2ea] last:border-b-0 sm:grid-cols-[1.1fr_1fr_1fr]">
-                  <div className="hidden px-5 py-4 text-sm font-semibold text-[#141821] sm:block">{area}</div>
-                  <div className="px-5 py-4 text-sm leading-6 text-[#687386]">{project}</div>
-                  <div className="bg-[#f8f8ff] px-5 py-4 text-sm font-semibold leading-6 text-[#141821]">{managed}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-y border-[#dfe2ea] bg-white">
-          <div className="brand-shell brand-section">
-            <div className="grid gap-10 lg:grid-cols-12">
-              <div className="lg:col-span-4">
+            <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-end">
+              <div>
                 <p className="brand-kicker">Simple, transparent pricing</p>
-                <h2 className="mt-4">Start with the service you need.</h2>
-                <p className="brand-copy mt-5">Managed Website covers setup and day-to-day care. Website Growth adds agreed improvements. <Link to="/pricing" className="font-semibold text-[#5746e8] underline underline-offset-4">Compare all plans and commitment terms</Link>.</p>
+                <h2 className="mt-4">Choose the support your business needs.</h2>
               </div>
-              <div className="lg:col-span-8">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  {priced.slice(0, 2).map(({ product, price }, index) => {
-                    const isGrowth = product.slug === "managed-website";
+              <p className="max-w-xl text-sm leading-6 text-[#526071]">Compare what you pay today and the support included at each level. <Link to="/pricing" className="font-semibold text-[#5746e8] underline underline-offset-4">See full scope and terms</Link>.</p>
+            </div>
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+                  {priced.map(({ product, price }, index) => {
+                    const isRecommended = product.slug === "website-growth";
                     const priceReady = !pricingLoading && !pricingError && Boolean(price);
                     return (
-                      <article key={product.slug} className={isGrowth ? "border border-[#101827] bg-[#101827] p-6 text-white shadow-[0_24px_70px_-45px_rgba(15,23,42,.6)]" : "border border-[#dfe2ea] bg-white p-6"}>
+                      <article key={product.slug} className={isRecommended ? "border border-[#101827] bg-[#101827] p-6 text-white shadow-[0_24px_70px_-45px_rgba(15,23,42,.6)]" : "border border-[#dfe2ea] bg-white p-6"}>
                         <div>
-                          <p className={isGrowth ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{isGrowth ? "Recommended" : planBestFor[index]}</p>
-                          <h3 className={isGrowth ? "mt-2 !text-white" : "mt-2"}>{product.name}</h3>
+                          <p className={isRecommended ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{isRecommended ? "Recommended" : planBestFor[index]}</p>
+                          <h3 className={isRecommended ? "mt-2 !text-white" : "mt-2"}>{product.name}</h3>
                         </div>
-                        <p className={isGrowth ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{priceReady ? formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD") : pricingLoading ? "Checking…" : "Ask for quote"}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
-                        <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {priceReady ? formatCommercialMoney(price?.setupFee, price?.currency || "USD") : "—"} one-time setup</p>
-                        <p className={isGrowth ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>First payment: {!priceReady || price?.monthlyPrice == null ? "By quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}</p>
-                        <p className={isGrowth ? "mt-2 text-xs font-semibold !text-white/65" : "mt-2 text-xs font-semibold text-[#687386]"}>{formatCommitmentLabel(getMinimumTermMonths(price))}, then month-to-month unless the accepted order states otherwise.</p>
-                        <div className={isGrowth ? "mt-6 space-y-3 border-t border-white/25 pt-5" : "mt-6 space-y-3 border-t border-[#dfe2ea] pt-5"}>
+                        <p className={isRecommended ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{priceReady ? formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD") : pricingLoading ? "Checking…" : "Ask for quote"}<span className={isRecommended ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
+                        <p className={isRecommended ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {priceReady ? formatCommercialMoney(price?.setupFee, price?.currency || "USD") : "—"} one-time setup</p>
+                        <p className={isRecommended ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>First payment: {!priceReady || price?.monthlyPrice == null ? "By quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}</p>
+                        <p className={isRecommended ? "mt-2 text-xs font-semibold !text-white/65" : "mt-2 text-xs font-semibold text-[#687386]"}>{formatCommitmentLabel(getMinimumTermMonths(price))}, then month-to-month unless the accepted order states otherwise.</p>
+                        <div className={isRecommended ? "mt-6 space-y-3 border-t border-white/25 pt-5" : "mt-6 space-y-3 border-t border-[#dfe2ea] pt-5"}>
                           {planComparisonRows.map(([label, values]) => (
                             <div key={label} className="flex items-start justify-between gap-4 text-sm">
-                              <span className={isGrowth ? "font-semibold !text-white/80" : "font-semibold text-[#526071]"}>{label}</span>
-                              <span className={isGrowth ? "text-right font-semibold !text-white" : "text-right text-[#526071]"}>{values[index]}</span>
+                              <span className={isRecommended ? "font-semibold !text-white/80" : "font-semibold text-[#526071]"}>{label}</span>
+                              <span className={isRecommended ? "text-right font-semibold !text-white" : "text-right text-[#526071]"}>{values[index]}</span>
                             </div>
                           ))}
                         </div>
-                        <button onClick={() => go("/pricing#plan-" + product.slug, "Pricing " + product.name)} className={isGrowth ? "mt-6 inline-flex min-h-12 w-full items-center justify-center bg-white px-5 font-semibold text-[#101827]" : "mt-6 inline-flex min-h-12 w-full items-center justify-center bg-[#141821] px-5 font-semibold text-white"}>
-                          View plan <ArrowRight className="ml-2 h-4 w-4" />
+                        <button onClick={() => go("/pricing#plan-" + product.slug, "Choose " + product.name)} className={isRecommended ? "mt-6 inline-flex min-h-12 w-full items-center justify-center bg-white px-5 font-semibold text-[#101827]" : "mt-6 inline-flex min-h-12 w-full items-center justify-center bg-[#141821] px-5 font-semibold text-white"}>
+                          See scope & choose plan <ArrowRight className="ml-2 h-4 w-4" />
                         </button>
                       </article>
                     );
                   })}
-                </div>
-              </div>
             </div>
+            <p className="mt-5 text-center text-sm text-[#687386]">Still exploring? <Link to="/generate-preview" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Pricing section free preview", target: "/generate-preview" })} className="font-semibold text-[#5746e8] underline underline-offset-4">Get a free website direction first.</Link></p>
           </div>
         </section>
 
-        <section className="brand-on-dark bg-[#0b1020]">
-          <div className="brand-shell brand-section">
-            <p className="brand-kicker !text-[#b9b1ff]">From brief to ongoing</p>
-            <div className="mt-4 grid gap-10 lg:grid-cols-12">
-              <h2 className="!text-white lg:col-span-4">From strategy to launch — without the chaos.</h2>
-              <div className="lg:col-span-8">
-                {process.map(([number, title, body]) => (
-                  <div key={number} className="grid gap-3 border-t border-white/15 py-7 sm:grid-cols-[4rem_1fr_1.5fr]">
-                    <span className="text-sm font-semibold !text-[#b9b1ff]">{number}</span>
-                    <h3 className="!text-white">{title}</h3>
-                    <p className="brand-muted-on-dark">{body}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
 
         <section className="brand-shell brand-section">
           <div className="grid gap-10 lg:grid-cols-12">
@@ -678,18 +327,10 @@ export default function BrandLedLandingPage() {
           </div>
         </section>
 
-        <section className="brand-grid-bg relative overflow-hidden bg-[#5746e8] text-white">
-          <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-          <div className="brand-shell relative grid gap-8 py-16 md:grid-cols-[1fr_auto] md:items-center">
-            <div>
-              <p className="text-sm font-semibold !text-white/70">Ready for a better website?</p>
-              <h2 className="mt-2 max-w-2xl !text-white">Let’s build a website that moves your business forward.</h2>
-              <p className="mt-4 max-w-xl !text-white/75">Tell us what your business needs, and we will discuss an appropriate managed website scope, the setup and monthly costs, and the next step.</p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-              <button onClick={() => go("/book-demo", "Final discuss website")} className="min-h-12 bg-white px-6 font-semibold text-[#141821]">Discuss my website <ArrowRight className="ml-2 inline h-4 w-4" /></button>
-              <button onClick={() => go("/pricing", "Final view plans")} className="min-h-12 border border-white/30 bg-white/[0.04] px-6 font-semibold text-white">View plans & pricing</button>
-            </div>
+        <section className="border-t border-[#dfe2ea] bg-white">
+          <div className="brand-shell flex flex-col gap-4 py-8 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm font-semibold text-[#526071]">Need help choosing the right scope?</p>
+            <button onClick={() => go("/book-demo", "Discuss website scope")} className="inline-flex min-h-11 items-center justify-center bg-[#141821] px-5 font-semibold text-white">Talk through your requirements <ArrowRight className="ml-2 h-4 w-4" /></button>
           </div>
         </section>
       </main>

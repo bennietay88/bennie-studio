@@ -24,6 +24,16 @@ export function normalizeSalesEmail(value: unknown): string {
   return z.string().email().max(254).safeParse(email).success ? email : "";
 }
 
+function safeAuditReviewUrl(value: unknown): string {
+  try {
+    const url = new URL(String(value || ""));
+    const appUrl = new URL(process.env.APP_PUBLIC_URL || process.env.PUBLIC_APP_URL || "https://app.bennietay.com");
+    if (url.protocol !== "https:" || url.origin !== appUrl.origin || url.pathname !== "/website-audit" ||
+      !url.searchParams.get("report") || !url.searchParams.get("key")) return "";
+    return url.toString();
+  } catch { return ""; }
+}
+
 // PostgREST's ilike treats '_' and '%' as wildcards, even in a valid email.
 export const exactEmailPattern = (email: string) => email.replace(/[\\%_]/g, "\\$&");
 
@@ -128,10 +138,19 @@ export async function runSalesDelivery(input: {
         const id = message.prospect_id || message.lead_id;
         const { data: contact } = checked(await db.from(table).select("*").eq("id", id).maybeSingle());
         if (!contact || [contact.status, contact.outreach_status].some((state) =>
-          ["won", "lost", "closed", "converted", "paid", "unsubscribed"].includes(String(state || "").toLowerCase()))) {
+          ["won", "lost", "closed", "converted", "paid", "unsubscribed", "replied", "call_booked"].includes(String(state || "").toLowerCase()))) {
           await release({ status: "cancelled", error: "Contact is closed or unavailable" });
           result.deferred++;
           continue;
+        }
+        if (message.provider_payload?.directAuditFollowUp && message.prospect_id) {
+          const { data: reply } = checked(await db.from("sales_messages").select("id")
+            .eq("prospect_id", message.prospect_id).eq("direction", "inbound").limit(1).maybeSingle());
+          if (reply) {
+            await release({ status: "cancelled", error: "A reply was received before the scheduled website review" });
+            result.deferred++;
+            continue;
+          }
         }
         // Standalone prospect messages are marketing unless they reply to a verified inbound conversation.
         if (message.prospect_id && !message.reply_to_message_id && !hasDocumentedMarketingConsent(contact)) {
@@ -266,6 +285,11 @@ export async function recordSalesReply(db: Db, event: Row, getBody: () => Promis
   for (const id of new Set((related || []).map((row) => row.enrollment_id))) {
     await stopSalesEnrollment(db, id, "Reply received", now);
   }
+  if (prior.prospect_id) {
+    checked(await db.from("sales_messages").update({ status: "cancelled", updated_at: now })
+      .eq("prospect_id", prior.prospect_id).contains("provider_payload", { followUpForMessageId: prior.id })
+      .in("status", PENDING));
+  }
   // Stop first even if the restricted sending key cannot retrieve reply content.
   const key = `resend:inbound:${event.data.email_id}`;
   const { data: existing } = checked(await db.from("sales_messages").select("id,classification,body_text")
@@ -362,6 +386,7 @@ export async function sendDirectProspectOutreach(
     bodyText: string;
     observation?: string;
     templateId?: string;
+    reviewUrl?: string | null;
     replyToMessageId?: string | null;
     requestId: string;
     actorId: string;
@@ -374,7 +399,8 @@ export async function sendDirectProspectOutreach(
   );
   if (!prospect) throw new Error("CONTACT_NOT_FOUND");
 
-  if (!input.replyToMessageId && String(input.observation || "").trim().length < 10) {
+  const reviewUrl = safeAuditReviewUrl(input.reviewUrl);
+  if (!input.replyToMessageId && input.templateId !== "introduction" && String(input.observation || "").trim().length < 10 && !reviewUrl) {
     throw new Error("OUTREACH_OBSERVATION_REQUIRED");
   }
   if (/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(`${input.subject || ""}\n${input.bodyText}`)) {
@@ -420,6 +446,27 @@ export async function sendDirectProspectOutreach(
 
   const recipient = input.channel === "email" ? email : phone;
   const key = `direct-outreach:${input.channel}:${input.requestId}`;
+  const scheduleAuditFollowUp = async (firstMessage: Row, contact: Row) => {
+    if (input.channel !== "email" || input.replyToMessageId || !reviewUrl) return null;
+    const followUpKey = `direct-audit-follow-up:${input.requestId}`;
+    const delayHours = 72;
+    const scheduledAt = contact.next_follow_up_at && new Date(contact.next_follow_up_at).getTime() > new Date(now).getTime()
+      ? contact.next_follow_up_at
+      : new Date(new Date(now).getTime() + delayHours * 3_600_000).toISOString();
+    const firstName = String(contact.contact_first_name || contact.contact_name || "").trim().split(/\s+/)[0] || `${contact.name || "there"} team`;
+    const followUpBody = `Hi ${firstName},\n\nFollowing up with the short website review I prepared for ${contact.name || "your business"}:\n\n${reviewUrl}\n\nIt includes the findings and practical next steps. If you would like to discuss any of them, just reply.\n\nBennie\nBennie Studio`;
+    const autoSendEligible = hasDocumentedMarketingConsent(contact, new Date(now));
+    const { error } = await db.from("sales_messages").upsert({
+      id: salesRecordId(followUpKey), idempotency_key: followUpKey,
+      prospect_id: contact.id, direction: "outbound", channel: "email", recipient: normalizeSalesEmail(contact.contact_email),
+      subject: `The website review for ${contact.name || "your business"}`.slice(0, 500), body_text: followUpBody,
+      status: autoSendEligible ? "queued" : "draft", scheduled_at: scheduledAt,
+      provider_payload: { directAuditFollowUp: true, followUpForMessageId: firstMessage.id, delayHours, reviewUrl, autoSendEligible },
+      updated_at: now,
+    }, { onConflict: "idempotency_key", ignoreDuplicates: true });
+    if (error) throw error;
+    return { scheduledAt, status: autoSendEligible ? "queued" : "draft" };
+  };
   const { data: prior } = checked(
     await db
       .from("sales_messages")
@@ -432,12 +479,14 @@ export async function sendDirectProspectOutreach(
     throw new Error("OUTREACH_REQUEST_CONFLICT");
   }
   if (prior && SENT.includes(prior.status)) {
+    const followUp = await scheduleAuditFollowUp(prior, prospect);
     return {
       prospect,
       recipient,
       message: prior,
       providerMessageId: prior.provider_message_id || null,
       alreadySent: true,
+      followUp,
     };
   }
   if (!prior && !input.replyToMessageId && input.channel === "email") {
@@ -487,6 +536,7 @@ export async function sendDirectProspectOutreach(
       actorId: input.actorId,
       observation: input.observation || null,
       templateId: input.templateId || null,
+      reviewUrl: reviewUrl || null,
       replyToMessageId,
     },
   };
@@ -552,16 +602,14 @@ export async function sendDirectProspectOutreach(
       .single(),
   );
 
-  const followUp = new Date(new Date(now).getTime() + 3 * 86400000).toISOString();
+  const followUpAt = new Date(new Date(now).getTime() + 3 * 86400000).toISOString();
   const existingFollowUp =
     prospect.next_follow_up_at &&
     new Date(prospect.next_follow_up_at).getTime() > new Date(now).getTime()
       ? prospect.next_follow_up_at
       : null;
-  const observation =
-    input.observation?.trim() ||
-    `Direct ${input.channel} outreach sent from Prospect Explorer.`;
-  const notes = saveOutreachObservation(prospect.notes, observation);
+  const observation = input.observation?.trim() || "";
+  const notes = observation ? saveOutreachObservation(prospect.notes, observation) : String(prospect.notes || "");
   const updates: Row = {
     notes,
     updated_at: now,
@@ -569,7 +617,7 @@ export async function sendDirectProspectOutreach(
 
   if (!["replied", "call_booked"].includes(String(prospect.outreach_status || ""))) {
     updates.outreach_status = "contacted";
-    updates.next_follow_up_at = existingFollowUp || followUp;
+    updates.next_follow_up_at = existingFollowUp || followUpAt;
   }
 
   const { data: updatedProspect } = checked(
@@ -590,7 +638,7 @@ export async function sendDirectProspectOutreach(
           title: `Follow up with ${prospect.name}`,
           task_type: "follow_up",
           priority: "medium",
-          due_at: existingFollowUp || followUp,
+          due_at: existingFollowUp || followUpAt,
           metadata: {
             directOutreachId: input.requestId,
             channel: input.channel,
@@ -613,12 +661,15 @@ export async function sendDirectProspectOutreach(
     );
   }
 
+  const auditFollowUp = await scheduleAuditFollowUp(sentMessage, updatedProspect || prospect);
+
   return {
     prospect: updatedProspect,
     recipient,
     message: sentMessage,
     providerMessageId: receipt.id,
     alreadySent: false,
+    followUp: auditFollowUp,
   };
 }
 

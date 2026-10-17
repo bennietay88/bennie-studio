@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import {
   Search,
   Globe,
@@ -36,7 +36,6 @@ import { Badge } from "../ui/badge";
 import { supabase } from "../../lib/supabase";
 import { toast } from "sonner";
 import { format, formatDistanceToNowStrict } from "date-fns";
-import { normalizeWebsiteAuditResult } from "../../lib/websiteAudit";
 import { scoreProspect } from "../../lib/prospectScoring";
 import { parseProspectCsv } from "../../lib/prospectImport";
 import {
@@ -50,7 +49,7 @@ import {
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
-import { EMAIL_TEMPLATES, buildEmailTemplateDraft, hasUnresolvedEmailPlaceholders, recommendedTemplateId } from "./EmailTemplateHub";
+import { buildEmailTemplateDraft, hasUnresolvedEmailPlaceholders, recommendedTemplateId } from "./EmailTemplateHub";
 import { getOutreachObservation, getConfirmedReviewObservation, getConfirmedReviewInsight } from "../../lib/salesAutomation";
 
 const WEBSITE_STATUSES = ["unknown", "no_website", "weak", "average", "strong"];
@@ -59,44 +58,7 @@ const OUTREACH_STATUSES = ["not_started", "queued", "contacted", "replied", "cal
 const CONTACTED_OUTREACH_STATUSES = ["contacted", "replied", "call_booked", "won"];
 const NOT_CONTACTED_OUTREACH_STATUSES = ["not_started", "queued"];
 
-const PROSPECT_COLUMN_WIDTHS_KEY = "bt_prospect_explorer_column_widths_v1";
-const DEFAULT_PROSPECT_COLUMN_WIDTHS = {
-  select: 48,
-  company: 280,
-  contact: 200,
-  website: 165,
-  opportunity: 170,
-  score: 240,
-  outreach: 190,
-  nextStep: 200,
-  actions: 300,
-};
-const PROSPECT_COLUMN_WIDTH_LIMITS: Record<keyof typeof DEFAULT_PROSPECT_COLUMN_WIDTHS, [number, number]> = {
-  select: [40, 88],
-  company: [160, 520],
-  contact: [140, 420],
-  website: [120, 340],
-  opportunity: [160, 300],
-  score: [170, 440],
-  outreach: [150, 380],
-  nextStep: [160, 400],
-  actions: [220, 520],
-};
-type ProspectColumnWidths = typeof DEFAULT_PROSPECT_COLUMN_WIDTHS;
-
-function readProspectColumnWidths(): ProspectColumnWidths {
-  try {
-    const saved = typeof window === "undefined" ? null : window.localStorage.getItem(PROSPECT_COLUMN_WIDTHS_KEY);
-    const parsed = saved ? JSON.parse(saved) : {};
-    return Object.fromEntries(Object.entries(DEFAULT_PROSPECT_COLUMN_WIDTHS).map(([key, fallback]) => {
-      const [min, max] = PROSPECT_COLUMN_WIDTH_LIMITS[key as keyof ProspectColumnWidths];
-      const candidate = Number(parsed?.[key]);
-      return [key, Number.isFinite(candidate) ? Math.min(max, Math.max(min, candidate)) : fallback];
-    })) as ProspectColumnWidths;
-  } catch {
-    return DEFAULT_PROSPECT_COLUMN_WIDTHS;
-  }
-}
+const PROSPECT_PAGE_SIZE = 50;
 
 const cleanDomain = (value: string) =>
   value
@@ -119,10 +81,13 @@ const isRecipientReviewUrl = (value?: string | null) => {
 };
 
 export function ProspectExplorer() {
-  const [columnWidths, setColumnWidths] = useState<ProspectColumnWidths>(readProspectColumnWidths);
   const [prospects, setProspects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const prospectFetchRequest = useRef(0);
   const [prospectTotal, setProspectTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [stats, setStats] = useState({ total: 0, high: 0, contacted: 0, notContacted: 0, booked: 0, due: 0 });
   const [lastImportSummary, setLastImportSummary] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [industryFilter, setIndustryFilter] = useState("all");
@@ -133,10 +98,8 @@ export function ProspectExplorer() {
   const [outreachProspect, setOutreachProspect] = useState<any | null>(null);
   const [outreachSubject, setOutreachSubject] = useState("");
   const [outreachBody, setOutreachBody] = useState("");
-  const [outreachTemplateId, setOutreachTemplateId] = useState("enquiry");
+  const [outreachTemplateId, setOutreachTemplateId] = useState("introduction");
   const [outreachObservation, setOutreachObservation] = useState("");
-  const [outreachRecommendation, setOutreachRecommendation] = useState("");
-  const [outreachContactFirstName, setOutreachContactFirstName] = useState("");
   const [outreachDraftTouched, setOutreachDraftTouched] = useState(false);
   const [outreachRequestId, setOutreachRequestId] = useState("");
   const [outreachReplyToMessageId, setOutreachReplyToMessageId] = useState<string | null>(null);
@@ -175,21 +138,10 @@ export function ProspectExplorer() {
   const [bulkAction, setBulkAction] = useState<"stop_follow_up" | "delete" | null>(null);
   const [bulkSaving, setBulkSaving] = useState(false);
 
-  useEffect(() => {
-    const saveTimer = window.setTimeout(() => {
-      try { window.localStorage.setItem(PROSPECT_COLUMN_WIDTHS_KEY, JSON.stringify(columnWidths)); } catch {}
-    }, 180);
-    return () => window.clearTimeout(saveTimer);
-  }, [columnWidths]);
 
-  const setColumnWidth = (column: keyof ProspectColumnWidths, width: number) => {
-    const [min, max] = PROSPECT_COLUMN_WIDTH_LIMITS[column];
-    setColumnWidths((current) => ({ ...current, [column]: Math.min(max, Math.max(min, width)) }));
-  };
-
-  const applyOutreachTemplate = (templateId: string, prospect = outreachProspect, observation = outreachObservation, firstName = outreachContactFirstName) => {
+  const applyOutreachTemplate = (templateId: string, prospect = outreachProspect, observation = outreachObservation) => {
     if (!prospect) return;
-    const generated = buildEmailTemplateDraft(templateId, { ...prospect, contact_first_name: firstName }, observation, outreachRecommendation);
+    const generated = buildEmailTemplateDraft(templateId, prospect, observation);
     const [subjectLine, ...bodyLines] = generated.split("\n");
     setOutreachSubject(subjectLine.replace(/^Subject:\s*/i, ""));
     setOutreachBody(bodyLines.join("\n").trim());
@@ -198,8 +150,8 @@ export function ProspectExplorer() {
 
   useEffect(() => {
     if (!outreachProspect || outreachReplyToMessageId || outreachDraftTouched) return;
-    applyOutreachTemplate(outreachTemplateId, outreachProspect, outreachObservation, outreachContactFirstName);
-  }, [outreachProspect?.id, outreachTemplateId, outreachObservation, outreachRecommendation, outreachContactFirstName, outreachReplyToMessageId, outreachDraftTouched]);
+    applyOutreachTemplate(outreachTemplateId, outreachProspect, outreachObservation);
+  }, [outreachProspect?.id, outreachTemplateId, outreachObservation, outreachReplyToMessageId, outreachDraftTouched]);
 
   const csvPreview = useMemo(() => {
     if (!csvText.trim()) {
@@ -233,45 +185,95 @@ export function ProspectExplorer() {
   });
 
   useEffect(() => {
-    fetchProspects();
-  }, []);
+    const timer = window.setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
 
-  const fetchProspects = async () => {
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, industryFilter, statusFilter, quickFilter, sortMode]);
+
+  const fetchProspects = useCallback(async () => {
+    const requestId = ++prospectFetchRequest.current;
     try {
       setLoading(true);
-      // Fetch all pages. A 1,000-row client cap previously hid later imports.
-      const loaded: any[] = [];
-      let recordedTotal = 0;
-      for (let offset = 0; offset < 20000; offset += 500) {
-        const { data, error, count } = await supabase.from("prospects")
-          .select("*", { count: "exact" })
-          .order("created_at", { ascending: false }).order("id", { ascending: false })
-          .range(offset, offset + 499);
-        if (error) throw error;
-        if (count !== null) recordedTotal = count;
-        loaded.push(...(data || []));
-        if ((data || []).length < 500) break;
+      let query = supabase.from("prospects").select("*", { count: "exact" });
+      const safeSearch = debouncedSearchQuery.replace(/[,%()]/g, " ").trim();
+      if (safeSearch) {
+        const pattern = `%${safeSearch}%`;
+        query = query.or([
+          `name.ilike.${pattern}`,
+          `domain.ilike.${pattern}`,
+          `industry.ilike.${pattern}`,
+          `location.ilike.${pattern}`,
+          `contact_email.ilike.${pattern}`,
+          `contact_phone.ilike.${pattern}`,
+          `outreach_status.ilike.${pattern}`,
+        ].join(","));
       }
-      setProspectTotal(recordedTotal || loaded.length);
-      let rows = loaded.map((prospect) => ({ ...prospect, _score: scoreProspect(prospect) }));
-      const [sessionResult, suppressionResult, deliveryResult] = await Promise.all([
+      if (industryFilter !== "all") query = query.ilike("industry", `%${industryFilter.trim()}%`);
+      if (statusFilter !== "all") query = query.eq("outreach_status", statusFilter);
+      switch (quickFilter) {
+        case "follow_up_due":
+          query = query.lte("next_follow_up_at", new Date().toISOString()).not("outreach_status", "in", "(\"won\",\"lost\")");
+          break;
+        case "high": query = query.eq("opportunity_level", "high"); break;
+        case "contacted": query = query.in("outreach_status", CONTACTED_OUTREACH_STATUSES); break;
+        case "not_contacted": query = query.in("outreach_status", NOT_CONTACTED_OUTREACH_STATUSES); break;
+        case "audit_not_sent": query = query.is("last_audit_at", null); break;
+        case "preview": query = query.not("preview_url", "is", null); break;
+        case "replied": query = query.eq("outreach_status", "replied"); break;
+        case "call_booked": query = query.eq("outreach_status", "call_booked"); break;
+        case "ready": query = query.in("outreach_status", ["replied", "call_booked"]).is("converted_business_id", null); break;
+      }
+
+      const sortColumns: Record<string, { column: string; ascending: boolean }> = {
+        newest: { column: "created_at", ascending: false }, oldest: { column: "created_at", ascending: true },
+        name_asc: { column: "name", ascending: true }, name_desc: { column: "name", ascending: false },
+        contact_asc: { column: "contact_email", ascending: true }, contact_desc: { column: "contact_email", ascending: false },
+        website_asc: { column: "website_status", ascending: true }, website_desc: { column: "website_status", ascending: false },
+        opportunity_asc: { column: "opportunity_level", ascending: true }, opportunity_desc: { column: "opportunity_level", ascending: false },
+        score_asc: { column: "qualification_score", ascending: true }, score_desc: { column: "qualification_score", ascending: false },
+        followup_asc: { column: "next_follow_up_at", ascending: true }, followup_desc: { column: "next_follow_up_at", ascending: false },
+        outreach_asc: { column: "outreach_status", ascending: true }, outreach_desc: { column: "outreach_status", ascending: false },
+      };
+      const ordering = sortColumns[sortMode] || sortColumns.newest;
+      const offset = (currentPage - 1) * PROSPECT_PAGE_SIZE;
+      const [{ data, error, count }, sessionResult, suppressionResult, totalResult, highResult, contactedResult, bookedResult, dueResult, notContactedResult] = await Promise.all([
+        query.order(ordering.column, { ascending: ordering.ascending, nullsFirst: false }).order("id", { ascending: false }).range(offset, offset + PROSPECT_PAGE_SIZE - 1),
         supabase.auth.getSession(),
         supabase.from("sales_suppressions").select("email").not("email", "is", null),
-        supabase.from("sales_messages").select("prospect_id,status,sent_at,created_at,error,provider_message_id")
-          .eq("direction", "outbound").eq("channel", "email")
-          .order("created_at", { ascending: false }).limit(5000),
+        supabase.from("prospects").select("id", { count: "exact", head: true }),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).eq("opportunity_level", "high"),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).in("outreach_status", CONTACTED_OUTREACH_STATUSES),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).eq("outreach_status", "call_booked"),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).lte("next_follow_up_at", new Date().toISOString()).not("outreach_status", "in", "(\"won\",\"lost\")"),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).in("outreach_status", NOT_CONTACTED_OUTREACH_STATUSES),
       ]);
+      if (requestId !== prospectFetchRequest.current) return;
+      if (error) throw error;
+      setProspectTotal(count || 0);
+      setStats({ total: totalResult.count || 0, high: highResult.count || 0, contacted: contactedResult.count || 0, booked: bookedResult.count || 0, due: dueResult.count || 0, notContacted: notContactedResult.count || 0 });
+      if ([totalResult, highResult, contactedResult, bookedResult, dueResult, notContactedResult].some((result) => result.error)) {
+        console.warn("Prospect summary counts are temporarily unavailable.");
+      }
+      let rows = (data || []).map((prospect) => ({ ...prospect, _score: scoreProspect(prospect) }));
+      const prospectIds = rows.map((prospect) => prospect.id);
+      const { data: deliveryRows, error: deliveryError } = prospectIds.length
+        ? await supabase.from("sales_messages").select("prospect_id,status,sent_at,created_at,error,provider_message_id")
+            .in("prospect_id", prospectIds).eq("direction", "outbound").eq("channel", "email")
+            .order("created_at", { ascending: false }).limit(PROSPECT_PAGE_SIZE * 10)
+        : { data: [], error: null };
       if (suppressionResult.error) { console.warn("Suppression status unavailable", suppressionResult.error); toast.error("Suppression status unavailable. Email actions are blocked until refresh succeeds."); }
-      if (deliveryResult.error) console.warn("Email delivery status unavailable", deliveryResult.error);
+      if (deliveryError) console.warn("Email delivery status unavailable", deliveryError);
       const blocked = new Set((suppressionResult.data || []).map((record) => String(record.email || "").toLowerCase().trim()));
       const deliveryByProspect = new Map<string, any>();
-      for (const message of deliveryResult.data || []) {
-        if (message.prospect_id && !deliveryByProspect.has(message.prospect_id)) deliveryByProspect.set(message.prospect_id, message);
-      }
-      rows = rows.map((p) => ({ ...p,
-        _suppressed: blocked.has(String(p.contact_email || "").toLowerCase().trim()),
+      for (const message of deliveryRows || []) if (message.prospect_id && !deliveryByProspect.has(message.prospect_id)) deliveryByProspect.set(message.prospect_id, message);
+      rows = rows.map((prospect) => ({
+        ...prospect,
+        _suppressed: blocked.has(String(prospect.contact_email || "").toLowerCase().trim()),
         _contactSafetyUnknown: Boolean(suppressionResult.error),
-        _latestDelivery: deliveryByProspect.get(p.id) || null,
+        _latestDelivery: deliveryByProspect.get(prospect.id) || null,
       }));
       const session = sessionResult.data.session;
       if (session?.access_token) {
@@ -282,25 +284,23 @@ export function ProspectExplorer() {
             const byProspect = new Map((inbox.conversations || []).map((conversation: any) => [conversation.prospect?.id, conversation]));
             rows = rows.map((prospect) => {
               const conversation: any = byProspect.get(prospect.id);
-              return conversation ? {
-                ...prospect,
-                _latestReply: conversation.latestReply,
-                _latestOutbound: conversation.latestOutbound,
-                _unreadReply: conversation.unread,
-                _replyTaskId: conversation.replyTaskId,
-              } : prospect;
+              return conversation ? { ...prospect, _latestReply: conversation.latestReply, _latestOutbound: conversation.latestOutbound, _unreadReply: conversation.unread, _replyTaskId: conversation.replyTaskId } : prospect;
             });
           }
         } catch (inboxError) { console.warn("Sales inbox summary unavailable:", inboxError); }
       }
+      if (requestId !== prospectFetchRequest.current) return;
       setProspects(rows);
     } catch (error: any) {
+      if (requestId !== prospectFetchRequest.current) return;
       console.error("Error fetching prospects:", error);
       toast.error("Could not load the prospect list. Check your Sales permission and retry.");
     } finally {
-      setLoading(false);
+      if (requestId === prospectFetchRequest.current) setLoading(false);
     }
-  };
+  }, [currentPage, debouncedSearchQuery, industryFilter, statusFilter, quickFilter, sortMode]);
+
+  useEffect(() => { void fetchProspects(); }, [fetchProspects]);
 
   const resetNewProspect = () => {
     setNewProspect({
@@ -688,123 +688,11 @@ export function ProspectExplorer() {
     }
   };
 
-  const filteredProspects = useMemo(
-    () =>
-      prospects.filter((p) => {
-        const query = searchQuery.toLowerCase();
-        const matchesSearch =
-          !query ||
-          [p.name, p.domain, p.industry, p.location, p.contact_email, p.contact_phone, p.outreach_status]
-            .filter(Boolean)
-            .some((value) => String(value).toLowerCase().includes(query));
-        const matchesIndustry = industryFilter === "all" || p.industry === industryFilter;
-        const matchesStatus = statusFilter === "all" || p.outreach_status === statusFilter;
-        const outreachStatus = p.outreach_status || "not_started";
-        const now = Date.now();
-        const matchesQuick = quickFilter === "all"
-          || (quickFilter === "follow_up_due" && !p._suppressed && !p._contactSafetyUnknown && p.next_follow_up_at && new Date(p.next_follow_up_at).getTime() <= now)
-          || (quickFilter === "high" && p.opportunity_level === "high")
-          || (quickFilter === "contacted" && CONTACTED_OUTREACH_STATUSES.includes(outreachStatus))
-          || (quickFilter === "not_contacted" && NOT_CONTACTED_OUTREACH_STATUSES.includes(outreachStatus))
-          || (quickFilter === "audit_not_sent" && !p.last_audit_at)
-          || (quickFilter === "preview" && Boolean(p.preview_url))
-          || (quickFilter === "replied" && p.outreach_status === "replied")
-          || (quickFilter === "call_booked" && p.outreach_status === "call_booked")
-          || (quickFilter === "ready" && ["replied", "call_booked"].includes(p.outreach_status) && !p.converted_business_id);
-        return matchesSearch && matchesIndustry && matchesStatus && matchesQuick;
-      }),
-    [prospects, searchQuery, industryFilter, statusFilter, quickFilter],
-  );
-
-
-  const sortedProspects = useMemo(() => {
-    const rows = [...filteredProspects];
-    const scoreFor = (prospect: any) =>
-      Number(prospect.qualification_score ?? prospect._score?.score ?? scoreProspect(prospect).score ?? 0);
-    const opportunityRank: Record<string, number> = { low: 1, medium: 2, high: 3 };
-    const outreachRank: Record<string, number> = {
-      not_started: 1,
-      queued: 2,
-      contacted: 3,
-      replied: 4,
-      call_booked: 5,
-      won: 6,
-      lost: 7,
-    };
-    const websiteRank: Record<string, number> = {
-      no_website: 1,
-      unknown: 2,
-      weak: 3,
-      average: 4,
-      strong: 5,
-    };
-    const primaryContact = (prospect: any) =>
-      String(
-        prospect.contact_email
-        || prospect.contact_phone
-        || prospect.contact_whatsapp
-        || "",
-      ).trim().toLowerCase();
-    const compareOptionalText = (left: string, right: string, direction: 1 | -1) => {
-      if (!left && !right) return 0;
-      if (!left) return 1;
-      if (!right) return -1;
-      return left.localeCompare(right) * direction;
-    };
-    const compareOptionalDate = (left: any, right: any, direction: 1 | -1) => {
-      const leftTime = left ? new Date(left).getTime() : NaN;
-      const rightTime = right ? new Date(right).getTime() : NaN;
-      const leftValid = Number.isFinite(leftTime);
-      const rightValid = Number.isFinite(rightTime);
-      if (!leftValid && !rightValid) return 0;
-      if (!leftValid) return 1;
-      if (!rightValid) return -1;
-      return (leftTime - rightTime) * direction;
-    };
-
-    rows.sort((a, b) => {
-      switch (sortMode) {
-        case "oldest":
-          return compareOptionalDate(a.created_at, b.created_at, 1);
-        case "name_asc":
-          return compareOptionalText(String(a.name || "").toLowerCase(), String(b.name || "").toLowerCase(), 1);
-        case "name_desc":
-          return compareOptionalText(String(a.name || "").toLowerCase(), String(b.name || "").toLowerCase(), -1);
-        case "contact_asc":
-          return compareOptionalText(primaryContact(a), primaryContact(b), 1);
-        case "contact_desc":
-          return compareOptionalText(primaryContact(a), primaryContact(b), -1);
-        case "website_asc":
-          return (websiteRank[a.website_status] || 0) - (websiteRank[b.website_status] || 0);
-        case "website_desc":
-          return (websiteRank[b.website_status] || 0) - (websiteRank[a.website_status] || 0);
-        case "score_desc":
-          return scoreFor(b) - scoreFor(a);
-        case "score_asc":
-          return scoreFor(a) - scoreFor(b);
-        case "opportunity_desc":
-          return (opportunityRank[b.opportunity_level] || 0) - (opportunityRank[a.opportunity_level] || 0);
-        case "opportunity_asc":
-          return (opportunityRank[a.opportunity_level] || 0) - (opportunityRank[b.opportunity_level] || 0);
-        case "followup_asc":
-          return compareOptionalDate(a.next_follow_up_at, b.next_follow_up_at, 1);
-        case "followup_desc":
-          return compareOptionalDate(a.next_follow_up_at, b.next_follow_up_at, -1);
-        case "outreach_asc":
-          return (outreachRank[a.outreach_status] || 0) - (outreachRank[b.outreach_status] || 0);
-        case "outreach_desc":
-          return (outreachRank[b.outreach_status] || 0) - (outreachRank[a.outreach_status] || 0);
-        case "newest":
-        default:
-          return compareOptionalDate(a.created_at, b.created_at, -1);
-      }
-    });
-    return rows;
-  }, [filteredProspects, sortMode]);
+  // The server query already applies search, filters, sorting and pagination.
+  const sortedProspects = prospects;
 
   const visibleIds = useMemo(() => sortedProspects.map((prospect) => String(prospect.id)), [sortedProspects]);
   const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
-  const prospectTableWidth = Object.values(columnWidths).reduce((total, width) => total + width, 0);
   const toggleVisibleSelection = (checked: boolean) => {
     const visible = new Set(visibleIds);
     setSelectedIds((current) => checked
@@ -831,19 +719,10 @@ export function ProspectExplorer() {
     [prospects],
   );
 
-  const industries = useMemo(
-    () => Array.from(new Set(prospects.map((p) => p.industry).filter(Boolean))).sort(),
-    [prospects],
-  );
-
-  const stats = useMemo(() => {
-    const high = prospects.filter((p) => p.opportunity_level === "high").length;
-    const contacted = prospects.filter((p) => CONTACTED_OUTREACH_STATUSES.includes(p.outreach_status || "not_started")).length;
-    const notContacted = prospects.filter((p) => NOT_CONTACTED_OUTREACH_STATUSES.includes(p.outreach_status || "not_started")).length;
-    const booked = prospects.filter((p) => p.outreach_status === "call_booked").length;
-    const due = prospects.filter((p) => !p._suppressed && !p._contactSafetyUnknown && p.next_follow_up_at && new Date(p.next_follow_up_at) <= new Date()).length;
-    return { total: prospects.length, high, contacted, notContacted, booked, due };
-  }, [prospects]);
+  const pageCount = Math.max(1, Math.ceil(prospectTotal / PROSPECT_PAGE_SIZE));
+  useEffect(() => {
+    if (currentPage > pageCount) setCurrentPage(pageCount);
+  }, [currentPage, pageCount]);
 
   const selectSummaryFilter = (filter: string) => {
     setSearchQuery("");
@@ -1110,23 +989,19 @@ export function ProspectExplorer() {
       return;
     }
 
-    const initialTemplateId = replyToMessage ? "interested" : (!prospect.domain || prospect.website_status === "no_website") ? "no-site" : recommendedTemplateId(prospect.outreach_status || "not_started");
+    const initialTemplateId = replyToMessage ? "interested" : prospect.outreach_status === "contacted" ? recommendedTemplateId("contacted") : "introduction";
     const initialObservation = auditObservation || reviewCache.current.get(prospect.id)?.observation || getOutreachObservation(prospect.notes) || "";
-    const initialRecommendation = reviewCache.current.get(prospect.id)?.recommendation || "";
-    const contactFirstName = String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0];
     setOutreachProspect(prospect);
     setOutreachReplyToMessageId(replyToMessage?.id || null);
     setOutreachTemplateId(initialTemplateId);
     setOutreachObservation(initialObservation);
-    setOutreachRecommendation(initialRecommendation);
-    setOutreachContactFirstName(contactFirstName || "");
     setOutreachDraftTouched(false);
     if (replyToMessage) {
       const priorSubject = String(replyToMessage.subject || `Website conversation with ${prospect.name}`).replace(/^Re:\s*/i, "");
       setOutreachSubject(`Re: ${priorSubject}`);
       setOutreachBody(`Hi ${prospect.name},\n\nThanks for your reply.\n\n\n\nBest,\nBennie`);
     } else {
-      const generated = buildEmailTemplateDraft(initialTemplateId, { ...prospect, contact_first_name: contactFirstName }, initialObservation, initialRecommendation);
+      const generated = buildEmailTemplateDraft(initialTemplateId, prospect, initialObservation);
       const [subjectLine, ...bodyLines] = generated.split("\n");
       setOutreachSubject(subjectLine.replace(/^Subject:\s*/i, ""));
       setOutreachBody(bodyLines.join("\n").trim());
@@ -1140,8 +1015,6 @@ export function ProspectExplorer() {
     setOutreachSubject("");
     setOutreachBody("");
     setOutreachObservation("");
-    setOutreachRecommendation("");
-    setOutreachContactFirstName("");
     setOutreachDraftTouched(false);
     setOutreachReplyToMessageId(null);
     setOutreachRequestId("");
@@ -1163,8 +1036,8 @@ export function ProspectExplorer() {
       toast.error("Add an email subject");
       return;
     }
-    if (!outreachReplyToMessageId && outreachObservation.trim().length < 10) {
-      toast.error("Add one specific website observation you verified before sending a first-touch email.");
+    if (!outreachReplyToMessageId && outreachTemplateId !== "introduction" && outreachObservation.trim().length < 10 && !outreachProspect.preview_url) {
+      toast.error("Prepare a website review or add a specific verified observation before sending this follow-up.");
       return;
     }
     if (hasUnresolvedEmailPlaceholders(`${outreachSubject}\n${outreachBody}`)) {
@@ -1196,6 +1069,7 @@ export function ProspectExplorer() {
             bodyText: outreachBody.trim(),
             observation: outreachReplyToMessageId ? "Personal reply sent from Prospect Explorer." : outreachObservation.trim(),
             templateId: outreachTemplateId,
+            reviewUrl: outreachReplyToMessageId ? null : outreachProspect.preview_url || null,
             replyToMessageId: outreachReplyToMessageId,
             requestId: outreachRequestId || crypto.randomUUID(),
           }),
@@ -1221,16 +1095,18 @@ export function ProspectExplorer() {
         );
       }
 
-      toast.success(
-        payload?.alreadySent
-          ? "This email was already sent; no duplicate was created."
-          : "Email accepted by provider. Delivery confirmation is pending.",
-      );
+      const followUpNotice = payload?.followUp?.status === "queued"
+        ? ` Website review email scheduled for ${new Date(payload.followUp.scheduledAt).toLocaleString()}.`
+        : payload?.followUp?.status === "draft"
+          ? ` Website review email prepared for ${new Date(payload.followUp.scheduledAt).toLocaleString()}; documented email permission is needed for automatic sending, so it will remain a draft.`
+          : "";
+      toast.success(payload?.alreadySent
+        ? `This email was already sent; no duplicate was created.${followUpNotice}`
+        : `Email accepted by provider. Delivery confirmation is pending.${followUpNotice}`);
       setOutreachProspect(null);
       setOutreachSubject("");
       setOutreachBody("");
       setOutreachObservation("");
-      setOutreachContactFirstName("");
       setOutreachDraftTouched(false);
       setOutreachReplyToMessageId(null);
       setOutreachRequestId("");
@@ -1270,7 +1146,7 @@ export function ProspectExplorer() {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => openOutreachComposer(prospect)}
+            onClick={() => void preparePreviewAndEmail(prospect)}
             className="h-8 rounded-xl px-3 text-xs font-bold"
           >
             <Mail className="mr-1.5 h-3 w-3" />
@@ -1451,13 +1327,13 @@ export function ProspectExplorer() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Select value={industryFilter} onValueChange={setIndustryFilter}>
-            <SelectTrigger className="rounded-xl bg-white"><SelectValue placeholder="Industry" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All industries</SelectItem>
-              {industries.map((industry) => <SelectItem key={industry} value={industry}>{industry}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <Input
+            aria-label="Filter by industry"
+            placeholder="Filter industry"
+            className="bg-white border-slate-200 rounded-xl"
+            value={industryFilter === "all" ? "" : industryFilter}
+            onChange={(event) => setIndustryFilter(event.target.value.trim() ? event.target.value : "all")}
+          />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="rounded-xl bg-white"><SelectValue placeholder="Outreach" /></SelectTrigger>
             <SelectContent>
@@ -1491,9 +1367,8 @@ export function ProspectExplorer() {
           </Button>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3 text-xs font-semibold text-slate-600">
-          <span>Showing {sortedProspects.length} of {prospects.length} loaded prospects · {prospectTotal} in database</span>
+          <span>Showing {sortedProspects.length} of {prospectTotal} matching prospects · page {currentPage} of {pageCount}</span>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setColumnWidths(DEFAULT_PROSPECT_COLUMN_WIDTHS)}>Reset column widths</Button>
             <Button variant="outline" size="sm" onClick={() => void fetchProspects()} disabled={loading}><RefreshCw className="mr-1 h-3 w-3" /> Refresh list</Button>
           </div>
           {lastImportSummary && <p className="w-full text-indigo-700">{lastImportSummary}</p>}
@@ -1586,25 +1461,20 @@ export function ProspectExplorer() {
             )}
           </div>
           <div className="hidden overflow-x-auto xl:block">
-            <table className="min-w-full border-collapse text-left" style={{ width: `${prospectTableWidth}px`, tableLayout: "fixed" }}>
-              <colgroup>
-                {Object.entries(columnWidths).map(([column, width]) => <col key={column} style={{ width: `${width}px` }} />)}
-              </colgroup>
+            <table className="min-w-[1500px] w-full border-collapse text-left table-fixed">
               <thead>
                 <tr className="bg-slate-50/50">
-                  <th className="relative px-3 py-4" style={{ width: columnWidths.select }}>
+                  <th className="px-3 py-4">
                     <Checkbox checked={allVisibleSelected} onCheckedChange={(checked) => toggleVisibleSelection(checked === true)} aria-label="Select all visible prospects" />
                   </th>
-                  <SortableHeader label="Company" column="company" width={columnWidths.company} onResize={setColumnWidth} sortMode={sortMode} ascMode="name_asc" descMode="name_desc" onChange={setSortMode} />
-                  <SortableHeader label="Contact" column="contact" width={columnWidths.contact} onResize={setColumnWidth} sortMode={sortMode} ascMode="contact_asc" descMode="contact_desc" onChange={setSortMode} />
-                  <SortableHeader label="Website" column="website" width={columnWidths.website} onResize={setColumnWidth} sortMode={sortMode} ascMode="website_asc" descMode="website_desc" onChange={setSortMode} />
-                  <SortableHeader label="Opportunity" column="opportunity" width={columnWidths.opportunity} onResize={setColumnWidth} sortMode={sortMode} ascMode="opportunity_asc" descMode="opportunity_desc" onChange={setSortMode} />
-                  <SortableHeader label="Score / next action" column="score" width={columnWidths.score} onResize={setColumnWidth} sortMode={sortMode} ascMode="score_asc" descMode="score_desc" onChange={setSortMode} />
-                  <SortableHeader label="Outreach" column="outreach" width={columnWidths.outreach} onResize={setColumnWidth} sortMode={sortMode} ascMode="outreach_asc" descMode="outreach_desc" onChange={setSortMode} />
-                  <SortableHeader label="Next Step" column="nextStep" width={columnWidths.nextStep} onResize={setColumnWidth} sortMode={sortMode} ascMode="followup_asc" descMode="followup_desc" onChange={setSortMode} />
-                  <th className="relative px-3 py-4 text-right text-xs font-semibold text-slate-400" style={{ width: columnWidths.actions }}>
-                    <span>Actions</span><ColumnResizeControls label="Actions" width={columnWidths.actions} minWidth={PROSPECT_COLUMN_WIDTH_LIMITS.actions[0]} maxWidth={PROSPECT_COLUMN_WIDTH_LIMITS.actions[1]} onResize={(width) => setColumnWidth("actions", width)} />
-                  </th>
+                  <SortableHeader label="Company" column="company" sortMode={sortMode} ascMode="name_asc" descMode="name_desc" onChange={setSortMode} />
+                  <SortableHeader label="Contact" column="contact" sortMode={sortMode} ascMode="contact_asc" descMode="contact_desc" onChange={setSortMode} />
+                  <SortableHeader label="Website" column="website" sortMode={sortMode} ascMode="website_asc" descMode="website_desc" onChange={setSortMode} />
+                  <SortableHeader label="Opportunity" column="opportunity" sortMode={sortMode} ascMode="opportunity_asc" descMode="opportunity_desc" onChange={setSortMode} />
+                  <SortableHeader label="Score / next action" column="score" sortMode={sortMode} ascMode="score_asc" descMode="score_desc" onChange={setSortMode} />
+                  <SortableHeader label="Outreach" column="outreach" sortMode={sortMode} ascMode="outreach_asc" descMode="outreach_desc" onChange={setSortMode} />
+                  <SortableHeader label="Next Step" column="nextStep" sortMode={sortMode} ascMode="followup_asc" descMode="followup_desc" onChange={setSortMode} />
+                  <th className="px-3 py-4 text-right text-xs font-semibold text-slate-400">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -1708,6 +1578,13 @@ export function ProspectExplorer() {
             </table>
           </div>
         </CardContent>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-4">
+          <p className="text-xs font-semibold text-slate-500">Page {currentPage} of {pageCount} · {PROSPECT_PAGE_SIZE} per page</p>
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" variant="outline" disabled={loading || currentPage <= 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}>Previous</Button>
+            <Button type="button" size="sm" variant="outline" disabled={loading || currentPage >= pageCount} onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}>Next</Button>
+          </div>
+        </div>
       </Card>
 
       <div className="bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden group">
@@ -2043,9 +1920,9 @@ export function ProspectExplorer() {
       >
         <DialogContent className="!flex h-[min(92dvh,920px)] w-[calc(100vw-2rem)] !max-w-5xl min-w-0 flex-col gap-0 overflow-hidden rounded-3xl p-0">
           <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-5 pr-14 sm:px-7">
-            <DialogTitle className="text-xl font-black tracking-tight">Review email outreach</DialogTitle>
+            <DialogTitle className="text-xl font-black tracking-tight">{outreachReplyToMessageId ? "Review email reply" : outreachTemplateId === "audit-follow-up" ? "Review website audit follow-up" : "Review first email"}</DialogTitle>
             <DialogDescription>
-              Review the recipient and message before sending. Provider acceptance does not confirm inbox delivery.
+              {outreachTemplateId === "introduction" ? "Keep this message brief. A separate website review can follow on the scheduled date." : "Review the recipient and message before sending."} Provider acceptance does not confirm inbox delivery.
             </DialogDescription>
           </DialogHeader>
 
@@ -2058,42 +1935,11 @@ export function ProspectExplorer() {
                     <p className="mt-1 break-words text-sm font-bold text-slate-900">{outreachProspect.name}</p>
                     <p className="mt-1 break-all text-xs font-semibold text-slate-600">{outreachProspect.contact_email}</p>
                   </div>
-                  {!outreachReplyToMessageId && (
-                    <>
-                      <Field label="Message type">
-                        <Select value={outreachTemplateId} onValueChange={setOutreachTemplateId}>
-                          <SelectTrigger aria-label="Choose an email template" className="h-11 w-full min-w-0 rounded-xl">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {EMAIL_TEMPLATES.filter((template) => template.stage === "First contact" || template.stage === "Contacted").map((template) => (
-                              <SelectItem key={template.id} value={template.id}>{template.name} · {template.problem}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="mt-1 text-xs font-medium leading-5 text-slate-500">Choose a template that matches a verified issue. Switching templates will replace an untouched draft.</p>
-                      </Field>
-                      <Field label="Contact first name (optional)">
-                        <Input value={outreachContactFirstName} onChange={(event) => setOutreachContactFirstName(event.target.value)} placeholder="Only if verified" className="h-11 w-full min-w-0 rounded-xl" />
-                      </Field>
-                      <Field label="Verified website observation">
-                        <Textarea value={outreachObservation} onChange={(event) => setOutreachObservation(event.target.value)}
-                          placeholder="Quote the exact issue you personally checked, on the relevant page."
-                          className="min-h-24 w-full min-w-0 resize-y rounded-xl" />
-                      </Field>
-                      <Field label="Recommended fix (included in the email)">
-                        <Textarea value={outreachRecommendation} onChange={(event) => setOutreachRecommendation(event.target.value)}
-                          placeholder="One specific recommendation from the verified audit, or an improvement you checked yourself."
-                          className="min-h-24 w-full min-w-0 resize-y rounded-xl" />
-                        <p className="mt-1 text-xs text-slate-500">The verified audit fix is filled automatically. If none exists, a practical suggestion from the selected message type will appear in the draft.</p>
-                      </Field>
-                      {outreachObservation.trim().length < 10 && (
-                        <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold leading-5 text-amber-900">
-                          Add one specific, substantiated observation. Do not guess rankings, traffic or lost sales.
-                        </p>
-                      )}
-
-                    </>
+                  {!outreachReplyToMessageId && outreachTemplateId === "introduction" && (
+                    <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm leading-6 text-indigo-950">
+                      <p className="font-bold">A simple introduction first</p>
+                      <p className="mt-1">The website findings stay out of this email. {outreachProspect.preview_url ? "A separate review email is scheduled for the existing follow-up date, or three days after this one by default." : "Prepare a website review first to add the audit email as a separate follow-up."}</p>
+                    </div>
                   )}
                 </section>
 
@@ -2109,7 +1955,7 @@ export function ProspectExplorer() {
                       maxLength={10000} className="min-h-[340px] w-full min-w-0 resize-y rounded-2xl leading-6" />
                   </Field>
                   <p className="text-xs font-medium leading-5 text-slate-500">
-                    The email contains the finding and a practical fix. No audit or preview link is necessary; share one only after the recipient requests it.
+                    {outreachTemplateId === "introduction" ? "Review the short introduction before sending. The audit details are reserved for the scheduled follow-up." : "Review the prepared website audit email before sending."}
                   </p>
                   <p className="text-xs font-medium leading-5 text-slate-500">
                     Email is submitted through your configured provider. WhatsApp opens externally through wa.me and is not automatically delivered.
@@ -2130,7 +1976,7 @@ export function ProspectExplorer() {
             </Button>
             <Button type="button" onClick={sendOutreach}
               disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() ||
-                (!outreachReplyToMessageId && outreachObservation.trim().length < 10) ||
+                (!outreachReplyToMessageId && outreachTemplateId !== "introduction" && outreachObservation.trim().length < 10 && !outreachProspect?.preview_url) ||
                 hasUnresolvedEmailPlaceholders(outreachSubject + "\n" + outreachBody)}
               className="rounded-xl bg-indigo-600 hover:bg-indigo-700">
               {outreachSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
@@ -2180,7 +2026,7 @@ export function ProspectExplorer() {
                     <Button size="sm" variant="outline" className="rounded-xl" onClick={() => {
                       const prospect = selectedProspect;
                       setSelectedProspect(null);
-                      openOutreachComposer(prospect);
+                      void preparePreviewAndEmail(prospect);
                     }}>
                       <Mail className="mr-2 h-4 w-4" />New email
                     </Button>
@@ -2336,17 +2182,13 @@ export function ProspectExplorer() {
 function SortableHeader({
   label,
   column,
-  width,
-  onResize,
   sortMode,
   ascMode,
   descMode,
   onChange,
 }: {
   label: string;
-  column: keyof ProspectColumnWidths;
-  width: number;
-  onResize: (column: keyof ProspectColumnWidths, width: number) => void;
+  column: string;
   sortMode: string;
   ascMode: string;
   descMode: string;
@@ -2354,14 +2196,13 @@ function SortableHeader({
 }) {
   const ascending = sortMode === ascMode;
   const descending = sortMode === descMode;
-  const active = ascending || descending;
   const nextMode = ascending ? descMode : ascMode;
 
   return (
     <th
       aria-sort={ascending ? "ascending" : descending ? "descending" : "none"}
-      className="relative px-3 py-4 text-xs font-semibold text-slate-400"
-      style={{ width }}
+      data-sort-column={column}
+      className="px-3 py-4 text-xs font-semibold text-slate-400"
     >
       <div className="flex min-w-0 items-center justify-between gap-1">
         <button
@@ -2373,59 +2214,11 @@ function SortableHeader({
           <span className="truncate">{label}</span>
           {ascending ? <ArrowUp className="h-3.5 w-3.5 shrink-0 text-indigo-600" /> : descending ? <ArrowDown className="h-3.5 w-3.5 shrink-0 text-indigo-600" /> : <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-slate-300 transition-colors group-hover:text-indigo-500" />}
         </button>
-        <ColumnResizeControls label={label} width={width} minWidth={PROSPECT_COLUMN_WIDTH_LIMITS[column][0]} maxWidth={PROSPECT_COLUMN_WIDTH_LIMITS[column][1]} onResize={(nextWidth) => onResize(column, nextWidth)} />
       </div>
     </th>
   );
 }
 
-function ColumnResizeControls({ label, width, minWidth = 40, maxWidth = 520, onResize }: { label: string; width: number; minWidth?: number; maxWidth?: number; onResize: (width: number) => void }) {
-  const startRef = useRef<{ x: number; width: number; pointerId: number } | null>(null);
-
-  const beginDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    startRef.current = { x: event.clientX, width, pointerId: event.pointerId };
-    const onMove = (moveEvent: PointerEvent) => {
-      const start = startRef.current;
-      if (!start || moveEvent.pointerId !== start.pointerId) return;
-      onResize(start.width + moveEvent.clientX - start.x);
-    };
-    const finish = (upEvent: PointerEvent) => {
-      if (startRef.current?.pointerId !== upEvent.pointerId) return;
-      startRef.current = null;
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", finish);
-      window.removeEventListener("pointercancel", finish);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", finish);
-    window.addEventListener("pointercancel", finish);
-  };
-
-  return (
-    <span className="inline-flex shrink-0 items-center gap-0.5" role="group" aria-label={`${label} column width`}>
-      <button type="button" disabled={width <= minWidth} className="grid h-6 w-6 place-items-center rounded text-slate-500 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-30" aria-label={`Narrow ${label} column`} title={`Narrow ${label} column`} onClick={() => onResize(width - 24)}>−</button>
-      <button type="button" disabled={width >= maxWidth} className="grid h-6 w-6 place-items-center rounded text-slate-500 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-30" aria-label={`Widen ${label} column`} title={`Widen ${label} column`} onClick={() => onResize(width + 24)}>+</button>
-      <button
-        type="button"
-        role="separator"
-        aria-orientation="vertical"
-        className="ml-0.5 h-8 w-2 cursor-col-resize touch-none rounded-sm border-l border-slate-300 bg-transparent hover:border-indigo-500 hover:bg-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-        aria-label={`Drag to resize ${label} column; use left and right arrow keys to adjust`}
-        aria-valuemin={minWidth}
-        aria-valuemax={maxWidth}
-        aria-valuenow={width}
-        onPointerDown={beginDrag}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-            event.preventDefault();
-            onResize(width + (event.key === "ArrowRight" ? 16 : -16));
-          }
-        }}
-      />
-    </span>
-  );
-}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

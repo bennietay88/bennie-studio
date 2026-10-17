@@ -31,12 +31,13 @@ test("route warmup points at current public implementations", () => {
   assert.doesNotMatch(warmup, /PortfolioPage/);
 });
 
-test("homepage uses the current composed concept hero and labels illustrative proof honestly", () => {
-  assert.match(homepage, /import \{ WebsiteConceptVisual \} from "\.\/WebsiteConceptVisual"/);
-  assert.match(homepage, /<WebsiteConceptVisual[\s\S]*?hero[\s\S]*?className=/);
-  assert.match(homepage, /Selected website concept demos/);
-  assert.match(homepage, /original studio concepts/i);
-  assert.match(homepage, /not commissioned client projects/i);
+test("homepage keeps buyer guidance concise and focused on choosing a plan", () => {
+  assert.doesNotMatch(homepage, /WebsiteConceptVisual/);
+  assert.match(homepage, /A website should make this clear/);
+  assert.match(homepage, /A website that stays looked after/);
+  assert.match(homepage, /Compare the 3 plans/);
+  assert.match(homepage, /id="plans"/);
+  assert.doesNotMatch(homepage, /NicheInformationGrid|Industry-specific website guidance/);
 });
 
 test("sitemap contains current canonical marketing routes only", () => {

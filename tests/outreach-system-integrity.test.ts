@@ -14,9 +14,9 @@ test("prospect imports preserve server counts, explain skipped rows, and refresh
   assert.match(api, /skippedReasons/);
   assert.match(api, /existingEmail/);
   assert.match(api, /existingDomain/);
-  assert.match(prospects, /range\(offset, offset \+ 499\)/);
+  assert.match(prospects, /range\(offset, offset \+ PROSPECT_PAGE_SIZE - 1\)/);
   assert.match(prospects, /await fetchProspects\(\)/);
-  assert.match(prospects, /Showing \{sortedProspects.length\} of \{prospects.length\}/);
+  assert.match(prospects, /Showing \{sortedProspects.length\} of \{prospectTotal\} matching prospects/);
 });
 
 test("outreach suppression is enforced across the backend and each UI", () => {

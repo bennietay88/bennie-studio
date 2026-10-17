@@ -12,7 +12,7 @@ import { CHECKOUT_CURRENCIES, COMMERCIAL_FALLBACK_PRODUCTS, CommercialMarket, Co
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { INTRO_OFFER_CODE, getIntroductoryQuote } from "../lib/introOffer";
-import { PLAN_DELIVERY_STANDARDS, PUBLIC_DELIVERY_PROMISES, type PublicPlanSlug } from "../constants/deliveryStandards";
+import { PLAN_DELIVERY_STANDARDS, type PublicPlanSlug } from "../constants/deliveryStandards";
 
 interface PricingProps { currentPlan?: string; onSelectPlan?: (plan: any) => void; isDashboard?: boolean; onDark?: boolean; hideIntro?: boolean; }
 const outcomes = ["Website planned and built around your offer", "Managed hosting, updates and launch support", "WhatsApp, call, booking and quotation enquiry paths", "Trust proof, local SEO foundation and analytics"];
@@ -167,7 +167,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
       <div className="grid gap-8 border-b border-slate-300 pb-10 lg:grid-cols-12 lg:items-end">
         <div className="lg:col-span-8">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">Managed website plans</p>
-          <h2 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Three plans. One managed website system.</h2>
+          <h1 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Three plans. One managed website system.</h1>
           <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Start with a professionally managed website, then add deeper conversion, SEO and growth support as the business needs it.</p>
         </div>
         <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">Select your market below · setup and recurring charges are shown together · minimum terms are displayed per plan</p>
@@ -241,52 +241,12 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
       })}
     </div>
 
-    <section className="mt-10 border border-[#dfe2ea] bg-[#f8f8ff] p-6 sm:p-8" aria-label="Delivery safeguards">
-      <div className="grid gap-7 lg:grid-cols-[0.75fr_1.25fr] lg:items-start">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.1em] text-[#5746e8]">Before your site goes live</p>
-          <h3 className="mt-3 text-2xl font-semibold text-slate-950">Payment starts the managed build.</h3>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            You see the direction before buying, then approve the finished website before launch.
-          </p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {PUBLIC_DELIVERY_PROMISES.slice(0, 4).map((promise) => (
-            <div key={promise} className="flex gap-3 border-t border-slate-200 pt-3 text-sm font-semibold leading-6 text-slate-700">
-              <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
-              {promise}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    <section className="mt-12 grid gap-8 border-t border-slate-300 pt-8 lg:grid-cols-12" aria-label="What fees cover">
-      <div className="lg:col-span-4">
-        <h3 className="text-2xl font-semibold text-slate-950">Know exactly what you are buying.</h3>
-        <p className="mt-3 leading-7 text-slate-600">Advertising, guaranteed rankings, guaranteed leads and guaranteed sales are not included unless separately scoped.</p>
-        <p className="mt-3 text-sm font-semibold leading-6 text-slate-500">Timelines begin after the business brief and required assets are complete. Complex integrations, ecommerce, custom applications and work outside the defined plan scope are quoted separately before work begins.</p>
-      </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:col-span-8">
-        {[
-          ["Setup fee", "Strategy, content structure, design, development, tracking and launch setup."],
-          ["Monthly service", "Hosting, SSL, maintenance, updates, analytics and the optimisation included in your plan."],
-          ["Domain ownership", "If you already own your domain, it remains yours. Any managed transfer is confirmed before payment."],
-          ["Commitment and transfer", "Each plan shows its initial commitment. Before you pay, review the written Terms for renewal, cancellation notice, and any supported data export or transfer. A managed-platform site may not be portable as standalone source code."],
-        ].map(([title, body]) => <div key={title} className="border-t border-slate-200 pt-4"><p className="font-semibold text-slate-950">{title}</p><p className="mt-2 text-sm leading-6 text-slate-600">{body}</p></div>)}
-      </div>
-      <div className="lg:col-start-5 lg:col-span-8">
-        <Button variant="outline" onClick={() => navigate("/book-demo")}>Discuss my scope first</Button>
-      </div>
-    </section>
-
-    <section className="mt-9 border-t border-slate-200 pt-7" aria-label="Before you commit">
-      <h3 className="text-xl font-semibold text-slate-950">Want to see what your website could look like first?</h3>
-      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">View sample website directions, or get the page count, revisions, launch milestones, monthly support and exit options confirmed before checkout.</p>
-      <div className="mt-4 flex flex-wrap gap-4 text-sm font-semibold text-indigo-700">
-        <Link to="/case-studies" className="underline underline-offset-4">Explore project examples</Link>
-        <Link to="/generate-preview" className="underline underline-offset-4">See my free website direction</Link>
-        <Link to="/terms" className="underline underline-offset-4">Read service terms</Link>
+    <section className="mt-10 flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between" aria-label="Plan details">
+      <p className="max-w-2xl text-sm leading-6 text-slate-600">You approve the finished site before launch. Your existing domain remains yours. Review the plan scope, commitment and cancellation terms before checkout.</p>
+      <div className="flex shrink-0 flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-indigo-700">
+        <Link to="/generate-preview" className="underline underline-offset-4">Get a free preview</Link>
+        <Link to="/terms" className="underline underline-offset-4">Service terms</Link>
+        <button type="button" onClick={() => navigate("/book-demo")} className="underline underline-offset-4">Ask a question</button>
       </div>
     </section>
     {currentPlan && <p className="mt-8 text-center text-xs font-semibold text-slate-500">Current account entitlement: {currentPlan}. Existing subscriptions remain on their original plan.</p>}

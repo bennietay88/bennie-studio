@@ -5,15 +5,10 @@ import { Helmet } from "react-helmet-async";
 import {
   ArrowRight,
   Check,
-  ClipboardCheck,
   ExternalLink,
   FileSearch,
-  Globe,
   LayoutTemplate,
-  Mail,
-  MessageCircle,
   MoveDown,
-  Rocket,
   Search,
   ShieldCheck,
   Sparkles,
@@ -22,10 +17,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { SafeImage } from "./SafeImage";
-import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
 import { WAAS_TEMPLATE_PACKS } from "../constants/nicheTemplates";
-import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
 import {
   buildReviewWebsiteStrategy,
   assessManualReviewInput,
@@ -43,16 +35,8 @@ import type {
   Website,
   WebsiteGenerationMode,
 } from "../types";
-import { FocusIndustries } from "./FocusIndustries";
-import { Pricing as CommercialPricing } from "./Pricing";
 import { trackPinterestLead } from "../lib/pinterestTracking";
 import { trackPublicEvent } from "../lib/publicTracking";
-import { FREE_PREVIEW_LIMITS, PUBLIC_PROMISE, SUBSCRIPTION_DELIVERY_FLOW } from "../constants/salesFlow";
-import {
-  DELIVERY_PIPELINE,
-  PUBLIC_DELIVERY_PROMISES,
-  DELIVERY_STANDARD_VERSION,
-} from "../constants/deliveryStandards";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import {
   AboutStudioPage,
@@ -64,7 +48,6 @@ import {
   WorkStudioPage,
 } from "./PublicStudioPagesV3";
 import { FlagshipTemplateGallery } from "./FlagshipTemplateGallery";
-import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { TurnstileWidget } from "./TurnstileWidget";
 import { PreviewOrderPage } from "./PreviewOrderPage";
 import { supabase } from "../lib/supabase";
@@ -203,83 +186,6 @@ const primaryCtaClass =
   "inline-flex min-h-12 max-w-full items-center justify-center whitespace-normal rounded-xl bg-[#5746e8] px-6 py-3 text-center text-sm font-semibold text-white shadow-[0_16px_34px_-20px_rgba(87,70,232,.8)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#4938db] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/20 active:translate-y-0";
 const secondaryCtaClass =
   "inline-flex min-h-12 max-w-full items-center justify-center whitespace-normal rounded-xl border border-[#dfe2ea] bg-white px-6 py-3 text-center text-sm font-semibold text-[#141821] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#b9b1ff] hover:bg-[#f8f8ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/15 active:translate-y-0";
-
-const industries = [
-  ["Dental Clinic", "Appointment booking, treatment pages, local SEO, WhatsApp enquiries."],
-  ["Aesthetic Clinic", "Premium service presentation, treatment categories, consultation CTA."],
-  ["Cleaning Service", "Fast quote flow, service areas, reviews, recurring cleaning packages."],
-  ["Renovation Contractor", "Project gallery, quote request, before/after proof, service areas."],
-  ["Consultant", "Authority positioning, services, case studies, book-a-call flow."],
-  ["Law Firm", "Trust-first layout, practice areas, consultation enquiry, FAQ."],
-  ["Real Estate Agent", "Property lead capture, buyer/seller CTAs, local positioning."],
-  ["Restaurant", "Menu preview, reservations, location, promotions, gallery."],
-  ["Fitness Coach", "Program offer, transformation proof, booking and WhatsApp CTA."],
-  ["Salon / Spa", "Treatments, pricing preview, booking CTA, photo-led trust sections."],
-  ["Accounting Firm", "Packages, who-we-help, consultation CTA, compliance-friendly copy."],
-  ["IT Support Company", "Service plans, response promise, support request CTA, B2B trust."],
-];
-
-const deliveryStages = [
-  {
-    title: "See the direction",
-    timing: "Before you buy",
-    customer: "Share your website or a short business brief.",
-    studio: "We identify the clearest offer, proof, and enquiry direction, then prepare a limited preview.",
-    outcome: "You can judge the direction before committing.",
-  },
-  {
-    title: "Confirm the plan",
-    timing: "Signup",
-    customer: "Choose the plan that matches the pages and support you need.",
-    studio: "We preserve your preview details and guide you through checkout and onboarding.",
-    outcome: "No need to repeat the same business information.",
-  },
-  {
-    title: "Review the build",
-    timing: "Build and approval",
-    customer: "Provide content and one clear round of consolidated feedback.",
-    studio: "We build the agreed pages, enquiry paths, mobile layout, SEO basics, and tracking.",
-    outcome: "Nothing launches until you approve it.",
-  },
-  {
-    title: "Launch and improve",
-    timing: "Ongoing",
-    customer: "Approve recommendations or request plan-based updates.",
-    studio: "We host, maintain, track real enquiry actions, and make managed improvements.",
-    outcome: "You see what happened, what changed, and what we recommend next.",
-  },
-];
-
-const caseStudies = [
-  {
-    title: "Dental clinic appointment website", templateId: "dental-clinic-v1", industryId: "clinic", industry: "Dental clinics", type: "Patient enquiries", image: "/brand-template-preview.svg",
-    challenge: "Patients need to compare treatments, trust, location, reviews, and the next appointment step before contacting a clinic.",
-    strategy: "Lead with treatment intent, show clinic and practitioner trust early, answer common questions, and keep WhatsApp, call, and appointment CTAs visible.",
-    outcome: "An illustrative patient journey designed to move high-intent visitors into an appointment conversation.",
-    delivered: ["Treatment structure", "Trust sections", "Local SEO direction", "Appointment CTA"], href: "/preview/template/dental-clinic-v1",
-  },
-  {
-    title: "Cleaning quote website", templateId: "cleaning-company-v1", industryId: "cleaning", industry: "Cleaning companies", type: "Quote requests", image: "/brand-template-preview.svg",
-    challenge: "Customers need to know whether you cover their area and type of cleaning before requesting a quote.",
-    strategy: "Explain service scope, show real reviews, and ask for property type, location, frequency and preferred date.",
-    outcome: "An illustrative enquiry journey designed to help the team assess a cleaning request.",
-    delivered: ["Service scope", "Areas served", "Review sections", "Quote enquiry"], href: "/preview/template/cleaning-company-v1",
-  },
-  {
-    title: "Tuition and education website", templateId: "tuition-centre-v1", industryId: "education", industry: "Education", type: "Trial-class enquiries", image: "/brand-template-preview.svg",
-    challenge: "Parents need clear programmes, age groups, schedules and teacher information before making contact.",
-    strategy: "Make programmes easy to compare and guide parents to an enquiry about a suitable class.",
-    outcome: "An illustrative parent journey designed to support trial-class conversations.",
-    delivered: ["Programme sections", "Teacher profiles", "Parent FAQ", "Trial-class CTA"], href: "/preview/template/tuition-centre-v1",
-  },
-  {
-    title: "Accounting and bookkeeping website", templateId: "accounting-firm-v1", industryId: "accounting", industry: "Accounting and bookkeeping", type: "Consultation enquiries", image: "/brand-template-preview.svg",
-    challenge: "Business owners need to understand whether the firm handles their business type and required services.",
-    strategy: "Explain client fit and service scope, show verified credentials, and offer an initial consultation.",
-    outcome: "An illustrative business enquiry journey designed to start relevant client conversations.",
-    delivered: ["Who we help", "Service scope", "Team credentials", "Consultation CTA"], href: "/preview/template/accounting-firm-v1",
-  },
-];
 
 const industrySalesStarts = [
   {
@@ -552,7 +458,16 @@ function Hero({
 }) {
   const primaryContent = <>{primaryLabel} <ArrowRight className="ml-2 h-4 w-4" /></>;
   const isAuditPage = variant === "audit";
-  const visualIndex = /clinic|dent/i.test(title) ? 1 : /beauty|salon|wellness/i.test(title) ? 2 : /renovation|contractor|local service/i.test(title) || imageSrc.includes("work") ? 3 : /tuition|education/i.test(title) ? 4 : 0;
+  const lowerTitle = title.toLowerCase();
+  const focusItems = /clinic|dent|health/i.test(lowerTitle)
+    ? [["Treatment", "Explain options and common patient questions."], ["Care team", "Introduce practitioners, credentials and clinic."], ["Appointment", "Make booking and next steps easy to find."]]
+    : /renovat|contractor|local service|work/i.test(lowerTitle) || imageSrc.includes("work")
+    ? [["Services", "Show the work you take on and where you operate."], ["Proof", "Use real projects, reviews and clear credentials."], ["Quote", "Give customers a direct way to discuss the job."]]
+    : /tuition|education|school/i.test(lowerTitle)
+    ? [["Programmes", "Explain who each course or service is for."], ["Confidence", "Answer parent and learner questions clearly."], ["Enquiry", "Make trials, visits and registrations straightforward."]]
+    : /beauty|salon|wellness/i.test(lowerTitle)
+    ? [["Treatments", "Present services, options and pricing clearly."], ["Experience", "Set expectations with genuine photos and details."], ["Booking", "Help customers choose a service and book."]]
+    : [["Offer", "Make the service and ideal customer clear."], ["Evidence", "Place relevant proof beside the claims it supports."], ["Next step", "Give visitors one clear way to get in touch."]];
   return (
     <section className="brand-grid-bg relative overflow-hidden border-b border-white/10 bg-[#0b1020] text-white">
       <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#5746e8]/20 blur-3xl" />
@@ -593,7 +508,14 @@ function Hero({
               <p className="mt-4 text-xs leading-5 text-slate-500">Example questions only. Your actual review is generated from accessible evidence on your website.</p>
             </div>
           ) : (
-            <WebsiteConceptVisual title={title} eyebrow="Responsive business website design example" index={visualIndex} hero className="relative border border-white/10" />
+            <div className="rounded-2xl border border-white/12 bg-[#111827]/90 p-5 shadow-[0_40px_100px_-55px_rgba(0,0,0,.8)] sm:p-7" aria-label={`Website guidance for ${title}`}>
+              <p className="text-xs font-bold uppercase tracking-[.14em] text-[#b9b1ff]">A focused website gives customers</p>
+              <h2 className="mt-3 text-2xl !text-white">Clear answers. A confident next step.</h2>
+              <div className="mt-5 divide-y divide-white/10">
+                {focusItems.map(([label, detail], index) => <div key={label} className="grid gap-2 py-4 sm:grid-cols-[2.5rem_1fr] sm:gap-4"><span className="text-xs font-bold text-[#9f93ff]">0{index + 1}</span><div><p className="font-semibold !text-white">{label}</p><p className="mt-1 text-sm leading-6 !text-white/60">{detail}</p></div></div>)}
+              </div>
+              <p className="mt-4 border-t border-white/10 pt-4 text-xs !text-white/50">Strategy · design · launch · ongoing care</p>
+            </div>
           )}
         </div>
       </div>
@@ -601,299 +523,6 @@ function Hero({
   );
 }
 
-
-function ServicesPage() {
-  const services = [
-    ["01", "Strategy & discovery", "We learn how the business makes money, who the buyer is, what evidence already exists and what the website needs to achieve."],
-    ["02", "Messaging & positioning", "We shape the offer, page hierarchy and calls to action so visitors understand the business quickly and know what to do next."],
-    ["03", "Design & user experience", "The visual system is tailored around the brand, category and buyer journey rather than a single generic template."],
-    ["04", "Build & integrations", "We prepare a responsive website with the forms, tracking, analytics and practical integrations required for launch."],
-    ["05", "Human review", "Bennie Studio reviews the message, design, responsive behaviour and conversion path before customer approval."],
-    ["06", "Launch & support", "Hosting, SSL, maintenance and plan-based improvements remain part of the managed workflow after launch."],
-  ];
-
-  return (
-    <>
-      <Hero
-        title="Strategic websites designed to win trust and enquiries."
-        copy="Bennie Studio combines strategy, messaging, design, build and human review into one managed website service for businesses that need something more considered than a generic template."
-        icon={Sparkles}
-        primaryLabel="See a website direction"
-        primaryHref="/generate-preview"
-        secondaryLabel="View the work"
-        secondaryHref="/case-studies"
-        imageSrc="/images/studio-process-v3.jpg"
-      />
-
-      <section className="brand-shell brand-section">
-        <div className="grid gap-10 lg:grid-cols-12 lg:items-center">
-          <div className="lg:col-span-5">
-            <p className="brand-kicker">What we do</p>
-            <h2 className="mt-4">More than a website. A strategic business asset.</h2>
-            <p className="brand-copy mt-6">A strong website should make the offer easier to understand, make the business easier to trust and make the next step obvious. That is the job of the whole system.</p>
-            <Link to="/generate-preview" className={`${primaryCtaClass} mt-7`}>See a website direction <ArrowRight className="ml-2 h-4 w-4" /></Link>
-          </div>
-          <div className="bt-premium-card overflow-hidden bg-[#0b1020] p-3 lg:col-span-7">
-            <WebsiteConceptVisual title="Professional service website" eyebrow="Business-first design direction" index={0} className="aspect-[16/10]" />
-          </div>
-        </div>
-      </section>
-
-      <section className="bt-section-soft border-y border-[#e5e8ef]">
-        <div className="brand-shell brand-section">
-          <div className="grid gap-9 lg:grid-cols-12 lg:items-end">
-            <div className="lg:col-span-7">
-              <p className="brand-kicker">Service pillars</p>
-              <h2 className="mt-4">A complete website system, from strategy to growth.</h2>
-            </div>
-            <p className="brand-copy lg:col-span-5">The workflow is structured, but the result is not templated. The business model, audience and proof decide the direction.</p>
-          </div>
-          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {services.map(([number, title, copy]) => (
-              <article key={title} className="bt-premium-card bt-card-hover p-6">
-                <span className="text-xs font-bold text-[#6252f4]">{number}</span>
-                <h3 className="mt-4">{title}</h3>
-                <p className="mt-3 text-sm leading-7 text-[#657186]">{copy}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="brand-on-dark">
-        <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-5">
-            <p className="brand-kicker !text-[#b9b1ff]">The human difference</p>
-            <h2 className="mt-4 !text-white">Modern tools give us speed. Human review protects the result.</h2>
-            <p className="mt-6 max-w-xl text-base leading-8 !text-white/65">Automation can accelerate production. It does not replace judgment about credibility, positioning, design quality or whether the website actually makes sense to a customer.</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:col-span-7">
-            {["Strategic messaging", "Thoughtful visual direction", "Responsive quality review", "Clear enquiry paths"].map((item) => (
-              <div key={item} className="bt-premium-card-dark p-5">
-                <ShieldCheck className="h-5 w-5 text-[#b9b1ff]" />
-                <p className="mt-4 font-semibold !text-white">{item}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="brand-shell brand-section">
-        <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
-          <div className="lg:col-span-7">
-            <p className="brand-kicker">Who it is for</p>
-            <h2 className="mt-4">Built for service businesses ready to look more credible and sell more clearly.</h2>
-          </div>
-          <p className="brand-copy lg:col-span-5">Professional services, clinics, consultants, accounting firms and local service businesses all need different proof and enquiry paths. The system adapts to that difference.</p>
-        </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[
-            ["Professional services", "Authority, expertise and qualified consultation enquiries."],
-            ["Healthcare & clinics", "Trust, treatment clarity and a simple appointment path."],
-            ["Consultants & experts", "Clear positioning, proof and a focused book-call journey."],
-            ["Local services", "Fast proof, service-area clarity and quote or call actions."],
-          ].map(([title, copy]) => (
-            <article key={title} className="bt-premium-card bt-card-hover p-6">
-              <Globe className="h-5 w-5 text-[#6252f4]" />
-              <h3 className="mt-4">{title}</h3>
-              <p className="mt-3 text-sm leading-7 text-[#657186]">{copy}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-    </>
-  );
-}
-
-function AboutPage() {
-  return (
-    <>
-      <Hero
-        title="A modern studio for businesses that need a better website."
-        copy="Bennie Studio is built around a simple idea: businesses should be able to get thoughtful strategy, strong design and reliable website delivery without managing a complicated agency process."
-        icon={ShieldCheck}
-        primaryLabel="See a website direction"
-        primaryHref="/generate-preview"
-        secondaryLabel="See how it works"
-        secondaryHref="/how-it-works"
-        imageSrc="/images/studio-process-v3.jpg"
-      />
-
-      <section className="brand-shell brand-section">
-        <div className="grid gap-10 lg:grid-cols-12 lg:items-center">
-          <div className="lg:col-span-5">
-            <p className="brand-kicker">Our mission</p>
-            <h2 className="mt-4">Better websites for real businesses.</h2>
-            <p className="brand-copy mt-6">The goal is not to produce more pages. It is to make good businesses easier to understand, easier to trust and easier to contact. Strategy, design and technology are useful only when they serve that goal.</p>
-          </div>
-          <div className="bt-premium-card overflow-hidden p-3 lg:col-span-7">
-            <WebsiteConceptVisual title="Healthcare website" eyebrow="Responsive design concept" index={1} className="aspect-[16/10]" />
-          </div>
-        </div>
-      </section>
-
-      <section className="bt-section-soft border-y border-[#e5e8ef]">
-        <div className="brand-shell brand-section">
-          <p className="brand-kicker">What matters</p>
-          <div className="mt-5 grid gap-10 lg:grid-cols-12 lg:items-end">
-            <h2 className="lg:col-span-7">A more thoughtful way to build websites.</h2>
-            <p className="brand-copy lg:col-span-5">The service is designed around clarity, craft, commercial usefulness and direct responsibility for the finished result.</p>
-          </div>
-          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              ["Human first", "Real review and feedback at the stages where judgment matters."],
-              ["Business minded", "Design decisions are tied back to the buyer, the offer and the desired enquiry."],
-              ["Quality over volume", "The system is designed to make review and launch standards explicit."],
-              ["Long-term usefulness", "The website remains managed and can evolve as the business changes."],
-            ].map(([title, copy]) => (
-              <article key={title} className="bt-premium-card p-6">
-                <Check className="h-5 w-5 text-[#6252f4]" />
-                <h3 className="mt-4">{title}</h3>
-                <p className="mt-3 text-sm leading-7 text-[#657186]">{copy}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="brand-on-dark">
-        <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-5">
-            <p className="brand-kicker !text-[#b9b1ff]">Our difference</p>
-            <h2 className="mt-4 !text-white">Every paid website is reviewed before launch.</h2>
-            <p className="mt-6 text-base leading-8 !text-white/65">The production system can accelerate repetitive work, but the final website still needs judgment: does the message make sense, does it feel credible, does it work on mobile and is the next action obvious?</p>
-          </div>
-          <div className="grid gap-3 lg:col-span-7">
-            {PUBLIC_DELIVERY_PROMISES.slice(0, 4).map((promise, index) => (
-              <div key={promise} className="bt-premium-card-dark grid gap-3 p-5 sm:grid-cols-[3rem_1fr] sm:items-center">
-                <span className="text-xs font-bold !text-[#b9b1ff]">{String(index + 1).padStart(2, "0")}</span>
-                <p className="text-sm font-semibold leading-7 !text-white/80">{promise}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    </>
-  );
-}
-
-function ResourcesPage() {
-  const resources = [
-    [FileSearch, "Free website growth audit", "Identify observable design, trust, enquiry and SEO issues on your current site.", "/website-audit", "Run the audit"],
-    [LayoutTemplate, "Website directions", "Explore the design families and buyer-journey structures Bennie Studio uses as starting points.", "/templates", "Explore directions"],
-    [Sparkles, "Working examples", "See demonstration builds and verified customer proof where approved proof is available.", "/case-studies", "View the work"],
-    [Rocket, "How the process works", "Understand the brief, review, launch and managed-service workflow before you commit.", "/how-it-works", "See the process"],
-    [ClipboardCheck, "Pricing and scope", "Compare current managed plans, setup fees and included service levels.", "/pricing", "Compare plans"],
-  ] as const;
-
-  return (
-    <>
-      <Hero
-        title="Guides, tools and examples for businesses improving their website."
-        copy="Use the practical resources below to evaluate your current website, understand the Bennie Studio process and see how different businesses need different website directions."
-        icon={FileSearch}
-        primaryLabel="Start with a free audit"
-        primaryHref="/website-audit"
-        secondaryLabel="Generate a preview"
-        secondaryHref="/generate-preview"
-        imageSrc="/images/studio-work-v3.jpg"
-      />
-
-      <section className="brand-shell brand-section">
-        <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
-          <div className="lg:col-span-7">
-            <p className="brand-kicker">Practical resources</p>
-            <h2 className="mt-4">Useful before you spend money on a redesign.</h2>
-          </div>
-          <p className="brand-copy lg:col-span-5">These resources are designed to help you diagnose the problem, see possible directions and understand what a managed website service actually includes.</p>
-        </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {resources.map(([Icon, title, copy, href, label]) => (
-            <Link key={title} to={href} className="bt-premium-card bt-card-hover group p-6">
-              <Icon className="h-6 w-6 text-[#6252f4]" />
-              <h3 className="mt-5">{title}</h3>
-              <p className="mt-3 text-sm leading-7 text-[#657186]">{copy}</p>
-              <span className="mt-6 inline-flex items-center text-sm font-semibold text-[#0d1426]">{label}<ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" /></span>
-            </Link>
-          ))}
-          <a href={BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com"} target="_blank" rel="noreferrer" className="bt-premium-card bt-card-hover group p-6">
-            <Globe className="h-6 w-6 text-[#6252f4]" />
-            <h3 className="mt-5">Bennie Tay insights</h3>
-            <p className="mt-3 text-sm leading-7 text-[#657186]">Long-form notes and practical thinking about websites, growth and digital execution.</p>
-            <span className="mt-6 inline-flex items-center text-sm font-semibold text-[#0d1426]">Read insights<ExternalLink className="ml-2 h-4 w-4" /></span>
-          </a>
-        </div>
-      </section>
-
-      <section className="bt-section-soft border-y border-[#e5e8ef]">
-        <div className="brand-shell brand-section grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <p className="brand-kicker">A useful next step</p>
-            <h2 className="mt-4 max-w-3xl">See what a better direction could look like for your business.</h2>
-            <p className="brand-copy mt-5">A preview gives you something concrete to react to before you choose a managed plan.</p>
-          </div>
-          <Link to="/generate-preview" className={primaryCtaClass}>See a website direction <ArrowRight className="ml-2 h-4 w-4" /></Link>
-        </div>
-      </section>
-    </>
-  );
-}
-
-function ContactPage() {
-  return (
-    <>
-      <Hero
-        title="Let’s talk about your website."
-        copy="If you already know what you need, book a focused review call. If you are still deciding, start with a guided brief and a tailored website preview."
-        icon={MessageCircle}
-        primaryLabel="Book a free call"
-        primaryHref="/book-demo"
-        secondaryLabel="See a website direction"
-        secondaryHref="/generate-preview"
-      />
-
-      <section className="brand-shell brand-section">
-        <div className="grid gap-5 lg:grid-cols-2">
-          <article className="bt-premium-card p-7 sm:p-9">
-            <Mail className="h-6 w-6 text-[#6252f4]" />
-            <p className="brand-kicker mt-6">Prefer to start asynchronously?</p>
-            <h2 className="mt-4">Send a clear business brief.</h2>
-            <p className="brand-copy mt-5">The preview flow captures your business, goals, current website and visual direction so the conversation starts with useful context instead of a blank page.</p>
-            <Link to="/generate-preview" className={`${primaryCtaClass} mt-7`}>See a website direction <ArrowRight className="ml-2 h-4 w-4" /></Link>
-          </article>
-          <article className="bt-premium-card bg-[#0d1426] p-7 text-white sm:p-9">
-            <MessageCircle className="h-6 w-6 text-[#b9b1ff]" />
-            <p className="mt-6 text-xs font-bold uppercase tracking-[0.13em] !text-[#b9b1ff]">Want to talk it through?</p>
-            <h2 className="mt-4 !text-white">Book a focused website review.</h2>
-            <p className="mt-5 text-base leading-8 !text-white/65">Use the call to discuss your goals, current website, plan fit and next steps. The goal is clarity, not a high-pressure sales call.</p>
-            <Link to="/book-demo" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-semibold text-[#0d1426]">Book a free call <ArrowRight className="ml-2 h-4 w-4" /></Link>
-          </article>
-        </div>
-      </section>
-
-      <section className="bt-section-soft border-y border-[#e5e8ef]">
-        <div className="brand-shell brand-section">
-          <p className="brand-kicker">What happens next</p>
-          <h2 className="mt-4 max-w-3xl">From conversation to a clearer website direction.</h2>
-          <div className="mt-10 grid gap-4 md:grid-cols-4">
-            {[
-              ["01", "Share context", "Tell us about the business, current website and what needs to change."],
-              ["02", "Clarify the goal", "We identify the buyer, strongest next action and realistic scope."],
-              ["03", "Review the direction", "See the website direction or discuss the proposed approach."],
-              ["04", "Choose the next step", "Continue only if the plan, scope and working model make sense."],
-            ].map(([number, title, copy]) => (
-              <article key={number} className="bt-premium-card p-6">
-                <span className="text-xs font-bold text-[#6252f4]">{number}</span>
-                <h3 className="mt-4">{title}</h3>
-                <p className="mt-3 text-sm leading-7 text-[#657186]">{copy}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-    </>
-  );
-}
 
 function TemplatesPage() {
   return (
@@ -959,259 +588,6 @@ function TemplatesPage() {
                 </Link>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
-    </>
-  );
-}
-
-function PricingPage() {
-  const location = useLocation();
-  return (
-    <>
-      <Hero
-        title="Professional websites for growing service businesses."
-        copy="Choose the level of website management and growth support that fits where your business is now. The current setup fee, monthly service and commitment are shown before checkout."
-        icon={Sparkles}
-        primaryLabel="See recommended website direction"
-        primaryHref="/generate-preview"
-        secondaryLabel="See how it works"
-        secondaryHref="/how-it-works"
-      />
-      <CommercialPricing hideIntro />
-    </>
-  );
-}
-
-function HowItWorksPage() {
-  return (
-    <>
-      <Hero
-        title="From brief to launch, without the chaos."
-        copy="A clear process takes you from business brief to strategy, design, human review, customer approval, launch and ongoing support — with one managed workflow."
-        icon={Rocket}
-        imageSrc="/images/studio-process-v3.jpg"
-      />
-      <section className="brand-shell brand-section">
-        <div className="grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-4">
-            <p className="brand-kicker">Working agreement</p>
-            <h2 className="mt-4">One clear owner on each side.</h2>
-            <p className="brand-copy mt-5">No mystery workflow. Each stage has an input, a studio responsibility and a clear outcome.</p>
-          </div>
-          <div className="brand-rule-list lg:col-span-8">
-            {deliveryStages.map((stage, index) => (
-              <article key={stage.title} className="border-b border-[#dfe2ea] py-7">
-                <div className="grid gap-5 md:grid-cols-[5rem_1fr]">
-                  <div>
-                    <p className="text-xs font-bold text-[#5b4bff]">0{index + 1}</p>
-                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.06em] text-[#777d87]">{stage.timing}</p>
-                  </div>
-                  <div>
-                    <h2 className="text-2xl">{stage.title}</h2>
-                    <div className="mt-5 grid gap-5 md:grid-cols-2">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.06em] text-[#777d87]">You provide</p>
-                        <p className="mt-2 text-sm leading-6 text-[#5f6673]">{stage.customer}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.06em] text-[#5b4bff]">Bennie Studio handles</p>
-                        <p className="mt-2 text-sm leading-6 text-[#5f6673]">{stage.studio}</p>
-                      </div>
-                    </div>
-                    <p className="mt-5 flex gap-2 text-sm font-semibold text-emerald-700"><Check className="mt-0.5 h-4 w-4 shrink-0" />{stage.outcome}</p>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-[#dfe2ea] bg-[#0b1020] text-white">
-        <div className="brand-shell brand-section">
-          <div className="grid gap-10 lg:grid-cols-12">
-            <div className="lg:col-span-4">
-              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#b9b1ff]">Delivery standard {DELIVERY_STANDARD_VERSION}</p>
-              <h2 className="mt-4 !text-white">Generation starts the work. It does not approve the work.</h2>
-              <p className="mt-5 text-base leading-7 !text-white/65">
-                Every paid site moves through a human-reviewed delivery pipeline before it can be published.
-              </p>
-            </div>
-            <div className="lg:col-span-8">
-              <div className="grid gap-px overflow-hidden border border-white/15 bg-white/15 sm:grid-cols-2">
-                {DELIVERY_PIPELINE.map((stage, index) => (
-                  <div key={stage} className="bg-[#101827] p-5">
-                    <p className="text-[10px] font-black uppercase tracking-[0.14em] !text-[#b9b1ff]">
-                      {String(index + 1).padStart(2, "0")}
-                    </p>
-                    <p className="mt-2 text-sm font-semibold !text-white">{stage}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 grid gap-3">
-                {PUBLIC_DELIVERY_PROMISES.map((promise) => (
-                  <p key={promise} className="flex gap-3 text-sm leading-6 !text-white/75">
-                    <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-300" />
-                    {promise}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-[#dfe2ea] bg-white">
-        <div className="brand-shell grid gap-8 py-12 md:grid-cols-3">
-          {[
-            ["Before launch", "You review the prepared website and approve the final direction before it goes live."],
-            ["After launch", "Hosting, SSL, maintenance, tracking and the included update allowance remain managed."],
-            ["When needs change", "Upgrade the plan or scope CMS, ecommerce, integrations or deeper growth work separately."],
-          ].map(([title, copy]) => (
-            <div key={title} className="border-t border-[#dfe2ea] pt-4">
-              <h3>{title}</h3>
-              <p className="mt-3 text-sm leading-6 text-[#5f6673]">{copy}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-    </>
-  );
-}
-
-function WebsiteWireframe({ title, accent = "indigo" }: { title: string; accent?: "indigo" | "emerald" | "amber" }) {
-  const accentClass = accent === "emerald" ? "bg-emerald-500" : accent === "amber" ? "bg-amber-400" : "bg-indigo-600";
-  return (
-    <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100 p-4">
-      <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-xl">
-        <div className="flex items-center gap-1.5 border-b border-slate-200 bg-slate-50 px-4 py-3">
-          <span className="h-2.5 w-2.5 rounded-full bg-rose-300" /><span className="h-2.5 w-2.5 rounded-full bg-amber-300" /><span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
-          <span className="ml-3 h-2 w-24 rounded-full bg-slate-200" />
-        </div>
-        <div className="grid gap-5 p-5 sm:grid-cols-[1.1fr_0.9fr] sm:p-7">
-          <div>
-            <div className={`h-2.5 w-20 rounded-full ${accentClass}`} />
-            <div className="mt-4 h-7 w-11/12 rounded-lg bg-slate-900" />
-            <div className="mt-2 h-7 w-8/12 rounded-lg bg-slate-200" />
-            <div className="mt-4 h-3 w-full rounded-full bg-slate-100" /><div className="mt-2 h-3 w-10/12 rounded-full bg-slate-100" />
-            <div className={`mt-6 h-10 w-32 rounded-xl ${accentClass}`} />
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <div className="h-24 rounded-xl bg-[linear-gradient(135deg,#e2e8f0_25%,#cbd5e1_25%,#cbd5e1_50%,#e2e8f0_50%,#e2e8f0_75%,#cbd5e1_75%)] bg-[length:18px_18px]" />
-            <div className="mt-3 h-3 w-9/12 rounded-full bg-slate-300" /><div className="mt-2 h-3 w-6/12 rounded-full bg-slate-200" />
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-2 border-t border-slate-100 p-5"><div className="h-12 rounded-xl bg-slate-100" /><div className="h-12 rounded-xl bg-slate-100" /><div className="h-12 rounded-xl bg-slate-100" /></div>
-      </div>
-      <div className="pointer-events-none absolute bottom-6 left-6 rounded-full bg-slate-950 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white shadow-lg">{title} · wireframe direction</div>
-    </div>
-  );
-}
-
-function CaseStudiesPage() {
-  const [verifiedProof, setVerifiedProof] = React.useState<any[]>([]);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    const loadCuratedProof = async () => {
-      try {
-        const configResponse = await fetch("/api/public/site-config");
-        const configPayload = configResponse.ok ? await configResponse.json() : null;
-        const approvedIds = Array.isArray(configPayload?.platform?.publicProofTestimonialIds)
-          ? configPayload.platform.publicProofTestimonialIds.filter(Boolean)
-          : [];
-        if (!approvedIds.length) {
-          if (!cancelled) setVerifiedProof([]);
-          return;
-        }
-        const { data } = await supabase
-          .from("customer_testimonials")
-          .select("id,slug,title,customer_name,company,testimonial,result_summary,evidence_reference,date_approved,before_summary,changes,result_metrics,before_image_url,after_image_url")
-          .in("id", approvedIds)
-          .eq("publish_status", "published")
-          .eq("consent_status", "approved")
-          .order("date_approved", { ascending: false });
-        if (!cancelled) setVerifiedProof(data || []);
-      } catch {
-        if (!cancelled) setVerifiedProof([]);
-      }
-    };
-    void loadCuratedProof();
-    return () => { cancelled = true; };
-  }, []);
-
-  return (
-    <>
-      <Hero
-        title="Work that shows how different businesses need different websites."
-        copy="Explore demonstration builds and verified customer proof where approved evidence is available. The goal is to show structure, messaging, visual direction and enquiry flow without inventing results."
-        icon={Sparkles}
-        imageSrc="/images/studio-work-v3.jpg"
-      />
-
-      {verifiedProof.length ? (
-        <section className="bg-[#0b1020] text-white">
-          <div className="brand-shell brand-section">
-            <div className="grid gap-10 lg:grid-cols-12">
-              <div className="lg:col-span-4">
-                <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#aaa0ff]">Verified customer proof</p>
-                <h2 className="mt-4 text-white">Published only with customer approval.</h2>
-                <p className="mt-5 text-base leading-7 text-white/60">Testimonials and evidence references in this section come from approved customer records.</p>
-              </div>
-              <div className="border-t border-white/15 lg:col-span-8">
-                {verifiedProof.map((proof) => (
-                  <article key={proof.id} className="border-b border-white/15 py-7">
-                    <div className="grid gap-6 md:grid-cols-[1fr_1.4fr]">
-                      <div>
-                        <h3 className="text-white">{proof.title || proof.result_summary || "Customer outcome"}</h3>
-                        <p className="mt-2 text-sm font-semibold text-[#aaa0ff]">{proof.customer_name}{proof.company ? ` · ${proof.company}` : ""}</p>
-                        {proof.evidence_reference ? <a href={proof.evidence_reference} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center text-sm font-semibold text-white/70 hover:text-white">Supporting reference <ExternalLink className="ml-2 h-4 w-4" /></a> : null}
-                      </div>
-                      <div>
-                        {proof.before_summary ? <p className="text-sm leading-6 text-white/75">{proof.before_summary}</p> : null}
-                        <p className="mt-4 text-base leading-7 text-white/80">“{proof.testimonial}”</p>
-                        {Array.isArray(proof.result_metrics) && proof.result_metrics.length ? (
-                          <div className="mt-5 flex flex-wrap gap-4">
-                            {proof.result_metrics.map((metric: any) => <span key={`${metric.metric}-${metric.value}`} className="text-sm font-bold text-emerald-300">{metric.metric}: {metric.value}</span>)}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <section className="brand-shell brand-section">
-        <div className="grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-4">
-            <p className="brand-kicker">Explore website designs</p>
-            <h2 className="mt-4">Website ideas designed for real buying decisions.</h2>
-            <p className="brand-copy mt-5">Explore concept layouts for different types of businesses, from appointment bookings to quote requests.</p>
-            <a href="https://portfolio.bennietay.com" target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center text-sm font-bold text-[#141821]">Open live portfolio <ExternalLink className="ml-2 h-4 w-4" /></a>
-          </div>
-          <div className="border-t border-[#dfe2ea] lg:col-span-8">
-            {caseStudies.map((item) => (
-              <article key={item.title} className="grid gap-6 border-b border-[#dfe2ea] py-7 md:grid-cols-[1.05fr_1fr]">
-                <TemplatePreviewThumbnail templateId={item.templateId} templateName={item.title} className="min-h-56" />
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.06em] text-[#5b4bff]">{item.industry} · concept design</p>
-                  <h3 className="mt-3">{item.title}</h3>
-                  <p className="mt-4 text-sm leading-6 text-[#5f6673]"><strong className="text-[#141821]">Challenge:</strong> {item.challenge}</p>
-                  <p className="mt-3 text-sm leading-6 text-[#5f6673]"><strong className="text-[#141821]">Strategy:</strong> {item.strategy}</p>
-                  <p className="mt-3 text-sm leading-6 text-[#5f6673]"><strong className="text-[#141821]">Designed for:</strong> {item.outcome}</p>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <Link to={item.href} className={secondaryCtaClass}>See the design</Link>
-                    <Link to={`/generate-preview?industry=${item.industryId}&template=${item.templateId}`} className={primaryCtaClass}>Generate similar</Link>
-                  </div>
-                </div>
-              </article>
-            ))}
           </div>
         </div>
       </section>
@@ -1456,16 +832,6 @@ const resolvePreviewCta = (goal: string) => {
   return "Request a Consultation";
 };
 
-const resolveWebsitePreviewGoal = (industryId: string) => {
-  if (["agency", "accounting", "consultant", "clinic", "beauty", "education"].includes(industryId)) {
-    return "Get bookings";
-  }
-  if (["cleaning", "contractor", "local-service"].includes(industryId)) {
-    return "Generate local service leads";
-  }
-  return "Get contact form submissions";
-};
-
 const inferPreviewIndustryId = (service: string): string | null => {
   const value = service.toLowerCase();
   if (/website|web design|web development|seo|lead generation|digital marketing|marketing agency/.test(value)) return "agency";
@@ -1646,28 +1012,11 @@ function GeneratePreviewPage() {
     form.pageCount,
   ]);
 
-  const industry = previewIndustries.find((item) => item.id === effectiveIndustryId) || previewIndustries.find((item) => item.id === "local-service") || previewIndustries[0];
   const businessTypeLabel = selectedBusinessType?.label || "Select business type";
   const businessLabel = form.businessName.trim() || "your business";
   const locationLabel = form.location.trim() || "your service area";
   const serviceLabel = form.mainService.trim() || "your main service";
-  const previewTitle = `${selectedBusinessType?.label || industry.template} for ${businessLabel}`;
-  const reviewQuality = assessManualReviewInput(form.reviews);
-  const reviewStrategy = buildReviewWebsiteStrategy({
-    businessName: form.businessName,
-    industry: businessTypeLabel,
-    city: form.location,
-    mainServices: form.mainService,
-    preferredCta: goal.toLowerCase().includes("whatsapp")
-      ? "WhatsApp"
-      : goal.toLowerCase().includes("booking")
-        ? "booking"
-        : goal.toLowerCase().includes("phone")
-          ? "call"
-          : "form",
-    googleBusinessUrl: form.socialUrl,
-    reviews: form.reviews,
-  });
+  const industry = previewIndustries.find((item) => item.id === effectiveIndustryId) || previewIndustries.find((item) => item.id === "local-service") || previewIndustries[0];
   const commercialRecommendation = recommendCommercialProduct({
     goal,
     notes: `${form.mainService} ${form.biggestProblem}`,
@@ -1679,13 +1028,6 @@ function GeneratePreviewPage() {
     landingPageNeeds: /landing|campaign|service page|location page/i.test(form.biggestProblem),
     ongoingGrowth: /growth|scale|ongoing|monthly/i.test(`${goal} ${form.biggestProblem}`),
   });
-  const previewGenerationMode = resolvePreviewGenerationMode(effectiveIndustryId, form.brandStyle, form.websiteStatus);
-  const previewBrandPersonality = resolvePreviewBrandPersonality(form.brandStyle);
-  const previewBusinessMaturity: BusinessMaturity = form.websiteStatus === "yes" ? "established" : "growing";
-  const generatedDesignQuality = React.useMemo(
-    () => (generatedWebsite ? evaluateGeneratedDesign(generatedWebsite) : null),
-    [generatedWebsite],
-  );
   const generatedPrimaryCta = React.useMemo(() => {
     const home = generatedWebsite?.pages?.find((page) => page.slug === "" || page.slug === "home") || generatedWebsite?.pages?.[0];
     const hero = home?.sections?.find((section) => section.type === "hero");
@@ -2383,7 +1725,14 @@ function GeneratePreviewPage() {
             </div>
           </div>
 
-          <div className="relative lg:col-span-6"><WebsiteConceptVisual title="Tailored website direction" eyebrow="Bennie Studio concept" index={0} className="rounded-[1.25rem] border border-white/10 shadow-2xl" /><p className="mt-3 text-right text-xs font-semibold text-white/45">Initial direction · refined before launch</p></div>
+          <div className="relative lg:col-span-6">
+            <div className="rounded-2xl border border-white/12 bg-[#111827]/90 p-6 shadow-[0_35px_100px_-50px_rgba(0,0,0,.8)] sm:p-8">
+              <p className="text-xs font-bold uppercase tracking-[.14em] text-[#9f93ff]">What your first direction covers</p>
+              <h2 className="mt-3 text-2xl !text-white">A practical starting point for a better website.</h2>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">{[["Your offer", "What you do and who it serves."], ["Your customer", "What they need to know before choosing."], ["Your proof", "The real details that build confidence."], ["Your next step", "How the right visitor can contact you."]].map(([title, detail]) => <div key={title} className="border border-white/10 bg-white/[.04] p-4"><p className="font-semibold !text-white">{title}</p><p className="mt-2 text-sm leading-6 !text-white/60">{detail}</p></div>)}</div>
+              <p className="mt-5 text-xs !text-white/45">Initial direction · reviewed and refined before launch</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -3623,121 +2972,6 @@ function NicheLandingPage({ page }: { page: (typeof nichePages)[keyof typeof nic
   );
 }
 
-function PreviewRequestPanel() {
-  const [submitted, setSubmitted] = React.useState(false);
-  const [submitting, setSubmitting] = React.useState(false);
-  const [error, setError] = React.useState("");
-  const [form, setForm] = React.useState({
-    name: "",
-    email: "",
-    phone: "",
-    businessName: "",
-    websiteUrl: "",
-    industry: "",
-    message: "",
-  });
-
-  const submitPreviewRequest = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setError("");
-    setSubmitting(true);
-
-    try {
-      await submitPlatformLead({
-        ...form,
-        formName: "Done-for-you website preview request",
-        leadType: "done_for_you_preview",
-      });
-      setSubmitted(true);
-    } catch (err: any) {
-      setError(err?.message || "Unable to submit preview request right now.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="mt-12 grid gap-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-      <div className="rounded-xl bg-slate-950 p-7 text-white">
-        <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-200">Done-for-you preview request</p>
-        <h2 className="mt-4 text-3xl font-bold leading-tight">Turn a business brief into the first website direction.</h2>
-        <p className="mt-4 text-sm font-semibold leading-6 text-slate-300">
-          Use this when a prospect wants you to prepare the preview for them before selecting a plan.
-        </p>
-      </div>
-      {submitted ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-900">
-          <Check className="mb-4 h-8 w-8" />
-          <p className="text-xl font-bold">Preview request sent to CRM.</p>
-          <p className="mt-2 text-sm font-semibold leading-6">
-            Follow up with the prospect, confirm their plan fit, and prepare the preview direction.
-          </p>
-        </div>
-      ) : (
-        <form onSubmit={submitPreviewRequest} className="grid gap-4">
-          {error && <div className="rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</div>}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input aria-label="Name" required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="h-12 rounded-2xl" />
-            <Input aria-label="Email" required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-2xl" />
-            <Input aria-label="WhatsApp or phone" required placeholder="WhatsApp / phone (required)" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-2xl" />
-            <Input aria-label="Business name" placeholder="Business name" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-2xl" />
-            <Input aria-label="Current website URL" placeholder="Current website URL (optional if you do not have one)" value={form.websiteUrl} onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
-            <Input aria-label="Industry" placeholder="Industry" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-2xl sm:col-span-2" />
-          </div>
-          <Textarea aria-label="Message" placeholder="Main service, city, and what the website should help them get." value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="min-h-28 rounded-2xl" />
-          <Button type="submit" disabled={submitting} className="h-12 rounded-2xl bg-indigo-600 font-bold uppercase tracking-widest hover:bg-indigo-500">
-            {submitting ? "Sending Request..." : "Send Preview Request"} <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </form>
-      )}
-    </div>
-  );
-}
-
-function PublicInfoPage({ kind }: { kind: "about" | "services" | "resources" | "contact" }) {
-  const content = {
-    about: {
-      eyebrow: "ABOUT BENNIE STUDIO",
-      title: "A managed website team for businesses that need the site to keep working.",
-      body: "Bennie Studio combines positioning, design, lead capture, hosting and ongoing improvement in one accountable workflow. Every paid build is reviewed before customer approval and launch.",
-      action: "See how it works",
-      href: "/how-it-works",
-    },
-    services: {
-      eyebrow: "WEBSITE SERVICES",
-      title: "Choose the level of managed website support your business needs.",
-      body: "Start with a clear, conversion-ready website, then add deeper optimisation, local SEO and growth direction when the commercial need is there.",
-      action: "View managed plans",
-      href: "/pricing",
-    },
-    resources: {
-      eyebrow: "WEBSITE RESOURCES",
-      title: "Practical guidance for clearer positioning and stronger enquiries.",
-      body: "Use the website system, industry examples and preview workflow to understand what your customers need to see before they take the next step.",
-      action: "Explore the system",
-      href: "/how-it-works",
-    },
-    contact: {
-      eyebrow: "CONTACT BENNIE STUDIO",
-      title: "Tell us what the website needs to help your business do.",
-      body: "Start with a free website preview or book a short scope conversation. No card is required to see the initial direction.",
-      action: "See recommended website direction",
-      href: "/generate-preview",
-    },
-  }[kind];
-
-  return (
-    <main className="brand-shell py-16 md:py-24">
-      <section className="max-w-3xl rounded-[2rem] border border-[#e1e4ec] bg-white p-8 shadow-[0_24px_70px_-45px_rgba(20,24,33,.35)] md:p-14">
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#5746e8]">{content.eyebrow}</p>
-        <h1 className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-[#141821] md:text-6xl">{content.title}</h1>
-        <p className="mt-6 max-w-2xl text-lg leading-8 text-[#525a6b]">{content.body}</p>
-        <Link to={content.href} className={`${primaryCtaClass} mt-8`}>{content.action} <ArrowRight className="ml-2 h-4 w-4" /></Link>
-      </section>
-    </main>
-  );
-}
-
 export default function PublicMarketingPages() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -3795,7 +3029,7 @@ export default function PublicMarketingPages() {
       </Helmet>
       <PublicSiteHeader />
       {pageContent}
-      <section className="brand-grid-bg relative overflow-hidden border-t border-white/10 bg-[#6252f4] text-white">
+      {pageKind !== "pricing" && <section className="brand-grid-bg relative overflow-hidden border-t border-white/10 bg-[#6252f4] text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="brand-shell relative grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
           <div>
@@ -3808,7 +3042,7 @@ export default function PublicMarketingPages() {
             <Button onClick={() => navigate(finalSecondary.href)} variant="outline" className="min-h-12 border-white/30 bg-white/[0.04] px-6 font-semibold text-white hover:bg-white/10 hover:text-white">{finalSecondary.label}</Button>
           </div>
         </div>
-      </section>
+      </section>}
       <PublicSiteFooter />
     </div>
   );

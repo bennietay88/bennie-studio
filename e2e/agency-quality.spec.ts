@@ -278,9 +278,9 @@ test("sales journey exposes delivery safeguards and defined scope", async ({ pag
   await page.goto("/pricing", { waitUntil: "networkidle" });
   const plans = page.locator("#plans");
   await expect(plans).toBeVisible();
-  const fees = plans.locator('section[aria-label="What fees cover"]');
-  await expect(fees).toBeVisible();
-  await expect(fees.getByText(/Know exactly what you are buying/i)).toBeVisible();
+  const planDetails = plans.locator('section[aria-label="Plan details"]');
+  await expect(planDetails).toBeVisible();
+  await expect(planDetails.getByText(/approve the finished site before launch/i)).toBeVisible();
   await expect(page.getByText(/3-month initial commitment/i).first()).toBeVisible();
   await page.getByRole("checkbox", { name: /New-customer offer/i }).check();
   await expect(page.getByText(/12-month initial commitment/i).first()).toBeVisible();

@@ -54,13 +54,12 @@ test("public brand uses product-led positioning guardrails", async () => {
     import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/Pricing.tsx", import.meta.url), "utf8")),
   ]);
 
-  assert.match(homepage, /managed website system/i);
-  assert.match(homepage, /Hero free website direction/);
-  assert.match(homepage, /Managed, not handed off/i);
-  assert.match(homepage, /<button type="button" onClick=\{\(\) => go\("\/pricing", "Hero choose a website plan"\)/);
-  assert.match(homepage, /See plans & pricing/);
-  assert.match(homepage, /Or preview a free website direction/);
-  assert.match(homepage, /<Link to="\/book-demo"/);
+  assert.match(homepage, /Win trust before/);
+  assert.match(homepage, /Compare the 3 plans/);
+  assert.match(homepage, /id="plans"/);
+  assert.match(homepage, /Your approval before launch/);
+  assert.doesNotMatch(homepage, /Or preview a free website direction/);
+  assert.match(homepage, /go\("\/book-demo", "Discuss website scope"\)/);
   assert.doesNotMatch(chrome, /Website Design Orchard|Website Design Petaling Jaya|Website Design London/);
   assert.doesNotMatch(pricing, /hidden overflow-x-auto md:block/);
   // Price verification must fail closed before a customer can choose a plan.
@@ -450,10 +449,9 @@ test("public-site credibility marquee is available to generated customer sites",
     ),
   ]);
 
-  assert.match(homepage, /Managed website system/);
-  // Marquee is a customer-site section capability, independent of the homepage hero artwork.
-  assert.match(homepage, /<WebsiteConceptVisual[\s\S]*?hero[\s\S]*?className=/);
-  assert.match(homepage, /original studio concepts/i);
+  // Customer-site marquee rendering is independent of the shorter sales homepage.
+  assert.match(homepage, /Compare the 3 plans/);
+  assert.doesNotMatch(homepage, /WebsiteConceptVisual|original studio concepts/i);
   assert.equal(SECTION_TEMPLATES.logo_marquee.type, "proof");
   assert.equal(SECTION_TEMPLATES.logo_marquee.settings?.variant, "logo_marquee");
   assert.match(renderer, /proofVariant === "logo_marquee"/);

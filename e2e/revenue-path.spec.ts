@@ -439,25 +439,22 @@ test("presents Managed Website as the primary homepage offer", async ({ page }) 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Win trust before\s*the first conversation\./i })).toBeVisible();
   await expect(page.getByText(/Get a clear, professional website built around your services/i).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /See plans & pricing/i }).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /Or preview a free website direction/i }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Compare the 3 plans/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true }).first()).toBeVisible();
   await expect(page.getByText(/\$49/)).toHaveCount(0);
-  await page.getByRole("button", { name: /Or preview a free website direction/i }).first().click();
+  await page.getByRole("button", { name: /Compare the 3 plans/i }).click();
+  await expect(page.locator("#plans")).toBeInViewport();
+  await page.getByRole("link", { name: /Get a free website direction first/i }).click();
   await expect(page).toHaveURL(/\/generate-preview$/);
   await expect(page.getByLabel("Main service")).toBeVisible();
 });
 
-test("routes homepage industry links and pricing details to the intended destinations", async ({ page }) => {
+test("routes homepage plan cards to the intended pricing details", async ({ page }) => {
   await mockAnonymousPublicDependencies(page);
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
 
   await page.goto("/");
-  await page.getByRole("link", { name: /Professional services.*Credibility, expertise/i }).first().click();
-  await expect(page).toHaveURL(/\/professional-services-website-design$/);
-
-  await page.goto("/");
-  await page.locator("article").filter({ has: page.getByRole("heading", { name: "Website Growth", exact: true }) }).getByRole("button", { name: "View plan" }).click();
+  await page.locator("article").filter({ has: page.getByRole("heading", { name: "Website Growth", exact: true }) }).getByRole("button", { name: /See scope & choose plan/i }).click();
   await expect(page).toHaveURL(/\/pricing#plan-website-growth$/);
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
 });

@@ -7,6 +7,18 @@ export type EmailTemplate = { id: string; name: string; problem: string; stage: 
 
 export const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
+    id: "introduction", name: "Simple introduction", problem: "Meet Bennie Studio", stage: "First contact",
+    note: "A brief introduction. Keep the website review for a later follow-up.",
+    subject: "A quick introduction from Bennie Studio",
+    body: "Hi {{first_name}}\n\nI'm Bennie from Bennie Studio. We build and manage websites for service businesses.\n\nI came across {{company}} and would be glad to share a short website review. Would that be useful?\n\nBennie\nBennie Studio",
+  },
+  {
+    id: "audit-follow-up", name: "Day 3 — share the website review", problem: "No response", stage: "Contacted",
+    note: "A separate follow-up with the prepared website audit, scheduled three days after the introduction.",
+    subject: "The website review for {{company}}",
+    body: "Hi {{first_name}}\n\nFollowing up with the short website review I prepared for {{company}}:\n\n{{review_url}}\n\nIt includes the findings and practical next steps. If you would like to discuss any of them, just reply.\n\nBennie\nBennie Studio",
+  },
+  {
     id: "enquiry", name: "More quotation enquiries", problem: "Quotation journey", stage: "First contact",
     note: "Best when the quote action or form is visibly hard to use.",
     subject: "A simpler way to request a quote",
@@ -131,7 +143,8 @@ export function buildEmailTemplateDraft(id: string, prospect: any, finding: stri
     .replace(/\{\{company\}\}/g, company)
     .replace(/\{\{first_name\}\}/g, contactName || `${company} team`)
     .replace(/\{\{finding\}\}/g, observation)
-    .replace(/\{\{recommendation\}\}/g, recommendation);
+    .replace(/\{\{recommendation\}\}/g, recommendation)
+    .replace(/\{\{review_url\}\}/g, String(prospect?.review_url || prospect?.preview_url || "[prepared website review link]"));
   const market = String(prospect?.location || "");
   const isSG = /(^|[,\s])(?:SG|Singapore)(?=$|[,\s])/i.test(market);
   const subject = fill(template.subject);
@@ -143,8 +156,8 @@ export function buildEmailTemplateDraft(id: string, prospect: any, finding: stri
 export function recommendedTemplateId(status: string) {
   if (status === "replied") return "interested";
   if (status === "call_booked") return "call";
-  if (status === "contacted") return "follow-up";
-  return "enquiry";
+  if (status === "contacted") return "audit-follow-up";
+  return "introduction";
 }
 export function hasUnresolvedEmailPlaceholders(body: string) {
   return /\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(body);
@@ -162,7 +175,7 @@ export function EmailTemplateHub({ selectedId, onSelect }: { selectedId: string;
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div><p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-indigo-700"><BookOpen className="h-4 w-4" /> Email Template Hub</p>
         <h2 className="mt-2 text-2xl font-bold text-slate-950">Messages by problem and buyer stage</h2>
-        <p className="mt-2 max-w-2xl text-sm text-slate-600">Evidence and useful fixes appear directly in the message, followed by a concrete managed-service offer. No audit or preview link is needed.</p></div>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600">Start with a short introduction. Keep the prepared website review for a separate follow-up three days later.</p></div>
       <span className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-700"><ShieldCheck className="h-4 w-4" /> Human reviewed</span>
     </div>
     <div className="mt-5 grid gap-3 md:grid-cols-[1.2fr_1fr_1fr]">
