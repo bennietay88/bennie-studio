@@ -3,6 +3,7 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /checkout
+Disallow: /preview-order
 Disallow: /login
 Disallow: /signup
 Disallow: /forgot-password

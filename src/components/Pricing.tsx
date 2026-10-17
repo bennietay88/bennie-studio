@@ -37,6 +37,11 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   const checkoutPricingError = pricingError;
   const [introOfferEnabled, setIntroOfferEnabled] = React.useState(false);
   const promoActive = introOfferEnabled && !profile?.businessId && !currentPlan && !onSelectPlan;
+  React.useEffect(() => {
+    if (!currentPlan && !onSelectPlan) {
+      trackPublicEvent({ eventType: "pricing_view", label: "Public pricing", target: "/pricing", metadata: { market: publicMarket } });
+    }
+  }, [currentPlan, onSelectPlan, publicMarket]);
 
   const startCheckout = async (product: CommercialProduct) => {
     let previewId: string | null = null;
@@ -205,6 +210,8 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
             </p>
             <p className={isGrowth ? "mt-1 text-xs !text-white/70" : "mt-1 text-xs text-slate-500"}>{promoActive ? "Setup only; first month of service discounted to zero. Before tax." : "Setup + first month, before any applicable tax. Future months billed separately."}</p>
             <p className={isGrowth ? "mt-2 text-xs font-semibold !text-white/65" : "mt-2 text-xs font-semibold text-[#687386]"}>{formatCommitmentLabel(introQuote.termMonths)}, then month-to-month unless the agreed order states otherwise.</p>
+            <p className={isGrowth ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>Total over initial term: {priceReady ? formatCommercialMoney(introQuote.totalInitialTerm, price.currency) : "Confirm by quote"}</p>
+            <p className={isGrowth ? "mt-1 text-xs !text-white/65" : "mt-1 text-xs text-[#687386]"}>Including setup, before any applicable taxes. The optional introductory offer changes the commitment.</p>
             <p className={isGrowth ? "mt-4 text-sm leading-6 !text-white/70" : "mt-4 text-sm leading-6 text-[#526071]"}>{product.description}</p>
             {PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug] && (
               <div className={isGrowth ? "mt-5 border-t border-white/20 pt-4" : "mt-5 border-t border-[#dfe2ea] pt-4"}>

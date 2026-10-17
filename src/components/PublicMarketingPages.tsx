@@ -118,7 +118,7 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
   "case-studies": {
     title: "Website Examples by Industry | Bennie Studio",
     description:
-      "Explore working website examples showing the challenge, strategy, enquiry path, and page structure for cleaning, education, and accounting businesses.",
+      "Explore clearly labelled demonstration website concepts for professional services, clinics and contractors, including suggested enquiry journeys and page structure.",
   },
   "website-audit": {
     title: "Free Website Growth Audit | Bennie Studio",
@@ -1036,6 +1036,7 @@ function GeneratePreviewPage() {
 
   React.useEffect(() => {
     trackPublicEvent({ eventType: "start_preview_flow", label: "Generate Preview Page Loaded", target: "/generate-preview" });
+    trackPublicEvent({ eventType: "preview_start", label: "Free website direction opened", target: "/generate-preview" });
   }, []);
 
   const selectBusinessType = (id: string) => {
@@ -1663,7 +1664,7 @@ function GeneratePreviewPage() {
         document.getElementById("generated-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 80);
       trackPublicEvent({
-        eventType: "preview_generated",
+        eventType: "preview_complete",
         label: resolvedBusinessName,
         target: "/generate-preview",
         metadata: {
@@ -1705,12 +1706,14 @@ function GeneratePreviewPage() {
               {salesMode ? "Bennie Studio sales preview" : "Website direction for your business"}
             </p>
             {salesMode ? <p className="mt-3 inline-flex rounded-lg border border-[#9f93ff]/40 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-[#b9b1ff]">Internal mode · prospect email not required</p> : null}
-            <h1 className="mt-5 !max-w-[13ch] !text-white">
-              Start with a <span className="bs3-accent">clear business brief.</span>
+            <h1 className="mt-5 !max-w-[16ch] !text-white">
+              See a <span className="bs3-accent">free website direction</span> for your business.
             </h1>
             <p className="brand-copy mt-6 !max-w-[39rem] !text-white/68">
-              Start with the essentials and Bennie Studio will prepare an initial website direction — shaped around the business and ready for useful feedback.
+              Already have a website? Paste its URL. Starting fresh? Share a few business details. Explore an initial direction before deciding whether a managed plan is right for you.
             </p>
+            <a href="#preview-brief" className="mt-6 inline-flex min-h-12 items-center gap-2 bg-white px-6 text-sm font-semibold text-[#141821] hover:bg-[#eeebff]">Start my free preview <ArrowRight className="h-4 w-4" /></a>
+            <p className="mt-3 text-xs font-semibold !text-white/65">No payment card required · Your email links the preview to your enquiry</p>
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               {[
                 ["Clear brief", "Simple and guided"],
@@ -1741,7 +1744,7 @@ function GeneratePreviewPage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#5746e8]">Preview an example first</p>
             <h2 className="mt-2 text-2xl font-semibold text-[#141821]">See the format before you share your business details.</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#526071]">See a working dental clinic concept and explore the layout, mobile presentation and appointment journey. No contact information needed.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#526071]">Explore an illustrative dental clinic website on desktop or mobile. It is a fictional demonstration, not a commissioned client project. No email is needed to view it.</p>
           </div>
           <Link to="/portfolio/sample/dental" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Preview sample before lead form", target: "/portfolio/sample/dental" })} className="inline-flex min-h-12 shrink-0 items-center justify-center bg-[#141821] px-6 text-sm font-semibold text-white hover:bg-[#5746e8]">View sample website <ArrowRight className="ml-2 h-4 w-4" /></Link>
         </div>
@@ -1751,7 +1754,7 @@ function GeneratePreviewPage() {
         <div className="brand-shell py-14 sm:py-20">
           <div className="mb-10 max-w-3xl">
             <p className="brand-kicker">Business brief</p>
-            <h2 className="mt-4">Let’s start with your business.</h2>
+            <h2 className="mt-4">Just the essentials to get your direction started.</h2>
             <p className="brand-copy mt-4">The brief helps us understand the goal and choose the right structure. If there is already a website, the redesign uses that site as source material instead of replacing the business identity.</p>
           </div>
 
@@ -2990,9 +2993,9 @@ export default function PublicMarketingPages() {
     "generate-preview": ["See your website before you commit.", "Complete the brief, review the direction and decide what you want to do next."],
   } as Record<string, [string, string]>)[pageKind] || ["See it applied to your business.", "Start with a website review, then decide the right next step."];
 
-  const finalPrimary = pageKind === "website-audit"
-    ? { label: "See a website direction", href: "/generate-preview" }
-    : { label: "Get a website review", href: "/website-audit" };
+  const finalPrimary = pageKind === "contact"
+    ? { label: "Book a website consultation", href: "/book-demo" }
+    : { label: "Get my free website preview", href: "/generate-preview" };
   const finalSecondary = { label: "View our work", href: "/case-studies" };
 
   const pageContent =

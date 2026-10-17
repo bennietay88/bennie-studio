@@ -43,8 +43,8 @@ export function PublicSiteHeader() {
   const { user } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const primaryHref = user ? "/dashboard" : location.pathname === "/" ? "/pricing" : "/generate-preview";
-  const primaryLabel = user ? "Open Studio" : location.pathname === "/" ? "Choose a website plan" : "See free website direction";
+  const primaryHref = user ? "/dashboard" : location.pathname === "/generate-preview" ? "/pricing" : "/generate-preview";
+  const primaryLabel = user ? "Open Studio" : location.pathname === "/generate-preview" ? "Compare website plans" : "Get a free website preview";
   const mobileTriggerRef = React.useRef<HTMLButtonElement>(null);
   const mobileDialogRef = React.useRef<HTMLDivElement>(null);
   const mobileCloseRef = React.useRef<HTMLButtonElement>(null);

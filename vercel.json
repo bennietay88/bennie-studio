@@ -72,7 +72,7 @@
   ],
   "routes": [
     {
-      "src": "^/(admin|dashboard|checkout|login|signup|forgot-password|reset-password|profile|manage-call|proposal|w)(?:/.*)?$",
+      "src": "^/(admin|dashboard|checkout|preview-order|login|signup|forgot-password|reset-password|profile|manage-call|proposal|w)(?:/.*)?$",
       "headers": {
         "X-Robots-Tag": "noindex, nofollow"
       },
@@ -95,6 +95,10 @@
     {
       "src": "^/api(?:/(.*))?$",
       "dest": "/api/index.ts"
+    },
+    {
+      "src": "^/(services|about|resources|contact|templates|how-it-works|case-studies|website-audit|dental-clinics|clinic-website-design|renovation-contractor-website-design|beauty-salon-website-design|tuition-centre-website-design|consultant-website-design|professional-services-website-design|accounting-firm-website-design|local-service-website-design|book-demo|privacy|terms|cookie-policy|data-processing-agreement|subprocessors|acceptable-use-policy)/?$",
+      "dest": "/$1/index.html"
     },
     {
       "handle": "filesystem"

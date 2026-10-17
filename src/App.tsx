@@ -250,7 +250,7 @@ function PublicRouteTransition({ children }: { children: React.ReactNode }) {
 function RouteRobotsMeta() {
   const { pathname } = useLocation();
   const privateRoute =
-    /^\/(admin|dashboard|checkout|login|signup|forgot-password|reset-password|profile)(\/|$)/.test(pathname) ||
+    /^\/(admin|dashboard|checkout|preview-order|login|signup|forgot-password|reset-password|profile)(\/|$)/.test(pathname) ||
     /^\/(manage-call|proposal|preview\/(?:template|prospect)|w)(\/|$)/.test(pathname) ||
     /^\/affiliate\/(login|signup)(\/|$)/.test(pathname);
   const host = window.location.hostname.toLowerCase();
