@@ -107,11 +107,24 @@ export function PricingSalesPage(){
  return <main className="bs-sales bs-sales-pricing">
   <section className="s28-pricing-hero">
    <div className="brand-shell">
-    <div className="s28-pricing-hero-content">
+    <div className="s28-pricing-hero-grid"><div className="s28-pricing-hero-content">
      <h1>A website worth investing in. <em>Pricing you can understand.</em></h1>
      <p>Choose the level of support you need. Compare the real monthly fee, one-time build cost, what's included and the minimum commitment before you buy.</p>
      <div className="s28-pricing-hero-links"><a href="#plans" className="s28-button" onClick={salesLink("Pricing hero compare","/pricing#plans")}>Compare the plans <ArrowRight size={18}/></a><Link to="/generate-preview" className="s28-text-link" onClick={salesLink("Pricing hero preview","/generate-preview")}>Try a free website preview <ArrowUpRight size={17}/></Link></div>
     </div>
+    <div className="c30-pricing-hero-art" aria-label="Illustration of three managed website plan options">
+      <div className="c30-pricing-window">
+        <div className="c30-pricing-window-top"><span className="c30-pricing-dots">● ● ●</span><span>Managed website plans</span></div>
+        <div className="c30-pricing-mini-cards">
+          {[["01","Foundation","Website + care"],["02","Growth","Stronger enquiries"],["03","Partner","Strategy + support"]].map(([n,title,desc],i)=>
+            <div key={n} className={i===1?"c30-mini-plan c30-mini-featured":"c30-mini-plan"}>
+              <span>{n}</span><strong>{title}</strong><small>{desc}</small><div className="c30-mini-rule"/><div className="c30-mini-line"/><div className="c30-mini-line c30-short"/><div className="c30-mini-button"/>
+            </div>
+          )}
+        </div>
+        <p className="c30-pricing-art-note">Choose your market to view verified prices</p>
+      </div>
+    </div></div>
     <div className="s28-pricing-trust"><div><Check size={17}/> Setup + recurring costs visible</div><div><Check size={17}/> Initial-term total shown</div><div><Check size={17}/> Secure checkout after review</div></div>
    </div>
   </section>

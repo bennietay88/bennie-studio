@@ -91,6 +91,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   };
 
   const handleSelect = async (product: CommercialProduct) => {
+    trackPublicEvent({eventType:"plan_selected",label:product.name,target:"/pricing",metadata:{product:product.slug,currency:checkoutCurrency,market:publicMarket}});
     if (loading || pricingError) { toast.error("Wait for verified market pricing before selecting a plan."); return; }
     const currentProduct = products.find((item) => item.slug === product.slug);
     if (!currentProduct || !getCommercialPrice(currentProduct, publicMarket)) {

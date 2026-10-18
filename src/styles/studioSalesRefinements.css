@@ -209,3 +209,36 @@
     font-size:clamp(2.15rem,9vw,2.6rem)!important;
   }
 }
+
+/* Conversion hero artwork: intentionally uses the actual app renderer and a pricing diagram, not fictitious client imagery. */
+.brand-public .c30-case-hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3rem;align-items:center}
+.brand-public .c30-case-hero-grid .c30-case-hero-copy{min-width:0}
+.brand-public .c30-case-hero-grid .c30-case-hero-copy h1{font-size:clamp(2.8rem,4.2vw,5.2rem)!important}
+.brand-public .c30-case-hero-art{min-width:0;position:relative;min-height:450px;background:#1741ed;padding:2rem 2.2rem 3.3rem;overflow:hidden;isolation:isolate}
+.brand-public .c30-case-preview-main{background:#fff;padding:6px;transform:rotate(-3deg);box-shadow:12px 15px 0 #071e8788,0 20px 40px #071e8766;max-width:87%}
+.brand-public .c30-case-preview-second{position:absolute;bottom:3.2rem;right:-2%;width:53%;background:#fff;padding:6px;transform:rotate(5deg);box-shadow:10px 13px 0 #071e8799,0 20px 40px #06177777}
+.brand-public .c30-case-art-caption{position:absolute;bottom:12px;left:23px;right:15px;font-size:11px;font-weight:650;color:#e9eeff}
+.brand-public .bs-sales .s28-pricing-hero-grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:2.5rem;align-items:center}
+.brand-public .bs-sales .s28-pricing-hero-grid .s28-pricing-hero-content{min-width:0}
+.brand-public .bs-sales .s28-pricing-hero-grid .s28-pricing-hero-content h1{font-size:clamp(2.75rem,4vw,4.8rem)!important;max-width:17ch}
+.brand-public .bs-sales .c30-pricing-hero-art{background:#1741ed;padding:1.5rem;min-width:0;overflow:hidden}
+.brand-public .bs-sales .c30-pricing-window{background:#fff;transform:rotate(-2deg);padding:14px 14px 20px;box-shadow:10px 12px 0 #092aa6}
+.brand-public .bs-sales .c30-pricing-window-top{display:flex;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid #e1e5ed;color:#49566b;font-size:10px;font-weight:700}
+.brand-public .bs-sales .c30-pricing-dots{color:#a9b3c7;letter-spacing:2px}
+.brand-public .bs-sales .c30-pricing-mini-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;padding-top:18px}
+.brand-public .bs-sales .c30-mini-plan{display:flex;flex-direction:column;min-width:0;min-height:235px;padding:13px 10px;background:#f1f3f8;border:1px solid #d7deeb;color:#162039}
+.brand-public .bs-sales .c30-mini-plan>span{font-size:11px;color:#3154b5;font-weight:700}
+.brand-public .bs-sales .c30-mini-plan strong{font-size:clamp(11px,1.5vw,17px);font-weight:780;line-height:1.2;margin-top:15px}
+.brand-public .bs-sales .c30-mini-plan small{font-size:10px;line-height:1.4;margin-top:7px}
+.brand-public .bs-sales .c30-mini-rule{height:1px;background:#cdd6e4;margin-top:22px}
+.brand-public .bs-sales .c30-mini-line{height:5px;background:#cdd5e4;margin-top:13px;border-radius:3px}
+.brand-public .bs-sales .c30-mini-line.c30-short{width:60%}
+.brand-public .bs-sales .c30-mini-button{height:24px;background:#1741ed;margin-top:auto;border-radius:2px}
+.brand-public .bs-sales .c30-mini-featured{background:#162039;color:#fff;border-color:#162039}
+.brand-public .bs-sales .c30-mini-featured>span{color:#baccff}
+.brand-public .bs-sales .c30-mini-featured .c30-mini-rule{background:#596782}
+.brand-public .bs-sales .c30-mini-featured .c30-mini-line{background:#667595}
+.brand-public .bs-sales .c30-mini-featured .c30-mini-button{background:#fff}
+.brand-public .bs-sales .c30-pricing-art-note{margin-top:15px;font-size:10px!important;color:#49576b!important;text-align:center}
+@media(max-width:900px){.brand-public .c30-case-hero-grid,.brand-public .bs-sales .s28-pricing-hero-grid{grid-template-columns:1fr}.brand-public .c30-case-hero-art{max-width:680px;min-height:430px}.brand-public .bs-sales .c30-pricing-hero-art{max-width:680px}.brand-public .bs-sales .c30-mini-plan strong{font-size:16px}}
+@media(max-width:500px){.brand-public .c30-case-hero-grid{gap:2rem}.brand-public .c30-case-hero-art{min-height:290px;padding:18px}.brand-public .c30-case-preview-main{max-width:87%}.brand-public .c30-case-preview-second{bottom:36px}.brand-public .bs-sales .c30-pricing-hero-art{padding:13px}.brand-public .bs-sales .c30-mini-plan{min-height:195px;padding:8px 6px}.brand-public .bs-sales .c30-mini-plan strong{font-size:12px}.brand-public .bs-sales .c30-mini-plan small{font-size:9px}}

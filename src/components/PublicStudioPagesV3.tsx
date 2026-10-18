@@ -485,14 +485,19 @@ export function WorkStudioPage() {
   return (
     <>
       <section className="c27-marketing-hero">
-        <div className="brand-shell py-20 lg:py-28">
-          <div className="max-w-[62rem]">
+        <div className="brand-shell c30-case-hero-grid py-14 lg:py-20">
+          <div className="c30-case-hero-copy">
             <h1 className="!max-w-[18ch]">See the websites <em>we can build.</em></h1>
             <p className="brand-copy mt-7 max-w-3xl">Explore our own website and six industry-focused website designs created with the Bennie Studio app. See how each design presents a business, builds confidence and guides visitors towards an enquiry.</p>
             <div className="mt-8 flex flex-wrap gap-5">
               <a href="#studio-work" className="c27-button">Explore the work <ArrowRight className="h-4 w-4"/></a>
               <Link to="/generate-preview" className="c27-quiet">Get a free website preview <ArrowRight className="h-4 w-4"/></Link>
             </div>
+          </div>
+          <div className="c30-case-hero-art" aria-label="Responsive website previews built with Bennie Studio">
+            <div className="c30-case-preview-main"><TemplatePreviewThumbnail templateId="dental-clinic-v1" templateName="Dental clinic website" className="h-[270px] sm:h-[340px]" /></div>
+            <div className="c30-case-preview-second"><TemplatePreviewThumbnail templateId="renovation-contractor-v1" templateName="Renovation website" className="h-[150px] sm:h-[185px]" /></div>
+            <span className="c30-case-art-caption">Website designs rendered from the Bennie Studio app</span>
           </div>
         </div>
       </section>

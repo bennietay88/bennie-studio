@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
+import { trackPublicEvent } from "../lib/publicTracking";
 import { PublicSiteHeader, PublicSiteFooter } from "./PublicSiteChrome";
 
 export const STUDIO_SHOWCASES = [
@@ -25,7 +26,7 @@ export default function StudioCaseStudyDetail(){
  <main>
  <section className="c27-editorial"><div className="brand-shell py-12 sm:py-20">
  <Link to="/case-studies" className="c27-quiet"><ArrowLeft size={16}/> All case studies</Link>
- <div className="mt-9 grid gap-10 lg:grid-cols-12 lg:items-center"><div className="lg:col-span-5"><h1 className="c27-major">{study.headline}</h1><p className="mt-6 text-base leading-8 text-[#525b66]">{study.challenge}</p><Link to={"/generate-preview?industry="+study.industry} className="c27-button mt-8">Get a free website preview <ArrowUpRight size={18}/></Link><p className="mt-6 text-xs leading-6 text-[#666c76]">A product-generated design direction, not paid client work. This is an illustrative business brief; no real-company outcomes or performance metrics are claimed.</p></div><div className="lg:col-span-7"><StudioShowcaseVisual study={study}/></div></div>
+ <div className="mt-9 grid gap-10 lg:grid-cols-12 lg:items-center"><div className="lg:col-span-5"><h1 className="c27-major">{study.headline}</h1><p className="mt-6 text-base leading-8 text-[#525b66]">{study.challenge}</p><Link to={"/generate-preview?industry="+study.industry} className="c27-button mt-8" onClick={()=>trackPublicEvent({eventType:"showcase_preview_cta",label:study.title,target:"/generate-preview",metadata:{showcase:study.slug}})}>Get a free website preview <ArrowUpRight size={18}/></Link><p className="mt-6 text-xs leading-6 text-[#666c76]">A product-generated design direction, not paid client work. This is an illustrative business brief; no real-company outcomes or performance metrics are claimed.</p></div><div className="lg:col-span-7"><StudioShowcaseVisual study={study}/></div></div>
  </div></section>
  <section className="brand-shell py-20"><div className="grid gap-12 lg:grid-cols-12"><div className="lg:col-span-4"><h2 className="c27-section-title">Designed for the next customer decision.</h2><p className="mt-5 text-[#53606d]">The output demonstrates a website direction, not a promise of sales performance.</p></div><div className="lg:col-span-8">
  {[["01","The business brief",study.challenge],["02","Our design approach",study.approach],["03","Primary website goal",study.goal]].map(([num,title,body])=><div key={num} className="c27-decision"><span>{num}</span><div><h3>{title}</h3><p>{body}</p></div></div>)}

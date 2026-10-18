@@ -1030,6 +1030,7 @@ function GeneratePreviewPage() {
 
   const generatePreview = async (event: React.FormEvent) => {
     event.preventDefault();
+    trackPublicEvent({eventType:"preview_started",label:"Website preview form",target:"/generate-preview",metadata:{mode:previewMode,industry:selectedBusinessType||"unspecified"}});
     setError("");
 
     if (!salesMode && !form.email.trim()) {
