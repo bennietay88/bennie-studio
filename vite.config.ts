@@ -33,6 +33,7 @@ export default defineConfig(({ mode }) => {
           main: path.resolve(__dirname, "index.html"),
           pricing: path.resolve(__dirname, "pricing/index.html"),
           generatePreview: path.resolve(__dirname, "generate-preview/index.html"),
+          ...Object.fromEntries(["dental-clinic","renovation-contractor","professional-advisory","tuition-centre","beauty-wellness","accounting-firm"].map((slug) => ["case_"+slug.replace(/-/g,"_"), path.resolve(__dirname,"case-studies","showcase",slug,"index.html")])),
           ...Object.fromEntries(["services","about","resources","contact","templates","how-it-works","case-studies","website-audit","dental-clinics","clinic-website-design","renovation-contractor-website-design","beauty-salon-website-design","tuition-centre-website-design","consultant-website-design","professional-services-website-design","accounting-firm-website-design","local-service-website-design","book-demo","privacy","terms","cookie-policy","data-processing-agreement","subprocessors","acceptable-use-policy"].map((slug) => [slug.replace(/-/g, "_"), path.resolve(__dirname, slug, "index.html")])),
         },
         output: {

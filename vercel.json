@@ -101,6 +101,10 @@
       "dest": "/$1/index.html"
     },
     {
+      "src": "^/case-studies/showcase/(dental-clinic|renovation-contractor|professional-advisory|tuition-centre|beauty-wellness|accounting-firm)/?$",
+      "dest": "/case-studies/showcase/$1/index.html"
+    },
+    {
       "handle": "filesystem"
     },
     {

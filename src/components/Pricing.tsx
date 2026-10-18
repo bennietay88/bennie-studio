@@ -171,9 +171,9 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
     {!hideIntro && (
       <div className="grid gap-8 border-b border-slate-300 pb-10 lg:grid-cols-12 lg:items-end">
         <div className="lg:col-span-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-indigo-600">Managed website plans</p>
-          <h1 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Three plans. One managed website system.</h1>
-          <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Start with a professionally managed website, then add deeper conversion, SEO and growth support as the business needs it.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#1741ed]">Straightforward managed website pricing</p>
+          <h1 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Clear pricing. A website built to work for your business.</h1>
+          <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Choose what your business needs now: professional website design, reliable hosting and clear ongoing support. See your setup cost, monthly price and minimum term before selecting a plan.</p>
         </div>
         <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">Select your market below · setup and recurring charges are shown together · minimum terms are displayed per plan</p>
       </div>

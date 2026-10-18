@@ -265,46 +265,37 @@ export default function OwnSalesSeoPage() {
       <PublicSiteHeader />
 
       <main>
-        <section className="brand-grid-bg relative overflow-hidden border-b border-white/10 bg-[#0b1020] text-white">
-          <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#5746e8]/20 blur-3xl" />
+        <section className="relative overflow-hidden border-b border-[#dfe3e8] bg-[#f8f8f5] text-[#15191f]">
+          <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#1741ed]/10 blur-3xl" />
           <div className="brand-shell relative grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
             <div className="lg:col-span-5">
-              <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs font-semibold !text-white/45">
-                <Link to="/" className="hover:!text-white">Home</Link><span>/</span><span>{page.h1}</span>
+              <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs font-semibold !text-[#5e6b79]">
+                <Link to="/" className="hover:!text-[#1741ed]">Home</Link><span>/</span><span>{page.h1}</span>
               </nav>
-              <p className="brand-kicker !text-[#b9b1ff]">{page.eyebrow}</p>
-              <h1 className="mt-5 !max-w-[13ch] !text-white">{page.h1}</h1>
-              <p className="brand-copy brand-muted-on-dark mt-6">{page.heroCopy}</p>
+              <p className="brand-kicker !text-[#1741ed]">{page.eyebrow}</p>
+              <h1 className="mt-5 !max-w-[13ch] !text-[#15191f]">{page.h1}</h1>
+              <p className="brand-copy !text-[#526071] mt-6">{page.heroCopy}</p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#eeebff]">
+                <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-[#1741ed] px-6 font-semibold text-white hover:bg-[#0d2aaa]">
                   {page.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button variant="outline" onClick={() => navigate("/book-demo")} className="min-h-12 border-white/25 bg-white/[0.03] px-6 font-semibold text-white hover:bg-white/[0.08] hover:text-white">
+                <Button variant="outline" onClick={() => navigate("/book-demo")} className="min-h-12 border-[#bfc7d3] bg-white px-6 font-semibold text-[#15191f] hover:bg-[#e6ebff] hover:text-[#1741ed]">
                   <MessageSquare className="mr-2 h-4 w-4" /> {page.whatsappCta}
                 </Button>
               </div>
-              <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold !text-white/60">
+              <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold !text-[#15191f]/60">
                 {heroProofPoints.slice(0,3).map((point) => <span key={point} className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#b9b1ff]" />{point}</span>)}
               </div>
             </div>
 
-            <div className="relative lg:col-span-7 lg:-mr-8 xl:-mr-14">
-              <div className="pointer-events-none absolute -inset-8 bg-[#5746e8]/10 blur-3xl" />
-              <div className="relative overflow-hidden rounded-[1.15rem] border border-white/10 bg-[#080b15] shadow-[0_55px_140px_-55px_rgba(0,0,0,.95)]">
-                <img src="/images/bennie-studio-hero.webp" alt="" className="aspect-[16/9] w-full object-cover" loading="eager" decoding="async" />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#080b15] via-[#080b15]/80 to-transparent px-5 pb-5 pt-20">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">{isCityPage ? cityName + " website direction" : marketLabel + " website direction"}</p>
-                  <p className="mt-2 max-w-lg text-sm font-semibold !text-white">{isCityPage ? "Local intent, trust and enquiry flow shape the structure." : "Market context changes the message and enquiry path, not just the location name."}</p>
-                </div>
-              </div>
-            </div>
+            <div className="lg:col-span-7"><div className="bg-[#1741ed] p-7 sm:p-10"><div className="rotate-[-2deg] bg-white p-2 shadow-[16px_19px_0_#0e2c95]"><TemplatePreviewThumbnail templateId="managed-website-agency-v1" templateName="Managed website service" className="h-[340px] sm:h-[390px]" /></div><p className="mt-8 text-xs font-semibold !text-white/85">Live template-based website presentation · Studio-built, not client work</p></div></div>
           </div>
-          <div className="border-t border-white/10 bg-white/[0.02]">
+          <div className="border-t border-[#dfe3e8] bg-white">
             <div className="brand-shell grid gap-px md:grid-cols-3">
               {heroSupportCards.map((item) => (
-                <div key={item.label} className="border-white/10 py-5 md:border-r md:px-5 first:pl-0 last:border-r-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">{item.label}</p>
-                  <p className="mt-2 max-w-sm text-sm font-semibold !text-white/70">{item.value}</p>
+                <div key={item.label} className="border-[#dfe3e8] py-5 md:border-r md:px-5 first:pl-0 last:border-r-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#1741ed]">{item.label}</p>
+                  <p className="mt-2 max-w-sm text-sm font-semibold !text-[#15191f]/70">{item.value}</p>
                 </div>
               ))}
             </div>

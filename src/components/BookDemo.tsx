@@ -264,15 +264,15 @@ export default function BookDemo() {
       </Helmet>
       <PublicSiteHeader />
       <main>
-        <section className="brand-grid-bg relative overflow-hidden border-b border-white/10 bg-[#0b1020] text-white">
-          <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#5746e8]/20 blur-3xl" />
+        <section className="relative overflow-hidden border-b border-[#dfe3e8] bg-[#f8f8f5] text-[#15191f]">
+          <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#1741ed]/10 blur-3xl" />
           <div className="brand-shell relative grid min-w-0 gap-10 py-16 lg:grid-cols-12 lg:items-start lg:py-24">
             <div className="min-w-0 lg:col-span-5">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-300">{isGrowthPartner ? "Growth Partner consultation" : "Managed Website consultation"}</p>
-              <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.03] tracking-tight text-white sm:text-5xl">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#1741ed]">{isGrowthPartner ? "Growth Partner consultation" : "Managed Website consultation"}</p>
+              <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.03] tracking-tight text-[#15191f] sm:text-5xl">
                 {isGrowthPartner ? "Plan the next stage of your website growth." : "Let’s discuss the website your business needs."}
               </h1>
-              <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-slate-300">
+              <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-[#526071]">
                 {isGrowthPartner ? "Bring your current website, traffic sources, enquiry baseline and growth priorities. We’ll scope conversion work, landing pages, local SEO expansion, experiments, implementation priorities and commercial fit." : "Tell us a little about your business and website needs. We’ll discuss the scope, what we can manage for you, and the costs before you decide. No payment and no account are required to enquire."}
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -282,14 +282,14 @@ export default function BookDemo() {
                   "A clear scope, timeline and commercial fit",
                   "No invented forecasts or pressure tactics",
                 ].map((item) => (
-                  <div key={item} className="flex gap-3 rounded-lg border border-white/10 bg-white/5 p-4 text-sm font-bold text-slate-200">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /> {item}
+                  <div key={item} className="flex gap-3 rounded-lg border border-[#d6dce5] bg-white p-4 text-sm font-bold text-[#263344]">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#1741ed]" /> {item}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.05] p-6 backdrop-blur sm:p-8 lg:col-span-7">
+            <div className="min-w-0 rounded-sm border border-[#142239] bg-[#142239] p-6 text-white sm:p-8 lg:col-span-7">
               {submitted ? (
                 <div className="py-10 text-center">
                   <div className="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>

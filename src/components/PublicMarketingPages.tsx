@@ -48,6 +48,8 @@ import {
   WorkStudioPage,
 } from "./PublicStudioPagesV3";
 import { FlagshipTemplateGallery } from "./FlagshipTemplateGallery";
+import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
+import "../styles/studioCaseStudies.css";
 import { TurnstileWidget } from "./TurnstileWidget";
 import { PreviewOrderPage } from "./PreviewOrderPage";
 import { supabase } from "../lib/supabase";
@@ -116,9 +118,9 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
       "See how Bennie Studio takes you from signup and business brief to website build, review, launch, and ongoing support.",
   },
   "case-studies": {
-    title: "Website Examples by Industry | Bennie Studio",
+    title: "Case Studies | In-House & Studio Website Showcases | Bennie Studio",
     description:
-      "Explore clearly labelled demonstration website concepts for professional services, clinics and contractors, including suggested enquiry journeys and page structure.",
+      "Explore Bennie Studio in-house work and six app-rendered studio website showcases for clinics, contractors, advisory firms, tuition centres and more.",
   },
   "website-audit": {
     title: "Free Website Growth Audit | Bennie Studio",
@@ -436,93 +438,54 @@ async function submitPlatformLead(input: {
 }
 
 function Hero({
-  title,
-  copy,
-  icon: Icon,
-  primaryLabel = "Generate My Website Preview",
+  title, copy, icon: Icon,
+  primaryLabel = "Get my free website preview",
   primaryHref = "/generate-preview",
-  secondaryLabel,
-  secondaryHref,
-  imageSrc = "/images/studio-hero-v3.jpg",
+  secondaryLabel, secondaryHref, imageSrc = "",
   variant = "default",
 }: {
-  title: string;
-  copy: string;
-  icon: React.ElementType;
-  primaryLabel?: string;
-  primaryHref?: string;
-  secondaryLabel?: string;
-  secondaryHref?: string;
-  imageSrc?: string;
-  variant?: "default" | "audit";
+  title:string;copy:string;icon:React.ElementType;primaryLabel?:string;primaryHref?:string;
+  secondaryLabel?:string;secondaryHref?:string;imageSrc?:string;variant?:"default"|"audit";
 }) {
-  const primaryContent = <>{primaryLabel} <ArrowRight className="ml-2 h-4 w-4" /></>;
-  const isAuditPage = variant === "audit";
-  const lowerTitle = title.toLowerCase();
-  const focusItems = /clinic|dent|health/i.test(lowerTitle)
-    ? [["Treatment", "Explain options and common patient questions."], ["Care team", "Introduce practitioners, credentials and clinic."], ["Appointment", "Make booking and next steps easy to find."]]
-    : /renovat|contractor|local service|work/i.test(lowerTitle) || imageSrc.includes("work")
-    ? [["Services", "Show the work you take on and where you operate."], ["Proof", "Use real projects, reviews and clear credentials."], ["Quote", "Give customers a direct way to discuss the job."]]
-    : /tuition|education|school/i.test(lowerTitle)
-    ? [["Programmes", "Explain who each course or service is for."], ["Confidence", "Answer parent and learner questions clearly."], ["Enquiry", "Make trials, visits and registrations straightforward."]]
-    : /beauty|salon|wellness/i.test(lowerTitle)
-    ? [["Treatments", "Present services, options and pricing clearly."], ["Experience", "Set expectations with genuine photos and details."], ["Booking", "Help customers choose a service and book."]]
-    : [["Offer", "Make the service and ideal customer clear."], ["Evidence", "Place relevant proof beside the claims it supports."], ["Next step", "Give visitors one clear way to get in touch."]];
-  return (
-    <section className="brand-grid-bg relative overflow-hidden border-b border-white/10 bg-[#0b1020] text-white">
-      <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#5746e8]/20 blur-3xl" />
-      <div className="brand-shell relative grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
-        <div className="lg:col-span-6">
-          <div className="brand-kicker flex items-center gap-3 !text-[#b9b1ff]"><span className="grid h-9 w-9 place-items-center border border-white/15 bg-white/[0.04]"><Icon className="h-4 w-4" /></span> Bennie Studio</div>
-          <h1 className="mt-6 !max-w-[20ch] !text-white">{title}</h1>
-          <p className="brand-copy brand-muted-on-dark mt-6">{copy}</p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            {primaryHref.startsWith("#") ? (
-              <a href={primaryHref} onClick={() => trackPublicEvent({ eventType: isAuditPage ? "website_audit_cta_clicked" : "public_section_cta_clicked", label: primaryLabel, target: primaryHref })} className="inline-flex min-h-12 items-center justify-center bg-white px-6 text-sm font-semibold text-[#141821] hover:-translate-y-0.5 hover:bg-[#eeebff]">{primaryContent}</a>
-            ) : (
-              <Link to={primaryHref} onClick={() => trackPublicEvent({ eventType: isAuditPage ? "website_audit_cta_clicked" : "public_section_cta_clicked", label: primaryLabel, target: primaryHref })} className="inline-flex min-h-12 items-center justify-center bg-white px-6 text-sm font-semibold text-[#141821] hover:-translate-y-0.5 hover:bg-[#eeebff]">{primaryContent}</Link>
-            )}
-            {secondaryLabel && secondaryHref ? <Link to={secondaryHref} className="inline-flex min-h-12 items-center justify-center border border-white/25 bg-white/[0.03] px-6 text-sm font-semibold text-white hover:bg-white/[0.08]">{secondaryLabel}</Link> : null}
-          </div>
-          <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold !text-white/60">
-            <span>Tailored structure</span><span>Desktop + mobile</span><span>Managed after launch</span>
-          </div>
+  const lower = (title+" "+imageSrc).toLowerCase();
+  const isAuditPage=variant==="audit";
+  const isClinic=/clinic|dental|health/.test(lower);
+  const isHome=/contractor|renovat|repair|local service|home/.test(lower);
+  const isEducation=/tuition|education|school/.test(lower);
+  const isBeauty=/beauty|salon|wellness/.test(lower);
+  const isAccounting=/account|finance|tax/.test(lower);
+  const isTemplate=/direction|template/.test(lower);
+  const templateId=isClinic?"dental-clinic-v1":isHome?"renovation-contractor-v1":isEducation?"tuition-centre-v1":isBeauty?"salon-spa-v1":isAccounting?"accounting-firm-v1":"law-firm-v1";
+  const label=isClinic?"Clinic website":isHome?"Home-service website":isEducation?"Tuition centre":isBeauty?"Beauty studio":isAccounting?"Accounting firm":"Professional services";
+  const promise=isClinic?"Appointments":isHome?"Quotes":isEducation?"Trial classes":isBeauty?"Bookings":isAccounting?"Consultations":"Enquiries";
+  const track=()=>trackPublicEvent({eventType:isAuditPage?"website_audit_cta_clicked":"public_section_cta_clicked",label:primaryLabel,target:primaryHref});
+  const content=<>{primaryLabel} <ArrowRight className="ml-2 h-4 w-4"/></>;
+  return <section className="c27-marketing-hero">
+    <div className="brand-shell grid gap-10 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
+      <div className="lg:col-span-6">
+        <p className="c27-kicker inline-flex items-center gap-3"><Icon size={16}/> Bennie Studio / {isAuditPage?"Website review":isTemplate?"Design directions":"Websites made for business"}</p>
+        <h1 className="mt-6 !max-w-[16ch]">{title}</h1>
+        <p className="brand-copy mt-6">{copy}</p>
+        <div className="mt-8 flex flex-wrap items-center gap-4">
+          {primaryHref.startsWith("#")?<a href={primaryHref} onClick={track} className="c27-button">{content}</a>:<Link to={primaryHref} onClick={track} className="c27-button">{content}</Link>}
+          {secondaryLabel&&secondaryHref?<Link className="c27-quiet" to={secondaryHref}>{secondaryLabel} <ArrowRight size={16}/></Link>:<Link className="c27-quiet" to="/case-studies">View case studies <ArrowRight size={16}/></Link>}
         </div>
-        <div className="relative lg:col-span-6">
-          {isAuditPage ? (
-            <div className="overflow-hidden rounded-2xl border border-white/15 bg-[#f9fafc] p-4 text-slate-900 shadow-[0_45px_100px_-55px_rgba(0,0,0,.75)] sm:p-6" aria-label="Illustrative website review report preview">
-              <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-4">
-                <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-indigo-600">Bennie Studio website review</p><p className="mt-1 text-base font-semibold text-slate-900">Practical findings, not guesswork.</p></div>
-                <span className="rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-semibold text-indigo-700">Sample format</span>
-              </div>
-              <div className="mt-5 space-y-3">
-                {[
-                  ["01", "First impression", "Is your core service obvious in the first few seconds?", "Clarity"],
-                  ["02", "Customer next step", "Can a visitor find a quotation, booking or contact action?", "Enquiry"],
-                  ["03", "Trust and evidence", "Are genuine credentials and proof easy to evaluate?", "Confidence"],
-                ].map(([n,h,d,label]) => <div key={n} className="grid grid-cols-[2.25rem_1fr] gap-3 rounded-xl border border-slate-200 bg-white p-4">
-                  <span className="text-xs font-bold text-indigo-600">{n}</span>
-                  <div><p className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold text-slate-900">{h}<span className="rounded bg-slate-100 px-2 py-1 text-[9px] text-slate-600">{label}</span></p><p className="mt-2 text-xs leading-5 text-slate-600">{d}</p></div>
-                </div>)}
-              </div>
-              <p className="mt-4 text-xs leading-5 text-slate-500">Example questions only. Your actual review is generated from accessible evidence on your website.</p>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-white/12 bg-[#111827]/90 p-5 shadow-[0_40px_100px_-55px_rgba(0,0,0,.8)] sm:p-7" aria-label={`Website guidance for ${title}`}>
-              <p className="text-xs font-bold uppercase tracking-[.14em] text-[#b9b1ff]">A focused website gives customers</p>
-              <h2 className="mt-3 text-2xl !text-white">Clear answers. A confident next step.</h2>
-              <div className="mt-5 divide-y divide-white/10">
-                {focusItems.map(([label, detail], index) => <div key={label} className="grid gap-2 py-4 sm:grid-cols-[2.5rem_1fr] sm:gap-4"><span className="text-xs font-bold text-[#9f93ff]">0{index + 1}</span><div><p className="font-semibold !text-white">{label}</p><p className="mt-1 text-sm leading-6 !text-white/60">{detail}</p></div></div>)}
-              </div>
-              <p className="mt-4 border-t border-white/10 pt-4 text-xs !text-white/50">Strategy · design · launch · ongoing care</p>
-            </div>
-          )}
-        </div>
+        <p className="mt-6 text-xs font-semibold text-[#697484]">Mobile-first layouts · Clear scope · Human review before launch</p>
       </div>
-    </section>
-  );
+      <div className="lg:col-span-6">
+        {isAuditPage?<div className="border border-[#dce1e6] bg-white p-7 sm:p-9">
+          <p className="c27-kicker">Example report structure</p><h2 className="mt-4 !text-[clamp(1.9rem,3vw,3rem)] !leading-[1.1]">Know what to improve <span className="font-serif italic font-normal text-[#1741ed]">before spending.</span></h2>
+          <div className="mt-6">{[["01","First impression","Is the core service clear?"],["02","Enquiry path","Can a visitor request a quote or booking?"],["03","Trust evidence","Is credible proof easy to find?"],["04","Mobile experience","Can customers use the site on a phone?"]].map(([n,t,b])=><div key={n} className="grid grid-cols-[2rem_1fr] gap-4 border-t border-[#d8dde4] py-4"><span className="font-serif text-xl italic text-[#1741ed]">{n}</span><div><p className="font-semibold text-[#15191f]">{t}</p><p className="mt-1 text-sm text-[#596573]">{b}</p></div></div>)}</div>
+          <p className="text-xs text-[#68727f]">Sample report framework only. Findings are based on the site you submit.</p>
+        </div>:<div className="c27-visual" style={{background:isClinic?"#17645e":isHome?"#654938":isEducation?"#bc7b22":isBeauty?"#875964":"#1741ed"}}>
+          <div className="c27-rendered"><TemplatePreviewThumbnail templateId={templateId} templateName={label} className="min-h-[320px] lg:min-h-[405px]"/></div>
+          <div className="mt-6 flex items-center justify-between gap-4 text-xs font-semibold text-white"><span>App-rendered {label.toLowerCase()} layout</span><span>Goal: {promise}</span></div>
+          <p className="mt-2 text-[10px] !text-white/80">Studio showcase from a built-in template · not a commissioned client website</p>
+        </div>}
+      </div>
+    </div>
+  </section>;
 }
-
 
 function TemplatesPage() {
   return (
@@ -1698,44 +1661,22 @@ function GeneratePreviewPage() {
 
   return (
     <>
-      <section className="bs3-dark bs3-grid relative overflow-hidden border-b border-white/10">
-        <div className="bs3-orb -right-40 -top-44" />
-        <div className="brand-shell relative grid gap-12 py-16 sm:py-20 lg:grid-cols-12 lg:items-center lg:py-24">
-          <div className="lg:col-span-6">
-            <p className="brand-kicker !text-[#9f93ff]">
-              {salesMode ? "Bennie Studio sales preview" : "Website direction for your business"}
-            </p>
-            {salesMode ? <p className="mt-3 inline-flex rounded-lg border border-[#9f93ff]/40 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-[#b9b1ff]">Internal mode · prospect email not required</p> : null}
-            <h1 className="mt-5 !max-w-[16ch] !text-white">
-              See a <span className="bs3-accent">free website direction</span> for your business.
-            </h1>
-            <p className="brand-copy mt-6 !max-w-[39rem] !text-white/68">
-              Already have a website? Paste its URL. Starting fresh? Share a few business details. Explore an initial direction before deciding whether a managed plan is right for you.
-            </p>
-            <a href="#preview-brief" className="mt-6 inline-flex min-h-12 items-center gap-2 bg-white px-6 text-sm font-semibold text-[#141821] hover:bg-[#eeebff]">Start my free preview <ArrowRight className="h-4 w-4" /></a>
-            <p className="mt-3 text-xs font-semibold !text-white/65">No payment card required · Your email links the preview to your enquiry</p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              {[
-                ["Clear brief", "Simple and guided"],
-                ["Website direction", "See the proposal clearly"],
-                ["Studio review", "Human judgement before launch"],
-              ].map(([title,copy]) => (
-                <div key={title} className="flex gap-3">
-                  <span className="bs3-icon !bg-white/[0.06] !text-[#9f93ff]"><Check className="h-4 w-4" /></span>
-                  <div><p className="text-sm font-semibold !text-white">{title}</p><p className="mt-1 text-xs !text-white/48">{copy}</p></div>
-                </div>
-              ))}
-            </div>
+      <section className="c27-marketing-hero">
+        <div className="brand-shell grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
+          <div className="lg:col-span-7">
+            <p className="c27-kicker">{salesMode?"Internal studio preview":"Your first look / Free website direction"}</p>
+            {salesMode?<p className="mt-3 text-sm text-[#1741ed]">Internal sales mode · prospect email not required</p>:null}
+            <h1 className="mt-6 !max-w-[16ch]">See what your business <em className="font-serif italic font-normal text-[#1741ed]">could look like online.</em></h1>
+            <p className="brand-copy mt-6">Already have a website? Paste its URL. Starting from scratch? Tell us a little about your business. Get a preliminary website direction before deciding on any paid plan.</p>
+            <a href="#preview-brief" className="c27-button mt-8">Start my free website preview <ArrowRight className="h-4 w-4"/></a>
+            <p className="mt-4 text-sm text-[#5b6775]">No card required · No obligation · Your email connects the preview to your enquiry</p>
           </div>
-
-          <div className="relative lg:col-span-6">
-            <div className="rounded-2xl border border-white/12 bg-[#111827]/90 p-6 shadow-[0_35px_100px_-50px_rgba(0,0,0,.8)] sm:p-8">
-              <p className="text-xs font-bold uppercase tracking-[.14em] text-[#9f93ff]">What your first direction covers</p>
-              <h2 className="mt-3 text-2xl !text-white">A practical starting point for a better website.</h2>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">{[["Your offer", "What you do and who it serves."], ["Your customer", "What they need to know before choosing."], ["Your proof", "The real details that build confidence."], ["Your next step", "How the right visitor can contact you."]].map(([title, detail]) => <div key={title} className="border border-white/10 bg-white/[.04] p-4"><p className="font-semibold !text-white">{title}</p><p className="mt-2 text-sm leading-6 !text-white/60">{detail}</p></div>)}</div>
-              <p className="mt-5 text-xs !text-white/45">Initial direction · reviewed and refined before launch</p>
-            </div>
-          </div>
+          <div className="lg:col-span-5"><div className="bg-[#1741ed] p-8 text-white sm:p-10">
+            <p className="text-xs font-semibold uppercase tracking-[.16em] !text-white/75">From your details to a direction</p>
+            <h2 className="mt-5 !text-[clamp(2.2rem,3.5vw,3.8rem)] !leading-[1.04] !text-white">Your business. <span className="font-serif italic font-normal">Not a generic page.</span></h2>
+            <div className="mt-8">{[["01","Your business","Industry, service, location and customer goal"],["02","Your direction","A responsive website layout with an enquiry path"],["03","Your next step","Review scope and pricing only when ready"]].map(([n,t,d])=><div key={n} className="grid grid-cols-[2.25rem_1fr] gap-4 border-t border-white/30 py-5"><span className="font-serif text-2xl italic text-white">{n}</span><div><p className="font-semibold !text-white">{t}</p><p className="mt-1 text-sm !text-white/75">{d}</p></div></div>)}</div>
+            <p className="mt-4 text-xs !text-white/65">The preliminary direction is not a completed paid website or guaranteed outcome.</p>
+          </div></div>
         </div>
       </section>
 
@@ -2930,7 +2871,7 @@ function NicheLandingPage({ page }: { page: (typeof nichePages)[keyof typeof nic
             <h2 className="mt-4">{page.positioning}</h2>
             <p className="brand-copy mt-6">{page.promise}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to="/website-audit" className={primaryCtaClass}>{page.cta} <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link to="/generate-preview" className={primaryCtaClass}>Get a free website preview <ArrowRight className="ml-2 h-4 w-4" /></Link>
               <Link to="/case-studies" className={secondaryCtaClass}>View examples</Link>
             </div>
           </div>
@@ -2991,12 +2932,12 @@ export default function PublicMarketingPages() {
     "how-it-works": ["Let's build a website that moves your business forward.", "A clear process, expert guidance and a reviewed launch."],
     "case-studies": ["Let's build a website that works for you.", "Modern design, better structure and a direction grounded in the business."],
     "generate-preview": ["See your website before you commit.", "Complete the brief, review the direction and decide what you want to do next."],
-  } as Record<string, [string, string]>)[pageKind] || ["See it applied to your business.", "Start with a website review, then decide the right next step."];
+  } as Record<string, [string, string]>)[pageKind] || ["See it applied to your business.", "Start with a free website preview and decide the right next step."];
 
   const finalPrimary = pageKind === "contact"
     ? { label: "Book a website consultation", href: "/book-demo" }
     : { label: "Get my free website preview", href: "/generate-preview" };
-  const finalSecondary = { label: "View our work", href: "/case-studies" };
+  const finalSecondary = { label: "See case studies", href: "/case-studies" };
 
   const pageContent =
     nichePage
@@ -3024,7 +2965,7 @@ export default function PublicMarketingPages() {
                 : <TemplatesPage />;
 
   return (
-    <div className="brand-public min-h-screen bg-[#f6f7fb] text-[#141821]">
+    <div className="brand-public c27-no-template-look min-h-screen bg-[#f8f8f5] text-[#141821]">
       <Helmet>
         <title>{meta.title}</title>
         <meta name="description" content={meta.description} />
@@ -3032,7 +2973,7 @@ export default function PublicMarketingPages() {
       </Helmet>
       <PublicSiteHeader />
       {pageContent}
-      {pageKind !== "pricing" && <section className="brand-grid-bg relative overflow-hidden border-t border-white/10 bg-[#6252f4] text-white">
+      {pageKind !== "pricing" && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="brand-shell relative grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
           <div>

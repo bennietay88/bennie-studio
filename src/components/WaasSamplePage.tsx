@@ -256,25 +256,11 @@ export default function WaasSamplePage() {
         />
       </Helmet>
 
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-8">
-          <button
-            onClick={() => navigate("/case-studies")}
-            className="flex items-center gap-2 border-none bg-transparent text-left text-sm font-semibold text-slate-600 hover:text-slate-950"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Case Studies
-          </button>
-          <Button
-            onClick={() => navigate("/generate-preview")}
-            className={`rounded-xl px-5 font-bold text-white ${sample.button}`}
-          >
-            See my website direction
-          </Button>
-        </nav>
-      </header>
+      <PublicSiteHeader />
+
 
       <main>
+        <div className="mx-auto max-w-7xl px-4 pt-7 sm:px-8"><button type="button" onClick={() => navigate('/case-studies')} className="inline-flex items-center gap-2 text-sm font-semibold text-[#1741ed]"><ArrowLeft className="h-4 w-4"/> All case studies</button></div>
         <section className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:py-24">
           <div className="flex flex-col justify-center">
             <Badge className={`mb-6 w-fit rounded-full px-4 py-2 hover:opacity-100 ${sample.soft}`}>
@@ -436,6 +422,7 @@ export default function WaasSamplePage() {
           </div>
         </section>
       </main>
+      <PublicSiteFooter />
     </div>
   );
 }

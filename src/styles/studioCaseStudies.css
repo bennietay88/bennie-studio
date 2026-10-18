@@ -1,0 +1,39 @@
+.brand-public.c27-public,.brand-public .c27-catalog{--c27-blue:#1741ed;--c27-ink:#15191f}
+.brand-public .c27-editorial,.brand-public.c27-public .c27-editorial{background:#f8f8f5;border-bottom:1px solid #e5e7e8}
+.brand-public .c27-kicker,.brand-public.c27-public .c27-kicker{color:#1741ed;font-size:11px!important;font-weight:750;letter-spacing:.16em;text-transform:uppercase}
+.brand-public .c27-major,.brand-public.c27-public .c27-major{font-size:clamp(2.7rem,4.7vw,5.4rem)!important;line-height:1!important;letter-spacing:-.06em!important;color:#15191f}
+.brand-public .c27-section-title,.brand-public.c27-public .c27-section-title{font-size:clamp(2.1rem,3.3vw,3.9rem)!important;line-height:1.04!important;letter-spacing:-.05em!important}
+.brand-public .c27-button,.brand-public.c27-public .c27-button{display:inline-flex;gap:12px;align-items:center;justify-content:center;min-height:50px;padding:13px 21px;background:#1741ed;color:white;border-radius:2px!important;font-size:14px;font-weight:700}
+.brand-public .c27-button:hover,.brand-public.c27-public .c27-button:hover{background:#0a29af}
+.brand-public .c27-quiet,.brand-public.c27-public .c27-quiet{display:inline-flex;gap:8px;align-items:center;font-size:14px;font-weight:650;color:#303b47;text-decoration:underline;text-underline-offset:5px}
+.brand-public .c27-visual,.brand-public.c27-public .c27-visual{padding:26px;overflow:hidden}
+.brand-public .c27-rendered,.brand-public.c27-public .c27-rendered{background:#fff;padding:6px;transform:rotate(-2deg);box-shadow:12px 17px 0 #0002,0 22px 70px #0004}
+.brand-public .c27-caption,.brand-public.c27-public .c27-caption{display:block;margin-top:23px;color:#fff;font-size:11px;font-weight:650;text-align:right}
+.brand-public .c27-decision,.brand-public.c27-public .c27-decision{display:grid;grid-template-columns:48px 1fr;gap:20px;padding:24px 0;border-top:1px solid #d1d5dc}
+.brand-public .c27-decision>span,.brand-public.c27-public .c27-decision>span{font-family:Georgia,serif;font-size:30px;font-style:italic;color:#1741ed}
+.brand-public .c27-decision h3,.brand-public.c27-public .c27-decision h3{font-size:21px!important;font-weight:700!important}
+.brand-public .c27-decision p,.brand-public.c27-public .c27-decision p{margin-top:9px;color:#546271;font-size:15px!important}
+.brand-public .c27-chip,.brand-public.c27-public .c27-chip{padding:7px 10px;border:1px solid #d0d5dd;font-size:12px;color:#485463}
+.brand-public .c27-bottom,.brand-public.c27-public .c27-bottom{background:#1741ed;color:#fff}
+.brand-public .c27-bottom h2,.brand-public.c27-public .c27-bottom h2{font-size:clamp(2.3rem,3.6vw,4.6rem)!important;color:#fff}
+.brand-public .c27-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.brand-public .c27-card{background:white;border:1px solid #dbe0e4;display:flex;flex-direction:column}
+.brand-public .c27-card .c27-visual{padding:14px}.brand-public .c27-card .c27-caption{font-size:10px}
+.brand-public .c27-card-content{padding:25px;display:flex;flex-direction:column;flex:1}
+.brand-public .c27-card-content h3{font-size:clamp(1.4rem,1.8vw,1.85rem)!important;margin:14px 0!important;line-height:1.14!important}
+.brand-public .c27-card-content p{color:#596372;font-size:14px!important}
+.brand-public .c27-card-content a{margin-top:auto;padding-top:20px;display:inline-flex;align-items:center;gap:9px;color:#1741ed;font-size:14px;font-weight:700}
+.brand-public .c27-marketing-hero{background:#f8f8f5;border-bottom:1px solid #e1e4e8}
+.brand-public .c27-marketing-hero h1{color:#15191f!important;font-size:clamp(2.6rem,4.3vw,5.1rem)!important;letter-spacing:-.055em!important;line-height:1.03!important}
+.brand-public .c27-marketing-hero em{font-family:Georgia,serif;font-weight:400;font-style:italic;color:#1741ed}
+.brand-public .c27-panel{padding:32px;background:#1741ed;color:white}
+.brand-public .c27-panel h2{color:white!important;font-size:clamp(2rem,3vw,3.5rem)!important;line-height:1.04!important}
+.brand-public .c27-panel-row{border-top:1px solid #ffffff45;padding:18px 0}
+.brand-public .c27-panel-row strong{display:block;font-size:14px}
+.brand-public .c27-panel-row span{display:block;font-size:13px;color:#dbe4ff;margin-top:6px}
+.brand-public .c27-footer-cta{background:#1741dd!important;background-image:none!important}
+.brand-public .c27-footer-cta h2{font-size:clamp(2rem,3.3vw,4.1rem)!important;line-height:1.05!important}
+.brand-public .c27-footer-cta button{border-radius:2px!important}
+.brand-public .c27-no-template-look .bs3-card,.brand-public .c27-no-template-look .bs3-card-dark{border-radius:3px!important}
+@media(max-width:1000px){.brand-public .c27-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:670px){.brand-public .c27-grid{grid-template-columns:1fr}.brand-public .c27-visual{padding:14px}.brand-public .c27-decision{grid-template-columns:31px 1fr;gap:12px}.brand-public .c27-panel{padding:22px}.brand-public .c27-major{font-size:clamp(2.5rem,9.5vw,3.6rem)!important}}

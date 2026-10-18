@@ -3,10 +3,10 @@
   --brand-muted: #526071;
   --brand-soft: #5f6673;
   --brand-line: #dfe2ea;
-  --brand-paper: #f6f7fb;
+  --brand-paper: #f8f8f5;
   --brand-white: #ffffff;
-  --brand-accent: #5746e8;
-  --brand-accent-soft: #eeebff;
+  --brand-accent: #1741ed;
+  --brand-accent-soft: #e9edff;
   --brand-dark: #0b1020;
   background: var(--brand-paper);
   color: var(--brand-ink);

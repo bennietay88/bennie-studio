@@ -11,6 +11,7 @@ const publicNavItems = [
   { label: "Case Studies", href: "/case-studies" },
   { label: "Pricing", href: "/pricing" },
   { label: "How it works", href: "/how-it-works" },
+  { label: "About", href: "/about" },
 ] as const;
 
 const footerGroups = [
@@ -135,6 +136,7 @@ export function PublicSiteHeader() {
           </Link>
         </div>
 
+        {!user && location.pathname !== "/generate-preview" ? <Link to="/generate-preview" className="ml-auto inline-flex min-h-10 items-center justify-center bg-[#1741ed] px-3 py-2 text-xs font-semibold text-white xl:hidden" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:"Mobile header preview",target:"/generate-preview"})}>Free preview ↗</Link> : null}
         <Button ref={mobileTriggerRef} type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="shrink-0 xl:hidden" aria-label="Open navigation menu" aria-expanded={mobileOpen} aria-controls="public-mobile-navigation">
           <Menu className="h-5 w-5" />
         </Button>

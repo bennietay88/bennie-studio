@@ -21,6 +21,7 @@ import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingFallback } from "./components/LoadingFallback";
 import "./styles/publicBrand.css";
+import "./styles/studioCaseStudies.css";
 import { AgencyMotionDirector } from "./components/AgencyMotionDirector";
 import { classifyTenantHost } from "./lib/tenantDomains";
 
@@ -65,6 +66,7 @@ const LandingPage = lazy(() => import("./components/BrandLedLandingPage"));
 const LoginPage = lazy(() => import("./components/LoginPage"));
 const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
 const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPages"));
+const StudioCaseStudyDetail = lazy(() => import("./components/StudioCaseStudyDetail"));
 const PublicBlogPostPage = lazy(() => import("./components/PublicBlogPostPage"));
 const PublicResourceArticlePage = lazy(() => import("./components/PublicResourceArticlePage"));
 const WaasSamplePage = lazy(() => import("./components/WaasSamplePage"));
@@ -477,6 +479,7 @@ export default function App() {
               <Route path="/pricing" element={<PublicMarketingPages />} />
               <Route path="/how-it-works" element={<PublicMarketingPages />} />
               <Route path="/case-studies" element={<PublicMarketingPages />} />
+              <Route path="/case-studies/showcase/:slug" element={<StudioCaseStudyDetail />} />
               <Route path="/dental-clinics" element={<PublicMarketingPages />} />
               <Route path="/examples" element={<Navigate to="/case-studies" replace />} />
               <Route path="/website-audit" element={<PublicMarketingPages />} />

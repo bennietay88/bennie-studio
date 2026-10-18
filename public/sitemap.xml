@@ -228,4 +228,10 @@
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
+  <url><loc>https://app.bennietay.com/case-studies/showcase/dental-clinic</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://app.bennietay.com/case-studies/showcase/renovation-contractor</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://app.bennietay.com/case-studies/showcase/professional-advisory</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://app.bennietay.com/case-studies/showcase/tuition-centre</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://app.bennietay.com/case-studies/showcase/beauty-wellness</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://app.bennietay.com/case-studies/showcase/accounting-firm</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 </urlset>

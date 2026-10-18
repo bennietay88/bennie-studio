@@ -27,9 +27,10 @@ import {
 import { Pricing as CommercialPricing } from "./Pricing";
 import { RESOURCE_ARTICLES } from "../content/resources";
 import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
+import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
 
 const primary =
-  "inline-flex min-h-12 items-center justify-center rounded-xl bg-[#6252f4] px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_-25px_rgba(98,82,244,.9)] transition hover:-translate-y-0.5 hover:bg-[#5142de]";
+  "inline-flex min-h-12 items-center justify-center rounded-xl bg-[#1741ed] px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_-25px_rgba(98,82,244,.9)] transition hover:-translate-y-0.5 hover:bg-[#0a2aaa]";
 const secondary =
   "inline-flex min-h-12 items-center justify-center rounded-xl border border-white/22 bg-white/[0.035] px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.08]";
 
@@ -207,10 +208,19 @@ export function AboutStudioPage() {
 
   return (
     <>
-      <section className="border-b border-[#e6e8ef] bg-white">
-        <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12 lg:items-center">
-          <div className="lg:col-span-6"><p className="brand-kicker">About Bennie Studio</p><h1 className="mt-5 max-w-[24ch]">A small studio for better websites.</h1><p className="brand-copy mt-6 max-w-2xl">We design, build and manage websites for service businesses. Modern tools remove repetitive work; Bennie Studio remains responsible for the strategy, design decisions, review and launch quality.</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/website-audit" className={primary}>Get a website review<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/how-it-works" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-[#d7dbe5] bg-white px-6 py-3 text-sm font-semibold text-[#172033] hover:border-[#aaa0ff]">See how it works</Link></div></div>
-          <div className="lg:col-span-6"><StudioDecisionPanel kicker="How we work" title="Thoughtful technology, human responsibility." items={[["Small studio", "Direct communication from people doing the work."], ["Clear decisions", "Scope and review points stay visible."], ["Accountable launch", "Studio checks and customer approval before publishing."]]} /></div>
+      <section className="c27-marketing-hero">
+        <div className="brand-shell grid gap-12 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
+          <div className="lg:col-span-6">
+            <p className="c27-kicker">About Bennie Studio</p>
+            <h1 className="mt-6 !max-w-[13ch]">Small studio. <em>Serious about your website.</em></h1>
+            <p className="brand-copy mt-7">We bring together business-first strategy, considered design and a managed delivery process. The aim is a website that is easy to understand, easy to trust and easier to enquire through.</p>
+            <div className="mt-8 flex flex-wrap gap-4"><Link to="/generate-preview" className="c27-button">Get a free website preview <ArrowRight className="h-4 w-4"/></Link><Link to="/how-it-works" className="c27-quiet">Our approach <ArrowRight className="h-4 w-4"/></Link></div>
+          </div>
+          <div className="lg:col-span-6"><div className="c27-panel">
+            <p className="!text-white/75 text-xs font-bold uppercase tracking-[.16em]">The studio promise</p>
+            <h2 className="mt-5">Human judgement. <span className="font-serif italic font-normal">A clear process.</span></h2>
+            <div className="mt-8">{[["01 / Understand","Every design decision begins with your business and its buyers."],["02 / Build","Careful messaging, design and technical implementation."],["03 / Review","You see and approve the website before launch."],["04 / Manage","Hosting, maintenance and updates within your agreed plan."]].map(([a,b])=><div key={a} className="c27-panel-row"><strong>{a}</strong><span>{b}</span></div>)}</div>
+          </div></div>
         </div>
       </section>
       <section className="brand-shell brand-section">
@@ -293,10 +303,16 @@ export function ResourcesStudioPage() {
 
   return (
     <>
-      <section className="border-b border-[#e6e8ef] bg-white">
-        <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12 lg:items-center">
-          <div className="lg:col-span-6"><p className="brand-kicker">Resources & insights</p><h1 className="mt-5 max-w-[32ch]">Practical website advice for businesses.</h1><p className="brand-copy mt-6 max-w-2xl">Guides, examples and checklists about positioning, trust, page structure, conversion paths and maintaining a useful website after launch.</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/website-audit" className={primary}>Get a website review<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/case-studies" className="text-sm font-semibold text-[#526071] hover:text-[#6252f4]">View the work →</Link></div></div>
-          <div className="lg:col-span-6"><StudioDecisionPanel kicker="Start with the useful questions" title="Practical guidance for better website decisions." items={[["Positioning", "Explain your offer and who it is for."], ["Trust", "Use proof that answers real customer concerns."], ["Conversion", "Make the next step easy to find."]]} /></div>
+      <section className="c27-marketing-hero">
+        <div className="brand-shell grid gap-12 py-20 lg:grid-cols-12 lg:items-center lg:py-24">
+          <div className="lg:col-span-7"><p className="c27-kicker">Resources / Good website decisions</p>
+            <h1 className="mt-6 !max-w-[15ch]">Make your next website <em>decision a better one.</em></h1>
+            <p className="brand-copy mt-7">Clear, practical guides on positioning, content, customer trust, enquiry paths and the ongoing management of a business website.</p>
+            <div className="mt-8 flex flex-wrap gap-5"><Link to="/generate-preview" className="c27-button">Apply it to my business <ArrowRight className="h-4 w-4"/></Link><Link to="/case-studies" className="c27-quiet">See the design work <ArrowRight className="h-4 w-4"/></Link></div>
+          </div>
+          <div className="lg:col-span-5"><div className="border-y border-[#cbd1dc]">
+            {[["01","Positioning","Explain the offer."],["02","Trust","Earn confidence."],["03","Conversion","Make the next step clear."],["04","Aftercare","Keep it working."]].map(([n,t,desc])=><div key={n} className="grid grid-cols-[3rem_1fr] gap-5 border-b border-[#cbd1dc] py-5 last:border-b-0"><span className="font-serif text-3xl italic text-[#1741ed]">{n}</span><div><p className="text-xl font-semibold !text-[#15191f]">{t}</p><p className="mt-1 text-sm text-[#596573]">{desc}</p></div></div>)}
+          </div></div>
         </div>
       </section>
       <section className="bg-white border-y border-[#e6e8ef]">
@@ -466,60 +482,41 @@ export function ProcessStudioPage() {
 }
 
 export function WorkStudioPage() {
-  const decisions = [
-    ["Make the offer immediately clear", "Reorganise the homepage around what Bennie Studio provides: website planning, design, launch and ongoing management."],
-    ["Reduce friction before commitment", "Give visitors a free preliminary website preview as a first step, with no card required."],
-    ["Make buying costs understandable", "Show setup costs, monthly fees and minimum commitment terms before checkout."],
-    ["Keep the product usable after launch", "Use responsive layouts, clear navigation and human review of the customer journey."],
-  ];
   return (
     <>
-      <section className="overflow-hidden bg-[#f8f8f5]">
+      <section className="c27-marketing-hero">
         <div className="brand-shell grid gap-12 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
-          <div className="lg:col-span-7">
-            <p className="brand-kicker !text-[#1943ed]">Case Studies / 01 / In-house</p>
-            <h1 className="mt-6 !max-w-[15ch] !text-[#15191f]">We made our own website <span className="font-serif italic font-normal !text-[#1741ed]">easier to understand and act on.</span></h1>
-            <p className="brand-copy mt-7">Our first featured case study is the Bennie Studio website itself. The brief: communicate our value more clearly, make the free preview easier to discover and remove ambiguity from the buying journey.</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to="/generate-preview" className="inline-flex min-h-12 items-center justify-center bg-[#1943ed] px-6 py-3 font-semibold text-white">Try the free preview<ArrowRight className="ml-2 h-4 w-4" /></Link>
-              <Link to="/" className="inline-flex min-h-12 items-center justify-center border border-[#bcc4d1] px-6 py-3 font-semibold text-[#172033]">Explore the live website</Link>
-            </div>
-            <p className="mt-5 text-xs leading-6 text-[#697386]">An in-house project, not a third-party customer commission. No conversion uplift or other unverified result is claimed.</p>
+          <div className="lg:col-span-7"><p className="c27-kicker">Case studies / In-house work & studio-built showcases</p>
+            <h1 className="mt-6 !max-w-[15ch]">See what we can <em>actually build.</em></h1>
+            <p className="brand-copy mt-7">Explore the decisions behind Bennie Studio's own website and six design studies rendered from templates inside the app. Different businesses need different messages, layouts and enquiry paths.</p>
+            <div className="mt-8 flex flex-wrap gap-5"><Link to="/generate-preview" className="c27-button">Get a free website preview <ArrowRight className="h-4 w-4"/></Link><a href="#studio-work" className="c27-quiet">Explore studio-built work <ArrowRight className="h-4 w-4"/></a></div>
+            <p className="mt-6 max-w-2xl text-xs leading-6 text-[#6e7581]">The six industry studies are created using app templates and hypothetical business briefs. They are portfolio-grade product demonstrations, not commissioned client work or measured customer results.</p>
           </div>
-          <div className="lg:col-span-5">
-            <div className="overflow-hidden bg-[#1943dd] p-6 sm:p-9">
-              <div className="rotate-[-4deg] bg-[#fcfcf8] p-6 shadow-[16px_24px_0_#0b2486]">
-                <div className="flex items-center justify-between border-b border-[#e3e3e3] pb-4"><p className="font-bold tracking-[-.06em] text-[#15191f]">bennie<span className="font-serif italic font-normal">studio</span></p><p className="text-xs font-semibold text-[#15191f]">Services · Pricing</p></div>
-                <p className="mt-12 text-[10px] font-bold uppercase tracking-[.16em] text-[#1943dd]">Websites for service businesses</p>
-                <p className="mt-4 text-[clamp(2.25rem,4vw,4.5rem)] font-bold leading-[.98] tracking-[-.07em] text-[#15191f]">Made to <span className="font-serif italic font-normal text-[#1943dd]">stand out.</span><br/>Built to work.</p>
-                <p className="mt-8 max-w-xs text-sm !text-[#606872]">Clear value. An easier next step. Managed care.</p>
-                <div className="mt-8 inline-flex bg-[#15191f] px-4 py-3 text-xs font-semibold text-white">Get a free preview ↗</div>
-              </div>
-              <p className="mt-9 text-right text-[10px] font-bold uppercase tracking-[.13em] !text-white/80">Bennie Studio / Own website</p>
-            </div>
-          </div>
+          <div className="lg:col-span-5"><div className="c27-panel">
+            <p className="!text-white/75 text-xs uppercase tracking-[.16em]">Evidence, without inflated claims</p>
+            <h2 className="mt-5">Real design output. <span className="font-serif italic font-normal">Honest context.</span></h2>
+            <div className="mt-8">{[["01 / In-house","The Bennie Studio website and its real buying journey."],["02 / App-rendered","Website layouts drawn from our actual built-in templates."],["03 / Industry-specific","Different page priorities for different buyers."],["04 / Not client results","No invented companies, reviews, awards or conversion metrics."]].map(([a,b])=><div key={a} className="c27-panel-row"><strong>{a}</strong><span>{b}</span></div>)}</div>
+          </div></div>
         </div>
       </section>
-      <section id="in-house" className="brand-shell brand-section">
-        <div className="grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-4">
-            <p className="brand-kicker !text-[#1943ed]">The brief</p>
-            <h2 className="mt-5">Look credible. Explain the value. Make the next step obvious.</h2>
-            <p className="brand-copy mt-6">The goal was not a visual refresh alone. We wanted to reduce uncertainty at the moment a business owner considers investing in a website.</p>
-          </div>
-          <div className="lg:col-span-8">
-            <div className="divide-y divide-[#dfe3eb] border-y border-[#dfe3eb]">
-              {decisions.map(([title,body],i)=><div key={title} className="grid gap-5 py-8 sm:grid-cols-[60px_1fr]"><span className="font-serif text-4xl italic text-[#1943ed]">0{i+1}</span><div><h3 className="!text-[#172033]">{title}</h3><p className="mt-3 text-sm leading-7 text-[#586374]">{body}</p></div></div>)}
-            </div>
-          </div>
+      <section className="brand-shell brand-section" id="studio-work">
+        <div className="grid gap-8 lg:grid-cols-[.65fr_1.35fr] lg:items-end"><div><p className="c27-kicker">01 / In-house</p><h2 className="mt-4">Bennie Studio's own website redesign.</h2></div><p className="brand-copy">Our in-house brief was to make the offer easier to understand, showcase website design quality and give business owners a clear route to a free preview, real pricing and an enquiry. The live website is the deliverable.</p></div>
+        <div className="mt-9 grid gap-0 border border-[#dce1e6] lg:grid-cols-[1.15fr_.85fr]">
+          <div className="flex min-h-[330px] flex-col justify-center bg-[#1741ed] p-9 text-white sm:p-14"><p className="text-xs font-bold uppercase tracking-[.16em] !text-white/75">In-house studio case study</p><h3 className="mt-7 max-w-[11ch] !text-white !text-[clamp(2.5rem,5vw,5rem)] !leading-[.99] !tracking-[-.06em]">Made to <span className="font-serif italic font-normal">stand out.</span> Built to work.</h3><p className="mt-7 text-sm !text-white/75">Responsive, enquiry-led design system for Bennie Studio.</p></div>
+          <div className="flex flex-col justify-center bg-white p-8 sm:p-11"><p className="c27-kicker">The work, not a stock mockup</p><h3 className="mt-4">A clearer path from first impression to a buying decision.</h3><p className="mt-5 text-sm leading-7 text-[#536171]">Homepage positioning, visual proof of design capability, a free preview, transparent commercial pricing, and managed service information all working together.</p><div className="mt-7 flex gap-3 flex-wrap"><Link to="/" className="c27-quiet">View live website <ArrowRight className="h-4 w-4"/></Link><Link to="/pricing" className="c27-quiet">Review the buying journey <ArrowRight className="h-4 w-4"/></Link></div></div>
         </div>
       </section>
-      <section className="border-y border-[#e2e5eb] bg-[#f2f4f8]">
-        <div className="brand-shell brand-section grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div><p className="brand-kicker !text-[#1943ed]">See the work in action</p><h2 className="mt-4 !max-w-[21ch]">A good case study should help you judge the work for yourself.</h2><p className="brand-copy mt-5">Explore the site, try the free preview, review the pricing and see whether our approach fits your business.</p></div>
-          <Link to="/generate-preview" className="inline-flex min-h-14 items-center justify-center gap-3 bg-[#1943ed] px-7 font-semibold text-white">Get your free website preview <ArrowRight className="h-4 w-4"/></Link>
+      <section className="border-y border-[#dfe3e8] bg-[#f2f4f7]">
+        <div className="brand-shell brand-section">
+          <div className="mb-10 grid gap-6 lg:grid-cols-[1fr_.8fr] lg:items-end"><div><p className="c27-kicker">02 / Studio showcase websites</p><h2 className="mt-4">Six industries. Six different buying journeys.</h2></div><p className="brand-copy">Every preview below is rendered from a built-in website template available in the Bennie Studio app. The work shows design and structure; it does not imply the business scenario is a real client.</p></div>
+          <div className="c27-grid">{STUDIO_SHOWCASES.map(study=><article key={study.slug} className="c27-card">
+            <StudioShowcaseVisual study={study} compact />
+            <div className="c27-card-content"><p className="c27-kicker">{study.category} · Studio-built</p><h3>{study.title}</h3><p>{study.headline}</p><p className="mt-3 !text-xs">Enquiry goal: {study.goal}</p><Link to={"/case-studies/showcase/"+study.slug}>Explore case study <ArrowRight className="h-4 w-4"/></Link></div>
+          </article>)}</div>
+          <p className="mt-6 max-w-4xl text-xs leading-6 text-[#697585]">Showcase businesses and briefs are illustrative. The previews are rendered using the app's existing template configuration; final paid websites are personalised and require business content, approved proof and studio review.</p>
         </div>
       </section>
+      <section className="brand-shell brand-section grid gap-9 lg:grid-cols-[1fr_auto] lg:items-center"><div><p className="c27-kicker">Your project next</p><h2 className="mt-4">Wondering what this would look like for your business?</h2><p className="brand-copy mt-5">Tell us about your business and receive a preliminary website direction before choosing a managed plan.</p></div><Link to="/generate-preview" className="c27-button">Get your free website preview <ArrowRight className="h-4 w-4"/></Link></section>
     </>
   );
 }
