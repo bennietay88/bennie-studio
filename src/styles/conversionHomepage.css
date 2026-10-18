@@ -1,0 +1,127 @@
+/* Bennie Studio conversion-led editorial treatment, scoped to its public homepage. */
+.brand-public .conversion-home { --c26-ink:#12151c;--c26-blue:#1741ed;--c26-paper:#f8f8f5;--c26-muted:#545965;color:var(--c26-ink);background:var(--c26-paper);font-family:"Geist Variable",Inter,Arial,sans-serif }
+.brand-public .conversion-home * {box-sizing:border-box}
+.brand-public .conversion-home h1,.brand-public .conversion-home h2,.brand-public .conversion-home h3 {font-weight:750!important;letter-spacing:-.055em!important;line-height:1.02!important;color:inherit;text-wrap:balance}
+.brand-public .conversion-home em{font-style:italic;font-family:Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-.055em}
+.brand-public .conversion-home p{line-height:1.65}
+.brand-public .conversion-home .brand-shell{width:min(calc(100% - 3rem),84rem)}
+.brand-public .conversion-home .c26-eyebrow{font-size:11px!important;font-weight:750!important;letter-spacing:.17em!important;text-transform:uppercase;color:var(--c26-blue);line-height:1.4!important}
+.brand-public .conversion-home .c26-hero{overflow:hidden;position:relative;border-bottom:1px solid #e8e7e1;background:linear-gradient(125deg,#fafaf7 25%,#f0f2f5 72%,#e1e7f5 100%)}
+.brand-public .conversion-home .c26-hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:2rem;align-items:center;min-height:635px}
+.brand-public .conversion-home .c26-hero-copy{position:relative;z-index:3;padding:5rem 0 4.5rem}
+.brand-public .conversion-home h1{font-size:clamp(3.15rem,4.8vw,5.9rem)!important;line-height:.97!important;letter-spacing:-.07em!important;max-width:920px;margin:1.5rem 0!important}
+.brand-public .conversion-home h1 em{display:inline;color:var(--c26-blue)}
+.brand-public .conversion-home .c26-intro{font-size:clamp(1rem,1.24vw,1.15rem)!important;max-width:34rem;color:#4d525b}
+.brand-public .conversion-home .c26-actions{display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;margin-top:2rem}
+.brand-public .conversion-home .c26-button{min-height:54px;display:inline-flex;align-items:center;justify-content:space-between;gap:1.2rem;padding:0 1.35rem;border:0;border-radius:3px!important;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none}
+.brand-public .conversion-home .c26-button-blue{background:#1943ed;color:white;box-shadow:0 14px 32px -22px #1943ed}
+.brand-public .conversion-home .c26-button-blue:hover{background:#0c2cb2;transform:translateY(-2px)}
+.brand-public .conversion-home .c26-button:focus-visible,.brand-public .conversion-home a:focus-visible{outline:3px solid #fbac4a;outline-offset:4px}
+.brand-public .conversion-home .c26-quiet-link{display:inline-flex;gap:.4rem;align-items:center;white-space:nowrap;color:#1b222d;text-decoration:underline;text-underline-offset:6px;font-size:14px;font-weight:700}
+.brand-public .conversion-home .c26-quiet-link:hover{color:#1741ed}
+.brand-public .conversion-home .c26-assurances{display:flex;flex-wrap:wrap;gap:.8rem 1rem;margin-top:2rem;padding:0;list-style:none;color:#414550}
+.brand-public .conversion-home .c26-assurances li{display:inline-flex;align-items:center;gap:.4rem;font-size:12px!important;white-space:nowrap}
+.brand-public .conversion-home .c26-assurances svg{border:1px solid #515562;border-radius:99px;padding:2px;box-sizing:content-box}
+.brand-public .conversion-home .c26-stage{height:620px;position:relative;min-width:0;isolation:isolate}
+.brand-public .conversion-home .c26-stage::before{content:"";position:absolute;inset:0 -15vw 0 20%;background:#1943d8;z-index:-2}
+.brand-public .conversion-home .c26-halo{position:absolute;width:490px;height:490px;top:42px;right:8%;border-radius:50%;background:#dce3eb;opacity:.95;z-index:-1}
+.brand-public .conversion-home .c26-browser{position:absolute;width:107%;top:95px;left:-8%;background:#fff;transform:rotate(-6deg);box-shadow:0 30px 90px -25px #080d3888;overflow:hidden;border:1px solid #e3e5e9}
+.brand-public .conversion-home .c26-browser-top{display:flex;align-items:center;justify-content:space-between;height:31px;padding:0 14px;border-bottom:1px solid #eff1f2;font-size:9px;color:#868a93}
+.brand-public .conversion-home .c26-dots{display:flex;gap:4px}
+.brand-public .conversion-home .c26-dots i{width:6px;height:6px;background:#d9dbe2;border-radius:50%}
+.brand-public .conversion-home .c26-browser-line{width:30px;height:3px;background:#e9ebee;border-radius:3px}
+.brand-public .conversion-home .c26-web-navbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 21px;border-bottom:1px solid #e9e9e9;font-size:10px}
+.brand-public .conversion-home .c26-web-navbar strong{font-size:16px;letter-spacing:-.07em}
+.brand-public .conversion-home .c26-web-navbar strong span{font-weight:400;font-style:italic;font-family:Georgia,serif}
+.brand-public .conversion-home .c26-web-navbar small{color:#666}
+.brand-public .conversion-home .c26-web-navbar>span{background:#16212b;color:#fff;padding:8px}
+.brand-public .conversion-home .c26-web-layout{display:grid;grid-template-columns:1.08fr .92fr;min-height:330px;padding:30px 0 28px 28px;gap:12px}
+.brand-public .conversion-home .c26-web-layout>div:first-child{display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+.brand-public .conversion-home .c26-web-layout small{font-size:8px;color:#153ed6;letter-spacing:.13em}
+.brand-public .conversion-home .c26-web-layout h2{font-size:clamp(2.3rem,3.3vw,4.35rem)!important;line-height:.95!important;margin:13px 0 10px!important;letter-spacing:-.08em!important;max-width:none}
+.brand-public .conversion-home .c26-web-layout h2 em{color:#1d43d9}
+.brand-public .conversion-home .c26-web-layout p{font-size:11px!important;max-width:220px;color:#5b5e67}
+.brand-public .conversion-home .c26-visual-link{font-size:9px;background:#121b25;color:#fff;padding:10px 12px;margin-top:15px}
+.brand-public .conversion-home .c26-web-art{position:relative;min-height:265px;overflow:hidden;background:#edeae5}
+.brand-public .conversion-home .c26-art-circle{position:absolute;border-radius:50%;width:110%;aspect-ratio:1;left:-27%;top:2%;background:#c9d2df}
+.brand-public .conversion-home .c26-art-panel{position:absolute;inset:13% -20% -10% 28%;transform:rotate(-13deg);background:linear-gradient(130deg,#182b38,#16212b 48%,#3e606d);padding:22px;color:white;box-shadow:0 18px 30px #0d213b50}
+.brand-public .conversion-home .c26-art-panel span{font-size:9px;letter-spacing:.2em;color:#b9d7ee}
+.brand-public .conversion-home .c26-art-panel strong{display:block;font-size:clamp(1.35rem,2.1vw,2.5rem);letter-spacing:-.06em;line-height:1.05;margin-top:24px}
+.brand-public .conversion-home .c26-web-bottom{display:flex;justify-content:space-around;border-top:1px solid #e5e5e5;padding:16px;font-size:9px;color:#666}
+.brand-public .conversion-home .c26-phone{position:absolute;z-index:2;right:-3%;bottom:42px;width:28%;min-width:140px;max-width:208px;aspect-ratio:.49/1;border:8px solid #0c1019;border-radius:29px!important;background:#fff;box-shadow:0 24px 50px #060d215c;overflow:hidden;padding:23px 12px 13px;color:#12151c}
+.brand-public .conversion-home .c26-phone-camera{position:absolute;top:5px;left:36%;width:28%;height:9px;background:#0c1019;border-radius:0 0 7px 7px}
+.brand-public .conversion-home .c26-phone-nav{font-size:11px;font-weight:800;letter-spacing:-.08em}
+.brand-public .conversion-home .c26-phone-nav>span{font-family:Georgia,serif;font-weight:400;font-style:italic}
+.brand-public .conversion-home .c26-phone-nav b{float:right}
+.brand-public .conversion-home .c26-phone-kicker{display:block;margin-top:25px;font-size:7px;color:#1943ed;letter-spacing:.12em}
+.brand-public .conversion-home .c26-phone>strong{display:block;margin-top:13px;font-size:clamp(17px,2.3vw,30px);letter-spacing:-.07em;line-height:.99}
+.brand-public .conversion-home .c26-phone i{font-family:Georgia,serif;font-weight:400;color:#1943ed}
+.brand-public .conversion-home .c26-phone-art{height:23%;margin-top:15px;background:linear-gradient(135deg,#b5c2d0 5%,#d6d3c6 36%,#2c4c5d 36%,#142c38 100%);border-radius:1px}
+.brand-public .conversion-home .c26-phone-cta{display:block;margin-top:12px;background:#121a24;color:white;padding:8px 4px;font-size:9px;text-align:center}
+.brand-public .conversion-home .c26-studio-note{position:absolute;bottom:36px;left:2%;z-index:2;display:flex;align-items:center;gap:9px;color:#fff;font-size:10px;letter-spacing:.15em;transform:rotate(-8deg)}
+.brand-public .conversion-home .c26-stage-caption{position:absolute;right:0;bottom:12px;font-size:10px;color:#fff;opacity:.8;letter-spacing:.03em}
+.brand-public .conversion-home .c26-value{background:#14191f;color:#fff}
+.brand-public .conversion-home .c26-value-grid{display:grid;grid-template-columns:1.05fr .65fr 1.75fr;align-items:center;gap:2.5rem;padding-block:3.8rem}
+.brand-public .conversion-home .c26-value .c26-eyebrow{color:#aabaff}
+.brand-public .conversion-home .c26-value h2{font-size:clamp(2.2rem,3.3vw,4rem)!important;margin-top:12px!important}
+.brand-public .conversion-home .c26-value h2 em{display:block;color:#bbc9ff}
+.brand-public .conversion-home .c26-value-description{color:#d4d7e2;font-size:14px!important}
+.brand-public .conversion-home .c26-value-items{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-left:1px solid #444950}
+.brand-public .conversion-home .c26-value-item{padding-left:15px;padding-right:11px;border-right:1px solid #444950}
+.brand-public .conversion-home .c26-value-item svg{color:#d6defe}
+.brand-public .conversion-home .c26-value-item h3{font-size:14px!important;line-height:1.26!important;margin:16px 0 6px!important;letter-spacing:-.02em!important}
+.brand-public .conversion-home .c26-value-item p{font-size:12px!important;color:#c3c7d1}
+.brand-public .conversion-home .c26-case{padding-block:5.75rem}
+.brand-public .conversion-home .c26-section-head{display:grid;grid-template-columns:1.3fr 1fr auto;gap:2rem;align-items:end;margin-bottom:2.2rem}
+.brand-public .conversion-home .c26-section-head h2{font-size:clamp(2.8rem,4.5vw,5.1rem)!important;margin-top:.8rem!important}
+.brand-public .conversion-home .c26-section-head>p{max-width:26rem;color:#525968;font-size:15px!important}
+.brand-public .conversion-home .c26-dot{color:#1943ed}
+.brand-public .conversion-home .c26-case-feature{display:grid;grid-template-columns:1.13fr .87fr;background:#fff;border:1px solid #dfe2e4;min-height:490px}
+.brand-public .conversion-home .c26-case-art{background:radial-gradient(circle at 20% 32%,#b4c3ff 0,#b4c3ff 19%,transparent 20%),#1740df;display:flex;align-items:center;justify-content:center;padding:4rem 2.5rem;overflow:hidden}
+.brand-public .conversion-home .c26-case-window{position:relative;background:#fafaf7;width:90%;min-height:300px;padding:27px 25px;transform:rotate(-4deg);box-shadow:15px 22px 0 #0d2587,0 28px 70px #0c258e80;overflow:hidden}
+.brand-public .conversion-home .c26-case-mini-nav{display:flex;justify-content:space-between;gap:6px;font-size:14px;font-weight:800;letter-spacing:-.06em;padding-bottom:17px;border-bottom:1px solid #ddd}
+.brand-public .conversion-home .c26-case-mini-nav>span{font-family:Georgia,serif;font-weight:400;font-style:italic}
+.brand-public .conversion-home .c26-case-mini-nav small{font-size:8px;font-weight:500;letter-spacing:0}
+.brand-public .conversion-home .c26-case-window>span{display:block;font-size:8px;color:#1d43d9;letter-spacing:.12em;margin-top:22px}
+.brand-public .conversion-home .c26-case-window>strong{position:relative;z-index:2;display:block;margin-top:16px;font-size:clamp(2rem,3vw,3.4rem);line-height:1.03;letter-spacing:-.07em}
+.brand-public .conversion-home .c26-case-window>strong i{font-family:Georgia,serif;font-weight:400;color:#1943ed}
+.brand-public .conversion-home .c26-case-abstract{position:absolute;right:-12%;top:35%;width:47%;height:50%;background:linear-gradient(135deg,#d4dadd,#a6b6c3 40%,#193443 41%,#0d2432);transform:rotate(8deg)}
+.brand-public .conversion-home .c26-case-window>p{position:relative;z-index:2;font-size:11px!important;color:#535b64;margin-top:16px}
+.brand-public .conversion-home .c26-case-copy{padding:4.5rem 3.6rem;display:flex;flex-direction:column;align-items:flex-start}
+.brand-public .conversion-home .c26-case-meta{font-size:11px;font-weight:750;letter-spacing:.13em;text-transform:uppercase;color:#1943ed}
+.brand-public .conversion-home .c26-case-copy h3{font-size:clamp(2.1rem,3vw,3.7rem)!important;line-height:1.07!important;margin:20px 0!important}
+.brand-public .conversion-home .c26-case-copy>p{color:#4c5361;font-size:15px!important}
+.brand-public .conversion-home .c26-case-tags{display:flex;flex-wrap:wrap;gap:.5rem;margin:22px 0 28px}
+.brand-public .conversion-home .c26-case-tags span{border:1px solid #dcdfe5;padding:5px 9px;color:#515866;font-size:11px}
+.brand-public .conversion-home .c26-text-cta{display:inline-flex;align-items:center;gap:.5rem;padding-bottom:6px;border-bottom:1px solid #15191d;color:#15191d;font-size:15px;font-weight:750}
+.brand-public .conversion-home .c26-case-honesty{margin-top:auto;padding-top:20px;font-size:11px!important;color:#81858d!important}
+.brand-public .conversion-home .c26-process{background:#f0f1f4;border-top:1px solid #e3e5e9;border-bottom:1px solid #e3e5e9;padding-block:5.5rem}
+.brand-public .conversion-home .c26-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:1px solid #c4c9d2}
+.brand-public .conversion-home .c26-step{padding:24px 22px 5px;border-right:1px solid #cfd3db}
+.brand-public .conversion-home .c26-step:first-child{padding-left:0}
+.brand-public .conversion-home .c26-step:last-child{border-right:0}
+.brand-public .conversion-home .c26-step-num{font-family:Georgia,serif;font-style:italic;color:#1943ed;font-size:40px;line-height:1}
+.brand-public .conversion-home .c26-step h3{font-size:19px!important;line-height:1.15!important;letter-spacing:-.03em!important;margin:23px 0 10px!important}
+.brand-public .conversion-home .c26-step p{font-size:14px!important;color:#505765}
+.brand-public .conversion-home .c26-process-cta{margin-top:30px}
+.brand-public .conversion-home .c26-services{padding-block:5.5rem 6rem}
+.brand-public .conversion-home .c26-services .c26-section-head h2{max-width:650px}
+.brand-public .conversion-home .c26-service-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.brand-public .conversion-home .c26-service{background:#fff;border:1px solid #e0e1e2;padding:34px 30px;min-height:275px;display:flex;flex-direction:column;align-items:flex-start}
+.brand-public .conversion-home .c26-service>span{font-size:34px;font-family:Georgia,serif;font-style:italic;color:#1943ed}
+.brand-public .conversion-home .c26-service h3{font-size:23px!important;margin:22px 0 12px!important}
+.brand-public .conversion-home .c26-service p{font-size:14px!important;color:#565e6b}
+.brand-public .conversion-home .c26-service small{margin-top:auto;padding-top:25px;color:#1943ed;font-weight:750;font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+.brand-public .c26-pricing-section{background:#fbfbf9!important}
+.brand-public .c26-pricing-section article{border-radius:2px!important;box-shadow:none!important}
+.brand-public .c26-pricing-section article button{border-radius:3px!important}
+.brand-public .c26-close{background:#1943dd;color:white;padding:4.2rem 0}
+.brand-public .c26-close .brand-shell{display:grid;grid-template-columns:1.6fr .7fr;gap:3rem;align-items:center}
+.brand-public .c26-close h2{font-size:clamp(2.4rem,4.8vw,5.7rem)!important;line-height:1!important;letter-spacing:-.055em!important;color:white!important}
+.brand-public .c26-close h2 em{font-family:Georgia,serif;font-weight:400}
+.brand-public .c26-close p{font-size:14px!important;color:#e6ebff!important;margin-bottom:1.3rem}
+.brand-public .c26-close button{min-height:51px;padding:0 22px;background:white;color:#12233e;border-radius:3px!important;font-size:14px;font-weight:750;display:flex;align-items:center;gap:1rem}
+@media(max-width:1180px){.brand-public .conversion-home .c26-value-grid{grid-template-columns:1fr 1fr}.brand-public .conversion-home .c26-value-items{grid-column:1/-1}.brand-public .conversion-home .c26-browser{left:-12%}.brand-public .conversion-home .c26-section-head{grid-template-columns:1fr 1fr}.brand-public .conversion-home .c26-section-head .c26-quiet-link{grid-column:2}}
+@media(max-width:800px){.brand-public .conversion-home .c26-hero-grid{grid-template-columns:1fr;gap:0}.brand-public .conversion-home .c26-hero-copy{padding:3.4rem 0 2.4rem}.brand-public .conversion-home h1{font-size:clamp(2.85rem,8.9vw,5.4rem)!important;max-width:700px}.brand-public .conversion-home .c26-stage{height:510px;margin:0 -1.5rem}.brand-public .conversion-home .c26-stage::before{inset:20px -12% 0 30%}.brand-public .conversion-home .c26-browser{width:88%;left:3%;top:70px}.brand-public .conversion-home .c26-phone{right:6%;bottom:31px}.brand-public .conversion-home .c26-value-grid{gap:1.5rem}.brand-public .conversion-home .c26-section-head{display:flex;flex-wrap:wrap}.brand-public .conversion-home .c26-case-feature{grid-template-columns:1fr}.brand-public .conversion-home .c26-case-art{min-height:390px}.brand-public .conversion-home .c26-case-copy{padding:2rem}.brand-public .conversion-home .c26-steps{grid-template-columns:1fr 1fr}.brand-public .conversion-home .c26-step{border-bottom:1px solid #cfd3db}.brand-public .conversion-home .c26-service-grid{grid-template-columns:1fr 1fr}.brand-public .c26-close .brand-shell{grid-template-columns:1fr}}
+@media(max-width:520px){.brand-public .conversion-home .brand-shell{width:min(calc(100% - 2rem),84rem)}.brand-public .conversion-home .c26-hero-copy{padding:2.7rem 0 2rem}.brand-public .conversion-home h1{font-size:clamp(2.75rem,11vw,3.9rem)!important;margin:1rem 0 1.25rem!important}.brand-public .conversion-home .c26-intro{font-size:15px!important}.brand-public .conversion-home .c26-actions{display:grid;gap:1.1rem;margin-top:1.6rem}.brand-public .conversion-home .c26-actions .c26-button{width:100%}.brand-public .conversion-home .c26-actions .c26-quiet-link{justify-self:center}.brand-public .conversion-home .c26-assurances{margin-top:1.5rem;gap:.55rem 1rem}.brand-public .conversion-home .c26-assurances li{font-size:11px!important}.brand-public .conversion-home .c26-stage{height:390px;margin:0 -1rem}.brand-public .conversion-home .c26-halo{width:270px;height:270px;top:23px}.brand-public .conversion-home .c26-browser{width:96%;left:-10%;top:45px}.brand-public .conversion-home .c26-web-navbar{padding:8px 12px}.brand-public .conversion-home .c26-web-navbar small{display:none}.brand-public .conversion-home .c26-web-navbar>span{font-size:7px;padding:5px}.brand-public .conversion-home .c26-web-layout{min-height:206px;padding:15px 0 15px 12px}.brand-public .conversion-home .c26-web-layout h2{font-size:clamp(1.3rem,6vw,2.3rem)!important;margin:8px 0!important}.brand-public .conversion-home .c26-web-layout p{font-size:8px!important}.brand-public .conversion-home .c26-web-art{min-height:165px}.brand-public .conversion-home .c26-art-panel{padding:8px}.brand-public .conversion-home .c26-art-panel strong{font-size:16px;margin-top:13px}.brand-public .conversion-home .c26-web-bottom{padding:9px}.brand-public .conversion-home .c26-phone{right:2%;width:30%;min-width:112px;border-width:6px;border-radius:22px!important;padding:17px 8px 9px;bottom:20px}.brand-public .conversion-home .c26-phone-kicker{font-size:6px;margin-top:17px}.brand-public .conversion-home .c26-phone>strong{font-size:19px}.brand-public .conversion-home .c26-studio-note{font-size:8px;bottom:15px;left:3%}.brand-public .conversion-home .c26-stage-caption{display:none}.brand-public .conversion-home .c26-value-grid{grid-template-columns:1fr;padding-block:3rem}.brand-public .conversion-home .c26-value-items{grid-template-columns:1fr 1fr;gap:20px 0;grid-column:auto}.brand-public .conversion-home .c26-value-item{border-right:0;padding:8px}.brand-public .conversion-home .c26-value-item:nth-child(odd){border-left:1px solid #555}.brand-public .conversion-home .c26-case,.brand-public .conversion-home .c26-services{padding-block:3.8rem}.brand-public .conversion-home .c26-section-head h2{font-size:3rem!important}.brand-public .conversion-home .c26-case-art{padding:2rem 1rem;min-height:320px}.brand-public .conversion-home .c26-case-window{padding:15px;min-height:260px}.brand-public .conversion-home .c26-case-window>strong{font-size:2rem}.brand-public .conversion-home .c26-process{padding-block:3.8rem}.brand-public .conversion-home .c26-steps{grid-template-columns:1fr}.brand-public .conversion-home .c26-step{padding:20px 0}.brand-public .conversion-home .c26-service-grid{grid-template-columns:1fr}.brand-public .conversion-home .c26-service{min-height:240px}.brand-public .c26-close h2{font-size:clamp(2.7rem,11vw,4rem)!important}}
+@media(prefers-reduced-motion:reduce){.brand-public .conversion-home *, .brand-public .conversion-home *::before, .brand-public .conversion-home *::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}

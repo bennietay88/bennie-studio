@@ -8,7 +8,7 @@ import { Button } from "./ui/button";
 
 const publicNavItems = [
   { label: "Services", href: "/services" },
-  { label: "Examples", href: "/case-studies" },
+  { label: "Case Studies", href: "/case-studies" },
   { label: "Pricing", href: "/pricing" },
   { label: "How it works", href: "/how-it-works" },
 ] as const;
@@ -16,7 +16,7 @@ const publicNavItems = [
 const footerGroups = [
   ["Explore", [
     { label: "Website Services", href: "/services" },
-    { label: "Work", href: "/case-studies" },
+    { label: "Case Studies", href: "/case-studies" },
     { label: "Pricing", href: "/pricing" },
     { label: "How it works", href: "/how-it-works" },
   ]],
@@ -100,7 +100,7 @@ export function PublicSiteHeader() {
     <header className="sticky top-0 z-50 border-b border-[#e8eaf0] bg-white/94 shadow-[0_10px_30px_-28px_rgba(15,23,42,.45)] backdrop-blur-xl">
       <nav className="mx-auto flex h-[74px] w-[92%] max-w-[84rem] items-center justify-between gap-3 px-1 sm:w-[90%] lg:gap-4" aria-label="Main navigation">
         <Link to="/" className="group flex min-w-0 shrink items-center gap-3 text-[#0d1426]">
-          <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-gradient-to-br from-[#6e5bff] to-[#4d3ef0] text-sm font-black text-white shadow-[0_10px_24px_-14px_rgba(87,70,232,.85)]">B</span>
+          <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#1741ed] text-sm font-black text-white shadow-[0_10px_24px_-14px_rgba(87,70,232,.85)]">B</span>
           <span className="min-w-0">
             <span className="block max-w-[10rem] truncate text-[15px] font-semibold tracking-[-0.035em] sm:max-w-none">Bennie Studio</span>
             <span className="hidden text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 xl:block">Websites that convert</span>
@@ -114,7 +114,7 @@ export function PublicSiteHeader() {
               to={item.href}
               aria-current={isActive(item.href) ? "page" : undefined}
               className={isActive(item.href)
-                ? "relative py-2 text-sm font-semibold text-[#0d1426] after:absolute after:inset-x-0 after:-bottom-[19px] after:h-0.5 after:bg-[#6554f5]"
+                ? "relative py-2 text-sm font-semibold text-[#0d1426] after:absolute after:inset-x-0 after:-bottom-[19px] after:h-0.5 after:bg-[#1741ed]"
                 : "py-2 text-sm font-semibold text-[#697386] transition hover:text-[#0d1426]"}
             >
               {item.label}
@@ -123,13 +123,13 @@ export function PublicSiteHeader() {
         </div>
 
         <div className="hidden items-center gap-3 xl:flex">
-          <Link to={user ? "/dashboard" : "/login"} className="px-2 py-2 text-sm font-semibold text-[#697386] transition hover:text-[#5b4bff]">
+          <Link to={user ? "/dashboard" : "/login"} className="px-2 py-2 text-sm font-semibold text-[#697386] transition hover:text-[#1741ed]">
             {user ? "Dashboard" : "Client login"}
           </Link>
           <Link
             to={primaryHref}
             onClick={() => !user && trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref })}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#5746e8]"
+            className="inline-flex min-h-11 items-center justify-center rounded-sm bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#1741ed]"
           >
             {primaryLabel} <span className="ml-2">→</span>
           </Link>
@@ -149,7 +149,7 @@ export function PublicSiteHeader() {
             </div>
             <div className="flex flex-col py-4">
               {publicNavItems.map((item) => (
-                <Link key={item.href} to={item.href} aria-current={isActive(item.href) ? "page" : undefined} onClick={() => setMobileOpen(false)} className={isActive(item.href) ? "border-b border-[#eceef3] py-4 text-lg font-semibold text-[#5746e8]" : "border-b border-[#eceef3] py-4 text-lg font-semibold text-[#0d1426]"}>{item.label}</Link>
+                <Link key={item.href} to={item.href} aria-current={isActive(item.href) ? "page" : undefined} onClick={() => setMobileOpen(false)} className={isActive(item.href) ? "border-b border-[#eceef3] py-4 text-lg font-semibold text-[#1741ed]" : "border-b border-[#eceef3] py-4 text-lg font-semibold text-[#0d1426]"}>{item.label}</Link>
               ))}
             </div>
             <div className="mt-auto grid gap-3 border-t border-[#e5e7ef] pt-5">
@@ -184,7 +184,7 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
       <div className="mx-auto grid max-w-[88rem] gap-10 px-6 py-16 sm:px-10 md:grid-cols-2 lg:grid-cols-5 lg:px-12 lg:py-20">
         <div className="lg:col-span-2">
           <Link to="/" className="mb-5 inline-flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#6554f5] text-sm font-black">B</span>
+            <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#1741ed] text-sm font-black">B</span>
             <span>
               <span className="block text-lg font-semibold tracking-[-0.035em]">Bennie Studio</span>
               <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Websites that convert</span>

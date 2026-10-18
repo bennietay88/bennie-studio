@@ -122,15 +122,21 @@ export function ServicesStudioPage() {
 
   return (
     <>
-      <section className="bs3-dark border-b border-white/10">
-        <div className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center">
+      <section className="overflow-hidden border-b border-white/10 bg-[#111821] text-white">
+        <div className="brand-shell grid gap-12 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
           <div className="lg:col-span-6">
-            <p className="brand-kicker !text-[#9f93ff]">Bennie Studio · Website Services</p>
-            <h1 className="mt-5 max-w-[24ch] !text-white">Build a website that earns trust.</h1>
-            <p className="mt-6 max-w-xl text-base leading-8 text-white/64">We plan, design, build and manage websites for service businesses. The work starts with the buyer, the offer and the proof — not a generic template.</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/website-audit" className={primary}>Get a website review<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/case-studies" className={secondary}>View our work</Link></div>
+            <p className="brand-kicker !text-[#a8b9ff]">Website services / From brief to beyond launch</p>
+            <h1 className="mt-6 !max-w-[13ch] !text-white">A complete website solution. <span className="font-serif italic font-normal !text-[#afc0ff]">One accountable team.</span></h1>
+            <p className="mt-7 max-w-xl text-base leading-8 !text-white/75">Your website should explain your offer, earn confidence and help the right customers get in touch. We design, build and manage that experience—from strategy through ongoing care.</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/generate-preview" className="inline-flex min-h-12 items-center justify-center bg-[#1943ed] px-6 py-3 text-sm font-semibold text-white hover:bg-[#0a2ec9]">Get a free website preview<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/pricing" className={secondary}>Compare managed plans</Link></div>
           </div>
-          <div className="lg:col-span-6"><StudioDecisionPanel kicker="The website system" title="Strategy first. Then design, launch and care." items={[["Clarify", "Make the offer and audience easy to understand."], ["Build trust", "Put relevant evidence where customers need it."], ["Support growth", "Keep the site maintained after launch."]]} /></div>
+          <div className="lg:col-span-6">
+            <div className="relative overflow-hidden border border-white/20 bg-[#1741ed] p-7 sm:p-10">
+              <p className="text-xs font-bold uppercase tracking-[.17em] !text-white/75">The managed website system</p>
+              <p className="mt-5 max-w-[10ch] text-[clamp(2.8rem,5vw,5rem)] font-bold leading-[.98] tracking-[-.07em] !text-white">Design. Build. <span className="font-serif italic font-normal">Manage.</span></p>
+              <div className="mt-10 grid divide-y divide-white/25 border-t border-white/25">{[["01 / Strategy","Know what your customers need to hear."],["02 / Website","A purposeful, mobile-ready design."],["03 / Aftercare","Hosting, maintenance and agreed updates."]].map(([n,d])=><div key={n} className="grid gap-3 py-5 sm:grid-cols-[8rem_1fr]"><span className="text-sm font-semibold text-white">{n}</span><span className="text-sm leading-6 text-white/80">{d}</span></div>)}</div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -443,7 +449,7 @@ export function ProcessStudioPage() {
 
   return (
     <>
-      <section className="bs3-dark border-b border-white/10"><div className="brand-shell brand-section grid gap-10 lg:grid-cols-12 lg:items-center"><div className="lg:col-span-6"><p className="brand-kicker !text-[#9f93ff]">How Bennie Studio works</p><h1 className="mt-5 max-w-[16ch] !text-white">A clear path from brief to launch.</h1><p className="mt-6 max-w-xl text-base leading-8 text-white/64">A clear studio process keeps strategy, design, feedback and launch responsibilities visible from the start.</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/website-audit" className={primary}>Start with a website review<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/case-studies" className={secondary}>Explore the work</Link></div></div><div className="lg:col-span-6"><StudioDecisionPanel kicker="The process at a glance" title="You can see what happens at every stage." items={[["Discover", "Goals, offer and audience."], ["Design and build", "A responsive site shaped around the brief."], ["Review and launch", "Studio checks, your approval and managed support."]]} /></div></div></section>
+      <section className="border-b border-[#dadde5] bg-[#f4f5f7]"><div className="brand-shell grid gap-12 py-20 lg:grid-cols-12 lg:items-center lg:py-28"><div className="lg:col-span-6"><p className="brand-kicker !text-[#1943ed]">Our process</p><h1 className="mt-6 !max-w-[14ch] !text-[#141821]">From your first idea to a website that's <span className="font-serif italic font-normal !text-[#1943ed]">ready for business.</span></h1><p className="brand-copy mt-6">A transparent journey with a free initial website direction, clear scope, collaborative review and support after launch.</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/generate-preview" className="inline-flex min-h-12 items-center justify-center bg-[#1943ed] px-6 py-3 font-semibold text-white">Start with a free preview<ArrowRight className="ml-2 h-4 w-4"/></Link><Link to="/pricing" className="inline-flex min-h-12 items-center gap-2 font-semibold text-[#172033] underline underline-offset-4">See plan details</Link></div></div><div className="lg:col-span-6"><div className="border-y border-[#cad0da]">{[["01","Share your business"],["02","See a preview"],["03","Agree scope & pricing"],["04","Build, review & launch"],["05","Stay supported"]].map(([n,t])=><div key={n} className="flex items-center gap-7 border-b border-[#cad0da] py-4 last:border-b-0"><span className="w-16 shrink-0 font-serif text-4xl italic text-[#1943ed]">{n}</span><p className="text-xl font-semibold tracking-tight !text-[#172033]">{t}</p><ArrowRight className="ml-auto h-4 w-4 text-[#1943ed]"/></div>)}</div></div></div></section>
       <section className="bg-white border-y border-[#e6e8ef]"><div className="brand-shell grid gap-5 py-8 sm:grid-cols-5">{stages.map(([n,Icon,t])=><div key={n} className="flex items-center gap-3"><span className="bs3-icon"><Icon className="h-4 w-4"/></span><div><p className="text-[11px] font-bold text-[#6252f4]">{n}</p><p className="text-sm font-semibold text-[#172033]">{t}</p></div></div>)}</div></section>
       <section className="bs3-soft border-b border-[#e6e8ef]"><div className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center"><div className="lg:col-span-5"><p className="brand-kicker">Simple. transparent. strategic.</p><h2 className="mt-4">A process built around you.</h2><p className="brand-copy mt-5">Strategy, design and delivery are combined in a clear step-by-step process so you know what is happening, what is needed and what to expect.</p><div className="mt-6 space-y-3">{["Clear timelines and deliverables","Regular human review and feedback","Built for real business outcomes"].map(x=><p key={x} className="flex gap-3 text-sm font-semibold text-[#526071]"><Check className="h-4 w-4 text-[#6252f4]"/>{x}</p>)}</div></div><div className="lg:col-span-7"><div className="rounded-[1.2rem] border border-[#dfe3eb] bg-white p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6252f4]">What stays visible</p><div className="mt-5 grid gap-px overflow-hidden rounded-xl border border-[#e3e6ed] bg-[#e3e6ed] sm:grid-cols-2">{["What we need from you","What Bennie Studio is doing","What is ready for review","What happens before launch"].map((item)=><div key={item} className="bg-[#fbfcff] p-5"><Check className="h-4 w-4 text-[#6252f4]" /><p className="mt-3 text-sm font-semibold text-[#344054]">{item}</p></div>)}</div></div></div></div></section>
       <section className="brand-shell brand-section"><SectionHeader kicker="The process" title="Five steps. A better website." copy="Each stage is designed to be simple, collaborative and focused on results."/><div className="mt-10 space-y-4">{stages.map(([n,Icon,t,sub,time,deliverable])=><article key={n} className="bs3-card grid gap-5 p-6 lg:grid-cols-[70px_1.2fr_.75fr_.9fr] lg:items-center"><div className="flex items-center gap-3 lg:block"><span className="bs3-step">{n}</span></div><div><div className="flex items-center gap-3"><Icon className="h-5 w-5 text-[#6252f4]"/><h3>{t}</h3></div><p className="mt-2 text-sm text-[#8a7dff]">{sub}</p></div><div><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#657186]">Timeframe</p><p className="mt-2 text-sm font-semibold text-[#172033]">{time}</p></div><div><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#657186]">Key deliverables</p><p className="mt-2 text-sm text-[#526071]">{deliverable}</p></div></article>)}</div></section>
@@ -460,19 +466,60 @@ export function ProcessStudioPage() {
 }
 
 export function WorkStudioPage() {
-  const work = [
-    { category: "Professional services", scenario: "Client B", title: "Professional advisory website", sample: "consultant", visualIndex: 0, challenge: "Expertise can feel interchangeable when services and proof are buried.", direction: "Lead with the specialist offer, move evidence earlier and make consultation the obvious next step." },
-    { category: "Healthcare", scenario: "Client C", title: "Clinic website", sample: "dental", visualIndex: 1, challenge: "Patients need treatment clarity and practitioner reassurance before they are ready to book.", direction: "Explain treatments in plain language, establish trust early and keep appointment actions easy to find." },
-    { category: "Local service", scenario: "Client A", title: "Renovation contractor", sample: "contractor", visualIndex: 3, challenge: "Generic contact forms produce weak enquiries without project context or proof.", direction: "Show project capability, service areas and process before asking for the details needed for a useful quote." },
-  ] as const;
-
+  const decisions = [
+    ["Make the offer immediately clear", "Reorganise the homepage around what Bennie Studio provides: website planning, design, launch and ongoing management."],
+    ["Reduce friction before commitment", "Give visitors a free preliminary website preview as a first step, with no card required."],
+    ["Make buying costs understandable", "Show setup costs, monthly fees and minimum commitment terms before checkout."],
+    ["Keep the product usable after launch", "Use responsive layouts, clear navigation and human review of the customer journey."],
+  ];
   return (
     <>
-      <section className="border-b border-[#e6e8ef] bg-white"><div className="brand-shell brand-section grid gap-10 lg:grid-cols-12 lg:items-center"><div className="lg:col-span-6"><p className="brand-kicker">Selected work</p><h1 className="max-w-[24ch] mt-5">Website work, shown as concepts.</h1><p className="brand-copy mt-6 max-w-2xl">Explore three fictional business scenarios. Each illustrates a problem, design approach and customer journey—not a real commission, testimonial or measured outcome.</p><div className="mt-8 flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row"><Link to="/website-audit" className={primary}>See what we’d improve<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/how-it-works" className="text-sm font-semibold text-[#526071] hover:text-[#6252f4]">Explore the process →</Link></div></div><div className="lg:col-span-6"><StudioDecisionPanel kicker="A few selected directions" title="Different industries need different answers." items={[["Professional services", "Expertise and proof before consultation."], ["Healthcare", "Treatment clarity and patient confidence."], ["Local services", "Project evidence and a simple quote path."]]} /></div></div></section>
-      <section className="bg-white border-y border-[#e6e8ef]"><div className="brand-shell flex flex-wrap items-center justify-between gap-5 py-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8a7dff]">Three independent concepts</p><div className="flex flex-wrap gap-x-7 gap-y-3 text-sm font-semibold text-[#778193]"><span>Professional services</span><span>Healthcare</span><span>Local service</span></div></div></section>
-      <section className="brand-shell brand-section"><SectionHeader kicker="Concept redesigns" title="Explore the thinking behind every design." copy="Each fictional example demonstrates page structure and enquiry flow. These are illustrative concepts, not proof of customer results."/><div className="mt-10 grid gap-6 md:grid-cols-2">{work.map((item)=><article key={item.title} className="overflow-hidden rounded-[1.1rem] border border-[#dfe3eb] bg-white"><WebsiteConceptVisual title={item.title} eyebrow={`${item.category} · concept redesign`} index={item.visualIndex} className="aspect-[16/10] border-b border-[#e5e8ef]" /><div className="p-5 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6252f4]">{item.scenario} · {item.category}</p><span className="rounded-full bg-[#f0efff] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#6252f4]">Fictional brief · concept</span></div><h3 className="mt-3">{item.title}</h3><p className="mt-2 text-xs leading-5 text-[#7e8796]">Independent demonstration, not commissioned client work. The challenge and design direction below are hypothetical; no results are claimed.</p><div className="mt-5 grid gap-4 sm:grid-cols-2"><div><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a93a2]">Business challenge</p><p className="mt-2 text-sm leading-6 text-[#526071]">{item.challenge}</p></div><div><p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6252f4]">Design direction</p><p className="mt-2 text-sm leading-6 text-[#526071]">{item.direction}</p></div></div><Link to={`/portfolio/sample/${item.sample}`} className="mt-6 inline-flex items-center text-sm font-semibold text-[#172033]">View the design decisions<ArrowRight className="ml-2 h-4 w-4"/></Link></div></article>)}</div></section>
-      <section className="bs3-soft border-y border-[#e6e8ef]"><div className="brand-shell brand-section"><SectionHeader kicker="Before & after thinking" title="A clear difference without losing the business." copy="A redesign should keep useful identity and evidence while improving hierarchy, readability and conversion clarity."/><div className="mt-10 grid gap-5 lg:grid-cols-2"><div className="bs3-compare"><span className="bs3-compare-label">Before</span><div className="h-full bg-[#f5f5f3] p-8"><p className="text-xs text-[#8992a1]">Existing website</p><h3 className="mt-7 max-w-[13ch] !text-[#343a46]">Useful business information, but harder to scan.</h3><div className="mt-8 h-36 bg-white/80"/></div></div><div className="bs3-compare bs3-compare-after"><span className="bs3-compare-label !bg-[#6252f4]">After</span><div className="flex h-full min-h-[22rem] flex-col justify-center bg-[#121a2c] p-8 text-white"><p className="text-xs font-bold uppercase tracking-[.12em] text-[#9f93ff]">Recommended direction</p><h3 className="mt-5 !text-white">Keep what customers trust. Make the next step clearer.</h3><div className="mt-7 space-y-3">{["Move the core service higher", "Add proof beside key claims", "Make enquiry actions easier to find"].map((item) => <p key={item} className="flex gap-3 text-sm text-white/70"><Check className="h-4 w-4 shrink-0 text-[#9f93ff]" />{item}</p>)}</div></div></div></div></div></section>
-      <section className="bs3-dark"><div className="brand-shell brand-section"><SectionHeader dark kicker="Our process" title="From strategy to a website people can use." copy="The work moves from understanding the business to design, build and a reviewed launch."/><div className="mt-10 grid gap-4 md:grid-cols-4">{[["01",Search,"Strategy","Understand goals, audience and positioning."],["02",Layout,"Design","Create the visual direction and page system."],["03",Code2,"Build","Develop a responsive implementation."],["04",BarChart3,"Grow","Launch, measure and improve over time."]].map(([n,Icon,t,c]:any)=><article key={n} className="bs3-card-dark p-5"><span className="text-xs font-bold text-[#9f93ff]">{n}</span><Icon className="mt-5 h-5 w-5 text-[#9f93ff]"/><h3 className="mt-4 !text-white">{t}</h3><p className="mt-2 text-sm text-white/55">{c}</p></article>)}</div></div></section>
+      <section className="overflow-hidden bg-[#f8f8f5]">
+        <div className="brand-shell grid gap-12 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
+          <div className="lg:col-span-7">
+            <p className="brand-kicker !text-[#1943ed]">Case Studies / 01 / In-house</p>
+            <h1 className="mt-6 !max-w-[15ch] !text-[#15191f]">We made our own website <span className="font-serif italic font-normal !text-[#1741ed]">easier to understand and act on.</span></h1>
+            <p className="brand-copy mt-7">Our first featured case study is the Bennie Studio website itself. The brief: communicate our value more clearly, make the free preview easier to discover and remove ambiguity from the buying journey.</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link to="/generate-preview" className="inline-flex min-h-12 items-center justify-center bg-[#1943ed] px-6 py-3 font-semibold text-white">Try the free preview<ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link to="/" className="inline-flex min-h-12 items-center justify-center border border-[#bcc4d1] px-6 py-3 font-semibold text-[#172033]">Explore the live website</Link>
+            </div>
+            <p className="mt-5 text-xs leading-6 text-[#697386]">An in-house project, not a third-party customer commission. No conversion uplift or other unverified result is claimed.</p>
+          </div>
+          <div className="lg:col-span-5">
+            <div className="overflow-hidden bg-[#1943dd] p-6 sm:p-9">
+              <div className="rotate-[-4deg] bg-[#fcfcf8] p-6 shadow-[16px_24px_0_#0b2486]">
+                <div className="flex items-center justify-between border-b border-[#e3e3e3] pb-4"><p className="font-bold tracking-[-.06em] text-[#15191f]">bennie<span className="font-serif italic font-normal">studio</span></p><p className="text-xs font-semibold text-[#15191f]">Services · Pricing</p></div>
+                <p className="mt-12 text-[10px] font-bold uppercase tracking-[.16em] text-[#1943dd]">Websites for service businesses</p>
+                <p className="mt-4 text-[clamp(2.25rem,4vw,4.5rem)] font-bold leading-[.98] tracking-[-.07em] text-[#15191f]">Made to <span className="font-serif italic font-normal text-[#1943dd]">stand out.</span><br/>Built to work.</p>
+                <p className="mt-8 max-w-xs text-sm !text-[#606872]">Clear value. An easier next step. Managed care.</p>
+                <div className="mt-8 inline-flex bg-[#15191f] px-4 py-3 text-xs font-semibold text-white">Get a free preview ↗</div>
+              </div>
+              <p className="mt-9 text-right text-[10px] font-bold uppercase tracking-[.13em] !text-white/80">Bennie Studio / Own website</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section id="in-house" className="brand-shell brand-section">
+        <div className="grid gap-10 lg:grid-cols-12">
+          <div className="lg:col-span-4">
+            <p className="brand-kicker !text-[#1943ed]">The brief</p>
+            <h2 className="mt-5">Look credible. Explain the value. Make the next step obvious.</h2>
+            <p className="brand-copy mt-6">The goal was not a visual refresh alone. We wanted to reduce uncertainty at the moment a business owner considers investing in a website.</p>
+          </div>
+          <div className="lg:col-span-8">
+            <div className="divide-y divide-[#dfe3eb] border-y border-[#dfe3eb]">
+              {decisions.map(([title,body],i)=><div key={title} className="grid gap-5 py-8 sm:grid-cols-[60px_1fr]"><span className="font-serif text-4xl italic text-[#1943ed]">0{i+1}</span><div><h3 className="!text-[#172033]">{title}</h3><p className="mt-3 text-sm leading-7 text-[#586374]">{body}</p></div></div>)}
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="border-y border-[#e2e5eb] bg-[#f2f4f8]">
+        <div className="brand-shell brand-section grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div><p className="brand-kicker !text-[#1943ed]">See the work in action</p><h2 className="mt-4 !max-w-[21ch]">A good case study should help you judge the work for yourself.</h2><p className="brand-copy mt-5">Explore the site, try the free preview, review the pricing and see whether our approach fits your business.</p></div>
+          <Link to="/generate-preview" className="inline-flex min-h-14 items-center justify-center gap-3 bg-[#1943ed] px-7 font-semibold text-white">Get your free website preview <ArrowRight className="h-4 w-4"/></Link>
+        </div>
+      </section>
     </>
   );
 }

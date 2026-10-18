@@ -17,6 +17,7 @@ import {
   getStoredMarket,
 } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
+import { ConversionHomepage } from "./ConversionHomepage";
 
 const CONSENT_KEY = "bt_sales_cookie_consent";
 const CONSENT_VERSION = "uk-sales-consent-v1";
@@ -133,8 +134,8 @@ export default function BrandLedLandingPage() {
   return (
     <div className="brand-public min-h-screen overflow-x-hidden bg-[#f6f7fb] text-[#10131c]">
       <Helmet>
-        <title>Business Websites That Build Trust & Encourage Enquiries | Bennie Studio</title>
-        <meta name="description" content="Get a professional business website designed to encourage enquiries. Explore a free website preview, then choose a managed plan for design, hosting and updates." />
+        <title>Professional Websites for Service Businesses | Bennie Studio</title>
+        <meta name="description" content="Professional websites for service businesses, designed for clearer enquiries. Get a free preview before choosing managed design, hosting and website support." />
         <link rel="canonical" href="https://app.bennietay.com/" />
         <meta property="og:title" content="Bennie Studio | Managed Website System" />
         <meta property="og:description" content="Strategy, design, lead capture, hosting and ongoing improvement in one managed website service." />
@@ -165,131 +166,7 @@ export default function BrandLedLandingPage() {
       <PublicSiteHeader />
 
       <main>
-        <section className="brand-on-dark brand-grid-bg relative overflow-hidden bg-[#0b1020]">
-          <div className="pointer-events-none absolute -right-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-[#5b4bff]/20 blur-3xl" />
-          <div className="brand-shell relative grid gap-14 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
-            <div className="lg:col-span-6">
-              <p className="brand-kicker !text-[#b9b1ff]">A managed website for service businesses</p>
-              <h1 className="bt-sales-hero-title mt-5 !text-white">A website that builds trust <span className="bt-gradient-title block">and encourages enquiries.</span></h1>
-              <p className="brand-copy brand-muted-on-dark mt-7 !max-w-xl">
-                Make it easier for customers to understand your services and take the next step. We design, build, host and maintain your business website, so you can stay focused on running your business.
-              </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <button type="button" onClick={() => go("/generate-preview", "Homepage hero free preview")} className="inline-flex min-h-14 items-center justify-center bg-white px-7 font-semibold text-[#141821] transition hover:-translate-y-0.5 hover:bg-[#eeebff]">
-                  See my free website preview <ArrowRight className="ml-2 h-4 w-4" />
-                </button>
-                <Link to="/case-studies" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Homepage hero examples", target: "/case-studies" })} className="inline-flex min-h-14 items-center justify-center border border-white/30 px-6 font-semibold text-white transition hover:bg-white/10">
-                  View website examples
-                </Link>
-              </div>
-              <p className="mt-3 text-xs font-semibold !text-white/70">Free preliminary direction · No card required · No obligation to purchase</p>
-              <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm !text-white/65">
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Your approval before launch</span>
-                <span className="flex items-center gap-2"><Check className="h-4 w-4 text-[#b9b1ff]" /> Transparent setup, monthly costs and terms</span>
-              </div>
-              <p className="mt-5 text-sm leading-6 !text-white/70">
-                {pricingLoading
-                  ? "Checking current regional prices."
-                  : pricingError || !getCommercialPrice(managed, market)
-                  ? "Ask for verified local pricing."
-                  : <>Plans from {formatCommercialMoney(getCommercialPrice(managed, market)?.monthlyPrice, getCommercialPrice(managed, market)?.currency || "USD")}/month plus {formatCommercialMoney(getCommercialPrice(managed, market)?.setupFee, getCommercialPrice(managed, market)?.currency || "USD")} one-time setup.</>}{" "}
-                <Link to="/pricing" className="font-semibold text-white underline underline-offset-4">See first payment and terms</Link>
-              </p>
-              <p className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs !text-white/70">
-                <span>Check the pricing page for any available introductory offer and its exact minimum term.</span>
-              </p>
-            </div>
-
-            <div className="relative lg:col-span-6">
-              <div className="absolute -inset-10 rounded-full bg-[#5746e8]/10 blur-3xl" />
-              <div className="relative border border-white/12 bg-[#111827]/90 p-6 shadow-[0_35px_100px_-50px_rgba(0,0,0,.8)] sm:p-8">
-                <p className="text-xs font-bold uppercase tracking-[.14em] text-[#b9b1ff]">A website should make this clear</p>
-                <h2 className="mt-4 max-w-lg text-2xl !text-white">A clear website. One team to manage it.</h2>
-                <div className="mt-7 divide-y divide-white/10">
-                  {[
-                    ["01", "What you do", "Clear services and who they are for."],
-                    ["02", "Why trust you", "Relevant proof, credentials and real work."],
-                    ["03", "What to do next", "One easy route to enquire, book or get a quote."],
-                  ].map(([number, title, detail]) => (
-                    <div key={number} className="grid gap-2 py-4 sm:grid-cols-[2.5rem_1fr] sm:gap-4">
-                      <span className="text-xs font-bold text-[#b9b1ff]">{number}</span>
-                      <div><p className="font-semibold !text-white">{title}</p><p className="mt-1 text-sm leading-6 !text-white/60">{detail}</p></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-y border-[#dfe2ea] bg-white" aria-labelledby="managed-value-title">
-          <div className="brand-shell brand-section">
-            <div className="max-w-3xl">
-              <p className="brand-kicker">One team from launch through ongoing care</p>
-              <h2 id="managed-value-title" className="mt-4">A website that stays looked after.</h2>
-              <p className="brand-copy mt-4">Get the build, hosting and agreed updates under one clear plan, with the website reviewed and approved before it goes live.</p>
-            </div>
-            <div className="mt-8 grid gap-4 md:grid-cols-3">
-              {[
-                ["Made for your business", "Present your services, customer proof and next step clearly."],
-                ["Checked before launch", "Responsive pages and enquiry paths reviewed before your approval."],
-                ["Managed month to month", "Hosting, maintenance and the update allowance stated in your plan."],
-              ].map(([title, detail]) => (
-                <article key={title} className="border-t-2 border-[#5746e8] bg-[#f8f8ff] p-5">
-                  <h3 className="text-base">{title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#687386]">{detail}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-
-        <section className="brand-shell brand-section" aria-labelledby="example-title">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="brand-kicker">See the result, not just the features</p>
-              <h2 id="example-title" className="mt-4">Explore real website interactions through illustrative examples.</h2>
-              <p className="brand-copy mt-3 max-w-3xl">These are independent demonstration concepts for fictional businesses, not commissioned customer projects or evidence of revenue gains. Explore the structure, content and enquiry journey before sharing your own brief.</p>
-            </div>
-            <Link to="/case-studies" className="inline-flex shrink-0 items-center gap-2 font-semibold text-[#5746e8]">All examples <ArrowRight className="h-4 w-4" /></Link>
-          </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {[
-              { label: "Clinic", title: "Make appointments easier to find", detail: "Treatment information, patient reassurance and clear booking actions.", link: "/portfolio/sample/dental" },
-              { label: "Contractor", title: "Help customers request useful quotes", detail: "Services, projects, service areas and an enquiry-led layout.", link: "/portfolio/sample/contractor" },
-              { label: "Consultant", title: "Turn expertise into a clear offer", detail: "Focused positioning, relevant proof and consultation next steps.", link: "/portfolio/sample/consultant" },
-            ].map((example) => (
-              <article key={example.label} className="flex flex-col border border-[#dfe2ea] bg-white p-6">
-                <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#5746e8]">{example.label} · Demonstration concept</p>
-                <h3 className="mt-4 text-xl">{example.title}</h3>
-                <p className="mt-3 flex-1 text-sm leading-7 text-[#526071]">{example.detail}</p>
-                <Link to={example.link} onClick={() => trackPublicEvent({ eventType: "example_opened", label: example.label, target: example.link })} className="mt-6 inline-flex min-h-11 items-center gap-2 font-semibold text-[#5746e8]">Explore this example <ArrowRight className="h-4 w-4" /></Link>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="border-y border-[#dfe2ea] bg-white" aria-labelledby="steps-title">
-          <div className="brand-shell brand-section">
-            <p className="brand-kicker">Simple next steps</p>
-            <h2 id="steps-title" className="mt-4">See the direction first. Commit only when the scope fits.</h2>
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
-              {[
-                ["01", "Share the business basics", "Tell us what you offer or paste your current website URL."],
-                ["02", "Review a free preview", "Explore an initial concept and the suggested enquiry journey."],
-                ["03", "Choose your next step", "Compare a managed plan or talk through the build and its commitments."],
-              ].map(([number, title, copy]) => (
-                <div key={number} className="border-t-2 border-[#5746e8] pt-5">
-                  <span className="text-sm font-bold text-[#5746e8]">{number}</span>
-                  <h3 className="mt-3 text-lg">{title}</h3>
-                  <p className="mt-2 text-sm leading-7 text-[#526071]">{copy}</p>
-                </div>
-              ))}
-            </div>
-            <button type="button" onClick={() => go("/generate-preview", "Homepage process free preview")} className="mt-8 inline-flex min-h-12 items-center gap-2 bg-[#141821] px-6 font-semibold text-white">Get my free preview <ArrowRight className="h-4 w-4" /></button>
-          </div>
-        </section>
+        <ConversionHomepage onCta={go} />
 
         {verifiedProof.length ? (
           <section className="brand-on-dark bg-[#0b1020]">
@@ -316,7 +193,7 @@ export default function BrandLedLandingPage() {
           </section>
         ) : null}
 
-        <section id="plans" className="scroll-mt-24 border-y border-[#dfe2ea] bg-white">
+        <section id="plans" className="c26-pricing-section scroll-mt-24 border-y border-[#dfe2ea] bg-white">
           <div className="brand-shell brand-section">
             <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-end">
               <div>
@@ -379,12 +256,7 @@ export default function BrandLedLandingPage() {
           </div>
         </section>
 
-        <section className="border-t border-[#dfe2ea] bg-white">
-          <div className="brand-shell flex flex-col gap-4 py-8 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm font-semibold text-[#526071]">Have questions about scope, ongoing support or your existing website?</p>
-            <button onClick={() => go("/book-demo", "Discuss website scope")} className="inline-flex min-h-11 items-center justify-center bg-[#141821] px-5 font-semibold text-white">Talk through your requirements <ArrowRight className="ml-2 h-4 w-4" /></button>
-          </div>
-        </section>
+        <section className="c26-close" aria-labelledby="c26-close-title"><div className="brand-shell"><div><p className="!text-white/75 text-xs font-bold uppercase tracking-[.15em]">Ready when you are</p><h2 id="c26-close-title">Ready for a website that <em>brings more enquiries?</em></h2></div><div><p>See a free, preliminary direction for your business. No card required and no obligation to buy.</p><button type="button" onClick={() => go("/generate-preview", "Homepage closing free preview")}>Get your free website preview <ArrowRight size={18} aria-hidden="true" /></button><Link to="/book-demo" className="mt-3 inline-block text-sm font-semibold text-white underline underline-offset-4">Prefer to talk first? Book a call</Link></div></div></section>
       </main>
 
       <PublicSiteFooter
