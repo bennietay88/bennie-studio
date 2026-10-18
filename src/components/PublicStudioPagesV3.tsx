@@ -456,28 +456,89 @@ export function PricingStudioPage() {
 }
 
 export function ProcessStudioPage() {
-  const stages = [
-    ["01",Search,"Discover","Your goals, offer and audience.","1–2 days","Project plan · Site structure"],
-    ["02",Compass,"Plan","Strategy and structure.","2–3 days","Content direction · Design direction"],
-    ["03",WandSparkles,"Design","Bring the brand to life.","4–7 days","Homepage · Key page templates"],
-    ["04",Code2,"Build","Develop and refine.","5–10 days","Responsive build · Forms · SEO basics"],
-    ["05",Rocket,"Launch","Go live and grow.","1–2 days","Final checks · Handover · Support"],
+  const steps = [
+    {
+      number: "01",
+      title: "Tell us about your business",
+      description: "Share your current website or describe what your business offers, who it serves and the action you want customers to take.",
+      detail: "Your business details help us prepare an initial website direction suited to your services.",
+    },
+    {
+      number: "02",
+      title: "Explore your free preview",
+      description: "See a preliminary website direction before deciding whether to proceed. There is no payment card or purchase commitment at this stage.",
+      detail: "This is a starting point for discussion, not a completed production website.",
+    },
+    {
+      number: "03",
+      title: "Confirm scope and pricing",
+      description: "Compare the managed plans, review the setup and recurring fees, and agree on pages, content, revisions and the minimum service commitment.",
+      detail: "You know the agreed deliverables and costs before the paid build begins.",
+    },
+    {
+      number: "04",
+      title: "Review the build and launch",
+      description: "We refine the approved direction, develop the agreed pages and check mobile layouts, enquiry paths and launch basics with your feedback.",
+      detail: "The website goes live after the required review and approval steps.",
+    },
+    {
+      number: "05",
+      title: "Stay supported",
+      description: "After launch, Bennie Studio manages hosting, maintenance and the ongoing support or updates included in your selected plan.",
+      detail: "Your plan defines the support allowance and applicable response expectations.",
+    },
   ] as const;
-
   return (
     <>
-      <section className="border-b border-[#dadde5] bg-[#f4f5f7]"><div className="brand-shell grid gap-12 py-20 lg:grid-cols-12 lg:items-center lg:py-28"><div className="lg:col-span-6"><h1 className="mt-6 !max-w-[14ch] !text-[#141821]">From your first idea to a website that's <span className="font-serif italic font-normal !text-[#1943ed]">ready for business.</span></h1><p className="brand-copy mt-6">A transparent journey with a free initial website direction, clear scope, collaborative review and support after launch.</p><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/generate-preview" className="inline-flex min-h-12 items-center justify-center bg-[#1943ed] px-6 py-3 font-semibold text-white">Start with a free preview<ArrowRight className="ml-2 h-4 w-4"/></Link><Link to="/pricing" className="inline-flex min-h-12 items-center gap-2 font-semibold text-[#172033] underline underline-offset-4">See plan details</Link></div></div><div className="lg:col-span-6"><div className="border-y border-[#cad0da]">{[["01","Share your business"],["02","See a preview"],["03","Agree scope & pricing"],["04","Build, review & launch"],["05","Stay supported"]].map(([n,t])=><div key={n} className="flex items-center gap-7 border-b border-[#cad0da] py-4 last:border-b-0"><span className="w-16 shrink-0 font-serif text-4xl italic text-[#1943ed]">{n}</span><p className="text-xl font-semibold tracking-tight !text-[#172033]">{t}</p><ArrowRight className="ml-auto h-4 w-4 text-[#1943ed]"/></div>)}</div></div></div></section>
-      <section className="bg-white border-y border-[#e6e8ef]"><div className="brand-shell grid gap-5 py-8 sm:grid-cols-5">{stages.map(([n,Icon,t])=><div key={n} className="flex items-center gap-3"><span className="bs3-icon"><Icon className="h-4 w-4"/></span><div><p className="text-[11px] font-bold text-[#6252f4]">{n}</p><p className="text-sm font-semibold text-[#172033]">{t}</p></div></div>)}</div></section>
-      <section className="bs3-soft border-b border-[#e6e8ef]"><div className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center"><div className="lg:col-span-5"><h2 className="mt-4">A process built around you.</h2><p className="brand-copy mt-5">Strategy, design and delivery are combined in a clear step-by-step process so you know what is happening, what is needed and what to expect.</p><div className="mt-6 space-y-3">{["Clear timelines and deliverables","Regular human review and feedback","Built for real business outcomes"].map(x=><p key={x} className="flex gap-3 text-sm font-semibold text-[#526071]"><Check className="h-4 w-4 text-[#6252f4]"/>{x}</p>)}</div></div><div className="lg:col-span-7"><div className="rounded-[1.2rem] border border-[#dfe3eb] bg-white p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6252f4]">What stays visible</p><div className="mt-5 grid gap-px overflow-hidden rounded-xl border border-[#e3e6ed] bg-[#e3e6ed] sm:grid-cols-2">{["What we need from you","What Bennie Studio is doing","What is ready for review","What happens before launch"].map((item)=><div key={item} className="bg-[#fbfcff] p-5"><Check className="h-4 w-4 text-[#6252f4]" /><p className="mt-3 text-sm font-semibold text-[#344054]">{item}</p></div>)}</div></div></div></div></section>
-      <section className="brand-shell brand-section"><SectionHeader kicker="The process" title="Five steps. A better website." copy="Each stage is designed to be simple, collaborative and focused on results."/><div className="mt-10 space-y-4">{stages.map(([n,Icon,t,sub,time,deliverable])=><article key={n} className="bs3-card grid gap-5 p-6 lg:grid-cols-[70px_1.2fr_.75fr_.9fr] lg:items-center"><div className="flex items-center gap-3 lg:block"><span className="bs3-step">{n}</span></div><div><div className="flex items-center gap-3"><Icon className="h-5 w-5 text-[#6252f4]"/><h3>{t}</h3></div><p className="mt-2 text-sm text-[#8a7dff]">{sub}</p></div><div><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#657186]">Timeframe</p><p className="mt-2 text-sm font-semibold text-[#172033]">{time}</p></div><div><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#657186]">Key deliverables</p><p className="mt-2 text-sm text-[#526071]">{deliverable}</p></div></article>)}</div></section>
-      <section className="bs3-dark"><div className="brand-shell brand-section"><SectionHeader dark kicker="Human review at every stage" title="Real people. Real feedback. Better results." copy="The workflow supports the work; professional judgement remains part of every review stage."/><div className="mt-10 grid gap-4 md:grid-cols-3">{[[Compass,"Strategy review","Goals, positioning, site structure and timeline."],[WandSparkles,"Design review","Homepage direction, key layouts and responsive behaviour."],[ShieldCheck,"Pre-launch review","Functionality, search basics and final sign-off."]].map(([Icon,t,c]:any)=><IconCard key={t} icon={Icon} title={t} copy={c} dark />)}</div></div></section>
-      <section className="brand-shell brand-section"><div className="grid gap-10 lg:grid-cols-12 lg:items-start"><div className="lg:col-span-4"><h2 className="mt-4">Questions about the process?</h2><p className="brand-copy mt-5">The delivery plan makes responsibilities and review points explicit before launch.</p></div><div className="lg:col-span-8"><Faqs items={[
-        ["How long does a project take?","Timing depends on the agreed scope, the readiness of content and the feedback cycle."],
-        ["What do I need to provide?","Business details, service information, useful brand assets and timely feedback are the usual inputs."],
-        ["Can I request changes along the way?","Yes. Review points are part of the process so the direction can be refined before launch."],
-        ["Do you provide content and images?","Content guidance is part of the workflow. Any additional production requirements are scoped explicitly."],
-        ["Will the website be mobile friendly and SEO ready?","Responsive behaviour and the agreed search foundations are part of launch QA."],
-      ]}/></div></div></section>
+      <section className="border-b border-[#dde2ea] bg-[#f8f8f5]">
+        <div className="brand-shell grid gap-10 py-16 lg:grid-cols-[1.1fr_.9fr] lg:items-center lg:py-24">
+          <div>
+            <h1 className="!max-w-[14ch] !text-[#15191f]">From first idea to a website that's <span className="font-serif italic font-normal !text-[#1741ed]">ready for business.</span></h1>
+            <p className="brand-copy mt-6 max-w-xl">One straightforward journey: see an initial direction, choose your plan, review the finished work and stay supported after launch.</p>
+            <div className="mt-8 flex flex-wrap items-center gap-5">
+              <Link to="/generate-preview" className="inline-flex min-h-12 items-center justify-center gap-2 bg-[#1741ed] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1034c0]">Get your free website preview <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/pricing" className="inline-flex min-h-12 items-center gap-2 text-sm font-semibold text-[#18283c] underline underline-offset-4">Compare plans <ArrowRight className="h-4 w-4" /></Link>
+            </div>
+            <p className="mt-5 text-xs leading-6 text-[#566577]">No card required for the initial preview. Delivery scope and commitments are confirmed before ordering.</p>
+          </div>
+          <div className="overflow-hidden bg-[#172b89] p-7 text-white sm:p-10">
+            <p className="max-w-sm text-[clamp(2rem,3vw,3.4rem)] font-bold leading-[1.08] tracking-[-.06em] !text-white">Clarity at <span className="font-serif italic font-normal">every stage.</span></p>
+            <div className="mt-8 border-t border-white/25">
+              {[["Before you commit", "Explore a free preliminary direction and review plan pricing."],["Before we launch", "Review the agreed design, content and functionality."],["After launch", "Hosting and care continue under your selected plan."]].map(([name,copy],i)=><div key={name} className="grid grid-cols-[2rem_1fr] gap-4 border-b border-white/25 py-4"><span className="font-serif text-2xl italic text-[#c4d0ff]">0{i+1}</span><div><p className="text-sm font-bold !text-white">{name}</p><p className="mt-1 text-sm leading-6 !text-[#e0e6ff]">{copy}</p></div></div>)}
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="brand-shell py-16 lg:py-24">
+        <div className="grid gap-7 lg:grid-cols-[.8fr_1.2fr] lg:items-end">
+          <div><h2 className="!text-[#15191f]">The five steps.</h2></div>
+          <p className="max-w-xl text-base leading-7 text-[#566273]">Each step has a specific decision or deliverable, so you know what happens next without navigating multiple overlapping workflows.</p>
+        </div>
+        <div className="mt-10 border-t border-[#ced5e1]">
+          {steps.map((step)=><article key={step.number} className="grid gap-4 border-b border-[#ced5e1] py-7 md:grid-cols-[4rem_minmax(0,1fr)_minmax(0,.8fr)] md:gap-8 md:py-9">
+            <span className="font-serif text-4xl italic text-[#1741ed]">{step.number}</span>
+            <div><h3 className="!text-[clamp(1.35rem,2vw,2rem)] !tracking-[-.035em] !text-[#15191f]">{step.title}</h3><p className="mt-3 max-w-xl text-sm leading-7 text-[#546273]">{step.description}</p></div>
+            <p className="border-l-2 border-[#1741ed] pl-4 text-sm leading-7 text-[#455568]">{step.detail}</p>
+          </article>)}
+        </div>
+      </section>
+      <section className="border-y border-[#d9dfeb] bg-[#eef1f7]">
+        <div className="brand-shell grid gap-6 py-12 lg:grid-cols-[1fr_1.15fr] lg:items-center">
+          <div><h2 className="!text-[#15191f]">What you'll need to provide.</h2><p className="mt-4 max-w-lg text-sm leading-7 text-[#556171]">Your input keeps the project accurate and avoids delays. Exact requirements vary with the agreed scope.</p></div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {["Business and service information","Logo, brand assets and approved imagery","Accurate credentials and business proof","Feedback and final approval"].map(label=><div className="flex items-start gap-3 border border-[#d4dae5] bg-white p-4 text-sm font-semibold text-[#243347]" key={label}><Check className="mt-0.5 h-4 w-4 shrink-0 text-[#1741ed]"/>{label}</div>)}
+          </div>
+        </div>
+      </section>
+      <section className="brand-shell py-16 lg:py-20">
+        <div className="grid gap-8 lg:grid-cols-[.75fr_1.25fr]"><div><h2 className="!text-[#15191f]">Questions about the process?</h2><p className="brand-copy mt-4">Review what to expect before getting started.</p></div><Faqs items={[
+          ["How long does a project take?","Timing depends on the agreed scope, the readiness of your content and the feedback cycle. We confirm expectations before the paid build."],
+          ["What do I need to provide?","Your business and service details, approved brand assets, accurate proof and timely feedback. We clarify any further requirements during planning."],
+          ["Can I request changes along the way?","Yes. The selected plan defines the included review rounds and what additional work may require separate scope."],
+          ["Do you provide content and images?","We guide the content structure within the agreed service. Additional writing, custom photography or specialist assets may need separate scoping."],
+          ["What happens after launch?","Your managed plan covers hosting, routine maintenance and the specific updates or support stated in your agreement."],
+        ]}/></div>
+      </section>
     </>
   );
 }
