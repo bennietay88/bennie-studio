@@ -452,7 +452,7 @@ test("public-site credibility marquee is available to generated customer sites",
   ]);
 
   // Customer-site marquee rendering is independent of the shorter sales homepage.
-  assert.match(homepage, /Compare the 3 plans/);
+  assert.match(homepage, /<ConversionHomepage onCta=\{go\}/);
   assert.doesNotMatch(homepage, /WebsiteConceptVisual|original studio concepts/i);
   assert.equal(SECTION_TEMPLATES.logo_marquee.type, "proof");
   assert.equal(SECTION_TEMPLATES.logo_marquee.settings?.variant, "logo_marquee");
