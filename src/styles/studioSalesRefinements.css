@@ -1,0 +1,14 @@
+/* Final commercial refinements for the premium pricing journey. */
+.brand-public .bs-sales .s28-pricing-hero{padding-top:2.9rem}
+.brand-public .bs-sales .s28-pricing-hero h1{font-size:clamp(2.65rem,3.8vw,4.8rem)!important;max-width:24ch;margin:15px 0!important}
+.brand-public .bs-sales .s28-pricing-hero-content>p:not(.s28-kicker){font-size:16px!important}
+.brand-public .bs-sales .s28-pricing-trust{margin-top:2.2rem}
+.brand-public .bs-sales .s28-price-card h3.s28-price-name{font-size:clamp(1.6rem,2.2vw,2.3rem)!important;line-height:1.08!important}
+.brand-public .bs-sales .s28-price-card .s28-price-number{font-size:clamp(2.45rem,3.2vw,3.85rem)!important}
+.brand-public .bs-sales .s28-price-card .s28-price-total strong{font-size:17px!important}
+.brand-public .bs-sales .s28-price-card .s28-price-desc{min-height:60px}
+.brand-public .bs-sales .s28-price-card .s28-price-action button{width:100%;justify-content:center}
+.brand-public .bs-sales .s28-promo{border-left:3px solid #1741ed}
+.brand-public .bs-sales .s28-promo input{width:18px;height:18px}
+@media(max-width:850px){.brand-public .bs-sales .s28-price-card .s28-price-desc{min-height:auto}}
+@media(max-width:580px){.brand-public .bs-sales .s28-pricing-hero h1{font-size:clamp(2.65rem,9.3vw,3.55rem)!important}}

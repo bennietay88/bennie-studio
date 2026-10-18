@@ -14,10 +14,10 @@ import { trackPublicEvent } from "../lib/publicTracking";
 import { INTRO_OFFER_CODE, getIntroductoryQuote } from "../lib/introOffer";
 import { PLAN_DELIVERY_STANDARDS, type PublicPlanSlug } from "../constants/deliveryStandards";
 
-interface PricingProps { currentPlan?: string; onSelectPlan?: (plan: any) => void; isDashboard?: boolean; onDark?: boolean; hideIntro?: boolean; }
+interface PricingProps { currentPlan?: string; onSelectPlan?: (plan: any) => void; isDashboard?: boolean; onDark?: boolean; hideIntro?: boolean; editorial?: boolean; }
 const outcomes = ["Website planned and built around your offer", "Managed hosting, updates and launch support", "WhatsApp, call, booking and quotation enquiry paths", "Trust proof, local SEO foundation and analytics"];
 
-export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onDark = false, hideIntro = false }) => {
+export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onDark = false, hideIntro = false, editorial = false }) => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -179,7 +179,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
       </div>
     )}
 
-    <div className="mt-8 flex flex-col gap-3 border border-[#dfe2ea] bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Choose pricing currency">
+    <div className={editorial ? "mt-3 flex flex-col gap-3 border border-[#d5dce6] bg-white px-5 py-5 sm:flex-row sm:items-center sm:justify-between" : "mt-8 flex flex-col gap-3 border border-[#dfe2ea] bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between"} aria-label="Choose pricing currency">
       <div>
         <label htmlFor="pricing-currency" className="block text-sm font-semibold text-slate-950">Your billing currency</label>
         <p className="mt-1 text-xs leading-5 text-slate-600">Prices are market-specific published rates, not currency-converted estimates. The same currency continues to the order summary.</p>
@@ -188,7 +188,56 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
         {CHECKOUT_CURRENCIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
       </select>
     </div>
-    {!profile?.businessId && !currentPlan && !onSelectPlan && <label className="mt-5 flex cursor-pointer items-start gap-3 border border-indigo-200 bg-indigo-50 p-5 text-slate-950"><input type="checkbox" checked={introOfferEnabled} onChange={(event) => { setIntroOfferEnabled(event.target.checked); setTermsAccepted(false); }} className="mt-1 h-5 w-5 shrink-0 accent-indigo-600" /><span><strong>Optional new-customer offer: first month of website management FREE</strong><span className="mt-1 block text-sm leading-6">Choose a 12-month minimum service commitment. One-time website setup is still payable at checkout; months 2–12 are billed at the plan rate. Leave this unchecked to keep the standard shorter commitment. The contract continues monthly after the minimum term, under the published cancellation terms.</span></span></label>}
+    {!profile?.businessId && !currentPlan && !onSelectPlan && <label className={editorial ? "s28-promo mt-5 cursor-pointer" : "mt-5 flex cursor-pointer items-start gap-3 border border-indigo-200 bg-indigo-50 p-5 text-slate-950"}><input type="checkbox" checked={introOfferEnabled} onChange={(event) => { setIntroOfferEnabled(event.target.checked); setTermsAccepted(false); }} className="mt-1 h-5 w-5 shrink-0 accent-indigo-600" /><span><strong>Optional new-customer offer: first month of website management FREE</strong><span className="mt-1 block text-sm leading-6">Choose a 12-month minimum service commitment. One-time website setup is still payable at checkout; months 2–12 are billed at the plan rate. Leave this unchecked to keep the standard shorter commitment. The contract continues monthly after the minimum term, under the published cancellation terms.</span></span></label>}
+    {editorial ? (
+      <>
+        <div className="s28-price-plans" aria-busy={loading}>
+        {planSet.map(([product,price,bestFor])=>{
+          const recommended=product.slug==="website-growth";
+          const priceReady=!loading&&!pricingError&&Boolean(price);
+          const offer=getIntroductoryQuote(price?.monthlyPrice||0,price?.setupFee||0,getMinimumTermMonths(price),promoActive);
+          const delivery=PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug];
+          return <article className={"s28-price-card"+(recommended?" s28-price-featured":"")} key={product.slug}>
+            <div className="s28-price-best">{recommended?"Recommended / Most balanced":bestFor}</div>
+            <h3 className="s28-price-name">{product.name}</h3>
+            <p className="s28-price-desc">{product.description}</p>
+            <p className="s28-price-number">{priceReady?formatCommercialMoney(price?.monthlyPrice,price?.currency||checkoutCurrency):loading?"Checking…":"Ask for quote"}<small> / month</small></p>
+            <p className="s28-price-fee">+ {priceReady?formatCommercialMoney(price?.setupFee,price?.currency||checkoutCurrency):"—"} one-time website setup</p>
+            <div className="s28-price-ledger" aria-label={product.name+" upfront and commitment costs"}>
+              <div><span>First payment</span><strong>{priceReady?formatCommercialMoney(offer.dueToday,price.currency):"By quote"}</strong></div>
+              <div><span>Minimum commitment</span><strong>{formatCommitmentLabel(offer.termMonths)}</strong></div>
+              <div className="s28-price-total"><span>Total over initial term</span><strong>{priceReady?formatCommercialMoney(offer.totalInitialTerm,price.currency):"By quote"}</strong></div>
+            </div>
+            <p className="s28-price-explanation">{promoActive?"Optional offer: the first month of service is free, but the 12-month commitment applies. Setup remains payable.":"First payment includes setup and the first service month. Subsequent months billed separately."} All amounts before applicable tax.</p>
+            <div className="s28-price-plan-includes">
+              <p>Scope at a glance</p>
+              <ul>{delivery?[delivery.pages,delivery.revisions,delivery.updates].map(x=><li key={x}><Check size={15}/>{x}</li>):<li><Check size={15}/> Scope confirmed before order</li>}</ul>
+            </div>
+            <div className="s28-price-action"><Button type="button" disabled={!priceReady} onClick={()=>handleSelect(product)} className="w-full px-5 font-semibold">
+              {!priceReady?loading?"Verifying rates…":"Contact for pricing":product.salesMotion==="self_serve"?"Choose this plan":"Discuss this plan"} <ArrowRight className="ml-2 h-4 w-4"/>
+            </Button><p className="s28-price-minor">{recommended?"Recommended for businesses actively acquiring customers.":product.salesMotion==="self_serve"?"Review the order, terms and totals before payment.":"We'll clarify fit, scope and pricing together."}</p></div>
+          </article>;
+        })}
+      </div>
+      <div className="s28-compare" id="compare-scope">
+        <h2>Compare what's actually included.</h2>
+        <p>The published delivery scope and ongoing growth support vary by plan. Scroll sideways on mobile to compare all three.</p>
+        <div className="s28-compare-scroll" role="region" aria-label="Detailed managed website plan comparison" tabIndex={0}>
+          <table><thead><tr><th scope="col">Included scope</th>{planSet.map(([product])=><th scope="col" key={product.slug}>{product.name}</th>)}</tr></thead>
+          <tbody>
+            {[
+              ["Website pages","pages"],
+              ["Design revisions","revisions"],
+              ["First draft target","targetFirstDraft"],
+              ["Ongoing updates","updates"],
+              ["Update turnaround target","targetUpdateTurnaround"],
+            ].map(([label,field])=><tr key={field}><td>{label}</td>{planSet.map(([product])=><td key={product.slug}>{PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug]?.[field as keyof typeof PLAN_DELIVERY_STANDARDS[PublicPlanSlug]]||"Confirm scope"}</td>)}</tr>)}
+            {comparisonRows.map(([label,values]:any)=><tr key={label}><td>{label}</td>{values.map((value:string,index:number)=><td key={planSet[index][0].slug}>{value}</td>)}</tr>)}
+          </tbody></table>
+        </div>
+      </div>
+      </>
+    ) : (
     <div className="mt-6 grid gap-4 lg:grid-cols-3" aria-busy={loading}>
 
       {planSet.map(([product, price, bestFor], index) => {
@@ -247,6 +296,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
         );
       })}
     </div>
+    )}
 
     <section className="mt-10 flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between" aria-label="Plan details">
       <p className="max-w-2xl text-sm leading-6 text-slate-600">You approve the finished site before launch. Your existing domain remains yours. Review the plan scope, commitment and cancellation terms before checkout.</p>

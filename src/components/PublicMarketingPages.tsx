@@ -41,13 +41,12 @@ import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import {
   AboutStudioPage,
   ContactStudioPage,
-  PricingStudioPage,
   ProcessStudioPage,
   ResourcesStudioPage,
-  ServicesStudioPage,
   WorkStudioPage,
 } from "./PublicStudioPagesV3";
 import { FlagshipTemplateGallery } from "./FlagshipTemplateGallery";
+import { ServicesSalesPage, PricingSalesPage } from "./StudioSalesPages";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import "../styles/studioCaseStudies.css";
 import { TurnstileWidget } from "./TurnstileWidget";
@@ -87,8 +86,8 @@ const PublicWebsiteRenderer = React.lazy(() =>
 
 const pageMeta: Record<PublicPageKind, { title: string; description: string }> = {
   services: {
-    title: "Website Services | Bennie Studio",
-    description: "Strategy, messaging, design, build, human review, launch and ongoing website support for service businesses.",
+    title: "Managed Website Design, Build & Support | Bennie Studio",
+    description: "Bennie Studio designs, builds and manages distinctive websites for service businesses. Explore the work, see how it works and start with a free website preview.",
   },
   about: {
     title: "About Bennie Studio | Managed Website Studio",
@@ -108,9 +107,9 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
       "Browse focused website templates for clinics, wellness providers, renovation companies, home service businesses, beauty salons, and aesthetic services.",
   },
   pricing: {
-    title: "Website Growth Pricing | Bennie Studio",
+    title: "Managed Website Pricing, Setup & Monthly Plans | Bennie Studio",
     description:
-      "Managed website plans for service businesses that need clearer enquiries, stronger trust and ongoing improvement.",
+      "Compare transparent monthly website plans, one-time setup fees, minimum commitments and delivery scope. Free website preview before you buy.",
   },
   "how-it-works": {
     title: "How It Works | Bennie Studio",
@@ -2943,7 +2942,7 @@ export default function PublicMarketingPages() {
     nichePage
       ? <NicheLandingPage page={nichePage} />
       : pageKind === "services"
-      ? <ServicesStudioPage />
+      ? <ServicesSalesPage />
       : pageKind === "about"
         ? <AboutStudioPage />
         : pageKind === "resources"
@@ -2951,7 +2950,7 @@ export default function PublicMarketingPages() {
           : pageKind === "contact"
             ? <ContactStudioPage />
       : pageKind === "pricing"
-      ? <PricingStudioPage />
+      ? <PricingSalesPage />
       : pageKind === "how-it-works"
         ? <ProcessStudioPage />
         : pageKind === "case-studies"
