@@ -7,6 +7,7 @@ import { Badge } from "./ui/badge";
 import { findOwnSalesSeoPage } from "../constants/ownSalesSeoPages";
 import { COMMERCIAL_FALLBACK_PRODUCTS, formatCommercialMoney, getCommercialPrice, type CommercialMarket } from "../lib/commercialPricing";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
+import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 
 const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
   if (typeof value === "string") {

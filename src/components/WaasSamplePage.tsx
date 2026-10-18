@@ -21,6 +21,7 @@ import {
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
+import { PublicSiteHeader, PublicSiteFooter } from "./PublicSiteChrome";
 
 const samples = {
   dental: {

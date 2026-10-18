@@ -27,6 +27,7 @@ import {
 import { Pricing as CommercialPricing } from "./Pricing";
 import { RESOURCE_ARTICLES } from "../content/resources";
 import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
+import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
 
 const primary =
