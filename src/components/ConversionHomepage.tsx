@@ -16,7 +16,7 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
       <section className="c26-hero" aria-labelledby="c26-title">
         <div className="c26-hero-grid brand-shell">
           <div className="c26-hero-copy">
-            <p className="c26-eyebrow">Websites for service businesses</p>
+            
             <h1 id="c26-title">Professional websites that help service businesses <em>get more enquiries.</em></h1>
             <p className="c26-intro">We design, build, host and manage distinctive websites that make your business easier to trust, your services easier to understand and your next step easier to take.</p>
             <div className="c26-actions">
@@ -46,7 +46,7 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
 
       <section className="c26-value" aria-labelledby="c26-value-title">
         <div className="brand-shell c26-value-grid">
-          <div><p className="c26-eyebrow">A strategic approach</p><h2 id="c26-value-title">More than a <em>pretty website.</em></h2></div>
+          <div><h2 id="c26-value-title">More than a <em>pretty website.</em></h2></div>
           <p className="c26-value-description">Good design attracts attention. Clear messaging, credible information and easy enquiry paths help turn that attention into a business opportunity.</p>
           <div className="c26-value-items">
             {[
@@ -60,7 +60,7 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
       </section>
 
       <section className="c26-case brand-shell" aria-labelledby="c26-case-title">
-        <div className="c26-section-head"><div><p className="c26-eyebrow">Work & thinking</p><h2 id="c26-case-title">Case studies<span className="c26-dot">.</span></h2></div><p>See how website design decisions connect to what a business needs its website to do.</p><Link to="/case-studies" className="c26-quiet-link">Explore the case study <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
+        <div className="c26-section-head"><div><h2 id="c26-case-title">Case studies<span className="c26-dot">.</span></h2></div><p>See how website design decisions connect to what a business needs its website to do.</p><Link to="/case-studies" className="c26-quiet-link">Explore the case study <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
         <article className="c26-case-feature">
           <div className="c26-case-art" aria-hidden="true"><div className="c26-case-window"><div className="c26-case-mini-nav">bennie<span>studio</span> <small>Services　 Case Studies　 Pricing</small></div><span>IN-HOUSE DIGITAL EXPERIENCE</span><strong>Made to<br/><i>stand out.</i><br/>Built to work.</strong><div className="c26-case-abstract"/><p>Clear value. Easy next steps.</p></div></div>
           <div className="c26-case-copy"><span className="c26-case-meta">01 / In-house project · Bennie Studio</span><h3>Our own website, built around a clearer buying journey.</h3><p>We reworked our service story to make the offer easier to understand, put pricing and next steps within reach, and help visitors explore an initial direction before committing to a plan.</p><div className="c26-case-tags"><span>Positioning</span><span>Responsive design</span><span>Enquiry journey</span></div><Link to="/case-studies" className="c26-text-cta" onClick={()=>trackPublicEvent({eventType:"case_study_clicked",label:"Bennie Studio in-house",target:"/case-studies"})}>Read the case study <ArrowUpRight size={18} aria-hidden="true"/></Link><p className="c26-case-honesty">In-house work. No third-party client outcomes or unverified performance figures are claimed.</p></div>
@@ -69,7 +69,7 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
 
       <section className="c26-process" aria-labelledby="c26-process-title">
         <div className="brand-shell">
-          <div className="c26-section-head c26-process-head"><div><p className="c26-eyebrow">Simple. Clear. Collaborative.</p><h2 id="c26-process-title">How it <em>works.</em></h2></div><p>You can explore a website direction before choosing a managed plan. Here is what happens next.</p><Link to="/how-it-works" className="c26-quiet-link">View our process <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
+          <div className="c26-section-head c26-process-head"><div><h2 id="c26-process-title">How it <em>works.</em></h2></div><p>You can explore a website direction before choosing a managed plan. Here is what happens next.</p><Link to="/how-it-works" className="c26-quiet-link">View our process <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
           <div className="c26-steps">
             {[
               ["01","Share your business","Tell us what you offer and who you want to reach, or share your current site."],
@@ -83,7 +83,7 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
       </section>
 
       <section className="c26-services brand-shell" aria-labelledby="c26-services-title">
-        <div className="c26-section-head"><div><p className="c26-eyebrow">Everything under one roof</p><h2 id="c26-services-title">A complete website solution for your business.</h2></div><p>From design and launch to hosting, maintenance and continuing support—one accountable studio.</p><Link to="/services" className="c26-quiet-link">Explore our services <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
+        <div className="c26-section-head"><div><h2 id="c26-services-title">A complete website solution for your business.</h2></div><p>From design and launch to hosting, maintenance and continuing support—one accountable studio.</p><Link to="/services" className="c26-quiet-link">Explore our services <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
         <div className="c26-service-grid">{[
           ["01","Design that communicates","Distinctive, responsive pages that make your services and credibility clear.","Website strategy & design"],
           ["02","A build that works","A tested website with clear navigation and useful ways to enquire.","Build, content & launch"],

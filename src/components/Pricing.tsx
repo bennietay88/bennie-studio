@@ -201,7 +201,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
             <div className="s28-price-best">{recommended?"Recommended / Most balanced":bestFor}</div>
             <h3 className="s28-price-name">{product.name}</h3>
             <p className="s28-price-desc">{product.description}</p>
-            <p className="s28-price-number">{priceReady?formatCommercialMoney(price?.monthlyPrice,price?.currency||checkoutCurrency):loading?"Checking…":"Ask for quote"}<small> / month</small></p>
+            <div className="s28-price-number" aria-label={priceReady?`${formatCommercialMoney(price?.monthlyPrice,price?.currency||checkoutCurrency)} per month`:"Plan monthly price pending verification"}><span className="s28-price-amount">{priceReady?formatCommercialMoney(price?.monthlyPrice,price?.currency||checkoutCurrency):loading?"Checking…":"Ask for quote"}</span><span className="s28-price-period">/ month</span></div>
             <p className="s28-price-fee">+ {priceReady?formatCommercialMoney(price?.setupFee,price?.currency||checkoutCurrency):"—"} one-time website setup</p>
             <div className="s28-price-ledger" aria-label={product.name+" upfront and commitment costs"}>
               <div><span>First payment</span><strong>{priceReady?formatCommercialMoney(offer.dueToday,price.currency):"By quote"}</strong></div>

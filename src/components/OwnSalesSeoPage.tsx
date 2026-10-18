@@ -272,7 +272,7 @@ export default function OwnSalesSeoPage() {
               <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs font-semibold !text-[#5e6b79]">
                 <Link to="/" className="hover:!text-[#1741ed]">Home</Link><span>/</span><span>{page.h1}</span>
               </nav>
-              <p className="brand-kicker !text-[#1741ed]">{page.eyebrow}</p>
+              
               <h1 className="mt-5 !max-w-[13ch] !text-[#15191f]">{page.h1}</h1>
               <p className="brand-copy !text-[#526071] mt-6">{page.heroCopy}</p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
@@ -413,7 +413,7 @@ export default function OwnSalesSeoPage() {
           <div className="brand-shell brand-section">
             <div className="grid gap-8 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-7">
-                <p className="brand-kicker">Managed plans</p>
+                
                 <h2 className="mt-4">Choose the level of ongoing support, not a rigid website template.</h2>
                 <p className="brand-copy mt-5">The page count and structure can vary by scope. The plans mainly change how much optimisation, local SEO and growth support continues after launch.</p>
               </div>
@@ -445,7 +445,7 @@ export default function OwnSalesSeoPage() {
         <section className="px-5 py-14">
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-12">
             <div className="lg:col-span-5">
-              <p className="brand-kicker">Local relevance</p>
+              
               <h2 className="mt-4">{isCityPage ? "Built for " + cityName + " enquiries" : "Built for the way this market buys"}</h2>
               <p className="brand-copy mt-5">{isCityPage ? "The page focuses on the services, nearby areas, trust cues and contact options that matter for " + cityName + " searches." : "The page is written for real local intent: relevant services, nearby areas, trust signals and a direct enquiry path."}</p>
             </div>
@@ -460,7 +460,7 @@ export default function OwnSalesSeoPage() {
           <div className="mx-auto max-w-7xl">
             <div className="grid gap-8 lg:grid-cols-12 lg:items-end">
               <div className="lg:col-span-7">
-                <p className="brand-kicker">Website examples</p>
+                
                 <h2 className="mt-4">Website directions for this market.</h2>
               </div>
               <Button onClick={()=>navigate("/portfolio")} variant="outline" className="min-h-11 lg:col-span-5 lg:justify-self-end">View example library</Button>
@@ -481,7 +481,7 @@ export default function OwnSalesSeoPage() {
         <section className="px-5 py-14">
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <p className="brand-kicker">Common questions</p>
+              
               <h2 className="mt-4">Questions buyers ask before starting.</h2>
               <div className="mt-6 flex flex-wrap gap-2">{page.links.map((link)=><Link key={link.href} to={link.href} className="border border-[#d8d9dc] bg-white px-3 py-2 text-sm font-semibold text-[#526071]">{link.label}</Link>)}</div>
             </div>

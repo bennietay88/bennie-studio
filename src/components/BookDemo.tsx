@@ -268,7 +268,7 @@ export default function BookDemo() {
           <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#1741ed]/10 blur-3xl" />
           <div className="brand-shell relative grid min-w-0 gap-10 py-16 lg:grid-cols-12 lg:items-start lg:py-24">
             <div className="min-w-0 lg:col-span-5">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#1741ed]">{isGrowthPartner ? "Growth Partner consultation" : "Managed Website consultation"}</p>
+              
               <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.03] tracking-tight text-[#15191f] sm:text-5xl">
                 {isGrowthPartner ? "Plan the next stage of your website growth." : "Let’s discuss the website your business needs."}
               </h1>

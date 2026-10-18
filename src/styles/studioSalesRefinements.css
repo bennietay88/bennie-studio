@@ -12,3 +12,200 @@
 .brand-public .bs-sales .s28-promo input{width:18px;height:18px}
 @media(max-width:850px){.brand-public .bs-sales .s28-price-card .s28-price-desc{min-height:auto}}
 @media(max-width:580px){.brand-public .bs-sales .s28-pricing-hero h1{font-size:clamp(2.65rem,9.3vw,3.55rem)!important}}
+
+
+/* 2026-10: legible pricing typography: explicit foregrounds, matching baselines.
+   Broad marketing typography styles must never override currency text. */
+.brand-public .bs-sales .s28-price-card{
+  font-variant-numeric:tabular-nums lining-nums;
+  color:#192330;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-best{
+  color:#2448cb !important;
+  min-height:1.65rem;
+  display:flex;
+  align-items:center;
+  font-size:12px !important;
+  letter-spacing:.105em;
+}
+.brand-public .bs-sales .s28-price-card h3.s28-price-name{
+  min-height:3.35rem;
+  display:flex;
+  align-items:flex-start;
+  color:#152031 !important;
+  font-size:clamp(1.7rem,2.15vw,2.15rem)!important;
+  font-weight:730!important;
+  line-height:1.12!important;
+  letter-spacing:-.035em!important;
+  margin:8px 0 0!important;
+}
+.brand-public .bs-sales .s28-price-card p.s28-price-desc{
+  color:#4b5a6b !important;
+  font-size:14px!important;
+  line-height:1.65!important;
+  min-height:5.35rem;
+  margin:14px 0 0!important;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-number{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:baseline;
+  column-gap:8px;
+  row-gap:4px;
+  min-height:4.45rem;
+  margin:19px 0 0!important;
+  padding:0;
+  color:#152031 !important;
+  font-size:clamp(2.35rem,3.1vw,3.5rem)!important;
+  font-weight:790 !important;
+  line-height:1.05!important;
+  letter-spacing:-.065em!important;
+  text-align:left;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-amount{
+  display:inline-block;
+  color:inherit !important;
+  font:inherit;
+  font-variant-numeric:tabular-nums lining-nums;
+  white-space:nowrap;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-period{
+  color:#505d6e !important;
+  font-size:14px!important;
+  font-weight:550;
+  line-height:1.45;
+  letter-spacing:0;
+  white-space:nowrap;
+}
+.brand-public .bs-sales .s28-price-card p.s28-price-fee{
+  color:#49596a !important;
+  font-size:13px!important;
+  font-weight:560;
+  line-height:1.5!important;
+  min-height:2.8rem;
+  margin:6px 0 17px!important;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-ledger{
+  border-color:#d0d7e2;
+  margin-top:0;
+  padding-top:14px;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-ledger>div{
+  align-items:baseline;
+  gap:12px;
+  line-height:1.5;
+  min-height:26px;
+  color:#4b5a6a;
+  font-size:13px;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-ledger>div>strong{
+  color:#172435 !important;
+  font-size:14px!important;
+  font-weight:750!important;
+  font-variant-numeric:tabular-nums lining-nums;
+  white-space:nowrap;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-ledger>div.s28-price-total strong{
+  font-size:16px!important;
+  font-weight:800!important;
+}
+.brand-public .bs-sales .s28-price-card p.s28-price-explanation,
+.brand-public .bs-sales .s28-price-card p.s28-price-minor{
+  color:#536273!important;
+  font-size:12px!important;
+  line-height:1.62!important;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-plan-includes>p{
+  color:#2545bd!important;
+  font-size:12px!important;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-plan-includes li{
+  color:#344457!important;
+  font-size:13px!important;
+  line-height:1.6!important;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-plan-includes li svg{
+  color:#254cc2!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured{
+  background:#162039;
+  border-color:#162039;
+  color:#ffffff;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-best{
+  color:#c5d0ff!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured h3.s28-price-name,
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-number,
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-amount{
+  color:#ffffff!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-period{
+  color:#dce5f5!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured p.s28-price-desc,
+.brand-public .bs-sales .s28-price-card.s28-price-featured p.s28-price-fee{
+  color:#e0e7f4!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-ledger{
+  border-color:#53627a!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-ledger>div{
+  color:#dbe4f3!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-ledger>div>strong{
+  color:#ffffff!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-ledger>div.s28-price-total{
+  border-color:#586781!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured p.s28-price-explanation,
+.brand-public .bs-sales .s28-price-card.s28-price-featured p.s28-price-minor{
+  color:#d7e1f1!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-plan-includes{
+  border-color:#53627a!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-plan-includes>p{
+  color:#c2ceff!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-plan-includes li{
+  color:#e5ebf7!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-plan-includes li svg{
+  color:#cbd5ff!important;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-action{
+  width:100%;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-action button{
+  font-weight:760!important;
+  min-height:50px;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-action button:not(:disabled){
+  color:#162039!important;
+  background:#ffffff!important;
+}
+.brand-public .bs-sales .s28-price-card.s28-price-featured .s28-price-action button:not(:disabled):hover{
+  background:#e9edff!important;
+}
+@media(max-width:1100px){
+  .brand-public .bs-sales .s28-price-card h3.s28-price-name{min-height:3.65rem}
+  .brand-public .bs-sales .s28-price-card p.s28-price-desc{min-height:6.5rem}
+  .brand-public .bs-sales .s28-price-card .s28-price-number{font-size:clamp(2.1rem,3vw,3rem)!important}
+}
+@media(max-width:850px){
+  .brand-public .bs-sales .s28-price-card h3.s28-price-name,
+  .brand-public .bs-sales .s28-price-card p.s28-price-desc{
+    min-height:0;
+  }
+  .brand-public .bs-sales .s28-price-card .s28-price-number{
+    min-height:0;
+    font-size:clamp(2.6rem,7.3vw,3.5rem)!important;
+  }
+}
+@media(max-width:370px){
+  .brand-public .bs-sales .s28-price-card .s28-price-number{
+    font-size:clamp(2.15rem,9vw,2.6rem)!important;
+  }
+}

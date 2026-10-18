@@ -462,7 +462,7 @@ function Hero({
   return <section className="c27-marketing-hero">
     <div className="brand-shell grid gap-10 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
       <div className="lg:col-span-6">
-        <p className="c27-kicker inline-flex items-center gap-3"><Icon size={16}/> Bennie Studio / {isAuditPage?"Website review":isTemplate?"Design directions":"Websites made for business"}</p>
+        
         <h1 className="mt-6 !max-w-[16ch]">{title}</h1>
         <p className="brand-copy mt-6">{copy}</p>
         <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -473,7 +473,7 @@ function Hero({
       </div>
       <div className="lg:col-span-6">
         {isAuditPage?<div className="border border-[#dce1e6] bg-white p-7 sm:p-9">
-          <p className="c27-kicker">Example report structure</p><h2 className="mt-4 !text-[clamp(1.9rem,3vw,3rem)] !leading-[1.1]">Know what to improve <span className="font-serif italic font-normal text-[#1741ed]">before spending.</span></h2>
+          <h2 className="mt-4 !text-[clamp(1.9rem,3vw,3rem)] !leading-[1.1]">Know what to improve <span className="font-serif italic font-normal text-[#1741ed]">before spending.</span></h2>
           <div className="mt-6">{[["01","First impression","Is the core service clear?"],["02","Enquiry path","Can a visitor request a quote or booking?"],["03","Trust evidence","Is credible proof easy to find?"],["04","Mobile experience","Can customers use the site on a phone?"]].map(([n,t,b])=><div key={n} className="grid grid-cols-[2rem_1fr] gap-4 border-t border-[#d8dde4] py-4"><span className="font-serif text-xl italic text-[#1741ed]">{n}</span><div><p className="font-semibold text-[#15191f]">{t}</p><p className="mt-1 text-sm text-[#596573]">{b}</p></div></div>)}</div>
           <p className="text-xs text-[#68727f]">Sample report framework only. Findings are based on the site you submit.</p>
         </div>:<div className="c27-visual" style={{background:isClinic?"#17645e":isHome?"#654938":isEducation?"#bc7b22":isBeauty?"#875964":"#1741ed"}}>
@@ -497,7 +497,7 @@ function TemplatesPage() {
       <section className="brand-shell brand-section">
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
-            <p className="brand-kicker">Flagship directions</p>
+            
             <h2 className="mt-4">Explore the design families.</h2>
             <p className="brand-copy mt-5">These examples are for composition and enquiry strategy. They are starting directions, not rigid skins that every customer inherits.</p>
           </div>
@@ -511,7 +511,7 @@ function TemplatesPage() {
         <div className="brand-shell brand-section">
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <p className="brand-kicker">Niche planning</p>
+              
               <h2 className="mt-4">One system, adapted to each buyer.</h2>
             </div>
             <div className="lg:col-span-8">
@@ -1663,7 +1663,7 @@ function GeneratePreviewPage() {
       <section className="c27-marketing-hero">
         <div className="brand-shell grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
           <div className="lg:col-span-7">
-            <p className="c27-kicker">{salesMode?"Internal studio preview":"Your first look / Free website direction"}</p>
+            {salesMode ? <p className="text-xs font-semibold text-[#1741ed]">Internal studio preview</p> : null}
             {salesMode?<p className="mt-3 text-sm text-[#1741ed]">Internal sales mode · prospect email not required</p>:null}
             <h1 className="mt-6 !max-w-[16ch]">See what your business <em className="font-serif italic font-normal text-[#1741ed]">could look like online.</em></h1>
             <p className="brand-copy mt-6">Already have a website? Paste its URL. Starting from scratch? Tell us a little about your business. Get a preliminary website direction before deciding on any paid plan.</p>
@@ -2114,7 +2114,7 @@ function GeneratePreviewPage() {
       <section className="bg-white border-y border-[#e6e8ef]">
         <div className="brand-shell py-14 sm:py-16">
           <div className="grid gap-7 lg:grid-cols-12 lg:items-end">
-            <div className="lg:col-span-6"><p className="brand-kicker">What happens next</p><h2 className="mt-4">From your answers to a practical website direction.</h2></div>
+            <div className="lg:col-span-6"><h2 className="mt-4">From your answers to a practical website direction.</h2></div>
             <p className="brand-copy lg:col-span-6">The brief becomes a practical plan and an interactive website direction, so you can see the decision before committing to a build.</p>
           </div>
           <div className="mt-9 grid gap-4 md:grid-cols-4">
@@ -2130,14 +2130,14 @@ function GeneratePreviewPage() {
 
       <section className="bs3-dark">
         <div className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center">
-          <div className="lg:col-span-5"><p className="brand-kicker !text-[#9f93ff]">Built around real people</p><h2 className="mt-4 !text-white">A human-guided process, from start to finish.</h2><p className="mt-5 text-base leading-8 text-white/62">Modern tools speed up preparation, but Bennie Studio reviews the business context, design quality and next-step logic before launch.</p><Link to="/how-it-works" className={`${primaryCtaClass} mt-7`}>See how it works<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
+          <div className="lg:col-span-5"><h2 className="mt-4 !text-white">A human-guided process, from start to finish.</h2><p className="mt-5 text-base leading-8 text-white/62">Modern tools speed up preparation, but Bennie Studio reviews the business context, design quality and next-step logic before launch.</p><Link to="/how-it-works" className={`${primaryCtaClass} mt-7`}>See how it works<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
           <div className="lg:col-span-7"><div className="rounded-[1.2rem] border border-white/12 bg-white/[0.04] p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#9f93ff]">Studio review before launch</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{["Business context","Message clarity","Responsive design","Forms and primary actions","Customer approval","Launch QA"].map((item)=><div key={item} className="border border-white/10 bg-white/[0.035] p-4 text-sm font-semibold text-white/72"><Check className="mb-3 h-4 w-4 text-[#9f93ff]" />{item}</div>)}</div></div></div>
         </div>
       </section>
 
       <section className="brand-shell brand-section">
         <div className="grid gap-10 lg:grid-cols-12 lg:items-start">
-          <div className="lg:col-span-4"><p className="brand-kicker">Common questions</p><h2 className="mt-4">Questions before you get started?</h2><p className="brand-copy mt-5">A few quick answers before you review the direction.</p></div>
+          <div className="lg:col-span-4"><h2 className="mt-4">Questions before you get started?</h2><p className="brand-copy mt-5">A few quick answers before you review the direction.</p></div>
           <div className="lg:col-span-8 divide-y divide-[#e5e8ef] overflow-hidden rounded-2xl border border-[#e5e8ef] bg-white">
             {[
               ["Is there a commitment to see a website direction?","No. The direction is designed to give you something concrete to evaluate before deciding what to do next."],
@@ -2346,7 +2346,7 @@ function GeneratePreviewPage() {
           <div className="brand-shell py-12 sm:py-14">
             <div className="grid overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-50 lg:grid-cols-12">
               <div className="p-6 sm:p-8 lg:col-span-5">
-                <p className="brand-kicker">What you will see</p>
+                
                 <h2 className="mt-4">A prospect-ready redesign, not a template with your logo pasted on it.</h2>
                 <p className="brand-copy mt-4">
                   {previewMode === "website"
@@ -2866,7 +2866,7 @@ function NicheLandingPage({ page }: { page: (typeof nichePages)[keyof typeof nic
       <section className="brand-shell brand-section">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
-            <p className="brand-kicker">{page.label}</p>
+            
             <h2 className="mt-4">{page.positioning}</h2>
             <p className="brand-copy mt-6">{page.promise}</p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -2976,7 +2976,7 @@ export default function PublicMarketingPages() {
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="brand-shell relative grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.1em] !text-white/65">Ready to get started?</p>
+            
             <h2 className="mt-3 max-w-3xl !text-white">{finalCta[0]}</h2>
             <p className="mt-4 max-w-2xl text-base !text-white/75">{finalCta[1]}</p>
           </div>

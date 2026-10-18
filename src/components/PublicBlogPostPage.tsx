@@ -125,7 +125,7 @@ export default function PublicBlogPostPage() {
         <section className="border-b border-[#dce2e8] bg-[#f8f8f5] text-[#15191f]">
           <div className="brand-shell py-14 sm:py-20">
             <Link to="/#blog" className="inline-flex items-center text-sm font-semibold !text-[#657181] hover:!text-[#1741ed]"><ArrowLeft className="mr-2 h-4 w-4" />Back to insights</Link>
-            <p className="brand-kicker mt-8 !text-[#1741ed]">Insight</p>
+            
             <h1 className="mt-4 !max-w-[16ch] !text-[#15191f]">{title}</h1>
             {description && <p className="brand-copy !text-[#596573] mt-6">{description}</p>}
             {publishedAt && <p className="mt-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] !text-[#697587]"><CalendarDays className="h-4 w-4" />{new Date(publishedAt).toLocaleDateString()}</p>}
