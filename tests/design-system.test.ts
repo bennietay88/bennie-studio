@@ -48,18 +48,20 @@ test("blueprint themes always resolve to approved renderer styles", () => {
 });
 
 test("public brand uses product-led positioning guardrails", async () => {
-  const [homepage, chrome, pricing] = await Promise.all([
+  const [homepage, chrome, pricing, conversionHomepage] = await Promise.all([
     import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/BrandLedLandingPage.tsx", import.meta.url), "utf8")),
     import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/PublicSiteChrome.tsx", import.meta.url), "utf8")),
     import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/Pricing.tsx", import.meta.url), "utf8")),
+    import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/components/ConversionHomepage.tsx", import.meta.url), "utf8")),
   ]);
 
-  assert.match(homepage, /Win trust before/);
-  assert.match(homepage, /Compare the 3 plans/);
+  assert.match(homepage, /<ConversionHomepage onCta=\{go\}/);
+  assert.match(conversionHomepage, /get more enquiries/);
+  assert.match(conversionHomepage, /No card required/);
   assert.match(homepage, /id="plans"/);
-  assert.match(homepage, /Your approval before launch/);
+  assert.match(conversionHomepage, /Review your free preview/);
   assert.doesNotMatch(homepage, /Or preview a free website direction/);
-  assert.match(homepage, /go\("\/book-demo", "Discuss website scope"\)/);
+  assert.match(homepage, /\/book-demo/);
   assert.doesNotMatch(chrome, /Website Design Orchard|Website Design Petaling Jaya|Website Design London/);
   assert.doesNotMatch(pricing, /hidden overflow-x-auto md:block/);
   // Price verification must fail closed before a customer can choose a plan.

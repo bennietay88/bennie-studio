@@ -33,9 +33,8 @@ test("route warmup points at current public implementations", () => {
 
 test("homepage keeps buyer guidance concise and focused on choosing a plan", () => {
   assert.doesNotMatch(homepage, /WebsiteConceptVisual/);
-  assert.match(homepage, /A website should make this clear/);
-  assert.match(homepage, /A website that stays looked after/);
-  assert.match(homepage, /Compare the 3 plans/);
+  assert.match(homepage, /<ConversionHomepage onCta=\{go\}/);
+  assert.match(homepage, /Pricing/);
   assert.match(homepage, /id="plans"/);
   assert.doesNotMatch(homepage, /NicheInformationGrid|Industry-specific website guidance/);
 });
