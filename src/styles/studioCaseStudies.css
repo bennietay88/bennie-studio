@@ -36,4 +36,7 @@
 .brand-public .c27-footer-cta button{border-radius:2px!important}
 .brand-public .c27-no-template-look .bs3-card,.brand-public .c27-no-template-look .bs3-card-dark{border-radius:3px!important}
 @media(max-width:1000px){.brand-public .c27-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:670px){.brand-public .c27-grid{grid-template-columns:1fr}.brand-public .c27-visual{padding:14px}.brand-public .c27-decision{grid-template-columns:31px 1fr;gap:12px}.brand-public .c27-panel{padding:22px}.brand-public .c27-major{font-size:clamp(2.5rem,9.5vw,3.6rem)!important}}
+@media(max-width:670px){.brand-public .c27-grid{grid-template-columns:minmax(0,1fr)}.brand-public .c27-visual{padding:14px}.brand-public .c27-decision{grid-template-columns:31px 1fr;gap:12px}.brand-public .c27-panel{padding:22px}.brand-public .c27-major{font-size:clamp(2.5rem,9.5vw,3.6rem)!important}}
+/* Allow intrinsic preview/caption widths to shrink inside cards and hero grids. */
+.brand-public .c27-card,.brand-public .c27-rendered{min-width:0}
+.brand-public .c27-caption{white-space:normal;overflow-wrap:anywhere}

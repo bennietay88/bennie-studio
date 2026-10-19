@@ -428,7 +428,7 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
 
   return (
     <div className="absolute inset-0 overflow-hidden bg-[#f4f0e8] text-[#171717]" style={{ fontFamily: model.bodyFont }}>
-      <div className="grid h-full grid-rows-[34px_1fr_72px]">
+      <div className="grid h-full grid-rows-[34px_1fr_48px]">
         <div className="flex items-center justify-between border-b border-black/15 px-4">
           <MiniBrand model={{ ...model, primary: "#171717" }} label={name} />
           <div className="flex items-center gap-3 text-[5px] font-semibold uppercase tracking-[0.08em] text-black/60">
@@ -436,20 +436,20 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
           </div>
         </div>
 
-        <div className="grid min-h-0 grid-rows-[1.15fr_0.85fr]">
+        <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_64px]">
           <div className="grid min-h-0 grid-cols-[1.55fr_0.45fr] border-b border-black/15">
             <div className="flex min-h-0 flex-col justify-between px-5 py-4">
               <div>
                 <div className="text-[5px] font-semibold uppercase tracking-[0.12em] text-black/60">Editorial point of view</div>
                 <div
-                  className="mt-3 max-w-[18ch] text-[22px] font-medium leading-[1.02] tracking-[-0.03em] text-[#171717]"
+                  className="mt-3 line-clamp-3 max-w-[18ch] text-[20px] font-medium leading-[1.02] tracking-[-0.03em] text-[#171717]"
                   style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
                 >
                   {model.headline}
                 </div>
               </div>
-              <div className="grid grid-cols-[1fr_auto] items-end gap-4">
-                <div className="max-w-[38ch] text-[6px] leading-[1.65] text-black/55">
+              <div className="mt-3 grid shrink-0 grid-cols-[1fr_auto] items-end gap-4">
+                <div className="line-clamp-2 max-w-[38ch] text-[6px] leading-[1.65] text-black/55">
                   {model.subheadline || "A considered editorial structure for businesses that need room to explain expertise, evidence and perspective."}
                 </div>
                 <div className="border-b border-black pb-0.5 text-[6px] font-semibold">{model.cta}</div>
@@ -510,8 +510,8 @@ function BrandStatementPreview({ model, name }: { model: PreviewModel; name: str
           <div className="flex min-h-0 flex-col justify-between px-5 py-4">
             <div>
               <div className="text-[5px] font-semibold uppercase tracking-[0.16em]" style={{ color: model.primaryInk }}>Professional services</div>
-              <div className="mt-3 max-w-[12ch] text-[23px] font-semibold leading-[0.98] tracking-[-0.04em] text-slate-950">{model.headline}</div>
-              <div className="mt-3 max-w-[34ch] text-[6px] leading-[1.6] text-slate-500">{model.subheadline || "A crisp, confident website built around a clear offer, credible proof and one useful next step."}</div>
+              <div className="mt-3 line-clamp-3 max-w-[12ch] text-[23px] font-semibold leading-[0.98] tracking-[-0.04em] text-slate-950">{model.headline}</div>
+              <div className="mt-3 line-clamp-2 max-w-[34ch] text-[6px] leading-[1.6] text-slate-500">{model.subheadline || "A crisp, confident website built around a clear offer, credible proof and one useful next step."}</div>
             </div>
             <div className="inline-flex w-fit border-b border-slate-900 pb-1 text-[6px] font-semibold">{model.cta}</div>
           </div>
@@ -584,7 +584,7 @@ function MediaStoryPreview({ model, name }: { model: PreviewModel; name: string 
             <div className="mt-3 max-w-[12ch] text-[24px] font-semibold leading-[0.95] tracking-[-0.045em] text-white">
               {model.headline}
             </div>
-            <div className="mt-3 max-w-[34ch] text-[6px] leading-[1.6] text-white/72">
+            <div className="mt-3 line-clamp-2 max-w-[34ch] text-[6px] leading-[1.6] text-white/72">
               {model.subheadline || "Use customer photography, people and place to make the business feel real before explaining every detail."}
             </div>
             <div className="mt-4 inline-flex w-fit bg-white px-3 py-1.5 text-[6px] font-semibold text-slate-950">{model.cta}</div>
@@ -641,6 +641,17 @@ export function TemplatePreviewThumbnail({
 }: TemplatePreviewThumbnailProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setPreviewSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
   const [config, setConfig] = useState<TemplateConfig | null>(() => configCache.get(templateId) || getBuiltInTemplateConfig(templateId));
   const [failed, setFailed] = useState(false);
 
@@ -706,7 +717,19 @@ export function TemplatePreviewThumbnail({
           </div>
         </div>
       ) : (
-        <FamilyPreview model={model} name={config?.name || templateName} />
+        <div
+          className="bt-template-canvas absolute"
+          style={{
+            width: 480,
+            height: 360,
+            left: "50%",
+            top: "50%",
+            transform: `translate(-50%, -50%) scale(${Math.min(previewSize.width / 480, previewSize.height / 360)})`,
+            transformOrigin: "center",
+          }}
+        >
+          <FamilyPreview model={model} name={config?.name || templateName} />
+        </div>
       )}
 
       {showFamilyLabel ? (
