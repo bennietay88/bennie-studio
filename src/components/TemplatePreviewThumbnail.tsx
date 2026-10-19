@@ -40,6 +40,7 @@ export type PreviewLayoutFamily =
   | "local_quote"
   | "education_program"
   | "editorial_b2b"
+  | "finance_workflow"
   | "brand_statement"
   | "media_story";
 
@@ -66,6 +67,7 @@ const FAMILY_LABELS: Record<PreviewLayoutFamily, string> = {
   local_quote: "Local service",
   education_program: "Education",
   editorial_b2b: "Editorial",
+  finance_workflow: "Finance",
   brand_statement: "Brand-focused",
   media_story: "Media-focused",
 };
@@ -118,6 +120,9 @@ export function resolveTemplatePreviewFamily(templateId: string, templateName = 
   }
   if (/tuition|education|school|academy|learning|training|class/.test(value)) {
     return "education_program";
+  }
+  if (/accounting|bookkeeping|tax-filing|payroll/.test(value)) {
+    return "finance_workflow";
   }
   if (/cleaning|renovation|contractor|pest|plumb|hvac|locksmith|repair|service-pro|home-service/.test(value)) {
     return "local_quote";
@@ -493,6 +498,71 @@ function EditorialB2BPreview({ model, name }: { model: PreviewModel; name: strin
   );
 }
 
+function FinanceWorkflowPreview({ model, name }: { model: PreviewModel; name: string }) {
+  const services = model.serviceItems.length ? model.serviceItems : ["Tax filing", "Bookkeeping", "Payroll"];
+
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-[#f7f9fc] text-[#15233c]" style={{ fontFamily: model.bodyFont }}>
+      <div className="grid h-full grid-rows-[38px_minmax(0,1fr)_104px]">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5">
+          <MiniBrand model={{ ...model, primary: "#1741ed" }} label={name} />
+          <div className="flex items-center gap-4 text-[5px] font-semibold text-slate-600">
+            <span>Services</span><span>Who we help</span><span>Insights</span><span>Contact</span>
+          </div>
+        </div>
+
+        <div className="grid min-h-0 grid-cols-[1.12fr_0.88fr] gap-3 bg-[#edf3ff] px-5 py-4">
+          <div className="flex min-h-0 flex-col justify-center">
+            <div className="text-[5px] font-bold uppercase tracking-[0.14em] text-blue-700">FINANCIAL CLARITY FOR GROWING TEAMS</div>
+            <div className="mt-2 line-clamp-3 max-w-[18ch] text-[22px] font-semibold leading-[1.02] tracking-[-0.04em] text-[#14213b]">
+              {model.headline}
+            </div>
+            <div className="mt-2 line-clamp-2 max-w-[34ch] text-[6px] leading-[1.5] text-slate-600">
+              {model.subheadline || "Clear financial support for confident business decisions."}
+            </div>
+            <div className="mt-3 inline-flex w-fit items-center rounded-md bg-[#1741ed] px-3 py-1.5 text-[6px] font-bold text-white">
+              {model.cta}
+            </div>
+          </div>
+
+          <div className="flex min-h-0 items-center justify-center">
+            <div className="w-full rounded-xl border border-blue-100 bg-white p-3 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div className="text-[6px] font-bold text-slate-800">Finance workspace</div>
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+              </div>
+              <div className="mt-3 grid grid-cols-[1fr_auto] gap-x-2 gap-y-2 text-[5px] text-slate-500">
+                <span>MONTHLY CLOSE</span><span className="font-semibold text-emerald-700">On track</span>
+                <span className="border-t border-slate-100 pt-2">TAX RECORDS</span><span className="border-t border-slate-100 pt-2 font-semibold text-blue-700">Organised</span>
+              </div>
+              <div className="mt-3 flex h-8 items-end gap-1 rounded-md bg-blue-50 px-2 pt-2" aria-hidden="true">
+                {[35, 55, 42, 78, 60, 92, 70, 100].map((height, index) => (
+                  <span key={index} className="flex-1 rounded-t-sm bg-blue-500/75" style={{ height: `${height}%` }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white px-5 py-3">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-[7px] font-bold text-slate-900">Support for every stage</div>
+            <div className="text-[5px] font-semibold uppercase tracking-[0.1em] text-blue-700">A clearer view of the numbers</div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {services.slice(0, 3).map((service, index) => (
+              <div key={service} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
+                <div className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-blue-100 text-[6px] font-bold text-blue-700">0{index + 1}</div>
+                <div className="line-clamp-2 text-[6px] font-semibold leading-[1.2] text-slate-700">{service}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BrandStatementPreview({ model, name }: { model: PreviewModel; name: string }) {
   const services = model.serviceItems.length ? model.serviceItems : ["Positioning", "Credibility", "Conversion"];
 
@@ -627,6 +697,8 @@ function FamilyPreview({ model, name }: { model: PreviewModel; name: string }) {
       return <LocalQuotePreview model={model} name={name} />;
     case "education_program":
       return <EducationProgramPreview model={model} name={name} />;
+    case "finance_workflow":
+      return <FinanceWorkflowPreview model={model} name={name} />;
     default:
       return <EditorialB2BPreview model={model} name={name} />;
   }
