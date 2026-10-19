@@ -31,7 +31,21 @@ export function usePublicCommercialPricing(market: CommercialMarket) {
 
   React.useEffect(() => {
     const controller = new AbortController();
+    let timedOut = false;
     setState({ market, products: unpricedProducts(), loading: true, error: null });
+
+    // Bound the wait so a stalled public API never leaves pricing cards in a
+    // permanent loading state. The fallback contains no unverified amounts.
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+      setState({
+        market,
+        products: unpricedProducts(),
+        loading: false,
+        error: "Live pricing is taking too long to load.",
+      });
+    }, 8000);
 
     fetch(`/api/public/pricing?market=${encodeURIComponent(market)}`, {
       cache: "no-store",
@@ -60,9 +74,15 @@ export function usePublicCommercialPricing(market: CommercialMarket) {
           loading: false,
           error: error instanceof Error ? error.message : "Live pricing is temporarily unavailable.",
         });
+      })
+      .finally(() => {
+        if (!timedOut) window.clearTimeout(timeoutId);
       });
 
-    return () => controller.abort();
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [market]);
 
   // Market changes take effect during render, *before* the fetch effect runs.
