@@ -31,6 +31,7 @@ const footerGroups = [
     { label: "About Bennie Studio", href: "/about" },
     { label: "Contact", href: "/contact" },
     { label: "Discuss your website", href: "/book-demo" },
+    { label: "One-time WordPress builds · SiteFoundry", href: "https://web.bennietay.com/#packages", external: true },
     { label: "Bennie Tay Insights", href: BENNIE_ECOSYSTEM_LINKS.find((link) => link.id === "main")?.url || "https://bennietay.com", external: true },
   ]],
   ["Legal", [
