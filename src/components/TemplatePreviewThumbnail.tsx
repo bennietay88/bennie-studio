@@ -637,7 +637,7 @@ export function TemplatePreviewThumbnail({
   templateName,
   className = "",
   layoutFamily,
-  showFamilyLabel = true,
+  showFamilyLabel = false,
 }: TemplatePreviewThumbnailProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);

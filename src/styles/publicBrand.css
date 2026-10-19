@@ -1438,3 +1438,26 @@
     line-height: 1.04 !important;
   }
 }
+
+/* The previews are shown inside showcase cards, so their annotations need to
+   remain readable at card size instead of mimicking 5px desktop microcopy. */
+.bt-template-canvas [class~="text-[5px]"],
+.bt-template-canvas [class~="text-[5.5px]"] {
+  font-size: 10px !important;
+}
+
+.bt-template-canvas [class~="text-[6px]"] {
+  font-size: 11px !important;
+}
+
+.bt-template-canvas [class~="text-[7px]"] {
+  font-size: 12px !important;
+}
+
+.bt-template-canvas [class~="text-[8px]"] {
+  font-size: 13px !important;
+}
+
+.bt-template-canvas [class~="text-[11px]"] {
+  font-size: 15px !important;
+}
