@@ -215,8 +215,8 @@ export default function BrandLedLandingPage() {
                         <p className={isRecommended ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{priceReady ? formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD") : pricingLoading ? "Checking…" : "Ask for quote"}<span className={isRecommended ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
                         <p className={isRecommended ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {priceReady ? formatCommercialMoney(price?.setupFee, price?.currency || "USD") : "—"} one-time setup</p>
                         <p className={isRecommended ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>First payment: {!priceReady || price?.monthlyPrice == null ? "By quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}</p>
-                        <p className={isRecommended ? "mt-2 text-xs font-semibold !text-white/65" : "mt-2 text-xs font-semibold text-[#687386]"}>{formatCommitmentLabel(getMinimumTermMonths(price))}, then month-to-month unless the accepted order states otherwise.</p>
-                        <p className={isRecommended ? "mt-2 text-xs leading-5 !text-white/75" : "mt-2 text-xs leading-5 text-[#526071]"}>Standard initial term total (including setup, before tax): {priceReady && price?.monthlyPrice != null ? formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice * getMinimumTermMonths(price), price.currency) : "Confirm by quote"}</p>
+                        <p className={isRecommended ? "mt-2 text-sm font-semibold !text-white/75" : "mt-2 text-sm font-semibold text-[#687386]"}>{formatCommitmentLabel(getMinimumTermMonths(price))}, then month-to-month unless the accepted order states otherwise.</p>
+                        <p className={isRecommended ? "mt-2 text-sm leading-5 !text-white/75" : "mt-2 text-sm leading-5 text-[#526071]"}>Standard initial term total (including setup, before tax): {priceReady && price?.monthlyPrice != null ? formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice * getMinimumTermMonths(price), price.currency) : "Confirm by quote"}</p>
                         <div className={isRecommended ? "mt-6 space-y-3 border-t border-white/25 pt-5" : "mt-6 space-y-3 border-t border-[#dfe2ea] pt-5"}>
                           {planComparisonRows.map(([label, values]) => (
                             <div key={label} className="flex items-start justify-between gap-4 text-sm">
@@ -233,6 +233,7 @@ export default function BrandLedLandingPage() {
                   })}
             </div>
             <p className="mt-5 text-center text-sm text-[#687386]">Not ready to decide? <Link to="/generate-preview" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Pricing section free preview", target: "/generate-preview" })} className="font-semibold text-[#5746e8] underline underline-offset-4">Get a free website direction first.</Link></p>
+            <p className="mt-3 text-center text-sm text-[#687386]">Need a one-time WordPress build instead? <a href="https://web.bennietay.com/#packages" className="font-semibold text-[#5746e8] underline underline-offset-4">Compare SiteFoundry packages.</a></p>
           </div>
         </section>
 
