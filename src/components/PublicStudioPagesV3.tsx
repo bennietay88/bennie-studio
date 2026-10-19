@@ -559,7 +559,7 @@ export function WorkStudioPage() {
           <div className="c30-case-hero-art" aria-label="Responsive website previews built with Bennie Studio">
             <div className="c30-case-preview-main"><TemplatePreviewThumbnail templateId="dental-clinic-v1" templateName="Dental clinic website" className="h-[270px] sm:h-[340px]" /></div>
             <div className="c30-case-preview-second"><TemplatePreviewThumbnail templateId="renovation-contractor-v1" templateName="Renovation website" className="h-[150px] sm:h-[185px]" /></div>
-            <span className="c30-case-art-caption">Website designs rendered from the Bennie Studio app</span>
+            <span className="c30-case-art-caption">Actual websites built with Bennie Studio</span>
           </div>
         </div>
       </section>
@@ -572,12 +572,12 @@ export function WorkStudioPage() {
       </section>
       <section className="border-y border-[#dfe3e8] bg-[#f2f4f7]">
         <div className="brand-shell brand-section">
-          <div className="mb-10 grid gap-6 lg:grid-cols-[1fr_.8fr] lg:items-end"><div><h2 className="mt-4">Six industries. Six different buying journeys.</h2></div><p className="brand-copy">Every preview below is rendered from a built-in website template available in the Bennie Studio app. The work shows design and structure; it does not imply the business scenario is a real client.</p></div>
+          <div className="mb-10 grid gap-6 lg:grid-cols-[1fr_.8fr] lg:items-end"><div><h2 className="mt-4">Six industries. Six different buying journeys.</h2></div><p className="brand-copy">Explore actual websites built with Bennie Studio across six industries, each shaped around how its customers choose.</p></div>
           <div className="c27-grid">{STUDIO_SHOWCASES.map(study=><article key={study.slug} className="c27-card">
             <StudioShowcaseVisual study={study} compact />
             <div className="c27-card-content"><p className="c27-kicker">{study.category} · Studio-built</p><h3>{study.title}</h3><p>{study.headline}</p><p className="mt-3 !text-xs">Enquiry goal: {study.goal}</p><Link to={"/case-studies/showcase/"+study.slug}>Explore case study <ArrowRight className="h-4 w-4"/></Link></div>
           </article>)}</div>
-          <p className="mt-6 max-w-4xl text-xs leading-6 text-[#697585]">Showcase businesses and briefs are illustrative. The previews are rendered using the app's existing template configuration; final paid websites are personalised and require business content, approved proof and studio review.</p>
+          <p className="mt-6 max-w-4xl text-xs leading-6 text-[#697585]">These are real website builds created by Bennie Studio using illustrative business briefs, not paid client projects. Final client websites are personalised with approved business content and proof, then reviewed by the studio.</p>
         </div>
       </section>
       <section className="brand-shell brand-section grid gap-9 lg:grid-cols-[1fr_auto] lg:items-center"><div><h2 className="mt-4">Wondering what this would look like for your business?</h2><p className="brand-copy mt-5">Tell us about your business and receive a preliminary website direction before choosing a managed plan.</p></div><Link to="/generate-preview" className="c27-button">Get your free website preview <ArrowRight className="h-4 w-4"/></Link></section>

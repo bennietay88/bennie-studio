@@ -16,17 +16,17 @@ export const STUDIO_SHOWCASES = [
 ] as const;
 export type StudioShowcase=(typeof STUDIO_SHOWCASES)[number];
 export function StudioShowcaseVisual({study,compact=false}:{study:StudioShowcase,compact?:boolean}){
- return <div className="c27-visual" style={{background:study.colour}}><div className="c27-rendered"><TemplatePreviewThumbnail templateId={study.id} templateName={study.title} className={compact?"h-[218px]":"h-[340px] sm:h-[440px]"}/></div><span className="c27-caption">Rendered from Bennie Studio's built-in website template</span></div>
+ return <div className="c27-visual" style={{background:study.colour}}><div className="c27-rendered"><TemplatePreviewThumbnail templateId={study.id} templateName={study.title} className={compact?"h-[218px]":"h-[340px] sm:h-[440px]"}/></div><span className="c27-caption">Actual website built with Bennie Studio</span></div>
 }
 export default function StudioCaseStudyDetail(){
  const {slug}=useParams();const study=STUDIO_SHOWCASES.find(s=>s.slug===slug);
  return <div className="brand-public c27-public min-h-screen bg-[#f8f8f5]">
  <PublicSiteHeader/>
- {study?<><Helmet><title>{study.title} Website | Studio Showcase | Bennie Studio</title><meta name="description" content={study.challenge+" Review the Bennie Studio app-rendered website direction."}/><link rel="canonical" href={"https://app.bennietay.com/case-studies/showcase/"+study.slug}/></Helmet>
+ {study?<><Helmet><title>{study.title} Website | Studio Showcase | Bennie Studio</title><meta name="description" content={study.challenge+" Review an actual website build by Bennie Studio."}/><link rel="canonical" href={"https://app.bennietay.com/case-studies/showcase/"+study.slug}/></Helmet>
  <main>
  <section className="c27-editorial"><div className="brand-shell py-12 sm:py-20">
  <Link to="/case-studies" className="c27-quiet"><ArrowLeft size={16}/> All case studies</Link>
- <div className="mt-9 grid gap-10 lg:grid-cols-12 lg:items-center"><div className="lg:col-span-5"><h1 className="c27-major">{study.headline}</h1><p className="mt-6 text-base leading-8 text-[#525b66]">{study.challenge}</p><Link to={"/generate-preview?industry="+study.industry} className="c27-button mt-8" onClick={()=>trackPublicEvent({eventType:"showcase_preview_cta",label:study.title,target:"/generate-preview",metadata:{showcase:study.slug}})}>Get a free website preview <ArrowUpRight size={18}/></Link><p className="mt-6 text-xs leading-6 text-[#666c76]">A product-generated design direction, not paid client work. This is an illustrative business brief; no real-company outcomes or performance metrics are claimed.</p></div><div className="lg:col-span-7"><StudioShowcaseVisual study={study}/></div></div>
+ <div className="mt-9 grid gap-10 lg:grid-cols-12 lg:items-center"><div className="lg:col-span-5"><h1 className="c27-major">{study.headline}</h1><p className="mt-6 text-base leading-8 text-[#525b66]">{study.challenge}</p><Link to={"/generate-preview?industry="+study.industry} className="c27-button mt-8" onClick={()=>trackPublicEvent({eventType:"showcase_preview_cta",label:study.title,target:"/generate-preview",metadata:{showcase:study.slug}})}>Get a free website preview <ArrowUpRight size={18}/></Link><p className="mt-6 text-xs leading-6 text-[#666c76]">An actual website build by Bennie Studio using an illustrative business brief, not paid client work. No real-company outcomes or performance metrics are claimed.</p></div><div className="lg:col-span-7"><StudioShowcaseVisual study={study}/></div></div>
  </div></section>
  <section className="brand-shell py-20"><div className="grid gap-12 lg:grid-cols-12"><div className="lg:col-span-4"><h2 className="c27-section-title">Designed for the next customer decision.</h2><p className="mt-5 text-[#53606d]">The output demonstrates a website direction, not a promise of sales performance.</p></div><div className="lg:col-span-8">
  {[["01","The business brief",study.challenge],["02","Our design approach",study.approach],["03","Primary website goal",study.goal]].map(([num,title,body])=><div key={num} className="c27-decision"><span>{num}</span><div><h3>{title}</h3><p>{body}</p></div></div>)}
