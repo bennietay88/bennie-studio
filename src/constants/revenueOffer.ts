@@ -1,4 +1,4 @@
-import { COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, type CommercialMarket } from "../lib/commercialPricing";
+import { COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice } from "../lib/commercialPricing";
 
 export type RevenueMarket = "MY" | "SG" | "GB" | "US";
 
@@ -26,9 +26,9 @@ export const PRIMARY_REVENUE_OFFER = {
   ],
   prices: Object.fromEntries(
     (["US", "GB", "SG", "MY"] as RevenueMarket[]).map((market) => {
-      const commercialMarket: CommercialMarket = market === "US" ? "INTL" : market;
+      // Country is retained for targeting; the published price book is USD.
       const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "growth-partner")!;
-      const price = getCommercialPrice(product, commercialMarket)!;
+      const price = getCommercialPrice(product, "INTL")!;
       return [market, {
         monthly: Number(price.monthlyPrice || 0),
         setup: Number(price.setupFee || 0),
