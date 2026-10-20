@@ -7576,8 +7576,17 @@ async function startServer() {
             });
             await Promise.all(workers);
           };
-          if (process.env.VERCEL === "1") waitUntil(dispatchJobs());
-          else void dispatchJobs();
+          const background = process.env.QSTASH_TOKEN && getJobWorkerSecret()
+            ? dispatchJobs()
+            : Promise.all(auditJobs.slice(0, 4).map(async (job: any) => {
+                // Accelerate the first few audits even without an external queue.
+                // All remaining jobs persist for authenticated batch processing
+                // and scheduled recovery, independent of the uploader's browser.
+                try { await processQueuedJob(job.id); }
+                catch (error: any) { console.warn("[ProspectImportAudits] Initial processing deferred:", job.id, error?.message); }
+              }));
+          if (process.env.VERCEL === "1") waitUntil(background);
+          else void background;
         }
       }
       res.setHeader("Cache-Control", "private, no-store");
@@ -7628,6 +7637,33 @@ async function startServer() {
       return res.status(503).json({ error: "Import audit results are temporarily unavailable." });
     }
   });
+
+  app.post("/api/admin/prospects/import-audits/:batchId/process", authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 6, keyPrefix: "admin-import-audit-process", key: (req) => req.user?.id || getClientIp(req) }),
+    async (req: any, res: any) => {
+      if (!UUID_SCHEMA.safeParse(req.params.batchId).success) return res.status(400).json({ error: "Invalid import batch" });
+      try {
+        const profile = await getProfileForUser(req.user.id);
+        if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+        const { data, error } = await supabaseAdmin.from("async_jobs")
+          .select("id").eq("job_type", "website_audit").eq("user_id", req.user.id)
+          .contains("payload", { importBatchId: req.params.batchId })
+          .eq("status", "queued").lte("run_after", new Date().toISOString())
+          .order("created_at", { ascending: true }).limit(4);
+        if (error) throw error;
+        const results = await Promise.all((data || []).map((job: any) => processQueuedJob(job.id)));
+        res.setHeader("Cache-Control", "private, no-store");
+        return res.json({
+          processed: results.filter((item) => item.processed).length,
+          completed: results.filter((item) => item.job?.status === "completed").length,
+          queuedForRetry: results.filter((item) => item.job?.status === "failed").length,
+        });
+      } catch (error: any) {
+        console.warn("[ProspectImportAudits] Batch processing failed:", error?.message || error);
+        return res.status(503).json({ error: "Automatic audit processing is temporarily unavailable." });
+      }
+    },
+  );
 
   app.get("/api/admin/sales-inbox", authenticate, async (req: any, res: any) => {
     try {
