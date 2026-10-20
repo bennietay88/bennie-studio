@@ -41,7 +41,8 @@ export function ProposalsDeals() {
   React.useEffect(() => { void fetchData(); }, [fetchData]);
   React.useEffect(() => { if (form.target) sessionStorage.removeItem("bts_proposal_lead_id"); }, [form.target]);
 
-  const commercialMarket: CommercialMarket = form.market === "US" ? "INTL" : form.market;
+  // Target country is retained for lead context, but new proposal amounts use USD.
+  const commercialMarket: CommercialMarket = "INTL";
   const { products: liveCommercialProducts } = usePublicCommercialPricing(commercialMarket);
   const baseOffer = getOfferForMarket(form.market);
   const liveGrowthPartner = liveCommercialProducts.find((product) => product.slug === "growth-partner");
