@@ -107,19 +107,20 @@ export default function BrandLedLandingPage() {
     try { localStorage.setItem(CONSENT_KEY, JSON.stringify(next)); } catch {}
   };
 
+  const profilePlan = products.find((product) => product.slug === "personal-profile") || COMMERCIAL_FALLBACK_PRODUCTS.find((product) => product.slug === "personal-profile")!;
   const managed = products.find((product) => product.slug === "managed-website") || COMMERCIAL_FALLBACK_PRODUCTS[0];
   const growth = products.find((product) => product.slug === "website-growth") || COMMERCIAL_FALLBACK_PRODUCTS[1];
   const partner = products.find((product) => product.slug === "growth-partner") || COMMERCIAL_FALLBACK_PRODUCTS[2];
-  const priced = [managed, growth, partner].map((product) => ({
+  const priced = [profilePlan, managed, growth, partner].map((product) => ({
     product,
     price: getCommercialPrice(product, market),
   }));
-  const planBestFor = ["Your first professional website", "For businesses seeking more enquiries", "For hands-on growth support"];
+  const planBestFor = ["Professional identity", "First business website", "More business enquiries", "Hands-on growth support"];
   const planComparisonRows = [
-    ["Website management", ["Included", "Included", "Included"]],
-    ["Conversion optimisation", ["Foundation", "Monthly", "Advanced"]],
-    ["Local SEO", ["Foundation", "Expansion", "Ongoing"]],
-    ["Growth support", ["—", "Limited", "Ongoing"]],
+    ["Website management", ["Included", "Included", "Included", "Included"]],
+    ["Conversion optimisation", ["Contact CTA", "Foundation", "Monthly", "Advanced"]],
+    ["Local SEO", ["Basic on-page", "Foundation", "Expansion", "Ongoing"]],
+    ["Growth support", ["—", "—", "Limited", "Ongoing"]],
   ] as const;
 
   const go = (path: string, label: string) => {
@@ -198,11 +199,11 @@ export default function BrandLedLandingPage() {
             <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-end">
               <div>
                 <p className="brand-kicker">Simple, transparent pricing</p>
-                <h2 className="mt-4">Choose the support your business needs.</h2>
+                <h2 className="mt-4">A managed website for every stage.</h2>
               </div>
               <p className="max-w-xl text-sm leading-6 text-[#526071]">Compare what you pay today and the support included at each level. <Link to="/pricing" className="font-semibold text-[#5746e8] underline underline-offset-4">See full scope and terms</Link>.</p>
             </div>
-            <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {priced.map(({ product, price }, index) => {
                     const isRecommended = product.slug === "website-growth";
                     const priceReady = !pricingLoading && !pricingError && Boolean(price);
@@ -232,6 +233,7 @@ export default function BrandLedLandingPage() {
                     );
                   })}
             </div>
+            <p className="mt-5 text-center text-sm text-[#687386]">Building a personal brand? <Link to="/personal-profile" className="font-semibold text-[#5746e8] underline underline-offset-4">See Personal Profile.</Link></p>
             <p className="mt-5 text-center text-sm text-[#687386]">Not ready to decide? <Link to="/generate-preview" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Pricing section free preview", target: "/generate-preview" })} className="font-semibold text-[#5746e8] underline underline-offset-4">Get a free website direction first.</Link></p>
             <p className="mt-3 text-center text-sm text-[#687386]">Need a one-time WordPress build instead? <a href="https://web.bennietay.com/#packages" className="font-semibold text-[#5746e8] underline underline-offset-4">Compare SiteFoundry packages.</a></p>
           </div>

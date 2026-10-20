@@ -131,7 +131,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
     .filter((line) => /^##\s+/.test(line))
     .map((line) => line.replace(/^##\s+/, "").trim());
   const managedCommitments = commercialProducts
-    .filter((product) => ["managed-website", "website-growth", "growth-partner"].includes(product.slug))
+    .filter((product) => ["personal-profile", "managed-website", "website-growth", "growth-partner"].includes(product.slug))
     .map((product) => ({
       slug: product.slug,
       name: product.name,

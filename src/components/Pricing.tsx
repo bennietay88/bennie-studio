@@ -126,9 +126,11 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [closeOrderSummary, pendingProduct]);
 
+  const profilePlan = products.find((product) => product.slug === "personal-profile") || COMMERCIAL_FALLBACK_PRODUCTS.find((product) => product.slug === "personal-profile")!;
   const managed = products.find((product) => product.slug === "managed-website") || COMMERCIAL_FALLBACK_PRODUCTS[0];
   const growth = products.find((product) => product.slug === "website-growth") || COMMERCIAL_FALLBACK_PRODUCTS[1];
   const premium = products.find((product) => product.slug === "growth-partner") || COMMERCIAL_FALLBACK_PRODUCTS[2];
+  const profilePrice = getCommercialPrice(profilePlan, publicMarket);
   const managedPrice = getCommercialPrice(managed, publicMarket); const growthPrice = getCommercialPrice(growth, publicMarket); const premiumPrice = getCommercialPrice(premium, publicMarket);
   React.useEffect(() => {
     if (!loading) {
@@ -146,17 +148,18 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
   const minimumInitialTermTotal = pendingPrice?.monthlyPrice == null ? null : pendingOfferQuote.totalInitialTerm;
   const pendingStandard = pendingCheckoutProduct ? PLAN_DELIVERY_STANDARDS[pendingCheckoutProduct.slug as PublicPlanSlug] : null;
   const planSet = [
-    [managed, managedPrice, "Professional presence"],
+    [profilePlan, profilePrice, "For solo professionals"],
+    [managed, managedPrice, "For service businesses"],
     [growth, growthPrice, "Active acquisition"],
     [premium, premiumPrice, "Ongoing growth"],
   ] as const;
 
   const comparisonRows = [
-    ["Website management", ["Included", "Included", "Included"]],
-    ["Conversion optimisation", ["Foundation", "Monthly", "Advanced"]],
-    ["Local SEO", ["Foundation", "Expansion", "Ongoing"]],
-    ["Landing pages", ["Limited", "Included", "Included"]],
-    ["Growth support", ["—", "Limited", "Ongoing"]],
+    ["Website management", ["Included", "Included", "Included", "Included"]],
+    ["Conversion optimisation", ["Contact CTA", "Foundation", "Monthly", "Advanced"]],
+    ["Local SEO", ["Basic on-page", "Foundation", "Expansion", "Ongoing"]],
+    ["Landing pages", ["Not included", "Limited", "Included", "Included"]],
+    ["Growth support", ["—", "—", "Limited", "Ongoing"]],
   ];
 
   return <div id="plans" aria-busy={loading} className={cn("brand-shell scroll-mt-24", hideIntro ? "py-14 sm:py-20" : "py-14 sm:py-20")}>
@@ -192,7 +195,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
     {!profile?.businessId && !currentPlan && !onSelectPlan && <label className={editorial ? "s28-promo mt-5 cursor-pointer" : "mt-5 flex cursor-pointer items-start gap-3 border border-indigo-200 bg-indigo-50 p-5 text-slate-950"}><input type="checkbox" checked={introOfferEnabled} onChange={(event) => { setIntroOfferEnabled(event.target.checked); setTermsAccepted(false); }} className="mt-1 h-5 w-5 shrink-0 accent-indigo-600" /><span><strong>Optional new-customer offer: first month of website management FREE</strong><span className="mt-1 block text-sm leading-6">Choose a 12-month minimum service commitment. One-time website setup is still payable at checkout; months 2–12 are billed at the plan rate. Leave this unchecked to keep the standard shorter commitment. The contract continues monthly after the minimum term, under the published cancellation terms.</span></span></label>}
     {editorial ? (
       <>
-        <div className="s28-price-plans" aria-busy={loading}>
+        <div className="s28-price-plans !grid !grid-cols-1 md:!grid-cols-2 xl:!grid-cols-4" aria-busy={loading}>
         {planSet.map(([product,price,bestFor])=>{
           const recommended=product.slug==="website-growth";
           const priceReady=!loading&&!pricingError&&Boolean(price);
@@ -222,7 +225,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
       </div>
       <div className="s28-compare" id="compare-scope">
         <h2>Compare what's actually included.</h2>
-        <p>The published delivery scope and ongoing growth support vary by plan. Scroll sideways on mobile to compare all three.</p>
+        <p>The published delivery scope and ongoing growth support vary by plan. Scroll sideways on mobile to compare all four.</p>
         <div className="s28-compare-scroll" role="region" aria-label="Detailed managed website plan comparison" tabIndex={0}>
           <table><thead><tr><th scope="col">Included scope</th>{planSet.map(([product])=><th scope="col" key={product.slug}>{product.name}</th>)}</tr></thead>
           <tbody>
@@ -239,7 +242,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
       </div>
       </>
     ) : (
-    <div className="mt-6 grid gap-4 lg:grid-cols-3" aria-busy={loading}>
+    <div className="mt-6 grid gap-4 lg:grid-cols-4" aria-busy={loading}>
 
       {planSet.map(([product, price, bestFor], index) => {
         const isGrowth = product.slug === "website-growth";

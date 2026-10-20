@@ -26,7 +26,7 @@ export interface Plan {
   isActive?: boolean;
 }
 
-const marketPricesFor = (slug: "managed-website" | "website-growth" | "growth-partner") =>
+const marketPricesFor = (slug: "personal-profile" | "managed-website" | "website-growth" | "growth-partner") =>
   Object.fromEntries((['MY', 'SG', 'GB', 'INTL'] as CommercialMarket[]).map((market) => {
     const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === slug)!;
     const price = getCommercialPrice(product, market)!;
@@ -223,6 +223,15 @@ export const PLANS: Plan[] = [
       "before_after_rescue_tool",
     ],
     isActive: true,
+  },
+  { id:"profile", name:"Personal Profile",price:"US$29/mo",priceId:"",productId:"",
+    description:"Standardized 3–5 page website for independent professionals.",
+    aiCredits:0,maxPages:5,maxLocationPages:0,monthlyUpdates:"1 small update, up to 15 minutes",monthlyUpdateLimit:1,
+    commitmentMonths:COMMERCIAL_DEFAULT_COMMITMENT_MONTHS,setupFee:99,
+    marketPrices:marketPricesFor("personal-profile"),marketPriceIds:{},
+    upgradePrompt:"Upgrade to Managed Website when you need custom business website services.",
+    features:["3–5 professional profile pages","Fixed responsive layouts","Professional bio and credentials","Expertise and portfolio","Contact form and social links","Basic SEO and SSL","Managed hosting","One prelaunch revision","One small monthly content update"],
+    enabled_features:["custom_domain","done_for_you_request_portal"],isActive:true,
   },
 ];
 

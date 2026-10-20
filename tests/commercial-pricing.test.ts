@@ -26,8 +26,8 @@ test("checkout stays closed for draft international markets", () => {
 
 test("managed website recurring price book is fixed by market", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "managed-website");
-  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 199);
-  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 1099);
+  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 269);
+  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 899);
   assert.equal(getCommercialPrice(product!, "MY")?.annualPrice, null);
   assert.equal(getCommercialPrice(product!, "MY")?.billingInterval, "month");
   assert.equal(getCommercialPrice(product!, "MY")?.minimumTermMonths, 3);
@@ -36,10 +36,10 @@ test("managed website recurring price book is fixed by market", () => {
 
 test("all four launch markets keep the approved recurring catalogue", () => {
   const expected = {
-    MY: [199, 1099, "MYR"],
-    SG: [99, 399, "SGD"],
-    GB: [79, 249, "GBP"],
-    INTL: [89, 299, "USD"],
+    MY: [269, 899, "MYR"],
+    SG: [79, 259, "SGD"],
+    GB: [49, 159, "GBP"],
+    INTL: [59, 199, "USD"],
   } as const;
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "managed-website")!;
   for (const [market, [monthly, setup, currency]] of Object.entries(expected)) {
@@ -63,17 +63,17 @@ test("recurring checkout remains fail-closed until the market row is live and co
 test("growth partner is a self-serve recurring service", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "growth-partner");
   assert.equal(product?.salesMotion, "self_serve");
-  assert.equal(getCommercialPrice(product!, "SG")?.monthlyPrice, 399);
-  assert.equal(getCommercialPrice(product!, "SG")?.setupFee, 1499);
+  assert.equal(getCommercialPrice(product!, "SG")?.monthlyPrice, 259);
+  assert.equal(getCommercialPrice(product!, "SG")?.setupFee, 659);
   assert.equal(getCommercialPrice(product!, "SG")?.billingInterval, "month");
 });
 
 test("website growth is recurring with a separate setup fee", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "website-growth");
-  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 399);
-  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 2499);
-  assert.equal(getCommercialPrice(product!, "INTL")?.monthlyPrice, 179);
-  assert.equal(getCommercialPrice(product!, "INTL")?.setupFee, 599);
+  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 449);
+  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 1349);
+  assert.equal(getCommercialPrice(product!, "INTL")?.monthlyPrice, 99);
+  assert.equal(getCommercialPrice(product!, "INTL")?.setupFee, 299);
   assert.equal(getCommercialPrice(product!, "INTL")?.billingInterval, "month");
 });
 
@@ -162,4 +162,13 @@ test("commercial commitment helpers use the configured market term", () => {
   assert.equal(getMinimumTermMonths({ minimumTermMonths: undefined }), COMMERCIAL_DEFAULT_COMMITMENT_MONTHS);
   assert.equal(formatCommitmentLabel(1), "1-month initial commitment");
   assert.equal(formatCommitmentLabel(6), "6-month initial commitment");
+});
+
+
+test("USD four-tier OTC/MRC offers", () => {
+ for(const [slug,mrc,otc] of [["personal-profile",29,99],["managed-website",59,199],["website-growth",99,299],["growth-partner",199,499]] as const){
+  const item=COMMERCIAL_FALLBACK_PRODUCTS.find(p=>p.slug===slug)!;
+  assert.equal(getCommercialPrice(item,"INTL")?.monthlyPrice,mrc);
+  assert.equal(getCommercialPrice(item,"INTL")?.setupFee,otc);
+ }
 });

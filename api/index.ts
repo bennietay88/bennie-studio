@@ -3889,7 +3889,7 @@ async function startServer() {
           proofSignals: z.array(z.string().trim().min(1).max(160)).max(8),
           primaryConversionPath: z.string().trim().min(1).max(160),
           recommendedProduct: z.object({
-            slug: z.enum(["managed-website", "website-growth", "growth-partner", "custom-website"]),
+            slug: z.enum(["personal-profile", "managed-website", "website-growth", "growth-partner", "custom-website"]),
             label: z.string().trim().min(1).max(120),
             reason: z.string().trim().min(1).max(400),
             salesMotion: z.enum(["self_serve", "review"]),
@@ -7717,7 +7717,7 @@ async function startServer() {
     }
     const body = validateBody(
       z.object({
-        productSlug: z.enum(["managed-website", "website-growth", "growth-partner", "custom-website"]).default("managed-website"),
+        productSlug: z.enum(["personal-profile", "managed-website", "website-growth", "growth-partner", "custom-website"]).default("managed-website"),
         market: z.enum(["MY", "SG", "GB", "INTL"]).default("INTL"),
         termMonths: z.number().int().min(1).max(120).optional(),
         setupFee: z.number().finite().min(0).max(1000000).default(0),
@@ -8653,20 +8653,20 @@ async function startServer() {
       .eq("active", true)
       // Custom Website is quote-led but still belongs in the public catalogue
       // so acquisition pages can route visitors to the correct consultation path.
-      .in("slug", ["managed-website", "website-growth", "growth-partner", "custom-website"])
+      .in("slug", ["personal-profile", "managed-website", "website-growth", "growth-partner", "custom-website"])
       .eq("commercial_market_prices.market", market)
       .eq("commercial_market_prices.active", true)
       .order("sort_order", { ascending: true });
     if (error) return res.status(503).json({ error: "Commercial pricing is temporarily unavailable" });
     const products = (data || []).map((product: any) => {
       const price = Array.isArray(product.commercial_market_prices) ? product.commercial_market_prices[0] : product.commercial_market_prices;
-      const dynamicCheckoutAvailable = false;
+      const dynamicCheckoutAvailable = price?.recurring_config_status === "live" && Number(price?.recurring_monthly_price || 0) > 0;
       // Keep draft markets consultation-led even though the catalogue stores
       // one product-level sales motion. Malaysia is the only market currently
       // allowed to expose a self-service recurring checkout.
       const publicSalesMotion = product.sales_motion === "quote"
         ? "quote"
-        : price?.recurring_config_status === "live" && price?.recurring_stripe_monthly_price_id
+        : dynamicCheckoutAvailable
           ? product.sales_motion
           : "proposal";
       return {
@@ -8936,7 +8936,7 @@ async function startServer() {
   });
 
   app.post("/api/public/call-bookings", rateLimit({ windowMs: 60 * 1000, max: 8, keyPrefix: "call-bookings" }), async (req, res) => {
-    const body = validateBody(z.object({ leadId: UUID_SCHEMA.optional(), name: TEXT_SCHEMA, email: EMAIL_SCHEMA, phone: z.string().max(80).optional(), businessName: TEXT_SCHEMA, market: z.enum(["MY", "SG", "GB", "US"]).optional(), industry: z.string().max(160).optional(), websiteUrl: z.string().url().max(500).optional(), startAt: z.string().datetime(), timezone: z.literal(SALES_CALL_TIMEZONE).default(SALES_CALL_TIMEZONE), goals: z.string().max(2000).optional(), previewId: z.string().trim().max(160).optional(), selectedProduct: z.enum(["managed-website", "website-growth", "growth-partner"]).optional(), sourcePage: z.string().trim().max(500).optional() }), req, res);
+    const body = validateBody(z.object({ leadId: UUID_SCHEMA.optional(), name: TEXT_SCHEMA, email: EMAIL_SCHEMA, phone: z.string().max(80).optional(), businessName: TEXT_SCHEMA, market: z.enum(["MY", "SG", "GB", "US"]).optional(), industry: z.string().max(160).optional(), websiteUrl: z.string().url().max(500).optional(), startAt: z.string().datetime(), timezone: z.literal(SALES_CALL_TIMEZONE).default(SALES_CALL_TIMEZONE), goals: z.string().max(2000).optional(), previewId: z.string().trim().max(160).optional(), selectedProduct: z.enum(["personal-profile", "managed-website", "website-growth", "growth-partner"]).optional(), sourcePage: z.string().trim().max(500).optional() }), req, res);
     if (!body) return;
     const startAt = new Date(body.startAt);
     if (startAt <= new Date() || startAt > new Date(Date.now() + 15 * 86400000)) return res.status(400).json({ error: "Choose an available time in the next 14 days" });
@@ -9839,7 +9839,7 @@ async function startServer() {
     rateLimit({ windowMs: 60 * 60 * 1000, max: 5, keyPrefix: "public-plan-checkout" }),
     async (req: any, res: any) => {
       const body = validateBody(z.object({
-        productSlug: z.enum(["managed-website", "website-growth", "growth-partner"]),
+        productSlug: z.enum(["personal-profile", "managed-website", "website-growth", "growth-partner"]),
         billingCycle: z.literal("monthly").optional().default("monthly"),
         currency: z.enum(["USD", "GBP", "MYR", "SGD"]).optional().default("USD"),
         customerEmail: EMAIL_SCHEMA.optional().nullable(),
@@ -9869,7 +9869,6 @@ async function startServer() {
         }
         if (
           price.recurring_config_status !== "live"
-          || !price.recurring_stripe_monthly_price_id
           || Number(price.recurring_monthly_price || 0) <= 0
         ) {
           return res.status(409).json({
@@ -9894,9 +9893,8 @@ async function startServer() {
         // Test-mode QA cannot use live-mode Price IDs from the commercial
         // catalogue. Build equivalent inline prices only when the deployment
         // is explicitly configured with the Stripe test key and test flag.
-        const useTestDynamicPrices = process.env.STRIPE_TEST_DYNAMIC_PRICES === "true"
-          && String(process.env.STRIPE_SECRET_KEY || "").startsWith("sk_test_");
-        const lineItems: any[] = useTestDynamicPrices
+        const useInlinePrices = true;
+        const lineItems: any[] = useInlinePrices
           ? [
               {
                 price_data: {
@@ -9919,7 +9917,7 @@ async function startServer() {
                 : []),
             ]
           : [{ price: price.recurring_stripe_monthly_price_id, quantity: 1 }];
-        if (!useTestDynamicPrices && setup > 0) {
+        if (!useInlinePrices && setup > 0) {
           if (!price.recurring_stripe_setup_price_id) {
             return res.status(409).json({
               error: "The setup fee is not configured for secure checkout yet.",
@@ -9944,7 +9942,7 @@ async function startServer() {
           }
           if (!recurring && live.recurring) throw new Error("STRIPE_CATALOG_MISMATCH");
         };
-        if (!useTestDynamicPrices) {
+        if (!useInlinePrices) {
           await verifyStripePrice(price.recurring_stripe_monthly_price_id, monthly, true);
           if (setup > 0) await verifyStripePrice(price.recurring_stripe_setup_price_id, setup, false);
         }
@@ -10064,7 +10062,7 @@ async function startServer() {
         previewId: z.string().trim().min(8).max(160),
         leadId: UUID_SCHEMA,
         email: EMAIL_SCHEMA,
-        productSlug: z.enum(["managed-website", "website-growth", "growth-partner"]),
+        productSlug: z.enum(["personal-profile", "managed-website", "website-growth", "growth-partner"]),
         currency: z.enum(["USD", "GBP", "MYR", "SGD"]).optional().default("USD"),
         referralCode: z.string().trim().max(120).optional().nullable(),
         introOffer: z.literal("FIRST_MONTH_FREE_12M").optional(),
@@ -10116,7 +10114,6 @@ async function startServer() {
         }
         if (
           price.recurring_config_status !== "live"
-          || !price.recurring_stripe_monthly_price_id
           || Number(price.recurring_monthly_price || 0) <= 0
         ) {
           return res.status(409).json({
@@ -10250,35 +10247,17 @@ async function startServer() {
           orderId = order.id;
         }
 
-        const lineItems: any[] = [
-          { price: price.recurring_stripe_monthly_price_id, quantity: 1 },
-        ];
-        if (setup > 0) {
-          if (!price.recurring_stripe_setup_price_id) {
-            return res.status(409).json({
-              error: "The setup fee is not configured for secure checkout yet.",
-              code: "SETUP_PRICE_NOT_CONFIGURED",
-            });
-          }
-          lineItems.push({ price: price.recurring_stripe_setup_price_id, quantity: 1 });
-        }
-
-        // Verify server-side Stripe catalogue amounts before exposing Checkout.
-        const verifyStripePrice = async (priceId: string, expectedAmount: number, recurring: boolean) => {
-          const live = await stripe.prices.retrieve(priceId, { expand: ["product"] });
-          if (live.active === false || String(live.currency || "").toUpperCase() !== String(price.currency || "USD").toUpperCase()) {
-            throw new Error("STRIPE_CATALOG_MISMATCH");
-          }
-          if (Number(live.unit_amount || 0) !== Math.round(expectedAmount * 100)) {
-            throw new Error("STRIPE_CATALOG_MISMATCH");
-          }
-          if (recurring && (!live.recurring || live.recurring.interval !== "month" || live.recurring.interval_count !== 1)) {
-            throw new Error("STRIPE_CATALOG_MISMATCH");
-          }
-          if (!recurring && live.recurring) throw new Error("STRIPE_CATALOG_MISMATCH");
-        };
-        await verifyStripePrice(price.recurring_stripe_monthly_price_id, monthly, true);
-        if (setup > 0) await verifyStripePrice(price.recurring_stripe_setup_price_id, setup, false);
+        // Catalogue amounts are server-side; inline Checkout prices avoid stale immutable Price IDs.
+        const lineItems: any[] = [{ price_data: {
+          currency: String(price.currency || commercialCurrencyForMarket(market)).toLowerCase(),
+          product_data: { name: product.name, description: product.description || undefined },
+          unit_amount: Math.round(monthly * 100), recurring: { interval: "month" },
+        }, quantity: 1 }];
+        if (setup > 0) lineItems.push({ price_data: {
+          currency: String(price.currency || commercialCurrencyForMarket(market)).toLowerCase(),
+          product_data: { name: `${product.name} setup` },
+          unit_amount: Math.round(setup * 100),
+        }, quantity: 1 });
         const introCoupon = isIntroOffer ? await createIntroOfferCoupon(stripe, monthly, String(price.currency || "USD"), body.previewId) : null;
 
         const session = await stripe.checkout.sessions.create({
@@ -10578,7 +10557,7 @@ async function startServer() {
         couponId: z.string().trim().max(120).optional().nullable(),
         type: z.enum(["credits", "subscription"]).optional(),
         planId: z.string().trim().min(1).max(80).optional().nullable(),
-        productSlug: z.enum(["managed-website", "website-growth", "growth-partner", "custom-website"]).optional().nullable(),
+        productSlug: z.enum(["personal-profile", "managed-website", "website-growth", "growth-partner", "custom-website"]).optional().nullable(),
         billingCycle: z.enum(["monthly", "yearly"]).optional().default("monthly"),
         market: z.enum(["MY", "SG", "GB", "US", "INTL"]).optional().default("INTL"),
         promotionCode: z.string().trim().max(120).optional().nullable(),
@@ -10664,8 +10643,7 @@ async function startServer() {
           // Customer checkout is available only for markets with an activated
           // recurring Stripe configuration. Draft international markets are
           // consultation-only until an operator activates their price IDs.
-          useDynamicCatalogPrices = process.env.STRIPE_TEST_DYNAMIC_PRICES === "true"
-            && String(process.env.STRIPE_SECRET_KEY || "").startsWith("sk_test_");
+          useDynamicCatalogPrices = recurringMode && !checkoutBody.promotionCode;
           if (!recurringMode && !useDynamicCatalogPrices) return res.status(400).json({ error: "Recurring checkout is not enabled for this product and market yet." });
           if (useDynamicCatalogPrices && billingCycle === "yearly" && !currentPrice.recurring_annual_price) {
             return res.status(400).json({ error: "Annual billing is not configured for this market yet. Choose monthly billing or book a consultation." });
@@ -10696,7 +10674,7 @@ async function startServer() {
             priceId = billingCycle === "yearly" ? priceId : promotion.stripe_monthly_price_id;
             configuredSetupPriceId = isUpgrade ? null : (promotion.stripe_setup_price_id || configuredSetupPriceId);
           }
-          if (Number(currentPrice.recurring_setup_fee || 0) > 0 && !configuredSetupPriceId && !isUpgrade) {
+          if (Number(currentPrice.recurring_setup_fee || 0) > 0 && !configuredSetupPriceId && !isUpgrade && !useDynamicCatalogPrices) {
             return res.status(400).json({ error: `${market} setup-fee checkout is not configured for this product.` });
           }
           resolvedProductSlug = currentProduct.slug;
@@ -10807,7 +10785,7 @@ async function startServer() {
         ...(resolvedProductSlug ? { tax_id_collection: { enabled: true } } : {}),
         line_items: (useDynamicCatalogPrices || (process.env.NODE_ENV !== "production" && process.env.STRIPE_TEST_DYNAMIC_PRICES === "true")) && resolvedProductSlug && testDynamicMonthlyAmount
           ? [
-              { price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: resolvedProductSlug === "managed-website" ? "Managed Website" : resolvedProductSlug === "growth-partner" ? "Growth Partner" : "Website Growth" }, unit_amount: Math.round(testDynamicMonthlyAmount * 100), recurring: { interval: billingCycle === "yearly" ? "year" : "month" } }, quantity: 1 },
+              { price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: resolvedProductSlug === "personal-profile" ? "Personal Profile" : resolvedProductSlug === "managed-website" ? "Managed Website" : resolvedProductSlug === "growth-partner" ? "Growth Partner" : "Website Growth" }, unit_amount: Math.round(testDynamicMonthlyAmount * 100), recurring: { interval: billingCycle === "yearly" ? "year" : "month" } }, quantity: 1 },
               ...(testDynamicSetupAmount && !isOneTimeCheckout && !checkoutBody.upgradeFrom ? [{ price_data: { currency: commercialCurrencyForMarket(market).toLowerCase(), product_data: { name: "Website setup" }, unit_amount: Math.round(testDynamicSetupAmount * 100) }, quantity: 1 }] : []),
             ]
           : [

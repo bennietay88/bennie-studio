@@ -1,6 +1,6 @@
 export type CommercialMarket = "MY" | "SG" | "GB" | "INTL";
 export type CommercialCurrency = "MYR" | "SGD" | "GBP" | "USD";
-export type CommercialProductSlug = "managed-website" | "website-growth" | "growth-partner" | "custom-website";
+export type CommercialProductSlug = "personal-profile" | "managed-website" | "website-growth" | "growth-partner" | "custom-website";
 export const COMMERCIAL_MARKET_CHANGED_EVENT = "bt-commercial-market-changed";
 /** Launch offer commitment used by public checkout and customer records. */
 export const COMMERCIAL_DEFAULT_COMMITMENT_MONTHS = 3;
@@ -98,8 +98,8 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
     productType: "managed_website",
     salesMotion: "self_serve",
     prices: [
-      ["MY", 199], ["SG", 99], ["GB", 79], ["INTL", 89],
-    ].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 1099, SG: 399, GB: 249, INTL: 299 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
+      ["MY", 269], ["SG", 79], ["GB", 49], ["INTL", 59],
+    ].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 899, SG: 259, GB: 159, INTL: 199 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
   },
   {
     slug: "website-growth",
@@ -108,7 +108,7 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
     productType: "website_growth",
     salesMotion: "self_serve",
     includesProductSlug: "managed-website",
-    prices: [["MY", 399], ["SG", 199], ["GB", 149], ["INTL", 179]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 2499, SG: 799, GB: 499, INTL: 599 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
+    prices: [["MY", 449], ["SG", 129], ["GB", 79], ["INTL", 99]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 1349, SG: 399, GB: 239, INTL: 299 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
   },
   {
     slug: "growth-partner",
@@ -116,7 +116,17 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
     description: "A consultant-led managed website engagement with deeper conversion strategy, landing pages, expanded SEO and growth direction.",
     productType: "growth_partner",
     salesMotion: "self_serve",
-    prices: [["MY", 799], ["SG", 399], ["GB", 299], ["INTL", 349]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 4999, SG: 1499, GB: 999, INTL: 1199 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
+    prices: [["MY", 899], ["SG", 259], ["GB", 159], ["INTL", 199]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 2249, SG: 659, GB: 399, INTL: 499 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
+  },
+  {
+    slug: "personal-profile", name: "Personal Profile",
+    description: "A done-for-you professional website: up to five fixed-format profile pages, contact links, basic SEO and managed hosting.",
+    productType: "managed_website", salesMotion: "self_serve",
+    prices: [["MY",129],["SG",39],["GB",25],["INTL",29]].map(([market,monthlyPrice])=>({
+      market:market as CommercialMarket, currency:COMMERCIAL_MARKETS[market as CommercialMarket].currency,
+      monthlyPrice:monthlyPrice as number,setupFee:({MY:449,SG:129,GB:79,INTL:99} as Record<string,number>)[market as string],
+      annualPrice:null,billingInterval:"month" as const,minimumTermMonths:3,recurringConfigured:false,recurringConfigStatus:"draft" as const,
+    })),
   },
   {
     slug: "custom-website",

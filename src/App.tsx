@@ -63,6 +63,7 @@ const lazy = <T extends React.ComponentType<any>>(
 
 // --- Lazy Loaded Components ---
 const LandingPage = lazy(() => import("./components/BrandLedLandingPage"));
+const PersonalProfilePage = lazy(() => import("./components/PersonalProfilePage"));
 const LoginPage = lazy(() => import("./components/LoginPage"));
 const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
 const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPages"));
@@ -464,6 +465,7 @@ export default function App() {
             <PublicRouteTransition>
               <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/personal-profile" element={<PersonalProfilePage />} />
               <Route path="/pay-monthly-websites" element={<OwnSalesSeoPage />} />
               <Route path="/pay-monthly-websites/:market" element={<Navigate to="/pay-monthly-websites" replace />} />
               <Route path="/website-design/*" element={<Navigate to="/website-subscription-service" replace />} />

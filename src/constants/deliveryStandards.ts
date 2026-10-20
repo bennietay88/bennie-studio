@@ -2,7 +2,7 @@ import type { Website, ButtonHealthIssue } from "../types";
 
 export const DELIVERY_STANDARD_VERSION = "2026.09.20";
 
-export type PublicPlanSlug = "managed-website" | "website-growth" | "growth-partner";
+export type PublicPlanSlug = "personal-profile" | "managed-website" | "website-growth" | "growth-partner";
 
 export const PLAN_DELIVERY_STANDARDS: Record<PublicPlanSlug, {
   pages: string;
@@ -17,6 +17,15 @@ export const PLAN_DELIVERY_STANDARDS: Record<PublicPlanSlug, {
   updateBusinessDays: number;
   targetLaunchBusinessDays: number;
 }> = {
+  "personal-profile": {
+    pages:"3–5 fixed-format professional profile pages",revisions:"1 consolidated pre-launch revision round",
+    updates:"1 small content-edit request per month (up to 15 minutes)",
+    landingPages:"Not included",seo:"Basic on-page SEO and social-sharing metadata",
+    strategy:"Customer-supplied biography, expertise, genuine work highlights and a contact path",
+    targetFirstDraft:"First draft targeted within 5 business days after a complete brief",
+    targetUpdateTurnaround:"Small updates targeted within 3 business days",
+    firstDraftBusinessDays:5,updateBusinessDays:3,targetLaunchBusinessDays:10,
+  },
   "managed-website": {
     pages: "Up to 5 core pages",
     revisions: "1 consolidated pre-launch revision round",
@@ -183,6 +192,7 @@ export function addBusinessDays(from: Date, businessDays: number) {
 
 export function legacyPlanToPublicPlanSlug(plan?: string | null): PublicPlanSlug {
   const normalized = String(plan || "").toLowerCase();
+  if (["profile","personal-profile","personal_profile"].includes(normalized)) return "personal-profile";
   if (["growth_partner", "growth-partner", "partner"].includes(normalized)) return "growth-partner";
   if (["growth", "premium", "website_growth", "website-growth"].includes(normalized)) return "website-growth";
   return "managed-website";
