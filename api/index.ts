@@ -2926,23 +2926,59 @@ async function startServer() {
                   },
                 });
 
-                // 1. Update Legacy Business Table
-                await supabaseAdmin
+                // 1. Activate the pending business created by public checkout.
+                // A checkout can outlive its pending row (for example, after an
+                // account cleanup). Verify the update matched a row; restore it
+                // from server-owned Stripe metadata before creating FK children.
+                const activatedAt = new Date().toISOString();
+                const businessActivation = {
+                  stripe_customer_id: session.customer as string,
+                  stripe_subscription_id: session.subscription as string,
+                  subscription_status: subscription.status,
+                  status: "active",
+                  plan: planSlug,
+                  commercial_product_slug: currentProduct?.slug || requestedProductSlug || null,
+                  commercial_market: currentPrice?.market || session.metadata?.market || null,
+                  commercial_currency: currentPrice?.currency || session.metadata?.currency || null,
+                  commercial_term_months: session.metadata?.termMonths ? Number(session.metadata.termMonths) : null,
+                  commercial_started_at: activatedAt,
+                  ai_credits: plan?.monthly_credit_limit || 300
+                };
+                const { data: activatedBusiness, error: activationError } = await supabaseAdmin
                   .from("businesses")
-                  .update({
-                    stripe_customer_id: session.customer as string,
-                    stripe_subscription_id: session.subscription as string,
-                    subscription_status: subscription.status,
-                    status: "active",
-                    plan: planSlug,
-                    commercial_product_slug: currentProduct?.slug || requestedProductSlug || null,
-                    commercial_market: currentPrice?.market || session.metadata?.market || null,
-                    commercial_currency: currentPrice?.currency || session.metadata?.currency || null,
-                    commercial_term_months: session.metadata?.termMonths ? Number(session.metadata.termMonths) : null,
-                    commercial_started_at: new Date().toISOString(),
-                    ai_credits: plan?.monthly_credit_limit || 300
-                  })
-                  .eq("id", businessId);
+                  .update(businessActivation)
+                  .eq("id", businessId)
+                  .select("id")
+                  .maybeSingle();
+                if (activationError) throw activationError;
+                if (!activatedBusiness) {
+                  const { error: restoreBusinessError } = await supabaseAdmin
+                    .from("businesses")
+                    .insert({
+                      id: businessId,
+                      name: "New Bennie Studio customer",
+                      owner_id: null,
+                      status: "active",
+                      subscription_status: subscription.status,
+                      plan: planSlug,
+                      industry: "Professional Services",
+                      business_nature: "Managed website customer awaiting account activation",
+                      business_type: "local_service",
+                      lifecycle_stage: "checkout",
+                      lifecycle_stage_changed_at: activatedAt,
+                      commercial_product_slug: currentProduct?.slug || requestedProductSlug || null,
+                      commercial_market: currentPrice?.market || session.metadata?.market || null,
+                      commercial_currency: currentPrice?.currency || session.metadata?.currency || null,
+                      commercial_term_months: session.metadata?.termMonths ? Number(session.metadata.termMonths) : null,
+                      stripe_customer_id: session.customer as string,
+                      stripe_subscription_id: session.subscription as string,
+                      commercial_started_at: activatedAt,
+                      ai_credits: plan?.monthly_credit_limit || 300,
+                      admin_notes: `Restored from confirmed Stripe checkout ${session.id}.`,
+                    });
+                  if (restoreBusinessError) throw restoreBusinessError;
+                  console.warn(`Restored missing business ${businessId} from confirmed Stripe checkout`);
+                }
 
                 // Payment is the handoff boundary: create the first delivery
                 // project exactly once so fulfilment can begin without a
@@ -3128,6 +3164,9 @@ async function startServer() {
               }
             } catch (err) {
               console.error(`Error updating business after checkout:`, err);
+              // Leave the Stripe event retryable when activation or fulfilment
+              // fails; acknowledging it here would permanently lose the order.
+              throw err;
             }
           }
         }
