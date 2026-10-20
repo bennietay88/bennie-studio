@@ -10,6 +10,7 @@ import Stripe from "stripe";
 import dotenv from "dotenv";
 import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
+import { waitUntil } from "@vercel/functions";
 import { Resend } from "resend";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
@@ -4539,6 +4540,25 @@ async function startServer() {
           .then(({ error }) => { if (error) console.warn("Audit follow-up update failed", error.message); });
         // Do not create duplicate sales tasks or mark leads as converted.
       }
+      // Prospect imports are internal research; never send outreach emails automatically.
+      // Record the result against the imported prospect and expose the shareable
+      // review only after the audit actually completes.
+      if (job.payload?.prospectId && !job.payload?.leadId) {
+        const prospectId = String(job.payload.prospectId);
+        const completedAt = new Date().toISOString();
+        const opportunityLevel = report.findings.some((finding: any) => finding.priority === "high") ? "high" : "medium";
+        const { error: reportError } = await supabaseAdmin.from("audit_reports").insert({
+          prospect_id: prospectId, score: null, report_data: report,
+        });
+        if (reportError) console.warn(`[ProspectAudit:${job.id}] Audit history insert failed:`, reportError.message);
+        const { error: prospectUpdateError } = await supabaseAdmin.from("prospects").update({
+          preview_url: reportUrl,
+          preview_generated_at: completedAt,
+          last_audit_at: completedAt,
+          opportunity_level: opportunityLevel,
+        }).eq("id", prospectId);
+        if (prospectUpdateError) throw prospectUpdateError;
+      }
       return { success: true, report, deliveryStatus: delivery, completedAt: new Date().toISOString() };
     }
 
@@ -7500,9 +7520,112 @@ async function startServer() {
         rows.map((row) => ({ ...attachUploaderOutreachDeclaration(row, importedAt), created_by: req.user.id })),
       ).select("*");
       if (error) throw error;
-      return res.status(201).json({ prospects: data || [], imported: data?.length || 0, duplicates, skippedReasons, submitted: parsed.prospects.length + parsed.duplicates });
+      // Importing prospects schedules evidence-based website checks without
+      // blocking the CSV response or triggering any unsolicited emails.
+      const importBatchId = crypto.randomUUID();
+      const imported = data || [];
+      const auditCandidates: Array<{ prospect: any; url: string }> = [];
+      const auditSkipped: Array<{ prospectId: string; name: string; domain: string; status: string; reason: string }> = [];
+      for (const prospect of imported) {
+        const domain = String(prospect.domain || "").trim();
+        if (!domain) {
+          auditSkipped.push({ prospectId: prospect.id, name: prospect.name, domain: "", status: "no_website", reason: "No website URL supplied" });
+          continue;
+        }
+        const url = /^https?:\/\//i.test(domain) ? domain : `https://${domain}`;
+        const parsedUrl = PUBLIC_URL_SCHEMA.safeParse(url);
+        if (!parsedUrl.success || new URL(url).username || new URL(url).password) {
+          auditSkipped.push({ prospectId: prospect.id, name: prospect.name, domain, status: "invalid_url", reason: "Invalid public website URL" });
+          continue;
+        }
+        auditCandidates.push({ prospect, url: parsedUrl.data });
+      }
+      let auditJobs: any[] = [];
+      let auditQueueError: string | null = null;
+      if (auditCandidates.length) {
+        const jobs = auditCandidates.map(({ prospect, url }) => ({
+          job_type: "website_audit",
+          status: "queued",
+          user_id: req.user.id,
+          priority: 80,
+          max_attempts: 3,
+          idempotency_key: `prospect-import-website-audit:${prospect.id}`,
+          payload: {
+            importBatchId, prospectId: prospect.id, url,
+            businessName: String(prospect.name || "").slice(0, 160),
+            industry: String(prospect.industry || "").slice(0, 160),
+            reportAccessKey: crypto.randomBytes(32).toString("hex"),
+          },
+        }));
+        const created = await supabaseAdmin.from("async_jobs").insert(jobs).select("id,status,payload");
+        if (created.error) {
+          auditQueueError = "Audit queue could not be created. The prospects were imported but their audits need retry.";
+          console.warn("[ProspectImportAudits] Queue failed:", created.error.message);
+        } else {
+          auditJobs = created.data || [];
+          // Dispatch jobs after responding. QStash runs the existing hardened audit
+          // worker. The recurring cron independently recovers undelivered jobs.
+          const dispatchJobs = async () => {
+            let next = 0;
+            const workers = Array.from({ length: Math.min(12, auditJobs.length) }, async () => {
+              while (next < auditJobs.length) {
+                const job = auditJobs[next++];
+                try { await publishJobToQstash(job.id); }
+                catch (dispatchError: any) { console.warn("[ProspectImportAudits] Dispatch deferred to recovery:", job.id, dispatchError?.message); }
+              }
+            });
+            await Promise.all(workers);
+          };
+          if (process.env.VERCEL === "1") waitUntil(dispatchJobs());
+          else void dispatchJobs();
+        }
+      }
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.status(201).json({
+        prospects: imported, imported: imported.length, duplicates, skippedReasons,
+        submitted: parsed.prospects.length + parsed.duplicates, importBatchId,
+        auditsQueued: auditJobs.length, auditSkipped, auditQueueError,
+      });
     } catch {
       return res.status(503).json({ error: "Prospect import could not be completed. Please retry; existing records will be checked again." });
+    }
+  });
+
+  app.get("/api/admin/prospects/import-audits/:batchId", authenticate, async (req: any, res: any) => {
+    if (!UUID_SCHEMA.safeParse(req.params.batchId).success) return res.status(400).json({ error: "Invalid import batch" });
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      const { data, error } = await supabaseAdmin.from("async_jobs")
+        .select("id,status,payload,result,last_error,created_at,updated_at,completed_at")
+        .eq("job_type", "website_audit")
+        .eq("user_id", req.user.id)
+        .contains("payload", { importBatchId: req.params.batchId })
+        .order("created_at", { ascending: true }).limit(500);
+      if (error) throw error;
+      const audits = (data || []).map((job: any) => {
+        const report = job.status === "completed" ? job.result?.report : null;
+        const findings = Array.isArray(report?.findings) ? report.findings : [];
+        const reportKey = String(job.payload?.reportAccessKey || "");
+        return {
+          id: job.id,
+          prospectId: job.payload?.prospectId || null,
+          name: job.payload?.businessName || "Prospect",
+          domain: job.payload?.url || "",
+          status: job.status,
+          findingsCount: report ? findings.length : null,
+          highPriorityCount: report ? findings.filter((finding: any) => finding.priority === "high").length : null,
+          summary: report ? String(report.summary || "") : null,
+          topFinding: findings[0]?.title || null,
+          reportUrl: report && reportKey ? `${publicAppUrl()}/website-audit?report=${encodeURIComponent(job.id)}&key=${encodeURIComponent(reportKey)}` : null,
+          error: job.status === "failed" ? String(job.last_error || "The audit could not be completed.") : null,
+          completedAt: job.completed_at,
+        };
+      });
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.json({ importBatchId: req.params.batchId, audits });
+    } catch (error: any) {
+      return res.status(503).json({ error: "Import audit results are temporarily unavailable." });
     }
   });
 
