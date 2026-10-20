@@ -39,9 +39,9 @@ export type CommercialProduct = {
 };
 
 export const COMMERCIAL_MARKETS: Record<CommercialMarket, { label: string; currency: CommercialCurrency; symbol: string }> = {
-  MY: { label: "Malaysia", currency: "MYR", symbol: "RM" },
-  SG: { label: "Singapore", currency: "SGD", symbol: "S$" },
-  GB: { label: "United Kingdom", currency: "GBP", symbol: "£" },
+  MY: { label: "Malaysia", currency: "USD", symbol: "$" },
+  SG: { label: "Singapore", currency: "USD", symbol: "$" },
+  GB: { label: "United Kingdom", currency: "USD", symbol: "$" },
   INTL: { label: "International", currency: "USD", symbol: "$" },
 };
 
@@ -57,18 +57,10 @@ export const marketForCountry = normalizeCommercialMarket;
 
 export const CHECKOUT_CURRENCIES: Array<{ value: CommercialCurrency; label: string }> = [
   { value: "USD", label: "USD" },
-  { value: "GBP", label: "GBP" },
-  { value: "MYR", label: "MYR" },
-  { value: "SGD", label: "SGD" },
 ];
 
-export const marketForCurrency = (currency?: string | null): CommercialMarket => {
-  const normalized = String(currency || "USD").toUpperCase();
-  if (normalized === "MYR") return "MY";
-  if (normalized === "SGD") return "SG";
-  if (normalized === "GBP") return "GB";
-  return "INTL";
-};
+// New sales and checkouts use the verified international USD catalogue.
+export const marketForCurrency = (_currency?: string | null): CommercialMarket => "INTL";
 
 export const formatCommercialMoney = (amount: number | null | undefined, currency: CommercialCurrency) => {
   if (amount === null || amount === undefined) return "Quote required";
@@ -100,8 +92,8 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
     productType: "managed_website",
     salesMotion: "self_serve",
     prices: [
-      ["MY", 269], ["SG", 79], ["GB", 49], ["INTL", 59],
-    ].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 899, SG: 259, GB: 159, INTL: 199 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
+      ["MY", 59], ["SG", 59], ["GB", 59], ["INTL", 59],
+    ].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 199, SG: 199, GB: 199, INTL: 199 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
   },
   {
     slug: "website-growth",
@@ -110,7 +102,7 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
     productType: "website_growth",
     salesMotion: "self_serve",
     includesProductSlug: "managed-website",
-    prices: [["MY", 449], ["SG", 129], ["GB", 79], ["INTL", 99]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 1349, SG: 399, GB: 239, INTL: 299 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
+    prices: [["MY", 99], ["SG", 99], ["GB", 99], ["INTL", 99]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 299, SG: 299, GB: 299, INTL: 299 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
   },
   {
     slug: "growth-partner",
@@ -118,15 +110,15 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
     description: "A consultant-led managed website engagement with deeper conversion strategy, landing pages, expanded SEO and growth direction.",
     productType: "growth_partner",
     salesMotion: "self_serve",
-    prices: [["MY", 899], ["SG", 259], ["GB", 159], ["INTL", 199]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 2249, SG: 659, GB: 399, INTL: 499 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
+    prices: [["MY", 199], ["SG", 199], ["GB", 199], ["INTL", 199]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 499, SG: 499, GB: 499, INTL: 499 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
   },
   {
     slug: "personal-profile", name: "Personal Profile",
     description: "A done-for-you professional website: up to five fixed-format profile pages, contact links, basic SEO and managed hosting.",
     productType: "managed_website", salesMotion: "self_serve",
-    prices: [["MY",129],["SG",39],["GB",25],["INTL",29]].map(([market,monthlyPrice])=>({
+    prices: [["MY",29],["SG",29],["GB",29],["INTL",29]].map(([market,monthlyPrice])=>({
       market:market as CommercialMarket, currency:COMMERCIAL_MARKETS[market as CommercialMarket].currency,
-      monthlyPrice:monthlyPrice as number,setupFee:({MY:449,SG:129,GB:79,INTL:99} as Record<string,number>)[market as string],
+      monthlyPrice:monthlyPrice as number,setupFee:({MY:99,SG:99,GB:99,INTL:99} as Record<string,number>)[market as string],
       annualPrice:null,billingInterval:"month" as const,minimumTermMonths:3,recurringConfigured:false,recurringConfigStatus:"draft" as const,
     })),
   },
@@ -140,35 +132,15 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
   },
 ];
 
-export const getCommercialPrice = (product: CommercialProduct, market: CommercialMarket) => product.prices.find((price) => price.market === market) || product.prices.find((price) => price.market === "INTL");
+export const getCommercialPrice = (product: CommercialProduct, _market: CommercialMarket) => product.prices.find((price) => price.market === "INTL" && price.currency === "USD");
 
 /** Customer checkout is enabled only after an operator activates recurring Stripe prices. */
 export const isRecurringCheckoutEnabled = (price: Pick<CommercialPrice, "recurringConfigStatus" | "monthlyConfigured"> | null | undefined) =>
   price?.recurringConfigStatus === "live" && price.monthlyConfigured === true;
 
-export const getStoredMarket = (): CommercialMarket => {
-  try {
-    // A selected billing market passed from the main site takes precedence.
-    const requested = typeof window !== "undefined" ? new URLSearchParams(window.location?.search || "").get("market")?.toUpperCase() : null;
-    if (requested && ["MY", "SG", "GB", "UK", "INTL"].includes(requested)) return normalizeCommercialMarket(requested);
-    const stored = localStorage.getItem("bt_commercial_market");
-    if (stored) return normalizeCommercialMarket(stored);
+// Ignore older country/currency preferences and campaign overrides for pricing.
+export const getStoredMarket = (): CommercialMarket => "INTL";
 
-    // Public pricing is USD-first for a global audience. Explicit campaign
-    // market parameters and a visitor's saved market still take precedence.
-    return "INTL";
-  } catch {
-    return "INTL";
-  }
-};
-
-export const persistCommercialMarket = (market: CommercialMarket) => {
-  try { localStorage.setItem("bt_commercial_market", market); } catch { /* storage is optional */ }
-  try {
-    const url = new URL(window.location.href);
-    if (url.searchParams.has("market")) {
-      url.searchParams.set("market", market);
-      window.history.replaceState(window.history.state, "", url);
-    }
-  } catch { /* URL synchronization is optional outside a browser. */ }
+export const persistCommercialMarket = (_market: CommercialMarket) => {
+  try { localStorage.setItem("bt_commercial_market", "INTL"); } catch { /* optional */ }
 };
