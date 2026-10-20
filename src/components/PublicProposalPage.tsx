@@ -56,8 +56,9 @@ export default function PublicProposalPage() {
 
   const businessName = proposal?.leads?.raw_fields?.businessName || proposal?.businesses?.name || proposal?.leads?.name || "your business";
   const market = proposal?.config?.market || "US";
-  const currency = market === "MY" ? "MYR" : market === "SG" ? "SGD" : market === "GB" ? "GBP" : "USD";
-  const locale = market === "MY" ? "en-MY" : market === "SG" ? "en-SG" : market === "GB" ? "en-GB" : "en-US";
+  // The accepted proposal's agreed currency is authoritative; new proposals are USD.
+  const currency = String(proposal?.config?.currency || (market === "MY" ? "MYR" : market === "SG" ? "SGD" : market === "GB" ? "GBP" : "USD")).toUpperCase();
+  const locale = currency === "MYR" ? "en-MY" : currency === "SGD" ? "en-SG" : currency === "GBP" ? "en-GB" : "en-US";
   const commitmentMonths = Number(proposal?.config?.commitmentMonths || 3);
   const termsMarket = market === "US" ? "INTL" : market;
   const money = (value: number) => new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 0 }).format(Number(value || 0));
