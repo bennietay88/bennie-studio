@@ -89,6 +89,19 @@ export function ProspectExplorer() {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [stats, setStats] = useState({ total: 0, high: 0, contacted: 0, notContacted: 0, booked: 0, due: 0 });
   const [lastImportSummary, setLastImportSummary] = useState("");
+  const [importAuditBatchId, setImportAuditBatchId] = useState(() => {
+    try { return sessionStorage.getItem("bt_last_prospect_audit_batch") || ""; } catch { return ""; }
+  });
+  const [importAuditSkipped, setImportAuditSkipped] = useState<Array<{ prospectId: string; name: string; domain: string; status: string; reason: string }>>(() => {
+    try { return JSON.parse(sessionStorage.getItem("bt_last_prospect_audit_skipped") || "[]"); } catch { return []; }
+  });
+  const [importAuditResults, setImportAuditResults] = useState<Array<{
+    id: string; prospectId: string; name: string; domain: string; status: string;
+    findingsCount: number | null; highPriorityCount: number | null; summary: string | null;
+    topFinding: string | null; reportUrl: string | null; error: string | null;
+  }>>([]);
+  const [importAuditLoading, setImportAuditLoading] = useState(false);
+  const [importAuditError, setImportAuditError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [industryFilter, setIndustryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -152,6 +165,60 @@ export function ProspectExplorer() {
     if (!outreachProspect || outreachReplyToMessageId || outreachDraftTouched) return;
     applyOutreachTemplate(outreachTemplateId, outreachProspect, outreachObservation);
   }, [outreachProspect?.id, outreachTemplateId, outreachObservation, outreachReplyToMessageId, outreachDraftTouched]);
+
+  // Jobs persist on the server; a closed upload dialog never cancels audits.
+  // Poll only the current operator's most recent import batch.
+  useEffect(() => {
+    if (!importAuditBatchId) return;
+    let active = true;
+    let poll: ReturnType<typeof setInterval> | undefined;
+    const refresh = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const response = await fetch(`/api/admin/prospects/import-audits/${encodeURIComponent(importAuditBatchId)}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` }, cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Could not load import audit progress.");
+        const result = await response.json();
+        if (active) { setImportAuditResults(result.audits || []); setImportAuditError(""); }
+      } catch (error: any) {
+        if (active) setImportAuditError(error.message || "Audit progress is temporarily unavailable.");
+      } finally {
+        if (active) setImportAuditLoading(false);
+      }
+    };
+    setImportAuditResults([]);
+    setImportAuditLoading(true);
+    void refresh();
+    poll = setInterval(() => { void refresh(); }, 10000);
+    return () => { active = false; if (poll) clearInterval(poll); };
+  }, [importAuditBatchId]);
+
+  const exportImportAudits = () => {
+    const rows = [
+      ["Business", "Website", "Status", "Findings", "High priority", "Top finding", "Summary", "Report link", "Error"],
+      ...importAuditResults.map((audit) => [
+        audit.name, audit.domain, audit.status, audit.findingsCount ?? "",
+        audit.highPriorityCount ?? "", audit.topFinding || "", audit.summary || "",
+        audit.reportUrl || "", audit.error || "",
+      ]),
+      ...importAuditSkipped.map((item) => [item.name, item.domain, item.status, "", "", "", item.reason, "", ""]),
+    ];
+    const cell = (value: unknown) => {
+      let content = String(value ?? "");
+      // Prevent spreadsheet formula evaluation of untrusted prospect data.
+      if (/^[=+@\-]/.test(content)) content = "'" + content;
+      return '"' + content.replace(/"/g, '""') + '"';
+    };
+    const blob = new Blob(["\uFEFF" + rows.map((row) => row.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const link = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = link;
+    anchor.download = `prospect-audit-results-${importAuditBatchId || "latest"}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(link);
+  };
 
   const csvPreview = useMemo(() => {
     if (!csvText.trim()) {
@@ -669,7 +736,17 @@ export function ProspectExplorer() {
       const imported = Number(payload.imported || 0);
       const duplicates = Number(payload.duplicates || 0);
       const reasons = payload.skippedReasons || {};
-      setLastImportSummary(`Import: ${imported} added, ${duplicates} skipped. ${Number(reasons.existingEmail || 0)} duplicate emails, ${Number(reasons.existingDomain || 0)} duplicate domains, ${Number(reasons.existingBusiness || 0)} business matches, ${Number(reasons.withinFile || 0)} duplicates within CSV.`);
+      setLastImportSummary(`Import: ${imported} added, ${duplicates} skipped. ${Number(reasons.existingEmail || 0)} duplicate emails, ${Number(reasons.existingDomain || 0)} duplicate domains, ${Number(reasons.existingBusiness || 0)} business matches, ${Number(reasons.withinFile || 0)} duplicates within CSV. ${Number(payload.auditsQueued || 0)} automatic website audits queued.`);
+      const skippedAudits = Array.isArray(payload.auditSkipped) ? payload.auditSkipped : [];
+      setImportAuditSkipped(skippedAudits);
+      if (payload.importBatchId) {
+        try {
+          sessionStorage.setItem("bt_last_prospect_audit_batch", payload.importBatchId);
+          sessionStorage.setItem("bt_last_prospect_audit_skipped", JSON.stringify(skippedAudits));
+        } catch { /* browser storage optional */ }
+        setImportAuditBatchId(payload.importBatchId);
+      }
+      if (payload.auditQueueError) toast.error(payload.auditQueueError);
       resetCsvImport();
       setIsImportModalOpen(false);
 
@@ -1313,6 +1390,42 @@ export function ProspectExplorer() {
         ))}
       </div>
 
+      {(importAuditBatchId || importAuditSkipped.length > 0) && (
+        <Card className="overflow-hidden rounded-3xl border-indigo-100 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-950"><Globe className="h-5 w-5 text-indigo-600" /> Latest import · automatic website audits</h2>
+              <p className="mt-1 text-xs text-slate-600">Audits run in the background. Results and private review links appear when each website analysis is complete. No outreach is sent.</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">
+                {importAuditResults.filter((item) => item.status === "completed").length} completed · {importAuditResults.filter((item) => ["queued","processing"].includes(item.status)).length} pending · {importAuditResults.filter((item) => item.status === "failed").length} failed · {importAuditSkipped.length} without a valid website
+              </p>
+            </div>
+            <Button variant="outline" size="sm" disabled={importAuditResults.length === 0 && importAuditSkipped.length === 0} onClick={exportImportAudits}><Download className="mr-2 h-4 w-4" />Export audit results CSV</Button>
+          </div>
+          {importAuditError && <p className="px-5 py-3 text-sm text-amber-700" role="alert">{importAuditError}</p>}
+          {importAuditLoading && <p className="flex items-center gap-2 px-5 py-3 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" />Loading audit progress…</p>}
+          <div className="max-h-[420px] overflow-auto">
+            <table className="w-full min-w-[850px] text-left text-sm">
+              <thead className="sticky top-0 bg-white text-xs text-slate-500"><tr><th className="px-5 py-3">Business</th><th className="px-4 py-3">Website</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Audit result</th><th className="px-4 py-3">Report</th></tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {importAuditResults.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-5 py-3 font-semibold text-slate-900">{item.name}</td>
+                    <td className="max-w-[240px] truncate px-4 py-3 text-xs text-slate-600" title={item.domain}>{item.domain}</td>
+                    <td className="px-4 py-3"><span className="capitalize">{item.status.replace(/_/g," ")}</span></td>
+                    <td className="max-w-[350px] px-4 py-3 text-xs text-slate-600">
+                      {item.status === "completed" ? <><strong className="text-slate-900">{item.findingsCount ?? 0} findings · {item.highPriorityCount ?? 0} high priority</strong><p className="mt-1 line-clamp-2" title={item.topFinding || item.summary || ""}>{item.topFinding || item.summary}</p></> : item.error || (item.status === "processing" ? "Reviewing public website…" : "Awaiting audit")}
+                    </td>
+                    <td className="px-4 py-3">{item.reportUrl ? <a href={item.reportUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-indigo-700 underline underline-offset-2">Open report <ExternalLink className="h-3.5 w-3.5" /></a> : <span className="text-xs text-slate-400">Not ready</span>}</td>
+                  </tr>
+                ))}
+                {importAuditSkipped.map((item) => <tr key={item.prospectId}><td className="px-5 py-3 font-semibold text-slate-900">{item.name}</td><td className="px-4 py-3 text-xs text-slate-600">{item.domain || "—"}</td><td className="px-4 py-3 text-xs">Skipped</td><td className="px-4 py-3 text-xs text-slate-500">{item.reason}</td><td className="px-4 py-3 text-xs text-slate-400">—</td></tr>)}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
       <Card className="rounded-[2rem] border-slate-100 shadow-sm overflow-hidden">
         <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white p-4">
           {[["all","All"],["follow_up_due","Follow-up due"],["high","High opportunity"],["contacted","Contacted"],["not_contacted","Not contacted"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
@@ -1694,7 +1807,7 @@ export function ProspectExplorer() {
               </DialogTitle>
               <DialogDescription>
                 Upload one CSV file. Bennie maps common prospect columns automatically,
-                checks the file before import, and skips duplicates.
+                checks the file before import, skips duplicates, and automatically queues a website audit for each new prospect with a valid website URL.
                 Imported email addresses are treated as authorized by the uploader for manual outreach.
                 This records your declaration, not independently verified recipient opt-in.
                 Suppressions and provider sending policies still apply.
