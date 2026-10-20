@@ -23,7 +23,7 @@
     },
     {
       "path": "/api/cron/website-audits",
-      "schedule": "20 2 * * *"
+      "schedule": "20 * * * *"
     }
   ],
   "headers": [
