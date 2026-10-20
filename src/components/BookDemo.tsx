@@ -184,7 +184,7 @@ export default function BookDemo() {
           sourcePage: "/book-demo",
           previewId: saved.previewId,
           market: form.market === "US" ? "INTL" : form.market,
-          currency: form.market === "MY" ? "MYR" : form.market === "SG" ? "SGD" : form.market === "GB" ? "GBP" : "USD",
+          currency: "USD",
           landingPage: saved.attribution?.landingPage || saved.attribution?.sourcePage,
           service: saved.service,
           selectedProduct: requestedProduct,
