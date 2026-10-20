@@ -6938,7 +6938,8 @@ async function startServer() {
       if (proposal.checkout_url) return res.json({ checkoutUrl: proposal.checkout_url, reused: true });
       const market = String(proposal.config?.market || "US").toUpperCase();
       const currencyByMarket: Record<string, string> = { MY: "myr", SG: "sgd", GB: "gbp", UK: "gbp", US: "usd" };
-      const currency = currencyByMarket[market] || String(proposal.config?.currency || "usd").toLowerCase();
+      // Keep historical proposal amounts in their originally agreed currency; new proposals are explicitly USD.
+      const currency = String(proposal.config?.currency || currencyByMarket[market] || "usd").toLowerCase();
       const monthlyAmount = Math.round(Number(proposal.value || proposal.amount || 0) * 100);
       const setupAmount = Math.round(Number(proposal.setup_fee || 0) * 100);
       if (!monthlyAmount) return res.status(400).json({ error: "Proposal monthly value is missing" });
@@ -8712,9 +8713,10 @@ async function startServer() {
     }catch(error){return res.status(403).json({error:"Could not verify customer waiver"});}
   });
   app.get("/api/public/pricing", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-pricing" }), async (req, res) => {
-    const market = normalizeCommercialMarket(req.query.market);
+    // All published offer prices come from the verified international USD catalogue.
+    const market = "INTL" as const;
     if (process.env.E2E_TEST === "true") {
-      return res.json({ market, currency: market === "MY" ? "MYR" : "USD", products: [] });
+      return res.json({ market, currency: "USD", products: [] });
     }
     await refreshLaunchFlags();
     let globalWaiver: "global" | "customer" | null;
@@ -8986,7 +8988,7 @@ async function startServer() {
 
   app.get("/api/public/geo-pricing", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-geo-pricing" }), async (req, res) => {
     const countryCode = String(req.headers["x-vercel-ip-country"] || "US").toUpperCase().slice(0, 2);
-    const market = normalizeCommercialMarket(countryCode);
+    const market = "INTL" as const;
     let detectedCountryName = countryCode === "US" ? "Global" : countryCode;
     try {
       detectedCountryName = new Intl.DisplayNames(["en"], { type: "region" }).of(countryCode) || detectedCountryName;
@@ -9916,7 +9918,7 @@ async function startServer() {
       const body = validateBody(z.object({
         productSlug: z.enum(["personal-profile", "managed-website", "website-growth", "growth-partner"]),
         billingCycle: z.literal("monthly").optional().default("monthly"),
-        currency: z.enum(["USD", "GBP", "MYR", "SGD"]).optional().default("USD"),
+        currency: z.literal("USD").optional().default("USD"),
         customerEmail: EMAIL_SCHEMA.optional().nullable(),
         referralCode: z.string().trim().max(120).optional().nullable(),
         introOffer: z.literal("FIRST_MONTH_FREE_12M").optional(),
@@ -10141,7 +10143,7 @@ async function startServer() {
         leadId: UUID_SCHEMA,
         email: EMAIL_SCHEMA,
         productSlug: z.enum(["personal-profile", "managed-website", "website-growth", "growth-partner"]),
-        currency: z.enum(["USD", "GBP", "MYR", "SGD"]).optional().default("USD"),
+        currency: z.literal("USD").optional().default("USD"),
         referralCode: z.string().trim().max(120).optional().nullable(),
         introOffer: z.literal("FIRST_MONTH_FREE_12M").optional(),
         termsAccepted: z.literal(true),
@@ -10659,7 +10661,8 @@ async function startServer() {
         message: "Test accounts cannot start checkout on production. Use the Preview environment with Stripe test keys.",
       });
     }
-    const market = normalizeCommercialMarket(checkoutBody.market);
+    // New catalogue subscriptions are USD, independently of an existing customer\'s historic billing market.
+    const market = productSlug ? "INTL" : normalizeCommercialMarket(checkoutBody.market);
     const legacyMarket = checkoutBody.market === "US" ? "US" : market;
     let priceId = checkoutBody.priceId || "";
     let resolvedProductSlug = productSlug || null;
@@ -10679,7 +10682,7 @@ async function startServer() {
       const businessMarket = checkoutBusiness?.commercial_market
         ? normalizeCommercialMarket(checkoutBusiness.commercial_market)
         : null;
-      if (businessMarket && businessMarket !== market) {
+      if (businessMarket && businessMarket !== market && market !== "INTL") {
         return res.status(409).json({
           error: "CHECKOUT_MARKET_MISMATCH",
           message: `This account is configured for ${businessMarket}. Refresh pricing for that market before checkout.`,
