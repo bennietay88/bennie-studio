@@ -21,7 +21,9 @@ type PricingState = {
 const unpricedProducts = (): CommercialProduct[] =>
   COMMERCIAL_FALLBACK_PRODUCTS.map((product) => ({ ...product, prices: [] }));
 
-export function usePublicCommercialPricing(market: CommercialMarket) {
+export function usePublicCommercialPricing(_market: CommercialMarket) {
+  // Every public and newly issued commercial price uses the verified USD book.
+  const market: CommercialMarket = "INTL";
   const [state, setState] = React.useState<PricingState>({
     market: null,
     products: unpricedProducts(),
