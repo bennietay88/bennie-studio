@@ -3,7 +3,6 @@ import { ArrowLeft, ArrowRight, Check, CreditCard, ShieldCheck } from "lucide-re
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
 import {
-  CHECKOUT_CURRENCIES,
   COMMERCIAL_FALLBACK_PRODUCTS,
   formatCommitmentLabel,
   formatCommercialMoney,
@@ -83,7 +82,7 @@ function readPreviewIntent(): PreviewIntent {
 export function PreviewOrderPage() {
   const location = useLocation();
   const [intent] = React.useState<PreviewIntent>(() => readPreviewIntent());
-  const [checkoutCurrency, setCheckoutCurrency] = React.useState<CommercialCurrency>("USD");
+  const checkoutCurrency: CommercialCurrency = "USD";
   const checkoutMarket = marketForCurrency(checkoutCurrency);
   const { products, loading } = usePublicCommercialPricing(checkoutMarket);
   const [selectedSlug, setSelectedSlug] = React.useState(
@@ -206,7 +205,7 @@ export function PreviewOrderPage() {
               </p>
             </div>
             <div className="lg:col-span-4 lg:text-right">
-              <p className="text-sm font-semibold text-[#526071]">Choose billing currency at checkout · {formatCommitmentLabel(commitmentMonths)}</p>
+              <p className="text-sm font-semibold text-[#526071]">All prices in USD · {formatCommitmentLabel(commitmentMonths)}</p>
               <p className="mt-1 text-sm text-[#707b8a]">Month-to-month after the initial commitment unless your accepted order states otherwise.</p>
             </div>
           </div>
@@ -300,10 +299,7 @@ export function PreviewOrderPage() {
           <aside className="lg:col-span-5">
             <div className="border border-[#141821] bg-[#141821] p-6 text-white sm:p-8 lg:sticky lg:top-24">
               <p className="text-xs font-bold uppercase tracking-[0.13em] !text-[#b9b1ff]">Order summary</p>
-              <label htmlFor="preview-checkout-currency" className="mt-5 block text-xs font-semibold uppercase tracking-[0.08em] !text-white/60">Billing currency</label>
-              <select id="preview-checkout-currency" value={checkoutCurrency} onChange={(event) => { setCheckoutCurrency(event.target.value as CommercialCurrency); setTermsAccepted(false); }} className="mt-2 h-11 w-full border border-white/20 bg-white px-3 text-sm font-semibold text-[#141821]">
-                {CHECKOUT_CURRENCIES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-              </select>
+              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.08em] !text-white/60">Billing currency</p><div className="mt-2 flex h-11 w-full items-center border border-white/20 bg-white px-3 text-sm font-semibold text-[#141821]">USD ($)</div>
               <h2 className="mt-3 text-3xl font-semibold !text-white">{selected?.name || "Website Growth"}</h2>
               <label className="mt-5 flex cursor-pointer gap-3 border border-indigo-300/30 bg-indigo-500/15 p-4 text-sm leading-6 text-white"><input type="checkbox" checked={introOfferEnabled} onChange={(event) => { setIntroOfferEnabled(event.target.checked); setTermsAccepted(false); }} className="mt-1 h-4 w-4 shrink-0 accent-indigo-500" /><span><strong>Optional: first month of management free</strong> with a 12-month initial commitment. Setup is payable today; regular monthly billing starts in month 2. Leave unchecked for the standard shorter term.</span></label>
 
