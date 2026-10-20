@@ -171,20 +171,42 @@ export function ProspectExplorer() {
   useEffect(() => {
     if (!importAuditBatchId) return;
     let active = true;
+    let processing = false;
     let poll: ReturnType<typeof setInterval> | undefined;
     const refresh = async () => {
+      if (processing) return;
+      processing = true;
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) return;
-        const response = await fetch(`/api/admin/prospects/import-audits/${encodeURIComponent(importAuditBatchId)}`, {
-          headers: { Authorization: `Bearer ${session.access_token}` }, cache: "no-store",
-        });
+        const endpoint = `/api/admin/prospects/import-audits/${encodeURIComponent(importAuditBatchId)}`;
+        const headers = { Authorization: `Bearer ${session.access_token}` };
+        const response = await fetch(endpoint, { headers, cache: "no-store" });
         if (!response.ok) throw new Error("Could not load import audit progress.");
         const result = await response.json();
         if (active) { setImportAuditResults(result.audits || []); setImportAuditError(""); }
+        // Process the next bounded queue segment automatically while the results
+        // screen is open. Cron continues recovery independently if it closes.
+        const queued = (result.audits || []).some((audit: any) => audit.status === "queued");
+        if (active && queued) {
+          const processed = await fetch(`${endpoint}/process`, {
+            method: "POST", headers: { ...headers, "Content-Type": "application/json" },
+            body: "{}",
+          });
+          if (processed.ok && active) {
+            const updated = await fetch(endpoint, { headers, cache: "no-store" });
+            if (updated.ok) {
+              const latest = await updated.json();
+              if (active) setImportAuditResults(latest.audits || []);
+            }
+          }
+          // Rate limiting or temporary worker errors do not erase the displayed
+          // queue; the next poll or scheduled worker retries it.
+        }
       } catch (error: any) {
         if (active) setImportAuditError(error.message || "Audit progress is temporarily unavailable.");
       } finally {
+        processing = false;
         if (active) setImportAuditLoading(false);
       }
     };
