@@ -5096,16 +5096,16 @@ async function startServer() {
         .select("id").limit(5);
       if (staleError) throw staleError;
       const { data: queued, error: pendingError } = await supabaseAdmin.from("async_jobs")
-        .select("id").eq("job_type", "website_audit").in("status", ["queued", "failed"])
-        .lte("run_after", new Date().toISOString()).order("created_at", { ascending: true }).limit(2);
+        .select("id").eq("job_type", "website_audit").eq("status", "queued")
+        .lte("run_after", new Date().toISOString()).order("created_at", { ascending: true }).limit(4);
       if (pendingError) throw pendingError;
       const completed: string[] = [];
       const failures: string[] = [];
-      for (const job of queued || []) {
+      await Promise.all((queued || []).map(async (job: any) => {
         const outcome = await processQueuedJob(job.id);
         if (outcome.processed && outcome.job?.status === "completed") completed.push(job.id);
         else if (outcome.processed) failures.push(job.id);
-      }
+      }));
       res.setHeader("Cache-Control", "no-store");
       return res.json({ recoveredStaleJobs: stale?.length || 0, processed: (queued || []).length, completed: completed.length, failedAttempts: failures.length });
     } catch (err: any) {
