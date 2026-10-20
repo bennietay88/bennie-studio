@@ -12,11 +12,10 @@ test("market detection uses fixed commercial markets", () => {
   assert.equal(normalizeCommercialMarket("CA"), "INTL");
 });
 
-test("checkout currency resolves to internal price books without exposing country labels", () => {
-  assert.equal(marketForCurrency("USD"), "INTL");
-  assert.equal(marketForCurrency("GBP"), "GB");
-  assert.equal(marketForCurrency("MYR"), "MY");
-  assert.equal(marketForCurrency("SGD"), "SG");
+test("new commercial checkouts use the international USD book regardless of locale", () => {
+  for (const currency of ["USD", "GBP", "MYR", "SGD"]) {
+    assert.equal(marketForCurrency(currency), "INTL");
+  }
 });
 
 test("checkout stays closed for draft international markets", () => {
@@ -26,8 +25,8 @@ test("checkout stays closed for draft international markets", () => {
 
 test("managed website recurring price book is fixed by market", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "managed-website");
-  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 269);
-  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 899);
+  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 59);
+  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 199);
   assert.equal(getCommercialPrice(product!, "MY")?.annualPrice, null);
   assert.equal(getCommercialPrice(product!, "MY")?.billingInterval, "month");
   assert.equal(getCommercialPrice(product!, "MY")?.minimumTermMonths, 3);
@@ -36,9 +35,9 @@ test("managed website recurring price book is fixed by market", () => {
 
 test("all four launch markets keep the approved recurring catalogue", () => {
   const expected = {
-    MY: [269, 899, "MYR"],
-    SG: [79, 259, "SGD"],
-    GB: [49, 159, "GBP"],
+    MY: [59, 199, "USD"],
+    SG: [59, 199, "USD"],
+    GB: [59, 199, "USD"],
     INTL: [59, 199, "USD"],
   } as const;
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "managed-website")!;
@@ -63,15 +62,15 @@ test("recurring checkout remains fail-closed until the market row is live and co
 test("growth partner is a self-serve recurring service", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "growth-partner");
   assert.equal(product?.salesMotion, "self_serve");
-  assert.equal(getCommercialPrice(product!, "SG")?.monthlyPrice, 259);
-  assert.equal(getCommercialPrice(product!, "SG")?.setupFee, 659);
+  assert.equal(getCommercialPrice(product!, "SG")?.monthlyPrice, 199);
+  assert.equal(getCommercialPrice(product!, "SG")?.setupFee, 499);
   assert.equal(getCommercialPrice(product!, "SG")?.billingInterval, "month");
 });
 
 test("website growth is recurring with a separate setup fee", () => {
   const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === "website-growth");
-  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 449);
-  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 1349);
+  assert.equal(getCommercialPrice(product!, "MY")?.monthlyPrice, 99);
+  assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 299);
   assert.equal(getCommercialPrice(product!, "INTL")?.monthlyPrice, 99);
   assert.equal(getCommercialPrice(product!, "INTL")?.setupFee, 299);
   assert.equal(getCommercialPrice(product!, "INTL")?.billingInterval, "month");
