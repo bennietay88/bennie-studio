@@ -84,6 +84,7 @@ import { nextStepForSubmission } from "../src/lib/funnelEngine.js";
 import { processDueFunnelWorkflowRuns, runFunnelAutomations } from "../server/funnelAutomation.js";
 import { runFinalLaunchCrawler } from "../server/finalLaunchQa.js";
 import { isNewIntroOfferCustomer } from "./introOfferEligibility.js";
+import { resolveStripeCommercialPlan } from "../src/lib/stripeCommercialPlanMapping.js";
 
 dotenv.config();
 initServerObservability();
@@ -2857,15 +2858,48 @@ async function startServer() {
                 
                 const requestedPlanSlug = String(session.metadata?.planId || "").toLowerCase();
                 const requestedProductSlug = String(session.metadata?.productSlug || "").toLowerCase();
-                const { data: currentPrice } = await supabaseAdmin
+                const { data: priceMatch } = await supabaseAdmin
                   .from("commercial_market_prices")
                   .select("product_id,market,currency,monthly_price,annual_price")
-                  .or(`stripe_monthly_price_id.eq.${priceId},stripe_annual_price_id.eq.${priceId}`)
+                  .or(`stripe_monthly_price_id.eq.${priceId},stripe_annual_price_id.eq.${priceId},recurring_stripe_monthly_price_id.eq.${priceId},recurring_stripe_annual_price_id.eq.${priceId},recurring_stripe_setup_price_id.eq.${priceId}`)
                   .maybeSingle();
-                const { data: currentProduct } = currentPrice?.product_id
-                  ? await supabaseAdmin.from("commercial_products").select("slug,entitlement_plan_slug").eq("id", currentPrice.product_id).maybeSingle()
-                  : { data: null };
-                const plan = plans.find((p: any) => p.stripe_price_id === priceId || p.yearly_stripe_price_id === priceId || (requestedPlanSlug && p.slug === requestedPlanSlug));
+                let currentProduct: any = null;
+                if (priceMatch?.product_id) {
+                  const { data } = await supabaseAdmin
+                    .from("commercial_products")
+                    .select("id,slug,entitlement_plan_slug")
+                    .eq("id", priceMatch.product_id)
+                    .eq("active", true)
+                    .maybeSingle();
+                  currentProduct = data;
+                } else if (requestedProductSlug) {
+                  // New commercial checkouts use inline Stripe prices, so their
+                  // price IDs are not present in commercial_market_prices.
+                  // productSlug is set by this server when creating the session.
+                  const { data } = await supabaseAdmin
+                    .from("commercial_products")
+                    .select("id,slug,entitlement_plan_slug")
+                    .eq("slug", requestedProductSlug)
+                    .eq("active", true)
+                    .maybeSingle();
+                  currentProduct = data;
+                }
+                let currentPrice: any = priceMatch;
+                if (!currentPrice && currentProduct?.id && session.metadata?.market) {
+                  const { data } = await supabaseAdmin
+                    .from("commercial_market_prices")
+                    .select("product_id,market,currency,monthly_price,annual_price")
+                    .eq("product_id", currentProduct.id)
+                    .eq("market", session.metadata.market)
+                    .maybeSingle();
+                  currentPrice = data;
+                }
+                const plan = resolveStripeCommercialPlan(
+                  plans,
+                  priceId,
+                  requestedPlanSlug,
+                  currentProduct?.entitlement_plan_slug,
+                );
                 const planSlug = currentProduct?.entitlement_plan_slug || plan?.slug || requestedPlanSlug;
                 const planId = plan?.id;
 
