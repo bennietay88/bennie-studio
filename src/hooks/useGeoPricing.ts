@@ -15,13 +15,7 @@ const DEFAULT_CURRENCY: CurrencyConfig = {
   rateFromUsd: 1,
 };
 
-const CURRENCY_BY_COUNTRY: Record<string, CurrencyConfig> = {
-  US: DEFAULT_CURRENCY,
-  MY: { code: "MYR", symbol: "RM", rateFromUsd: 4.7 },
-  SG: { code: "SGD", symbol: "SGD", rateFromUsd: 1.35, prefixWithSpace: true },
-  GB: { code: "GBP", symbol: "£", rateFromUsd: 0.79 },
-  UK: { code: "GBP", symbol: "£", rateFromUsd: 0.79 },
-};
+// Geographic audience detection may affect offers, never the billing currency.
 
 const parseUsdAmount = (value: string | number) => {
   if (typeof value === "number") return value;
@@ -40,8 +34,7 @@ const formatCurrency = (amount: number, currency: CurrencyConfig) => {
     : `${currency.symbol}${formatted}`;
 };
 
-const currencyForCountry = (countryCode?: string) =>
-  CURRENCY_BY_COUNTRY[String(countryCode || "US").toUpperCase()] || DEFAULT_CURRENCY;
+const currencyForCountry = (_countryCode?: string) => DEFAULT_CURRENCY;
 
 export const formatUsdForCountry = (
   usdAmount: string | number,
