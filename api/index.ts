@@ -2384,7 +2384,23 @@ async function startServer() {
     const sameCurrency = currency === baseCurrency;
     const suppliedBaseAmount = payload.base_currency_amount == null ? null : Number(payload.base_currency_amount);
     const baseAmount = sameCurrency ? Number(payload.amount) : (Number.isFinite(suppliedBaseAmount) ? suppliedBaseAmount : null);
-    const { error } = await supabaseAdmin.from("finance_transactions").upsert({
+    const sourceType = String(payload.source_type || "");
+    const sourceId = String(payload.source_id || "");
+    if (sourceType && sourceId) {
+      const { data: existing, error: lookupError } = await supabaseAdmin
+        .from("finance_transactions")
+        .select("id")
+        .eq("source_type", sourceType)
+        .eq("source_id", sourceId)
+        .limit(1)
+        .maybeSingle();
+      if (lookupError) {
+        console.warn("Finance transaction duplicate check skipped:", lookupError.message);
+        return;
+      }
+      if (existing) return;
+    }
+    const { error } = await supabaseAdmin.from("finance_transactions").insert({
       ...payload,
       currency,
       base_currency: baseAmount == null ? null : baseCurrency,
@@ -2392,7 +2408,7 @@ async function startServer() {
       reconciliation_status: baseAmount == null ? "REVIEW_REQUIRED" : (payload.reconciliation_status || "UNRECONCILED"),
       review_status: baseAmount == null ? "REVIEW_REQUIRED" : (payload.review_status || "NOT_REVIEWED"),
       document_status: payload.document_status || "MISSING",
-    }, { onConflict: "source_type,source_id", ignoreDuplicates: true });
+    });
     if (error) console.warn("Finance transaction skipped:", error.message);
   };
 
