@@ -404,6 +404,17 @@ const commercialMarketForCurrency = (currency: unknown) => {
   if (normalized === "GBP") return "GB";
   return "INTL";
 };
+// Privileged OTC waiver resolution. Never read waived amounts from customer input.
+const resolveOtcWaiver = async (businessId?: string | null): Promise<"global" | "customer" | null> => {
+  const global = await supabaseAdmin.from("commercial_otc_waivers").select("waived").eq("scope","global").maybeSingle();
+  if (global.error) throw global.error;
+  if (global.data?.waived === true) return "global";
+  if (!businessId) return null;
+  const account = await supabaseAdmin.from("commercial_otc_waivers").select("waived")
+    .eq("scope","customer").eq("business_id",businessId).maybeSingle();
+  if (account.error) throw account.error;
+  return account.data?.waived === true ? "customer" : null;
+};
 app.use(compression());
 app.disable("x-powered-by");
 app.use((req, res, next) => {
@@ -8641,12 +8652,74 @@ async function startServer() {
     return res.json({ slots, timezone: SALES_CALL_TIMEZONE, durationMinutes: SALES_CALL_DURATION_MINUTES });
   });
 
+  app.get("/api/admin/otc-waivers", authenticate, superAdminOnly, async (_req:any,res:any)=>{
+    const [waivers,businesses]=await Promise.all([
+      supabaseAdmin.from("commercial_otc_waivers").select("scope,business_id,waived,reason,updated_at").order("updated_at",{ascending:false}),
+      supabaseAdmin.from("businesses").select("id,name,commercial_market").order("name").limit(500),
+    ]);
+    if(waivers.error || businesses.error)return res.status(503).json({error:"OTC waiver controls unavailable"});
+    return res.json({waivers:waivers.data||[],businesses:businesses.data||[]});
+  });
+  app.patch("/api/admin/otc-waivers/global", authenticate, superAdminOnly, async (req:any,res:any)=>{
+    const body=validateBody(z.object({waived:z.boolean(),reason:z.string().trim().max(500)}).strict(),req,res);
+    if(!body)return;
+    if(body.waived&&!body.reason)return res.status(400).json({error:"Enter a reason for enabling the global waiver."});
+    const old=await supabaseAdmin.from("commercial_otc_waivers").select("waived").eq("scope","global").single();
+    if(old.error)return res.status(503).json({error:"Unable to load global waiver"});
+    const update=await supabaseAdmin.from("commercial_otc_waivers")
+      .update({waived:body.waived,reason:body.reason,updated_by:req.user.id,updated_at:new Date().toISOString()})
+      .eq("scope","global").select("scope,waived,reason,updated_at").single();
+    if(update.error)return res.status(503).json({error:"Unable to save global waiver"});
+    const audit=await supabaseAdmin.from("admin_action_audit_logs").insert({
+      actor_user_id:req.user.id,actor_email:req.user.email||null,
+      action_type:"otc_global_waiver_changed",target_type:"catalogue",target_id:"global",
+      target_label:"Global OTC waiver",metadata:{from:old.data.waived,to:body.waived,reason:body.reason},
+    });
+    if(audit.error)console.error("OTC global waiver audit failed:",audit.error.message);
+    return res.json({waiver:update.data});
+  });
+  app.patch("/api/admin/otc-waivers/customers/:businessId", authenticate, superAdminOnly, async (req:any,res:any)=>{
+    const id=String(req.params.businessId||"");
+    if(!UUID_SCHEMA.safeParse(id).success)return res.status(400).json({error:"Invalid customer ID"});
+    const body=validateBody(z.object({waived:z.boolean(),reason:z.string().trim().max(500)}).strict(),req,res);
+    if(!body)return;
+    if(body.waived&&!body.reason)return res.status(400).json({error:"Enter a reason for the customer waiver."});
+    const business=await supabaseAdmin.from("businesses").select("id,name").eq("id",id).maybeSingle();
+    if(business.error)return res.status(503).json({error:"Unable to check customer"});
+    if(!business.data)return res.status(404).json({error:"Customer not found"});
+    const old=await supabaseAdmin.from("commercial_otc_waivers").select("waived").eq("scope","customer").eq("business_id",id).maybeSingle();
+    if(old.error)return res.status(503).json({error:"Unable to check previous waiver"});
+    const update=await supabaseAdmin.from("commercial_otc_waivers").upsert({
+      scope:"customer",business_id:id,waived:body.waived,reason:body.reason,
+      updated_by:req.user.id,updated_at:new Date().toISOString(),
+    },{onConflict:"business_id"}).select("scope,business_id,waived,reason,updated_at").single();
+    if(update.error)return res.status(503).json({error:"Unable to save customer waiver"});
+    const audit=await supabaseAdmin.from("admin_action_audit_logs").insert({
+      actor_user_id:req.user.id,actor_email:req.user.email||null,
+      action_type:"otc_customer_waiver_changed",target_type:"business",target_id:id,target_label:business.data.name,
+      metadata:{from:old.data?.waived||false,to:body.waived,reason:body.reason},
+    });
+    if(audit.error)console.error("OTC customer waiver audit failed:",audit.error.message);
+    return res.json({waiver:update.data});
+  });
+  app.get("/api/account/otc-waiver", authenticate, async (req:any,res:any)=>{
+    const id=String(req.query.businessId||"");
+    if(!UUID_SCHEMA.safeParse(id).success)return res.status(400).json({error:"Invalid customer ID"});
+    try {
+      await assertBusinessAdminAccess(req.user.id,id);
+      const source=await resolveOtcWaiver(id);
+      return res.json({waived:Boolean(source),source});
+    }catch(error){return res.status(403).json({error:"Could not verify customer waiver"});}
+  });
   app.get("/api/public/pricing", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-pricing" }), async (req, res) => {
     const market = normalizeCommercialMarket(req.query.market);
     if (process.env.E2E_TEST === "true") {
       return res.json({ market, currency: market === "MY" ? "MYR" : "USD", products: [] });
     }
     await refreshLaunchFlags();
+    let globalWaiver: "global" | "customer" | null;
+    try { globalWaiver=await resolveOtcWaiver(); }
+    catch { return res.status(503).json({error:"Current setup fee could not be verified."}); }
     const { data, error } = await supabaseAdmin
       .from("commercial_products")
       .select("id,slug,name,description,product_type,sales_motion,includes_product_slug,commercial_market_prices!inner(market,currency,monthly_price,setup_fee,annual_price,billing_interval,active,stripe_monthly_price_id,stripe_annual_price_id,stripe_setup_price_id,stripe_one_time_price_id,recurring_monthly_price,recurring_setup_fee,recurring_annual_price,minimum_term_months,recurring_config_status,recurring_stripe_monthly_price_id,recurring_stripe_annual_price_id,recurring_stripe_setup_price_id)")
@@ -8684,7 +8757,9 @@ async function startServer() {
           // the database for historical customers, but are never rendered or
           // selected for a new public checkout.
           monthlyPrice: price.recurring_monthly_price === null || price.recurring_monthly_price === undefined ? null : Number(price.recurring_monthly_price),
-          setupFee: price.recurring_setup_fee === null || price.recurring_setup_fee === undefined ? 0 : Number(price.recurring_setup_fee),
+          standardSetupFee: Number(price.recurring_setup_fee || 0),
+          otcWaiver: globalWaiver,
+          setupFee: globalWaiver ? 0 : Number(price.recurring_setup_fee || 0),
           annualPrice: price.recurring_annual_price === null || price.recurring_annual_price === undefined ? null : Number(price.recurring_annual_price),
           billingInterval: "month",
           minimumTermMonths: getMinimumTermMonths({ minimumTermMonths: price.minimum_term_months }),
@@ -9878,7 +9953,9 @@ async function startServer() {
         }
 
         const monthly = Number(price.recurring_monthly_price || 0);
-        const setup = Number(price.recurring_setup_fee || 0);
+        const otcWaiver=await resolveOtcWaiver();
+        const originalSetup=Number(price.recurring_setup_fee || 0);
+        const setup=otcWaiver ? 0 : originalSetup;
         const isIntroOffer = body.introOffer === INTRO_OFFER_CODE;
         if (isIntroOffer && !body.customerEmail) {
           return res.status(400).json({ error: "Enter your email to check introductory offer eligibility." });
@@ -9993,6 +10070,7 @@ async function startServer() {
             termMonths: String(termMonths),
             introOffer: isIntroOffer ? INTRO_OFFER_CODE : "",
             introOfferDiscount: isIntroOffer ? String(monthly) : "0",
+            otcWaiver: otcWaiver || "", waivedSetupAmount: otcWaiver ? String(originalSetup) : "0",
             previewId: checkoutRef,
             publicOrder: "1",
             directCheckout: "1",
@@ -10123,7 +10201,9 @@ async function startServer() {
         }
 
         const monthly = Number(price.recurring_monthly_price || 0);
-        const setup = Number(price.recurring_setup_fee || 0);
+        const otcWaiver=await resolveOtcWaiver(lead.business_id || null);
+        const originalSetup=Number(price.recurring_setup_fee || 0);
+        const setup=otcWaiver ? 0 : originalSetup;
         const isIntroOffer = body.introOffer === INTRO_OFFER_CODE;
         const stripe = await getStripe();
         if (isIntroOffer && !(await isNewIntroOfferCustomer(body.email, stripe, supabaseAdmin))) {
@@ -10279,6 +10359,7 @@ async function startServer() {
             termMonths: String(termMonths),
             introOffer: isIntroOffer ? INTRO_OFFER_CODE : "",
             introOfferDiscount: isIntroOffer ? String(monthly) : "0",
+            otcWaiver: otcWaiver || "", waivedSetupAmount: otcWaiver ? String(originalSetup) : "0",
             orderId,
             leadId: lead.id,
             previewId: body.previewId,
@@ -10605,6 +10686,7 @@ async function startServer() {
           market: businessMarket,
         });
       }
+      const customerOtcWaiver=productSlug ? await resolveOtcWaiver(businessId) : null;
       const customerTermOverride = checkoutBusiness?.commercial_term_months == null ? null : Number(checkoutBusiness.commercial_term_months);
       if (customerTermOverride !== null && (!Number.isInteger(customerTermOverride) || customerTermOverride < 1 || customerTermOverride > 120)) {
         return res.status(409).json({ error: "This customer's contract term is invalid. Clear the override before checkout." });
@@ -10634,7 +10716,7 @@ async function startServer() {
           const currentPrice = currentProduct && (Array.isArray(currentProduct.commercial_market_prices) ? currentProduct.commercial_market_prices[0] : currentProduct.commercial_market_prices);
           if (!currentProduct || !currentPrice) return res.status(400).json({ error: "This product is unavailable in the selected market." });
           testDynamicMonthlyAmount = Number(currentPrice.recurring_monthly_price || currentPrice.monthly_price || 0);
-          testDynamicSetupAmount = Number(currentPrice.recurring_setup_fee || currentPrice.setup_fee || 0);
+          testDynamicSetupAmount = customerOtcWaiver ? 0 : Number(currentPrice.recurring_setup_fee || currentPrice.setup_fee || 0);
           if (currentProduct.sales_motion !== "self_serve") return res.status(400).json({ error: "This product is available by consultation, not self-serve checkout." });
           if (String(billingCycle) === "yearly") return res.status(400).json({ error: "Annual billing is not enabled for launch products. Choose monthly billing." });
           // New public checkout is recurring-only. Legacy one-time prices are
@@ -10664,7 +10746,7 @@ async function startServer() {
           if (!priceId && !useDynamicCatalogPrices) return res.status(400).json({ error: `${billingCycle === "yearly" ? "Annual" : "Monthly"} recurring checkout is not configured for this market yet.` });
           // A Growth upgrade does not repeat the Managed Website setup fee.
           const isUpgrade = productSlug === "website-growth" && checkoutBody.upgradeFrom === "managed-website";
-          configuredSetupPriceId = isUpgrade ? null : (currentPrice.recurring_stripe_setup_price_id || null);
+          configuredSetupPriceId = (isUpgrade || customerOtcWaiver) ? null : (currentPrice.recurring_stripe_setup_price_id || null);
           if (checkoutBody.promotionCode) {
             const now = new Date().toISOString();
             const { data: promotion } = await supabaseAdmin.from("commercial_promotions").select("id,market,product_id,promotional_monthly_price,promotional_setup_fee,starts_at,ends_at,usage_limit,usage_count,stripe_monthly_price_id,stripe_setup_price_id,active").eq("code", checkoutBody.promotionCode).eq("active", true).or(`starts_at.is.null,starts_at.lte.${now}`).or(`ends_at.is.null,ends_at.gte.${now}`).maybeSingle();
@@ -10672,9 +10754,9 @@ async function startServer() {
             if (!promotionMatches) return res.status(400).json({ error: "This promotion is unavailable for the selected product or market." });
             resolvedPromotionId = promotion.id;
             priceId = billingCycle === "yearly" ? priceId : promotion.stripe_monthly_price_id;
-            configuredSetupPriceId = isUpgrade ? null : (promotion.stripe_setup_price_id || configuredSetupPriceId);
+            configuredSetupPriceId = (isUpgrade || customerOtcWaiver) ? null : (promotion.stripe_setup_price_id || configuredSetupPriceId);
           }
-          if (Number(currentPrice.recurring_setup_fee || 0) > 0 && !configuredSetupPriceId && !isUpgrade && !useDynamicCatalogPrices) {
+          if (Number(currentPrice.recurring_setup_fee || 0) > 0 && !configuredSetupPriceId && !isUpgrade && !customerOtcWaiver && !useDynamicCatalogPrices) {
             return res.status(400).json({ error: `${market} setup-fee checkout is not configured for this product.` });
           }
           resolvedProductSlug = currentProduct.slug;
@@ -10804,6 +10886,7 @@ async function startServer() {
           currency: commercialCurrencyForMarket(market),
           termMonths: resolvedProductSlug && !isOneTimeCheckout ? String(minimumTermMonths) : "",
           promotionId: resolvedPromotionId || "",
+          otcWaiver: customerOtcWaiver || "",
           termsVersion: resolvedProductSlug ? COMMERCIAL_TERMS_VERSION : "",
           termsAcceptedAt,
           type:

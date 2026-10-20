@@ -12,6 +12,8 @@ export type CommercialPrice = {
   currency: CommercialCurrency;
   monthlyPrice: number | null;
   setupFee: number;
+  standardSetupFee?: number;
+  otcWaiver?: "global" | "customer" | null;
   annualPrice: number | null;
   monthlyConfigured?: boolean;
   annualConfigured?: boolean;
