@@ -12,6 +12,13 @@ type StartAutomationArgs = FunnelAutomationDependencies & {
   context?: Record<string, any>;
 };
 
+const escapeEmailHtml = (value: string) => value
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;");
+
 const safeNumber = (value: unknown, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -123,7 +130,7 @@ async function executeRun({
           } else {
             const subject = String(node.config?.subject || "Thanks for your enquiry");
             const body = String(node.config?.body || "Thanks for getting in touch.");
-            await sendEmail({ to: email, subject, html: `<div style="font-family:Arial,sans-serif;line-height:1.6">${body.replace(/\n/g, "<br/>")}</div>` });
+            await sendEmail({ to: email, subject, html: `<div style="font-family:Arial,sans-serif;line-height:1.6">${escapeEmailHtml(body).replace(/\n/g, "<br/>")}</div>` });
             await logRunEvent(db, run.business_id, run.id, node.id, "email_sent", "completed", `Email sent to ${email}`, { subject });
           }
         } else if (node.action_type === "notify_team") {

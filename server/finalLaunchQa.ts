@@ -264,6 +264,7 @@ export async function runFinalLaunchCrawler(input: LaunchCrawlerInput) {
     pagesChecked.every((page) => page.pass) &&
     navigationIssues.length === 0 &&
     brokenResources.length === 0 &&
+    uncertainResources.length === 0 &&
     !truncated;
 
   return {
