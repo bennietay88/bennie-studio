@@ -27,7 +27,7 @@ export interface Plan {
 }
 
 const marketPricesFor = (slug: "personal-profile" | "managed-website" | "website-growth" | "growth-partner") =>
-  Object.fromEntries((['MY', 'SG', 'GB', 'INTL'] as CommercialMarket[]).map((market) => {
+  Object.fromEntries((['INTL'] as CommercialMarket[]).map((market) => {
     const product = COMMERCIAL_FALLBACK_PRODUCTS.find((item) => item.slug === slug)!;
     const price = getCommercialPrice(product, "INTL")!;
     const key = market === "INTL" ? "US" : market;

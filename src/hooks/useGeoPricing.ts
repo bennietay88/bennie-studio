@@ -1,6 +1,6 @@
 import React from "react";
 
-type CurrencyCode = "USD" | "MYR" | "SGD" | "GBP";
+type CurrencyCode = "USD";
 
 type CurrencyConfig = {
   code: CurrencyCode;
