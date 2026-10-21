@@ -15,12 +15,12 @@ export const PRIMARY_REVENUE_OFFER = {
   name: "Growth Partner",
   commitmentMonths: 3,
   description:
-    "A consultant-led managed website service for service businesses that need a clearer enquiry journey and ongoing improvement after launch.",
+    "An AI-assisted, automatically produced managed website with clearer enquiry paths, priority support and consultant-led website improvements after launch.",
   included: [
-    "Website strategy, copy and managed build",
+    "Customer-guided brief, AI-assisted content and managed website build",
     "Service-focused pages and local positioning",
     "WhatsApp, call, form or booking enquiry paths",
-    "Hosting, maintenance and monthly improvements",
+    "Managed hosting, maintenance and scoped monthly improvements",
     "Enquiry tracking and a concise monthly results summary",
     "One accountable website growth partner",
   ],

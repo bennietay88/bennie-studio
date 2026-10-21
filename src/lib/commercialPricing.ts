@@ -88,7 +88,7 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
   {
     slug: "managed-website",
     name: "Managed Website",
-    description: "A professionally built, hosted and continuously managed website for a service business that needs more qualified enquiries.",
+    description: "Customer-guided, AI-assisted website creation with managed hosting, essential enquiry paths and straightforward ongoing website care.",
     productType: "managed_website",
     salesMotion: "self_serve",
     prices: [
@@ -98,7 +98,7 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
   {
     slug: "website-growth",
     name: "Website Growth",
-    description: "A managed website growth system with stronger lead capture, trust sections, analytics and local SEO foundations.",
+    description: "An AI-assisted, done-for-you business website with lead capture, trust sections, analytics, local SEO foundations and monthly improvement guidance.",
     productType: "website_growth",
     salesMotion: "self_serve",
     includesProductSlug: "managed-website",
@@ -107,14 +107,14 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
   {
     slug: "growth-partner",
     name: "Growth Partner",
-    description: "A consultant-led managed website engagement with deeper conversion strategy, landing pages, expanded SEO and growth direction.",
+    description: "An AI-assisted managed website with priority support, expanded page options, performance reporting and consultant-led growth guidance.",
     productType: "growth_partner",
     salesMotion: "self_serve",
     prices: [["MY", 199], ["SG", 199], ["GB", 199], ["INTL", 199]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 499, SG: 499, GB: 499, INTL: 499 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
   },
   {
     slug: "personal-profile", name: "Personal Profile",
-    description: "A done-for-you professional website: up to five fixed-format profile pages, contact links, basic SEO and managed hosting.",
+    description: "A streamlined AI-assisted professional profile website, using fixed-format pages, contact links, basic SEO and managed hosting.",
     productType: "managed_website", salesMotion: "self_serve",
     prices: [["MY",29],["SG",29],["GB",29],["INTL",29]].map(([market,monthlyPrice])=>({
       market:market as CommercialMarket, currency:COMMERCIAL_MARKETS[market as CommercialMarket].currency,

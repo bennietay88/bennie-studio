@@ -194,16 +194,16 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
         <div className="lg:col-span-8">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#1741ed]">Straightforward managed website pricing</p>
           <h1 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Clear pricing. A website built to work for your business.</h1>
-          <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Choose what your business needs now: professional website design, reliable hosting and clear ongoing support. See your setup cost, monthly price and minimum term before selecting a plan.</p>
+          <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Share your business details once. Bennie Studio uses AI-assisted content and automated website creation to prepare your managed site, with human review when needed. Compare hosting, update allowances and growth support alongside setup fees, monthly charges and minimum commitments.</p>
         </div>
-        <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">All plans are priced and billed in USD · setup and recurring charges are shown together · minimum terms are displayed per plan</p>
+        <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">All new orders are billed in USD · automated website production + managed service · setup, monthly fees and commitments shown clearly</p>
       </div>
     )}
 
     <div className={editorial ? "mt-3 flex flex-col gap-3 border border-[#d5dce6] bg-white px-5 py-5 sm:flex-row sm:items-center sm:justify-between" : "mt-8 flex flex-col gap-3 border border-[#dfe2ea] bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between"} aria-label="Billing currency">
       <div>
         <p className="block text-sm font-semibold text-slate-950">Billing currency</p>
-        <p className="mt-1 text-xs leading-5 text-slate-600">All published prices and new checkout charges are in US dollars (USD), regardless of your location.</p>
+        <p className="mt-1 text-xs leading-5 text-slate-600">All published prices and new checkout charges are in US dollars (USD), regardless of location. AI-assisted creation accelerates delivery; the plan comparison defines ongoing human support and update limits.</p>
       </div>
       <span className="border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-900">USD ($)</span>
     </div>
