@@ -65,7 +65,7 @@ test("final launch crawler blocks duplicate pages and definite broken resources"
   assert.equal(result.brokenLinks.length, 1);
 });
 
-test("bot-gated resources are review warnings rather than false launch failures", async () => {
+test("bot-gated resources are reported and fail closed until manually verified", async () => {
   const result = await runFinalLaunchCrawler({
     pages: [{
       title: "Home",
@@ -83,7 +83,7 @@ test("bot-gated resources are review warnings rather than false launch failures"
     }),
   });
 
-  assert.equal(result.pass, true);
+  assert.equal(result.pass, false);
   assert.equal(result.uncertainResources.length, 1);
 });
 

@@ -5,6 +5,9 @@ import {
   PLAN_DELIVERY_STANDARDS,
   evaluateWorldClassLaunchGate,
 } from "../src/constants/deliveryStandards.ts";
+import { getPlanPageLimit } from "../src/constants/pageBlueprints.ts";
+import { PLANS, normalizePlans } from "../src/constants/plans.ts";
+import { ensurePersonalProfilePlan } from "../src/lib/planEntitlements.ts";
 
 const baseWebsite: any = {
   id: "w1",
@@ -45,6 +48,22 @@ test("all public managed plans publish concrete delivery boundaries", () => {
     assert.match(standard.targetFirstDraft, /business days/i);
     assert.match(standard.targetUpdateTurnaround, /business day/i);
   }
+});
+
+test("Managed Website entitlement matches the five-page public delivery standard", () => {
+  assert.equal(getPlanPageLimit("business"), 5);
+  assert.match(PLANS.find((plan) => plan.id === "business")?.features.join(" ") || "", /up to 5 core pages/i);
+});
+
+test("sold Personal Profile keeps its explicit entitlement when the legacy plan table omits it", () => {
+  const databasePlans = normalizePlans(PLANS.filter((plan) => plan.id !== "profile"));
+  const plans = ensurePersonalProfilePlan(databasePlans);
+  const profilePlan = plans.find((plan) => plan.id === "profile");
+
+  assert.ok(profilePlan);
+  assert.equal(profilePlan?.maxPages, 5);
+  assert.ok(profilePlan?.enabled_features.includes("custom_domain"));
+  assert.strictEqual(ensurePersonalProfilePlan(plans), plans);
 });
 
 test("launch gate blocks generated work until human and customer checks are complete", () => {

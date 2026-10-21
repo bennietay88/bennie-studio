@@ -96,7 +96,8 @@ export const PLANS: Plan[] = [
     yearlyDiscountPercent: 0,
     description: "Recommended managed website plan for service businesses that need clearer enquiries.",
     aiCredits: 0,
-    maxPages: 3,
+    // Managed Website is advertised and contracted as up to five core pages.
+    maxPages: 5,
     maxLocationPages: 1,
     monthlyUpdates: "1 consolidated update request each month",
     monthlyUpdateLimit: 1,
@@ -107,7 +108,7 @@ export const PLANS: Plan[] = [
     upgradePrompt: "Upgrade to Growth Partner for consultant-led positioning, conversion strategy, SEO direction, and funnel strategy.",
     features: [
       "Default managed website plan",
-      "Up to 3 managed pages",
+      "Up to 5 core pages",
       "Homepage",
       "Services page",
       "Contact page",

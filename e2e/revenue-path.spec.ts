@@ -432,19 +432,22 @@ test("records a Growth Partner consultation through the public booking flow", as
   await expect(page.getByRole("heading", { name: "Call confirmed" })).toBeVisible();
 });
 
-test("presents Managed Website as the primary homepage offer", async ({ page }) => {
-  await page.route("https://ipapi.co/json/", (route) => json(route, { country_code: "SG", country_name: "Singapore" }));
-  await page.route("**/api/platform-events", (route) => json(route, { success: true }));
+test("homepage presents a free preview and the current four-plan catalogue", async ({ page }) => {
+  await mockAnonymousPublicDependencies(page);
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Win trust before\s*the first conversation\./i })).toBeVisible();
-  await expect(page.getByText(/Get a clear, professional website built around your services/i).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /Compare the 3 plans/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Website Growth", exact: true }).first()).toBeVisible();
-  await expect(page.getByText(/\$49/)).toHaveCount(0);
-  await page.getByRole("button", { name: /Compare the 3 plans/i }).click();
-  await expect(page.locator("#plans")).toBeInViewport();
-  await page.getByRole("link", { name: /Get a free website direction first/i }).click();
+  await expect(page.getByRole("heading", { name: /Websites that help service businesses get more enquiries/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Get your free website preview/i }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /See case studies/i })).toBeVisible();
+  const plans = page.locator("#plans");
+  await expect(plans).toBeVisible();
+  await expect(plans.getByRole("heading", { name: "Personal Profile", exact: true })).toBeVisible();
+  await expect(plans.getByRole("heading", { name: "Managed Website", exact: true })).toBeVisible();
+  await expect(plans.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
+  await expect(plans.getByRole("heading", { name: "Growth Partner", exact: true })).toBeVisible();
+  await expect(plans.locator("article").filter({ hasText: "Personal Profile" })).toContainText("$29");
+  await expect(plans.locator("article").filter({ hasText: "Managed Website" })).toContainText("$59");
+  await page.getByRole("button", { name: /Get your free website preview/i }).first().click();
   await expect(page).toHaveURL(/\/generate-preview$/);
   await expect(page.getByLabel("Main service")).toBeVisible();
 });
@@ -460,44 +463,7 @@ test("routes homepage plan cards to the intended pricing details", async ({ page
 });
 
 test("pricing checkout reaches Stripe before signup for a new customer", async ({ page }) => {
-  await page.route("https://ipapi.co/json/", (route) => json(route, { country_code: "US", country_name: "United States" }));
-  await page.route("**/auth/v1/**", (route) => json(route, { user: null, session: null }));
-  await page.route("**/rest/v1/**", (route) => json(route, []));
-  await page.route("**/api/platform-events", (route) => json(route, { success: true }));
-  await page.route("**/api/public/pricing**", (route) => {
-    const requestedMarket = new URL(route.request().url()).searchParams.get("market") || "INTL";
-    const market = requestedMarket as "MY" | "SG" | "GB" | "INTL";
-    const currency = market === "MY" ? "MYR" : market === "SG" ? "SGD" : market === "GB" ? "GBP" : "USD";
-    return json(route, {
-      products: [
-      {
-        slug: "managed-website",
-        name: "Managed Website",
-        description: "Managed website",
-        productType: "managed_website",
-        salesMotion: "self_serve",
-        price: { market, currency, monthlyPrice: 89, setupFee: 299, annualPrice: null, monthlyConfigured: true, recurringConfigured: true, recurringConfigStatus: "live", billingInterval: "month" },
-      },
-      {
-        slug: "website-growth",
-        name: "Website Growth",
-        description: "Website growth",
-        productType: "website_growth",
-        salesMotion: "self_serve",
-        includesProductSlug: "managed-website",
-        price: { market, currency, monthlyPrice: 179, setupFee: 599, annualPrice: null, monthlyConfigured: true, recurringConfigured: true, recurringConfigStatus: "live", billingInterval: "month" },
-      },
-      {
-        slug: "growth-partner",
-        name: "Growth Partner",
-        description: "Growth partner",
-        productType: "growth_partner",
-        salesMotion: "self_serve",
-        price: { market, currency, monthlyPrice: 349, setupFee: 1199, annualPrice: null, monthlyConfigured: true, recurringConfigured: true, recurringConfigStatus: "live", billingInterval: "month" },
-      },
-      ],
-    });
-  });
+  await mockAnonymousPublicDependencies(page);
   await page.route("**/api/public/plan-checkout", async (route) => {
     const payload = await route.request().postDataJSON();
     expect(payload.productSlug).toBe("website-growth");
@@ -524,12 +490,10 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
   const growthCard = plansSection.locator("article").filter({ hasText: "Website Growth" });
   await expect(growthCard).toBeVisible();
   await page.getByRole("checkbox", { name: /new-customer offer/i }).check();
-  await growthCard.getByRole("button", { name: /Choose plan/i }).click();
+  await growthCard.getByRole("button", { name: /Choose this plan/i }).click();
   await expect(page.getByRole("dialog", { name: "Order summary" })).toBeVisible();
   await expect(page.getByText(/No account is required before payment/i)).toBeVisible();
-  await page.getByRole("dialog", { name: "Order summary" }).getByLabel("Billing currency", { exact: true }).selectOption("GBP");
-  await expect(page.getByRole("dialog", { name: "Order summary" }).getByLabel("Billing currency", { exact: true })).toHaveValue("GBP");
-  await page.getByRole("dialog", { name: "Order summary" }).getByLabel("Billing currency", { exact: true }).selectOption("USD");
+  await expect(page.getByRole("dialog", { name: "Order summary" }).getByText("USD ($)", { exact: true })).toBeVisible();
   await expect(page.getByRole("dialog", { name: "Order summary" }).getByText("12 months")).toBeVisible();
   await page.getByRole("dialog", { name: "Order summary" }).getByRole("checkbox").check();
   await page.getByRole("dialog", { name: "Order summary" }).getByLabel("Email for offer eligibility").fill("buyer@example.test");
@@ -682,7 +646,7 @@ test("legacy market URLs resolve into the geographically generic public journey"
 test("internal sales preview asks for company and URL without requiring prospect contact details", async ({ page }) => {
   await mockSupabaseAndStripe(page);
   await page.goto("/generate-preview?sales=1");
-  await expect(page.getByText(/Internal mode · prospect email not required/i)).toBeVisible();
+  await expect(page.getByText(/Internal sales mode · prospect email not required/i)).toBeVisible();
   await page.getByRole("button", { name: /I already have a website/i }).click();
   await expect(page.getByLabel("Company name")).toBeVisible();
   await expect(page.getByLabel("Website URL").first()).toBeVisible();

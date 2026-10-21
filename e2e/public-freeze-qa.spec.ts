@@ -1,5 +1,17 @@
 import { test, expect } from "@playwright/test";
+import { COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice } from "../src/lib/commercialPricing";
 const routes=["/","/services","/pricing","/case-studies","/generate-preview","/contact"];
+
+async function mockPublicPricing(page:any){
+ await page.route("**/api/public/pricing**",(route:any)=>{
+  const market=new URL(route.request().url()).searchParams.get("market")||"INTL";
+  return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({products:COMMERCIAL_FALLBACK_PRODUCTS.map(product=>({...product,price:{...getCommercialPrice(product,market as "MY"|"SG"|"GB"|"INTL"),monthlyConfigured:product.salesMotion==="self_serve",recurringConfigured:product.salesMotion==="self_serve",recurringConfigStatus:product.salesMotion==="self_serve"?"live":"draft"}}))})});
+ });
+ await page.route("**/api/public/site-config",(route:any)=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({platform:{maintenanceMode:false,salesCookieBannerEnabled:false},landingPage:null,policies:[],posts:[]})}));
+ await page.route("https://ipapi.co/json/",(route:any)=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({country_code:"US",country_name:"United States"})}));
+ await page.route("**/api/platform-events",(route:any)=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({success:true})}));
+}
+
 test.describe("Public site freeze QA",()=>{
   test("core pages render with one visible primary heading",async({page})=>{
     for(const path of routes){
@@ -30,10 +42,11 @@ test.describe("Public site freeze QA",()=>{
     await expect(page.getByText(/not paid client work|not a paid customer/i)).toBeVisible();
   });
   test("pricing presents costs and commitments",async({page})=>{
+    await mockPublicPricing(page);
     await page.goto("/pricing");
     const cards=page.locator(".s28-price-card");
     await expect(cards.first()).toBeVisible();
-    expect(await cards.count()).toBe(3);
+    expect(await cards.count()).toBe(4);
     for(const card of await cards.all()){
       await expect(card.locator(".s28-price-number")).toBeVisible();
       await expect(card.getByText(/setup/i).first()).toBeVisible();

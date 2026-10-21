@@ -17,7 +17,7 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
         <div className="c26-hero-grid brand-shell">
           <div className="c26-hero-copy">
             
-            <h1 id="c26-title">Professional websites that help service businesses <em>get more enquiries.</em></h1>
+            <h1 id="c26-title">Websites that help service businesses <em>get more enquiries.</em></h1>
             <p className="c26-intro">We design, build, host and manage distinctive websites that make your business easier to trust, your services easier to understand and your next step easier to take.</p>
             <div className="c26-actions">
               <button type="button" className="c26-button c26-button-blue" onClick={() => cta("Homepage editorial primary preview")}>Get your free website preview <ArrowUpRight aria-hidden="true" size={19} /></button>

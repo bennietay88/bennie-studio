@@ -117,31 +117,7 @@ import { Label } from "./ui/label";
 import { toast } from "sonner";
 import { cn, formatDate } from "../lib/utils";
 import { Joyride, type Step } from "react-joyride";
-import { AdminSupport } from "./AdminSupport";
-import { MonthlyUpdateQueue } from "./SuperAdmin/MonthlyUpdateQueue";
-import { PoliciesCMS } from "./PoliciesCMS";
-import PlanEditor from "./PlanEditor";
-import { RevenueDashboard } from "./RevenueDashboard";
-import { TemplateManager } from "./SuperAdmin/TemplateManager";
-import { WebsiteEditor } from "./WebsiteEditor";
 import { ArrowLeft } from "lucide-react";
-import { SuperAdminAffiliates } from "./SuperAdminAffiliates";
-import { SuperAdminAffiliatePartners } from "./SuperAdminAffiliatePartners";
-import { StyleThemeManager } from "./SuperAdmin/StyleThemeManager";
-
-import { RevenueCommand } from "./SuperAdmin/RevenueCommand";
-import { FinanceDashboard } from "./SuperAdmin/FinanceDashboard";
-import { SalesHome } from "./SuperAdmin/SalesHome";
-import { ProspectExplorer } from "./SuperAdmin/ProspectExplorer";
-import { WebsiteReviewAuditor } from "./SuperAdmin/WebsiteReviewAuditor";
-import { OutreachLab } from "./SuperAdmin/OutreachLab";
-import { ProposalsDeals } from "./SuperAdmin/ProposalsDeals";
-import { ClientOnboarding } from "./SuperAdmin/ClientOnboarding";
-import { Projects } from "./SuperAdmin/Projects";
-import { AdminLeadInbox } from "./SuperAdmin/AdminLeadInbox";
-import { DailyOperations } from "./SuperAdmin/DailyOperations";
-import CommercialCatalogue from "./SuperAdmin/CommercialCatalogue";
-import { SystemStatusPage } from "./SystemStatusPage";
 import { PLANS as STATIC_PLANS, normalizePlans } from "../constants/plans";
 import {
   ADMIN_MODULES,
@@ -149,11 +125,37 @@ import {
   DEFAULT_ADMIN_MODULE_VISIBILITY,
 } from "../constants/adminModules";
 import { ADMIN_TAB_PERMISSIONS } from "../constants/staffPermissions";
-import SeoAdmin from "../modules/seo/components/SeoAdmin";
-import { BlogCMS } from "./BlogCMS";
-import { AdminLocalSeo } from "./SuperAdmin/AdminLocalSeo";
-import { MarketingPlanEntitlements } from "./SuperAdmin/MarketingPlanEntitlements";
-import { AdminFunnels } from "./SuperAdmin/AdminFunnels";
+
+// Keep each infrequently used admin module out of the dashboard entry chunk.
+// App.tsx provides a route-level Suspense fallback for these lazy modules.
+const AdminSupport = React.lazy(() => import("./AdminSupport").then((module) => ({ default: module.AdminSupport })));
+const MonthlyUpdateQueue = React.lazy(() => import("./SuperAdmin/MonthlyUpdateQueue").then((module) => ({ default: module.MonthlyUpdateQueue })));
+const PoliciesCMS = React.lazy(() => import("./PoliciesCMS").then((module) => ({ default: module.PoliciesCMS })));
+const PlanEditor = React.lazy(() => import("./PlanEditor"));
+const RevenueDashboard = React.lazy(() => import("./RevenueDashboard").then((module) => ({ default: module.RevenueDashboard })));
+const TemplateManager = React.lazy(() => import("./SuperAdmin/TemplateManager").then((module) => ({ default: module.TemplateManager })));
+const WebsiteEditor = React.lazy(() => import("./WebsiteEditor").then((module) => ({ default: module.WebsiteEditor })));
+const SuperAdminAffiliates = React.lazy(() => import("./SuperAdminAffiliates").then((module) => ({ default: module.SuperAdminAffiliates })));
+const SuperAdminAffiliatePartners = React.lazy(() => import("./SuperAdminAffiliatePartners").then((module) => ({ default: module.SuperAdminAffiliatePartners })));
+const StyleThemeManager = React.lazy(() => import("./SuperAdmin/StyleThemeManager").then((module) => ({ default: module.StyleThemeManager })));
+const RevenueCommand = React.lazy(() => import("./SuperAdmin/RevenueCommand").then((module) => ({ default: module.RevenueCommand })));
+const FinanceDashboard = React.lazy(() => import("./SuperAdmin/FinanceDashboard").then((module) => ({ default: module.FinanceDashboard })));
+const SalesHome = React.lazy(() => import("./SuperAdmin/SalesHome").then((module) => ({ default: module.SalesHome })));
+const ProspectExplorer = React.lazy(() => import("./SuperAdmin/ProspectExplorer").then((module) => ({ default: module.ProspectExplorer })));
+const WebsiteReviewAuditor = React.lazy(() => import("./SuperAdmin/WebsiteReviewAuditor").then((module) => ({ default: module.WebsiteReviewAuditor })));
+const OutreachLab = React.lazy(() => import("./SuperAdmin/OutreachLab").then((module) => ({ default: module.OutreachLab })));
+const ProposalsDeals = React.lazy(() => import("./SuperAdmin/ProposalsDeals").then((module) => ({ default: module.ProposalsDeals })));
+const ClientOnboarding = React.lazy(() => import("./SuperAdmin/ClientOnboarding").then((module) => ({ default: module.ClientOnboarding })));
+const Projects = React.lazy(() => import("./SuperAdmin/Projects").then((module) => ({ default: module.Projects })));
+const AdminLeadInbox = React.lazy(() => import("./SuperAdmin/AdminLeadInbox").then((module) => ({ default: module.AdminLeadInbox })));
+const DailyOperations = React.lazy(() => import("./SuperAdmin/DailyOperations").then((module) => ({ default: module.DailyOperations })));
+const CommercialCatalogue = React.lazy(() => import("./SuperAdmin/CommercialCatalogue"));
+const SystemStatusPage = React.lazy(() => import("./SystemStatusPage").then((module) => ({ default: module.SystemStatusPage })));
+const SeoAdmin = React.lazy(() => import("../modules/seo/components/SeoAdmin"));
+const BlogCMS = React.lazy(() => import("./BlogCMS").then((module) => ({ default: module.BlogCMS })));
+const AdminLocalSeo = React.lazy(() => import("./SuperAdmin/AdminLocalSeo").then((module) => ({ default: module.AdminLocalSeo })));
+const MarketingPlanEntitlements = React.lazy(() => import("./SuperAdmin/MarketingPlanEntitlements").then((module) => ({ default: module.MarketingPlanEntitlements })));
+const AdminFunnels = React.lazy(() => import("./SuperAdmin/AdminFunnels").then((module) => ({ default: module.AdminFunnels })));
 
 const CUSTOMER_DASHBOARD_FEATURES = [
   { id: "ai_synthesis", label: "Website Build & Refresh" },

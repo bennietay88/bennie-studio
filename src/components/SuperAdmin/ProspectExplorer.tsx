@@ -328,10 +328,35 @@ export function ProspectExplorer() {
       };
       const ordering = sortColumns[sortMode] || sortColumns.newest;
       const offset = (currentPage - 1) * PROSPECT_PAGE_SIZE;
-      const [{ data, error, count }, sessionResult, suppressionResult, totalResult, highResult, contactedResult, bookedResult, dueResult, notContactedResult] = await Promise.all([
+      // Load only the data required to safely render the current page. Summary
+      // counts, delivery history, and the inbox are secondary enrichment and
+      // must not hold the prospect rows behind a chain of network requests.
+      const [{ data, error, count }, suppressionResult] = await Promise.all([
         query.order(ordering.column, { ascending: ordering.ascending, nullsFirst: false }).order("id", { ascending: false }).range(offset, offset + PROSPECT_PAGE_SIZE - 1),
-        supabase.auth.getSession(),
         supabase.from("sales_suppressions").select("email").not("email", "is", null),
+      ]);
+      if (requestId !== prospectFetchRequest.current) return;
+      if (error) throw error;
+      setProspectTotal(count || 0);
+      const blocked = new Set((suppressionResult.data || []).map((record) => String(record.email || "").toLowerCase().trim()));
+      const rows = (data || []).map((prospect) => ({
+        ...prospect,
+        _score: scoreProspect(prospect),
+        _suppressed: blocked.has(String(prospect.contact_email || "").toLowerCase().trim()),
+        _contactSafetyUnknown: Boolean(suppressionResult.error),
+        _latestDelivery: null,
+      }));
+      setProspects(rows);
+      // The first page is ready now; don't keep the table in its loading state
+      // while optional reporting and email context are fetched.
+      setLoading(false);
+      if (suppressionResult.error) {
+        console.warn("Suppression status unavailable", suppressionResult.error);
+        toast.error("Suppression status unavailable. Email actions are blocked until refresh succeeds.");
+      }
+
+      const prospectIds = rows.map((prospect) => prospect.id);
+      const statsPromise = Promise.all([
         supabase.from("prospects").select("id", { count: "exact", head: true }),
         supabase.from("prospects").select("id", { count: "exact", head: true }).eq("opportunity_level", "high"),
         supabase.from("prospects").select("id", { count: "exact", head: true }).in("outreach_status", CONTACTED_OUTREACH_STATUSES),
@@ -339,31 +364,31 @@ export function ProspectExplorer() {
         supabase.from("prospects").select("id", { count: "exact", head: true }).lte("next_follow_up_at", new Date().toISOString()).not("outreach_status", "in", "(\"won\",\"lost\")"),
         supabase.from("prospects").select("id", { count: "exact", head: true }).in("outreach_status", NOT_CONTACTED_OUTREACH_STATUSES),
       ]);
+      const sessionPromise = supabase.auth.getSession();
+      const deliveryPromise = prospectIds.length
+          ? supabase.from("sales_messages").select("prospect_id,status,sent_at,created_at,error,provider_message_id")
+              .in("prospect_id", prospectIds).eq("direction", "outbound").eq("channel", "email")
+              .order("created_at", { ascending: false }).limit(PROSPECT_PAGE_SIZE * 10)
+          : Promise.resolve({ data: [], error: null });
+      const deliveryResult = await deliveryPromise;
       if (requestId !== prospectFetchRequest.current) return;
-      if (error) throw error;
-      setProspectTotal(count || 0);
+      const { data: deliveryRows, error: deliveryError } = deliveryResult;
+      if (deliveryError) console.warn("Email delivery status unavailable", deliveryError);
+      const deliveryByProspect = new Map<string, any>();
+      for (const message of deliveryRows || []) if (message.prospect_id && !deliveryByProspect.has(message.prospect_id)) deliveryByProspect.set(message.prospect_id, message);
+      const deliveryByProspectId = new Map(rows.map((prospect) => [prospect.id, { ...prospect, _latestDelivery: deliveryByProspect.get(prospect.id) || null }]));
+      setProspects((current) => requestId === prospectFetchRequest.current
+        ? current.map((prospect) => deliveryByProspectId.get(prospect.id) || prospect)
+        : current);
+
+      const [totalResult, highResult, contactedResult, bookedResult, dueResult, notContactedResult] = await statsPromise;
+      if (requestId !== prospectFetchRequest.current) return;
       setStats({ total: totalResult.count || 0, high: highResult.count || 0, contacted: contactedResult.count || 0, booked: bookedResult.count || 0, due: dueResult.count || 0, notContacted: notContactedResult.count || 0 });
       if ([totalResult, highResult, contactedResult, bookedResult, dueResult, notContactedResult].some((result) => result.error)) {
         console.warn("Prospect summary counts are temporarily unavailable.");
       }
-      let rows = (data || []).map((prospect) => ({ ...prospect, _score: scoreProspect(prospect) }));
-      const prospectIds = rows.map((prospect) => prospect.id);
-      const { data: deliveryRows, error: deliveryError } = prospectIds.length
-        ? await supabase.from("sales_messages").select("prospect_id,status,sent_at,created_at,error,provider_message_id")
-            .in("prospect_id", prospectIds).eq("direction", "outbound").eq("channel", "email")
-            .order("created_at", { ascending: false }).limit(PROSPECT_PAGE_SIZE * 10)
-        : { data: [], error: null };
-      if (suppressionResult.error) { console.warn("Suppression status unavailable", suppressionResult.error); toast.error("Suppression status unavailable. Email actions are blocked until refresh succeeds."); }
-      if (deliveryError) console.warn("Email delivery status unavailable", deliveryError);
-      const blocked = new Set((suppressionResult.data || []).map((record) => String(record.email || "").toLowerCase().trim()));
-      const deliveryByProspect = new Map<string, any>();
-      for (const message of deliveryRows || []) if (message.prospect_id && !deliveryByProspect.has(message.prospect_id)) deliveryByProspect.set(message.prospect_id, message);
-      rows = rows.map((prospect) => ({
-        ...prospect,
-        _suppressed: blocked.has(String(prospect.contact_email || "").toLowerCase().trim()),
-        _contactSafetyUnknown: Boolean(suppressionResult.error),
-        _latestDelivery: deliveryByProspect.get(prospect.id) || null,
-      }));
+      const sessionResult = await sessionPromise;
+      if (requestId !== prospectFetchRequest.current) return;
       const session = sessionResult.data.session;
       if (session?.access_token) {
         try {
@@ -371,15 +396,15 @@ export function ProspectExplorer() {
           if (inboxResponse.ok) {
             const inbox = await inboxResponse.json();
             const byProspect = new Map((inbox.conversations || []).map((conversation: any) => [conversation.prospect?.id, conversation]));
-            rows = rows.map((prospect) => {
-              const conversation: any = byProspect.get(prospect.id);
-              return conversation ? { ...prospect, _latestReply: conversation.latestReply, _latestOutbound: conversation.latestOutbound, _unreadReply: conversation.unread, _replyTaskId: conversation.replyTaskId } : prospect;
-            });
+            if (requestId === prospectFetchRequest.current) {
+              setProspects((current) => current.map((prospect) => {
+                const conversation: any = byProspect.get(prospect.id);
+                return conversation ? { ...prospect, _latestReply: conversation.latestReply, _latestOutbound: conversation.latestOutbound, _unreadReply: conversation.unread, _replyTaskId: conversation.replyTaskId } : prospect;
+              }));
+            }
           }
         } catch (inboxError) { console.warn("Sales inbox summary unavailable:", inboxError); }
       }
-      if (requestId !== prospectFetchRequest.current) return;
-      setProspects(rows);
     } catch (error: any) {
       if (requestId !== prospectFetchRequest.current) return;
       console.error("Error fetching prospects:", error);

@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { Business } from "../types";
 import { PLANS, normalizePlans } from "../constants/plans";
+import { ensurePersonalProfilePlan } from "../lib/planEntitlements";
 import {
   getMarketingCapability,
   type MarketingCapabilityId,
@@ -156,7 +157,7 @@ export function useFeatures() {
         ]);
 
         if (!planTableRes.error && Array.isArray(planTableRes.data) && planTableRes.data.length > 0) {
-          setPlanSettings(planTableRowsToSettings(planTableRes.data));
+          setPlanSettings(ensurePersonalProfilePlan(planTableRowsToSettings(planTableRes.data)));
         } else if (plansFallbackRes.data?.content?.pricing) {
           setPlanSettings(normalizePlans(plansFallbackRes.data.content.pricing));
         } else {

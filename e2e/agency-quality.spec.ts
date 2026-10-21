@@ -92,7 +92,7 @@ for (const viewport of viewports) {
       expect(response?.ok(), `${route} should return a successful response`).toBeTruthy();
       await page.evaluate(async () => { await document.fonts.ready; });
 
-      const h1 = page.locator("h1").first();
+      const h1 = page.locator("h1:visible").first();
       await expect(h1).toBeVisible();
       const heading = await h1.evaluate((node) => {
         const element = node as HTMLElement;
@@ -182,7 +182,7 @@ test("compact desktop keeps primary navigation accessible", async ({ page }) => 
   const dialog = page.getByRole("dialog", { name: "Navigation menu" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("link", { name: "Services", exact: true })).toBeVisible();
-  await expect(dialog.getByRole("link", { name: "Examples", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Case Studies", exact: true })).toBeVisible();
   await expect(dialog.getByRole("link", { name: "Pricing", exact: true })).toBeVisible();
   await expect(dialog.getByRole("link", { name: "How it works", exact: true })).toBeVisible();
 });
@@ -272,8 +272,8 @@ test("generated customer site mobile navigation is accessible", async ({ page })
 test("sales journey exposes delivery safeguards and defined scope", async ({ page }) => {
   await mockAnonymousPublicDependencies(page);
   await page.goto("/how-it-works", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: /A clear path from brief to launch/i })).toBeVisible();
-  await expect(page.getByText(/Human review at every stage/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /From first idea to a website that's ready for business/i })).toBeVisible();
+  await expect(page.getByText(/required review and approval steps/i)).toBeVisible();
 
   await page.goto("/pricing", { waitUntil: "networkidle" });
   const plans = page.locator("#plans");
