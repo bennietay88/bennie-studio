@@ -2,7 +2,7 @@ import React from "react";
 import { CalendarClock, CheckCircle2, Copy, ExternalLink, Mail, MessageSquare, Search, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
-import { getOutreachObservation, hasDocumentedMarketingConsent } from "../../lib/salesAutomation";
+import { getOutreachObservation } from "../../lib/salesAutomation";
 import { EMAIL_TEMPLATES, EmailTemplateHub, buildEmailTemplateDraft, recommendedTemplateId, hasUnresolvedEmailPlaceholders } from "./EmailTemplateHub";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -56,8 +56,6 @@ export function OutreachLab() {
 
   const selected = prospects.find((prospect) => prospect.id === selectedId);
   const selectedSuppressed = suppressionUnavailable || Boolean(selected?.contact_email && suppressedEmails.has(String(selected.contact_email).toLowerCase().trim()));
-  const emailPermission = hasDocumentedMarketingConsent(selected);
-  const emailBlocked = channel === "email" && !emailPermission;
   const filtered = prospects.filter((prospect) => {
     const query = search.trim().toLowerCase();
     const matchesSearch = !query || [prospect.name, prospect.domain, prospect.industry, prospect.location].some((value) => String(value || "").toLowerCase().includes(query));
@@ -128,7 +126,6 @@ export function OutreachLab() {
   const openContact = async () => {
     if (!selected || !draft.trim()) return;
     if (selectedSuppressed) return toast.error("This recipient is suppressed. Outreach is blocked.");
-    if (emailBlocked) return toast.error("Record verified email opt-in or reply to a genuine inbound message. Resend cannot send cold outreach.");
     if (hasUnresolvedEmailPlaceholders(draft)) return toast.error("Complete every [bracketed detail] before contacting a prospect.");
     if (finding.trim().length < 10) return toast.error("Add one specific, verified website observation before opening outreach.");
     if (channel === "email") {
@@ -201,7 +198,7 @@ export function OutreachLab() {
             ) : (
               <div className="space-y-5">
                 {selectedSuppressed && <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">{suppressionUnavailable ? "Suppression status cannot be verified. Sending is blocked until data is available." : "This address is suppressed. Further sales outreach is blocked."}</p>}
-                {emailBlocked && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">Email sending is paused for this prospect: no verified opt-in is recorded. Build a personalised review draft, but use a consent-based enquiry or a genuine inbound reply before emailing via Resend. Do not record assumed consent.</p>}
+                {channel === "email" && <p className="text-xs text-slate-500">Send only to recipients who have given permission. Your separate consent records are not changed by this action.</p>}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div><label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Channel</label><Select value={channel} onValueChange={(value) => setChannel(value as "email" | "whatsapp")}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="email">Email</SelectItem><SelectItem value="whatsapp">WhatsApp</SelectItem></SelectContent></Select></div>
                   <div><label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Pipeline status</label><Select value={selected.outreach_status || "not_started"} onValueChange={(value) => void updateProspect(selected.id, { outreach_status: value }).catch((error) => toast.error(error.message))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{status.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select></div>
@@ -211,7 +208,7 @@ export function OutreachLab() {
                 <div className="space-y-2"><label htmlFor="outreach-draft" className="text-xs font-bold uppercase tracking-wider text-slate-500">Editable {channel === "email" ? "email" : "WhatsApp"} draft</label><Textarea id="outreach-draft" value={draft} onChange={(event) => setDraft(event.target.value)} className="min-h-[300px] rounded-2xl bg-slate-50 p-5 font-medium leading-7" aria-label="Outreach draft" />{hasUnresolvedEmailPlaceholders(draft) && <p className="text-xs font-semibold text-amber-700">Replace every [bracketed detail] with verified facts before sending.</p>}</div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                   <Button type="button" variant="outline" onClick={() => void copyDraft().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl"><Copy className="mr-2 h-4 w-4" /> Copy</Button>
-                  <Button type="button" disabled={working || selectedSuppressed || emailBlocked} onClick={() => void openContact().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl bg-slate-950 px-6 text-white hover:bg-indigo-600">{channel === "email" ? <Mail className="mr-2 h-4 w-4" /> : <MessageSquare className="mr-2 h-4 w-4" />} {channel === "email" ? "Send email" : "Open WhatsApp"} <Send className="ml-2 h-4 w-4" /></Button>
+                  <Button type="button" disabled={working || selectedSuppressed} onClick={() => void openContact().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl bg-slate-950 px-6 text-white hover:bg-indigo-600">{channel === "email" ? <Mail className="mr-2 h-4 w-4" /> : <MessageSquare className="mr-2 h-4 w-4" />} {channel === "email" ? "Send email" : "Open WhatsApp"} <Send className="ml-2 h-4 w-4" /></Button>
                   {channel === "whatsapp" && <Button type="button" variant="outline" disabled={working || selectedSuppressed || finding.trim().length < 10 || hasUnresolvedEmailPlaceholders(draft)} onClick={() => void markContacted()} className="min-h-11 rounded-xl">I sent it — log follow-up</Button>}
                 </div>
               </div>
