@@ -24,6 +24,38 @@ export function normalizeSalesEmail(value: unknown): string {
   return z.string().email().max(254).safeParse(email).success ? email : "";
 }
 
+export async function attestImportedProspectConsent(db: Db, now: string) {
+  const matches: Row[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    if (offset >= 20000) throw new Error("CONSENT_IMPORT_BATCH_TOO_LARGE");
+    const { data } = checked(await db.from("prospects")
+      .select("id,name,contact_email,created_at,marketing_consent,consent_email,consent_timestamp,consent_source")
+      .ilike("notes", "%Manual outreach authorization declared by CSV uploader%")
+      .order("created_at", { ascending: true }).range(offset, offset + 999));
+    matches.push(...(data || []));
+    if ((data || []).length < 1000) break;
+  }
+  const candidates = matches.filter((row) => normalizeSalesEmail(row.contact_email));
+  const updated: Row[] = [];
+  for (const prospect of candidates) {
+    const email = normalizeSalesEmail(prospect.contact_email);
+    if (prospect.marketing_consent === true && normalizeSalesEmail(prospect.consent_email) === email
+      && prospect.consent_timestamp && String(prospect.consent_source || "").trim().length >= 20) continue;
+    const importedAt = new Date(prospect.created_at || now);
+    const consentTimestamp = Number.isFinite(importedAt.getTime()) ? importedAt.toISOString() : now;
+    const consentSource = `Admin attestation recorded ${now}: recipient opted in; Bennie Studio holds the consent record. Opt-in date recorded as the prospect upload date per administrator instruction.`;
+    const { data } = checked(await db.from("prospects").update({
+      marketing_consent: true,
+      consent_email: email,
+      consent_timestamp: consentTimestamp,
+      consent_source: consentSource,
+      updated_at: now,
+    }).eq("id", prospect.id).eq("contact_email", prospect.contact_email).select("*").single());
+    updated.push(data);
+  }
+  return { matched: candidates.length, updated };
+}
+
 function safeAuditReviewUrl(value: unknown): string {
   try {
     const url = new URL(String(value || ""));

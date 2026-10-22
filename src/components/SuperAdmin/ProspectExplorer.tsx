@@ -150,6 +150,9 @@ export function ProspectExplorer() {
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [bulkAction, setBulkAction] = useState<"stop_follow_up" | "delete" | null>(null);
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [consentAttestationOpen, setConsentAttestationOpen] = useState(false);
+  const [consentAttestationConfirmed, setConsentAttestationConfirmed] = useState(false);
+  const [consentAttestationSaving, setConsentAttestationSaving] = useState(false);
 
 
   const applyOutreachTemplate = (templateId: string, prospect = outreachProspect, observation = outreachObservation) => {
@@ -159,6 +162,32 @@ export function ProspectExplorer() {
     setOutreachSubject(subjectLine.replace(/^Subject:\s*/i, ""));
     setOutreachBody(bodyLines.join("\n").trim());
     setOutreachDraftTouched(false);
+  };
+
+  const attestImportedConsent = async () => {
+    if (!consentAttestationConfirmed) return;
+    try {
+      setConsentAttestationSaving(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Your admin session has expired. Sign in again and retry.");
+      const response = await fetch("/api/admin/prospects/attest-imported-consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ confirmed: true }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || "Consent attestation failed.");
+      const updatedById = new Map<string, any>((payload.prospects || []).map((item: any) => [item.id, item] as [string, any]));
+      setProspects((current) => current.map((item) => updatedById.has(item.id) ? { ...item, ...updatedById.get(item.id) } : item));
+      setConsentAttestationOpen(false);
+      setConsentAttestationConfirmed(false);
+      toast.success(`${payload.updated} uploaded prospect${payload.updated === 1 ? "" : "s"} marked as consented. No emails were sent.`);
+      await fetchProspects();
+    } catch (error: any) {
+      toast.error(error?.message || "Consent attestation failed.");
+    } finally {
+      setConsentAttestationSaving(false);
+    }
   };
 
   useEffect(() => {
@@ -1311,6 +1340,7 @@ export function ProspectExplorer() {
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" className="rounded-xl border-slate-200" onClick={seedMalaysiaDentalSearch}>Malaysia Dental</Button>
           <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => setIsImportModalOpen(true)}><Upload className="mr-2 h-4 w-4" />Import CSV</Button>
+          <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => { setConsentAttestationConfirmed(false); setConsentAttestationOpen(true); }}><Shield className="mr-2 h-4 w-4" />Record list consent</Button>
           <Button variant="outline" className="rounded-xl border-slate-200" onClick={exportCsv}><Download className="mr-2 h-4 w-4" />Export CSV</Button>
           <Button onClick={() => setIsAddModalOpen(true)} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold">
             <Plus className="h-4 w-4 mr-2" /> Add Prospect
@@ -1760,6 +1790,30 @@ export function ProspectExplorer() {
           </Button>
         </div>
       </div>
+
+      <Dialog open={consentAttestationOpen} onOpenChange={(open) => { if (!consentAttestationSaving) setConsentAttestationOpen(open); }}>
+        <DialogContent className="max-w-xl rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Record consent for uploaded prospects</DialogTitle>
+            <DialogDescription>This applies to all prospects imported by CSV that have an email address. It records an admin attestation and does not send email.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+              The opt-in date will be set to each prospect’s upload date. The consent source will state that Bennie Studio holds the consent record and that an administrator attested to it. Existing exact-email, suppression and unsubscribe checks remain active.
+            </div>
+            <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm leading-5">
+              <Checkbox checked={consentAttestationConfirmed} onCheckedChange={(checked) => setConsentAttestationConfirmed(checked === true)} />
+              <span>I confirm every CSV-uploaded prospect has opted in to receive Bennie Studio marketing email, the opt-in date matches the upload date, and Bennie Studio holds the consent records.</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={consentAttestationSaving} onClick={() => setConsentAttestationOpen(false)}>Cancel</Button>
+            <Button type="button" disabled={consentAttestationSaving || !consentAttestationConfirmed} onClick={() => void attestImportedConsent()} className="bg-indigo-600 hover:bg-indigo-700">
+              {consentAttestationSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{consentAttestationSaving ? "Recording…" : "Record consent"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={Boolean(scheduleProspect)} onOpenChange={(open) => { if (!open && !scheduleSaving) setScheduleProspect(null); }}>
         <DialogContent className="max-w-md rounded-3xl">

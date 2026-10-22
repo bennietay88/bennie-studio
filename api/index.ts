@@ -64,7 +64,7 @@ import {
 import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
-import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
+import { attestImportedProspectConsent, canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { buildProspectFollowUpPlan, bulkManageProspectFollowUps, scheduleProspectFollowUpPlan, syncProspectNextFollowUp } from "../server/prospectFollowUps.js";
 import { attachUploaderOutreachDeclaration, parseProspectCsv } from "../src/lib/prospectImport.js";
 import { hasDocumentedMarketingConsent } from "../src/lib/salesAutomation.js";
@@ -8331,6 +8331,38 @@ async function startServer() {
       }
       console.error("[Customer Onboarding Invite] Failed:", error?.message || error);
       return res.status(503).json({ error: "Onboarding invitation could not be sent." });
+    }
+  });
+
+  app.post("/api/admin/prospects/attest-imported-consent", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      const body = validateBody(z.object({ confirmed: z.literal(true) }).strict(), req, res);
+      if (!body) return;
+      const now = new Date().toISOString();
+      const result = await attestImportedProspectConsent(supabaseAdmin, now);
+      const { error: auditError } = await supabaseAdmin.from("admin_action_audit_logs").insert({
+        actor_user_id: req.user.id,
+        actor_email: req.user.email || null,
+        action_type: "prospect.imported_consent_attested",
+        target_type: "prospect_import_batch",
+        target_id: null,
+        target_label: "CSV uploaded prospects",
+        metadata: {
+          matched: result.matched,
+          updated: result.updated.length,
+          optInDateRule: "prospect.created_at",
+          attestedAt: now,
+          source: "Admin attested consent records are held by Bennie Studio",
+        },
+      });
+      if (auditError) console.error("[Prospect Consent Attestation] Audit event could not be saved:", auditError.message);
+      return res.json({ success: true, matched: result.matched, updated: result.updated.length, prospects: result.updated });
+    } catch (error: any) {
+      if (error?.message === "CONSENT_IMPORT_BATCH_TOO_LARGE") return res.status(409).json({ error: "Imported prospect list exceeds the 20,000 row limit. Narrow the list before attesting consent." });
+      console.error("[Prospect Consent Attestation] Could not update imported prospects:", error?.message || error);
+      return res.status(503).json({ error: "Consent attestation failed. No emails were sent." });
     }
   });
 
