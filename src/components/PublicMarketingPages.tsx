@@ -413,6 +413,7 @@ async function submitPlatformLead(input: {
   market?: string;
   turnstileToken?: string;
   website?: string;
+  marketingConsent?: boolean;
 }) {
   const response = await fetch("/api/platform-leads", {
     method: "POST",
@@ -905,6 +906,7 @@ function GeneratePreviewPage() {
   );
   const [turnstileToken, setTurnstileToken] = React.useState("");
   const [honeypot, setHoneypot] = React.useState("");
+  const [marketingOptIn, setMarketingOptIn] = React.useState(false);
   const [generating, setGenerating] = React.useState(false);
   const [error, setError] = React.useState("");
   const [form, setForm] = React.useState(() => {
@@ -1123,6 +1125,7 @@ function GeneratePreviewPage() {
           market: "INTL",
           turnstileToken,
           website: honeypot,
+          marketingConsent: marketingOptIn,
         });
         if (!leadResult?.leadId) throw new Error("We could not connect this preview to your enquiry. Please retry.");
         leadResult.leadEmail = form.email;
@@ -2024,6 +2027,11 @@ function GeneratePreviewPage() {
                     <Input id="preview-phone" required={!salesMode && goal.toLowerCase().includes("whatsapp")} autoComplete="tel" value={form.phone} onChange={(e) => setForm({...form, phone:e.target.value})} placeholder="Phone or WhatsApp number" className="h-12 rounded-xl border-white/15 bg-white text-[#141821]" />
                   </div>
                 </div>
+
+                {!salesMode && <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm leading-6 text-slate-200">
+                  <input type="checkbox" checked={marketingOptIn} onChange={(event) => setMarketingOptIn(event.target.checked)} className="mt-1.5 h-4 w-4 accent-[#b9b1ff]" />
+                  <span>Optional: email me occasional website-improvement tips and relevant Bennie Studio offers. I can unsubscribe at any time. This is not required for my free preview.</span>
+                </label>}
 
                 <div className="hidden" aria-hidden="true">
                   <label htmlFor="preview-company-website">Company website</label>
