@@ -400,7 +400,7 @@ export async function sendDirectProspectOutreach(
   if (!prospect) throw new Error("CONTACT_NOT_FOUND");
 
   const reviewUrl = safeAuditReviewUrl(input.reviewUrl);
-  if (!input.replyToMessageId && input.templateId !== "introduction" && String(input.observation || "").trim().length < 10 && !reviewUrl) {
+  if (!input.replyToMessageId && String(input.observation || "").trim().length < 10 && !reviewUrl) {
     throw new Error("OUTREACH_OBSERVATION_REQUIRED");
   }
   if (/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(`${input.subject || ""}\n${input.bodyText}`)) {
