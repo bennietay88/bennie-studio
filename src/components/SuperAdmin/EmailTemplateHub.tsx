@@ -7,10 +7,10 @@ export type EmailTemplate = { id: string; name: string; problem: string; stage: 
 
 export const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
-    id: "introduction", name: "Simple introduction", problem: "Meet Bennie Studio", stage: "First contact",
-    note: "A brief introduction. Keep the website review for a later follow-up.",
-    subject: "A quick introduction from Bennie Studio",
-    body: "Hi {{first_name}}\n\nI'm Bennie from Bennie Studio. We build and manage websites for service businesses.\n\nI came across {{company}} and would be glad to share a short website review. Would that be useful?\n\nBennie\nBennie Studio",
+    id: "introduction", name: "Verified website insight", problem: "Specific enquiry improvement", stage: "First contact",
+    note: "Only send to an opted-in contact. Include one checked observation and ask one easy reply question.",
+    subject: "One website idea for {{company}}",
+    body: "Hi {{first_name}},\n\nThanks for your interest in a website review for {{company}}.\n\nI checked your public site and noticed {{finding}}.\n\nOne practical change I'd consider is: {{recommendation}}.\n\nWould you like me to share a short example of how that could work?\n\nBennie\nBennie Studio",
   },
   {
     id: "audit-follow-up", name: "Day 3 — share the website review", problem: "No response", stage: "Contacted",
@@ -175,7 +175,7 @@ export function EmailTemplateHub({ selectedId, onSelect }: { selectedId: string;
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div><p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-indigo-700"><BookOpen className="h-4 w-4" /> Email Template Hub</p>
         <h2 className="mt-2 text-2xl font-bold text-slate-950">Messages by problem and buyer stage</h2>
-        <p className="mt-2 max-w-2xl text-sm text-slate-600">Start with a short introduction. Keep the prepared website review for a separate follow-up three days later.</p></div>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600">Use only for requested reviews, verified inbound conversations or recipients with documented marketing opt-in. Start with one verified observation and one clear question.</p></div>
       <span className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-700"><ShieldCheck className="h-4 w-4" /> Human reviewed</span>
     </div>
     <div className="mt-5 grid gap-3 md:grid-cols-[1.2fr_1fr_1fr]">
