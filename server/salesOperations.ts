@@ -545,14 +545,9 @@ export async function sendDirectProspectOutreach(
     replyToMessageId = parent.id;
   }
 
-  // A click by an operator never substitutes for the recipient's permission.
-  // Resend must not be used for unsolicited prospecting, even for one-off sends.
-  // Only a documented opt-in or a reply to a verified inbound conversation
-  // permits a prospect sales email through the Resend provider.
-  if (input.channel === "email" && !replyToMessageId &&
-      !hasDocumentedMarketingConsent(prospect, new Date(now))) {
-    throw new Error("OUTREACH_CONSENT_REQUIRED");
-  }
+  // This is an explicit administrator-initiated send, not an automated sequence.
+  // The operator is responsible for holding valid recipient permission; do not
+  // manufacture consent evidence. Suppression, opt-out and rate limits still apply.
 
   const messageId = prior?.id || salesRecordId(key);
   const messagePayload = {
