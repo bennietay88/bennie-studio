@@ -10,7 +10,7 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     id: "introduction", name: "Verified website insight", problem: "Specific enquiry improvement", stage: "First contact",
     note: "Only send to an opted-in contact. Include one checked observation and ask one easy reply question.",
     subject: "One website idea for {{company}}",
-    body: "Hi {{first_name}},\n\nThanks for your interest in a website review for {{company}}.\n\nI checked your public site and noticed {{finding}}.\n\nOne practical change I'd consider is: {{recommendation}}.\n\nWould you like me to share a short example of how that could work?\n\nBennie\nBennie Studio",
+    body: "Hi {{first_name}},\n\nI have a specific website observation for {{company}}.\n\nI checked your public site and noticed {{finding}}.\n\nOne practical change I'd consider is: {{recommendation}}.\n\nWould you like me to share a short example of how that could work?\n\nBennie\nBennie Studio",
   },
   {
     id: "audit-follow-up", name: "Day 3 — share the website review", problem: "No response", stage: "Contacted",
