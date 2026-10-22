@@ -90,13 +90,14 @@ export const hasDocumentedMarketingConsent = (contact: {
   consent_email?: string | null;
   contact_email?: string | null;
   email?: string | null;
+  raw_fields?: { marketingConsentEmail?: string; marketingConsentSource?: string } | null;
 } | null | undefined, now = new Date()): boolean => {
   if (contact?.marketing_consent !== true) return false;
-  const permittedRecipient = String(contact.consent_email || "").trim().toLowerCase();
+  const permittedRecipient = String(contact.consent_email || contact.raw_fields?.marketingConsentEmail || "").trim().toLowerCase();
   const actualRecipient = String(contact.contact_email || contact.email || "").trim().toLowerCase();
   if (!permittedRecipient || permittedRecipient !== actualRecipient) return false;
   const recordedAt = new Date(String(contact.consent_timestamp || "")).getTime();
-  const source = String(contact.consent_source || contact.consent_text || "").trim();
+  const source = String(contact.consent_source || contact.consent_text || contact.raw_fields?.marketingConsentSource || "").trim();
   return Number.isFinite(recordedAt) && recordedAt <= now.getTime() && source.length >= 10;
 };
 
