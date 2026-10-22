@@ -90,7 +90,7 @@ export function SalesAutomation() {
   const now = new Date();
   const activeSequences = sequences.filter((item) => item.status === "active");
   const selectedSequenceDetails = sequences.find((item) => item.id === selectedSequence);
-  const simpleIntroSequence = selectedSequenceDetails?.name === "Cold website review";
+  const permissionedReviewSequence = selectedSequenceDetails?.audience_type === "cold";
   const drafts = messages.filter((item) => item.status === "draft" &&
     (!item.provider_payload?.directAuditFollowUp || !item.scheduled_at || new Date(item.scheduled_at) <= now));
   const replies = messages.filter((item) => item.direction === "inbound" || item.status === "replied");
@@ -130,6 +130,10 @@ export function SalesAutomation() {
 
   const toggleSequence = async (sequence: OutreachSequence) => {
     const status = sequence.status === "active" ? "paused" : "active";
+    if (status === "active" && sequence.audience_type === "cold") {
+      const confirmation = window.confirm("This enables only permissioned website-review emails. No scraped or unsolicited cold outreach is allowed through Resend. Continue?");
+      if (!confirmation) return;
+    }
     const { error } = await supabase.from("outreach_sequences").update({ status, updated_at: new Date().toISOString() }).eq("id", sequence.id);
     if (error) return toast.error(error.message);
     toast.success(status === "active" ? "Sequence activated. New enrolments still require first-message approval." : "Sequence paused.");
@@ -139,7 +143,7 @@ export function SalesAutomation() {
   const enroll = async () => {
     const contact = contacts.find((item) => `${item.kind}:${item.id}` === selectedContact);
     if (!contact || !selectedSequence) return toast.error("Choose an active sequence and contact.");
-    if (!simpleIntroSequence && observation.trim().length < 10) return toast.error("Add one specific, verified website finding (at least 10 characters) before enrolling.");
+    if (observation.trim().length < 10) return toast.error("Add one specific, verified website finding (at least 10 characters) before enrolling.");
     setWorking(true);
     try {
       await api("/api/admin/sales-automation/enroll", { method: "POST", body: JSON.stringify({ sequenceId: selectedSequence, [contact.kind === "lead" ? "leadId" : "prospectId"]: contact.id, observation: observation.trim() || undefined }) });
@@ -239,7 +243,7 @@ export function SalesAutomation() {
 
         <TabsContent value="control" className="mt-6 space-y-6">
           <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Sequences</CardTitle></CardHeader><CardContent className="space-y-3">{sequences.map((sequence) => <div key={sequence.id} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4"><div><p className="font-black text-slate-950">{sequence.name}</p><p className="mt-1 text-xs font-semibold text-slate-500">{sequence.settings?.purpose as string || sequence.audience_type} · first message approval</p></div><Button variant="outline" onClick={() => void toggleSequence(sequence)} className="rounded-xl">{sequence.status === "active" ? <><Pause className="mr-2 h-4 w-4" /> Pause</> : <><Play className="mr-2 h-4 w-4" /> Activate</>}</Button></div>)}</CardContent></Card>
-          <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Enrol a qualified contact</CardTitle></CardHeader><CardContent className="space-y-4"><div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm font-semibold leading-6 text-indigo-950">{simpleIntroSequence ? "The cold website sequence starts with a brief introduction. Its prepared website review is a separate follow-up, scheduled three days later. First messages still require approval." : "Enroll a qualified contact in an active sequence. First messages still require approval."}</div><Select value={selectedSequence} onValueChange={setSelectedSequence}><SelectTrigger className="rounded-xl"><SelectValue placeholder="Choose an active sequence" /></SelectTrigger><SelectContent>{activeSequences.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select><Select value={selectedContact} onValueChange={(value) => { setSelectedContact(value); const match = contacts.find((item) => `${item.kind}:${item.id}` === value); setObservation(match?.observation?.split("\n")[0] || ""); }}><SelectTrigger className="rounded-xl"><SelectValue placeholder="Choose a lead or prospect" /></SelectTrigger><SelectContent>{contacts.map((item) => <SelectItem key={`${item.kind}:${item.id}`} value={`${item.kind}:${item.id}`}>{item.name} · {item.detail}</SelectItem>)}</SelectContent></Select>{!simpleIntroSequence && <Textarea value={observation} onChange={(event) => setObservation(event.target.value)} placeholder="One specific, verified observation from the live website." className="min-h-24 rounded-xl" />}<p className="text-xs text-slate-500">{simpleIntroSequence ? "Prepare the recipient’s audit before enrolling them. The findings remain out of the first email." : "Keep the observation factual; do not guess rankings, traffic, revenue, or lost sales."}</p><Button onClick={() => void enroll()} disabled={working || !activeSequences.length} className="w-full rounded-xl bg-indigo-600 text-white"><Users className="mr-2 h-4 w-4" /> Enrol and prepare first draft</Button></CardContent></Card>
+          <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Enrol a qualified contact</CardTitle></CardHeader><CardContent className="space-y-4"><div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm font-semibold leading-6 text-indigo-950">{permissionedReviewSequence ? "This sequence is for verified opt-in recipients only. Start with one checked website observation, not a mass introduction. First messages require approval." : "Enroll a qualified, permissioned contact in an active sequence. First messages require approval."}</div><Select value={selectedSequence} onValueChange={setSelectedSequence}><SelectTrigger className="rounded-xl"><SelectValue placeholder="Choose an active sequence" /></SelectTrigger><SelectContent>{activeSequences.map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select><Select value={selectedContact} onValueChange={(value) => { setSelectedContact(value); const match = contacts.find((item) => `${item.kind}:${item.id}` === value); setObservation(match?.observation?.split("\n")[0] || ""); }}><SelectTrigger className="rounded-xl"><SelectValue placeholder="Choose a lead or prospect" /></SelectTrigger><SelectContent>{contacts.map((item) => <SelectItem key={`${item.kind}:${item.id}`} value={`${item.kind}:${item.id}`}>{item.name} · {item.detail}</SelectItem>)}</SelectContent></Select><Textarea value={observation} onChange={(event) => setObservation(event.target.value)} placeholder="One specific, verified observation from the live website." className="min-h-24 rounded-xl" /><p className="text-xs text-slate-500">"Only record confirmed observations. Do not infer lost sales. Resend marketing requires a documented opt-in, and approval does not override that rule."</p><Button onClick={() => void enroll()} disabled={working || !activeSequences.length} className="w-full rounded-xl bg-indigo-600 text-white"><Users className="mr-2 h-4 w-4" /> Enrol and prepare first draft</Button></CardContent></Card>
         </TabsContent>
 
         <TabsContent value="queue" className="mt-6 space-y-4">
