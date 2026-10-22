@@ -440,9 +440,7 @@ export async function sendDirectProspectOutreach(
     if (suppression) throw new Error("CONTACT_SUPPRESSED");
   }
 
-  // Admin-initiated direct messages rely on the operator's authorization.
-  // Do not fabricate marketing-consent records. Automatic sequences remain
-  // gated by recorded consent, and suppressed recipients are always blocked.
+  // Operator authorization never overrides a prospect's marketing-consent status.
 
   const recipient = input.channel === "email" ? email : phone;
   const key = `direct-outreach:${input.channel}:${input.requestId}`;
@@ -513,6 +511,15 @@ export async function sendDirectProspectOutreach(
       throw new Error("OUTREACH_REPLY_CONFLICT");
     }
     replyToMessageId = parent.id;
+  }
+
+  // A click by an operator never substitutes for the recipient's permission.
+  // Resend must not be used for unsolicited prospecting, even for one-off sends.
+  // Only a documented opt-in or a reply to a verified inbound conversation
+  // permits a prospect sales email through the Resend provider.
+  if (input.channel === "email" && !replyToMessageId &&
+      !hasDocumentedMarketingConsent(prospect, new Date(now))) {
+    throw new Error("OUTREACH_CONSENT_REQUIRED");
   }
 
   const messageId = prior?.id || salesRecordId(key);
