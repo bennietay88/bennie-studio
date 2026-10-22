@@ -6644,6 +6644,7 @@ async function startServer() {
           selectedProduct: z.string().trim().max(80).optional().nullable(),
           turnstileToken: z.string().trim().max(4096).optional().nullable(),
           website: z.string().trim().max(200).optional().nullable(),
+          marketingConsent: z.boolean().optional().default(false),
           firstTouch: z.record(z.string(), z.any()).optional(),
           lastTouch: z.record(z.string(), z.any()).optional(),
         }),
@@ -6679,6 +6680,7 @@ async function startServer() {
         selectedProduct,
         turnstileToken,
         website: honeypot,
+        marketingConsent,
         firstTouch,
         lastTouch,
       } = leadBody;
@@ -6723,13 +6725,35 @@ async function startServer() {
           .ilike("email", email)
           .maybeSingle();
         if (duplicateLookupError) return res.status(503).json({ success: false, message: "Lead intake is temporarily unavailable" });
-        if (existingLead?.id) return res.status(200).json({ success: true, leadId: existingLead.id, reused: true });
+        if (existingLead?.id) {
+          // Re-submitting an already verified preview must not manufacture consent.
+          // Only an explicitly checked optional box can add the marketing permission.
+          if (marketingConsent) {
+            const optedInAt = new Date().toISOString();
+            const { data: previous } = await supabaseAdmin.from("leads").select("raw_fields").eq("id", existingLead.id).maybeSingle();
+            const { error: consentError } = await supabaseAdmin.from("leads").update({
+              marketing_consent: true,
+              consent_timestamp: optedInAt,
+              consent_text: "Optional checkbox: send me occasional website-improvement tips and relevant Bennie Studio offers; unsubscribe at any time.",
+              raw_fields: { ...(previous?.raw_fields || {}), marketingConsentEmail: email.trim().toLowerCase(), marketingConsentSource: "Optional unchecked-by-default preview form checkbox", marketingConsent: true, marketingConsentAt: optedInAt },
+            }).eq("id", existingLead.id);
+            if (consentError) return res.status(503).json({ success: false, message: "Could not record consent. Please retry." });
+          }
+          return res.status(200).json({ success: true, leadId: existingLead.id, reused: true });
+        }
       }
 
+      const optedInAt = marketingConsent ? new Date().toISOString() : null;
+      const explicitConsent = {
+        marketing_consent: marketingConsent === true,
+        consent_timestamp: optedInAt,
+        consent_text: marketingConsent ? "Optional checkbox: send me occasional website-improvement tips and relevant Bennie Studio offers; unsubscribe at any time." : null,
+      };
       const payloads: Record<string, any>[] = [
         {
           name,
           email,
+          ...explicitConsent,
           phone,
           message: salesMessage || "Free website preview requested from landing page.",
           source_platform: "bennie_studio",
@@ -6757,6 +6781,10 @@ async function startServer() {
             firstTouch,
             lastTouch,
             intent: leadType || "free_website_preview",
+            marketingConsent: marketingConsent === true,
+            marketingConsentEmail: marketingConsent ? email.trim().toLowerCase() : null,
+            marketingConsentSource: marketingConsent ? "Optional unchecked-by-default preview form checkbox" : null,
+            marketingConsentAt: optedInAt,
           },
           status: "new",
           ...automationSnapshot,
@@ -6775,6 +6803,7 @@ async function startServer() {
           message: salesMessage || "Free website preview requested from landing page.",
           source_page: sourcePage || req.get("referer") || "/",
           form_name: formName || "Website preview request",
+          ...explicitConsent,
           status: "new",
         },
         {
@@ -6782,6 +6811,7 @@ async function startServer() {
           email,
           phone,
           message: salesMessage || "Free website preview requested from landing page.",
+          ...explicitConsent,
           status: "new",
         },
       ];
@@ -8396,6 +8426,10 @@ async function startServer() {
           status: 400,
           message: "Complete every bracketed detail before sending.",
         },
+        OUTREACH_CONSENT_REQUIRED: {
+          status: 409,
+          message: "Email blocked: this prospect has no verified marketing opt-in. Resend is for permissioned outreach or replying to a genuine inbound enquiry.",
+        },
         OUTREACH_REQUEST_CONFLICT: {
           status: 409,
           message: "This outreach request belongs to another prospect.",
@@ -8610,12 +8644,17 @@ async function startServer() {
       const updates: Record<string, any> = { status: "approved", updated_at: new Date().toISOString() };
       if (body.subject !== undefined) updates.subject = body.subject;
       if (body.bodyText !== undefined) updates.body_text = body.bodyText;
-      const { data: candidate, error: candidateError } = await supabaseAdmin.from("sales_messages").select("recipient,subject,body_text,status,scheduled_at,provider_payload").eq("id", req.params.messageId).maybeSingle();
+      const { data: candidate, error: candidateError } = await supabaseAdmin.from("sales_messages").select("recipient,subject,body_text,status,scheduled_at,provider_payload,prospect_id,reply_to_message_id").eq("id", req.params.messageId).maybeSingle();
       if (candidateError) throw candidateError;
       if (!candidate || candidate.status !== "draft") return res.status(409).json({ error: "Only draft messages can be approved" });
       const finalText = `${updates.subject ?? candidate.subject ?? ""}\n${updates.body_text ?? candidate.body_text ?? ""}`;
       if (/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(finalText)) return res.status(422).json({ error: "Resolve all email placeholders before approval." });
       if (await isSalesSuppressed(supabaseAdmin, normalizeSalesEmail(candidate.recipient))) return res.status(409).json({ error: "This recipient has opted out or bounced. Approval blocked." });
+      if (candidate.prospect_id && !candidate.reply_to_message_id) {
+        const { data: prospect, error: prospectError } = await supabaseAdmin.from("prospects").select("*").eq("id", candidate.prospect_id).maybeSingle();
+        if (prospectError) throw prospectError;
+        if (!hasDocumentedMarketingConsent(prospect)) return res.status(409).json({ error: "Approval blocked. This prospect has no documented opt-in." });
+      }
       const futureAuditFollowUp = candidate.provider_payload?.directAuditFollowUp && candidate.scheduled_at && new Date(candidate.scheduled_at) > new Date();
       if (body.sendNow && !futureAuditFollowUp) updates.scheduled_at = new Date().toISOString();
       const { data, error } = await supabaseAdmin.from("sales_messages").update(updates).eq("id", req.params.messageId).eq("status", "draft").select("*").maybeSingle();
@@ -8737,6 +8776,52 @@ async function startServer() {
       return res.type("html").send("<!doctype html><html><body style='font-family:system-ui;padding:60px'><main style='max-width:560px;margin:auto'><h1>You have been unsubscribed.</h1><p>Bennie Studio will not send further sales follow-ups to this address.</p></main></body></html>");
     } catch {
       return res.status(503).type("text").send("We could not save your request. Please retry.");
+    }
+  });
+
+
+  // Hostinger is the actual reply mailbox. Its webhook is separate from Resend's
+  // provider-delivery webhook, which does not observe mail delivered to Hostinger.
+  app.post("/api/webhooks/hostinger-mail", async (req: any, res: any) => {
+    const configuredSecret = String(process.env.HOSTINGER_MAIL_WEBHOOK_SECRET || "");
+    if (!configuredSecret) return res.status(503).json({ error: "Mail webhook is not configured" });
+    const suppliedToken = String(req.headers.authorization || "").replace(/^Bearer\\s+/i, "");
+    const provided = Buffer.from(suppliedToken);
+    const configured = Buffer.from(configuredSecret);
+    if (!suppliedToken || provided.length !== configured.length || !crypto.timingSafeEqual(provided, configured)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    try {
+      const payload = req.body && typeof req.body === "object" ? req.body : {};
+      const eventType = String(payload.event || payload.type || payload.data?.event || "");
+      if (eventType !== "message.received") return res.json({ received: true, ignored: true });
+      const detail = payload.message || payload.data?.message || payload.data || {};
+      const fromValue = detail.from || payload.from || "";
+      const sender = typeof fromValue === "string" ? fromValue : String(fromValue?.address || "");
+      if (!normalizeSalesEmail(sender)) return res.json({ received: true, ignored: true });
+      const eventId = detail.uid || detail.messageId || detail.message_id || detail.id || payload.id
+        || crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+      const event = {
+        type: "email.received",
+        created_at: detail.date || detail.timestamp || payload.timestamp || new Date().toISOString(),
+        data: {
+          email_id: `hostinger:${String(eventId).slice(0, 128)}`,
+          from: sender,
+          subject: String(detail.subject || payload.subject || "Email reply").slice(0, 500),
+          in_reply_to: detail.inReplyTo || detail.in_reply_to || "",
+        },
+      };
+      // Hostinger's webhook provides a preview, not necessarily the complete body.
+      // Never present this as a full message or fabricate a reply.
+      const snippet = String(detail.preview || detail.snippet || detail.text || "").slice(0, 1000);
+      await recordSalesReply(supabaseAdmin, event, async () =>
+        `[Hostinger email received; open the hello@bennietay.com mailbox to read and reply to the full message.${snippet ? ` Provider preview: ${snippet}` : ""}]`,
+        new Date().toISOString(),
+      );
+      return res.json({ received: true });
+    } catch (error: any) {
+      structuredLog("warn", "hostinger_sales_reply_sync_failed", { reason: String(error?.message || "unknown").slice(0, 100) });
+      return res.status(503).json({ error: "Reply sync unavailable; retry delivery" });
     }
   });
 
