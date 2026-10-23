@@ -68,6 +68,7 @@ const LoginPage = lazy(() => import("./components/LoginPage"));
 const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
 const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPages"));
 const StudioCaseStudyDetail = lazy(() => import("./components/StudioCaseStudyDetail"));
+const StudioShowcaseLivePreview = lazy(() => import("./components/StudioShowcaseLivePreview"));
 const PublicBlogPostPage = lazy(() => import("./components/PublicBlogPostPage"));
 const PublicResourceArticlePage = lazy(() => import("./components/PublicResourceArticlePage"));
 const WaasSamplePage = lazy(() => import("./components/WaasSamplePage"));
@@ -638,6 +639,7 @@ export default function App() {
               <Route path="/how-it-works" element={<PublicMarketingPages />} />
               <Route path="/case-studies" element={<PublicMarketingPages />} />
               <Route path="/case-studies/showcase/:slug" element={<StudioCaseStudyDetail />} />
+              <Route path="/case-studies/showcase/:slug/preview" element={<StudioShowcaseLivePreview />} />
               <Route path="/dental-clinics" element={<PublicMarketingPages />} />
               <Route path="/examples" element={<Navigate to="/case-studies" replace />} />
               <Route path="/website-audit" element={<PublicMarketingPages />} />
