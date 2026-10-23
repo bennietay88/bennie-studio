@@ -550,34 +550,28 @@ export function WorkStudioPage() {
         <div className="brand-shell c30-case-hero-grid py-14 lg:py-20">
           <div className="c30-case-hero-copy">
             <h1 className="!max-w-[18ch]">See the websites <em>we can build.</em></h1>
-            <p className="brand-copy mt-7 max-w-3xl">Explore our own website and six industry-focused website designs created with the Bennie Studio app. See how each design presents a business, builds confidence and guides visitors towards an enquiry.</p>
+            <p className="brand-copy mt-7 max-w-3xl">Explore six website examples created with Bennie Studio using illustrative business briefs. Each shows how an industry-specific website can present a service, build confidence and guide visitors towards an enquiry.</p>
             <div className="mt-8 flex flex-wrap gap-5">
-              <a href="#studio-work" className="c27-button">Explore the work <ArrowRight className="h-4 w-4"/></a>
+              <a href="#industry-examples" className="c27-button">Explore website examples <ArrowRight className="h-4 w-4"/></a>
               <Link to="/generate-preview" className="c27-quiet">Get a free website preview <ArrowRight className="h-4 w-4"/></Link>
             </div>
           </div>
-          <div className="c30-case-hero-art" aria-label="Responsive website previews built with Bennie Studio">
+          <div className="c30-case-hero-art" aria-label="Studio-built website example previews">
             <div className="c30-case-preview-main"><TemplatePreviewThumbnail templateId="dental-clinic-v1" templateName="Dental clinic website" className="h-[270px] sm:h-[340px]" /></div>
             <div className="c30-case-preview-second"><TemplatePreviewThumbnail templateId="renovation-contractor-v1" templateName="Renovation website" className="h-[150px] sm:h-[185px]" /></div>
-            <span className="c30-case-art-caption">Actual websites built with Bennie Studio</span>
+            <span className="c30-case-art-caption">Studio-built examples · illustrative briefs</span>
           </div>
         </div>
       </section>
-      <section className="brand-shell brand-section" id="studio-work">
-        <div className="grid gap-8 lg:grid-cols-[.65fr_1.35fr] lg:items-end"><div><h2 className="mt-4">Bennie Studio's own website redesign.</h2></div><p className="brand-copy">Our in-house brief was to make the offer easier to understand, showcase website design quality and give business owners a clear route to a free preview, real pricing and an enquiry. The live website is the deliverable.</p></div>
-        <div className="mt-9 grid gap-0 border border-[#dce1e6] lg:grid-cols-[1.15fr_.85fr]">
-          <div className="flex min-h-[330px] flex-col justify-center bg-[#1741ed] p-9 text-white sm:p-14"><h3 className="mt-7 max-w-[11ch] !text-white !text-[clamp(2.5rem,5vw,5rem)] !leading-[.99] !tracking-[-.06em]">Made to <span className="font-serif italic font-normal">stand out.</span> Built to work.</h3><p className="mt-7 text-sm !text-white/75">Responsive, enquiry-led design system for Bennie Studio.</p></div>
-          <div className="flex flex-col justify-center bg-white p-8 sm:p-11"><h3 className="mt-4">A clearer path from first impression to a buying decision.</h3><p className="mt-5 text-sm leading-7 text-[#536171]">Homepage positioning, visual proof of design capability, a free preview, transparent commercial pricing, and managed service information all working together.</p><div className="mt-7 flex gap-3 flex-wrap"><Link to="/" className="c27-quiet">View live website <ArrowRight className="h-4 w-4"/></Link><Link to="/pricing" className="c27-quiet">Review the buying journey <ArrowRight className="h-4 w-4"/></Link></div></div>
-        </div>
-      </section>
-      <section className="border-y border-[#dfe3e8] bg-[#f2f4f7]">
+      
+      <section className="border-y border-[#dfe3e8] bg-[#f2f4f7]" id="industry-examples">
         <div className="brand-shell brand-section">
-          <div className="mb-10 grid gap-6 lg:grid-cols-[1fr_.8fr] lg:items-end"><div><h2 className="mt-4">Six industries. Six different buying journeys.</h2></div><p className="brand-copy">Explore actual websites built with Bennie Studio across six industries, each shaped around how its customers choose.</p></div>
+          <div className="mb-10 grid gap-6 lg:grid-cols-[1fr_.8fr] lg:items-end"><div><h2 className="mt-4">Six industries. Six different buying journeys.</h2></div><p className="brand-copy">Explore six studio-built website examples, each shaped around how customers in that industry choose.</p></div>
           <div className="c27-grid">{STUDIO_SHOWCASES.map(study=><article key={study.slug} className="c27-card">
             <StudioShowcaseVisual study={study} compact />
             <div className="c27-card-content"><p className="c27-kicker">{study.category} · Studio-built</p><h3>{study.title}</h3><p>{study.headline}</p><p className="mt-3 !text-xs">Enquiry goal: {study.goal}</p><Link to={"/case-studies/showcase/"+study.slug}>Explore case study <ArrowRight className="h-4 w-4"/></Link></div>
           </article>)}</div>
-          <p className="mt-6 max-w-4xl text-xs leading-6 text-[#697585]">These are real website builds created by Bennie Studio using illustrative business briefs, not paid client projects. Final client websites are personalised with approved business content and proof, then reviewed by the studio.</p>
+          <p className="mt-6 max-w-4xl text-xs leading-6 text-[#697585]">These are studio-built examples created from illustrative business briefs, not paid client projects. They demonstrate the design and enquiry approach; no client outcomes or performance results are claimed.</p>
         </div>
       </section>
       <section className="brand-shell brand-section grid gap-9 lg:grid-cols-[1fr_auto] lg:items-center"><div><h2 className="mt-4">Wondering what this would look like for your business?</h2><p className="brand-copy mt-5">Tell us about your business and receive a preliminary website direction before choosing a managed plan.</p></div><Link to="/generate-preview" className="c27-button">Get your free website preview <ArrowRight className="h-4 w-4"/></Link></section>
