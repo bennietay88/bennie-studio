@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ArrowUpRight, Check, Globe2, MonitorSmartphone, ShieldCheck, Sparkles } from "lucide-react";
 import { trackPublicEvent } from "../lib/publicTracking";
+import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
 import "../styles/conversionHomepage.css";
 
 /**
@@ -11,6 +12,7 @@ import "../styles/conversionHomepage.css";
  */
 export function ConversionHomepage({ onCta }: { onCta: (path: string, label: string) => void }) {
   const cta = (label: string) => onCta("/generate-preview", label);
+  const featuredStudy = STUDIO_SHOWCASES[1];
   return (
     <div className="conversion-home">
       <section className="c26-hero" aria-labelledby="c26-title">
@@ -60,10 +62,10 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
       </section>
 
       <section className="c26-case brand-shell" aria-labelledby="c26-case-title">
-        <div className="c26-section-head"><div><h2 id="c26-case-title">Case studies<span className="c26-dot">.</span></h2></div><p>See how website design decisions connect to what a business needs its website to do.</p><Link to="/case-studies" className="c26-quiet-link">Explore the case study <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
+        <div className="c26-section-head"><div><h2 id="c26-case-title">Website examples<span className="c26-dot">.</span></h2></div><p>Explore studio-built website directions shaped around real service-business buying journeys.</p><Link to="/case-studies" className="c26-quiet-link">Browse all examples <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
         <article className="c26-case-feature">
-          <div className="c26-case-art" aria-hidden="true"><div className="c26-case-window"><div className="c26-case-mini-nav">bennie<span>studio</span> <small>Services　 Case Studies　 Pricing</small></div><span>IN-HOUSE DIGITAL EXPERIENCE</span><strong>Made to<br/><i>stand out.</i><br/>Built to work.</strong><div className="c26-case-abstract"/><p>Clear value. Easy next steps.</p></div></div>
-          <div className="c26-case-copy"><span className="c26-case-meta">01 / In-house project · Bennie Studio</span><h3>Our own website, built around a clearer buying journey.</h3><p>We reworked our service story to make the offer easier to understand, put pricing and next steps within reach, and help visitors explore an initial direction before committing to a plan.</p><div className="c26-case-tags"><span>Positioning</span><span>Responsive design</span><span>Enquiry journey</span></div><Link to="/case-studies" className="c26-text-cta" onClick={()=>trackPublicEvent({eventType:"case_study_clicked",label:"Bennie Studio in-house",target:"/case-studies"})}>Read the case study <ArrowUpRight size={18} aria-hidden="true"/></Link><p className="c26-case-honesty">In-house work. No third-party client outcomes or unverified performance figures are claimed.</p></div>
+          <div className="c26-case-art" aria-label={featuredStudy.title + " website example"}><StudioShowcaseVisual study={featuredStudy} compact /></div>
+          <div className="c26-case-copy"><span className="c26-case-meta">01 / {featuredStudy.category} · Studio-built example</span><h3>{featuredStudy.headline}</h3><p>{featuredStudy.challenge} {featuredStudy.approach}</p><div className="c26-case-tags">{featuredStudy.sections.slice(0, 3).map((section) => <span key={section}>{section}</span>)}</div><Link to={"/case-studies/showcase/" + featuredStudy.slug} className="c26-text-cta" onClick={()=>trackPublicEvent({eventType:"case_study_clicked",label:featuredStudy.title + " studio example",target:"/case-studies/showcase/" + featuredStudy.slug})}>Explore this website example <ArrowUpRight size={18} aria-hidden="true"/></Link><p className="c26-case-honesty">Built by Bennie Studio from an illustrative business brief. This is not paid client work and does not claim client outcomes.</p></div>
         </article>
       </section>
 
