@@ -233,6 +233,81 @@ const PRIVATE_ROUTE_PREFIXES = [
   "/affiliate",
 ];
 
+const SALES_CONSENT_KEY = "bt_sales_cookie_consent";
+const SALES_CONSENT_VERSION = "uk-sales-consent-v1";
+
+function PublicAnalytics({ settings }: { settings: any }) {
+  const { pathname, search } = useLocation();
+
+  React.useEffect(() => {
+    // The homepage has its own consent-aware Google tag. This covers the
+    // remaining public app routes and keeps private dashboard traffic out.
+    if (pathname === "/") return;
+    const privateRoute = PRIVATE_ROUTE_PREFIXES.some(
+      (prefix) =>
+        pathname === prefix ||
+        pathname.startsWith(prefix.endsWith("/") ? prefix : prefix + "/"),
+    );
+    if (privateRoute) return;
+
+    const measurementId = String(settings?.gaMeasurementId || "").trim();
+    if (!/^G-[A-Z0-9]+$/.test(measurementId)) return;
+
+    let analyticsAllowed = settings?.salesCookieBannerEnabled === false;
+    if (!analyticsAllowed) {
+      try {
+        const consent = JSON.parse(localStorage.getItem(SALES_CONSENT_KEY) || "null");
+        analyticsAllowed =
+          consent?.version === SALES_CONSENT_VERSION && consent?.analytics === true;
+      } catch {
+        analyticsAllowed = false;
+      }
+    }
+    if (!analyticsAllowed) return;
+
+    const analyticsWindow = window as any;
+    analyticsWindow.dataLayer = analyticsWindow.dataLayer || [];
+    if (typeof analyticsWindow.gtag !== "function") {
+      analyticsWindow.gtag = function () {
+        analyticsWindow.dataLayer.push(arguments);
+      };
+    }
+
+    if (!document.querySelector('script[data-bt-ga="' + measurementId + '"]')) {
+      const script = document.createElement("script");
+      script.async = true;
+      script.src = "https://www.googletagmanager.com/gtag/js?id=" + measurementId;
+      script.setAttribute("data-bt-ga", measurementId);
+      document.head.appendChild(script);
+    }
+
+    analyticsWindow.__btGa4Configured = analyticsWindow.__btGa4Configured || {};
+    if (!analyticsWindow.__btGa4Configured[measurementId]) {
+      analyticsWindow.gtag("js", new Date());
+      analyticsWindow.gtag("config", measurementId, { send_page_view: false });
+      analyticsWindow.__btGa4Configured[measurementId] = true;
+    }
+
+    const allowedParams = new URLSearchParams();
+    const currentParams = new URLSearchParams(search);
+    ["utm_source", "utm_medium", "utm_campaign", "utm_id", "utm_term", "utm_content"].forEach(
+      (key) => {
+        const value = currentParams.get(key);
+        if (value) allowedParams.set(key, value);
+      },
+    );
+    const query = allowedParams.toString();
+    const pagePath = pathname + (query ? "?" + query : "");
+    analyticsWindow.gtag("event", "page_view", {
+      page_location: window.location.origin + pagePath,
+      page_path: pagePath,
+      page_title: document.title,
+    });
+  }, [pathname, search, settings?.gaMeasurementId, settings?.salesCookieBannerEnabled]);
+
+  return null;
+}
+
 function PublicRouteTransition({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
   const isPublicRoute = !PRIVATE_ROUTE_PREFIXES.some(
@@ -408,6 +483,7 @@ export default function App() {
           <ScrollToTop />
           <RouteRobotsMeta />
           <TrafficTracker />
+            <PublicAnalytics settings={platformSettings} />
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
@@ -429,6 +505,7 @@ export default function App() {
           <ScrollToTop />
           <RouteRobotsMeta />
           <TrafficTracker />
+            <PublicAnalytics settings={platformSettings} />
           <AgencyMotionDirector />
           <Helmet>
             <title>{defaultSiteTitle}</title>
