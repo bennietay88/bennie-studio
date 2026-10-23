@@ -556,7 +556,7 @@ export function WorkStudioPage() {
               <Link to="/generate-preview" className="c27-quiet">Get a free website preview <ArrowRight className="h-4 w-4"/></Link>
             </div>
           </div>
-          <div className="c30-case-hero-art" aria-label="Studio-built website example previews">
+          <div className="c30-case-hero-art" aria-label="Studio-built website previews">
             <div className="c30-case-preview-main"><TemplatePreviewThumbnail templateId="dental-clinic-v1" templateName="Dental clinic website" className="h-[270px] sm:h-[340px]" /></div>
             <div className="c30-case-preview-second"><TemplatePreviewThumbnail templateId="renovation-contractor-v1" templateName="Renovation website" className="h-[150px] sm:h-[185px]" /></div>
             
