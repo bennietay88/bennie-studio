@@ -236,34 +236,53 @@ const PRIVATE_ROUTE_PREFIXES = [
 const SALES_CONSENT_KEY = "bt_sales_cookie_consent";
 const SALES_CONSENT_VERSION = "uk-sales-consent-v1";
 
+type SalesAnalyticsConsent = {
+  necessary: true;
+  functional: false;
+  analytics: boolean;
+  marketing: boolean;
+  timestamp: string;
+  version: string;
+};
+
+function readSalesAnalyticsConsent(): SalesAnalyticsConsent | null {
+  try {
+    const value = JSON.parse(localStorage.getItem(SALES_CONSENT_KEY) || "null");
+    return value?.version === SALES_CONSENT_VERSION &&
+      typeof value?.analytics === "boolean" &&
+      typeof value?.marketing === "boolean"
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function PublicAnalytics({ settings }: { settings: any }) {
   const { pathname, search } = useLocation();
+  const [consent, setConsent] = React.useState<SalesAnalyticsConsent | null>(
+    readSalesAnalyticsConsent,
+  );
 
   React.useEffect(() => {
-    // The homepage has its own consent-aware Google tag. This covers the
-    // remaining public app routes and keeps private dashboard traffic out.
-    if (pathname === "/") return;
-    const privateRoute = PRIVATE_ROUTE_PREFIXES.some(
-      (prefix) =>
-        pathname === prefix ||
-        pathname.startsWith(prefix.endsWith("/") ? prefix : prefix + "/"),
-    );
-    if (privateRoute) return;
+    setConsent(readSalesAnalyticsConsent());
+  }, [pathname]);
+
+  const privateRoute = PRIVATE_ROUTE_PREFIXES.some(
+    (prefix) =>
+      pathname === prefix ||
+      pathname.startsWith(prefix.endsWith("/") ? prefix : prefix + "/"),
+  );
+  const analyticsAllowed =
+    settings?.salesCookieBannerEnabled === false ||
+    (consent?.version === SALES_CONSENT_VERSION && consent.analytics === true);
+
+  React.useEffect(() => {
+    // The homepage has its own consent-aware Google tag.
+    if (pathname === "/" || privateRoute || !analyticsAllowed) return;
 
     const measurementId = String(settings?.gaMeasurementId || "").trim();
     if (!/^G-[A-Z0-9]+$/.test(measurementId)) return;
-
-    let analyticsAllowed = settings?.salesCookieBannerEnabled === false;
-    if (!analyticsAllowed) {
-      try {
-        const consent = JSON.parse(localStorage.getItem(SALES_CONSENT_KEY) || "null");
-        analyticsAllowed =
-          consent?.version === SALES_CONSENT_VERSION && consent?.analytics === true;
-      } catch {
-        analyticsAllowed = false;
-      }
-    }
-    if (!analyticsAllowed) return;
 
     const analyticsWindow = window as any;
     analyticsWindow.dataLayer = analyticsWindow.dataLayer || [];
@@ -303,9 +322,69 @@ function PublicAnalytics({ settings }: { settings: any }) {
       page_path: pagePath,
       page_title: document.title,
     });
-  }, [pathname, search, settings?.gaMeasurementId, settings?.salesCookieBannerEnabled]);
+  }, [
+    analyticsAllowed,
+    pathname,
+    privateRoute,
+    search,
+    settings?.gaMeasurementId,
+  ]);
 
-  return null;
+  const saveConsent = (analytics: boolean, marketing: boolean) => {
+    const next: SalesAnalyticsConsent = {
+      necessary: true,
+      functional: false,
+      analytics,
+      marketing,
+      timestamp: new Date().toISOString(),
+      version: SALES_CONSENT_VERSION,
+    };
+    try {
+      localStorage.setItem(SALES_CONSENT_KEY, JSON.stringify(next));
+    } catch {
+      // Consent remains session-scoped when persistent storage is unavailable.
+    }
+    setConsent(next);
+  };
+
+  const showCookieBanner =
+    pathname !== "/" &&
+    !privateRoute &&
+    settings?.salesCookieBannerEnabled !== false &&
+    !consent;
+
+  if (!showCookieBanner) return null;
+
+  return (
+    <div
+      role="dialog"
+      aria-label="Cookie preferences"
+      className="fixed inset-x-4 bottom-4 z-[120] mx-auto max-w-4xl border border-white/10 bg-[#0c1224] p-5 text-white shadow-2xl"
+    >
+      <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
+        <div>
+          <p className="text-sm font-semibold">Cookie preferences</p>
+          <p className="mt-1 max-w-2xl text-xs font-medium leading-5 text-white/75">
+            Necessary cookies keep the site working. Analytics and marketing cookies are optional and only load after consent.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => saveConsent(false, false)}
+            className="border border-white/20 px-4 py-2 text-xs font-black"
+          >
+            Necessary only
+          </button>
+          <button
+            onClick={() => saveConsent(true, true)}
+            className="bg-white px-4 py-2 text-xs font-black text-[#10131c]"
+          >
+            Accept all
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function PublicRouteTransition({ children }: { children: React.ReactNode }) {
