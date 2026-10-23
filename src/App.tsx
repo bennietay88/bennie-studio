@@ -640,6 +640,7 @@ export default function App() {
               <Route path="/case-studies" element={<PublicMarketingPages />} />
               <Route path="/case-studies/showcase/:slug" element={<StudioCaseStudyDetail />} />
               <Route path="/case-studies/showcase/:slug/preview" element={<StudioShowcaseLivePreview />} />
+              <Route path="/case-studies/showcase/:slug/preview/:page" element={<StudioShowcaseLivePreview />} />
               <Route path="/dental-clinics" element={<PublicMarketingPages />} />
               <Route path="/examples" element={<Navigate to="/case-studies" replace />} />
               <Route path="/website-audit" element={<PublicMarketingPages />} />
