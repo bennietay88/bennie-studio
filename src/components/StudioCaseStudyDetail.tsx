@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { PublicSiteHeader, PublicSiteFooter } from "./PublicSiteChrome";
+import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
 
 export const STUDIO_SHOWCASES = [
 {slug:"dental-clinic",id:"dental-clinic-v1",category:"Healthcare",title:"Dental clinic",headline:"A calmer path from treatment search to appointment",goal:"Appointment enquiry",challenge:"Patients need treatment clarity, practitioner information and easy-to-find booking options.",approach:"Make treatments easy to scan, introduce the care team, answer common questions and emphasise the appointment path.",sections:["Treatments","Practitioners","Patient FAQs","Opening hours","Appointment CTA"],industry:"clinic",colour:"#17645e"},
@@ -14,12 +15,12 @@ export const STUDIO_SHOWCASES = [
 {slug:"beauty-wellness",id:"salon-spa-v1",category:"Beauty & wellness",title:"Beauty & wellness",headline:"A more inviting route from treatment discovery to booking",goal:"Treatment booking",challenge:"Visitors need to compare services, see the treatment style and find a booking route on mobile.",approach:"Combine atmospheric presentation with concise treatment menus and prominent booking steps.",sections:["Treatment menu","Gallery","Packages","Visit details","Booking CTA"],industry:"beauty",colour:"#875b68"},
 {slug:"accounting-firm",id:"accounting-firm-v1",category:"Finance",title:"Accounting firm",headline:"Making professional services easier to evaluate",goal:"Consultation enquiry",challenge:"Business owners want to confirm the firm's capabilities and client fit before making contact.",approach:"Explain accounting and tax services, qualifications and next steps clearly and succinctly.",sections:["Client fit","Services","Credentials","FAQs","Consultation CTA"],industry:"consultant",colour:"#354f62"}
 ] as const;
-export type StudioShowcase=(typeof STUDIO_SHOWCASES)[number];
+export type StudioShowcase={slug:string;id:string;category:string;title:string;headline:string;goal:string;challenge:string;approach:string;sections:readonly string[];industry:string;colour:string};
 export function StudioShowcaseVisual({study,compact=false}:{study:StudioShowcase,compact?:boolean}){
  return <div className="c27-visual" style={{background:study.colour}}><div className="c27-rendered"><TemplatePreviewThumbnail templateId={study.id} templateName={study.title} className={compact?"h-[218px]":"h-[340px] sm:h-[440px]"}/></div></div>
 }
 export default function StudioCaseStudyDetail(){
- const {slug}=useParams();const study=STUDIO_SHOWCASES.find(s=>s.slug===slug);
+ const {slug}=useParams();const studies=useStudioShowcaseCatalog(STUDIO_SHOWCASES);const study=studies.find(s=>s.slug===slug);
  return <div className="brand-public c27-public min-h-screen bg-[#f8f8f5]">
  <PublicSiteHeader/>
  {study?<><Helmet><title>{study.title} Website | Studio Showcase | Bennie Studio</title><meta name="description" content={study.challenge+" Explore a website built by Bennie Studio."}/><link rel="canonical" href={"https://app.bennietay.com/case-studies/showcase/"+study.slug}/></Helmet>

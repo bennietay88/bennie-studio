@@ -153,6 +153,7 @@ const CommercialCatalogue = React.lazy(() => import("./SuperAdmin/CommercialCata
 const SystemStatusPage = React.lazy(() => import("./SystemStatusPage").then((module) => ({ default: module.SystemStatusPage })));
 const SeoAdmin = React.lazy(() => import("../modules/seo/components/SeoAdmin"));
 const BlogCMS = React.lazy(() => import("./BlogCMS").then((module) => ({ default: module.BlogCMS })));
+const StudioShowcaseCms = React.lazy(() => import("./SuperAdmin/StudioShowcaseCms").then((module) => ({ default: module.StudioShowcaseCms })));
 const AdminLocalSeo = React.lazy(() => import("./SuperAdmin/AdminLocalSeo").then((module) => ({ default: module.AdminLocalSeo })));
 const MarketingPlanEntitlements = React.lazy(() => import("./SuperAdmin/MarketingPlanEntitlements").then((module) => ({ default: module.MarketingPlanEntitlements })));
 const AdminFunnels = React.lazy(() => import("./SuperAdmin/AdminFunnels").then((module) => ({ default: module.AdminFunnels })));
@@ -255,6 +256,7 @@ export default function SuperAdminDashboard() {
     if (last === "support") return "support";
     if (last === "update_requests") return "update_requests";
     if (last === "blog") return "blog";
+    if (last === "studio_showcases") return "studio_showcases";
     if (last === "funnels") return "funnels";
     if (last === "policies") return "policies";
     if (last === "revenue_command") return "revenue_command";
@@ -1489,6 +1491,7 @@ export default function SuperAdminDashboard() {
       {activeTab === "seo_management" && <SeoAdmin />}
       {activeTab === "local_seo" && <AdminLocalSeo />}
       {activeTab === "blog" && <BlogCMS isPlatform />}
+      {activeTab === "studio_showcases" && <StudioShowcaseCms />}
       {activeTab === "funnels" && <AdminFunnels />}
       
       {(activeTab === "businesses" || activeTab === "admin") && editingWebsiteBusinessId && (
@@ -2366,7 +2369,7 @@ export default function SuperAdminDashboard() {
           {activeTab === "update_requests" && <MonthlyUpdateQueue />}
 
           {/* Catch-all for tabs that might not have specialized rendering yet or are in development */}
-          {!['overview', 'revenue_command', 'sales_home', 'growth_operations', 'daily_operations', 'operations_control', 'inbound_leads', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'proposals_deals', 'projects', 'client_onboarding', 'seo_management', 'local_seo', 'blog', 'funnels', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'templates', 'plans', 'status', 'ecosystem_architect', 'traffic', 'settings', 'support', 'update_requests', 'policies', 'admin'].includes(activeTab) && (
+          {!['overview', 'revenue_command', 'sales_home', 'growth_operations', 'daily_operations', 'operations_control', 'inbound_leads', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'proposals_deals', 'projects', 'client_onboarding', 'seo_management', 'local_seo', 'blog', 'studio_showcases', 'funnels', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'templates', 'plans', 'status', 'ecosystem_architect', 'traffic', 'settings', 'support', 'update_requests', 'policies', 'admin'].includes(activeTab) && (
             <div className="h-full flex items-center justify-center p-12">
                <Card className="p-24 flex flex-col items-center justify-center text-center rounded-[3rem] border-slate-100 bg-slate-50/50 max-w-2xl">
                   <div className="h-20 w-20 rounded-[2rem] bg-white shadow-xl shadow-slate-200 flex items-center justify-center text-indigo-600 mb-6">

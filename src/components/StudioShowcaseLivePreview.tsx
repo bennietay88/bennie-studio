@@ -4,8 +4,9 @@ import { Helmet } from "react-helmet-async";
 import { ArrowRight, CalendarDays, Check, Clock3, MapPin, ShieldCheck } from "lucide-react";
 import { STUDIO_SHOWCASES } from "./StudioCaseStudyDetail";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
+import { fetchStudioShowcaseCms, mergeCmsValue } from "../lib/studioShowcaseCms";
 
-type DemoContent = {
+export type DemoContent = {
   brand: string;
   tagline: string;
   headline: string;
@@ -17,7 +18,7 @@ type DemoContent = {
   reassurance: string[];
 };
 
-const DEMOS: Record<string, DemoContent> = {
+export const DEMOS: Record<string, DemoContent> = {
   "dental-clinic": {
     brand: "Harbour Dental",
     tagline: "Thoughtful care. Clear next steps.",
@@ -135,7 +136,7 @@ const DEMOS: Record<string, DemoContent> = {
 };
 
 
-type NichePageContent = {
+export type NichePageContent = {
   home: {
     focusTitle: string;
     focusCopy: string;
@@ -163,7 +164,7 @@ type NichePageContent = {
   };
 };
 
-const NICHE_PAGE_CONTENT: Record<string, NichePageContent> = {
+export const NICHE_PAGE_CONTENT: Record<string, NichePageContent> = {
   "dental-clinic": {
     home: {
       focusTitle: "Dental care, made easier to understand",
@@ -502,30 +503,41 @@ const NICHE_PAGE_CONTENT: Record<string, NichePageContent> = {
   },
 };
 
-function DemoArtwork({ slug, content }: { slug: string; content: DemoContent }) {
+function DemoArtwork({ slug, content, theme }: { slug: string; content: DemoContent; theme?: { headingOnDark?: string; bodyOnDark?: string } }) {
+  const service = (index: number) => content.services[index] || { name: "", copy: "" };
+  const headingStyle = { color: theme?.headingOnDark || "#ffffff" };
+  const mutedStyle = { color: theme?.bodyOnDark || "rgba(255,255,255,.72)" };
   if (slug === "dental-clinic") {
-    return <div className="rounded-[2rem] bg-[#d9eee9] p-5 sm:p-8"><div className="rounded-2xl bg-white p-6 shadow-xl shadow-emerald-950/10 sm:p-8"><div className="flex items-center justify-between border-b border-slate-100 pb-5"><span className="text-sm font-bold text-slate-800">{content.brand}</span><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">Patient-first care</span></div><div className="grid gap-5 py-7 sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-800">Your visit, made simpler</p><h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">Care that begins with a conversation.</h2><p className="mt-3 text-sm leading-6 text-slate-600">Explore treatments, ask a question or plan your first visit.</p></div><div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-800"><ShieldCheck size={34}/></div></div><div className="grid grid-cols-2 gap-3"><div className="rounded-xl bg-[#f4f8f6] p-4"><CalendarDays className="text-emerald-800" size={18}/><p className="mt-3 text-sm font-semibold text-slate-800">Appointments</p><p className="mt-1 text-xs text-slate-500">Ask about a suitable time</p></div><div className="rounded-xl bg-[#f4f8f6] p-4"><MapPin className="text-emerald-800" size={18}/><p className="mt-3 text-sm font-semibold text-slate-800">Visit information</p><p className="mt-1 text-xs text-slate-500">Find the details you need</p></div></div></div></div>;
+    return <div className="rounded-[2rem] bg-[#d9eee9] p-5 sm:p-8"><div className="rounded-2xl bg-white p-6 shadow-xl shadow-emerald-950/10 sm:p-8"><div className="flex items-center justify-between border-b border-slate-100 pb-5"><span className="text-sm font-bold text-slate-800">{content.brand}</span><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">{content.tagline}</span></div><div className="grid gap-5 py-7 sm:grid-cols-[1fr_auto] sm:items-center"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-emerald-800">{content.sectionTitle}</p><h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">{content.headline}</h2><p className="mt-3 text-sm leading-6 text-slate-600">{content.intro}</p></div><div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-800"><ShieldCheck size={34}/></div></div><div className="grid grid-cols-2 gap-3"><div className="rounded-xl bg-[#f4f8f6] p-4"><CalendarDays className="text-emerald-800" size={18}/><p className="mt-3 text-sm font-semibold text-slate-800">{service(0).name}</p><p className="mt-1 text-xs text-slate-500">{service(0).copy}</p></div><div className="rounded-xl bg-[#f4f8f6] p-4"><MapPin className="text-emerald-800" size={18}/><p className="mt-3 text-sm font-semibold text-slate-800">{service(1).name}</p><p className="mt-1 text-xs text-slate-500">{service(1).copy}</p></div></div></div></div>;
   }
   if (slug === "renovation-contractor") {
-    return <div className="rounded-[2rem] bg-[#e8dfd3] p-5 sm:p-8"><div className="grid grid-cols-2 gap-3"><div className="col-span-2 flex min-h-52 flex-col justify-end rounded-2xl bg-gradient-to-br from-[#4f4639] via-[#a18c70] to-[#d5c5ac] p-6 text-white"><span className="text-xs font-bold uppercase tracking-[.18em] text-white/70">A more considered home</span><h2 className="mt-3 max-w-sm text-3xl font-semibold tracking-tight">Room to live a little better.</h2></div><div className="rounded-2xl bg-[#faf8f4] p-4"><span className="text-xs font-semibold uppercase tracking-wide text-[#76644d]">01 / Plan</span><p className="mt-3 font-semibold text-slate-900">Start with how you live</p></div><div className="rounded-2xl bg-[#faf8f4] p-4"><span className="text-xs font-semibold uppercase tracking-wide text-[#76644d]">02 / Build</span><p className="mt-3 font-semibold text-slate-900">Stay clear on what comes next</p></div></div></div>;
+    return <div className="rounded-[2rem] bg-[#e8dfd3] p-5 sm:p-8"><div className="grid grid-cols-2 gap-3"><div className="col-span-2 flex min-h-52 flex-col justify-end rounded-2xl bg-gradient-to-br from-[#4f4639] via-[#a18c70] to-[#d5c5ac] p-6 text-white"><span className="text-xs font-bold uppercase tracking-[.18em] text-white/70">{content.tagline}</span><h2 className="mt-3 max-w-sm text-3xl font-semibold tracking-tight" style={headingStyle}>{content.headline}</h2></div><div className="rounded-2xl bg-[#faf8f4] p-4"><span className="text-xs font-semibold uppercase tracking-wide text-[#76644d]">01 / Plan</span><p className="mt-3 font-semibold text-slate-900">{service(0).name}</p></div><div className="rounded-2xl bg-[#faf8f4] p-4"><span className="text-xs font-semibold uppercase tracking-wide text-[#76644d]">02 / Build</span><p className="mt-3 font-semibold text-slate-900">{service(1).name}</p></div></div></div>;
   }
   if (slug === "professional-advisory") {
-    return <div className="rounded-[2rem] bg-[#e8e9e5] p-5 sm:p-8"><div className="rounded-2xl bg-[#172a32] p-7 text-white sm:p-9"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#c8d6ca]">A clearer way forward</p><h2 className="mt-5 max-w-md font-serif text-4xl leading-tight !text-white">Good decisions begin with good questions.</h2><div className="mt-8 border-t border-white/20 pt-5"><p className="max-w-sm text-sm leading-6 text-white/70">Independent thinking. Practical next steps. Advice shaped around your context.</p></div></div><div className="mt-3 grid grid-cols-3 gap-3">{["Understand","Evaluate","Act"].map((item,i)=><div key={item} className="rounded-xl bg-white p-4"><span className="text-xs text-slate-400">0{i+1}</span><p className="mt-2 text-sm font-semibold text-slate-800">{item}</p></div>)}</div></div>;
+    return <div className="rounded-[2rem] bg-[#e8e9e5] p-5 sm:p-8"><div className="rounded-2xl bg-[#172a32] p-7 text-white sm:p-9"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#c8d6ca]">{content.tagline}</p><h2 className="mt-5 max-w-md font-serif text-4xl leading-tight" style={headingStyle}>{content.headline}</h2><div className="mt-8 border-t border-white/20 pt-5"><p className="max-w-sm text-sm leading-6" style={mutedStyle}>{content.intro}</p></div></div><div className="mt-3 grid grid-cols-3 gap-3">{content.steps.slice(0,3).map((item,i)=><div key={item.title} className="rounded-xl bg-white p-4"><span className="text-xs text-slate-400">0{i+1}</span><p className="mt-2 text-sm font-semibold text-slate-800">{item.title}</p></div>)}</div></div>;
   }
   if (slug === "tuition-centre") {
-    return <div className="rounded-[2rem] bg-[#fff0d8] p-5 sm:p-8"><div className="rounded-2xl bg-white p-6 shadow-xl shadow-amber-950/10 sm:p-8"><div className="flex items-center justify-between"><span className="text-sm font-bold text-slate-900">{content.brand}</span><span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">Learning, step by step</span></div><h2 className="mt-8 max-w-md text-3xl font-semibold tracking-tight text-slate-900">A little progress adds up.</h2><p className="mt-3 max-w-sm text-sm leading-6 text-slate-600">Find the right subject, level and learning environment.</p><div className="mt-7 space-y-3">{["Primary foundations","Secondary subjects","Study skills"].map((item,i)=><div key={item} className="flex items-center gap-4 rounded-xl bg-[#fff9ef] p-4"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-200 text-sm font-bold text-amber-950">0{i+1}</span><span className="text-sm font-semibold text-slate-800">{item}</span><ArrowRight className="ml-auto text-amber-800" size={16}/></div>)}</div></div></div>;
+    return <div className="rounded-[2rem] bg-[#fff0d8] p-5 sm:p-8"><div className="rounded-2xl bg-white p-6 shadow-xl shadow-amber-950/10 sm:p-8"><div className="flex items-center justify-between"><span className="text-sm font-bold text-slate-900">{content.brand}</span><span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">{content.tagline}</span></div><h2 className="mt-8 max-w-md text-3xl font-semibold tracking-tight text-slate-900">{content.headline}</h2><p className="mt-3 max-w-sm text-sm leading-6 text-slate-600">{content.intro}</p><div className="mt-7 space-y-3">{content.services.slice(0,3).map((item,i)=><div key={item.name} className="flex items-center gap-4 rounded-xl bg-[#fff9ef] p-4"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-200 text-sm font-bold text-amber-950">0{i+1}</span><span className="text-sm font-semibold text-slate-800">{item.name}</span><ArrowRight className="ml-auto text-amber-800" size={16}/></div>)}</div></div></div>;
   }
   if (slug === "beauty-wellness") {
-    return <div className="rounded-[2rem] bg-[#efe3e1] p-5 sm:p-8"><div className="grid min-h-[25rem] grid-cols-[.82fr_1.18fr] overflow-hidden rounded-2xl bg-[#422f36]"><div className="flex flex-col justify-between p-5 text-white sm:p-8"><span className="text-xs font-bold uppercase tracking-[.18em] text-white/65">Morrow / Rituals</span><div><p className="text-xs uppercase tracking-[.16em] text-[#e7c7bd]">Make space to reset</p><h2 className="mt-3 font-serif text-3xl leading-tight sm:text-4xl !text-white">A softer kind of self-care.</h2></div><span className="text-xs text-white/60">Thoughtful care, at your pace.</span></div><div className="flex flex-col justify-center bg-gradient-to-br from-[#c99487] via-[#dfbbae] to-[#f2dfd1] p-5 sm:p-8"><div className="rounded-xl bg-white/85 p-5 shadow-xl backdrop-blur"><p className="text-xs font-bold uppercase tracking-[.14em] text-[#795159]">The treatment menu</p><div className="mt-4 space-y-3">{["Face / Skin","Body / Restore","Ritual / Reset"].map(item=><div className="flex items-center justify-between border-b border-[#eadbd7] pb-3 text-sm font-medium text-[#3e3035]" key={item}><span>{item}</span><ArrowRight size={15}/></div>)}</div></div></div></div></div>;
+    return <div className="rounded-[2rem] bg-[#efe3e1] p-5 sm:p-8"><div className="grid min-h-[25rem] grid-cols-[.82fr_1.18fr] overflow-hidden rounded-2xl bg-[#422f36]"><div className="flex flex-col justify-between p-5 text-white sm:p-8"><span className="text-xs font-bold uppercase tracking-[.18em] text-white/65">{content.brand}</span><div><p className="text-xs uppercase tracking-[.16em] text-[#e7c7bd]">{content.tagline}</p><h2 className="mt-3 font-serif text-3xl leading-tight sm:text-4xl" style={headingStyle}>{content.headline}</h2></div><span className="text-xs" style={mutedStyle}>{content.intro}</span></div><div className="flex flex-col justify-center bg-gradient-to-br from-[#c99487] via-[#dfbbae] to-[#f2dfd1] p-5 sm:p-8"><div className="rounded-xl bg-white/85 p-5 shadow-xl backdrop-blur"><p className="text-xs font-bold uppercase tracking-[.14em] text-[#795159]">{content.sectionTitle}</p><div className="mt-4 space-y-3">{content.services.slice(0,3).map(item=><div className="flex items-center justify-between border-b border-[#eadbd7] pb-3 text-sm font-medium text-[#3e3035]" key={item.name}><span>{item.name}</span><ArrowRight size={15}/></div>)}</div></div></div></div></div>;
   }
-  return <div className="rounded-[2rem] bg-[#dce5ef] p-5 sm:p-8"><div className="rounded-2xl bg-[#142b45] p-6 text-white sm:p-8"><div className="flex items-center justify-between"><span className="text-sm font-semibold">Monthly overview</span><span className="rounded-full bg-white/10 px-3 py-1 text-xs">Monthly overview</span></div><h2 className="mt-7 text-3xl font-semibold !text-white">A clearer picture of your business.</h2><div className="mt-7 grid grid-cols-3 gap-3">{["Records","Reports","Deadlines"].map((item,i)=><div className="rounded-xl bg-white/10 p-4" key={item}><Check size={16} className="text-[#a9d5c6]"/><p className="mt-4 text-sm font-medium !text-white">{item}</p></div>)}</div><div className="mt-5 h-20 rounded-xl bg-gradient-to-r from-[#193c5d] via-[#24677b] to-[#7cbaa0] p-4"><div className="flex h-full items-end gap-2">{[34,52,40,76,60,88,68,96,72,84].map((h,i)=><span key={i} className="flex-1 rounded-t bg-white/80" style={{height:h+"%"}} />)}</div></div></div></div>;
+  return <div className="rounded-[2rem] bg-[#dce5ef] p-5 sm:p-8"><div className="rounded-2xl bg-[#142b45] p-6 text-white sm:p-8"><div className="flex items-center justify-between"><span className="text-sm font-semibold">{content.tagline}</span><span className="rounded-full bg-white/10 px-3 py-1 text-xs">{content.brand}</span></div><h2 className="mt-7 text-3xl font-semibold" style={headingStyle}>{content.headline}</h2><div className="mt-7 grid grid-cols-3 gap-3">{content.services.slice(0,3).map((item,i)=><div className="rounded-xl bg-white/10 p-4" key={item.name}><Check size={16} className="text-[#a9d5c6]"/><p className="mt-4 text-sm font-medium" style={headingStyle}>{item.name}</p></div>)}</div><div className="mt-5 h-20 rounded-xl bg-gradient-to-r from-[#193c5d] via-[#24677b] to-[#7cbaa0] p-4"><div className="flex h-full items-end gap-2">{[34,52,40,76,60,88,68,96,72,84].map((h,i)=><span key={i} className="flex-1 rounded-t bg-white/80" style={{height:h+"%"}} />)}</div></div></div></div>;
 }
 
 export default function StudioShowcaseLivePreview() {
   const { slug, page } = useParams();
-  const study = STUDIO_SHOWCASES.find((item) => item.slug === slug);
-  const content = study ? DEMOS[study.slug] : undefined;
-  const niche = study ? NICHE_PAGE_CONTENT[study.slug] : undefined;
+  const [cms, setCms] = React.useState<Record<string, any>>({});
+  React.useEffect(() => {
+    let active = true;
+    fetchStudioShowcaseCms().then((value) => { if (active) setCms(value); });
+    return () => { active = false; };
+  }, []);
+  const baseStudy = STUDIO_SHOWCASES.find((item) => item.slug === slug);
+  const config = slug ? cms[slug] : undefined;
+  const study = baseStudy ? mergeCmsValue(baseStudy, config?.study) : undefined;
+  const content = study ? mergeCmsValue(DEMOS[study.slug], config?.preview?.content) : undefined;
+  const niche = study ? mergeCmsValue(NICHE_PAGE_CONTENT[study.slug], config?.preview?.pages) : undefined;
   const pages = ["home", "services", "about", "contact"] as const;
   const currentPage = pages.includes((page || "home") as typeof pages[number]) ? ((page || "home") as typeof pages[number]) : "home";
 
@@ -535,7 +547,7 @@ export default function StudioShowcaseLivePreview() {
 
   const previewPath = "/case-studies/showcase/" + study.slug + "/preview";
   const detailPath = "/case-studies/showcase/" + study.slug;
-  const theme = study.colour;
+  const theme = config?.theme?.accent || study.colour;
   const pageHref = (target: typeof pages[number]) => target === "home" ? previewPath : previewPath + "/" + target;
   const pageTitles: Record<typeof pages[number], string> = {
     home: content.brand,
@@ -565,7 +577,7 @@ export default function StudioShowcaseLivePreview() {
     {currentPage === "home" ? <main>
       <section className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-[.9fr_1.1fr] lg:gap-14 lg:px-12 lg:py-24">
         <div><p className="text-xs font-bold uppercase tracking-[.18em]" style={{color:theme}}>{content.tagline}</p><h1 className="mt-5 max-w-[13ch] text-5xl font-semibold leading-[1.02] tracking-[-.055em] text-slate-950 sm:text-6xl lg:text-7xl">{content.headline}</h1><p className="mt-6 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">{content.intro}</p><div className="mt-8 flex flex-wrap items-center gap-3"><Link to={pageHref("contact")} className="inline-flex min-h-12 items-center gap-2 rounded-full px-5 text-sm font-semibold text-white" style={{backgroundColor:theme}}>{content.cta}<ArrowRight size={16}/></Link><Link to={pageHref("services")} className="inline-flex min-h-12 items-center rounded-full border border-slate-300 px-5 text-sm font-semibold text-slate-700">Explore services</Link></div><div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">{content.reassurance.map((item)=><span className="inline-flex items-center gap-1.5" key={item}><Check size={13} style={{color:theme}}/>{item}</span>)}</div></div>
-        <DemoArtwork slug={study.slug} content={content}/>
+        <DemoArtwork slug={study.slug} content={content} theme={config?.theme}/>
       </section>
       <section className="border-y border-slate-200 bg-[#f7f8fa]"><div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:px-12"><div className="grid gap-6 md:grid-cols-[1fr_.7fr] md:items-end"><div><p className="text-xs font-bold uppercase tracking-[.16em]" style={{color:theme}}>How we can help</p><h2 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{content.sectionTitle}</h2></div><p className="max-w-lg leading-7 text-slate-600">{niche.home.focusCopy}</p></div><div className="mt-10 grid gap-4 md:grid-cols-3">{content.services.map((service,index)=><article key={service.name} className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7"><span className="text-xs font-bold" style={{color:theme}}>0{index+1}</span><h3 className="mt-6 text-xl font-semibold tracking-tight text-slate-900">{service.name}</h3><p className="mt-3 text-sm leading-6 text-slate-600">{service.copy}</p></article>)}</div><Link to={pageHref("services")} className="mt-8 inline-flex items-center gap-2 text-sm font-semibold" style={{color:theme}}>View all services <ArrowRight size={15}/></Link></div></section>
       <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:px-12"><div className="grid gap-10 lg:grid-cols-[.75fr_1.25fr]"><div><p className="text-xs font-bold uppercase tracking-[.16em]" style={{color:theme}}>A closer look</p><h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{niche.home.focusTitle}</h2><p className="mt-5 leading-7 text-slate-600">{niche.home.focusCopy}</p></div><div className="grid gap-4 sm:grid-cols-3">{niche.home.features.map((item,index)=><article key={item.title} className="rounded-2xl border border-slate-200 p-6"><span className="text-xs font-bold" style={{color:theme}}>0{index+1}</span><h3 className="mt-5 text-lg font-semibold text-slate-900">{item.title}</h3><p className="mt-3 text-sm leading-6 text-slate-600">{item.copy}</p></article>)}</div></div></section>

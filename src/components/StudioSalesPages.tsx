@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, ArrowUpRight, Check, ChevronDown, Globe2, MonitorSmartphone, ShieldCheck, Sparkles } from "lucide-react";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
+import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
 import { Pricing } from "./Pricing";
 import { trackPublicEvent } from "../lib/publicTracking";
 import "../styles/studioSales.css";
@@ -31,7 +32,7 @@ const websiteItems=[
 ] as const;
 
 export function ServicesSalesPage(){
- const showcase=STUDIO_SHOWCASES.slice(0,3);
+ const showcase=useStudioShowcaseCatalog(STUDIO_SHOWCASES).slice(0,3);
  return <main className="bs-sales bs-sales-services">
   <section className="s28-hero s28-services-hero" aria-labelledby="s28-services-title">
    <div className="brand-shell s28-services-layout">

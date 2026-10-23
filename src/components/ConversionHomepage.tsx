@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, ArrowUpRight, Check, Globe2, MonitorSmartphone, ShieldCheck, Sparkles } from "lucide-react";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
+import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
 import "../styles/conversionHomepage.css";
 
 /**
@@ -12,7 +13,8 @@ import "../styles/conversionHomepage.css";
  */
 export function ConversionHomepage({ onCta }: { onCta: (path: string, label: string) => void }) {
   const cta = (label: string) => onCta("/generate-preview", label);
-  const featuredStudy = STUDIO_SHOWCASES[1];
+  const showcases = useStudioShowcaseCatalog(STUDIO_SHOWCASES);
+  const featuredStudy = showcases[1];
   return (
     <div className="conversion-home">
       <section className="c26-hero" aria-labelledby="c26-title">

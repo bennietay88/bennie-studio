@@ -9307,6 +9307,41 @@ async function startServer() {
     return res.json({ promotion: data });
   });
 
+  app.get("/api/public/studio-showcases", rateLimit({ windowMs: 60 * 1000, max: 90, keyPrefix: "public-studio-showcases" }), async (_req, res) => {
+    const { data, error } = await supabaseAdmin.from("settings").select("content").eq("id", "platform_studio_showcases").maybeSingle();
+    if (error) return res.status(500).json({ error: "Studio showcase content is unavailable" });
+    const showcases = data?.content?.showcases && typeof data.content.showcases === "object" ? data.content.showcases : {};
+    res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=120");
+    return res.json({ showcases });
+  });
+
+  app.get("/api/admin/studio-showcases", authenticate, superAdminOnly, async (_req: any, res: any) => {
+    const { data, error } = await supabaseAdmin.from("settings").select("content,updated_at").eq("id", "platform_studio_showcases").maybeSingle();
+    if (error) return res.status(500).json({ error: "Studio showcase CMS could not be loaded" });
+    return res.json({ showcases: data?.content?.showcases || {}, updatedAt: data?.updated_at || null });
+  });
+
+  app.put("/api/admin/studio-showcases", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const body = validateBody(z.object({
+      showcases: z.record(z.string(), z.unknown()).refine((value) => Object.keys(value).length <= 20, "Too many showcase entries"),
+    }), req, res);
+    if (!body) return;
+    const allowedSlugs = new Set(["dental-clinic", "renovation-contractor", "professional-advisory", "tuition-centre", "beauty-wellness", "accounting-firm"]);
+    if (Object.keys(body.showcases).some((slug) => !allowedSlugs.has(slug))) return res.status(400).json({ error: "Unknown studio showcase slug" });
+    if (Buffer.byteLength(JSON.stringify(body.showcases), "utf8") > 400_000) return res.status(413).json({ error: "Showcase content exceeds the 400 KB limit" });
+    const now = new Date().toISOString();
+    const { error } = await supabaseAdmin.from("settings").upsert({
+      id: "platform_studio_showcases",
+      content: { showcases: body.showcases },
+      updated_at: now,
+    }, { onConflict: "id" });
+    if (error) {
+      console.error("Studio showcase CMS save failed", error.message);
+      return res.status(500).json({ error: "Studio showcase changes could not be saved" });
+    }
+    return res.json({ success: true, updatedAt: now });
+  });
+
   app.get("/api/public/site-config", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-site-config" }), async (_req, res) => {
     if (process.env.E2E_TEST === "true") {
       return res.json({ platform: {}, landingPage: null, policies: [], posts: [] });

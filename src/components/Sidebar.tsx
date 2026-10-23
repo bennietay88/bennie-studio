@@ -174,6 +174,7 @@ export function Sidebar({
           label: "Content & CMS",
           items: [
             { to: "/admin/templates", icon: Layout, label: "Website Templates", moduleId: "website_templates" },
+            { to: "/admin/studio_showcases", icon: FileText, label: "Studio Showcase CMS" },
             { to: "/admin/blog", icon: FileText, label: "Blog CMS", moduleId: "blog_cms" },
             { to: "/admin/local_seo", icon: MapPin, label: "Local SEO", moduleId: "local_seo" },
             { to: "/admin/policies", icon: FileText, label: "Policies CMS", moduleId: "policies_cms" },

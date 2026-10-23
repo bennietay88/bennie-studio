@@ -29,6 +29,7 @@ import { RESOURCE_ARTICLES } from "../content/resources";
 import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
+import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
 
 const primary =
   "inline-flex min-h-12 items-center justify-center rounded-xl bg-[#1741ed] px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_-25px_rgba(98,82,244,.9)] transition hover:-translate-y-0.5 hover:bg-[#0a2aaa]";
@@ -544,6 +545,7 @@ export function ProcessStudioPage() {
 }
 
 export function WorkStudioPage() {
+  const showcases = useStudioShowcaseCatalog(STUDIO_SHOWCASES);
   return (
     <>
       <section className="c27-marketing-hero">
@@ -567,7 +569,7 @@ export function WorkStudioPage() {
       <section className="border-y border-[#dfe3e8] bg-[#f2f4f7]" id="industry-examples">
         <div className="brand-shell brand-section">
           <div className="mb-10 grid gap-6 lg:grid-cols-[1fr_.8fr] lg:items-end"><div><h2 className="mt-4">Six industries. Six different buying journeys.</h2></div><p className="brand-copy">Explore six studio-built websites, each shaped around how customers in that industry choose.</p></div>
-          <div className="c27-grid">{STUDIO_SHOWCASES.map(study=><article key={study.slug} className="c27-card">
+          <div className="c27-grid">{showcases.map(study=><article key={study.slug} className="c27-card">
             <StudioShowcaseVisual study={study} compact />
             <div className="c27-card-content"><p className="c27-kicker">{study.category} · Studio-built</p><h3>{study.title}</h3><p>{study.headline}</p><p className="mt-3 !text-xs">Enquiry goal: {study.goal}</p><div className="mt-5 flex flex-wrap gap-x-5 gap-y-3"><Link to={"/case-studies/showcase/"+study.slug+"/preview"} className="inline-flex items-center gap-2 text-sm font-semibold text-[#1741ed]">Open live preview <ArrowRight className="h-4 w-4"/></Link><Link to={"/case-studies/showcase/"+study.slug} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">Explore case study <ArrowRight className="h-4 w-4"/></Link></div></div>
           </article>)}</div>
