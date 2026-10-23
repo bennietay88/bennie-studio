@@ -41,6 +41,26 @@ export function trackPublicEvent(input: PublicEventInput) {
 
   const body = JSON.stringify(payload);
 
+  const gtag = (window as any).gtag;
+  if (typeof gtag === "function") {
+    const leadEvent = input.eventType === "website_audit_completed" ||
+      input.eventType === "consultation_followup_requested";
+    const eventName = leadEvent ? "generate_lead" : input.eventType;
+    const eventParams: Record<string, string> = {
+      event_category: leadEvent ? "lead_generation" : "public_engagement",
+      source_event: input.eventType,
+      page_path: window.location.pathname,
+    };
+    if (input.target) {
+      try {
+        eventParams.target_path = new URL(input.target, window.location.origin).pathname;
+      } catch {
+        // Ignore malformed targets; the internal event record remains available.
+      }
+    }
+    gtag("event", eventName, eventParams);
+  }
+
   try {
     if (navigator.sendBeacon) {
       const sent = navigator.sendBeacon(
