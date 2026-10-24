@@ -7,6 +7,12 @@ export type EmailTemplate = { id: string; name: string; problem: string; stage: 
 
 export const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
+    id: "general-introduction", name: "General service introduction", problem: "Website could not be reviewed", stage: "First contact",
+    note: "Use when the website is unavailable or a review could not be prepared. This draft does not claim to have reviewed the site.",
+    subject: "Website support for {{company}}",
+    body: "Hi {{first_name}},\n\nI'm Bennie, founder of Bennie Studio. We build and manage websites for service businesses.\n\nAre website updates or ongoing support something your team is considering? If so, I can send a short overview and price range.\n\nWould that be useful?\n\nBennie\nBennie Studio",
+  },
+  {
     id: "introduction", name: "Verified website insight", problem: "Specific enquiry improvement", stage: "First contact",
     note: "Only send to an opted-in contact. Include one checked observation and ask one easy reply question.",
     subject: "One website idea for {{company}}",

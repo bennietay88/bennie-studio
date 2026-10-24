@@ -612,13 +612,13 @@ export function ProspectExplorer() {
     }
   };
 
-  const prepareRecipientReview = async (prospect: any, options: { refresh?: boolean } = {}) => {
+  const prepareRecipientReview = async (prospect: any, options: { refresh?: boolean; silentFailure?: boolean } = {}) => {
     if (!options.refresh && isRecipientReviewUrl(prospect.preview_url)) return prospect.preview_url;
     setReviewLoadingId(prospect.id);
     try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
-      toast.error("Your admin session has expired. Sign in again and retry.");
+      if (!options.silentFailure) toast.error("Your admin session has expired. Sign in again and retry.");
       return "";
     }
     const response = await fetch(`/api/admin/prospects/${encodeURIComponent(prospect.id)}/website-review`, {
@@ -627,7 +627,7 @@ export function ProspectExplorer() {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || !payload?.reportUrl || !payload?.report) {
-      toast.error(payload?.error || "The website could not be analysed. No recipient review was created.");
+      if (!options.silentFailure) toast.error(payload?.error || "The website could not be analysed. No recipient review was created.");
       return "";
     }
     const insight = getConfirmedReviewInsight(payload.report);
@@ -643,7 +643,7 @@ export function ProspectExplorer() {
     setSelectedProspect((current: any) => current?.id === prospect.id ? { ...current, ...updated } : current);
     return payload.reportUrl as string;
     } catch (error: any) {
-      toast.error(error?.message || "Website review could not be prepared.");
+      if (!options.silentFailure) toast.error(error?.message || "Website review could not be prepared.");
       return "";
     } finally {
       setReviewLoadingId((current) => current === prospect.id ? null : current);
@@ -1051,11 +1051,16 @@ export function ProspectExplorer() {
   const preparePreviewAndEmail = async (prospect: any) => {
     if (prospect._suppressed || prospect._contactSafetyUnknown) return toast.error("Recipient is suppressed or suppression status is unavailable. Outreach is blocked.");
     if (!prospect.domain || prospect.website_status === "no_website") {
-      openOutreachComposer(prospect);
+      openOutreachComposer(prospect, undefined, "", "general-introduction");
+      toast.info("No website review is available. Opened a general introduction without website-specific claims.");
       return;
     }
-    const previewUrl = await prepareRecipientReview(prospect);
-    if (!previewUrl) return;
+    const previewUrl = await prepareRecipientReview(prospect, { silentFailure: true });
+    if (!previewUrl) {
+      openOutreachComposer({ ...prospect, _websiteReviewUnavailable: true }, undefined, "", "general-introduction");
+      toast.info("The website could not be reviewed. Opened a general introduction without website-specific claims.");
+      return;
+    }
     let observation = reviewCache.current.get(prospect.id)?.observation || "";
     if (!observation) {
       try {
@@ -1132,7 +1137,7 @@ export function ProspectExplorer() {
     }
   };
 
-  const openOutreachComposer = (prospect: any, replyToMessage?: any, auditObservation = "") => {
+  const openOutreachComposer = (prospect: any, replyToMessage?: any, auditObservation = "", templateIdOverride?: string) => {
     if (prospect._suppressed || prospect._contactSafetyUnknown) {
       toast.error("Recipient is suppressed or suppression status cannot be checked.");
       return;
@@ -1142,8 +1147,10 @@ export function ProspectExplorer() {
       return;
     }
 
-    const initialTemplateId = replyToMessage ? "interested" : prospect.outreach_status === "contacted" ? recommendedTemplateId("contacted") : "introduction";
-    const initialObservation = auditObservation || reviewCache.current.get(prospect.id)?.observation || getOutreachObservation(prospect.notes) || "";
+    const initialTemplateId = replyToMessage ? "interested" : templateIdOverride || (prospect.outreach_status === "contacted" ? recommendedTemplateId("contacted") : "introduction");
+    const initialObservation = templateIdOverride === "general-introduction"
+      ? ""
+      : auditObservation || reviewCache.current.get(prospect.id)?.observation || getOutreachObservation(prospect.notes) || "";
     setOutreachProspect(prospect);
     setOutreachReplyToMessageId(replyToMessage?.id || null);
     setOutreachTemplateId(initialTemplateId);
@@ -1189,7 +1196,7 @@ export function ProspectExplorer() {
       toast.error("Add an email subject");
       return;
     }
-    if (!outreachReplyToMessageId && outreachTemplateId !== "introduction" && outreachObservation.trim().length < 10 && !outreachProspect.preview_url) {
+    if (!outreachReplyToMessageId && !["introduction", "general-introduction"].includes(outreachTemplateId) && outreachObservation.trim().length < 10 && !outreachProspect.preview_url) {
       toast.error("Prepare a website review or add a specific verified observation before sending this follow-up.");
       return;
     }
@@ -2136,7 +2143,11 @@ export function ProspectExplorer() {
           <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-5 pr-14 sm:px-7">
             <DialogTitle className="text-xl font-black tracking-tight">{outreachReplyToMessageId ? "Review email reply" : outreachTemplateId === "audit-follow-up" ? "Review website audit follow-up" : "Review first email"}</DialogTitle>
             <DialogDescription>
-              {outreachTemplateId === "introduction" ? "Keep this message brief. A separate website review can follow on the scheduled date." : "Review the recipient and message before sending."} Provider acceptance does not confirm inbox delivery.
+              {outreachTemplateId === "general-introduction"
+                ? "This introduction contains no website findings because the site could not be reviewed."
+                : outreachTemplateId === "introduction"
+                  ? "Keep this message brief. A separate website review can follow on the scheduled date."
+                  : "Review the recipient and message before sending."} Provider acceptance does not confirm inbox delivery.
             </DialogDescription>
           </DialogHeader>
 
@@ -2149,6 +2160,14 @@ export function ProspectExplorer() {
                     <p className="mt-1 break-words text-sm font-bold text-slate-900">{outreachProspect.name}</p>
                     <p className="mt-1 break-all text-xs font-semibold text-slate-600">{outreachProspect.contact_email}</p>
                   </div>
+                  {!outreachReplyToMessageId && outreachTemplateId === "general-introduction" && (
+                    <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm leading-6 text-indigo-950">
+                      <p className="font-bold">Website review unavailable</p>
+                      <p className="mt-1">{outreachProspect._websiteReviewUnavailable
+                        ? "This draft introduces Bennie Studio without claiming that the website was reviewed. You can retry the website review later."
+                        : "This draft introduces Bennie Studio without claiming that a website is available or that it was reviewed."}</p>
+                    </div>
+                  )}
                   {!outreachReplyToMessageId && outreachTemplateId === "introduction" && (
                     <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm leading-6 text-indigo-950">
                       <p className="font-bold">A simple introduction first</p>
@@ -2169,7 +2188,11 @@ export function ProspectExplorer() {
                       maxLength={10000} className="min-h-[340px] w-full min-w-0 resize-y rounded-2xl leading-6" />
                   </Field>
                   <p className="text-xs font-medium leading-5 text-slate-500">
-                    {outreachTemplateId === "introduction" ? "Review the short introduction before sending. The audit details are reserved for the scheduled follow-up." : "Review the prepared website audit email before sending."}
+                    {outreachTemplateId === "general-introduction"
+                      ? "Review the general introduction before sending."
+                      : outreachTemplateId === "introduction"
+                        ? "Review the short introduction before sending. The audit details are reserved for the scheduled follow-up."
+                        : "Review the prepared website audit email before sending."}
                   </p>
                   <p className="text-xs font-medium leading-5 text-slate-500">
                     Email is submitted through your configured provider. WhatsApp opens externally through wa.me and is not automatically delivered.
