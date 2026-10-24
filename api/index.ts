@@ -8387,19 +8387,6 @@ async function startServer() {
           bodyText: z.string().trim().min(1).max(10000),
           reviewUrl: z.string().trim().url().max(2000).nullable().optional(),
           replyToMessageId: UUID_SCHEMA.optional().nullable(),
-          qualification: z.object({
-            fitScore: z.number().int().min(0).max(20),
-            intentScore: z.number().int().min(0).max(30),
-            issueScore: z.number().int().min(0).max(20),
-            offerFitScore: z.number().int().min(0).max(15),
-            contactScore: z.number().int().min(0).max(10),
-            recencyScore: z.number().int().min(0).max(5),
-            intentEvidence: z.string().trim().min(20).max(2000),
-            intentSourceUrl: z.string().url().max(2000),
-            intentObservedAt: z.string().date(),
-            identityAndContactVerified: z.literal(true),
-            marketRulesChecked: z.literal(true),
-          }).optional(),
           requestId: UUID_SCHEMA,
         }),
         req,
@@ -8466,10 +8453,6 @@ async function startServer() {
         OUTREACH_OBSERVATION_REQUIRED: {
           status: 400,
           message: "Prepare a website review or add one specific verified observation before sending this follow-up.",
-        },
-        OUTREACH_QUALIFICATION_REQUIRED: {
-          status: 409,
-          message: "First-touch email blocked: add current sourced buying-intent evidence, meet the 80/100 total and 15/30 intent thresholds, and confirm identity and market checks.",
         },
         OUTREACH_PLACEHOLDER_UNRESOLVED: {
           status: 400,
