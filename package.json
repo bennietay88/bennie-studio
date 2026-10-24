@@ -25,7 +25,7 @@
     "test:billing": "node --import tsx --test tests/billing-hardening.test.ts tests/handover-export.test.ts",
     "test:marketing-pro": "node --import tsx --test tests/marketing-pro-entitlements.test.ts",
     "test:funnels": "node --import tsx --test tests/funnel-engine.test.ts tests/funnel-security.test.ts",
-    "test:prospects": "node --import tsx --test tests/prospect-scoring.test.ts tests/prospect-import.test.ts tests/prospect-outreach.test.ts",
+    "test:prospects": "node --import tsx --test tests/prospect-scoring.test.ts tests/prospect-import.test.ts tests/prospect-outreach.test.ts tests/outreach-qualification.test.ts",
     "test:design": "node --import tsx --test tests/design-system.test.ts tests/public-preview.test.ts tests/color-contrast.test.ts",
     "test:permissions": "node --import tsx --test tests/permissions.test.ts",
     "test:operating-system": "node --import tsx --test tests/operating-system.test.ts tests/admin-modules-readiness.test.ts",

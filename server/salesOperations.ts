@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { classifyReply, hasDocumentedMarketingConsent, saveOutreachObservation } from "../src/lib/salesAutomation.js";
+import { evaluateOutreachQualification, type OutreachQualificationInput } from "../src/lib/outreachQualification.js";
 
 type Db = Pick<SupabaseClient, "from">;
 type Row = Record<string, any>;
@@ -420,6 +421,7 @@ export async function sendDirectProspectOutreach(
     templateId?: string;
     reviewUrl?: string | null;
     replyToMessageId?: string | null;
+    qualification?: OutreachQualificationInput;
     requestId: string;
     actorId: string;
     deliver: (message: Row) => Promise<{ id: string }>;
@@ -432,6 +434,10 @@ export async function sendDirectProspectOutreach(
   if (!prospect) throw new Error("CONTACT_NOT_FOUND");
 
   const reviewUrl = safeAuditReviewUrl(input.reviewUrl);
+  const isFirstTouch = !input.replyToMessageId && ["not_started", "queued"].includes(String(prospect.outreach_status || "not_started"));
+  if (input.channel === "email" && isFirstTouch && (!input.qualification || !evaluateOutreachQualification(input.qualification, new Date(now)).eligible)) {
+    throw new Error("OUTREACH_QUALIFICATION_REQUIRED");
+  }
   if (!input.replyToMessageId && String(input.observation || "").trim().length < 10 && !reviewUrl) {
     throw new Error("OUTREACH_OBSERVATION_REQUIRED");
   }
@@ -572,6 +578,7 @@ export async function sendDirectProspectOutreach(
       templateId: input.templateId || null,
       reviewUrl: reviewUrl || null,
       replyToMessageId,
+      qualification: input.qualification || null,
     },
   };
 

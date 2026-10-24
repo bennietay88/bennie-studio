@@ -3,6 +3,7 @@ import { CalendarClock, CheckCircle2, Copy, ExternalLink, Mail, MessageSquare, S
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
 import { getOutreachObservation } from "../../lib/salesAutomation";
+import { evaluateOutreachQualification, type OutreachQualificationInput } from "../../lib/outreachQualification";
 import { EMAIL_TEMPLATES, EmailTemplateHub, buildEmailTemplateDraft, recommendedTemplateId, hasUnresolvedEmailPlaceholders } from "./EmailTemplateHub";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -12,6 +13,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Textarea } from "../ui/textarea";
 
 const OUTREACH_STATUSES = ["not_started", "queued", "contacted", "replied", "call_booked", "won", "lost"];
+const QUALIFICATION_SCORES = [
+  ["fitScore", "ICP / ability to buy", 20], ["intentScore", "Current buying intent", 30],
+  ["issueScore", "Observed website issue", 20], ["offerFitScore", "Offer fit", 15],
+  ["contactScore", "Contact confidence", 10], ["recencyScore", "Signal recency", 5],
+] as const;
+const EMPTY_QUALIFICATION: OutreachQualificationInput = {
+  fitScore: 0, intentScore: 0, issueScore: 0, offerFitScore: 0, contactScore: 0, recencyScore: 0,
+  intentEvidence: "", intentSourceUrl: "", intentObservedAt: "", identityAndContactVerified: false, marketRulesChecked: false,
+};
 
 const buildDraft = (prospect: any, channel: "email" | "whatsapp") => {
   const name = prospect.name || "there";
@@ -32,6 +42,7 @@ export function OutreachLab() {
   const [search, setSearch] = React.useState("");
   const [view, setView] = React.useState<"due" | "engaged" | "all">("all");
   const [finding, setFinding] = React.useState("");
+  const [qualification, setQualification] = React.useState<OutreachQualificationInput>(EMPTY_QUALIFICATION);
   const [loading, setLoading] = React.useState(true);
   const [suppressedEmails, setSuppressedEmails] = React.useState<Set<string>>(new Set());
   const [suppressionUnavailable, setSuppressionUnavailable] = React.useState(false);
@@ -55,6 +66,8 @@ export function OutreachLab() {
   React.useEffect(() => { void fetchProspects(); }, [fetchProspects]);
 
   const selected = prospects.find((prospect) => prospect.id === selectedId);
+  const qualificationResult = evaluateOutreachQualification(qualification);
+  const requiresNewQualification = ["not_started", "queued"].includes(String(selected?.outreach_status || "not_started"));
   const selectedSuppressed = suppressionUnavailable || Boolean(selected?.contact_email && suppressedEmails.has(String(selected.contact_email).toLowerCase().trim()));
   const filtered = prospects.filter((prospect) => {
     const query = search.trim().toLowerCase();
@@ -68,6 +81,7 @@ export function OutreachLab() {
   React.useEffect(() => {
     if (!selected) return;
     setFinding(getOutreachObservation(selected.notes));
+    setQualification(EMPTY_QUALIFICATION);
     confirmationId.current = crypto.randomUUID();
   }, [selectedId]);
 
@@ -128,6 +142,7 @@ export function OutreachLab() {
     if (selectedSuppressed) return toast.error("This recipient is suppressed. Outreach is blocked.");
     if (hasUnresolvedEmailPlaceholders(draft)) return toast.error("Complete every [bracketed detail] before contacting a prospect.");
     if (finding.trim().length < 10) return toast.error("Add one specific, verified website observation before opening outreach.");
+    if (requiresNewQualification && !qualificationResult.eligible) return toast.error("First-touch outreach is blocked until the intent evidence, score, identity, and market checks pass.");
     if (channel === "email") {
       const [subjectLine, ...bodyLines] = draft.split("\n");
       const subject = subjectLine.replace(/^Subject:\s*/i, "");
@@ -140,7 +155,8 @@ export function OutreachLab() {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
           body: JSON.stringify({ action: "send", channel: "email", observation: finding.trim(), subject,
-            bodyText: bodyLines.join("\n").trim(), templateId, requestId: confirmationId.current }),
+            bodyText: bodyLines.join("\n").trim(), templateId,
+            qualification: requiresNewQualification ? qualification : undefined, requestId: confirmationId.current }),
         });
         const outcome = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(outcome.error || "Email was not sent.");
@@ -197,6 +213,13 @@ export function OutreachLab() {
               <div className="grid min-h-[420px] place-items-center rounded-3xl border-2 border-dashed border-slate-200 text-center"><div><ShieldCheck className="mx-auto h-10 w-10 text-slate-300" /><p className="mt-4 font-black text-slate-700">Select a prospect to prepare outreach.</p></div></div>
             ) : (
               <div className="space-y-5">
+                {requiresNewQualification && <section className="space-y-4 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4" aria-labelledby="outreach-qualification-heading">
+                  <div><h3 id="outreach-qualification-heading" className="font-black text-slate-900">First-touch qualification</h3><p className="mt-1 text-xs font-semibold leading-5 text-slate-600">Record a current, sourced buying signal. A website flaw by itself does not count as buying intent. Sending requires 80/100 overall and at least 15/30 intent.</p></div>
+                  <div className="grid gap-3 sm:grid-cols-3">{QUALIFICATION_SCORES.map(([key, label, max]) => <div key={key}><label htmlFor={key} className="text-[10px] font-black uppercase tracking-wide text-slate-500">{label} / {max}</label><Input id={key} type="number" min={0} max={max} step={1} value={qualification[key]} onChange={(event) => setQualification((current) => ({ ...current, [key]: Number(event.target.value || 0) }))} className="mt-1 rounded-lg bg-white" /></div>)}</div>
+                  <div className="grid gap-3 sm:grid-cols-2"><div><label htmlFor="intent-evidence" className="text-xs font-black text-slate-600">Buying signal evidence</label><Textarea id="intent-evidence" value={qualification.intentEvidence} onChange={(event) => setQualification((current) => ({ ...current, intentEvidence: event.target.value }))} placeholder="What current action or statement shows they may be buying?" className="mt-1 min-h-20 rounded-xl bg-white" /></div><div className="space-y-3"><div><label htmlFor="intent-source" className="text-xs font-black text-slate-600">Public source URL (HTTPS)</label><Input id="intent-source" type="url" value={qualification.intentSourceUrl} onChange={(event) => setQualification((current) => ({ ...current, intentSourceUrl: event.target.value }))} placeholder="https://..." className="mt-1 rounded-xl bg-white" /></div><div><label htmlFor="intent-date" className="text-xs font-black text-slate-600">Signal date</label><Input id="intent-date" type="date" value={qualification.intentObservedAt} onChange={(event) => setQualification((current) => ({ ...current, intentObservedAt: event.target.value }))} className="mt-1 rounded-xl bg-white" /></div></div></div>
+                  <div className="grid gap-2 sm:grid-cols-2"><label className="flex items-start gap-2 text-xs font-semibold leading-5 text-slate-700"><input type="checkbox" checked={qualification.identityAndContactVerified} onChange={(event) => setQualification((current) => ({ ...current, identityAndContactVerified: event.target.checked }))} />I verified the business identity, current site, public contact and CRM duplicate status.</label><label className="flex items-start gap-2 text-xs font-semibold leading-5 text-slate-700"><input type="checkbox" checked={qualification.marketRulesChecked} onChange={(event) => setQualification((current) => ({ ...current, marketRulesChecked: event.target.checked }))} />I checked the recipient type and applicable market requirements for this channel.</label></div>
+                  <p className={"text-xs font-black " + (qualificationResult.eligible ? "text-emerald-700" : "text-amber-800")}>Readiness: {qualificationResult.totalScore}/100 · intent {qualification.intentScore}/30 · {qualificationResult.eligible ? "Ready for human review" : "Blocked until all gates pass"}</p>
+                </section>}
                 {selectedSuppressed && <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">{suppressionUnavailable ? "Suppression status cannot be verified. Sending is blocked until data is available." : "This address is suppressed. Further sales outreach is blocked."}</p>}
                 {channel === "email" && <p className="text-xs text-slate-500">Send only to recipients who have given permission. Your separate consent records are not changed by this action.</p>}
                 <div className="grid gap-4 sm:grid-cols-2">

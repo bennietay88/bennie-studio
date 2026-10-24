@@ -53,3 +53,12 @@ test("prospect composer supports direct sends without per-recipient consent form
   assert.match(sales, /CONTACT_SUPPRESSED/);
   assert.match(sales, /hasDocumentedMarketingConsent\(contact\)/);
 });
+
+test("first-touch outreach requires current scored intent evidence on the client and API", () => {
+  assert.match(ui, /First-touch qualification/);
+  assert.match(ui, /qualificationResult\.eligible/);
+  assert.match(ui, /qualification: requiresNewQualification \? qualification/);
+  assert.match(api, /qualification: z\.object/);
+  assert.match(sales, /OUTREACH_QUALIFICATION_REQUIRED/);
+  assert.match(sales, /evaluateOutreachQualification\(input\.qualification/);
+});
