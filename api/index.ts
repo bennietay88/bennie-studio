@@ -9383,6 +9383,60 @@ async function startServer() {
     return res.json({ content: { draft: envelope.draft || null, published: envelope.published || null, revisions: envelope.revisions || [], updatedAt: data?.updated_at || null, publishedAt: envelope.publishedAt || null } });
   });
 
+  app.get("/api/admin/websites/:websiteId/revisions", authenticate, async (req: any, res: any) => {
+    const websiteId = String(req.params.websiteId || "");
+    if (!UUID_SCHEMA.safeParse(websiteId).success) return res.status(400).json({ error: "Invalid website reference" });
+    try {
+      const { data: website, error: websiteError } = await supabaseAdmin.from("websites").select("id,business_id").eq("id", websiteId).maybeSingle();
+      if (websiteError) throw websiteError;
+      if (!website) return res.status(404).json({ error: "Website not found" });
+      await assertBusinessAccess(req.user.id, website.business_id);
+      const { data, error } = await supabaseAdmin.from("settings").select("content").eq("id", `website_revisions_${websiteId}`).maybeSingle();
+      if (error) throw error;
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.json({ revisions: Array.isArray(data?.content?.revisions) ? data.content.revisions : [] });
+    } catch (error: any) {
+      if (error?.message === "BUSINESS_NOT_FOUND" || error?.message === "FORBIDDEN_BUSINESS_ACCESS" || error?.message === "PROFILE_NOT_FOUND") return handleAccessError(res, error);
+      console.error("Website revision history load failed:", error?.message || error);
+      return res.status(500).json({ error: "Website history could not be loaded" });
+    }
+  });
+
+  app.post("/api/admin/websites/:websiteId/revisions", authenticate, async (req: any, res: any) => {
+    const websiteId = String(req.params.websiteId || "");
+    if (!UUID_SCHEMA.safeParse(websiteId).success) return res.status(400).json({ error: "Invalid website reference" });
+    try {
+      const { data: website, error: websiteError } = await supabaseAdmin.from("websites").select("id,business_id,status,pages,theme,seo,updated_at").eq("id", websiteId).maybeSingle();
+      if (websiteError) throw websiteError;
+      if (!website) return res.status(404).json({ error: "Website not found" });
+      await assertBusinessAccess(req.user.id, website.business_id);
+      const content = {
+        pages: Array.isArray(website.pages) ? website.pages : [],
+        theme: website.theme && typeof website.theme === "object" ? website.theme : {},
+        seo: Object.fromEntries(["title", "description", "keywords", "favicon", "ogImage", "canonicalUrl", "region", "placename", "latitude", "longitude", "businessType", "address", "phone", "openingHours", "priceRange", "ratingValue", "reviewCount", "brandVoice", "targetAudience", "coreValueProposition", "knowledgeBaseSummary"].filter((key) => website.seo?.[key] !== undefined).map((key) => [key, website.seo[key]])),
+      };
+      const serialized = JSON.stringify(content);
+      if (Buffer.byteLength(serialized, "utf8") > 800_000) return res.status(413).json({ error: "This website is too large to add to version history" });
+      const { data: existing, error: readError } = await supabaseAdmin.from("settings").select("content").eq("id", `website_revisions_${websiteId}`).maybeSingle();
+      if (readError) throw readError;
+      const revisions = Array.isArray(existing?.content?.revisions) ? existing.content.revisions : [];
+      if (JSON.stringify(revisions[0]?.content) !== serialized) {
+        const revision = { id: `revision_${Date.now()}`, savedAt: new Date().toISOString(), status: website.status || "draft", sourceUpdatedAt: website.updated_at || null, content };
+        const nextRevisions = [revision, ...revisions].slice(0, 5);
+        const { error } = await supabaseAdmin.from("settings").upsert({ id: `website_revisions_${websiteId}`, content: { revisions: nextRevisions }, updated_at: revision.savedAt }, { onConflict: "id" });
+        if (error) throw error;
+        res.setHeader("Cache-Control", "private, no-store");
+        return res.json({ success: true, revisions: nextRevisions });
+      }
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.json({ success: true, revisions });
+    } catch (error: any) {
+      if (error?.message === "BUSINESS_NOT_FOUND" || error?.message === "FORBIDDEN_BUSINESS_ACCESS" || error?.message === "PROFILE_NOT_FOUND") return handleAccessError(res, error);
+      console.error("Website revision snapshot failed:", error?.message || error);
+      return res.status(500).json({ error: "Website version could not be saved" });
+    }
+  });
+
   app.put("/api/admin/platform-site-cms", authenticate, superAdminOnly, async (req: any, res: any) => {
     const body = validateBody(z.object({ content: z.record(z.string(), z.unknown()) }), req, res);
     if (!body) return;

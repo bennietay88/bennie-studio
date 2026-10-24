@@ -70,6 +70,7 @@ import {
   HelpCircle,
   CreditCard,
   RefreshCw,
+  RotateCcw,
   TrendingUp,
   ShoppingBag,
   BarChart3,
@@ -77,6 +78,7 @@ import {
   Layers,
   Activity,
   Wand2,
+  History,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Website, WebsitePage, WebsiteSection } from "../types";
@@ -424,6 +426,18 @@ const isMissingTemplateColumnError = (error: any) =>
 
 type SeoFormData = z.infer<typeof seoSchema>;
 
+type WebsiteContentRevision = {
+  id: string;
+  savedAt: string;
+  status: string;
+  sourceUpdatedAt?: string | null;
+  content: {
+    pages: WebsitePage[];
+    theme: Website["theme"];
+    seo: Partial<Website["seo"]>;
+  };
+};
+
 const THEME_PRESETS: {
   name: string;
   primary: string;
@@ -762,6 +776,9 @@ export function WebsiteEditor({
     | "advanced"
   >("content");
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  const [showRevisionHistory, setShowRevisionHistory] = useState(false);
+  const [websiteRevisions, setWebsiteRevisions] = useState<WebsiteContentRevision[]>([]);
+  const [isLoadingRevisions, setIsLoadingRevisions] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showAddSection, setShowAddSection] = useState<{
@@ -797,6 +814,29 @@ export function WebsiteEditor({
   const [enabledThemes, setEnabledThemes] = useState<string[]>([]);
 
   const [activePageId, setActivePageId] = useState<string | null>(null);
+
+  const loadWebsiteRevisions = useCallback(async (websiteId: string) => {
+    if (isTemplateMode) return;
+    setIsLoadingRevisions(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const response = await fetch(`/api/admin/websites/${websiteId}/revisions`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || "Version history could not be loaded.");
+      setWebsiteRevisions(Array.isArray(payload.revisions) ? payload.revisions : []);
+    } catch (error) {
+      console.warn("Website revision history could not be loaded:", error);
+    } finally {
+      setIsLoadingRevisions(false);
+    }
+  }, [isTemplateMode]);
+
+  useEffect(() => {
+    if (website?.id && !isTemplateMode) void loadWebsiteRevisions(website.id);
+  }, [website?.id, isTemplateMode, loadWebsiteRevisions]);
 
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [missingItems, setMissingItems] = useState<string[]>([]);
@@ -1542,6 +1582,44 @@ export function WebsiteEditor({
     });
   };
 
+  const snapshotSavedWebsiteVersion = async (websiteId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const response = await fetch(`/api/admin/websites/${websiteId}/revisions`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || "Version history could not be saved.");
+      if (Array.isArray(payload.revisions)) setWebsiteRevisions(payload.revisions);
+    } catch (error) {
+      console.warn("Website version history could not be saved:", error);
+    }
+  };
+
+  const restoreWebsiteRevision = (revision: WebsiteContentRevision) => {
+    if (!website) return;
+    const currentSeo = website.seo;
+    const preservedOperationalSeo = {
+      workflowStatus: currentSeo.workflowStatus,
+      deliveryStandardVersion: currentSeo.deliveryStandardVersion,
+      deliveryQuality: currentSeo.deliveryQuality,
+      launchGate: currentSeo.launchGate,
+      publishedVersion: currentSeo.publishedVersion,
+      releaseHistory: currentSeo.releaseHistory,
+    };
+    setWebsite(sanitizeWebsite({
+      ...website,
+      theme: revision.content.theme,
+      pages: revision.content.pages,
+      seo: { ...currentSeo, ...revision.content.seo, ...preservedOperationalSeo },
+      updatedAt: Date.now(),
+    }));
+    setShowRevisionHistory(false);
+    toast.success("Previous site content loaded into the editor. Preview it before saving.");
+  };
+
   const handleSave = async (data?: any) => {
     if (!website) return;
     if (website.status === "published" && !isInternalOperator) {
@@ -1661,6 +1739,7 @@ export function WebsiteEditor({
           toast.success("Template saved successfully!");
         }
       } else {
+        await snapshotSavedWebsiteVersion(website.id);
         const websitePromise = supabase
           .from("websites")
           .update(updatedWebsiteConfig)
@@ -1722,6 +1801,7 @@ export function WebsiteEditor({
     setSaving(true);
     setShowPublishConfirm(false);
     try {
+      await snapshotSavedWebsiteVersion(website.id);
       const releaseRecord = {
         id: `release_${Date.now()}`,
         publishedAt: new Date().toISOString(),
@@ -1782,6 +1862,7 @@ export function WebsiteEditor({
     }
     setSaving(true);
     try {
+      if (newStatus === "published") await snapshotSavedWebsiteVersion(website.id);
       const nextWorkflowStatus: WebsiteWorkflowStatus = newStatus === "published" ? "live" : "draft";
       const releaseRecord = newStatus === "published"
         ? { id: `release_${Date.now()}`, publishedAt: new Date().toISOString(), standardVersion: DELIVERY_STANDARD_VERSION }
@@ -1842,6 +1923,7 @@ export function WebsiteEditor({
     }
     setSaving(true);
     try {
+      if (newStatus === "live") await snapshotSavedWebsiteVersion(website.id);
       const publishStatus = newStatus === "live" ? "published" : "draft";
       const releaseRecord = newStatus === "live"
         ? { id: `release_${Date.now()}`, publishedAt: new Date().toISOString(), standardVersion: DELIVERY_STANDARD_VERSION }
@@ -4648,6 +4730,23 @@ export function WebsiteEditor({
                 <Eye className="h-4 w-4" />{" "}
                 <span className="hidden sm:inline">Live Preview</span>
               </Button>
+              {!isTemplateMode && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!website || isLoadingRevisions}
+                  onClick={async () => {
+                    if (!website) return;
+                    await snapshotSavedWebsiteVersion(website.id);
+                    await loadWebsiteRevisions(website.id);
+                    setShowRevisionHistory(true);
+                  }}
+                  className="gap-2 h-10 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 whitespace-nowrap px-4 font-bold"
+                >
+                  {isLoadingRevisions ? <Loader2 className="h-4 w-4 animate-spin"/> : <History className="h-4 w-4"/>}
+                  <span className="hidden sm:inline">Version history</span>
+                </Button>
+              )}
               {website.status === "published" && !isInternalOperator ? (
                 <Button
                   onClick={() => navigate("/dashboard/update-requests")}
@@ -4858,6 +4957,32 @@ export function WebsiteEditor({
                     />
                   </React.Suspense>
                 </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showRevisionHistory} onOpenChange={setShowRevisionHistory}>
+          <DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><History className="h-5 w-5 text-indigo-600"/>Website version history</DialogTitle>
+              <DialogDescription>
+                Each saved version contains the site pages, sections, SEO and design settings. Loading a version changes the editor preview only. Live managed sites still use Bennie Studio’s approval workflow.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[58vh] space-y-3 overflow-y-auto pr-1">
+              {isLoadingRevisions ? (
+                <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin"/>Loading saved versions…</div>
+              ) : websiteRevisions.length ? websiteRevisions.map((revision) => (
+                <article key={revision.id} className="flex flex-col gap-4 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-bold text-slate-900">{new Date(revision.savedAt).toLocaleString()}</p>
+                    <p className="mt-1 text-xs text-slate-500">{revision.content.pages.length} pages · {revision.content.pages.reduce((total, page) => total + (page.sections?.length || 0), 0)} sections · {revision.status === "published" ? "Published at capture" : "Draft at capture"}</p>
+                  </div>
+                  <Button type="button" variant="outline" disabled={!isInternalOperator && website?.status === "published"} className="shrink-0 gap-2" onClick={() => restoreWebsiteRevision(revision)}><RotateCcw className="h-4 w-4"/>{!isInternalOperator && website?.status === "published" ? "Managed update required" : "Load into editor"}</Button>
+                </article>
+              )) : (
+                <div className="rounded-xl border border-dashed border-slate-300 px-5 py-10 text-center text-sm text-slate-500">No saved versions yet. Versions are captured before each website save and publish.</div>
               )}
             </div>
           </DialogContent>
