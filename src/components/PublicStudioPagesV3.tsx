@@ -30,6 +30,7 @@ import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
 import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
+import type { PlatformCmsPage } from "../lib/platformSiteCms";
 
 const primary =
   "inline-flex min-h-12 items-center justify-center rounded-xl bg-[#1741ed] px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_45px_-25px_rgba(98,82,244,.9)] transition hover:-translate-y-0.5 hover:bg-[#0a2aaa]";
@@ -200,7 +201,7 @@ export function ServicesStudioPage() {
   );
 }
 
-export function AboutStudioPage() {
+export function AboutStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   const values = [
     [HeartHandshake,"Human first","Real people, real feedback and real responsibility at the stages where judgement matters."],
     [BarChart3,"Business minded","Design decisions are tied back to trust, enquiries and commercial usefulness."],
@@ -214,9 +215,9 @@ export function AboutStudioPage() {
         <div className="brand-shell grid gap-12 py-20 lg:grid-cols-12 lg:items-center lg:py-28">
           <div className="lg:col-span-6">
             
-            <h1 className="mt-6 !max-w-[13ch]">Small studio. <em>Serious about your website.</em></h1>
-            <p className="brand-copy mt-7">We bring together business-first strategy, considered design and a managed delivery process. The aim is a website that is easy to understand, easy to trust and easier to enquire through.</p>
-            <div className="mt-8 flex flex-wrap gap-4"><Link to="/generate-preview" className="c27-button">Get a free website preview <ArrowRight className="h-4 w-4"/></Link><Link to="/how-it-works" className="c27-quiet">Our approach <ArrowRight className="h-4 w-4"/></Link></div>
+            <h1 className="mt-6 !max-w-[13ch]">{cmsPage?.heroTitle || <>Small studio. <em>Serious about your website.</em></>}</h1>
+            <p className="brand-copy mt-7">{cmsPage?.heroDescription || "We bring together business-first strategy, considered design and a managed delivery process. The aim is a website that is easy to understand, easy to trust and easier to enquire through."}</p>
+            <div className="mt-8 flex flex-wrap gap-4"><Link to={cmsPage?.primaryCtaHref || "/generate-preview"} className="c27-button">{cmsPage?.primaryCtaLabel || "Get a free website preview"} <ArrowRight className="h-4 w-4"/></Link><Link to="/how-it-works" className="c27-quiet">Our approach <ArrowRight className="h-4 w-4"/></Link></div>
           </div>
           <div className="lg:col-span-6"><div className="c27-panel">
             <p className="!text-white/75 text-xs font-bold uppercase tracking-[.16em]">The studio promise</p>
@@ -267,7 +268,7 @@ export function AboutStudioPage() {
   );
 }
 
-export function ResourcesStudioPage() {
+export function ResourcesStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   const [query, setQuery] = React.useState("");
   const [activeCategory, setActiveCategory] = React.useState("All");
   const [subscriberEmail, setSubscriberEmail] = React.useState("");
@@ -308,9 +309,9 @@ export function ResourcesStudioPage() {
       <section className="c27-marketing-hero">
         <div className="brand-shell grid gap-12 py-20 lg:grid-cols-12 lg:items-center lg:py-24">
           <div className="lg:col-span-7">
-            <h1 className="mt-6 !max-w-[15ch]">Make your next website <em>decision a better one.</em></h1>
-            <p className="brand-copy mt-7">Clear, practical guides on positioning, content, customer trust, enquiry paths and the ongoing management of a business website.</p>
-            <div className="mt-8 flex flex-wrap gap-5"><Link to="/generate-preview" className="c27-button">Apply it to my business <ArrowRight className="h-4 w-4"/></Link><Link to="/case-studies" className="c27-quiet">See the design work <ArrowRight className="h-4 w-4"/></Link></div>
+            <h1 className="mt-6 !max-w-[15ch]">{cmsPage?.heroTitle || <>Make your next website <em>decision a better one.</em></>}</h1>
+            <p className="brand-copy mt-7">{cmsPage?.heroDescription || "Clear, practical guides on positioning, content, customer trust, enquiry paths and the ongoing management of a business website."}</p>
+            <div className="mt-8 flex flex-wrap gap-5"><Link to={cmsPage?.primaryCtaHref || "/generate-preview"} className="c27-button">{cmsPage?.primaryCtaLabel || "Apply it to my business"} <ArrowRight className="h-4 w-4"/></Link><Link to="/case-studies" className="c27-quiet">See the design work <ArrowRight className="h-4 w-4"/></Link></div>
           </div>
           <div className="lg:col-span-5"><div className="border-y border-[#cbd1dc]">
             {[["01","Positioning","Explain the offer."],["02","Trust","Earn confidence."],["03","Conversion","Make the next step clear."],["04","Aftercare","Keep it working."]].map(([n,t,desc])=><div key={n} className="grid grid-cols-[3rem_1fr] gap-5 border-b border-[#cbd1dc] py-5 last:border-b-0"><span className="font-serif text-3xl italic text-[#1741ed]">{n}</span><div><p className="text-xl font-semibold !text-[#15191f]">{t}</p><p className="mt-1 text-sm text-[#596573]">{desc}</p></div></div>)}
@@ -368,7 +369,7 @@ export function ResourcesStudioPage() {
   );
 }
 
-export function ContactStudioPage() {
+export function ContactStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   const navigate = useNavigate();
   const [brief, setBrief] = React.useState({ name:"", company:"", email:"", interest:"New website design", details:"" });
   const [submitting, setSubmitting] = React.useState(false);
@@ -412,9 +413,9 @@ export function ContactStudioPage() {
         <div className="brand-shell grid gap-12 py-16 sm:py-20 lg:grid-cols-12 lg:items-center lg:py-24">
           <div className="lg:col-span-6">
             
-            <h1 className="mt-5 !max-w-[13ch] !text-white">Let’s talk about <span className="bs3-accent">your website.</span></h1>
-            <p className="brand-copy mt-6 !text-white/65">Have a project in mind? Share a short brief or book a focused call. The goal is to understand what you need and give you a clear next step.</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to="/book-demo" className={primary}>Book a free call<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/generate-preview" className={secondary}>Send a project brief</Link></div>
+            <h1 className="mt-5 !max-w-[13ch] !text-white">{cmsPage?.heroTitle || <>Let’s talk about <span className="bs3-accent">your website.</span></>}</h1>
+            <p className="brand-copy mt-6 !text-white/65">{cmsPage?.heroDescription || "Have a project in mind? Share a short brief or book a focused call. The goal is to understand what you need and give you a clear next step."}</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to={cmsPage?.primaryCtaHref || "/book-demo"} className={primary}>{cmsPage?.primaryCtaLabel || "Book a free call"}<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/generate-preview" className={secondary}>Send a project brief</Link></div>
             <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-white/58"><span>No-obligation call</span><span>Focused on real results</span><span>Clear next steps</span></div>
           </div>
           <form onSubmit={submit} className="bs3-card-dark p-6 lg:col-span-6">
@@ -456,7 +457,7 @@ export function PricingStudioPage() {
   return <CommercialPricing />;
 }
 
-export function ProcessStudioPage() {
+export function ProcessStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   const steps = [
     {
       number: "01",
@@ -494,10 +495,10 @@ export function ProcessStudioPage() {
       <section className="border-b border-[#dde2ea] bg-[#f8f8f5]">
         <div className="brand-shell grid gap-10 py-16 lg:grid-cols-[1.1fr_.9fr] lg:items-center lg:py-24">
           <div>
-            <h1 className="!max-w-[14ch] !text-[#15191f]">From first idea to a website that's <span className="font-serif italic font-normal !text-[#1741ed]">ready for business.</span></h1>
-            <p className="brand-copy mt-6 max-w-xl">One straightforward journey: see an initial direction, choose your plan, review the finished work and stay supported after launch.</p>
+            <h1 className="!max-w-[14ch] !text-[#15191f]">{cmsPage?.heroTitle || <>From first idea to a website that's <span className="font-serif italic font-normal !text-[#1741ed]">ready for business.</span></>}</h1>
+            <p className="brand-copy mt-6 max-w-xl">{cmsPage?.heroDescription || "One straightforward journey: see an initial direction, choose your plan, review the finished work and stay supported after launch."}</p>
             <div className="mt-8 flex flex-wrap items-center gap-5">
-              <Link to="/generate-preview" className="inline-flex min-h-12 items-center justify-center gap-2 bg-[#1741ed] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1034c0]">Get your free website preview <ArrowRight className="h-4 w-4" /></Link>
+              <Link to={cmsPage?.primaryCtaHref || "/generate-preview"} className="inline-flex min-h-12 items-center justify-center gap-2 bg-[#1741ed] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1034c0]">{cmsPage?.primaryCtaLabel || "Get your free website preview"} <ArrowRight className="h-4 w-4" /></Link>
               <Link to="/pricing" className="inline-flex min-h-12 items-center gap-2 text-sm font-semibold text-[#18283c] underline underline-offset-4">Compare plans <ArrowRight className="h-4 w-4" /></Link>
             </div>
             <p className="mt-5 text-xs leading-6 text-[#566577]">No card required for the initial preview. Delivery scope and commitments are confirmed before ordering.</p>
@@ -544,15 +545,15 @@ export function ProcessStudioPage() {
   );
 }
 
-export function WorkStudioPage() {
+export function WorkStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   const showcases = useStudioShowcaseCatalog(STUDIO_SHOWCASES);
   return (
     <>
       <section className="c27-marketing-hero">
         <div className="brand-shell c30-case-hero-grid py-14 lg:py-20">
           <div className="c30-case-hero-copy">
-            <h1 className="!max-w-[18ch]">See the websites <em>we can build.</em></h1>
-            <p className="brand-copy mt-7 max-w-3xl">Explore six websites built by Bennie Studio for service industries. Each presents a service clearly, builds confidence and guides visitors towards a useful next step.</p>
+            <h1 className="!max-w-[18ch]">{cmsPage?.heroTitle || <>See the websites <em>we can build.</em></>}</h1>
+            <p className="brand-copy mt-7 max-w-3xl">{cmsPage?.heroDescription || "Explore six websites built by Bennie Studio for service industries. Each presents a service clearly, builds confidence and guides visitors towards a useful next step."}</p>
             <div className="mt-8 flex flex-wrap gap-5">
               <a href="#industry-examples" className="c27-button">Explore the collection <ArrowRight className="h-4 w-4"/></a>
               <Link to="/generate-preview" className="c27-quiet">Get a free website preview <ArrowRight className="h-4 w-4"/></Link>

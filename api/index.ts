@@ -9342,6 +9342,85 @@ async function startServer() {
     return res.json({ success: true, updatedAt: now });
   });
 
+  const validatePlatformSiteCms = (content: Record<string, unknown>) => {
+    const allowedPaths = new Set(["/", "/services", "/about", "/resources", "/contact", "/templates", "/pricing", "/how-it-works", "/case-studies", "/website-audit", "/generate-preview", "/dental-clinics", "/clinic-website-design", "/renovation-contractor-website-design", "/beauty-salon-website-design", "/tuition-centre-website-design", "/consultant-website-design", "/professional-services-website-design", "/accounting-firm-website-design", "/local-service-website-design", "/pay-monthly-websites", "/website-subscription-service"]);
+    const replaceablePaths = new Set(["/services", "/about", "/resources", "/templates", "/how-it-works", "/case-studies", "/dental-clinics", "/clinic-website-design", "/renovation-contractor-website-design", "/beauty-salon-website-design", "/tuition-centre-website-design", "/consultant-website-design", "/professional-services-website-design", "/accounting-firm-website-design", "/local-service-website-design"]);
+    const pages = content.pages && typeof content.pages === "object" ? Object.entries(content.pages as Record<string, unknown>) : [];
+    if (pages.some(([path]) => !allowedPaths.has(path))) return "The site CMS contains an unsupported page path";
+    const header = content.header && typeof content.header === "object" ? content.header as any : {};
+    const navigation = header.navigation;
+    if (!Array.isArray(navigation) || navigation.length > 12 || navigation.some((item) => typeof item?.label !== "string" || typeof item?.href !== "string" || (!item.href.startsWith("/") && !/^https?:\/\//i.test(item.href)) || item.href.startsWith("//"))) return "Navigation links must have a label and a safe site or HTTPS destination";
+    if (header.primaryCtaHref && typeof header.primaryCtaHref === "string" && ((!header.primaryCtaHref.startsWith("/") || header.primaryCtaHref.startsWith("//")) && !/^https?:\/\//i.test(header.primaryCtaHref))) return "The header button must link to a site page or a secure HTTPS address";
+    for (const [path, pageValue] of pages) {
+      const page = pageValue && typeof pageValue === "object" ? pageValue as any : {};
+      if (page.replacePageContent !== undefined && typeof page.replacePageContent !== "boolean") return "The page layout mode must be on or off";
+      if (page.replacePageContent === true && !replaceablePaths.has(path)) return "CMS-built page mode is not available for this page";
+      if (page.noIndex !== undefined && typeof page.noIndex !== "boolean") return "Search indexing must be either enabled or disabled";
+      if (page.canonicalUrl && (typeof page.canonicalUrl !== "string" || ((!page.canonicalUrl.startsWith("/") || page.canonicalUrl.startsWith("//")) && !/^https?:\/\//i.test(page.canonicalUrl)))) return "Canonical URLs must use a site path or HTTPS";
+      if (page.ogImage && (typeof page.ogImage !== "string" || ((!page.ogImage.startsWith("/") || page.ogImage.startsWith("//")) && !/^https?:\/\//i.test(page.ogImage)))) return "Social images must use a site path or HTTPS";
+      const pageHrefs = [page.primaryCtaHref, ...((Array.isArray(page.sections) ? page.sections : []).map((section: any) => section?.ctaHref))].filter(Boolean);
+      if (pageHrefs.some((href) => typeof href !== "string" || !href.startsWith("/") || href.startsWith("//"))) return "Page buttons must link to a safe site page";
+      if (Array.isArray(page.sections) && page.sections.length > 30) return "Each page can contain up to 30 CMS sections";
+      if (Array.isArray(page.sections) && page.sections.some((section: any) => !["rich_text", "feature_grid", "faq", "image_text", "cta"].includes(section?.type) || (Array.isArray(section?.items) && section.items.length > 16))) return "The page contains an unsupported section type or too many section items";
+    }
+    const footerGroups = (content.footer as any)?.groups;
+    if (Array.isArray(footerGroups) && footerGroups.some((group: any) => Array.isArray(group?.links) && group.links.some((link: any) => typeof link?.label !== "string" || typeof link?.href !== "string" || (!link.href.startsWith("/") && !/^https?:\/\//i.test(link.href)) || link.href.startsWith("//")))) return "Footer links must have a label and a safe site or HTTPS destination";
+    if (Buffer.byteLength(JSON.stringify(content), "utf8") > 500_000) return "Site CMS content exceeds the 500 KB limit";
+    return null;
+  };
+
+  app.get("/api/public/platform-site-cms", rateLimit({ windowMs: 60 * 1000, max: 90, keyPrefix: "public-platform-site-cms" }), async (_req, res) => {
+    const { data, error } = await supabaseAdmin.from("settings").select("content").eq("id", "platform_site_cms").maybeSingle();
+    if (error) return res.status(500).json({ error: "Public site content is unavailable" });
+    res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=120");
+    return res.json({ content: data?.content?.published || null });
+  });
+
+  app.get("/api/admin/platform-site-cms", authenticate, superAdminOnly, async (_req: any, res: any) => {
+    const { data, error } = await supabaseAdmin.from("settings").select("content,updated_at").eq("id", "platform_site_cms").maybeSingle();
+    if (error) return res.status(500).json({ error: "Site CMS could not be loaded" });
+    const envelope = data?.content || {};
+    return res.json({ content: { draft: envelope.draft || null, published: envelope.published || null, revisions: envelope.revisions || [], updatedAt: data?.updated_at || null, publishedAt: envelope.publishedAt || null } });
+  });
+
+  app.put("/api/admin/platform-site-cms", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const body = validateBody(z.object({ content: z.record(z.string(), z.unknown()) }), req, res);
+    if (!body) return;
+    const validationError = validatePlatformSiteCms(body.content);
+    if (validationError) return res.status(validationError.includes("500 KB") ? 413 : 400).json({ error: validationError });
+    const { data: existing, error: readError } = await supabaseAdmin.from("settings").select("content").eq("id", "platform_site_cms").maybeSingle();
+    if (readError) return res.status(500).json({ error: "Current CMS content could not be read" });
+    const now = new Date().toISOString();
+    const nextEnvelope = { ...(existing?.content || {}), draft: body.content };
+    const { error } = await supabaseAdmin.from("settings").upsert({ id: "platform_site_cms", content: nextEnvelope, updated_at: now }, { onConflict: "id" });
+    if (error) {
+      console.error("Platform site CMS save failed", error.message);
+      return res.status(500).json({ error: "Site content could not be saved" });
+    }
+    return res.json({ success: true, content: { ...nextEnvelope, updatedAt: now } });
+  });
+
+  app.post("/api/admin/platform-site-cms/publish", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const body = validateBody(z.object({ content: z.record(z.string(), z.unknown()) }), req, res);
+    if (!body) return;
+    const validationError = validatePlatformSiteCms(body.content);
+    if (validationError) return res.status(validationError.includes("500 KB") ? 413 : 400).json({ error: validationError });
+    const pageEntries = body.content.pages && typeof body.content.pages === "object" ? Object.entries(body.content.pages as Record<string, any>) : [];
+    if (pageEntries.some(([, page]) => page?.replacePageContent === true && (!Array.isArray(page.sections) || page.sections.length === 0))) return res.status(400).json({ error: "Add at least one section to every CMS-built page before publishing" });
+    const { data: existing, error: readError } = await supabaseAdmin.from("settings").select("content").eq("id", "platform_site_cms").maybeSingle();
+    if (readError) return res.status(500).json({ error: "Current CMS content could not be read" });
+    const now = new Date().toISOString();
+    const oldPublished = existing?.content?.published;
+    const revisions = Array.isArray(existing?.content?.revisions) ? existing.content.revisions : [];
+    const nextEnvelope = { ...(existing?.content || {}), draft: body.content, published: body.content, publishedAt: now, revisions: oldPublished ? [{ publishedAt: existing.content.publishedAt || now, content: oldPublished }, ...revisions].slice(0, 10) : revisions };
+    const { error } = await supabaseAdmin.from("settings").upsert({ id: "platform_site_cms", content: nextEnvelope, updated_at: now }, { onConflict: "id" });
+    if (error) {
+      console.error("Platform site CMS publish failed", error.message);
+      return res.status(500).json({ error: "Site content could not be published" });
+    }
+    return res.json({ success: true, content: { ...nextEnvelope, updatedAt: now } });
+  });
+
   app.get("/api/public/site-config", rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "public-site-config" }), async (_req, res) => {
     if (process.env.E2E_TEST === "true") {
       return res.json({ platform: {}, landingPage: null, policies: [], posts: [] });

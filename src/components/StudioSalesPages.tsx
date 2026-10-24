@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpRight, Check, ChevronDown, Globe2, MonitorSmartphone
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
 import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
+import type { PlatformCmsPage } from "../lib/platformSiteCms";
 import { Pricing } from "./Pricing";
 import { trackPublicEvent } from "../lib/publicTracking";
 import "../styles/studioSales.css";
@@ -31,17 +32,17 @@ const websiteItems=[
   ["03","Hosting & ongoing care","Avoid the website becoming another job on your list.","Managed hosting, routine maintenance and a defined allowance for updates and support, according to your plan.","One accountable service relationship after go-live."],
 ] as const;
 
-export function ServicesSalesPage(){
+export function ServicesSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
  const showcase=useStudioShowcaseCatalog(STUDIO_SHOWCASES).slice(0,3);
  return <main className="bs-sales bs-sales-services">
   <section className="s28-hero s28-services-hero" aria-labelledby="s28-services-title">
    <div className="brand-shell s28-services-layout">
     <div className="s28-services-copy">
      
-     <h1 id="s28-services-title">A website should do more than <em>look good.</em></h1>
-     <p className="s28-large-copy">We design, build and manage websites that help service businesses explain their value, earn trust and make it easier for customers to enquire.</p>
+     <h1 id="s28-services-title">{cmsPage?.heroTitle || <>A website should do more than <em>look good.</em></>}</h1>
+     <p className="s28-large-copy">{cmsPage?.heroDescription || "We design, build and manage websites that help service businesses explain their value, earn trust and make it easier for customers to enquire."}</p>
      <div className="s28-hero-actions">
-      <Link to="/generate-preview" onClick={salesLink("Services hero free preview","/generate-preview")} className="s28-button">Get your free website preview <ArrowUpRight size={19}/></Link>
+      <Link to={cmsPage?.primaryCtaHref || "/generate-preview"} onClick={salesLink("Services hero free preview",cmsPage?.primaryCtaHref || "/generate-preview")} className="s28-button">{cmsPage?.primaryCtaLabel || "Get your free website preview"} <ArrowUpRight size={19}/></Link>
       <Link to="/pricing" onClick={salesLink("Services hero pricing","/pricing")} className="s28-text-link">See plans & pricing <ArrowRight size={17}/></Link>
      </div>
      <p className="s28-tiny-note"><Check size={14}/> Free initial direction. No card required. No obligation to proceed.</p>
@@ -104,13 +105,13 @@ const pricingFaqs=[
  ["Can I change or cancel my plan?","Review the minimum commitment, notice period and applicable cancellation or change terms before payment. Any changes are subject to your selected service agreement."],
 ];
 
-export function PricingSalesPage(){
+export function PricingSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
  return <main className="bs-sales bs-sales-pricing">
   <section className="s28-pricing-hero">
    <div className="brand-shell">
     <div className="s28-pricing-hero-grid"><div className="s28-pricing-hero-content">
-     <h1>A website worth investing in. <em>Pricing you can understand.</em></h1>
-     <p>Choose the level of support you need. Compare the real monthly fee, one-time build cost, what's included and the minimum commitment before you buy.</p>
+     <h1>{cmsPage?.heroTitle || <>A website worth investing in. <em>Pricing you can understand.</em></>}</h1>
+     <p>{cmsPage?.heroDescription || "Choose the level of support you need. Compare the real monthly fee, one-time build cost, what's included and the minimum commitment before you buy."}</p>
      <div className="s28-pricing-hero-links"><a href="#plans" className="s28-button" onClick={salesLink("Pricing hero compare","/pricing#plans")}>Compare the plans <ArrowRight size={18}/></a><Link to="/generate-preview" className="s28-text-link" onClick={salesLink("Pricing hero preview","/generate-preview")}>Try a free website preview <ArrowUpRight size={17}/></Link></div>
     </div>
     <div className="c30-pricing-hero-art" aria-label="Illustration of three managed website plan options">
@@ -140,6 +141,6 @@ export function PricingSalesPage(){
    ].map(([n,t,d])=><article key={n}><span>{n}</span><h3>{t}</h3><p>{d}</p></article>)}</div>
   </div></section>
   <SalesFaqs questions={pricingFaqs} heading="Understand your plan before committing." />
-  <section className="s28-pricing-end"><div className="brand-shell"><h2>Start by seeing what your <em>business could look like.</em></h2><p>The first direction is free. Review it before choosing whether a managed website makes sense.</p><div className="flex flex-wrap items-center gap-5"><Link to="/generate-preview" onClick={salesLink("Pricing bottom free preview","/generate-preview")} className="s28-button s28-button-white">Get your free website preview <ArrowUpRight size={18}/></Link><Link to="/book-demo" onClick={salesLink("Pricing bottom consult","/book-demo")} className="s28-text-link">Prefer to speak first? <ArrowRight size={17}/></Link></div></div></section>
+  <section className="s28-pricing-end"><div className="brand-shell"><h2>{cmsPage?.finalCtaTitle || <>Start by seeing what your <em>business could look like.</em></>}</h2><p>{cmsPage?.finalCtaDescription || "The first direction is free. Review it before choosing whether a managed website makes sense."}</p><div className="flex flex-wrap items-center gap-5"><Link to={cmsPage?.primaryCtaHref || "/generate-preview"} onClick={salesLink("Pricing bottom free preview",cmsPage?.primaryCtaHref || "/generate-preview")} className="s28-button s28-button-white">{cmsPage?.primaryCtaLabel || "Get your free website preview"} <ArrowUpRight size={18}/></Link><Link to="/book-demo" onClick={salesLink("Pricing bottom consult","/book-demo")} className="s28-text-link">Prefer to speak first? <ArrowRight size={17}/></Link></div></div></section>
  </main>
 }

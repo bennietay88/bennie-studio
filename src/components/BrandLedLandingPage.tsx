@@ -18,6 +18,8 @@ import {
 } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { ConversionHomepage } from "./ConversionHomepage";
+import { usePublishedPlatformCms } from "../lib/platformSiteCms";
+import { PlatformCmsSections } from "./PlatformCmsSections";
 
 const CONSENT_KEY = "bt_sales_cookie_consent";
 const CONSENT_VERSION = "uk-sales-consent-v1";
@@ -43,6 +45,8 @@ const faqs = [
 
 export default function BrandLedLandingPage() {
   const navigate = useNavigate();
+  const siteCms = usePublishedPlatformCms();
+  const pageCms = siteCms.pages["/"];
   const [market] = React.useState(getStoredMarket);
   const { products, loading: pricingLoading, error: pricingError } = usePublicCommercialPricing(market);
   const [platformSettings, setPlatformSettings] = React.useState<any>(null);
@@ -135,11 +139,13 @@ export default function BrandLedLandingPage() {
   return (
     <div className="brand-public min-h-screen overflow-x-hidden bg-[#f6f7fb] text-[#10131c]">
       <Helmet>
-        <title>Professional Websites for Service Businesses | Bennie Studio</title>
-        <meta name="description" content="Professional websites for service businesses, designed for clearer enquiries. Get a free preview before choosing managed design, hosting and website support." />
-        <link rel="canonical" href="https://app.bennietay.com/" />
-        <meta property="og:title" content="Bennie Studio | Managed Website System" />
-        <meta property="og:description" content="Strategy, design, lead capture, hosting and ongoing improvement in one managed website service." />
+        <title>{pageCms?.seoTitle || "Professional Websites for Service Businesses | Bennie Studio"}</title>
+        <meta name="description" content={pageCms?.seoDescription || "Professional websites for service businesses, designed for clearer enquiries. Get a free preview before choosing managed design, hosting and website support."} />
+        {pageCms?.noIndex && <meta name="robots" content="noindex,nofollow" />}
+        <link rel="canonical" href={pageCms?.canonicalUrl || "https://app.bennietay.com/"} />
+        <meta property="og:title" content={pageCms?.seoTitle || "Bennie Studio | Managed Website System"} />
+        <meta property="og:description" content={pageCms?.seoDescription || "Strategy, design, lead capture, hosting and ongoing improvement in one managed website service."} />
+        {pageCms?.ogImage && <meta property="og:image" content={pageCms.ogImage} />}
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://app.bennietay.com/og-preview.svg" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -168,6 +174,7 @@ export default function BrandLedLandingPage() {
 
       <main>
         <ConversionHomepage onCta={go} />
+        <PlatformCmsSections path="/" />
 
         {verifiedProof.length ? (
           <section className="brand-on-dark bg-[#0b1020]">
@@ -259,7 +266,7 @@ export default function BrandLedLandingPage() {
           </div>
         </section>
 
-        <section className="c26-close" aria-labelledby="c26-close-title"><div className="brand-shell"><div><p className="!text-white/75 text-xs font-bold uppercase tracking-[.15em]">Ready when you are</p><h2 id="c26-close-title">Ready for a website that <em>brings more enquiries?</em></h2></div><div><p>See a free, preliminary direction for your business. No card required and no obligation to buy.</p><button type="button" onClick={() => go("/generate-preview", "Homepage closing free preview")}>Get your free website preview <ArrowRight size={18} aria-hidden="true" /></button><Link to="/book-demo" className="mt-3 inline-block text-sm font-semibold text-white underline underline-offset-4">Prefer to talk first? Book a call</Link></div></div></section>
+        <section className="c26-close" aria-labelledby="c26-close-title"><div className="brand-shell"><div><p className="!text-white/75 text-xs font-bold uppercase tracking-[.15em]">Ready when you are</p><h2 id="c26-close-title">{pageCms?.finalCtaTitle || <>Ready for a website that <em>brings more enquiries?</em></>}</h2></div><div><p>{pageCms?.finalCtaDescription || "See a free, preliminary direction for your business. No card required and no obligation to buy."}</p><button type="button" onClick={() => go(pageCms?.primaryCtaHref || "/generate-preview", "Homepage closing free preview")}>{pageCms?.primaryCtaLabel || "Get your free website preview"} <ArrowRight size={18} aria-hidden="true" /></button><Link to="/book-demo" className="mt-3 inline-block text-sm font-semibold text-white underline underline-offset-4">Prefer to talk first? Book a call</Link></div></div></section>
       </main>
 
       <PublicSiteFooter

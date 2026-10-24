@@ -22,6 +22,7 @@ export const ADMIN_MODULES: AdminModuleDefinition[] = [
   { id: "update_queue", label: "Update Queue", description: "Manage customer website improvement requests.", group: "Customers & Delivery", priority: "operate_now" },
   { id: "support", label: "Support", description: "Respond to customer support requests.", group: "Customers & Delivery", priority: "operate_now" },
   { id: "website_templates", label: "Website Templates", description: "Create and maintain reusable website templates.", group: "Content & CMS", priority: "operate_now" },
+  { id: "platform_site_cms", label: "Website CMS", description: "Manage Bennie Studio pages and navigate to client websites, case studies, blog, policies, templates and plans.", group: "Content & CMS", priority: "operate_now" },
   { id: "blog_cms", label: "Blog CMS", description: "Create, edit, review, and publish Bennie Studio platform articles.", group: "Content & CMS", priority: "operate_now" },
   { id: "policies_cms", label: "Policies CMS", description: "Maintain public policy documents.", group: "Content & CMS", priority: "operate_now" },
   { id: "local_seo", label: "Local SEO", description: "Manage customer location-page drafts, quality checks, and plan-aware local SEO delivery.", group: "Content & CMS", priority: "operate_now" },

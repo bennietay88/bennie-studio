@@ -8,6 +8,8 @@ import { findOwnSalesSeoPage } from "../constants/ownSalesSeoPages";
 import { COMMERCIAL_FALLBACK_PRODUCTS, formatCommercialMoney, getCommercialPrice, type CommercialMarket } from "../lib/commercialPricing";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
+import { usePublishedPlatformCms } from "../lib/platformSiteCms";
+import { PlatformCmsFinalCta, PlatformCmsSections } from "./PlatformCmsSections";
 
 const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
   if (typeof value === "string") {
@@ -56,9 +58,12 @@ const sanitizeLegacyCommercialCopy = <T,>(value: T): T => {
 export default function OwnSalesSeoPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const cms = usePublishedPlatformCms();
+  const pageCms = cms.pages[location.pathname];
   const page = sanitizeLegacyCommercialCopy(findOwnSalesSeoPage(location.pathname));
 
   if (!page) return <Navigate to="/" replace />;
+  const cmsHeading = pageCms?.heroTitle || page.h1;
 
   const faqSchema = {
     "@context": "https://schema.org",
@@ -78,7 +83,7 @@ export default function OwnSalesSeoPage() {
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: "https://app.bennietay.com/" },
-      { "@type": "ListItem", position: 2, name: page.h1, item: `https://app.bennietay.com${page.path}/` },
+      { "@type": "ListItem", position: 2, name: cmsHeading, item: `https://app.bennietay.com${page.path}/` },
     ],
   };
 
@@ -253,11 +258,15 @@ export default function OwnSalesSeoPage() {
   return (
     <div className="brand-public min-h-screen overflow-x-hidden bg-[#f6f7fb] text-[#141821]">
       <Helmet>
-        <title>{page.seoTitle}</title>
-        <meta name="description" content={page.metaDescription} />
+        <title>{pageCms?.seoTitle || page.seoTitle}</title>
+        <meta name="description" content={pageCms?.seoDescription || page.metaDescription} />
+        {pageCms?.noIndex && <meta name="robots" content="noindex,nofollow" />}
+        <meta property="og:title" content={pageCms?.seoTitle || page.seoTitle} />
+        <meta property="og:description" content={pageCms?.seoDescription || page.metaDescription} />
+        {pageCms?.ogImage && <meta property="og:image" content={pageCms.ogImage} />}
         {page.status === "draft" && <meta name="robots" content="noindex,nofollow" />}
         {/* Keep canonical URLs aligned with the no-trailing-slash paths published in sitemap.xml. */}
-        <link rel="canonical" href={`https://app.bennietay.com${page.path.replace(/\/$/, "") || "/"}`} />
+        <link rel="canonical" href={pageCms?.canonicalUrl || `https://app.bennietay.com${page.path.replace(/\/$/, "") || "/"}`} />
         <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
         <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
         <script type="application/ld+json">{JSON.stringify(serviceSchema)}</script>
@@ -271,14 +280,14 @@ export default function OwnSalesSeoPage() {
           <div className="brand-shell relative grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
             <div className="lg:col-span-5">
               <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs font-semibold !text-[#5e6b79]">
-                <Link to="/" className="hover:!text-[#1741ed]">Home</Link><span>/</span><span>{page.h1}</span>
+                <Link to="/" className="hover:!text-[#1741ed]">Home</Link><span>/</span><span>{cmsHeading}</span>
               </nav>
               
-              <h1 className="mt-5 !max-w-[13ch] !text-[#15191f]">{page.h1}</h1>
-              <p className="brand-copy !text-[#526071] mt-6">{page.heroCopy}</p>
+              <h1 className="mt-5 !max-w-[13ch] !text-[#15191f]">{cmsHeading}</h1>
+              <p className="brand-copy !text-[#526071] mt-6">{pageCms?.heroDescription || page.heroCopy}</p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Button onClick={() => navigate("/generate-preview")} className="min-h-12 bg-[#1741ed] px-6 font-semibold text-white hover:bg-[#0d2aaa]">
-                  {page.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />
+                <Button onClick={() => navigate(pageCms?.primaryCtaHref || "/generate-preview")} className="min-h-12 bg-[#1741ed] px-6 font-semibold text-white hover:bg-[#0d2aaa]">
+                  {pageCms?.primaryCtaLabel || page.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button variant="outline" onClick={() => navigate("/book-demo")} className="min-h-12 border-[#bfc7d3] bg-white px-6 font-semibold text-[#15191f] hover:bg-[#e6ebff] hover:text-[#1741ed]">
                   <MessageSquare className="mr-2 h-4 w-4" /> {page.whatsappCta}
@@ -573,6 +582,8 @@ export default function OwnSalesSeoPage() {
             <p>Professional websites for small businesses, built and managed for one monthly fee.</p>
           </div>
         </footer>
+        <PlatformCmsFinalCta path={location.pathname} />
+        <PlatformCmsSections path={location.pathname} />
         <PublicSiteFooter />
       </main>
     </div>

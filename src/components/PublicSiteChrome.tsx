@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { Button } from "./ui/button";
+import { usePublishedPlatformCms } from "../lib/platformSiteCms";
 
 const publicNavItems = [
   { label: "Services", href: "/services" },
@@ -44,9 +45,12 @@ const footerGroups = [
 export function PublicSiteHeader() {
   const { user } = useAuth();
   const location = useLocation();
+  const cms = usePublishedPlatformCms();
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const primaryHref = user ? "/dashboard" : location.pathname === "/generate-preview" ? "/pricing" : "/generate-preview";
-  const primaryLabel = user ? "Open Studio" : location.pathname === "/generate-preview" ? "Compare website plans" : "Get a free website preview";
+  const primaryHref = user ? "/dashboard" : safePublicHref(cms.header.primaryCtaHref, location.pathname === "/generate-preview" ? "/pricing" : "/generate-preview");
+  const primaryLabel = user ? "Open Studio" : cms.header.primaryCtaLabel || (location.pathname === "/generate-preview" ? "Compare website plans" : "Get a free website preview");
+  const navigation = cms.header.navigation.length ? cms.header.navigation.filter((item) => item.label.trim() && safePublicHref(item.href, "").length).map((item) => ({ ...item, href: safePublicHref(item.href, "") })) : publicNavItems;
+  const primaryExternal = /^https?:\/\//i.test(primaryHref);
   const mobileTriggerRef = React.useRef<HTMLButtonElement>(null);
   const mobileDialogRef = React.useRef<HTMLDivElement>(null);
   const mobileCloseRef = React.useRef<HTMLButtonElement>(null);
@@ -110,34 +114,22 @@ export function PublicSiteHeader() {
         </Link>
 
         <div className="hidden items-center gap-4 xl:flex xl:gap-7">
-          {publicNavItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              aria-current={isActive(item.href) ? "page" : undefined}
-              className={isActive(item.href)
-                ? "relative py-2 text-sm font-semibold text-[#0d1426] after:absolute after:inset-x-0 after:-bottom-[19px] after:h-0.5 after:bg-[#1741ed]"
-                : "py-2 text-sm font-semibold text-[#697386] transition hover:text-[#0d1426]"}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navigation.map((item) => {
+            const className = isActive(item.href) ? "relative py-2 text-sm font-semibold text-[#0d1426] after:absolute after:inset-x-0 after:-bottom-[19px] after:h-0.5 after:bg-[#1741ed]" : "py-2 text-sm font-semibold text-[#697386] transition hover:text-[#0d1426]";
+            return /^https?:\/\//i.test(item.href)
+              ? <a key={item.href} href={item.href} target="_blank" rel="noreferrer" className={className}>{item.label}</a>
+              : <Link key={item.href} to={item.href} aria-current={isActive(item.href) ? "page" : undefined} className={className}>{item.label}</Link>;
+          })}
         </div>
 
         <div className="hidden items-center gap-3 xl:flex">
           <Link to={user ? "/dashboard" : "/login"} className="px-2 py-2 text-sm font-semibold text-[#697386] transition hover:text-[#1741ed]">
             {user ? "Dashboard" : "Client login"}
           </Link>
-          <Link
-            to={primaryHref}
-            onClick={() => !user && trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref })}
-            className="inline-flex min-h-11 items-center justify-center rounded-sm bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#1741ed]"
-          >
-            {primaryLabel} <span className="ml-2">→</span>
-          </Link>
+          {primaryExternal ? <a href={primaryHref} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref })} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#1741ed]">{primaryLabel} <span className="ml-2">→</span></a> : <Link to={primaryHref} onClick={() => !user && trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref })} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#1741ed]">{primaryLabel} <span className="ml-2">→</span></Link>}
         </div>
 
-        {!user && location.pathname !== "/generate-preview" ? <Link to="/generate-preview" className="ml-auto inline-flex min-h-10 items-center justify-center bg-[#1741ed] px-3 py-2 text-xs font-semibold text-white xl:hidden" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:"Mobile header preview",target:"/generate-preview"})}>Free preview ↗</Link> : null}
+        {!user && location.pathname !== "/generate-preview" ? (primaryExternal ? <a href={primaryHref} target="_blank" rel="noreferrer" className="ml-auto inline-flex min-h-10 items-center justify-center bg-[#1741ed] px-3 py-2 text-xs font-semibold text-white xl:hidden" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:`Mobile header ${primaryLabel}`,target:primaryHref})}>{primaryLabel} ↗</a> : <Link to={primaryHref} className="ml-auto inline-flex min-h-10 items-center justify-center bg-[#1741ed] px-3 py-2 text-xs font-semibold text-white xl:hidden" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:`Mobile header ${primaryLabel}`,target:primaryHref})}>{primaryLabel} ↗</Link>) : null}
         <Button ref={mobileTriggerRef} type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="shrink-0 xl:hidden" aria-label="Open navigation menu" aria-expanded={mobileOpen} aria-controls="public-mobile-navigation">
           <Menu className="h-5 w-5" />
         </Button>
@@ -151,13 +143,16 @@ export function PublicSiteHeader() {
               <Button ref={mobileCloseRef} type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Close navigation menu"><X className="h-5 w-5" /></Button>
             </div>
             <div className="flex flex-col py-4">
-              {publicNavItems.map((item) => (
-                <Link key={item.href} to={item.href} aria-current={isActive(item.href) ? "page" : undefined} onClick={() => setMobileOpen(false)} className={isActive(item.href) ? "border-b border-[#eceef3] py-4 text-lg font-semibold text-[#1741ed]" : "border-b border-[#eceef3] py-4 text-lg font-semibold text-[#0d1426]"}>{item.label}</Link>
-              ))}
+              {navigation.map((item) => {
+                const className = isActive(item.href) ? "border-b border-[#eceef3] py-4 text-lg font-semibold text-[#1741ed]" : "border-b border-[#eceef3] py-4 text-lg font-semibold text-[#0d1426]";
+                return /^https?:\/\//i.test(item.href)
+                  ? <a key={item.href} href={item.href} target="_blank" rel="noreferrer" onClick={() => setMobileOpen(false)} className={className}>{item.label}</a>
+                  : <Link key={item.href} to={item.href} aria-current={isActive(item.href) ? "page" : undefined} onClick={() => setMobileOpen(false)} className={className}>{item.label}</Link>;
+              })}
             </div>
             <div className="mt-auto grid gap-3 border-t border-[#e5e7ef] pt-5">
               <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#cfd4df] px-5 text-sm font-semibold text-[#0d1426]">{user ? "Dashboard" : "Client login"}</Link>
-              <Link to={primaryHref} onClick={() => { if (!user) trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref }); setMobileOpen(false); }} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{primaryLabel} →</Link>
+              {primaryExternal ? <a href={primaryHref} target="_blank" rel="noreferrer" onClick={() => { trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref }); setMobileOpen(false); }} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{primaryLabel} →</a> : <Link to={primaryHref} onClick={() => { if (!user) trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref }); setMobileOpen(false); }} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{primaryLabel} →</Link>}
             </div>
           </div>
         </div>
@@ -166,7 +161,13 @@ export function PublicSiteHeader() {
   );
 }
 
+function safePublicHref(value: string | undefined, fallback: string) {
+  const href = String(value || "").trim();
+  return (href.startsWith("/") && !href.startsWith("//")) || /^https?:\/\//i.test(href) ? href : fallback;
+}
+
 export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?: string; email?: string; onManageCookies?: () => void }) {
+  const cms = usePublishedPlatformCms();
   const [publicIdentity, setPublicIdentity] = React.useState<any>(null);
   React.useEffect(() => {
     const controller = new AbortController();
@@ -181,6 +182,8 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
   const registrationNumber = publicIdentity?.companyRegistrationNumber || "";
   const businessAddress = publicIdentity?.businessAddress || "";
   const supportPhone = publicIdentity?.supportPhone || "";
+  const footerTagline = cms.footer.tagline || tagline || "A strategic web studio helping service businesses look more credible, communicate more clearly and convert more visitors into enquiries.";
+  const footerGroupsToRender = cms.footer.groups?.length ? cms.footer.groups : footerGroups.map(([title, links]) => ({ title, links }));
 
   return (
     <footer className="bg-[#08101f] text-white">
@@ -193,7 +196,7 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
               <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Websites that convert</span>
             </span>
           </Link>
-          <p className="max-w-md text-sm font-medium leading-7 text-white/65">{tagline || "A strategic web studio helping service businesses look more credible, communicate more clearly and convert more visitors into enquiries."}</p>
+          <p className="max-w-md text-sm font-medium leading-7 text-white/65">{footerTagline}</p>
           <div className="mt-5 space-y-1 text-sm font-semibold text-white/55">
             {companyName ? <p className="text-white/75">{companyName}</p> : null}
             {registrationNumber ? <p>Registration: {registrationNumber}</p> : null}
@@ -202,23 +205,23 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
             {supportPhone ? <p><a href={`tel:${supportPhone.replace(/\s+/g, "")}`} className="hover:text-white">{supportPhone}</a></p> : null}
           </div>
         </div>
-        {footerGroups.map(([title, links]) => (
-          <div key={title}>
-            <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">{title}</p>
+        {footerGroupsToRender.map((group: any, groupIndex: number) => (
+          <div key={`${groupIndex}-${group.title}`}>
+            <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">{group.title}</p>
             <div className="space-y-3">
-              {links.map((link) => "external" in link && link.external ? (
-                <a key={link.href} href={link.href} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Footer ${link.label}`, target: link.href })} className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white">{link.label}<ExternalLink className="h-3 w-3" /></a>
+              {group.links.filter((link: any) => link.label?.trim() && safePublicHref(link.href, "")).map((link: any, linkIndex: number) => /^https?:\/\//i.test(safePublicHref(link.href, "")) ? (
+                <a key={`${linkIndex}-${link.href}`} href={safePublicHref(link.href, "#")} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Footer ${link.label}`, target: link.href })} className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white">{link.label}<ExternalLink className="h-3 w-3" /></a>
               ) : (
-                <Link key={link.href} to={link.href} className="block text-sm font-semibold text-white/60 hover:text-white">{link.label}</Link>
+                <Link key={`${linkIndex}-${link.href}`} to={safePublicHref(link.href, "#")} className="block text-sm font-semibold text-white/60 hover:text-white">{link.label}</Link>
               ))}
-              {title === "Legal" && onManageCookies ? <button type="button" onClick={onManageCookies} className="block text-left text-sm font-semibold text-white/60 hover:text-white">Manage Cookies</button> : null}
+              {group.title === "Legal" && onManageCookies ? <button type="button" onClick={onManageCookies} className="block text-left text-sm font-semibold text-white/60 hover:text-white">Manage Cookies</button> : null}
             </div>
           </div>
         ))}
       </div>
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-[88rem] flex-col gap-2 px-6 py-6 text-xs font-semibold text-white/40 sm:flex-row sm:items-center sm:justify-between sm:px-10 lg:px-12">
-          <span>© {new Date().getFullYear()} Bennie Studio. All rights reserved.</span>
+          <span>{cms.footer.copyrightText || `© ${new Date().getFullYear()} Bennie Studio. All rights reserved.`}</span>
           <span>Designed around real businesses, not generic templates.</span>
         </div>
       </div>

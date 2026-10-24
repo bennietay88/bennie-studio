@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpRight, Check, Globe2, MonitorSmartphone, ShieldCheck
 import { trackPublicEvent } from "../lib/publicTracking";
 import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
 import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
+import { usePublishedPlatformCms } from "../lib/platformSiteCms";
 import "../styles/conversionHomepage.css";
 
 /**
@@ -14,6 +15,8 @@ import "../styles/conversionHomepage.css";
 export function ConversionHomepage({ onCta }: { onCta: (path: string, label: string) => void }) {
   const cta = (label: string) => onCta("/generate-preview", label);
   const showcases = useStudioShowcaseCatalog(STUDIO_SHOWCASES);
+  const cms = usePublishedPlatformCms();
+  const pageCms = cms.pages["/"];
   const featuredStudy = showcases[1];
   return (
     <div className="conversion-home">
@@ -21,10 +24,10 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
         <div className="c26-hero-grid brand-shell">
           <div className="c26-hero-copy">
             
-            <h1 id="c26-title">Websites that help service businesses <em>get more enquiries.</em></h1>
-            <p className="c26-intro">We design, build, host and manage distinctive websites that make your business easier to trust, your services easier to understand and your next step easier to take.</p>
+            <h1 id="c26-title">{pageCms?.heroTitle || <>Websites that help service businesses <em>get more enquiries.</em></>}</h1>
+            <p className="c26-intro">{pageCms?.heroDescription || "We design, build, host and manage distinctive websites that make your business easier to trust, your services easier to understand and your next step easier to take."}</p>
             <div className="c26-actions">
-              <button type="button" className="c26-button c26-button-blue" onClick={() => cta("Homepage editorial primary preview")}>Get your free website preview <ArrowUpRight aria-hidden="true" size={19} /></button>
+              <button type="button" className="c26-button c26-button-blue" onClick={() => onCta(pageCms?.primaryCtaHref || "/generate-preview", pageCms?.primaryCtaLabel || "Homepage editorial primary preview")}>{pageCms?.primaryCtaLabel || "Get your free website preview"} <ArrowUpRight aria-hidden="true" size={19} /></button>
               <Link className="c26-quiet-link" to="/case-studies" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:"Homepage editorial case studies",target:"/case-studies"})}>See case studies <ArrowUpRight size={16} aria-hidden="true" /></Link>
             </div>
             <ul className="c26-assurances" aria-label="What to expect">

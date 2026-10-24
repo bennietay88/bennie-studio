@@ -52,6 +52,8 @@ import "../styles/studioCaseStudies.css";
 import { TurnstileWidget } from "./TurnstileWidget";
 import { PreviewOrderPage } from "./PreviewOrderPage";
 import { supabase } from "../lib/supabase";
+import { CMS_REPLACEABLE_PATHS, usePublishedPlatformCms, type PlatformCmsPage } from "../lib/platformSiteCms";
+import { PlatformCmsPageBody, PlatformCmsSections } from "./PlatformCmsSections";
 import {
   normalizeWebsiteAuditResult,
   type AuditPriority,
@@ -487,13 +489,15 @@ function Hero({
   </section>;
 }
 
-function TemplatesPage() {
+function TemplatesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   return (
     <>
       <Hero
-        title="Website directions that fit the buyer."
-        copy="Start with the buyer journey, the evidence available, the main enquiry action and the business category. The design direction follows those decisions."
+        title={cmsPage?.heroTitle || "Website directions that fit the buyer."}
+        copy={cmsPage?.heroDescription || "Start with the buyer journey, the evidence available, the main enquiry action and the business category. The design direction follows those decisions."}
         icon={LayoutTemplate}
+        primaryLabel={cmsPage?.primaryCtaLabel || "Get my free website preview"}
+        primaryHref={cmsPage?.primaryCtaHref || "/generate-preview"}
       />
       <section className="brand-shell brand-section">
         <div className="grid gap-10 lg:grid-cols-12">
@@ -867,7 +871,7 @@ const resolveSourceServices = (
 };
 
 
-function GeneratePreviewPage() {
+function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   const navigate = useNavigate();
   const location = useLocation();
   const initialParams = React.useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -1669,9 +1673,9 @@ function GeneratePreviewPage() {
           <div className="lg:col-span-7">
             {salesMode ? <p className="text-xs font-semibold text-[#1741ed]">Internal studio preview</p> : null}
             {salesMode?<p className="mt-3 text-sm text-[#1741ed]">Internal sales mode · prospect email not required</p>:null}
-            <h1 className="mt-6 !max-w-[16ch]">See what your business <em className="font-serif italic font-normal text-[#1741ed]">could look like online.</em></h1>
-            <p className="brand-copy mt-6">Already have a website? Paste its URL. Starting from scratch? Tell us a little about your business. Get a preliminary website direction before deciding on any paid plan.</p>
-            <a href="#preview-brief" className="c27-button mt-8">Start my free website preview <ArrowRight className="h-4 w-4"/></a>
+            <h1 className="mt-6 !max-w-[16ch]">{cmsPage?.heroTitle || <>See what your business <em className="font-serif italic font-normal text-[#1741ed]">could look like online.</em></>}</h1>
+            <p className="brand-copy mt-6">{cmsPage?.heroDescription || "Already have a website? Paste its URL. Starting from scratch? Tell us a little about your business. Get a preliminary website direction before deciding on any paid plan."}</p>
+            {cmsPage?.primaryCtaHref ? <Link to={cmsPage.primaryCtaHref} className="c27-button mt-8">{cmsPage.primaryCtaLabel || "Start my free website preview"} <ArrowRight className="h-4 w-4"/></Link> : <a href="#preview-brief" className="c27-button mt-8">{cmsPage?.primaryCtaLabel || "Start my free website preview"} <ArrowRight className="h-4 w-4"/></a>}
             <p className="mt-4 text-sm text-[#5b6775]">No card required · No obligation · Your email connects the preview to your enquiry</p>
           </div>
           <div className="lg:col-span-5"><div className="bg-[#1741ed] p-8 text-white sm:p-10">
@@ -2570,7 +2574,7 @@ function WebsiteAuditResultView({ report, form }: { report: WebsiteAuditResult; 
   );
 }
 
-function WebsiteAuditPage() {
+function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   const location = useLocation();
   const reportQuery = React.useMemo(() => new URLSearchParams(location.search), [location.search]);
   const linkedJobId = reportQuery.get("report") || "";
@@ -2726,12 +2730,12 @@ function WebsiteAuditPage() {
     <>
       {linkedJobId && <Helmet><meta name="robots" content="noindex,nofollow" /><meta name="referrer" content="no-referrer" /></Helmet>}
       <Hero
-        title="Find out what your website could improve."
+        title={cmsPage?.heroTitle || "Find out what your website could improve."}
         variant="audit"
-        copy="Start with your website address. Get an automated, evidence-based review of your messaging, trust signals and enquiry journey — then see practical next steps."
+        copy={cmsPage?.heroDescription || "Start with your website address. Get an automated, evidence-based review of your messaging, trust signals and enquiry journey — then see practical next steps."}
         icon={FileSearch}
-        primaryLabel="Start my free review"
-        primaryHref="#review-form"
+        primaryLabel={cmsPage?.primaryCtaLabel || "Start my free review"}
+        primaryHref={cmsPage?.primaryCtaHref || "#review-form"}
         secondaryLabel="I don't have a website yet"
         secondaryHref="/generate-preview?mode=business"
       />
@@ -2868,10 +2872,10 @@ function WebsiteAuditPage() {
   );
 }
 
-function NicheLandingPage({ page }: { page: (typeof nichePages)[keyof typeof nichePages] }) {
+function NicheLandingPage({ page, cmsPage }: { page: (typeof nichePages)[keyof typeof nichePages]; cmsPage?: PlatformCmsPage }) {
   return (
     <>
-      <Hero title={page.title} copy={page.subtitle} icon={FileSearch} />
+      <Hero title={cmsPage?.heroTitle || page.title} copy={cmsPage?.heroDescription || page.subtitle} icon={FileSearch} primaryLabel={cmsPage?.primaryCtaLabel || "Get my free website preview"} primaryHref={cmsPage?.primaryCtaHref || "/generate-preview"} />
       <section className="brand-shell brand-section">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
@@ -2927,7 +2931,10 @@ function NicheLandingPage({ page }: { page: (typeof nichePages)[keyof typeof nic
 export default function PublicMarketingPages() {
   const location = useLocation();
   const navigate = useNavigate();
+  const cms = usePublishedPlatformCms();
   const pageKind = location.pathname.split("/").filter(Boolean).join("/") as PublicPageKind;
+  const cmsPagePath = `/${pageKind}`;
+  const pageCms = cms.pages[cmsPagePath];
   const meta = pageMeta[pageKind] || pageMeta.templates;
   const nichePage = nichePages[pageKind as keyof typeof nichePages];
 
@@ -2947,50 +2954,58 @@ export default function PublicMarketingPages() {
     : { label: "Get my free website preview", href: "/generate-preview" };
   const finalSecondary = { label: "See case studies", href: "/case-studies" };
 
-  const pageContent =
+  const templatePageContent =
     nichePage
-      ? <NicheLandingPage page={nichePage} />
+      ? <NicheLandingPage page={nichePage} cmsPage={pageCms} />
       : pageKind === "services"
-      ? <ServicesSalesPage />
+      ? <ServicesSalesPage cmsPage={pageCms} />
       : pageKind === "about"
-        ? <AboutStudioPage />
+        ? <AboutStudioPage cmsPage={pageCms} />
         : pageKind === "resources"
-          ? <ResourcesStudioPage />
+          ? <ResourcesStudioPage cmsPage={pageCms} />
           : pageKind === "contact"
-            ? <ContactStudioPage />
+            ? <ContactStudioPage cmsPage={pageCms} />
       : pageKind === "pricing"
-      ? <PricingSalesPage />
+      ? <PricingSalesPage cmsPage={pageCms} />
       : pageKind === "how-it-works"
-        ? <ProcessStudioPage />
+        ? <ProcessStudioPage cmsPage={pageCms} />
         : pageKind === "case-studies"
-          ? <WorkStudioPage />
+          ? <WorkStudioPage cmsPage={pageCms} />
           : pageKind === "website-audit"
-            ? <WebsiteAuditPage />
+            ? <WebsiteAuditPage cmsPage={pageCms} />
             : pageKind === "generate-preview"
-              ? <GeneratePreviewPage />
+              ? <GeneratePreviewPage cmsPage={pageCms} />
               : pageKind === "preview-order"
                 ? <PreviewOrderPage />
-                : <TemplatesPage />;
+                : <TemplatesPage cmsPage={pageCms} />;
+  const pageContent = pageCms?.replacePageContent && CMS_REPLACEABLE_PATHS.has(cmsPagePath)
+    ? <PlatformCmsPageBody path={cmsPagePath}/>
+    : templatePageContent;
 
   return (
     <div className="brand-public c27-no-template-look min-h-screen bg-[#f8f8f5] text-[#141821]">
       <Helmet>
-        <title>{meta.title}</title>
-        <meta name="description" content={meta.description} />
-        <link rel="canonical" href={`https://app.bennietay.com${location.pathname === "/" ? "/" : location.pathname.replace(/\/$/, "")}`} />
+        <title>{pageCms?.seoTitle || meta.title}</title>
+        <meta name="description" content={pageCms?.seoDescription || meta.description} />
+        <link rel="canonical" href={pageCms?.canonicalUrl || `https://app.bennietay.com${location.pathname === "/" ? "/" : location.pathname.replace(/\/$/, "")}`} />
+        {pageCms?.noIndex && <meta name="robots" content="noindex,nofollow" />}
+        <meta property="og:title" content={pageCms?.seoTitle || meta.title} />
+        <meta property="og:description" content={pageCms?.seoDescription || meta.description} />
+        {pageCms?.ogImage && <meta property="og:image" content={pageCms.ogImage} />}
       </Helmet>
       <PublicSiteHeader />
       {pageContent}
+      {!pageCms?.replacePageContent && <PlatformCmsSections path={cmsPagePath} />}
       {pageKind !== "pricing" && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="brand-shell relative grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
           <div>
             
-            <h2 className="mt-3 max-w-3xl !text-white">{finalCta[0]}</h2>
-            <p className="mt-4 max-w-2xl text-base !text-white/75">{finalCta[1]}</p>
+            <h2 className="mt-3 max-w-3xl !text-white">{pageCms?.finalCtaTitle || finalCta[0]}</h2>
+            <p className="mt-4 max-w-2xl text-base !text-white/75">{pageCms?.finalCtaDescription || finalCta[1]}</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-            <Button onClick={() => navigate(finalPrimary.href)} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#ece9ff]">{finalPrimary.label} <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Button onClick={() => navigate(pageCms?.primaryCtaHref || finalPrimary.href)} className="min-h-12 bg-white px-6 font-semibold text-[#141821] hover:bg-[#ece9ff]">{pageCms?.primaryCtaLabel || finalPrimary.label} <ArrowRight className="ml-2 h-4 w-4" /></Button>
             <Button onClick={() => navigate(finalSecondary.href)} variant="outline" className="min-h-12 border-white/30 bg-white/[0.04] px-6 font-semibold text-white hover:bg-white/10 hover:text-white">{finalSecondary.label}</Button>
           </div>
         </div>

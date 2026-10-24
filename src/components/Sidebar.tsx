@@ -173,6 +173,7 @@ export function Sidebar({
         {
           label: "Content & CMS",
           items: [
+            { to: "/admin/platform_site_cms", icon: Globe, label: "Website CMS", moduleId: "platform_site_cms" },
             { to: "/admin/templates", icon: Layout, label: "Website Templates", moduleId: "website_templates" },
             { to: "/admin/studio_showcases", icon: FileText, label: "Studio Showcase CMS" },
             { to: "/admin/blog", icon: FileText, label: "Blog CMS", moduleId: "blog_cms" },
