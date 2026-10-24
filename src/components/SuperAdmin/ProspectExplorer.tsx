@@ -2213,7 +2213,7 @@ export function ProspectExplorer() {
             </Button>
             <Button type="button" onClick={sendOutreach}
               disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() ||
-                (!outreachReplyToMessageId && outreachTemplateId !== "introduction" && outreachObservation.trim().length < 10 && !outreachProspect?.preview_url) ||
+                (!outreachReplyToMessageId && !["introduction", "general-introduction"].includes(outreachTemplateId) && outreachObservation.trim().length < 10 && !outreachProspect?.preview_url) ||
                 hasUnresolvedEmailPlaceholders(outreachSubject + "\n" + outreachBody)}
               className="rounded-xl bg-indigo-600 hover:bg-indigo-700">
               {outreachSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
