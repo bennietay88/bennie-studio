@@ -207,8 +207,9 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
     const payload = await route.request().postDataJSON();
     expect(payload.action).toBe("send");
     expect(payload.channel).toBe("email");
-    expect(String(payload.bodyText)).toContain("short website review");
-    expect(String(payload.bodyText)).not.toContain("Primary enquiry action is not prominent");
+    expect(String(payload.bodyText)).toContain("two specific edits");
+    expect(String(payload.bodyText)).toContain("I noticed Primary enquiry action is not prominent");
+    expect(String(payload.bodyText)).toContain("Primary enquiry action is not prominent");
     expect(String(payload.bodyText)).not.toContain("/website-audit?");
     outreachSent = true;
     prospect.outreach_status = "contacted";
@@ -309,7 +310,7 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   await page.getByRole("button", { name: "Prepare & Email", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Review first email" })).toBeVisible();
   await expect(page.getByText(/A simple introduction first/i)).toBeVisible();
-  await expect(page.locator("textarea").last()).not.toHaveValue(/Primary enquiry action is not prominent/);
+  await expect(page.locator("textarea").last()).toHaveValue(/I noticed Primary enquiry action is not prominent/);
   await page.getByRole("button", { name: "Send email", exact: true }).click();
   await expect.poll(() => outreachSent).toBe(true);
   await expect.poll(() => prospect.outreach_status).toBe("contacted");

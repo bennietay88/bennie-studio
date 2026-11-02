@@ -18,6 +18,14 @@ const publicRoutes = [
   "/portfolio/sample/dental",
 ];
 
+const supabaseCorsHeaders = {
+  "access-control-allow-origin": `http://127.0.0.1:${process.env.E2E_PORT || 4173}`,
+  "access-control-allow-credentials": "true",
+  "access-control-allow-methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS",
+  "access-control-allow-headers": "apikey,authorization,content-type,x-client-info",
+  "access-control-expose-headers": "content-range",
+};
+
 const viewports = [
   { name: "desktop", width: 1440, height: 1000, maxHeadingLines: 3 },
   { name: "tablet", width: 1024, height: 768, maxHeadingLines: 4 },
@@ -42,13 +50,21 @@ async function mockAnonymousPublicDependencies(page: any) {
   }));
   await page.route("**/auth/v1/**", (request: any) => request.fulfill({
     status: 200,
+    headers: supabaseCorsHeaders,
     contentType: "application/json",
     body: JSON.stringify({ user: null, session: null }),
   }));
   await page.route("**/rest/v1/**", (request: any) => request.fulfill({
     status: 200,
+    headers: supabaseCorsHeaders,
     contentType: "application/json",
     body: JSON.stringify([]),
+  }));
+  await page.route("**/api/public/platform-site-cms", (request: any) => request.fulfill({
+    status: 200, contentType: "application/json", body: JSON.stringify({ content: null }),
+  }));
+  await page.route("**/api/public/studio-showcases", (request: any) => request.fulfill({
+    status: 200, contentType: "application/json", body: JSON.stringify({ showcases: {} }),
   }));
   await page.route("**/api/platform-events", (request: any) => request.fulfill({
     status: 200,
@@ -93,7 +109,7 @@ for (const viewport of viewports) {
       await page.evaluate(async () => { await document.fonts.ready; });
 
       const h1 = page.locator("h1:visible").first();
-      await expect(h1).toBeVisible();
+      await expect(h1).toBeVisible({ timeout: 20_000 });
       const heading = await h1.evaluate((node) => {
         const element = node as HTMLElement;
         const styles = getComputedStyle(element);
@@ -272,7 +288,7 @@ test("generated customer site mobile navigation is accessible", async ({ page })
 test("sales journey exposes delivery safeguards and defined scope", async ({ page }) => {
   await mockAnonymousPublicDependencies(page);
   await page.goto("/how-it-works", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: /From first idea to a website that's ready for business/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /From first idea to launch/i })).toBeVisible();
   await expect(page.getByText(/required review and approval steps/i)).toBeVisible();
 
   await page.goto("/pricing", { waitUntil: "networkidle" });

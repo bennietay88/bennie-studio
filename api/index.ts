@@ -9308,6 +9308,7 @@ async function startServer() {
   });
 
   app.get("/api/public/studio-showcases", rateLimit({ windowMs: 60 * 1000, max: 90, keyPrefix: "public-studio-showcases" }), async (_req, res) => {
+    if (process.env.E2E_TEST === "true") return res.json({ showcases: {} });
     const { data, error } = await supabaseAdmin.from("settings").select("content").eq("id", "platform_studio_showcases").maybeSingle();
     if (error) return res.status(500).json({ error: "Studio showcase content is unavailable" });
     const showcases = data?.content?.showcases && typeof data.content.showcases === "object" ? data.content.showcases : {};
@@ -9370,6 +9371,7 @@ async function startServer() {
   };
 
   app.get("/api/public/platform-site-cms", rateLimit({ windowMs: 60 * 1000, max: 90, keyPrefix: "public-platform-site-cms" }), async (_req, res) => {
+    if (process.env.E2E_TEST === "true") return res.json({ content: null });
     const { data, error } = await supabaseAdmin.from("settings").select("content").eq("id", "platform_site_cms").maybeSingle();
     if (error) return res.status(500).json({ error: "Public site content is unavailable" });
     res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=120");

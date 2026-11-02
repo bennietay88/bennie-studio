@@ -26,8 +26,8 @@ test("new outreach drafts present verified findings without automatically exposi
     assert.match(draft, /No clear contact or booking action/);
   }
   const introduction = buildEmailTemplateDraft("introduction", prospect, finding);
-  assert.match(introduction, /short website review/);
-  assert.doesNotMatch(introduction, /No clear contact or booking action|practical improvement|https?:\/\//);
+  assert.match(introduction, /two specific edits/);
+  assert.doesNotMatch(introduction, /practical improvement|https?:\/\//);
   const auditFollowUp = buildEmailTemplateDraft("audit-follow-up", prospect, finding);
   assert.match(auditFollowUp, /website-audit\?report=/);
 });

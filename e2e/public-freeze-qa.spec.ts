@@ -1,6 +1,24 @@
 import { test, expect } from "@playwright/test";
 import { COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice } from "../src/lib/commercialPricing";
 const routes=["/","/services","/pricing","/case-studies","/generate-preview","/contact"];
+const supabaseCorsHeaders = {
+ "access-control-allow-origin": `http://127.0.0.1:${process.env.E2E_PORT || 4173}`,
+ "access-control-allow-credentials":"true",
+ "access-control-allow-methods":"GET,POST,PATCH,PUT,DELETE,OPTIONS",
+ "access-control-allow-headers":"apikey,authorization,content-type,x-client-info",
+ "access-control-expose-headers":"content-range",
+};
+async function mockPublicDependencies(page:any){
+ await page.route("**/api/public/site-config",(route:any)=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({platform:{maintenanceMode:false,salesCookieBannerEnabled:false},landingPage:null,policies:[],posts:[]})}));
+ await page.route("**/api/public/platform-site-cms",(route:any)=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({content:null})}));
+ await page.route("**/api/public/studio-showcases",(route:any)=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({showcases:{}})}));
+ await page.route("**/api/public/pricing**",(route:any)=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({products:[]})}));
+ await page.route("**/api/platform-events",(route:any)=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({success:true})}));
+ await page.route("https://ipapi.co/json/",(route:any)=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({country_code:"US",country_name:"United States"})}));
+ await page.route("**/auth/v1/**",(route:any)=>route.fulfill({status:200,headers:supabaseCorsHeaders,contentType:"application/json",body:JSON.stringify({user:null,session:null})}));
+ await page.route("**/rest/v1/**",(route:any)=>route.fulfill({status:200,headers:supabaseCorsHeaders,contentType:"application/json",body:JSON.stringify([])}));
+}
+test.beforeEach(async({page})=>{await mockPublicDependencies(page);});
 
 async function mockPublicPricing(page:any){
  await page.route("**/api/public/pricing**",(route:any)=>{
@@ -35,7 +53,7 @@ test.describe("Public site freeze QA",()=>{
   test("case study gallery opens a labelled studio project",async({page})=>{
     await page.goto("/case-studies");
     await expect(page.getByRole("heading",{name:/see the websites/i})).toBeVisible();
-    const links=page.locator('a[href^="/case-studies/showcase/"]');
+    const links=page.locator('a[href^="/case-studies/showcase/"]:not([href*="/preview"])');
     expect(await links.count()).toBeGreaterThanOrEqual(6);
     await links.first().click();
     await expect(page).toHaveURL(/\/case-studies\/showcase\//);

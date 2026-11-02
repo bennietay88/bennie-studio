@@ -24,8 +24,11 @@ test("first contact templates ask one concrete reply question without unsupporte
     assert.ok((messageBody.match(/\?/g) || []).length === 1, template.id);
     if (template.id === "introduction") {
       assert.match(messageBody, /Bennie Studio/);
-      assert.match(messageBody, /short website review/);
-      assert.doesNotMatch(messageBody, /the main contact button|practical improvement/i);
+      assert.match(messageBody, /two specific edits/);
+      assert.doesNotMatch(messageBody, /practical improvement/i);
+    } else if (template.id === "general-introduction") {
+      assert.doesNotMatch(draft, /the main contact button/);
+      assert.match(draft, /short overview and price range/);
     } else {
       assert.match(draft, /the main contact button/);
     }

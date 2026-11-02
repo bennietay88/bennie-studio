@@ -202,7 +202,8 @@ test("affiliate signup uses the constrained affiliate provisioning intent", asyn
   await page.goto("/affiliate/signup");
   await page.locator('input[type="email"]').fill(testPersonas.affiliate.email);
   await page.getByPlaceholder("••••••••").fill("Password123!");
-  await page.locator("#agreed").check();
+  await page.getByLabel(/I agree to the Partner Terms & Conditions/i).check();
+  await expect(page.locator("#agreed")).toBeChecked();
   await page.getByRole("button", { name: "Launch My Partnership" }).click();
   await expect.poll(() => calls.signupKind).toBe("affiliate");
 });

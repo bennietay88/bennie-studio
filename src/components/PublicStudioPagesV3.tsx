@@ -495,7 +495,7 @@ export function ProcessStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
       <section className="border-b border-[#dde2ea] bg-[#f8f8f5]">
         <div className="brand-shell grid gap-10 py-16 lg:grid-cols-[1.1fr_.9fr] lg:items-center lg:py-24">
           <div>
-            <h1 className="!max-w-[14ch] !text-[#15191f]">{cmsPage?.heroTitle || <>From first idea to a website that's <span className="font-serif italic font-normal !text-[#1741ed]">ready for business.</span></>}</h1>
+            <h1 className="!max-w-[14ch] md:!max-w-[22ch] !text-[#15191f]">{cmsPage?.heroTitle || <>From first idea to <span className="font-serif italic font-normal !text-[#1741ed]">launch.</span></>}</h1>
             <p className="brand-copy mt-6 max-w-xl">{cmsPage?.heroDescription || "One straightforward journey: see an initial direction, choose your plan, review the finished work and stay supported after launch."}</p>
             <div className="mt-8 flex flex-wrap items-center gap-5">
               <Link to={cmsPage?.primaryCtaHref || "/generate-preview"} className="inline-flex min-h-12 items-center justify-center gap-2 bg-[#1741ed] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1034c0]">{cmsPage?.primaryCtaLabel || "Get your free website preview"} <ArrowRight className="h-4 w-4" /></Link>

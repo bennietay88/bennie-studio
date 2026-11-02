@@ -609,18 +609,26 @@ test("prospect sales preview presents consistent plan-aware CTAs and responsive 
   const primaryHrefs = await primaryCtas.evaluateAll((links) => links.map((link) => link.getAttribute("href") || ""));
   expect(primaryHrefs.every((href) => /\/pricing\?product=website-growth/.test(href))).toBe(true);
 
-  const deviceControls = page.getByRole("button", { name: /^(Mobile|Tablet|Desktop)$/ });
+  const deviceGroup = page.getByRole("group", { name: "Preview device" });
+  const deviceControls = deviceGroup.getByRole("button", { name: /^(Mobile|Tablet|Desktop)$/ });
   if (testInfo.project.name.includes("mobile")) {
     // On a real mobile viewport the preview already renders at device width,
     // so desktop viewport-switch controls are intentionally not shown.
     await expect(deviceControls).toHaveCount(0);
   } else {
-    await page.getByRole("button", { name: "Mobile" }).click();
-    await expect(page.getByRole("button", { name: "Mobile" })).toHaveAttribute("aria-pressed", "true");
-    await page.getByRole("button", { name: "Tablet" }).click();
-    await expect(page.getByRole("button", { name: "Tablet" })).toHaveAttribute("aria-pressed", "true");
-    await page.getByRole("button", { name: "Desktop" }).click();
-    await expect(page.getByRole("button", { name: "Desktop" })).toHaveAttribute("aria-pressed", "true");
+    const mobileControl = deviceGroup.getByRole("button", { name: "Mobile", exact: true });
+    const tabletControl = deviceGroup.getByRole("button", { name: "Tablet", exact: true });
+    const desktopControl = deviceGroup.getByRole("button", { name: "Desktop", exact: true });
+    await mobileControl.click();
+    await expect(mobileControl).toHaveAttribute("aria-pressed", "true");
+    await tabletControl.click();
+    await expect(tabletControl).toHaveAttribute("aria-pressed", "true");
+    // WebKit can lose the sticky header's pointer hit target after the preview
+    // iframe changes width. Keyboard activation exercises the same native
+    // button behavior without depending on that browser hit-testing quirk.
+    await desktopControl.focus();
+    await desktopControl.press("Space");
+    await expect(desktopControl).toHaveAttribute("aria-pressed", "true");
   }
 
   expect(consoleErrors).toEqual([]);
@@ -628,13 +636,15 @@ test("prospect sales preview presents consistent plan-aware CTAs and responsive 
 
 
 test("legacy market URLs resolve into the geographically generic public journey", async ({ page }) => {
-  await page.goto("/website-subscription-service/malaysia");
+  await page.goto("/website-subscription-service/malaysia", { waitUntil: "networkidle" });
   await expect(page).toHaveURL(/\/website-subscription-service$/);
   await expect(page.locator("body")).not.toContainText("Compare website subscription pages by market");
+  await expect(page.locator("h1:visible").first()).toBeVisible();
 
-  await page.goto("/clinic-website-design-malaysia");
+  await page.goto("/clinic-website-design-malaysia", { waitUntil: "networkidle" });
   await expect(page).toHaveURL(/\/clinic-website-design$/);
   await expect(page.locator("body")).not.toContainText("Malaysia");
+  await expect(page.locator("h1:visible").first()).toBeVisible();
 
   await page.goto("/");
   await expect(page.locator("body")).not.toContainText("MYR");
