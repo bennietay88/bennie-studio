@@ -299,11 +299,11 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   const prospectRow = page.getByRole("row", { name: /Example Dental/ });
   await expect(prospectRow).toBeVisible();
 
-  await page.getByRole("button", { name: "Audit", exact: true }).click();
+  await prospectRow.getByRole("button", { name: "Audit", exact: true }).click();
   await expect.poll(() => reviewRequestCount).toBeGreaterThan(0);
   await expect.poll(() => prospect.outreach_status).toBe("not_started");
 
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await prospectRow.getByRole("button", { name: "Copy review link", exact: true }).click();
   await expect.poll(() => reviewRequestCount).toBeGreaterThan(0);
   expect(reviewRequestCount).toBeGreaterThan(0);
 

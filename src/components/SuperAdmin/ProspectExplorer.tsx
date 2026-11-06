@@ -1657,14 +1657,14 @@ export function ProspectExplorer() {
                         <Label className="text-xs font-semibold text-slate-500">Follow-up</Label>
                         <Input type="date" className="mt-1 h-11 rounded-xl" value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""} onChange={(event) => void setFollowUp(prospect, event.target.value)} />
                         <Button type="button" size="sm" variant="link" className="mt-1 h-7 px-0 text-indigo-700" onClick={() => openFollowUpPlan(prospect)} disabled={Boolean(prospect.converted_business_id) || ["won","lost"].includes(prospect.outreach_status)}>
-                          <CalendarDays className="mr-1 h-3.5 w-3.5" /> Schedule 3 / 7 days
+                          <CalendarDays className="mr-1 h-3.5 w-3.5" /> Schedule 3 / 8 / 15 days
                         </Button>
                       </div>
                       <div><Label className="text-xs font-semibold text-slate-500">Outreach status</Label><Select value={prospect.outreach_status || "not_started"} onValueChange={(value) => updateProspect(prospect.id, { outreach_status: value })}><SelectTrigger className="mt-1 h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{toTitle(status)}</SelectItem>)}</SelectContent></Select></div>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <Button variant="outline" className="h-11 rounded-xl" disabled={reviewLoadingId === prospect.id} onClick={() => runQuickAudit(prospect)}><Zap className="mr-2 h-4 w-4" />Audit</Button>
-                      <Button variant="outline" className="h-11 rounded-xl" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="mr-2 h-4 w-4" />Audit</Button>
+                      <Button variant="outline" className="h-11 rounded-xl" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="mr-2 h-4 w-4" />Copy review link</Button>
                       <Button variant="outline" className="h-11 rounded-xl" onClick={() => prepareDesignConcept(prospect)}><Globe className="mr-2 h-4 w-4" />Design concept</Button>
                       {prospect.contact_email && !prospect._suppressed && !prospect._contactSafetyUnknown && !prospect.converted_business_id && <Button className="col-span-2 h-11 rounded-xl bg-indigo-600" disabled={reviewLoadingId === prospect.id} onClick={() => preparePreviewAndEmail(prospect)}><Send className="mr-2 h-4 w-4" />Prepare & Email</Button>}
                       {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="outline" className="col-span-2 h-11 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="mr-2 h-4 w-4" />Convert to customer</Button>}
@@ -1778,7 +1778,7 @@ export function ProspectExplorer() {
                       <td className="min-w-0 px-3 py-6 text-right">
                         <div className="flex flex-wrap justify-end gap-1">
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
-                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Audit</Button>
+                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Copy review link</Button>
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold" onClick={() => prepareDesignConcept(prospect)}><Globe className="h-3 w-3 mr-1.5" />Design concept</Button>
                           {prospect.contact_email && !prospect._suppressed && !prospect._contactSafetyUnknown && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
                           {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="h-3 w-3 mr-1.5" />Convert</Button>}
