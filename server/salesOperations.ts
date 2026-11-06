@@ -88,17 +88,63 @@ export function resolveProspectFollowUpAsset(contact: Row | null | undefined): {
     || check(contact.preview_url, "audit");
 }
 
-export function renderProspectFollowUpOne(contact: Row, asset: { kind: "design" | "audit"; url: string }) {
-  const firstName = String(contact.contact_first_name || contact.contact_name || "").trim().split(/\s+/)[0]
-    || `${contact.name || "there"} team`;
-  const company = String(contact.name || "your business").trim();
-  const design = asset.kind === "design";
+export const BENNIE_STUDIO_PORTFOLIO_URL = "https://app.bennietay.com/portfolio";
+
+function prospectFollowUpIdentity(contact: Row) {
+  const company = String(contact.name || contact.business_name || "your business").trim();
+  const firstName = String(contact.contact_first_name || contact.contact_name || "").trim().split(/\s+/)[0] || `${company} team`;
+  // Missing/unavailable domains are treated as a greenfield opportunity, not as a reviewed website.
+  const hasExistingWebsite = Boolean(String(contact.domain || "").trim())
+    && !["no_website", "no website", "none", "not_found"].includes(String(contact.website_status || "").toLowerCase().trim());
+  return { company, firstName, hasExistingWebsite };
+}
+
+export type ProspectReviewAsset = { kind: "design" | "audit"; url: string };
+
+/** All three follow-up email templates use the same live prospect evidence and accurate fallback. */
+export function renderProspectFollowUpStage(contact: Row, stage: 1 | 2 | 3, asset: ProspectReviewAsset | null = null) {
+  const { company, firstName, hasExistingWebsite } = prospectFollowUpIdentity(contact);
+  const signature = "\n\nBennie\nBennie Studio";
+  if (stage === 1) {
+    if (asset?.kind === "design") {
+      return {
+        subject: `I put together a website concept for ${company}`,
+        body_text: `Hi ${firstName},\n\nJust following up on my earlier email. I put together a homepage concept for ${company}, showing a possible direction for clearer service messaging and easier enquiries.\n\nYou can view the concept here:\n\n${asset.url}\n\nIt's a no-obligation starting point. Would you be open to a short conversation about it?${signature}`,
+      };
+    }
+    if (asset?.kind === "audit") {
+      return {
+        subject: `A website review for ${company}`,
+        body_text: `Hi ${firstName},\n\nJust following up on my earlier email. I prepared a short website review for ${company}, including findings and practical recommendations.\n\nYou can read it here:\n\n${asset.url}\n\nWould you be open to a short conversation about the improvements?${signature}`,
+      };
+    }
+    return {
+      subject: `Following up on my earlier email — ${company}`,
+      body_text: `Hi ${firstName},\n\nJust following up on my earlier email about Bennie Studio.\n\nWe build and manage websites for service businesses, making it easier for potential customers to learn about their services and get in touch.\n\nIf you're curious about our work, you can view our portfolio here:\n\n${BENNIE_STUDIO_PORTFOLIO_URL}\n\n${hasExistingWebsite
+        ? `Would you be open to a quick conversation about whether your current website could work harder for ${company}?`
+        : `Would you be open to a quick conversation about whether a website could be useful for ${company}?`}${signature}`,
+    };
+  }
+  if (stage === 2) {
+    return hasExistingWebsite
+      ? {
+          subject: `A practical next step for ${company}`,
+          body_text: `Hi ${firstName},\n\nI wanted to share one practical thought following my previous note. A business website can do more than introduce services: it can make the next step clear when someone is ready to enquire.\n\nBennie Studio can help improve the website and take care of ongoing updates, without your team having to manage the technical side.\n\nWould it be helpful if I outlined a possible scope and the setup and monthly management costs for ${company}?${signature}`,
+        }
+      : {
+          subject: `An easy way to get started online — ${company}`,
+          body_text: `Hi ${firstName},\n\nOne more thought in case my earlier email was relevant. A simple business website could give customers one place to understand your services, see where you operate and get in touch.\n\nWith Bennie Studio, we can handle both the initial setup and ongoing updates, so there's no need to manage the technical work yourself.\n\nWould a short outline of the options and the setup and monthly management costs be useful for ${company}?${signature}`,
+        };
+  }
   return {
-    subject: design ? `I put together a website concept for ${company}` : `A website review for ${company}`,
-    body_text: `Hi ${firstName},\n\n${design
-      ? `I put together a homepage concept for ${company}, showing a clearer way to present your services and make enquiries easier.\n\nYou can explore the design direction here:`
-      : `I prepared a short review of ${company}'s existing website, with verified findings and practical recommendations.\n\nYou can read it here:`}\n\n${asset.url}\n\nIt's a no-obligation starting point. Would discussing the improvement priorities be useful?\n\nBennie\nBennie Studio`,
+    subject: `Closing the loop on ${company}`,
+    body_text: `Hi ${firstName},\n\nJust a final check-in about ${hasExistingWebsite ? "the website improvements" : "the website possibility"} I mentioned. I understand this might not be a priority right now.\n\nI'll close the loop here and won't send further follow-ups. If the timing changes, you're welcome to get in touch.\n\nBennie\nBennie Studio`,
   };
+}
+
+/** Backward-compatible helper for existing callers; no asset means a portfolio follow-up. */
+export function renderProspectFollowUpOne(contact: Row, asset: ProspectReviewAsset | null = null) {
+  return renderProspectFollowUpStage(contact, 1, asset);
 }
 
 // PostgREST's ilike treats '_' and '%' as wildcards, even in a valid email.
@@ -252,20 +298,19 @@ export async function runSalesDelivery(input: {
               continue;
             }
           }
-          if (stage === 1) {
-            const asset = resolveProspectFollowUpAsset(contact);
-            if (!asset) {
-              await release({ status: "draft", error: "Prepare a verified website redesign preview or audit report for follow-up 1." });
-              result.deliveryBlocked++;
-              continue;
-            }
-            const prepared = renderProspectFollowUpOne(contact, asset);
-            checked(await db.from("sales_messages").update({
-              ...prepared, provider_payload: { ...message.provider_payload, reviewAssetKind: asset.kind,
-                reviewAssetUrl: asset.url }, updated_at: now,
-            }).eq("id", message.id).eq("status", "sending"));
-            Object.assign(message, prepared);
-          }
+          // Prepare stage-specific copy at the moment of delivery: a later saved
+          // concept/review replaces the portfolio fallback without inventing audit findings.
+          const asset = resolveProspectFollowUpAsset(contact);
+          const prepared = renderProspectFollowUpStage(contact, stage as 1 | 2 | 3, asset);
+          checked(await db.from("sales_messages").update({
+            ...prepared,
+            provider_payload: { ...message.provider_payload, reviewAssetKind: stage === 1 ? asset?.kind || "portfolio" : null,
+              reviewAssetUrl: stage === 1 ? asset?.url || BENNIE_STUDIO_PORTFOLIO_URL : null }, updated_at: now,
+          }).eq("id", message.id).eq("status", "sending"));
+          Object.assign(message, prepared, { provider_payload: {
+            ...message.provider_payload, reviewAssetKind: stage === 1 ? asset?.kind || "portfolio" : null,
+            reviewAssetUrl: stage === 1 ? asset?.url || BENNIE_STUDIO_PORTFOLIO_URL : null,
+          } });
         }
         // Standalone prospect messages are marketing unless they reply to a verified inbound conversation.
         if (message.prospect_id && !message.reply_to_message_id && !hasDocumentedMarketingConsent(contact)) {
@@ -315,19 +360,18 @@ export async function runSalesDelivery(input: {
             result.deferred++;
             continue;
           }
-          if (step === 2) {
+          if (step >= 2) {
             const asset = resolveProspectFollowUpAsset(contact);
-            if (!asset) {
-              // A review or design must exist before we claim to have prepared it.
-              await release({ status: "draft", error: "Prepare and verify a design preview or website review before follow-up 1." });
-              result.deliveryBlocked++;
-              continue;
-            }
-            const prepared = renderProspectFollowUpOne(contact, asset);
+            const prepared = renderProspectFollowUpStage(contact, (step - 1) as 1 | 2 | 3, asset);
             checked(await db.from("sales_messages").update({
-              ...prepared, provider_payload: { ...message.provider_payload, reviewAssetKind: asset.kind, reviewAssetUrl: asset.url }, updated_at: now,
+              ...prepared, provider_payload: { ...message.provider_payload,
+                reviewAssetKind: step === 2 ? asset?.kind || "portfolio" : null,
+                reviewAssetUrl: step === 2 ? asset?.url || BENNIE_STUDIO_PORTFOLIO_URL : null }, updated_at: now,
             }).eq("id", message.id).eq("status", "sending"));
-            Object.assign(message, prepared);
+            Object.assign(message, prepared, { provider_payload: {
+              ...message.provider_payload, reviewAssetKind: step === 2 ? asset?.kind || "portfolio" : null,
+              reviewAssetUrl: step === 2 ? asset?.url || BENNIE_STUDIO_PORTFOLIO_URL : null,
+            } });
           }
         }
       }
@@ -660,26 +704,14 @@ export async function sendDirectProspectOutreach(
     const { data: enrolled } = checked(await db.from("outreach_enrollments").select("id")
       .eq("prospect_id", contact.id).in("status", ["pending", "active", "paused"]).limit(1).maybeSingle());
     if (enrolled) return null;
-    const firstName = String(contact.contact_first_name || contact.contact_name || "").trim().split(/\s+/)[0]
-      || (contact.name || "there") + " team";
-    const company = String(contact.name || "your business");
     const startMs = new Date(firstMessage.sent_at || now).getTime();
     const autoSendEligible = hasDocumentedMarketingConsent(contact, new Date(now));
-    const priority = getOutreachObservation(contact.notes) || "a clearer route for website visitors to enquire";
-    const stages = [
-      {
-        day: 3, delayHours: 72, subject: "A website improvement concept for " + company,
-        body: "Hi " + firstName + ",\n\nI prepared a practical website improvement for " + company + ". I'll share the concept or review here when it is ready.\n\nBennie\nBennie Studio",
-      },
-      {
-        day: 8, delayHours: 120, subject: "One improvement worth prioritising for " + company,
-        body: "Hi " + firstName + ",\n\nOne opportunity worth prioritising for " + company + " is " + priority + ".\n\nBennie Studio can handle implementation and ongoing website management. Would a rough scope and price be useful?\n\nBennie\nBennie Studio",
-      },
-      {
-        day: 15, delayHours: 168, subject: "Closing the loop on " + company,
-        body: "Hi " + firstName + ",\n\nOne final note regarding the website ideas I shared. If improving the website is not a priority right now, I'll close the loop here. You're welcome to get in touch if that changes.\n\nBennie\nBennie Studio",
-      },
-    ];
+    const asset = resolveProspectFollowUpAsset(contact);
+    const stages = ([3, 8, 15] as const).map((day, i) => ({
+      day,
+      delayHours: [72, 120, 168][i],
+      ...renderProspectFollowUpStage(contact, (i + 1) as 1 | 2 | 3, asset),
+    }));
     for (let i = 0; i < stages.length; i++) {
       const stage = stages[i];
       const followUpKey = "direct-prospect-follow-up:" + input.requestId + ":" + (i + 1);
@@ -687,15 +719,16 @@ export async function sendDirectProspectOutreach(
         id: salesRecordId(followUpKey), idempotency_key: followUpKey,
         prospect_id: contact.id, direction: "outbound", channel: "email",
         recipient: normalizeSalesEmail(contact.contact_email),
-        subject: stage.subject.slice(0, 500), body_text: stage.body,
+        subject: stage.subject.slice(0, 500), body_text: stage.body_text,
         status: i === 0 && autoSendEligible ? "queued" : "draft",
         scheduled_at: new Date(startMs + stage.day * 86_400_000).toISOString(),
         provider_payload: {
           directProspectFollowUp: true,
-          directAuditFollowUp: i === 0,
+          directAuditFollowUp: i === 0 && Boolean(asset?.kind === "audit"),
           followUpForMessageId: firstMessage.id, directCampaignId: input.requestId,
           directStage: i + 1, followUpStage: "FOLLOW_UP_" + (i + 1) + "_OF_3",
           delayHours: stage.delayHours, reviewUrl: reviewUrl || null,
+          reviewAssetKind: i === 0 ? asset?.kind || "portfolio" : null,
           autoSendEligible, awaitingPriorStage: i > 0,
         }, updated_at: now,
       }, { onConflict: "idempotency_key", ignoreDuplicates: true });

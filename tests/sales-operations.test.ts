@@ -154,6 +154,82 @@ test("direct permissioned prospect outreach sends 3/5/7-day preview-first follow
   assert.equal(sent.length, 3);
 });
 
+test("no-website direct prospect receives portfolio Day 3, service Day 8, and a final Day 15 then archives", async () => {
+  const db = new MemoryDb({
+    prospects: [{
+      id: "p1", name: "American Carpentry NC LLC", domain: null, website_status: "no_website",
+      status: "qualified", outreach_status: "not_started", contact_email: "carpentry@example.com",
+      marketing_consent: true, consent_timestamp: "2026-08-25T10:00:00.000Z",
+      consent_source: "Recipient subscribed through a verified email consent form",
+      consent_email: "carpentry@example.com", notes: "",
+    }],
+  });
+  const started = await sendDirectProspectOutreach(db as any, {
+    prospectId: "p1", channel: "email", templateId: "general-introduction",
+    subject: "A website question", bodyText: "Hello, we build and manage websites.",
+    requestId: "no-site-followups-1", actorId: "admin",
+    deliver: async () => ({ id: "intro-accepted" }),
+  }, NOW);
+  assert.equal(started.message.status, "sent");
+  const followUps = db.tables.sales_messages.filter((message) => message.provider_payload?.directProspectFollowUp);
+  assert.deepEqual(followUps.map((message) => message.status), ["queued", "draft", "draft"]);
+  assert.match(followUps[0].body_text, /https:\/\/app.bennietay.com\/portfolio/);
+  assert.doesNotMatch(followUps[0].body_text, /prepared a short review|put together a homepage concept/i);
+
+  const sent: Row[] = [];
+  const send = async (message: Row) => { sent.push(structuredClone(message)); return { id: "followup-" + sent.length }; };
+  const first = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-03T10:00:00Z") });
+  assert.equal(first.sent, 1);
+  assert.match(sent[0].subject, /Following up on my earlier email/);
+  assert.match(sent[0].body_text, /portfolio/);
+  assert.equal(sent[0].provider_payload?.reviewAssetKind, "portfolio");
+  const early = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-07T10:00:00Z") });
+  assert.equal(early.sent, 0);
+  assert.equal((await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-08T10:00:00Z") })).sent, 1);
+  assert.match(sent[1].body_text, /initial setup and ongoing updates/);
+  assert.equal((await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-15T10:00:00Z") })).sent, 1);
+  assert.match(sent[2].body_text, /won't send further follow-ups/);
+  assert.equal(db.tables.prospects[0].outreach_status, "lost");
+  assert.equal(db.tables.prospects[0].outreach_exhausted_at, "2026-09-15T10:00:00.000Z");
+  assert.equal((await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-18T10:00:00Z") })).sent, 0);
+  assert.equal(sent.length, 3);
+});
+
+test("permissioned managed sequence can send a no-website portfolio follow-up at stage two", async () => {
+  const company = { id: "p1", name: "Example Carpenter", domain: null, website_status: "no_website",
+    status: "qualified", outreach_status: "contacted", contact_email: "carpentry@example.com",
+    marketing_consent: true, consent_email: "carpentry@example.com",
+    consent_timestamp: "2026-08-25T10:00:00.000Z", consent_source: "Recipient subscribed via verified opt-in form" };
+  const db = new MemoryDb({
+    prospects: [company],
+    outreach_sequences: [{ id: "s1", name: "Permissioned website review", status: "active", audience_type: "cold" }],
+    outreach_enrollments: [{ id: "e1", sequence_id: "s1", prospect_id: "p1", status: "active" }],
+    outreach_sequence_steps: [
+      { id: "step1", sequence_id: "s1", step_order: 1, delay_hours: 0 },
+      { id: "step2", sequence_id: "s1", step_order: 2, delay_hours: 72 },
+      { id: "step3", sequence_id: "s1", step_order: 3, delay_hours: 120 },
+      { id: "step4", sequence_id: "s1", step_order: 4, delay_hours: 168 },
+    ],
+    sales_messages: [
+      { id: "intro", enrollment_id: "e1", prospect_id: "p1", recipient: company.contact_email,
+        status: "sent", direction: "outbound", channel: "email",
+        scheduled_at: NOW, sent_at: NOW, provider_payload: { stepId: "step1", stepOrder: 1, delayHours: 0 } },
+      { id: "followup", enrollment_id: "e1", prospect_id: "p1", recipient: company.contact_email,
+        status: "queued", direction: "outbound", channel: "email",
+        scheduled_at: "2026-09-03T10:00:00.000Z", provider_payload: {
+          sequenceId: "s1", stepId: "step2", stepOrder: 2, delayHours: 72, followUpStage: "FOLLOW_UP_1_OF_3",
+        } },
+    ],
+  });
+  const sent: Row[] = [];
+  const result = await runSalesDelivery({ db: db as any, now: new Date("2026-09-03T10:00:00Z"),
+    send: async (message) => { sent.push(message); return { id: "managed-1" }; } });
+  assert.equal(result.sent, 1);
+  assert.match(sent[0].body_text, /Just following up on my earlier email/);
+  assert.match(sent[0].body_text, /https:\/\/app.bennietay.com\/portfolio/);
+  assert.equal(sent[0].provider_payload?.reviewAssetKind, "portfolio");
+});
+
 test("recipient reply cancels all direct prospect follow-ups before they send", async () => {
   const db = new MemoryDb({
     prospects: [{ id: "p1", name: "Example Clinic", status: "qualified",

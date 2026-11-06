@@ -64,7 +64,7 @@ import {
 import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
-import { attestImportedProspectConsent, canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
+import { attestImportedProspectConsent, canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { buildProspectFollowUpPlan, bulkManageProspectFollowUps, scheduleProspectFollowUpPlan, syncProspectNextFollowUp } from "../server/prospectFollowUps.js";
 import { attachUploaderOutreachDeclaration, parseProspectCsv } from "../src/lib/prospectImport.js";
 import { hasDocumentedMarketingConsent } from "../src/lib/salesAutomation.js";
@@ -8791,24 +8791,32 @@ async function startServer() {
         recommendation: body.recommendation || "Place a clear quote or contact action beside the relevant service and make it easy to use on mobile",
         review_url: safeSavedReview,
       };
+      const isManagedProspectFollowUp = sequence.name === "Permissioned website review";
+      const recipientAsset = isManagedProspectFollowUp ? resolveProspectFollowUpAsset(entity) : null;
       let elapsedHours = 0;
       const rows = steps.map((step: any, index: number) => {
         elapsedHours += Number(step.delay_hours || 0);
         const render = (template: string) => template.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_m: string, key: string) => values[key] || "");
+        // Make the persisted draft match the actual stage sent; re-render at
+        // delivery to account for a newer verified design/review or website status.
+        const followUpDraft = isManagedProspectFollowUp && index > 0
+          ? renderProspectFollowUpStage({ ...entity, name: businessName }, index as 1 | 2 | 3, recipientAsset)
+          : null;
         return {
           enrollment_id: enrollment.id,
           lead_id: body.leadId || null,
           prospect_id: body.prospectId || null,
           recipient,
           channel: step.channel,
-          subject: render(step.subject_template || "A note from Bennie Studio"),
-          body_text: render(step.body_template),
+          subject: followUpDraft?.subject || render(step.subject_template || "A note from Bennie Studio"),
+          body_text: followUpDraft?.body_text || render(step.body_template),
           status: step.requires_approval || index === 0 ? "draft" : "queued",
           scheduled_at: new Date(startAt.getTime() + elapsedHours * 3600000).toISOString(),
           provider_payload: { sequenceId: sequence.id, stepId: step.id, stepOrder: step.step_order, delayHours: step.delay_hours,
             stopOnReply: true, templateId: `${sequence.name} / Step ${step.step_order}`,
             followUpStage: sequence.name === "Permissioned website review" ? (index === 0 ? "INTRO" : `FOLLOW_UP_${index}_OF_3`) : null,
-            observation: body.observation || null, reviewUrl: safeSavedReview || null },
+            observation: body.observation || null, reviewUrl: safeSavedReview || null,
+            reviewAssetKind: isManagedProspectFollowUp && index === 1 ? recipientAsset?.kind || "portfolio" : null },
         };
       });
       const { data: messages, error: messageError } = await supabaseAdmin.from("sales_messages").insert(rows).select("*");

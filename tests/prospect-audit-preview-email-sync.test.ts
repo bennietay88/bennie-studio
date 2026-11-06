@@ -75,14 +75,16 @@ test("audit inline insight selects verified issue with its corresponding fix, no
   ] }), null);
 });
 
-test("sequence enrollment never appends a website audit link to outbound message content", () => {
+test("sequence enrollment composes stage-aware verified preview or honest portfolio drafts", () => {
   const api = readFileSync("api/index.ts", "utf8");
-  assert.match(api, /body_text: render\(step\.body_template\),/);
+  assert.match(api, /body_text: followUpDraft\?\.body_text \|\| render\(step\.body_template\),/);
+  assert.match(api, /resolveProspectFollowUpAsset\(entity\)/);
+  assert.match(api, /renderProspectFollowUpStage\(/);
   assert.doesNotMatch(api, /Your website review: \$\{savedReview\}/);
   assert.match(api, /recommendation: body\.recommendation/);
 });
 
-test("prospect composer keeps the first email simple and schedules the prepared audit separately", () => {
+test("prospect composer keeps the introduction simple and schedules three separately labelled follow-ups", () => {
   const ui = readFileSync("src/components/SuperAdmin/ProspectExplorer.tsx", "utf8");
   assert.match(ui, /getConfirmedReviewInsight/);
   assert.match(ui, /Review first email/);
@@ -90,6 +92,7 @@ test("prospect composer keeps the first email simple and schedules the prepared 
   assert.doesNotMatch(ui, /outreachRecommendation/);
   const operations = readFileSync("server/salesOperations.ts", "utf8");
   assert.match(operations, /directProspectFollowUp: true/);
-  assert.match(operations, /day: 3, delayHours: 72/);
+  assert.match(operations, /\[3, 8, 15\] as const/);
+  assert.match(operations, /delayHours: \[72, 120, 168\]\[i\]/);
   assert.doesNotMatch(ui, /prospect\.preview_url \? ` I prepared a quick preview here:/);
 });
