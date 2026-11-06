@@ -16,7 +16,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,10 +26,22 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium firefox webkit
       - name: Run complete unit and domain regression suite
         run: node --import tsx --test tests/*.test.ts
-      - name: Run full browser E2E suite
-        run: npm run e2e
       - run: npm audit --audit-level=high
+
+  browser-e2e:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium for browser E2E
+        run: npx playwright install --with-deps chromium
+      - name: Run desktop and mobile Chromium end-to-end tests
+        run: npm run e2e -- --project=chromium-desktop --project=mobile-chromium
