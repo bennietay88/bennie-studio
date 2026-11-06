@@ -880,7 +880,8 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
     try { return JSON.parse(localStorage.getItem("bt_preview_intent") || "{}") as Record<string, any>; }
     catch { return {} as Record<string, any>; }
   }, []);
-  const savedPreviewIsCurrent = Number(savedPreviewIntent.previewGenerationVersion || 0) === PREVIEW_GENERATION_VERSION;
+  const savedPreviewIsCurrent = Number(savedPreviewIntent.previewGenerationVersion || 0) === PREVIEW_GENERATION_VERSION
+    && !(salesMode && Boolean(initialParams.get("prospectId")));
   const explicitTemplateId = initialParams.get("template");
   const requestedBusinessTypeId = initialParams.get("businessType")
     || (savedPreviewIsCurrent ? String(savedPreviewIntent.businessTypeId || "") : "")
@@ -923,9 +924,9 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
     return {
       contactName: String(savedPreviewIntent.contactName || auditContext.contactName || initialParams.get("name") || ""),
       businessName: String((savedPreviewIsCurrent ? savedPreviewIntent.businessName : "") || auditContext.businessName || initialParams.get("business") || ""),
-      location: String(savedPreviewIntent.location || initialParams.get("city") || ""),
+      location: String(initialParams.get("location") || initialParams.get("city") || (savedPreviewIsCurrent ? savedPreviewIntent.location : "") || ""),
       mainService: String((savedPreviewIsCurrent ? savedPreviewIntent.mainService : "") || initialParams.get("service") || ""),
-      websiteUrl: String(savedPreviewIntent.websiteUrl || auditContext.website || initialParams.get("website") || ""),
+      websiteUrl: String(initialParams.get("website") || (savedPreviewIsCurrent ? savedPreviewIntent.websiteUrl : "") || auditContext.website || ""),
       websiteStatus: String(savedPreviewIntent.websiteStatus || initialParams.get("websiteStatus") || (auditContext.website ? "yes" : "no")),
       phone: String(savedPreviewIntent.phone || ""),
       email: String(savedPreviewIntent.email || auditContext.email || initialParams.get("email") || ""),
@@ -1075,7 +1076,8 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
     try {
       let existingPreview: Record<string, unknown> = {};
       try { existingPreview = JSON.parse(localStorage.getItem("bt_preview_intent") || "{}"); } catch { /* start a fresh preview */ }
-      const previewId = typeof existingPreview.previewId === "string" && existingPreview.previewId
+      const previewId = !(salesMode && initialParams.get("prospectId"))
+        && typeof existingPreview.previewId === "string" && existingPreview.previewId
         ? existingPreview.previewId
         : `preview_${globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
 
@@ -1093,6 +1095,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
           body: JSON.stringify({
             mode: previewMode,
             previewId,
+            prospectId: initialParams.get("prospectId") || undefined,
             websiteUrl: previewMode === "website" ? form.websiteUrl : null,
             businessName: form.businessName || null,
             industry: selectedBusinessType.label,

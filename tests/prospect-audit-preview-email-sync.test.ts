@@ -89,7 +89,7 @@ test("prospect composer keeps the first email simple and schedules the prepared 
   assert.doesNotMatch(ui, /Recommended fix \(included in the email\)/);
   assert.doesNotMatch(ui, /outreachRecommendation/);
   const operations = readFileSync("server/salesOperations.ts", "utf8");
-  assert.match(operations, /directAuditFollowUp: true/);
-  assert.match(operations, /delayHours = 72/);
+  assert.match(operations, /directProspectFollowUp: true/);
+  assert.match(operations, /day: 3, delayHours: 72/);
   assert.doesNotMatch(ui, /prospect\.preview_url \? ` I prepared a quick preview here:/);
 });

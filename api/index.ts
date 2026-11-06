@@ -3874,6 +3874,7 @@ async function startServer() {
       const body = validateBody(z.object({
         mode: z.enum(["website", "business"]),
         previewId: z.string().trim().min(8).max(160),
+        prospectId: UUID_SCHEMA.optional(),
         websiteUrl: PUBLIC_URL_SCHEMA.optional().nullable(),
         businessName: z.string().trim().max(160).optional().nullable(),
         industry: z.string().trim().max(160).optional().nullable(),
@@ -3885,6 +3886,20 @@ async function startServer() {
       if (!body) return;
 
       try {
+        // Linking a prepared concept to an outbound prospect requires sales privileges.
+        if (body.prospectId) {
+          if (!canManageSalesOperations(caller)) return res.status(403).json({ error: "Sales permission required to link prospect previews." });
+          const { data: prospect, error: prospectError } = await supabaseAdmin.from("prospects")
+            .select("id,name,domain,website_status,outreach_exhausted_at")
+            .eq("id", body.prospectId).maybeSingle();
+          if (prospectError) throw prospectError;
+          if (!prospect || prospect.outreach_exhausted_at) return res.status(409).json({ error: "This prospect is unavailable for a new preview." });
+          if (body.mode === "website") {
+            const sourceHost = new URL(body.websiteUrl || "").hostname.toLowerCase().replace(/^www\./, "");
+            const prospectHost = String(prospect.domain || "").replace(/^https?:\/\//i, "").split("/")[0].toLowerCase().replace(/^www\./, "");
+            if (!prospectHost || sourceHost !== prospectHost) return res.status(422).json({ error: "The source website must match the prospect's verified domain." });
+          }
+        }
         const profile = body.mode === "website"
           ? await buildPreviewProfileFromWebsite({
               websiteUrl: body.websiteUrl || "",
@@ -3920,6 +3935,7 @@ async function startServer() {
           previewGenerationMethod: "deterministic",
           previewAiCostUsd: 0,
           internalSalesPreview: true,
+          prospectId: body.prospectId || null,
           createdBy: req.user.id,
         };
         const { data: existingLead } = await supabaseAdmin
@@ -4117,6 +4133,14 @@ async function startServer() {
           },
         }).eq("id", lead.id);
         if (leadUpdateError) throw leadUpdateError;
+        if (raw.prospectId) {
+          // Only persisted, quality-checked internal previews become outreach assets.
+          const { error: prospectLinkError } = await supabaseAdmin.from("prospects").update({
+            design_preview_url: shareUrl,
+            preview_generated_at: new Date().toISOString(),
+          }).eq("id", raw.prospectId).is("outreach_exhausted_at", null);
+          if (prospectLinkError) throw prospectLinkError;
+        }
 
         return res.json({ success: true, businessId, websiteId, shareUrl, noindex: true });
       } catch (error: any) {
@@ -5444,6 +5468,7 @@ async function startServer() {
         const preparedAt = new Date().toISOString();
         const { error: updateError } = await supabaseAdmin.from("prospects").update({
           preview_url: reportUrl,
+          audit_report_url: reportUrl,
           preview_generated_at: preparedAt,
           last_audit_at: preparedAt,
           opportunity_level: report.findings.some((finding: any) => finding.priority === "high") ? "high" : "medium",
@@ -8727,7 +8752,7 @@ async function startServer() {
       if (!["inbound", "proposal"].includes(String(sequence.audience_type || "cold")) && !hasDocumentedMarketingConsent(entity)) {
         return res.status(409).json({ error: "Record verified email marketing opt-in before enrolling this contact." });
       }
-      if ([entity.status, entity.outreach_status].some((status) => ["won", "lost", "closed", "converted", "paid", "meeting", "call_booked", "appointment_booked", "replied"].includes(String(status).toLowerCase()))) {
+      if (entity.outreach_exhausted_at || [entity.status, entity.outreach_status].some((status) => ["won", "lost", "closed", "converted", "paid", "meeting", "call_booked", "appointment_booked", "replied"].includes(String(status).toLowerCase()))) {
         return res.status(409).json({ error: "This contact has replied, is closed or has a booked call. Use a personal follow-up." });
       }
       const steps = [...(sequence.outreach_sequence_steps || [])].sort((a: any, b: any) => a.step_order - b.step_order);
@@ -8737,6 +8762,11 @@ async function startServer() {
       if (steps.some((step: any) => String(step.body_template || "").includes("{{observation}}")) && String(body.observation || "").trim().length < 10) {
         return res.status(400).json({ error: "Add one specific verified observation for this sequence." });
       }
+      if (sequence.name === "Permissioned website review" &&
+        (steps.length !== 4 || steps.some((step: any, i: number) =>
+          step.step_order !== i + 1 || Number(step.delay_hours) !== [0,72,120,168][i]))) {
+        return res.status(409).json({ error: "The prospect follow-up sequence must contain intro + day 3/8/15 steps." });
+      }
       const startAt = new Date();
       const { data: enrollment, error: enrollmentError } = await supabaseAdmin.from("outreach_enrollments").insert({ sequence_id: sequence.id, lead_id: body.leadId || null, prospect_id: body.prospectId || null, status: "pending", current_step: 0, next_run_at: startAt.toISOString(), metadata: { observation: body.observation || null, createdBy: req.user.id } }).select("*").single();
       if (enrollmentError?.code === "23505") return res.status(409).json({ error: "Contact already has an active or pending sequence." });
@@ -8744,8 +8774,9 @@ async function startServer() {
       const rawFields = entity.raw_fields || {};
       const businessName = entity.business_name || entity.company_name || rawFields.businessName || rawFields.companyName || entity.name || "your business";
       const firstName = String(entity.contact_first_name || entity.contact_name || rawFields.contactFirstName || rawFields.contactName || "").trim().split(/\s+/)[0] || `${businessName} team`;
-      const savedReview = typeof entity.preview_url === "string" && /\/website-audit\?/.test(entity.preview_url)
-        ? entity.preview_url : "";
+      const savedReview = String(entity.audit_report_url || (
+        typeof entity.preview_url === "string" && /\/website-audit\?/.test(entity.preview_url)
+          ? entity.preview_url : "")).trim();
       let safeSavedReview = "";
       try {
         const reviewUrl = new URL(savedReview, publicAppUrl());
@@ -8775,7 +8806,9 @@ async function startServer() {
           status: step.requires_approval || index === 0 ? "draft" : "queued",
           scheduled_at: new Date(startAt.getTime() + elapsedHours * 3600000).toISOString(),
           provider_payload: { sequenceId: sequence.id, stepId: step.id, stepOrder: step.step_order, delayHours: step.delay_hours,
-            stopOnReply: true, templateId: `${sequence.name} / Step ${step.step_order}`, observation: body.observation || null, reviewUrl: safeSavedReview || null },
+            stopOnReply: true, templateId: `${sequence.name} / Step ${step.step_order}`,
+            followUpStage: sequence.name === "Permissioned website review" ? (index === 0 ? "INTRO" : `FOLLOW_UP_${index}_OF_3`) : null,
+            observation: body.observation || null, reviewUrl: safeSavedReview || null },
         };
       });
       const { data: messages, error: messageError } = await supabaseAdmin.from("sales_messages").insert(rows).select("*");

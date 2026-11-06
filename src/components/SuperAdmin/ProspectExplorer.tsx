@@ -145,7 +145,7 @@ export function ProspectExplorer() {
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [scheduleProspect, setScheduleProspect] = useState<any | null>(null);
-  const [followUpDays, setFollowUpDays] = useState("3,7");
+  const [followUpDays, setFollowUpDays] = useState("3,8,15");
   const [followUpStartDate, setFollowUpStartDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [bulkAction, setBulkAction] = useState<"stop_follow_up" | "delete" | null>(null);
@@ -329,6 +329,8 @@ export function ProspectExplorer() {
           `outreach_status.ilike.${pattern}`,
         ].join(","));
       }
+      if (quickFilter === "archived") query = query.not("outreach_exhausted_at", "is", null);
+      else query = query.is("outreach_exhausted_at", null);
       if (industryFilter !== "all") query = query.ilike("industry", `%${industryFilter.trim()}%`);
       if (statusFilter !== "all") query = query.eq("outreach_status", statusFilter);
       switch (quickFilter) {
@@ -541,15 +543,15 @@ export function ProspectExplorer() {
 
   const openFollowUpPlan = (prospect: any) => {
     setScheduleProspect(prospect);
-    setFollowUpDays("3,7");
+    setFollowUpDays("3,8,15");
     setFollowUpStartDate(format(new Date(), "yyyy-MM-dd"));
   };
 
   const saveFollowUpPlan = async () => {
     if (!scheduleProspect || scheduleSaving) return;
     const parts = followUpDays.split(",").map((value) => value.trim()).filter(Boolean);
-    if (!parts.length || parts.length > 12 || parts.some((value) => !/^\d+$/.test(value))) {
-      toast.error("Enter 1–12 day offsets, separated by commas (for example: 3,7,14).");
+    if (!parts.length || parts.length > 3 || parts.some((value) => !/^\d+$/.test(value))) {
+      toast.error("Enter up to 3 day offsets (for example: 3,8,15).");
       return;
     }
     const days = [...new Set(parts.map(Number))].sort((a, b) => a - b);
@@ -635,6 +637,7 @@ export function ProspectExplorer() {
     const updated = {
       ...prospect,
       preview_url: payload.reportUrl,
+      audit_report_url: payload.reportUrl,
       preview_generated_at: payload.preparedAt,
       last_audit_at: payload.preparedAt,
       opportunity_level: payload.report.findings?.some((finding: any) => finding.priority === "high") ? "high" : "medium",
@@ -657,6 +660,19 @@ export function ProspectExplorer() {
     if (reviewTab) reviewTab.location.href = reportUrl;
     else await navigator.clipboard.writeText(reportUrl).catch(() => undefined);
     toast.success("Website review prepared and saved. The recipient link opens the findings and recommended direction.");
+  };
+
+  const prepareDesignConcept = (prospect: any) => {
+    const hasSite = Boolean(prospect.domain) && prospect.website_status !== "no_website";
+    const params = new URLSearchParams({
+      sales: "1", prospectId: String(prospect.id),
+      mode: hasSite ? "website" : "business",
+      business: String(prospect.name || ""),
+      website: hasSite ? (/^https?:\/\//i.test(prospect.domain) ? prospect.domain : `https://${prospect.domain}`) : "",
+      location: String(prospect.location || ""),
+      service: String(prospect.industry || ""),
+    });
+    window.open(`/generate-preview?${params.toString()}`, "_blank", "noopener,noreferrer");
   };
 
   const generatePreviewLink = async (prospect: any) => {
@@ -1512,7 +1528,7 @@ export function ProspectExplorer() {
 
       <Card className="rounded-[2rem] border-slate-100 shadow-sm overflow-hidden">
         <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white p-4">
-          {[["all","All"],["follow_up_due","Follow-up due"],["high","High opportunity"],["contacted","Contacted"],["not_contacted","Not contacted"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
+          {[["all","All"],["follow_up_due","Follow-up due"],["high","High opportunity"],["contacted","Contacted"],["not_contacted","Not contacted"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"],["archived","Archived · no reply"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
         </div>
         <div className="grid gap-3 border-b border-slate-100 bg-slate-50 p-4 xl:grid-cols-[1fr_190px_190px_220px_auto]">
           <div className="relative">
@@ -1648,7 +1664,8 @@ export function ProspectExplorer() {
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <Button variant="outline" className="h-11 rounded-xl" disabled={reviewLoadingId === prospect.id} onClick={() => runQuickAudit(prospect)}><Zap className="mr-2 h-4 w-4" />Audit</Button>
-                      <Button variant="outline" className="h-11 rounded-xl" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="mr-2 h-4 w-4" />Preview</Button>
+                      <Button variant="outline" className="h-11 rounded-xl" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="mr-2 h-4 w-4" />Audit</Button>
+                      <Button variant="outline" className="h-11 rounded-xl" onClick={() => prepareDesignConcept(prospect)}><Globe className="mr-2 h-4 w-4" />Design concept</Button>
                       {prospect.contact_email && !prospect._suppressed && !prospect._contactSafetyUnknown && !prospect.converted_business_id && <Button className="col-span-2 h-11 rounded-xl bg-indigo-600" disabled={reviewLoadingId === prospect.id} onClick={() => preparePreviewAndEmail(prospect)}><Send className="mr-2 h-4 w-4" />Prepare & Email</Button>}
                       {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="outline" className="col-span-2 h-11 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="mr-2 h-4 w-4" />Convert to customer</Button>}
                     </div>
@@ -1761,7 +1778,8 @@ export function ProspectExplorer() {
                       <td className="min-w-0 px-3 py-6 text-right">
                         <div className="flex flex-wrap justify-end gap-1">
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
-                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Preview</Button>
+                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Audit</Button>
+                          <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold" onClick={() => prepareDesignConcept(prospect)}><Globe className="h-3 w-3 mr-1.5" />Design concept</Button>
                           {prospect.contact_email && !prospect._suppressed && !prospect._contactSafetyUnknown && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
                           {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="h-3 w-3 mr-1.5" />Convert</Button>}
                           {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
@@ -1830,16 +1848,15 @@ export function ProspectExplorer() {
           </DialogHeader>
           <div className="space-y-5 py-2">
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" type="button" variant={followUpDays === "3,7" ? "default" : "outline"} onClick={() => setFollowUpDays("3,7")} className="rounded-xl">Day 3 + 7</Button>
-              <Button size="sm" type="button" variant={followUpDays === "3,7,14" ? "default" : "outline"} onClick={() => setFollowUpDays("3,7,14")} className="rounded-xl">Day 3 + 7 + 14</Button>
+              <Button size="sm" type="button" variant={followUpDays === "3,8,15" ? "default" : "outline"} onClick={() => setFollowUpDays("3,8,15")} className="rounded-xl">Day 3 + 8 + 15 (3/5/7-day intervals)</Button>
             </div>
             <Field label="Start date">
               <Input type="date" className="rounded-xl" value={followUpStartDate} onChange={(event) => setFollowUpStartDate(event.target.value)} />
             </Field>
             <Field label="Days after start date (comma-separated)">
-              <Input inputMode="numeric" className="rounded-xl" value={followUpDays} onChange={(event) => setFollowUpDays(event.target.value)} placeholder="3,7,14,30" />
+              <Input inputMode="numeric" className="rounded-xl" value={followUpDays} onChange={(event) => setFollowUpDays(event.target.value)} placeholder="3,8,15" />
             </Field>
-            <p className="text-xs leading-5 text-slate-500">Up to 12 reminders, 1–365 days after the start date. Due at 9:00 AM in your local time. Review each due item in Sales Automation / Today before sending any outreach. Replies and opt-outs must be respected.</p>
+            <p className="text-xs leading-5 text-slate-500">Maximum 3 reminders; default days 3, 8, 15 (3/5/7-day intervals). Due at 9:00 AM in your local time. Review each due item in Sales Automation / Today before sending any outreach. Replies and opt-outs must be respected.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" disabled={scheduleSaving} onClick={() => setScheduleProspect(null)}>Cancel</Button>

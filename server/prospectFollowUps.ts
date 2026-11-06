@@ -9,9 +9,9 @@ function requireResult(result: { data?: any; error?: any }) {
 
 /** Sorted, unique day offsets after the chosen starting date. */
 export function normalizeFollowUpDays(days: number[]): number[] {
-  if (!Array.isArray(days) || days.length < 1 || days.length > 12
+  if (!Array.isArray(days) || days.length < 1 || days.length > 3
     || days.some((day) => !Number.isInteger(day) || day < 1 || day > 365)) {
-    throw new Error("Choose between 1 and 12 follow-ups, 1 to 365 days after the start date.");
+    throw new Error("Choose between 1 and 3 follow-ups, 1 to 365 days after the start date.");
   }
   return [...new Set(days)].sort((a, b) => a - b);
 }

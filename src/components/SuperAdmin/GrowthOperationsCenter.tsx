@@ -95,45 +95,30 @@ export function GrowthOperationsCenter() {
     return { responseDue, dueTasks, engagedProposals, blockers };
   }, [data]);
 
-  const previewQueue = data.prospects.filter((prospect) => !prospect.preview_url && prospect.status !== "lost");
+  const previewQueue = data.prospects.filter((prospect) => !prospect.design_preview_url && prospect.status !== "lost");
   const funnel = {
     prospects: data.prospects.filter((prospect) => prospect.status !== "lost").length,
-    previews: data.prospects.filter((prospect) => prospect.preview_url && prospect.status !== "lost").length,
+    previews: data.prospects.filter((prospect) => prospect.design_preview_url && prospect.status !== "lost").length,
     enquiries: data.leads.filter((lead) => !["spam", "lost"].includes(String(lead.status || "").toLowerCase())).length,
     proposals: data.proposals.filter((proposal) => !["lost", "cancelled"].includes(String(proposal.status || "").toLowerCase())).length,
     customers: data.businesses.filter((business) => !["cancelled", "paused"].includes(String(business.status || "").toLowerCase())).length,
   };
   const businessName = (id?: string) => data.businesses.find((business) => business.id === id)?.name || "Customer";
 
-  const generatePreview = async (prospect: any) => {
-    const template = getRecommendedNicheTemplate({ industry: prospect.industry });
-    if (!template) return toast.error("No suitable template is available.");
-    const params = new URLSearchParams({
-      business: prospect.name,
-      city: prospect.location || "Malaysia",
-      service: prospect.industry || "local services",
-      cta: prospect.contact_whatsapp ? "WhatsApp us" : "Request a consultation",
-    });
-    const previewUrl = `${window.location.origin}/preview/template/${template.id}?${params.toString()}`;
-    setSavingId(prospect.id);
-    const { error } = await supabase.from("prospects").update({
-      template_id: template.id,
-      preview_url: previewUrl,
-      preview_generated_at: new Date().toISOString(),
-      preview_personalization: Object.fromEntries(params.entries()),
-      outreach_status: prospect.outreach_status === "not_started" ? "queued" : prospect.outreach_status,
-    }).eq("id", prospect.id);
-    setSavingId("");
-    if (error) return toast.error(error.message);
-    toast.success("Personalised preview is ready");
-    await load();
-    window.open(previewUrl, "_blank", "noopener,noreferrer");
+  const generatePreview = (prospect: any) => {
+    const existing = Boolean(prospect.domain) && prospect.website_status !== "no_website";
+    const domain = existing ? (String(prospect.domain).startsWith("http") ? prospect.domain : "https://" + prospect.domain) : "";
+    const params = new URLSearchParams({ sales: "1", prospectId: String(prospect.id), mode: existing ? "website" : "business",
+      business: String(prospect.name || ""), website: domain, location: String(prospect.location || ""), service: String(prospect.industry || "") });
+    window.open("/generate-preview?" + params.toString(), "_blank", "noopener,noreferrer");
+    toast.info("Complete and save the verified design concept for Follow-Up 1.");
   };
 
   const openWhatsApp = async (prospect: any) => {
     if (!prospect.contact_whatsapp && !prospect.contact_phone) return toast.error("This prospect has no WhatsApp number.");
+    if (!prospect.design_preview_url) return toast.error("Save the verified design preview before sharing it.");
     const phone = String(prospect.contact_whatsapp || prospect.contact_phone).replace(/\D/g, "");
-    const message = `Hi ${prospect.name}, I prepared a short website direction for your business based on what a customer needs to see before enquiring: ${prospect.preview_url}`;
+    const message = `Hi ${prospect.name}, I prepared a short website direction for your business based on what a customer needs to see before enquiring: ${prospect.design_preview_url}`;
     await supabase.from("sales_tasks").insert({
       prospect_id: prospect.id,
       title: `Follow up on preview with ${prospect.name}`,
@@ -141,7 +126,7 @@ export function GrowthOperationsCenter() {
       priority: "high",
       due_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       notes: "Confirm the prospect opened the personalised preview and offer a short fit call.",
-      metadata: { previewUrl: prospect.preview_url, channel: "whatsapp" },
+      metadata: { previewUrl: prospect.design_preview_url, channel: "whatsapp" },
     });
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
     toast.success("Follow-up task created for tomorrow");
@@ -241,7 +226,7 @@ export function GrowthOperationsCenter() {
             </CardContent></Card>
           ))}
           {!previewQueue.length && <Empty text="No prospect is waiting for a preview." />}
-          {!!data.prospects.filter((prospect) => prospect.preview_url && prospect.status !== "lost").length && <div className="space-y-3 pt-3"><h3 className="text-lg font-black">Ready to send</h3>{data.prospects.filter((prospect) => prospect.preview_url && prospect.status !== "lost").slice(0, 12).map((prospect) => <Card key={prospect.id} className="rounded-2xl"><CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center"><div className="flex-1"><p className="font-black">{prospect.name}</p><p className="truncate text-xs text-slate-500">{prospect.preview_url}</p></div><Button variant="outline" className="rounded-xl" onClick={() => window.open(prospect.preview_url, "_blank", "noopener,noreferrer")}>Preview <ArrowUpRight className="ml-2 h-4 w-4" /></Button><Button className="rounded-xl bg-emerald-600" onClick={() => void openWhatsApp(prospect)}><MessageCircle className="mr-2 h-4 w-4" />Prepare WhatsApp</Button></CardContent></Card>)}</div>}
+          {!!data.prospects.filter((prospect) => prospect.design_preview_url && prospect.status !== "lost").length && <div className="space-y-3 pt-3"><h3 className="text-lg font-black">Ready to send</h3>{data.prospects.filter((prospect) => prospect.design_preview_url && prospect.status !== "lost").slice(0, 12).map((prospect) => <Card key={prospect.id} className="rounded-2xl"><CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center"><div className="flex-1"><p className="font-black">{prospect.name}</p><p className="truncate text-xs text-slate-500">{prospect.design_preview_url}</p></div><Button variant="outline" className="rounded-xl" onClick={() => window.open(prospect.design_preview_url, "_blank", "noopener,noreferrer")}>Preview <ArrowUpRight className="ml-2 h-4 w-4" /></Button><Button className="rounded-xl bg-emerald-600" onClick={() => void openWhatsApp(prospect)}><MessageCircle className="mr-2 h-4 w-4" />Prepare WhatsApp</Button></CardContent></Card>)}</div>}
         </TabsContent>
 
         <TabsContent value="delivery" className="space-y-4 pt-4">

@@ -11,8 +11,8 @@ test("default 3-day and 7-day follow-up reminders are distinct and in order", ()
   ]);
 });
 
-test("custom reminder offsets can extend to 365 days", () => {
-  assert.deepEqual(normalizeFollowUpDays([30, 1, 14, 3]), [1, 3, 14, 30]);
+test("custom reminder offsets remain possible up to three reminders", () => {
+  assert.deepEqual(normalizeFollowUpDays([30, 1, 14]), [1, 14, 30]);
   const plan = buildProspectFollowUpPlan("2026-10-16T00:00:00.000Z", [14, 30], new Date("2026-10-15T00:00:00.000Z"));
   assert.equal(plan[0].dueAt, "2026-10-30T00:00:00.000Z");
   assert.equal(plan[1].dueAt, "2026-11-15T00:00:00.000Z");

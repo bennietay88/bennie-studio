@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { classifyReply, hasDocumentedMarketingConsent, saveOutreachObservation } from "../src/lib/salesAutomation.js";
+import { classifyReply, getOutreachObservation, hasDocumentedMarketingConsent, saveOutreachObservation } from "../src/lib/salesAutomation.js";
 
 type Db = Pick<SupabaseClient, "from">;
 type Row = Record<string, any>;
@@ -64,6 +64,41 @@ function safeAuditReviewUrl(value: unknown): string {
       !url.searchParams.get("report") || !url.searchParams.get("key")) return "";
     return url.toString();
   } catch { return ""; }
+}
+
+/** Prefer a persisted, prospect-specific design concept; fall back to an authenticated review.
+ * Generic /preview/template links are deliberately excluded: they are not a checked redesign.
+ */
+export function resolveProspectFollowUpAsset(contact: Row | null | undefined): { kind: "design" | "audit"; url: string } | null {
+  if (!contact) return null;
+  let appOrigin: string;
+  try { appOrigin = new URL(process.env.APP_PUBLIC_URL || process.env.PUBLIC_APP_URL || "https://app.bennietay.com").origin; }
+  catch { return null; }
+  const check = (raw: unknown, kind: "design" | "audit") => {
+    try {
+      const url = new URL(String(raw || ""));
+      if (url.protocol !== "https:" || url.origin !== appOrigin || url.username || url.password || url.hash) return null;
+      if (kind === "design" && !/^\/preview\/prospect\/[a-zA-Z0-9_-]{8,160}$/.test(url.pathname)) return null;
+      if (kind === "audit" && (url.pathname !== "/website-audit" || !url.searchParams.get("report") || !url.searchParams.get("key"))) return null;
+      return { kind, url: url.toString() };
+    } catch { return null; }
+  };
+  return check(contact.design_preview_url, "design")
+    || check(contact.audit_report_url, "audit")
+    || check(contact.preview_url, "audit");
+}
+
+export function renderProspectFollowUpOne(contact: Row, asset: { kind: "design" | "audit"; url: string }) {
+  const firstName = String(contact.contact_first_name || contact.contact_name || "").trim().split(/\s+/)[0]
+    || `${contact.name || "there"} team`;
+  const company = String(contact.name || "your business").trim();
+  const design = asset.kind === "design";
+  return {
+    subject: design ? `I put together a website concept for ${company}` : `A website review for ${company}`,
+    body_text: `Hi ${firstName},\n\n${design
+      ? `I put together a homepage concept for ${company}, showing a clearer way to present your services and make enquiries easier.\n\nYou can explore the design direction here:`
+      : `I prepared a short review of ${company}'s existing website, with verified findings and practical recommendations.\n\nYou can read it here:`}\n\n${asset.url}\n\nIt's a no-obligation starting point. Would discussing the improvement priorities be useful?\n\nBennie\nBennie Studio`,
+  };
 }
 
 // PostgREST's ilike treats '_' and '%' as wildcards, even in a valid email.
@@ -175,13 +210,61 @@ export async function runSalesDelivery(input: {
           result.deferred++;
           continue;
         }
-        if (message.provider_payload?.directAuditFollowUp && message.prospect_id) {
-          const { data: reply } = checked(await db.from("sales_messages").select("id")
-            .eq("prospect_id", message.prospect_id).eq("direction", "inbound").limit(1).maybeSingle());
-          if (reply) {
-            await release({ status: "cancelled", error: "A reply was received before the scheduled website review" });
+        if ((message.provider_payload?.directProspectFollowUp || message.provider_payload?.directAuditFollowUp)
+          && message.prospect_id) {
+          const { data: activeEnrollment } = checked(await db.from("outreach_enrollments").select("id")
+            .eq("prospect_id", message.prospect_id).in("status", ["pending", "active", "paused"])
+            .limit(1).maybeSingle());
+          if (activeEnrollment) {
+            await release({ status: "cancelled", error: "Replaced by managed prospect follow-up sequence" });
             result.deferred++;
             continue;
+          }
+          const { data: reply } = checked(await db.from("sales_messages").select("id")
+            .eq("prospect_id", message.prospect_id).eq("direction", "inbound")
+            .limit(1).maybeSingle());
+          if (reply) {
+            await release({ status: "cancelled", error: "Prospect replied before the scheduled follow-up" });
+            result.deferred++;
+            continue;
+          }
+          const stage = Number(message.provider_payload?.directStage || 1);
+          if (!Number.isInteger(stage) || stage < 1 || stage > 3) {
+            await release({ status: "cancelled", error: "Invalid direct follow-up stage" });
+            result.deferred++;
+            continue;
+          }
+          if (stage > 1) {
+            const { data: siblings } = checked(await db.from("sales_messages").select("*")
+              .eq("prospect_id", message.prospect_id).eq("direction", "outbound"));
+            const preceding = (siblings || []).find((row: Row) =>
+              row.provider_payload?.directCampaignId === message.provider_payload?.directCampaignId
+              && Number(row.provider_payload?.directStage) === stage - 1);
+            if (!preceding || !SENT.includes(preceding.status) || !preceding.sent_at) {
+              await release({ status: "draft", error: "The previous direct follow-up must be successfully sent first." });
+              result.deliveryBlocked++;
+              continue;
+            }
+            const nextAt = new Date(preceding.sent_at).getTime() + (stage === 2 ? 5 : 7) * 86_400_000;
+            if (nextAt > new Date(now).getTime()) {
+              await release({ status: candidate.status, scheduled_at: new Date(nextAt).toISOString() });
+              result.deferred++;
+              continue;
+            }
+          }
+          if (stage === 1) {
+            const asset = resolveProspectFollowUpAsset(contact);
+            if (!asset) {
+              await release({ status: "draft", error: "Prepare a verified website redesign preview or audit report for follow-up 1." });
+              result.deliveryBlocked++;
+              continue;
+            }
+            const prepared = renderProspectFollowUpOne(contact, asset);
+            checked(await db.from("sales_messages").update({
+              ...prepared, provider_payload: { ...message.provider_payload, reviewAssetKind: asset.kind,
+                reviewAssetUrl: asset.url }, updated_at: now,
+            }).eq("id", message.id).eq("status", "sending"));
+            Object.assign(message, prepared);
           }
         }
         // Standalone prospect messages are marketing unless they reply to a verified inbound conversation.
@@ -192,7 +275,7 @@ export async function runSalesDelivery(input: {
         }
       }
       if (message.enrollment_id) {
-        const { data: enrollment } = checked(await db.from("outreach_enrollments").select("*, outreach_sequences(status,audience_type)")
+        const { data: enrollment } = checked(await db.from("outreach_enrollments").select("*, outreach_sequences(status,audience_type,name)")
           .eq("id", message.enrollment_id).maybeSingle());
         if (!enrollment || enrollment.status !== "active" || enrollment.outreach_sequences?.status !== "active") {
           await release({ status: candidate.status });
@@ -224,6 +307,29 @@ export async function runSalesDelivery(input: {
           result.deferred++;
           continue;
         }
+        if (enrollment.outreach_sequences?.name === "Permissioned website review") {
+          const step = Number(message.provider_payload?.stepOrder);
+          if (step < 1 || step > 4 || !Number.isInteger(step)) {
+            await stopSalesEnrollment(db, enrollment.id, "Unexpected prospect follow-up stage", now);
+            await release({ status: "cancelled", error: "Unexpected prospect follow-up stage" });
+            result.deferred++;
+            continue;
+          }
+          if (step === 2) {
+            const asset = resolveProspectFollowUpAsset(contact);
+            if (!asset) {
+              // A review or design must exist before we claim to have prepared it.
+              await release({ status: "draft", error: "Prepare and verify a design preview or website review before follow-up 1." });
+              result.deliveryBlocked++;
+              continue;
+            }
+            const prepared = renderProspectFollowUpOne(contact, asset);
+            checked(await db.from("sales_messages").update({
+              ...prepared, provider_payload: { ...message.provider_payload, reviewAssetKind: asset.kind, reviewAssetUrl: asset.url }, updated_at: now,
+            }).eq("id", message.id).eq("status", "sending"));
+            Object.assign(message, prepared);
+          }
+        }
       }
       let receipt: { id: string };
       try {
@@ -240,15 +346,74 @@ export async function runSalesDelivery(input: {
       // automatically retry an uncertain send beyond the provider's 24h window.
       await release({ status: "sent", sent_at: now, provider_message_id: receipt.id, error: null });
       result.sent++;
+      if (message.prospect_id && message.provider_payload?.directProspectFollowUp) {
+        const stage = Number(message.provider_payload.directStage);
+        const campaign = String(message.provider_payload.directCampaignId || "");
+        const { data: siblings } = checked(await db.from("sales_messages").select("*")
+          .eq("prospect_id", message.prospect_id).eq("direction", "outbound"));
+        if (stage < 3) {
+          const following = (siblings || []).find((row: Row) => row.provider_payload?.directCampaignId === campaign
+            && Number(row.provider_payload?.directStage) === stage + 1);
+          if (following && following.status === "draft") {
+            const gapDays = stage === 1 ? 5 : 7;
+            checked(await db.from("sales_messages").update({
+              status: "queued", scheduled_at: new Date(new Date(now).getTime() + gapDays * 86_400_000).toISOString(),
+              error: null, updated_at: now,
+            }).eq("id", following.id).eq("status", "draft"));
+          }
+          checked(await db.from("prospects").update({
+            outreach_status: "contacted",
+            next_follow_up_at: new Date(new Date(now).getTime() + (stage === 1 ? 5 : 7) * 86_400_000).toISOString(),
+            updated_at: now,
+          }).eq("id", message.prospect_id).in("outreach_status", ["not_started", "queued", "contacted"]));
+        } else {
+          const { data: reply } = checked(await db.from("sales_messages").select("id")
+            .eq("prospect_id", message.prospect_id).eq("direction", "inbound").limit(1).maybeSingle());
+          if (!reply) {
+            checked(await db.from("prospects").update({
+              outreach_status: "lost", status: "lost", next_follow_up_at: null,
+              outreach_exhausted_at: now, updated_at: now,
+            }).eq("id", message.prospect_id).in("outreach_status", ["not_started", "queued", "contacted"]));
+            checked(await db.from("sales_tasks").update({ status: "dismissed", updated_at: now })
+              .eq("prospect_id", message.prospect_id).eq("status", "open").eq("task_type", "follow_up"));
+          }
+        }
+      }
       if (message.enrollment_id) {
         const { data: remaining } = checked(await db.from("sales_messages").select("id,scheduled_at")
           .eq("enrollment_id", message.enrollment_id).eq("direction", "outbound")
           .in("status", [...PENDING, "sending", "failed"]).order("scheduled_at").limit(1));
+        const completed = !remaining?.length;
         checked(await db.from("outreach_enrollments").update({
           current_step: Number(message.provider_payload?.stepOrder || 0),
           next_run_at: remaining?.[0]?.scheduled_at || null,
-          ...(!remaining?.length ? { status: "completed" } : {}), updated_at: now,
+          ...(completed ? { status: "completed" } : {}), updated_at: now,
         }).eq("id", message.enrollment_id).eq("status", "active"));
+        if (message.prospect_id && String(message.provider_payload?.sequenceId || "")) {
+          const isFinalFollowUp = completed && Number(message.provider_payload?.stepOrder) === 4
+            && message.provider_payload?.followUpStage === "FOLLOW_UP_3_OF_3";
+          if (isFinalFollowUp) {
+            const { data: reply } = checked(await db.from("sales_messages").select("id")
+              .eq("prospect_id", message.prospect_id).eq("direction", "inbound").limit(1).maybeSingle());
+            if (!reply) {
+              // Archive rather than delete, retaining history for dedupe and no-contact.
+              checked(await db.from("prospects").update({
+                outreach_status: "lost", status: "lost", next_follow_up_at: null,
+                outreach_exhausted_at: now, updated_at: now,
+              }).eq("id", message.prospect_id).in("outreach_status", ["not_started", "queued", "contacted"]));
+              checked(await db.from("sales_tasks").update({ status: "dismissed", updated_at: now })
+                .eq("prospect_id", message.prospect_id).eq("status", "open").eq("task_type", "follow_up"));
+              checked(await db.from("sales_messages").update({ status: "cancelled", updated_at: now,
+                error: "Prospect sequence exhausted without reply" })
+                .eq("prospect_id", message.prospect_id).is("enrollment_id", null)
+                .in("status", PENDING));
+            }
+          } else if (!completed) {
+            checked(await db.from("prospects").update({
+              outreach_status: "contacted", next_follow_up_at: remaining?.[0]?.scheduled_at || null, updated_at: now,
+            }).eq("id", message.prospect_id).in("outreach_status", ["not_started", "queued", "contacted"]));
+          }
+        }
       }
     } catch {
       // Read errors fail closed but may safely retry before any provider acceptance.
@@ -321,6 +486,11 @@ export async function recordSalesReply(db: Db, event: Row, getBody: () => Promis
     checked(await db.from("sales_messages").update({ status: "cancelled", updated_at: now })
       .eq("prospect_id", prior.prospect_id).contains("provider_payload", { followUpForMessageId: prior.id })
       .in("status", PENDING));
+    checked(await db.from("sales_messages").update({ status: "cancelled", updated_at: now })
+      .eq("prospect_id", prior.prospect_id).contains("provider_payload", { directProspectFollowUp: true })
+      .in("status", PENDING));
+    checked(await db.from("sales_tasks").update({ status: "dismissed", updated_at: now })
+      .eq("prospect_id", prior.prospect_id).eq("status", "open").eq("task_type", "follow_up"));
   }
   // Stop first even if the restricted sending key cannot retrieve reply content.
   const key = `resend:inbound:${event.data.email_id}`;
@@ -346,8 +516,13 @@ export async function recordSalesReply(db: Db, event: Row, getBody: () => Promis
     provider_payload: { attribution: referenceId && prior.provider_message_id === referenceId ? "message_id" : "sender_latest_fallback" },
   }, { onConflict: "idempotency_key", ignoreDuplicates: true }));
   if (prior.prospect_id) {
-    checked(await db.from("prospects").update({ outreach_status: "replied", updated_at: now })
-      .eq("id", prior.prospect_id).in("outreach_status", ["not_started", "queued", "contacted"]));
+    const { data: prospect } = checked(await db.from("prospects").select("id,outreach_exhausted_at")
+      .eq("id", prior.prospect_id).maybeSingle());
+    checked(await db.from("prospects").update({
+      outreach_status: "replied", updated_at: now,
+      ...(prospect?.outreach_exhausted_at ? { status: "qualified", outreach_exhausted_at: null } : {}),
+    }).eq("id", prior.prospect_id)
+      .in("outreach_status", ["not_started", "queued", "contacted", ...(prospect?.outreach_exhausted_at ? ["lost"] : [])]));
   }
   if (["unsubscribe", "not_interested"].includes(classification)) {
     await suppressSalesRecipient(db, sender, "opt_out", "reply_classification", now);
@@ -367,7 +542,7 @@ export async function saveManualOutreach(db: Db, input: {
 }, now: string) {
   const { data: prospect } = checked(await db.from("prospects").select("*").eq("id", input.prospectId).maybeSingle());
   if (!prospect) throw new Error("CONTACT_NOT_FOUND");
-  if ([prospect.status, prospect.outreach_status].some((status) => ["won", "lost", "closed", "converted", "paid"].includes(String(status).toLowerCase()))) throw new Error("CONTACT_CLOSED");
+  if (prospect.outreach_exhausted_at || [prospect.status, prospect.outreach_status].some((status) => ["won", "lost", "closed", "converted", "paid"].includes(String(status).toLowerCase()))) throw new Error("CONTACT_CLOSED");
   const email = normalizeSalesEmail(prospect.contact_email);
   const phone = String(prospect.contact_whatsapp || prospect.contact_phone || "").replace(/\D/g, "");
   if (email && await isSalesSuppressed(db, email)) throw new Error("CONTACT_SUPPRESSED");
@@ -440,6 +615,7 @@ export async function sendDirectProspectOutreach(
   }
 
   if (
+    prospect.outreach_exhausted_at ||
     [prospect.status, prospect.outreach_status].some((status) =>
       ["won", "lost", "closed", "converted", "paid", "unsubscribed"].includes(
         String(status || "").toLowerCase(),
@@ -476,26 +652,57 @@ export async function sendDirectProspectOutreach(
 
   const recipient = input.channel === "email" ? email : phone;
   const key = `direct-outreach:${input.channel}:${input.requestId}`;
+  // Direct prospect emails use the same three-stage policy as automated enrolments.
+  // Follow-up 2/3 stay dormant until the preceding stage is confirmed sent.
   const scheduleAuditFollowUp = async (firstMessage: Row, contact: Row) => {
-    if (input.channel !== "email" || input.replyToMessageId || !reviewUrl) return null;
-    const followUpKey = `direct-audit-follow-up:${input.requestId}`;
-    const delayHours = 72;
-    const scheduledAt = contact.next_follow_up_at && new Date(contact.next_follow_up_at).getTime() > new Date(now).getTime()
-      ? contact.next_follow_up_at
-      : new Date(new Date(now).getTime() + delayHours * 3_600_000).toISOString();
-    const firstName = String(contact.contact_first_name || contact.contact_name || "").trim().split(/\s+/)[0] || `${contact.name || "there"} team`;
-    const followUpBody = `Hi ${firstName},\n\nFollowing up with the short website review I prepared for ${contact.name || "your business"}:\n\n${reviewUrl}\n\nIt includes the findings and practical next steps. If you would like to discuss any of them, just reply.\n\nBennie\nBennie Studio`;
+    if (input.channel !== "email" || input.replyToMessageId ||
+      ["replied", "call_booked", "won", "lost"].includes(String(contact.outreach_status || ""))) return null;
+    const { data: enrolled } = checked(await db.from("outreach_enrollments").select("id")
+      .eq("prospect_id", contact.id).in("status", ["pending", "active", "paused"]).limit(1).maybeSingle());
+    if (enrolled) return null;
+    const firstName = String(contact.contact_first_name || contact.contact_name || "").trim().split(/\s+/)[0]
+      || (contact.name || "there") + " team";
+    const company = String(contact.name || "your business");
+    const startMs = new Date(firstMessage.sent_at || now).getTime();
     const autoSendEligible = hasDocumentedMarketingConsent(contact, new Date(now));
-    const { error } = await db.from("sales_messages").upsert({
-      id: salesRecordId(followUpKey), idempotency_key: followUpKey,
-      prospect_id: contact.id, direction: "outbound", channel: "email", recipient: normalizeSalesEmail(contact.contact_email),
-      subject: `The website review for ${contact.name || "your business"}`.slice(0, 500), body_text: followUpBody,
-      status: autoSendEligible ? "queued" : "draft", scheduled_at: scheduledAt,
-      provider_payload: { directAuditFollowUp: true, followUpForMessageId: firstMessage.id, delayHours, reviewUrl, autoSendEligible },
-      updated_at: now,
-    }, { onConflict: "idempotency_key", ignoreDuplicates: true });
-    if (error) throw error;
-    return { scheduledAt, status: autoSendEligible ? "queued" : "draft" };
+    const priority = getOutreachObservation(contact.notes) || "a clearer route for website visitors to enquire";
+    const stages = [
+      {
+        day: 3, delayHours: 72, subject: "A website improvement concept for " + company,
+        body: "Hi " + firstName + ",\n\nI prepared a practical website improvement for " + company + ". I'll share the concept or review here when it is ready.\n\nBennie\nBennie Studio",
+      },
+      {
+        day: 8, delayHours: 120, subject: "One improvement worth prioritising for " + company,
+        body: "Hi " + firstName + ",\n\nOne opportunity worth prioritising for " + company + " is " + priority + ".\n\nBennie Studio can handle implementation and ongoing website management. Would a rough scope and price be useful?\n\nBennie\nBennie Studio",
+      },
+      {
+        day: 15, delayHours: 168, subject: "Closing the loop on " + company,
+        body: "Hi " + firstName + ",\n\nOne final note regarding the website ideas I shared. If improving the website is not a priority right now, I'll close the loop here. You're welcome to get in touch if that changes.\n\nBennie\nBennie Studio",
+      },
+    ];
+    for (let i = 0; i < stages.length; i++) {
+      const stage = stages[i];
+      const followUpKey = "direct-prospect-follow-up:" + input.requestId + ":" + (i + 1);
+      const { error } = await db.from("sales_messages").upsert({
+        id: salesRecordId(followUpKey), idempotency_key: followUpKey,
+        prospect_id: contact.id, direction: "outbound", channel: "email",
+        recipient: normalizeSalesEmail(contact.contact_email),
+        subject: stage.subject.slice(0, 500), body_text: stage.body,
+        status: i === 0 && autoSendEligible ? "queued" : "draft",
+        scheduled_at: new Date(startMs + stage.day * 86_400_000).toISOString(),
+        provider_payload: {
+          directProspectFollowUp: true,
+          directAuditFollowUp: i === 0,
+          followUpForMessageId: firstMessage.id, directCampaignId: input.requestId,
+          directStage: i + 1, followUpStage: "FOLLOW_UP_" + (i + 1) + "_OF_3",
+          delayHours: stage.delayHours, reviewUrl: reviewUrl || null,
+          autoSendEligible, awaitingPriorStage: i > 0,
+        }, updated_at: now,
+      }, { onConflict: "idempotency_key", ignoreDuplicates: true });
+      if (error) throw error;
+    }
+    return { scheduledAt: new Date(startMs + 3 * 86_400_000).toISOString(),
+      status: autoSendEligible ? "queued" : "draft", stages: 3 };
   };
   const { data: prior } = checked(
     await db

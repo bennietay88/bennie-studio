@@ -107,6 +107,70 @@ test("admin direct email sends without adding fabricated consent evidence", asyn
     /OUTREACH_TOO_SOON/);
 });
 
+test("direct permissioned prospect outreach sends 3/5/7-day preview-first follow-ups and archives after the final stage", async () => {
+  const db = new MemoryDb({
+    prospects: [{
+      id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "not_started",
+      contact_email: "clinic@example.com", design_preview_url: "https://app.bennietay.com/preview/prospect/preview_1234567890",
+      marketing_consent: true, consent_timestamp: "2026-08-25T10:00:00.000Z",
+      consent_source: "Recipient subscribed through a verified email consent form",
+      consent_email: "clinic@example.com", notes: "",
+    }],
+  });
+  const sent: string[] = [];
+  const start = await sendDirectProspectOutreach(db as any, {
+    prospectId: "p1", channel: "email", subject: "Website idea", bodyText: "I noticed a useful improvement",
+    observation: "The main contact route is not easy to locate",
+    requestId: "sequence-test-1", actorId: "admin",
+    deliver: async () => ({ id: "initial-outreach-provider-id" }),
+  }, NOW);
+  assert.equal(start.message.status, "sent");
+  const followups = db.tables.sales_messages.filter((row) => row.provider_payload?.directProspectFollowUp);
+  assert.deepEqual(followups.map((row) => row.provider_payload.directStage), [1, 2, 3]);
+  assert.deepEqual(followups.map((row) => row.status), ["queued", "draft", "draft"]);
+  assert.deepEqual(followups.map((row) => row.provider_payload.followUpStage),
+    ["FOLLOW_UP_1_OF_3", "FOLLOW_UP_2_OF_3", "FOLLOW_UP_3_OF_3"]);
+  const send = async (message: Row) => {
+    sent.push(message.subject);
+    return { id: "provider-" + sent.length };
+  };
+  const first = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-03T10:00:00Z") });
+  assert.equal(first.sent, 1);
+  assert.match(sent[0], /website concept/i);
+  assert.match(followups[0].body_text, /preview\/prospect\/preview_1234567890/);
+  assert.equal(followups[1].status, "queued");
+  const premature = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-07T10:00:00Z") });
+  assert.equal(premature.sent, 0);
+  const second = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-08T10:00:00Z") });
+  assert.equal(second.sent, 1);
+  assert.equal(followups[2].status, "queued");
+  const third = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-15T10:00:00Z") });
+  assert.equal(third.sent, 1);
+  assert.equal(db.tables.prospects[0].outreach_status, "lost");
+  assert.equal(db.tables.prospects[0].outreach_exhausted_at, "2026-09-15T10:00:00.000Z");
+  assert.equal(db.tables.prospects[0].next_follow_up_at, null);
+  assert.deepEqual(db.tables.sales_tasks.filter((row) => row.status === "open" && row.task_type === "follow_up"), []);
+  assert.equal((await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-16T10:00:00Z") })).sent, 0);
+  assert.equal(sent.length, 3);
+});
+
+test("recipient reply cancels all direct prospect follow-ups before they send", async () => {
+  const db = new MemoryDb({
+    prospects: [{ id: "p1", name: "Example Clinic", status: "qualified",
+      outreach_status: "not_started", contact_email: "clinic@example.com", notes: "" }],
+  });
+  await sendDirectProspectOutreach(db as any, {
+    prospectId: "p1", channel: "email", subject: "Website idea", bodyText: "Hello",
+    observation: "The contact button is not prominent on the homepage",
+    requestId: "reply-test-1", actorId: "admin",
+    deliver: async () => ({ id: "initial-provider-1" }),
+  }, NOW);
+  const replyEvent = { data: { email_id: "recipient-reply-1", from: "clinic@example.com", in_reply_to: "initial-provider-1" } };
+  await recordSalesReply(db as any, replyEvent, async () => "Thanks for sharing", NOW);
+  assert.equal(db.tables.prospects[0].outreach_status, "replied");
+  assert.deepEqual(db.tables.sales_messages.filter((row) => row.provider_payload?.directProspectFollowUp)
+    .map((row) => row.status), ["cancelled", "cancelled", "cancelled"]);
+});
 test("admin direct email respects suppression and unsubscribed status", async () => {
   const base = { id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "not_started",
     contact_email: "clinic@example.com", marketing_consent: false, notes: "" };
