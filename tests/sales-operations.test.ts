@@ -163,6 +163,7 @@ test("no-website direct prospect receives portfolio Day 3, service Day 8, and a 
       consent_source: "Recipient subscribed through a verified email consent form",
       consent_email: "carpentry@example.com", notes: "",
     }],
+    outreach_sequences: [{ id: "s1", name: "Permissioned website review", settings: { emailTemplateOverrides: {} } }],
   });
   const started = await sendDirectProspectOutreach(db as any, {
     prospectId: "p1", channel: "email", templateId: "general-introduction",
@@ -176,11 +177,17 @@ test("no-website direct prospect receives portfolio Day 3, service Day 8, and a 
   assert.match(followUps[0].body_text, /https:\/\/app.bennietay.com\/portfolio/);
   assert.doesNotMatch(followUps[0].body_text, /prepared a short review|put together a homepage concept/i);
 
+  // Editing a saved template after scheduling must change the email actually sent.
+  db.tables.outreach_sequences[0].settings.emailTemplateOverrides.day3_portfolio_no_site = {
+    subject: "Personal note for {{business_name}}",
+    body: "Hi {{first_name}},\\n\\nSee our recent work at {{portfolio_url}}.\\n\\nWould a conversation be useful?",
+  };
   const sent: Row[] = [];
   const send = async (message: Row) => { sent.push(structuredClone(message)); return { id: "followup-" + sent.length }; };
   const first = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-03T10:00:00Z") });
   assert.equal(first.sent, 1);
-  assert.match(sent[0].subject, /Following up on my earlier email/);
+  assert.equal(sent[0].subject, "Personal note for American Carpentry NC LLC");
+  assert.match(sent[0].body_text, /recent work at https:\/\/app.bennietay.com\/portfolio/);
   assert.match(sent[0].body_text, /portfolio/);
   assert.equal(sent[0].provider_payload?.reviewAssetKind, "portfolio");
   const early = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-07T10:00:00Z") });

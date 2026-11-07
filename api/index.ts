@@ -64,10 +64,12 @@ import {
 import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
-import { attestImportedProspectConsent, canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
+import { attestImportedProspectConsent, canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, renderProspectInitialEmail, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { buildProspectFollowUpPlan, bulkManageProspectFollowUps, scheduleProspectFollowUpPlan, syncProspectNextFollowUp } from "../server/prospectFollowUps.js";
 import { attachUploaderOutreachDeclaration, parseProspectCsv } from "../src/lib/prospectImport.js";
 import { hasDocumentedMarketingConsent } from "../src/lib/salesAutomation.js";
+import { PROSPECT_TEMPLATE_KEYS, validateProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
+import type { ProspectEmailTemplateKey, ProspectEmailOverrides } from "../src/lib/prospectOutreachTemplates.js";
 import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, getMinimumTermMonths } from "../src/lib/commercialPricing.js";
 import { DEFAULT_LAUNCH_FLAGS, normalizeLaunchFlags, type LaunchFlags } from "../src/lib/launchFlags.js";
 import {
@@ -8681,6 +8683,69 @@ async function startServer() {
     return res.json({ runs: data || [] });
   });
 
+
+  // One editable source of truth for previewed and sent prospect outreach copy.
+  // Edits never change cadence, contact eligibility, suppression, or active status.
+  app.get("/api/admin/sales-automation/templates", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      const { data, error } = await supabaseAdmin.from("outreach_sequences")
+        .select("id,name,status,settings,updated_at").eq("name", "Permissioned website review").maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ error: "Prospect sequence not found" });
+      return res.json({
+        sequenceId: data.id, status: data.status,
+        updatedAt: data.updated_at,
+        overrides: data.settings?.emailTemplateOverrides || {},
+      });
+    } catch (error) {
+      return res.status(503).json({ error: "Sales templates could not be loaded." });
+    }
+  });
+
+  app.patch("/api/admin/sales-automation/templates", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      const body = validateBody(z.object({
+        expectedUpdatedAt: z.string().min(10).max(100),
+        overrides: z.record(z.string(), z.object({
+          subject: z.string().min(1).max(160),
+          body: z.string().min(1).max(8000),
+        }).strict()),
+      }).strict(), req, res);
+      if (!body) return;
+      const next: ProspectEmailOverrides = {};
+      for (const [id, template] of Object.entries(body.overrides)) {
+        if (!PROSPECT_TEMPLATE_KEYS.includes(id as ProspectEmailTemplateKey)) {
+          return res.status(422).json({ error: "Unknown email template: " + id });
+        }
+        const problem = validateProspectEmailTemplate(id as ProspectEmailTemplateKey, template);
+        if (problem) return res.status(422).json({ error: id + ": " + problem });
+        next[id as ProspectEmailTemplateKey] = template;
+      }
+      const { data: existing, error: readError } = await supabaseAdmin.from("outreach_sequences")
+        .select("id,settings,updated_at").eq("name", "Permissioned website review").maybeSingle();
+      if (readError) throw readError;
+      if (!existing) return res.status(404).json({ error: "Prospect sequence not found" });
+      if (existing.updated_at !== body.expectedUpdatedAt) return res.status(409).json({
+        error: "Templates have changed since you opened the editor. Reload before saving."
+      });
+      const updatedAt = new Date().toISOString();
+      const { data: saved, error: saveError } = await supabaseAdmin.from("outreach_sequences").update({
+        settings: { ...(existing.settings || {}), emailTemplateOverrides: next, templateUpdatedAt: updatedAt, templateUpdatedBy: req.user.id },
+        updated_at: updatedAt,
+      }).eq("id", existing.id).eq("updated_at", existing.updated_at).select("updated_at,settings").maybeSingle();
+      if (saveError) throw saveError;
+      if (!saved) return res.status(409).json({ error: "Templates changed during save. Reload and try again." });
+      return res.json({ success: true, updatedAt: saved.updated_at,
+        overrides: saved.settings?.emailTemplateOverrides || {} });
+    } catch (error) {
+      return res.status(503).json({ error: "Could not save email templates." });
+    }
+  });
+
   app.post("/api/admin/sales-automation/run", authenticate, async (req: any, res) => {
     try {
       const profile = await getProfileForUser(req.user.id);
@@ -8799,8 +8864,11 @@ async function startServer() {
         const render = (template: string) => template.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_m: string, key: string) => values[key] || "");
         // Make the persisted draft match the actual stage sent; re-render at
         // delivery to account for a newer verified design/review or website status.
-        const followUpDraft = isManagedProspectFollowUp && index > 0
-          ? renderProspectFollowUpStage({ ...entity, name: businessName }, index as 1 | 2 | 3, recipientAsset)
+        const templateOverrides = (sequence.settings?.emailTemplateOverrides || {}) as ProspectEmailOverrides;
+        const followUpDraft = isManagedProspectFollowUp
+          ? index === 0
+            ? renderProspectInitialEmail({ ...entity, name: businessName }, templateOverrides)
+            : renderProspectFollowUpStage({ ...entity, name: businessName }, index as 1 | 2 | 3, recipientAsset, templateOverrides)
           : null;
         return {
           enrollment_id: enrollment.id,

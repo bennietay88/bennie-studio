@@ -51,6 +51,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Textarea } from "../ui/textarea";
 import { buildEmailTemplateDraft, hasUnresolvedEmailPlaceholders, recommendedTemplateId } from "./EmailTemplateHub";
 import { getOutreachObservation, getConfirmedReviewObservation, getConfirmedReviewInsight } from "../../lib/salesAutomation";
+import { renderProspectEmailTemplate, PORTFOLIO_URL } from "../../lib/prospectOutreachTemplates";
+import type { ProspectEmailOverrides } from "../../lib/prospectOutreachTemplates";
 
 const WEBSITE_STATUSES = ["unknown", "no_website", "weak", "average", "strong"];
 const OPPORTUNITY_LEVELS = ["low", "medium", "high"];
@@ -112,6 +114,7 @@ export function ProspectExplorer() {
   const [outreachSubject, setOutreachSubject] = useState("");
   const [outreachBody, setOutreachBody] = useState("");
   const [outreachTemplateId, setOutreachTemplateId] = useState("introduction");
+  const [outreachEmailOverrides, setOutreachEmailOverrides] = useState<ProspectEmailOverrides>({});
   const [outreachObservation, setOutreachObservation] = useState("");
   const [outreachDraftTouched, setOutreachDraftTouched] = useState(false);
   const [outreachRequestId, setOutreachRequestId] = useState("");
@@ -155,12 +158,25 @@ export function ProspectExplorer() {
   const [consentAttestationSaving, setConsentAttestationSaving] = useState(false);
 
 
+  const personalizedIntro = (prospect: any, overrides: ProspectEmailOverrides = outreachEmailOverrides) =>
+    renderProspectEmailTemplate("intro", {
+      first_name: String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0] || String(prospect.name || "there") + " team",
+      business_name: String(prospect.name || "your business"),
+      portfolio_url: PORTFOLIO_URL,
+    }, overrides);
+
   const applyOutreachTemplate = (templateId: string, prospect = outreachProspect, observation = outreachObservation) => {
     if (!prospect) return;
-    const generated = buildEmailTemplateDraft(templateId, prospect, observation);
-    const [subjectLine, ...bodyLines] = generated.split("\n");
-    setOutreachSubject(subjectLine.replace(/^Subject:\s*/i, ""));
-    setOutreachBody(bodyLines.join("\n").trim());
+    if (["introduction", "general-introduction"].includes(templateId)) {
+      const draft = personalizedIntro(prospect);
+      setOutreachSubject(draft.subject);
+      setOutreachBody(draft.body_text);
+    } else {
+      const generated = buildEmailTemplateDraft(templateId, prospect, observation);
+      const [subjectLine, ...bodyLines] = generated.split("\n");
+      setOutreachSubject(subjectLine.replace(/^Subject:\s*/i, ""));
+      setOutreachBody(bodyLines.join("\n").trim());
+    }
     setOutreachDraftTouched(false);
   };
 
@@ -1153,7 +1169,7 @@ export function ProspectExplorer() {
     }
   };
 
-  const openOutreachComposer = (prospect: any, replyToMessage?: any, auditObservation = "", templateIdOverride?: string) => {
+  const openOutreachComposer = async (prospect: any, replyToMessage?: any, auditObservation = "", templateIdOverride?: string) => {
     if (prospect._suppressed || prospect._contactSafetyUnknown) {
       toast.error("Recipient is suppressed or suppression status cannot be checked.");
       return;
@@ -1167,6 +1183,24 @@ export function ProspectExplorer() {
     const initialObservation = templateIdOverride === "general-introduction"
       ? ""
       : auditObservation || reviewCache.current.get(prospect.id)?.observation || getOutreachObservation(prospect.notes) || "";
+    let currentIntroOverrides = outreachEmailOverrides;
+    if (!replyToMessage && ["introduction", "general-introduction"].includes(initialTemplateId)) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Admin session expired.");
+        const response = await fetch("/api/admin/sales-automation/templates", {
+          headers: { Authorization: "Bearer " + session.access_token },
+          cache: "no-store",
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || "Could not load the current template.");
+        currentIntroOverrides = payload.overrides || {};
+        setOutreachEmailOverrides(currentIntroOverrides);
+      } catch (error: any) {
+        toast.error(error.message || "Unable to load current email template.");
+        return;
+      }
+    }
     setOutreachProspect(prospect);
     setOutreachReplyToMessageId(replyToMessage?.id || null);
     setOutreachTemplateId(initialTemplateId);
@@ -1176,6 +1210,10 @@ export function ProspectExplorer() {
       const priorSubject = String(replyToMessage.subject || `Website conversation with ${prospect.name}`).replace(/^Re:\s*/i, "");
       setOutreachSubject(`Re: ${priorSubject}`);
       setOutreachBody(`Hi ${prospect.name},\n\nThanks for your reply.\n\n\n\nBest,\nBennie`);
+    } else if (["introduction", "general-introduction"].includes(initialTemplateId)) {
+      const draft = personalizedIntro(prospect, currentIntroOverrides);
+      setOutreachSubject(draft.subject);
+      setOutreachBody(draft.body_text);
     } else {
       const generated = buildEmailTemplateDraft(initialTemplateId, prospect, initialObservation);
       const [subjectLine, ...bodyLines] = generated.split("\n");
@@ -2159,6 +2197,8 @@ export function ProspectExplorer() {
         <DialogContent className="!flex h-[min(92dvh,920px)] w-[calc(100vw-2rem)] !max-w-5xl min-w-0 flex-col gap-0 overflow-hidden rounded-3xl p-0">
           <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-5 pr-14 sm:px-7">
             <DialogTitle className="text-xl font-black tracking-tight">{outreachReplyToMessageId ? "Review email reply" : outreachTemplateId === "audit-follow-up" ? "Review website audit follow-up" : "Review first email"}</DialogTitle>
+            {!outreachReplyToMessageId && <button type="button" className="mt-2 w-fit text-xs font-semibold text-indigo-700 underline"
+              onClick={() => window.open("/admin/sales_home?templates=1", "_blank", "noopener,noreferrer")}>View or edit saved email templates</button>}
             <DialogDescription>
               {outreachTemplateId === "general-introduction"
                 ? "This introduction contains no website findings because the site could not be reviewed."

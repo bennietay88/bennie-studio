@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { classifyReply, getOutreachObservation, hasDocumentedMarketingConsent, saveOutreachObservation } from "../src/lib/salesAutomation.js";
+import { PORTFOLIO_URL, renderProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
+import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "../src/lib/prospectOutreachTemplates.js";
 
 type Db = Pick<SupabaseClient, "from">;
 type Row = Record<string, any>;
@@ -88,12 +90,11 @@ export function resolveProspectFollowUpAsset(contact: Row | null | undefined): {
     || check(contact.preview_url, "audit");
 }
 
-export const BENNIE_STUDIO_PORTFOLIO_URL = "https://app.bennietay.com/portfolio";
+export const BENNIE_STUDIO_PORTFOLIO_URL = PORTFOLIO_URL;
 
-function prospectFollowUpIdentity(contact: Row) {
+function prospectEmailIdentity(contact: Row) {
   const company = String(contact.name || contact.business_name || "your business").trim();
-  const firstName = String(contact.contact_first_name || contact.contact_name || "").trim().split(/\s+/)[0] || `${company} team`;
-  // Missing/unavailable domains are treated as a greenfield opportunity, not as a reviewed website.
+  const firstName = String(contact.contact_first_name || contact.contact_name || "").trim().split(/\s+/)[0] || company + " team";
   const hasExistingWebsite = Boolean(String(contact.domain || "").trim())
     && !["no_website", "no website", "none", "not_found"].includes(String(contact.website_status || "").toLowerCase().trim());
   return { company, firstName, hasExistingWebsite };
@@ -101,50 +102,41 @@ function prospectFollowUpIdentity(contact: Row) {
 
 export type ProspectReviewAsset = { kind: "design" | "audit"; url: string };
 
-/** All three follow-up email templates use the same live prospect evidence and accurate fallback. */
-export function renderProspectFollowUpStage(contact: Row, stage: 1 | 2 | 3, asset: ProspectReviewAsset | null = null) {
-  const { company, firstName, hasExistingWebsite } = prospectFollowUpIdentity(contact);
-  const signature = "\n\nBennie\nBennie Studio";
-  if (stage === 1) {
-    if (asset?.kind === "design") {
-      return {
-        subject: `I put together a website concept for ${company}`,
-        body_text: `Hi ${firstName},\n\nJust following up on my earlier email. I put together a homepage concept for ${company}, showing a possible direction for clearer service messaging and easier enquiries.\n\nYou can view the concept here:\n\n${asset.url}\n\nIt's a no-obligation starting point. Would you be open to a short conversation about it?${signature}`,
-      };
-    }
-    if (asset?.kind === "audit") {
-      return {
-        subject: `A website review for ${company}`,
-        body_text: `Hi ${firstName},\n\nJust following up on my earlier email. I prepared a short website review for ${company}, including findings and practical recommendations.\n\nYou can read it here:\n\n${asset.url}\n\nWould you be open to a short conversation about the improvements?${signature}`,
-      };
-    }
-    return {
-      subject: `Following up on my earlier email — ${company}`,
-      body_text: `Hi ${firstName},\n\nJust following up on my earlier email about Bennie Studio.\n\nWe build and manage websites for service businesses, making it easier for potential customers to learn about their services and get in touch.\n\nIf you're curious about our work, you can view our portfolio here:\n\n${BENNIE_STUDIO_PORTFOLIO_URL}\n\n${hasExistingWebsite
-        ? `Would you be open to a quick conversation about whether your current website could work harder for ${company}?`
-        : `Would you be open to a quick conversation about whether a website could be useful for ${company}?`}${signature}`,
-    };
-  }
-  if (stage === 2) {
-    return hasExistingWebsite
-      ? {
-          subject: `A practical next step for ${company}`,
-          body_text: `Hi ${firstName},\n\nI wanted to share one practical thought following my previous note. A business website can do more than introduce services: it can make the next step clear when someone is ready to enquire.\n\nBennie Studio can help improve the website and take care of ongoing updates, without your team having to manage the technical side.\n\nWould it be helpful if I outlined a possible scope and the setup and monthly management costs for ${company}?${signature}`,
-        }
-      : {
-          subject: `An easy way to get started online — ${company}`,
-          body_text: `Hi ${firstName},\n\nOne more thought in case my earlier email was relevant. A simple business website could give customers one place to understand your services, see where you operate and get in touch.\n\nWith Bennie Studio, we can handle both the initial setup and ongoing updates, so there's no need to manage the technical work yourself.\n\nWould a short outline of the options and the setup and monthly management costs be useful for ${company}?${signature}`,
-        };
-  }
-  return {
-    subject: `Closing the loop on ${company}`,
-    body_text: `Hi ${firstName},\n\nJust a final check-in about ${hasExistingWebsite ? "the website improvements" : "the website possibility"} I mentioned. I understand this might not be a priority right now.\n\nI'll close the loop here and won't send further follow-ups. If the timing changes, you're welcome to get in touch.\n\nBennie\nBennie Studio`,
-  };
+/** One editable source of truth for admin previews, queued drafts and actual delivery. */
+export function renderProspectFollowUpStage(
+  contact: Row, stage: 1 | 2 | 3, asset: ProspectReviewAsset | null = null,
+  overrides: ProspectEmailOverrides = {},
+) {
+  const { company, firstName, hasExistingWebsite } = prospectEmailIdentity(contact);
+  let id: ProspectEmailTemplateKey;
+  if (stage === 1) id = asset?.kind === "design" ? "day3_design" : asset?.kind === "audit" ? "day3_audit"
+    : hasExistingWebsite ? "day3_portfolio_existing" : "day3_portfolio_no_site";
+  else if (stage === 2) id = hasExistingWebsite ? "day8_existing" : "day8_no_site";
+  else id = hasExistingWebsite ? "day15_existing" : "day15_no_site";
+  return renderProspectEmailTemplate(id, {
+    first_name: firstName, business_name: company,
+    asset_url: asset?.url, portfolio_url: PORTFOLIO_URL,
+  }, overrides);
 }
 
-/** Backward-compatible helper for existing callers; no asset means a portfolio follow-up. */
-export function renderProspectFollowUpOne(contact: Row, asset: ProspectReviewAsset | null = null) {
-  return renderProspectFollowUpStage(contact, 1, asset);
+export function renderProspectInitialEmail(contact: Row, overrides: ProspectEmailOverrides = {}) {
+  const { company, firstName } = prospectEmailIdentity(contact);
+  return renderProspectEmailTemplate("intro", {
+    first_name: firstName, business_name: company,
+    portfolio_url: PORTFOLIO_URL,
+  }, overrides);
+}
+
+export function renderProspectFollowUpOne(contact: Row, asset: ProspectReviewAsset | null = null,
+  overrides: ProspectEmailOverrides = {}) {
+  return renderProspectFollowUpStage(contact, 1, asset, overrides);
+}
+
+/** Always read current templates before a due email; edits must affect real delivery. */
+export async function loadProspectEmailOverrides(db: Db): Promise<ProspectEmailOverrides> {
+  const { data } = checked(await db.from("outreach_sequences").select("settings")
+    .eq("name", "Permissioned website review").limit(1).maybeSingle());
+  return (data?.settings?.emailTemplateOverrides || {}) as ProspectEmailOverrides;
 }
 
 // PostgREST's ilike treats '_' and '%' as wildcards, even in a valid email.
@@ -301,7 +293,8 @@ export async function runSalesDelivery(input: {
           // Prepare stage-specific copy at the moment of delivery: a later saved
           // concept/review replaces the portfolio fallback without inventing audit findings.
           const asset = resolveProspectFollowUpAsset(contact);
-          const prepared = renderProspectFollowUpStage(contact, stage as 1 | 2 | 3, asset);
+          const overrides = await loadProspectEmailOverrides(db);
+          const prepared = renderProspectFollowUpStage(contact, stage as 1 | 2 | 3, asset, overrides);
           checked(await db.from("sales_messages").update({
             ...prepared,
             provider_payload: { ...message.provider_payload, reviewAssetKind: stage === 1 ? asset?.kind || "portfolio" : null,
@@ -320,7 +313,7 @@ export async function runSalesDelivery(input: {
         }
       }
       if (message.enrollment_id) {
-        const { data: enrollment } = checked(await db.from("outreach_enrollments").select("*, outreach_sequences(status,audience_type,name)")
+        const { data: enrollment } = checked(await db.from("outreach_enrollments").select("*, outreach_sequences(status,audience_type,name,settings)")
           .eq("id", message.enrollment_id).maybeSingle());
         if (!enrollment || enrollment.status !== "active" || enrollment.outreach_sequences?.status !== "active") {
           await release({ status: candidate.status });
@@ -362,7 +355,8 @@ export async function runSalesDelivery(input: {
           }
           if (step >= 2) {
             const asset = resolveProspectFollowUpAsset(contact);
-            const prepared = renderProspectFollowUpStage(contact, (step - 1) as 1 | 2 | 3, asset);
+            const prepared = renderProspectFollowUpStage(contact, (step - 1) as 1 | 2 | 3, asset,
+              (enrollment.outreach_sequences?.settings?.emailTemplateOverrides || {}) as ProspectEmailOverrides);
             checked(await db.from("sales_messages").update({
               ...prepared, provider_payload: { ...message.provider_payload,
                 reviewAssetKind: step === 2 ? asset?.kind || "portfolio" : null,
@@ -707,10 +701,11 @@ export async function sendDirectProspectOutreach(
     const startMs = new Date(firstMessage.sent_at || now).getTime();
     const autoSendEligible = hasDocumentedMarketingConsent(contact, new Date(now));
     const asset = resolveProspectFollowUpAsset(contact);
+    const overrides = await loadProspectEmailOverrides(db);
     const stages = ([3, 8, 15] as const).map((day, i) => ({
       day,
       delayHours: [72, 120, 168][i],
-      ...renderProspectFollowUpStage(contact, (i + 1) as 1 | 2 | 3, asset),
+      ...renderProspectFollowUpStage(contact, (i + 1) as 1 | 2 | 3, asset, overrides),
     }));
     for (let i = 0; i < stages.length; i++) {
       const stage = stages[i];

@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabase";
 import type { OutreachSequence, SalesCallBooking, SalesMessage } from "../../lib/salesAutomation";
 import { getOutreachObservation } from "../../lib/salesAutomation";
 import { EMAIL_TEMPLATES } from "./EmailTemplateHub";
+import { ProspectEmailTemplateEditor } from "./ProspectEmailTemplateEditor";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -214,8 +215,8 @@ export function SalesAutomation() {
         <Metric icon={Clock3} label="Open actions" value={openTasks.length} note="Real follow-ups and preparation" />
       </div>
 
-      <Tabs defaultValue="today">
-        <TabsList className="h-auto flex-wrap rounded-2xl bg-slate-100 p-1"><TabsTrigger value="today" className="rounded-xl">Today {todayActionCount > 0 && <Badge className="ml-2 border-none bg-indigo-600 text-white">{todayActionCount}</Badge>}</TabsTrigger><TabsTrigger value="control" className="rounded-xl">Sequences</TabsTrigger><TabsTrigger value="queue" className="rounded-xl">Approval queue</TabsTrigger><TabsTrigger value="calls" className="rounded-xl">Calls & follow-ups</TabsTrigger><TabsTrigger value="insights" className="rounded-xl">Sales learning</TabsTrigger></TabsList>
+      <Tabs defaultValue={new URLSearchParams(window.location.search).get("tab") === "templates" ? "templates" : "today"}>
+        <TabsList className="h-auto flex-wrap rounded-2xl bg-slate-100 p-1"><TabsTrigger value="today" className="rounded-xl">Today {todayActionCount > 0 && <Badge className="ml-2 border-none bg-indigo-600 text-white">{todayActionCount}</Badge>}</TabsTrigger><TabsTrigger value="control" className="rounded-xl">Sequences</TabsTrigger><TabsTrigger value="templates" className="rounded-xl">Email templates</TabsTrigger><TabsTrigger value="queue" className="rounded-xl">Approval queue</TabsTrigger><TabsTrigger value="calls" className="rounded-xl">Calls & follow-ups</TabsTrigger><TabsTrigger value="insights" className="rounded-xl">Sales learning</TabsTrigger></TabsList>
 
         <TabsContent value="today" className="mt-6 space-y-6">
           <div className="rounded-3xl bg-slate-950 p-6 text-white sm:p-8">
@@ -241,6 +242,8 @@ export function SalesAutomation() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="templates" className="mt-6"><ProspectEmailTemplateEditor /></TabsContent>
 
         <TabsContent value="control" className="mt-6 space-y-6">
           <Card className="rounded-3xl border-slate-200"><CardHeader><CardTitle>Sequences</CardTitle></CardHeader><CardContent className="space-y-3">{sequences.map((sequence) => <div key={sequence.id} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4"><div><p className="font-black text-slate-950">{sequence.name}</p><p className="mt-1 text-xs font-semibold text-slate-500">{sequence.settings?.purpose as string || sequence.audience_type} · first message approval</p></div><Button variant="outline" onClick={() => void toggleSequence(sequence)} className="rounded-xl">{sequence.status === "active" ? <><Pause className="mr-2 h-4 w-4" /> Pause</> : <><Play className="mr-2 h-4 w-4" /> Activate</>}</Button></div>)}</CardContent></Card>

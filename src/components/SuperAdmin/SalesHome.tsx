@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { ProspectEmailTemplateEditor } from "./ProspectEmailTemplateEditor";
 
 export const SalesHome: React.FC = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export const SalesHome: React.FC = () => {
   const [healthError, setHealthError] = React.useState("");
   const [repairing, setRepairing] = React.useState(false);
   const [repairResult, setRepairResult] = React.useState("");
+  const [showEmailTemplates, setShowEmailTemplates] = React.useState(() => new URLSearchParams(window.location.search).get("templates") === "1");
   const [data, setData] = React.useState({ leads: [] as any[], prospects: [] as any[], proposals: [] as any[], events: [] as any[] });
 
   const load = React.useCallback(async () => {
@@ -82,7 +84,9 @@ export const SalesHome: React.FC = () => {
   if (loading) return <div className="flex min-h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
 
   return <div className="space-y-7 pt-4">
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-sm font-semibold text-indigo-600">Sales operations</p><h1 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950 dark:text-white">Sales Pipeline</h1><p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500">One view of what arrived, what needs action, what was proposed, and what has actually been accepted. No simulated conversion metrics.</p></div><Button variant="outline" onClick={() => void load()} className="rounded-xl">Refresh actual data</Button></div>
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-sm font-semibold text-indigo-600">Sales operations</p><h1 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950 dark:text-white">Sales Pipeline</h1><p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500">One view of what arrived, what needs action, what was proposed, and what has actually been accepted. No simulated conversion metrics.</p></div><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setShowEmailTemplates((current) => !current)} className="rounded-xl">{showEmailTemplates ? "Hide email templates" : "Edit email templates"}</Button><Button variant="outline" onClick={() => void load()} className="rounded-xl">Refresh actual data</Button></div></div>
+
+    {showEmailTemplates && <section id="prospect-email-templates"><ProspectEmailTemplateEditor /></section>}
 
     {healthError && <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">Sales integrity checks could not be loaded: {healthError}. Avoid relying on the counts below until the backend is reachable.</div>}
     {health && <div className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5">
