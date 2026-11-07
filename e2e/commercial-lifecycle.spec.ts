@@ -175,6 +175,9 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   let outreachSent = false;
   const engagementMessages: any[] = [];
 
+  await page.route("**/api/admin/sales-automation/templates", (route) => json(route, {
+    sequenceId: "00000000-0000-4000-8000-000000001130", status: "paused", updatedAt: new Date().toISOString(), overrides: {},
+  }));
   await page.route("**/api/admin/sales-inbox", (route) => json(route, { conversations: [] }));
   await page.route(`**/api/admin/prospects/${prospectId}/engagement`, (route) =>
     json(route, { messages: engagementMessages, tasks: [] }),
@@ -207,9 +210,9 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
     const payload = await route.request().postDataJSON();
     expect(payload.action).toBe("send");
     expect(payload.channel).toBe("email");
-    expect(String(payload.bodyText)).toContain("two specific edits");
-    expect(String(payload.bodyText)).toContain("I noticed Primary enquiry action is not prominent");
-    expect(String(payload.bodyText)).toContain("Primary enquiry action is not prominent");
+    expect(String(payload.bodyText)).toContain("Bennie Studio");
+    expect(String(payload.bodyText)).toContain("We build and manage websites");
+    expect(String(payload.bodyText)).not.toContain("Primary enquiry action is not prominent");
     expect(String(payload.bodyText)).not.toContain("/website-audit?");
     outreachSent = true;
     prospect.outreach_status = "contacted";
@@ -310,7 +313,8 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   await page.getByRole("button", { name: "Prepare & Email", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Review first email" })).toBeVisible();
   await expect(page.getByText(/A simple introduction first/i)).toBeVisible();
-  await expect(page.locator("textarea").last()).toHaveValue(/I noticed Primary enquiry action is not prominent/);
+  await expect(page.locator("textarea").last()).toHaveValue(/We build and manage websites/);
+  await expect(page.getByText("View or edit saved email templates")).toBeVisible();
   await page.getByRole("button", { name: "Send email", exact: true }).click();
   await expect.poll(() => outreachSent).toBe(true);
   await expect.poll(() => prospect.outreach_status).toBe("contacted");
