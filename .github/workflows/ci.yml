@@ -80,3 +80,20 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run desktop and mobile Chromium end-to-end tests
         run: npm run e2e -- --project=chromium-desktop --project=mobile-chromium
+
+  production-access-smoke:
+    # Read-only production access check after full CI, with no credentials.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.verify.outputs.code_changed == 'true'
+    needs: [verify, browser-e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify live public health and anonymous API access boundaries
+        run: node scripts/production-readonly-smoke.mjs
