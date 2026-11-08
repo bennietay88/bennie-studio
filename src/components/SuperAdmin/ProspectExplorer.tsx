@@ -49,10 +49,11 @@ import {
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Textarea } from "../ui/textarea";
-import { buildEmailTemplateDraft, hasUnresolvedEmailPlaceholders, recommendedTemplateId } from "./EmailTemplateHub";
+import { buildEmailTemplateDraft, hasUnresolvedEmailPlaceholders } from "./EmailTemplateHub";
 import { getOutreachObservation, getConfirmedReviewObservation, getConfirmedReviewInsight } from "../../lib/salesAutomation";
 import { renderProspectEmailTemplate, PORTFOLIO_URL } from "../../lib/prospectOutreachTemplates";
-import type { ProspectEmailOverrides } from "../../lib/prospectOutreachTemplates";
+import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "../../lib/prospectOutreachTemplates";
+import { chooseProspectFollowUp, chooseProspectFollowUpTemplate, isStagedFollowUpTemplate } from "../../lib/prospectFollowUpComposer";
 
 const WEBSITE_STATUSES = ["unknown", "no_website", "weak", "average", "strong"];
 const OPPORTUNITY_LEVELS = ["low", "medium", "high"];
@@ -78,7 +79,9 @@ const isRecipientReviewUrl = (value?: string | null) => {
   if (!value) return false;
   try {
     const parsed = new URL(value, window.location.origin);
-    return parsed.pathname === "/website-audit" && Boolean(parsed.searchParams.get("report") && parsed.searchParams.get("key"));
+    if (parsed.origin !== window.location.origin) return false;
+    return /^\/review\/[A-Za-z0-9_-]{22}$/.test(parsed.pathname)
+      || (parsed.pathname === "/website-audit" && Boolean(parsed.searchParams.get("report") && parsed.searchParams.get("key")));
   } catch { return false; }
 };
 
@@ -1082,6 +1085,10 @@ export function ProspectExplorer() {
 
   const preparePreviewAndEmail = async (prospect: any) => {
     if (prospect._suppressed || prospect._contactSafetyUnknown) return toast.error("Recipient is suppressed or suppression status is unavailable. Outreach is blocked.");
+    if (["contacted", "queued"].includes(String(prospect.outreach_status || ""))) {
+      await openOutreachComposer(prospect);
+      return;
+    }
     if (!prospect.domain || prospect.website_status === "no_website") {
       openOutreachComposer(prospect, undefined, "", "general-introduction");
       toast.info("No website review is available. Opened a general introduction without website-specific claims.");
@@ -1179,7 +1186,69 @@ export function ProspectExplorer() {
       return;
     }
 
-    const initialTemplateId = replyToMessage ? "interested" : templateIdOverride || (prospect.outreach_status === "contacted" ? recommendedTemplateId("contacted") : "introduction");
+    // Select the next email by delivered history. Do not prepare a fresh audit
+    // or recycle the opening email for a prospect already contacted.
+    if (!replyToMessage && !templateIdOverride && ["contacted", "queued"].includes(String(prospect.outreach_status || ""))) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Admin session expired.");
+        const headers = { Authorization: "Bearer " + session.access_token };
+        const [historyResponse, templateResponse] = await Promise.all([
+          fetch("/api/admin/prospects/" + encodeURIComponent(prospect.id) + "/engagement", { headers, cache: "no-store" }),
+          fetch("/api/admin/sales-automation/templates", { headers, cache: "no-store" }),
+        ]);
+        if (!historyResponse.ok || !templateResponse.ok) throw new Error("Could not verify sent history and templates.");
+        const history = await historyResponse.json();
+        const templateSettings = await templateResponse.json();
+        const next = chooseProspectFollowUp(prospect, history.messages || []);
+        if (next.kind === "stop") { toast.info(next.reason || "Follow-up is not available."); return; }
+        if (next.kind === "wait") {
+          toast.info("Follow-up " + next.stage + "/3 is due " + new Date(String(next.dueAt)).toLocaleString() + ". No email was sent.");
+          return;
+        }
+        if (next.kind === "follow_up" && next.stage) {
+          const overrides = (templateSettings.overrides || {}) as ProspectEmailOverrides;
+          const hasExistingWebsite = Boolean(String(prospect.domain || "").trim())
+            && !["no_website", "no website", "none", "not_found"].includes(String(prospect.website_status || "").toLowerCase().trim());
+          const assets = [
+            { url: prospect.design_preview_url, kind: "design" as const },
+            { url: prospect.audit_report_url, kind: "audit" as const },
+            { url: prospect.preview_url, kind: "audit" as const },
+          ];
+          const asset = assets.find(({ url, kind }) => {
+            try {
+              const parsed = new URL(String(url || ""), window.location.origin);
+              if (parsed.origin !== window.location.origin || parsed.hash) return false;
+              if (kind === "design") return /^\/preview\/prospect\/[A-Za-z0-9_-]{8,160}$/.test(parsed.pathname);
+              return /^\/review\/[A-Za-z0-9_-]{22}$/.test(parsed.pathname)
+                || (parsed.pathname === "/website-audit" && Boolean(parsed.searchParams.get("report") && parsed.searchParams.get("key")));
+            } catch { return false; }
+          });
+          const templateId = chooseProspectFollowUpTemplate(next.stage, hasExistingWebsite, asset?.kind) as ProspectEmailTemplateKey;
+          const name = String(prospect.name || "your business");
+          const firstName = String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0] || name + " team";
+          const draft = renderProspectEmailTemplate(templateId, {
+            first_name: firstName, business_name: name,
+            asset_url: asset ? new URL(String(asset.url), window.location.origin).href : "",
+            portfolio_url: PORTFOLIO_URL,
+          }, overrides);
+          setOutreachProspect(prospect);
+          setOutreachReplyToMessageId(null);
+          setOutreachEmailOverrides(overrides);
+          setOutreachTemplateId(templateId);
+          setOutreachObservation("");
+          setOutreachSubject(draft.subject);
+          setOutreachBody(draft.body_text);
+          setOutreachDraftTouched(true);
+          setOutreachRequestId(crypto.randomUUID());
+          return;
+        }
+      } catch (error: any) {
+        toast.error(error?.message || "Could not prepare follow-up safely.");
+        return;
+      }
+    }
+    const initialTemplateId = replyToMessage ? "interested" : templateIdOverride || "introduction";
     const initialObservation = templateIdOverride === "general-introduction"
       ? ""
       : auditObservation || reviewCache.current.get(prospect.id)?.observation || getOutreachObservation(prospect.notes) || "";
@@ -1250,7 +1319,7 @@ export function ProspectExplorer() {
       toast.error("Add an email subject");
       return;
     }
-    if (!outreachReplyToMessageId && !["introduction", "general-introduction"].includes(outreachTemplateId) && outreachObservation.trim().length < 10 && !outreachProspect.preview_url) {
+    if (!outreachReplyToMessageId && !["introduction", "general-introduction"].includes(outreachTemplateId) && !isStagedFollowUpTemplate(outreachTemplateId) && outreachObservation.trim().length < 10 && !outreachProspect.preview_url) {
       toast.error("Prepare a website review or add a specific verified observation before sending this follow-up.");
       return;
     }
@@ -2196,12 +2265,14 @@ export function ProspectExplorer() {
       >
         <DialogContent className="!flex h-[min(92dvh,920px)] w-[calc(100vw-2rem)] !max-w-5xl min-w-0 flex-col gap-0 overflow-hidden rounded-3xl p-0">
           <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-5 pr-14 sm:px-7">
-            <DialogTitle className="text-xl font-black tracking-tight">{outreachReplyToMessageId ? "Review email reply" : outreachTemplateId === "audit-follow-up" ? "Review website audit follow-up" : "Review first email"}</DialogTitle>
+            <DialogTitle className="text-xl font-black tracking-tight">{outreachReplyToMessageId ? "Review email reply" : isStagedFollowUpTemplate(outreachTemplateId) ? ("Review Day " + outreachTemplateId.slice(3).split("_")[0] + " follow-up") : outreachTemplateId === "audit-follow-up" ? "Review website audit follow-up" : "Review first email"}</DialogTitle>
             {!outreachReplyToMessageId && <button type="button" className="mt-2 w-fit text-xs font-semibold text-indigo-700 underline"
               onClick={() => window.open("/admin/sales_home?templates=1", "_blank", "noopener,noreferrer")}>View or edit saved email templates</button>}
             <DialogDescription>
               {outreachTemplateId === "general-introduction"
                 ? "This introduction contains no website findings because the site could not be reviewed."
+                : isStagedFollowUpTemplate(outreachTemplateId)
+                  ? "A stage-specific follow-up based on confirmed sent history, not a second introduction."
                 : outreachTemplateId === "introduction"
                   ? "Keep this message brief. A separate website review can follow on the scheduled date."
                   : "Review the recipient and message before sending."} Provider acceptance does not confirm inbox delivery.
@@ -2247,6 +2318,8 @@ export function ProspectExplorer() {
                   <p className="text-xs font-medium leading-5 text-slate-500">
                     {outreachTemplateId === "general-introduction"
                       ? "Review the general introduction before sending."
+                      : isStagedFollowUpTemplate(outreachTemplateId)
+                        ? "This follows the 3/5/7-day cadence. The draft is not automatically sent; respect replies and opt-outs."
                       : outreachTemplateId === "introduction"
                         ? "Review the short introduction before sending. The audit details are reserved for the scheduled follow-up."
                         : "Review the prepared website audit email before sending."}
@@ -2270,7 +2343,7 @@ export function ProspectExplorer() {
             </Button>
             <Button type="button" onClick={sendOutreach}
               disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() ||
-                (!outreachReplyToMessageId && !["introduction", "general-introduction"].includes(outreachTemplateId) && outreachObservation.trim().length < 10 && !outreachProspect?.preview_url) ||
+                (!outreachReplyToMessageId && !["introduction", "general-introduction"].includes(outreachTemplateId) && !isStagedFollowUpTemplate(outreachTemplateId) && outreachObservation.trim().length < 10 && !outreachProspect?.preview_url) ||
                 hasUnresolvedEmailPlaceholders(outreachSubject + "\n" + outreachBody)}
               className="rounded-xl bg-indigo-600 hover:bg-indigo-700">
               {outreachSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}

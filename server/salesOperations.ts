@@ -4,6 +4,7 @@ import { z } from "zod";
 import { classifyReply, getOutreachObservation, hasDocumentedMarketingConsent, saveOutreachObservation } from "../src/lib/salesAutomation.js";
 import { PORTFOLIO_URL, renderProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
 import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "../src/lib/prospectOutreachTemplates.js";
+import { chooseProspectFollowUp, FOLLOW_UP_TEMPLATE_STAGES } from "../src/lib/prospectFollowUpComposer.js";
 
 type Db = Pick<SupabaseClient, "from">;
 type Row = Record<string, any>;
@@ -62,8 +63,9 @@ function safeAuditReviewUrl(value: unknown): string {
   try {
     const url = new URL(String(value || ""));
     const appUrl = new URL(process.env.APP_PUBLIC_URL || process.env.PUBLIC_APP_URL || "https://app.bennietay.com");
-    if (url.protocol !== "https:" || url.origin !== appUrl.origin || url.pathname !== "/website-audit" ||
-      !url.searchParams.get("report") || !url.searchParams.get("key")) return "";
+    const legacy = url.pathname === "/website-audit" && Boolean(url.searchParams.get("report") && url.searchParams.get("key"));
+    const shortReview = /^\/review\/[A-Za-z0-9_-]{22}$/.test(url.pathname);
+    if (url.protocol !== "https:" || url.origin !== appUrl.origin || (!legacy && !shortReview)) return "";
     return url.toString();
   } catch { return ""; }
 }
@@ -81,7 +83,7 @@ export function resolveProspectFollowUpAsset(contact: Row | null | undefined): {
       const url = new URL(String(raw || ""));
       if (url.protocol !== "https:" || url.origin !== appOrigin || url.username || url.password || url.hash) return null;
       if (kind === "design" && !/^\/preview\/prospect\/[a-zA-Z0-9_-]{8,160}$/.test(url.pathname)) return null;
-      if (kind === "audit" && (url.pathname !== "/website-audit" || !url.searchParams.get("report") || !url.searchParams.get("key"))) return null;
+      if (kind === "audit" && !((url.pathname === "/website-audit" && url.searchParams.get("report") && url.searchParams.get("key")) || /^\/review\/[A-Za-z0-9_-]{22}$/.test(url.pathname))) return null;
       return { kind, url: url.toString() };
     } catch { return null; }
   };
@@ -645,7 +647,8 @@ export async function sendDirectProspectOutreach(
   if (!prospect) throw new Error("CONTACT_NOT_FOUND");
 
   const reviewUrl = safeAuditReviewUrl(input.reviewUrl);
-  if (!input.replyToMessageId && input.templateId !== "general-introduction" && String(input.observation || "").trim().length < 10 && !reviewUrl) {
+  const followUpStage = FOLLOW_UP_TEMPLATE_STAGES[String(input.templateId || "")] || null;
+  if (!input.replyToMessageId && input.templateId !== "general-introduction" && !followUpStage && String(input.observation || "").trim().length < 10 && !reviewUrl) {
     throw new Error("OUTREACH_OBSERVATION_REQUIRED");
   }
   if (/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(`${input.subject || ""}\n${input.bodyText}`)) {
@@ -687,13 +690,23 @@ export async function sendDirectProspectOutreach(
   }
 
   // Operator authorization never overrides a prospect's marketing-consent status.
+  // A manual follow-up is allowed only after confirmed prior sends and its
+  // 3/5/7-day interval; never accept a guessed CRM status as send authority.
+  if (followUpStage) {
+    if (input.channel !== "email" || input.replyToMessageId) throw new Error("OUTREACH_FOLLOW_UP_INVALID");
+    const { data: history } = checked(await db.from("sales_messages")
+      .select("id,direction,channel,status,sent_at,created_at,reply_to_message_id,provider_payload")
+      .eq("prospect_id", prospect.id).order("created_at", { ascending: true }).limit(100));
+    const next = chooseProspectFollowUp(prospect, history || [], new Date(now));
+    if (next.kind !== "follow_up" || next.stage !== followUpStage) throw new Error("OUTREACH_FOLLOW_UP_STAGE_NOT_DUE");
+  }
 
   const recipient = input.channel === "email" ? email : phone;
   const key = `direct-outreach:${input.channel}:${input.requestId}`;
   // Direct prospect emails use the same three-stage policy as automated enrolments.
   // Follow-up 2/3 stay dormant until the preceding stage is confirmed sent.
   const scheduleAuditFollowUp = async (firstMessage: Row, contact: Row) => {
-    if (input.channel !== "email" || input.replyToMessageId ||
+    if (followUpStage || input.channel !== "email" || input.replyToMessageId ||
       ["replied", "call_booked", "won", "lost"].includes(String(contact.outreach_status || ""))) return null;
     const { data: enrolled } = checked(await db.from("outreach_enrollments").select("id")
       .eq("prospect_id", contact.id).in("status", ["pending", "active", "paused"]).limit(1).maybeSingle());
@@ -805,6 +818,7 @@ export async function sendDirectProspectOutreach(
       actorId: input.actorId,
       observation: input.observation || null,
       templateId: input.templateId || null,
+      ...(followUpStage ? { directStage: followUpStage, followUpStage: "FOLLOW_UP_" + followUpStage + "_OF_3" } : {}),
       reviewUrl: reviewUrl || null,
       replyToMessageId,
     },
@@ -871,9 +885,9 @@ export async function sendDirectProspectOutreach(
       .single(),
   );
 
-  const followUpAt = new Date(new Date(now).getTime() + 3 * 86400000).toISOString();
+  const followUpAt = followUpStage === 3 ? null : new Date(new Date(now).getTime() + (followUpStage === 1 ? 5 : followUpStage === 2 ? 7 : 3) * 86400000).toISOString();
   const existingFollowUp =
-    prospect.next_follow_up_at &&
+    !followUpStage && prospect.next_follow_up_at &&
     new Date(prospect.next_follow_up_at).getTime() > new Date(now).getTime()
       ? prospect.next_follow_up_at
       : null;
@@ -898,7 +912,27 @@ export async function sendDirectProspectOutreach(
       .single(),
   );
 
-  if (!["replied", "call_booked"].includes(String(prospect.outreach_status || ""))) {
+  if (followUpStage) {
+    // A manually sent stage closes the due reminder and pending duplicate
+    // drafts. The next stage remains manual without documented opt-in.
+    checked(await db.from("sales_messages").update({
+      status: "cancelled", updated_at: now, error: "Superseded by manually sent follow-up",
+    }).eq("prospect_id", prospect.id).eq("direction", "outbound")
+      .contains("provider_payload", { directStage: followUpStage })
+      .neq("id", sentMessage.id).in("status", ["draft", "approved", "queued"]));
+    checked(await db.from("sales_tasks").update({ status: "completed", updated_at: now })
+      .eq("prospect_id", prospect.id).eq("task_type", "follow_up")
+      .eq("status", "open").lte("due_at", now));
+    if (followUpAt) {
+      checked(await db.from("sales_tasks").upsert({
+        id: salesRecordId("manual-prospect-follow-up:" + prospect.id + ":" + (followUpStage + 1)),
+        prospect_id: prospect.id, title: "Follow up with " + prospect.name + " (" + (followUpStage + 1) + "/3)",
+        task_type: "follow_up", status: "open", priority: "medium",
+        due_at: followUpAt,
+        metadata: { source: "manual_follow_up", stage: followUpStage + 1 }, updated_at: now,
+      }, { onConflict: "id", ignoreDuplicates: true }));
+    }
+  } else if (!["replied", "call_booked"].includes(String(prospect.outreach_status || ""))) {
     checked(
       await db.from("sales_tasks").upsert(
         {

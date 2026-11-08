@@ -8024,7 +8024,7 @@ async function startServer() {
       }
       const [prospectResult, messagesResult, tasksResult, eventsResult] = await Promise.all([
         supabaseAdmin.from("prospects").select("*").eq("id", prospectId).maybeSingle(),
-        supabaseAdmin.from("sales_messages").select("id,prospect_id,direction,channel,recipient,subject,body_text,status,sent_at,created_at,classification,reply_to_message_id,provider_message_id").eq("prospect_id", prospectId).order("created_at", { ascending: true }).limit(100),
+        supabaseAdmin.from("sales_messages").select("id,prospect_id,direction,channel,recipient,subject,body_text,status,sent_at,created_at,classification,reply_to_message_id,provider_message_id,provider_payload").eq("prospect_id", prospectId).order("created_at", { ascending: true }).limit(100),
         supabaseAdmin.from("sales_tasks").select("id,prospect_id,title,task_type,status,priority,due_at,notes,metadata,created_at,updated_at").eq("prospect_id", prospectId).order("created_at", { ascending: false }).limit(50),
         supabaseAdmin.from("deal_stage_events").select("id,from_stage,to_stage,event_type,metadata,created_at").eq("prospect_id", prospectId).order("created_at", { ascending: false }).limit(30),
       ]);
@@ -8556,7 +8556,7 @@ async function startServer() {
           action: z.enum(["prepare", "contacted", "send"]),
           channel: z.enum(["email", "whatsapp"]),
           observation: z.string().trim().max(1000).optional(),
-          templateId: z.string().trim().max(80).regex(/^[a-z][a-z0-9-]*$/i).optional(),
+          templateId: z.string().trim().max(80).regex(/^[a-z][a-z0-9_-]*$/i).optional(),
           subject: z.string().trim().max(160).optional(),
           bodyText: z.string().trim().min(1).max(10000),
           reviewUrl: z.string().trim().url().max(2000).nullable().optional(),
