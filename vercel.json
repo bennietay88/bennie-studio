@@ -68,11 +68,28 @@
           "value": "default-src 'self'; script-src 'self' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://s.pinimg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://api.deepseek.com https://generativelanguage.googleapis.com https://api.openai.com https://api.resend.com https://ct.pinterest.com https://*.sentry.io https://*.ingest.sentry.io; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://ct.pinterest.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self' https://checkout.stripe.com"
         }
       ]
+    },
+    {
+      "source": "/review/:code",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
+      ]
     }
   ],
   "routes": [
     {
-      "src": "^/(admin|dashboard|checkout|preview-order|login|signup|forgot-password|reset-password|profile|manage-call|proposal|w)(?:/.*)?$",
+      "src": "^/(review|admin|dashboard|checkout|preview-order|login|signup|forgot-password|reset-password|profile|manage-call|proposal|w)(?:/.*)?$",
       "headers": {
         "X-Robots-Tag": "noindex, nofollow"
       },

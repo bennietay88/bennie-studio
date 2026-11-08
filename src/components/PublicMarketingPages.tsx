@@ -2582,7 +2582,9 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   const reportQuery = React.useMemo(() => new URLSearchParams(location.search), [location.search]);
   const linkedJobId = reportQuery.get("report") || "";
   const linkedAccessKey = reportQuery.get("key") || "";
-  const [loadingSharedReport, setLoadingSharedReport] = React.useState(Boolean(linkedJobId && linkedAccessKey));
+  const shortReviewRoute = location.pathname.startsWith("/review/");
+  const linkedShareCode = shortReviewRoute ? location.pathname.split("/")[2] || "" : "";
+  const [loadingSharedReport, setLoadingSharedReport] = React.useState(shortReviewRoute || Boolean(linkedJobId && linkedAccessKey));
   const [reportLink, setReportLink] = React.useState("");
   const [deliveryStatus, setDeliveryStatus] = React.useState("");
   const [submitted, setSubmitted] = React.useState(false);
@@ -2600,8 +2602,9 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   });
 
   React.useEffect(() => {
-    if (!linkedJobId || !linkedAccessKey) return;
-    if (!/^[0-9a-f-]{36}$/i.test(linkedJobId) || !/^[0-9a-f]{64}$/i.test(linkedAccessKey)) {
+    if (!shortReviewRoute && (!linkedJobId || !linkedAccessKey)) return;
+    if (shortReviewRoute ? !/^[A-Za-z0-9_-]{22}$/.test(linkedShareCode) :
+      (!/^[0-9a-f-]{36}$/i.test(linkedJobId) || !/^[0-9a-f]{64}$/i.test(linkedAccessKey))) {
       setLoadingSharedReport(false);
       setError("This report link is incomplete or invalid.");
       return;
@@ -2609,13 +2612,18 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
     let cancelled = false;
     const loadReport = async () => {
       try {
-        const response = await fetch(`/api/public/website-audit/jobs/${encodeURIComponent(linkedJobId)}?key=${encodeURIComponent(linkedAccessKey)}`, { cache: "no-store", referrerPolicy: "no-referrer" });
+        const endpoint = shortReviewRoute
+          ? `/api/public/website-audit/shares/${encodeURIComponent(linkedShareCode)}`
+          : `/api/public/website-audit/jobs/${encodeURIComponent(linkedJobId)}?key=${encodeURIComponent(linkedAccessKey)}`;
+        const response = await fetch(endpoint, { cache: "no-store", referrerPolicy: "no-referrer" });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || "The website report could not be loaded.");
         if (cancelled) return;
         if (payload.businessName) setForm((prev) => ({ ...prev, businessName: payload.businessName }));
         setDeliveryStatus(payload.deliveryStatus || "");
-        setReportLink(`/website-audit?report=${encodeURIComponent(linkedJobId)}&key=${encodeURIComponent(linkedAccessKey)}`);
+        setReportLink(shortReviewRoute
+          ? `/review/${linkedShareCode}`
+          : `/website-audit?report=${encodeURIComponent(linkedJobId)}&key=${encodeURIComponent(linkedAccessKey)}`);
         setSubmitted(true);
         setAuditQueued(["queued", "processing"].includes(payload.status));
         if (payload.status === "completed" && payload.report) {
@@ -2631,7 +2639,7 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
     };
     void loadReport();
     return () => { cancelled = true; };
-  }, [linkedJobId, linkedAccessKey]);
+  }, [shortReviewRoute, linkedShareCode, linkedJobId, linkedAccessKey]);
 
   const submitAudit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -2935,7 +2943,8 @@ export default function PublicMarketingPages() {
   const location = useLocation();
   const navigate = useNavigate();
   const cms = usePublishedPlatformCms();
-  const pageKind = location.pathname.split("/").filter(Boolean).join("/") as PublicPageKind;
+  const isPrivateReview = location.pathname.startsWith("/review/");
+  const pageKind = (isPrivateReview ? "website-audit" : location.pathname.split("/").filter(Boolean).join("/")) as PublicPageKind;
   const cmsPagePath = `/${pageKind}`;
   const pageCms = cms.pages[cmsPagePath];
   const meta = pageMeta[pageKind] || pageMeta.templates;
@@ -2981,7 +2990,7 @@ export default function PublicMarketingPages() {
               : pageKind === "preview-order"
                 ? <PreviewOrderPage />
                 : <TemplatesPage cmsPage={pageCms} />;
-  const pageContent = pageCms?.replacePageContent && CMS_REPLACEABLE_PATHS.has(cmsPagePath)
+  const pageContent = !isPrivateReview && pageCms?.replacePageContent && CMS_REPLACEABLE_PATHS.has(cmsPagePath)
     ? <PlatformCmsPageBody path={cmsPagePath}/>
     : templatePageContent;
 
@@ -2990,8 +2999,9 @@ export default function PublicMarketingPages() {
       <Helmet>
         <title>{pageCms?.seoTitle || meta.title}</title>
         <meta name="description" content={pageCms?.seoDescription || meta.description} />
-        <link rel="canonical" href={pageCms?.canonicalUrl || `https://app.bennietay.com${location.pathname === "/" ? "/" : location.pathname.replace(/\/$/, "")}`} />
-        {pageCms?.noIndex && <meta name="robots" content="noindex,nofollow" />}
+        <link rel="canonical" href={isPrivateReview ? "https://app.bennietay.com/website-audit" : (pageCms?.canonicalUrl || `https://app.bennietay.com${location.pathname === "/" ? "/" : location.pathname.replace(/\/$/, "")}`)} />
+        {(isPrivateReview || pageCms?.noIndex) && <meta name="robots" content="noindex,nofollow" />}
+        {isPrivateReview && <meta name="referrer" content="no-referrer" />}
         <meta property="og:title" content={pageCms?.seoTitle || meta.title} />
         <meta property="og:description" content={pageCms?.seoDescription || meta.description} />
         {pageCms?.ogImage && <meta property="og:image" content={pageCms.ogImage} />}

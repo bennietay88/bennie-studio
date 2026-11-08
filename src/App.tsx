@@ -657,6 +657,7 @@ export default function App() {
               <Route path="/dental-clinics" element={<PublicMarketingPages />} />
               <Route path="/examples" element={<Navigate to="/case-studies" replace />} />
               <Route path="/website-audit" element={<PublicMarketingPages />} />
+              <Route path="/review/:code" element={<PublicMarketingPages />} />
               <Route path="/generate-preview" element={<PublicMarketingPages />} />
               <Route path="/preview-order" element={<PublicMarketingPages />} />
               <Route path="/blog/:slug" element={<PublicBlogPostPage />} />

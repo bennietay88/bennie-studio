@@ -32,6 +32,7 @@ import {
   isVercelDomainsConfigured,
   removeVercelProjectDomain,
 } from "../server/vercelDomains.js";
+import { auditReportPath, createAuditShareCode, isAuditShareCode } from "../server/auditShareLinks.js";
 import {
   claimAsyncJob,
   completeAsyncJob,
@@ -4614,7 +4615,7 @@ async function startServer() {
       // Deliver the completed report without asking the prospect to stay on the page.
       // This is a transactional response to an explicitly requested free audit.
       // Failure to deliver email must not turn a completed, saved audit into a failed job.
-      const reportUrl = `${publicAppUrl()}/website-audit?report=${encodeURIComponent(job.id)}&key=${encodeURIComponent(String(job.payload?.reportAccessKey || ""))}`;
+      const reportUrl = `${publicAppUrl()}${auditReportPath(job)}`;
       let delivery: "sent" | "not_configured" | "failed" | "skipped" = "skipped";
       if (job.payload?.leadEmail && job.payload?.leadId && job.payload?.reportAccessKey) {
         if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
@@ -5314,6 +5315,45 @@ async function startServer() {
     }
   });
 
+  // Private, unguessable share links for newly generated reviews.
+  // The public API uses the server-only service role and returns a restricted
+  // response; it never exposes the stored payload, lead or access key.
+  app.get("/api/public/website-audit/shares/:code",
+    rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: "public-website-audit-share" }),
+    async (req: any, res: any) => {
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("Referrer-Policy", "no-referrer");
+      res.setHeader("X-Robots-Tag", "noindex, nofollow");
+      const code = String(req.params.code || "");
+      if (!isAuditShareCode(code)) return res.status(404).json({ error: "Review not found." });
+      try {
+        const { data: job, error } = await supabaseAdmin.from("async_jobs")
+          .select("id,job_type,payload,status,result,last_error,updated_at,completed_at")
+          .eq("job_type", "website_audit")
+          .contains("payload", { shareCode: code })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        if (!job) return res.status(404).json({ error: "Review not found." });
+        return res.json({
+          id: job.id,
+          businessName: job.payload?.businessName || "",
+          status: job.status,
+          deliveryStatus: job.status === "completed" ? job.result?.deliveryStatus || "unknown" : "pending",
+          report: job.status === "completed" && job.result?.report
+            ? normalizeWebsiteAuditResult(job.result.report)
+            : null,
+          error: job.status === "failed" ? "The automatic review could not be completed." : null,
+          updatedAt: job.updated_at,
+          completedAt: job.completed_at,
+        });
+      } catch (error: any) {
+        captureServerError(error, { phase: "website_audit_share_lookup" });
+        return res.status(503).json({ error: "This review is temporarily unavailable." });
+      }
+    },
+  );
+
   app.get("/api/public/website-audit/jobs/:jobId",
     rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: "public-website-audit-status" }),
     async (req: any, res: any) => {
@@ -5433,6 +5473,7 @@ async function startServer() {
               leadId: body.leadId,
               leadEmail: body.leadEmail,
               reportAccessKey: crypto.randomBytes(32).toString("hex"),
+              shareCode: createAuditShareCode(),
             },
             idempotencyKey: `website_audit:${crypto.createHash("sha256").update(`${body.url}:${body.leadId || ""}:${body.leadEmail || ""}`).digest("hex")}`,
           });
@@ -5485,7 +5526,7 @@ async function startServer() {
             report,
             // The token belongs to this verified submitter; it is also emailed
             // on completion. No customer contact data is placed in the URL.
-            reportUrl: `/website-audit?report=${encodeURIComponent(job.id)}&key=${encodeURIComponent(String(job.payload?.reportAccessKey || ""))}`,
+            reportUrl: auditReportPath(job),
             deliveryStatus: status === "completed" ? (await getAsyncJob(supabaseAdmin, job.id))?.result?.deliveryStatus || "unknown" : "pending",
             error: jobError,
             dispatch,
@@ -5553,6 +5594,7 @@ async function startServer() {
           requestId,
         });
         const reportAccessKey = crypto.randomBytes(32).toString("hex");
+        const shareCode = createAuditShareCode();
         const { job } = await createAsyncJob(supabaseAdmin, {
           jobType: "website_audit",
           payload: {
@@ -5560,12 +5602,13 @@ async function startServer() {
             businessName: prospect.name || null,
             industry: prospect.industry || null,
             reportAccessKey,
+            shareCode,
             prospectId: prospect.id,
           },
         });
         await completeAsyncJob(supabaseAdmin, job.id, { report, deliveryStatus: "skipped" });
 
-        const reportUrl = `${publicAppUrl()}/website-audit?report=${encodeURIComponent(job.id)}&key=${encodeURIComponent(reportAccessKey)}`;
+        const reportUrl = `${publicAppUrl()}${auditReportPath(job)}`;
         const preparedAt = new Date().toISOString();
         const { error: updateError } = await supabaseAdmin.from("prospects").update({
           preview_url: reportUrl,
