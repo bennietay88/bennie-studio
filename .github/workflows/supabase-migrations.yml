@@ -1,17 +1,17 @@
 name: Supabase Migrations
 
 on:
+  # Merging a release must never apply production schema changes automatically.
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "supabase/config.toml"
-      - "supabase/migrations/**"
-      - ".github/workflows/supabase-migrations.yml"
+    inputs:
+      acknowledge_production_database_changes:
+        description: "Type APPLY_PRODUCTION_MIGRATIONS to authorize live schema changes"
+        required: true
+        type: string
 
 jobs:
   push-migrations:
+    if: ${{ github.ref == 'refs/heads/main' && inputs.acknowledge_production_database_changes == 'APPLY_PRODUCTION_MIGRATIONS' }}
     name: Push database migrations
     runs-on: ubuntu-latest
     environment: production

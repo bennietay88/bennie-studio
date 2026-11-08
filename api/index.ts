@@ -87,27 +87,36 @@ import { processDueFunnelWorkflowRuns, runFunnelAutomations } from "../server/fu
 import { runFinalLaunchCrawler } from "../server/finalLaunchQa.js";
 import { isNewIntroOfferCustomer } from "./introOfferEligibility.js";
 import { resolveStripeCommercialPlan } from "../src/lib/stripeCommercialPlanMapping.js";
+import { getClosedReportPeriod, shouldRunMonthlyReportSchedule } from "../src/lib/monthlyGrowthReportWorkflow.js";
+import { summarizePlatformTraffic } from "../src/lib/trafficAnalytics.js";
+import { generateMonthlyGrowthReportDrafts } from "../server/monthlyGrowthReports.js";
+import {
+  inspectServerSupabaseEnvironment,
+  SUPABASE_UNCONFIGURED_KEY,
+  SUPABASE_UNCONFIGURED_URL,
+} from "../server/supabaseEnvironment.js";
 
 dotenv.config();
 initServerObservability();
 
 const COMMERCIAL_TERMS_VERSION = "2026.09.27";
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const serverSupabaseEnvironment = inspectServerSupabaseEnvironment(process.env);
+const supabaseUrl = serverSupabaseEnvironment.configured
+  ? serverSupabaseEnvironment.url
+  : SUPABASE_UNCONFIGURED_URL;
+const supabaseAnonKey = serverSupabaseEnvironment.configured
+  ? serverSupabaseEnvironment.anonKey
+  : SUPABASE_UNCONFIGURED_KEY;
+const supabaseServiceKey = serverSupabaseEnvironment.configured
+  ? serverSupabaseEnvironment.serviceKey
+  : SUPABASE_UNCONFIGURED_KEY;
 
-const requiredEnv = {
-  VITE_SUPABASE_URL: supabaseUrl,
-  VITE_SUPABASE_ANON_KEY: supabaseAnonKey,
-  SUPABASE_SERVICE_ROLE_KEY: supabaseServiceKey,
-};
-const missingEnv = Object.entries(requiredEnv)
-  .filter(([, value]) => !value || value.includes("TODO"))
-  .map(([key]) => key);
-
-if (missingEnv.length > 0) {
-  structuredLog("warn", "missing_required_server_env", { missingEnv });
+if (!serverSupabaseEnvironment.configured) {
+  structuredLog("warn", "supabase_server_configuration_unavailable", {
+    missingEnvironment: serverSupabaseEnvironment.missing,
+    invalidEnvironment: serverSupabaseEnvironment.invalid,
+  });
 }
 
 const redis =
@@ -143,6 +152,7 @@ async function refreshLaunchFlags(force = false): Promise<LaunchFlags> {
   // E2E runs use deterministic local defaults; never make the test server depend
   // on a real Supabase project or network availability.
   if (process.env.E2E_TEST === "true") return launchFlags;
+  if (!serverSupabaseEnvironment.configured) return DEFAULT_LAUNCH_FLAGS;
   if (!force && Date.now() - launchFlagsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return launchFlags;
   try {
     const { data, error } = await supabaseAdmin.from("settings").select("content").eq("id", "launch_flags").maybeSingle();
@@ -160,6 +170,7 @@ async function refreshLaunchFlags(force = false): Promise<LaunchFlags> {
 async function refreshPlatformSettings(force = false) {
   // Keep browser tests hermetic. Production still loads settings from Supabase.
   if (process.env.E2E_TEST === "true") return;
+  if (!serverSupabaseEnvironment.configured) return;
   if (!force && Date.now() - platformSettingsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return;
   try {
     const { data, error } = await supabaseAdmin
@@ -2746,6 +2757,7 @@ async function startServer() {
                     event_type: "purchase_completed",
                     revenue: Number(session.amount_total || 0) / 100,
                     currency: String(session.currency || "usd").toUpperCase(),
+                    revenue_verified: true,
                     metadata: { stripeSessionId: session.id, offerId: offerId || null },
                   });
                   if (funnelLeadId && UUID_SCHEMA.safeParse(funnelLeadId).success) {
@@ -5221,8 +5233,22 @@ async function startServer() {
         if (outcome.processed && outcome.job?.status === "completed") completed.push(job.id);
         else if (outcome.processed) failures.push(job.id);
       }));
+      let monthlyReportDrafts: any = { enabled: false };
+      const flags = await refreshLaunchFlags();
+      if (flags.monthly_reporting_workflow) {
+        if (!shouldRunMonthlyReportSchedule()) {
+          monthlyReportDrafts = { enabled: true, skipped: "outside_monthly_window" };
+        } else {
+          try {
+            monthlyReportDrafts = { enabled: true, ...(await generateMonthlyGrowthReportDrafts(supabaseAdmin)) };
+          } catch (reportError: any) {
+            monthlyReportDrafts = { enabled: true, error: "Draft generation failed" };
+            captureServerError(reportError, { phase: "monthly_growth_report_cron" });
+          }
+        }
+      }
       res.setHeader("Cache-Control", "no-store");
-      return res.json({ recoveredStaleJobs: stale?.length || 0, processed: (queued || []).length, completed: completed.length, failedAttempts: failures.length });
+      return res.json({ recoveredStaleJobs: stale?.length || 0, processed: (queued || []).length, completed: completed.length, failedAttempts: failures.length, monthlyReportDrafts });
     } catch (err: any) {
       console.error("[WebsiteAuditCron] Retry failed", err?.message || err);
       return res.status(503).json({ error: "Website audit recovery temporarily unavailable." });
@@ -7370,6 +7396,11 @@ async function startServer() {
       );
       if (!eventBody) return;
 
+      // Browser E2E uses a deliberately fake Supabase URL. Keep payload validation
+      // and the API response contract under test, but do not send telemetry from
+      // the isolated fixture server to a non-existent remote project.
+      if (process.env.E2E_TEST === "true") return res.json({ success: true });
+
       try {
         await supabaseAdmin.from("tracking_events").insert({
           event_type: eventBody.eventType,
@@ -9280,6 +9311,7 @@ async function startServer() {
       analyticsV2: z.boolean().optional(),
       customerAiControls: z.boolean().optional(),
       aiCreditTopupsEnabled: z.boolean().optional(),
+      monthlyReportingWorkflow: z.boolean().optional(),
     }), req, res);
     if (!body) return;
     const current = await refreshLaunchFlags(true);
@@ -9289,12 +9321,45 @@ async function startServer() {
       analytics_v2: body.analyticsV2 ?? current.analytics_v2,
       customer_ai_controls: body.customerAiControls ?? current.customer_ai_controls,
       ai_credit_topups_enabled: body.aiCreditTopupsEnabled ?? current.ai_credit_topups_enabled,
+      monthly_reporting_workflow: body.monthlyReportingWorkflow ?? current.monthly_reporting_workflow,
     });
     const { error } = await supabaseAdmin.from("settings").upsert({ id: "launch_flags", content: next, updated_at: new Date().toISOString() });
     if (error) return res.status(400).json({ error: "Launch flags could not be saved" });
     launchFlags = next;
     launchFlagsLoadedAt = Date.now();
     return res.json({ flags: next });
+  });
+
+  app.post("/api/admin/monthly-growth-reports/generate", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const body = validateBody(z.object({ month: z.string().trim().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional() }), req, res);
+    if (!body) return;
+    const flags = await refreshLaunchFlags();
+    if (!flags.monthly_reporting_workflow) return res.status(409).json({ error: "Monthly report workflow is disabled." });
+    try {
+      const period = getClosedReportPeriod(body.month);
+      const result = await generateMonthlyGrowthReportDrafts(supabaseAdmin, period.month);
+      return res.json({ success: true, ...result });
+    } catch (error: any) {
+      captureServerError(error, { phase: "monthly_growth_report_manual_generation" });
+      return res.status(503).json({ error: "Monthly report drafts could not be generated." });
+    }
+  });
+
+  app.post("/api/admin/monthly-growth-reports/:reportId/publish", authenticate, superAdminOnly, async (req: any, res: any) => {
+    if (!UUID_SCHEMA.safeParse(req.params.reportId).success) return res.status(400).json({ error: "Invalid report ID." });
+    const flags = await refreshLaunchFlags();
+    if (!flags.monthly_reporting_workflow) return res.status(409).json({ error: "Monthly report workflow is disabled." });
+    const { data, error } = await supabaseAdmin.rpc("publish_monthly_growth_report", {
+      p_report_id: req.params.reportId,
+      p_reviewer: req.user.id,
+    });
+    if (error) {
+      captureServerError(error, { phase: "monthly_growth_report_publish" });
+      return res.status(503).json({ error: "Report review could not be recorded." });
+    }
+    const report = Array.isArray(data) ? data[0] : data;
+    if (!report) return res.status(409).json({ error: "Only an unpublished scheduled draft can be published." });
+    return res.json({ success: true, report, delivery: "customer dashboard only; no email sent" });
   });
 
   app.get("/api/admin/contracts/renewals", authenticate, superAdminOnly, async (req: any, res: any) => {
@@ -9307,7 +9372,30 @@ async function startServer() {
       .order("minimum_term_end_date", { ascending: true })
       .limit(200);
     if (error) return res.status(503).json({ error: "Contract renewals are temporarily unavailable" });
-    return res.json({ horizonDays, renewals: data || [] });
+    const subscriptions = data || [];
+    const userIds = Array.from(new Set(subscriptions.map((item: any) => item.user_id).filter(Boolean)));
+    const { data: profiles, error: profileError } = userIds.length
+      ? await supabaseAdmin.from("profiles").select("id,business_id").in("id", userIds)
+      : { data: [], error: null };
+    if (profileError) return res.status(503).json({ error: "Renewal customer associations are temporarily unavailable" });
+    const businessByUser = new Map((profiles || []).map((profile: any) => [profile.id, profile.business_id]));
+    const businessIds = Array.from(new Set((profiles || []).map((profile: any) => profile.business_id).filter(Boolean)));
+    const { data: businesses, error: businessError } = businessIds.length
+      ? await supabaseAdmin.from("businesses").select("id,name,plan").in("id", businessIds)
+      : { data: [], error: null };
+    if (businessError) return res.status(503).json({ error: "Renewal business names are temporarily unavailable" });
+    const businessById = new Map((businesses || []).map((business: any) => [business.id, business]));
+    return res.json({ horizonDays, renewals: subscriptions.map((subscription: any) => {
+      const businessId = businessByUser.get(subscription.user_id) || null;
+      const business = businessId ? businessById.get(businessId) : null;
+      return {
+        ...subscription,
+        business_id: businessId,
+        business_name: business?.name || null,
+        business_plan: business?.plan || null,
+        attribution_status: business ? "matched" : "unmatched",
+      };
+    }) });
   });
 
   // Customer-specific commitment override. The commercial catalogue remains
@@ -9927,7 +10015,7 @@ async function startServer() {
         sessionKey: z.string().uuid(),
         stepId: UUID_SCHEMA.optional().nullable(),
         variantId: UUID_SCHEMA.optional().nullable(),
-        eventType: z.string().trim().min(1).max(80),
+        eventType: z.enum(["funnel_view", "step_view", "cta_click", "form_started", "appointment_started", "checkout_started", "upsell_viewed", "upsell_declined"]),
         source: z.string().trim().max(120).optional(),
         medium: z.string().trim().max(120).optional(),
         campaign: z.string().trim().max(180).optional(),
@@ -9935,8 +10023,6 @@ async function startServer() {
         term: z.string().trim().max(180).optional(),
         referrer: z.string().trim().max(1000).optional(),
         device: z.string().trim().max(40).optional(),
-        revenue: z.coerce.number().min(0).max(100000000).optional(),
-        currency: z.string().trim().min(3).max(3).optional(),
         metadata: z.record(z.string(), z.any()).optional(),
       }), req, res);
       if (!body) return;
@@ -9963,8 +10049,6 @@ async function startServer() {
           term: body.term || null,
           referrer: body.referrer || session.referrer || null,
           device: body.device || session.device || null,
-          revenue: body.revenue ?? null,
-          currency: body.currency || null,
           metadata: body.metadata || {},
         });
         if (error) throw error;
@@ -12030,6 +12114,7 @@ async function startServer() {
           id: salesRecordId(`approval-change:${approvalId}:${index}`),
           business_id: approval.business_id, profile_id: req.user.id, website_id: approval.website_id || null,
           request_type: "website_approval_change", update_category: "website_approval", priority: "launch_blocker", status: "submitted",
+          consumes_allowance: false,
           title: [item.page, item.section].filter(Boolean).length
             ? `Approval change · ${[item.page, item.section].filter(Boolean).join(" · ")}`
             : "Website approval change",
@@ -12629,21 +12714,24 @@ async function startServer() {
             .gte("created_at", sinceIso)
             .order("created_at", { ascending: false })
             .range(from, to)),
-          supabaseAdmin
+          fetchAllRows((from, to) => supabaseAdmin
             .from("profiles")
             .select("id, created_at")
             .gte("created_at", sinceIso)
-            .limit(5000),
-          supabaseAdmin
+            .order("created_at", { ascending: false })
+            .range(from, to)),
+          fetchAllRows((from, to) => supabaseAdmin
             .from("businesses")
             .select("id, created_at")
             .gte("created_at", sinceIso)
-            .limit(5000),
-          supabaseAdmin
+            .order("created_at", { ascending: false })
+            .range(from, to)),
+          fetchAllRows((from, to) => supabaseAdmin
             .from("leads")
-            .select("id, source, created_at")
+            .select("id, source, status, visitor_id, created_at")
             .gte("created_at", sinceIso)
-            .limit(5000),
+            .order("created_at", { ascending: false })
+            .range(from, to)),
         ]);
 
         const unwrapRows = <T = any>(result: PromiseSettledResult<any>): T[] => {
@@ -12661,30 +12749,12 @@ async function startServer() {
         const profiles = unwrapRows<any>(profilesResult);
         const businesses = unwrapRows<any>(businessesResult);
         const leads = unwrapRows<any>(leadsResult);
-        const actualPageViews = pageViews.filter((view) => !String(view.page_path || "").includes(":"));
-        const visitorIds = new Set(actualPageViews.map((view) => view.visitor_id).filter(Boolean));
         const clickEventPattern = /(click|cta|whatsapp|call|email|booking|quote|checkout|form_submit|appointment)/i;
-        const signupEventPattern = /(signup|register|registration|account_created)/i;
         const clickEvents = trackingEvents.filter((event) =>
           clickEventPattern.test(String(event.event_type || "")),
         );
-        const signupEvents = trackingEvents.filter((event) =>
-          signupEventPattern.test(String(event.event_type || "")),
-        );
-        const registrations = Math.max(profiles.length, businesses.length, signupEvents.length);
-        const totalViews = actualPageViews.length;
-        const uniqueVisitors = visitorIds.size;
-
-        const aggregate = {
-          totalViews,
-          uniqueVisitors,
-          avgViewsPerVisitor: uniqueVisitors ? totalViews / uniqueVisitors : 0,
-          totalClicks: clickEvents.length,
-          registrations,
-          totalLeads: leads.length,
-          totalEvents: trackingEvents.length,
-          conversionRate: uniqueVisitors ? ((registrations + leads.length) / uniqueVisitors) * 100 : 0,
-        };
+        const actualPageViews = pageViews.filter((view) => !String(view.page_path || "").includes(":"));
+        const aggregate = summarizePlatformTraffic({ pageViews: actualPageViews, trackingEvents, profiles, businesses, leads });
 
         const topPages = Object.entries(
           actualPageViews.reduce((acc: Record<string, number>, view) => {
@@ -13300,8 +13370,53 @@ async function startServer() {
     },
   );
 
-  app.get("/api/health-check", (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  app.get("/api/health-check", async (_req, res) => {
+    res.set("Cache-Control", "no-store");
+    const timestamp = new Date().toISOString();
+    if (process.env.E2E_TEST === "true") {
+      return res.status(200).json({ status: "ok", timestamp, dependencies: { supabase: "test-fixture" } });
+    }
+    if (serverSupabaseEnvironment.missing.length > 0) {
+      return res.status(503).json({
+        status: "degraded",
+        code: "SUPABASE_CONFIGURATION_MISSING",
+        missingEnvironment: serverSupabaseEnvironment.missing,
+        timestamp,
+      });
+    }
+    if (serverSupabaseEnvironment.invalid.length > 0) {
+      return res.status(503).json({
+        status: "degraded",
+        code: "SUPABASE_CONFIGURATION_INVALID",
+        invalidEnvironment: serverSupabaseEnvironment.invalid,
+        timestamp,
+      });
+    }
+
+    try {
+      const { error } = await supabaseAdmin
+        .from("settings")
+        .select("id")
+        .limit(1)
+        .abortSignal(AbortSignal.timeout(4000));
+      if (error) throw error;
+      return res.status(200).json({ status: "ok", timestamp, dependencies: { supabase: "ok" } });
+    } catch (error: any) {
+      const safeErrorMessage = String(error?.message || "").toLowerCase();
+      const credentialsRejected = [401, 403].includes(Number(error?.status || error?.statusCode)) ||
+        /invalid api key|invalid jwt|invalid token/.test(safeErrorMessage);
+      structuredLog("error", "health_check_supabase_not_ready", {
+        dependency: "supabase",
+        errorCode: typeof error?.code === "string" ? error.code : "unknown",
+        status: Number.isInteger(error?.status) ? error.status : undefined,
+      });
+      return res.status(503).json({
+        status: "degraded",
+        code: credentialsRejected ? "SUPABASE_CREDENTIALS_REJECTED" : "SUPABASE_UNAVAILABLE",
+        dependency: "supabase",
+        timestamp,
+      });
+    }
   });
 
   app.get("/api/system/status", authenticate, async (req: any, res) => {

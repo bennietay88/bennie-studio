@@ -31,9 +31,9 @@ if (baseUrl) {
     "/terms",
   ];
   const marketingMetadata = {
-    "/": "Managed Websites That Generate Enquiries",
-    "/pricing": "Managed Website Plans and Pricing",
-    "/generate-preview": "Website Direction",
+    "/": "Professional Websites for Service Businesses | Bennie Studio",
+    "/pricing": "Website Plans &amp; Pricing | Bennie Studio",
+    "/generate-preview": "Website Direction | Bennie Studio",
   };
 
   const response = await fetch(new URL("/api/health-check", baseUrl));

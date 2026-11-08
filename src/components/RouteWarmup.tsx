@@ -3,6 +3,7 @@ import { useEffect } from "react";
 const publicImports = [
   () => import("./BrandLedLandingPage"),
   () => import("./OwnSalesSeoPage"),
+  () => import("./ComparisonGuidePage"),
   () => import("./PublicMarketingPages"),
   () => import("./PublicBlogPostPage"),
   () => import("./BookDemo"),

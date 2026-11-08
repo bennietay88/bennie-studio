@@ -18,13 +18,19 @@ const publicRoutes = [
   "/portfolio/sample/dental",
 ];
 
-const supabaseCorsHeaders = {
-  "access-control-allow-origin": `http://127.0.0.1:${process.env.E2E_PORT || 4173}`,
-  "access-control-allow-credentials": "true",
-  "access-control-allow-methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS",
-  "access-control-allow-headers": "apikey,authorization,content-type,x-client-info",
-  "access-control-expose-headers": "content-range",
-};
+function supabaseCorsHeaders(request: any) {
+  const requestHeaders = request.headers();
+  return {
+    // WebKit can omit Origin from the intercepted OPTIONS request snapshot.
+    "access-control-allow-origin": requestHeaders.origin || `http://127.0.0.1:${process.env.E2E_PORT || 4173}`,
+    "access-control-allow-credentials": "true",
+    "access-control-allow-methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS",
+    "access-control-allow-headers": requestHeaders["access-control-request-headers"] || "apikey,authorization,content-type,x-client-info,accept-profile,content-profile,prefer,range,x-supabase-api-version",
+    "access-control-expose-headers": "content-range,range,content-profile",
+    "access-control-max-age": "600",
+    "vary": "Origin, Access-Control-Request-Headers",
+  };
+}
 
 const viewports = [
   { name: "desktop", width: 1440, height: 1000, maxHeadingLines: 3 },
@@ -48,18 +54,13 @@ async function mockAnonymousPublicDependencies(page: any) {
     contentType: "application/json",
     body: JSON.stringify({ country_code: "US", country_name: "United States" }),
   }));
-  await page.route("**/auth/v1/**", (request: any) => request.fulfill({
-    status: 200,
-    headers: supabaseCorsHeaders,
-    contentType: "application/json",
-    body: JSON.stringify({ user: null, session: null }),
-  }));
-  await page.route("**/rest/v1/**", (request: any) => request.fulfill({
-    status: 200,
-    headers: supabaseCorsHeaders,
-    contentType: "application/json",
-    body: JSON.stringify([]),
-  }));
+  const fulfillSupabase = (route: any, body: unknown) => route.fulfill({
+    status: route.request().method() === "OPTIONS" ? 204 : 200,
+    headers: supabaseCorsHeaders(route.request()),
+    ...(route.request().method() === "OPTIONS" ? {} : { contentType: "application/json", body: JSON.stringify(body) }),
+  });
+  await page.route("**/auth/v1/**", (route: any) => fulfillSupabase(route, { user: null, session: null }));
+  await page.route("**/rest/v1/**", (route: any) => fulfillSupabase(route, []));
   await page.route("**/api/public/platform-site-cms", (request: any) => request.fulfill({
     status: 200, contentType: "application/json", body: JSON.stringify({ content: null }),
   }));

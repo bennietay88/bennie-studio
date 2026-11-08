@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Switch } from "../ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Textarea } from "../ui/textarea";
-import { calculateCustomerHealth } from "../../lib/automationPolicy";
+import { calculateCustomerHealth, isOnboardingStalled, renewalDaysRemaining } from "../../lib/automationPolicy";
 
 const eventLabel = (value: string) => value?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -42,6 +42,7 @@ export function OperationsControlCenter() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [websites, setWebsites] = useState<any[]>([]);
   const [updateRequests, setUpdateRequests] = useState<any[]>([]);
+  const [renewals, setRenewals] = useState<any[]>([]);
   const [isApprovalOpen, setIsApprovalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingTermId, setSavingTermId] = useState<string | null>(null);
@@ -92,6 +93,22 @@ export function OperationsControlCenter() {
         failures.push(`${sources[index].name}: ${reason?.message || "unavailable"}`);
       }
     });
+    if (isSuperAdmin) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const response = await fetch("/api/admin/contracts/renewals?horizonDays=60", {
+          headers: { Authorization: `Bearer ${session?.access_token}` },
+        });
+        if (!response.ok) throw new Error(`Renewals request failed (${response.status})`);
+        const body = await response.json();
+        setRenewals(Array.isArray(body.renewals) ? body.renewals : []);
+      } catch (error: any) {
+        setRenewals([]);
+        failures.push(`Renewals: ${error?.message || "unavailable"}`);
+      }
+    } else {
+      setRenewals([]);
+    }
     if (failures.length) {
       console.warn("Operations data sources unavailable:", failures);
       toast.warning(`Operations data unavailable: ${failures.map((failure) => failure.split(":")[0]).join(", ")}.`, {
@@ -105,6 +122,23 @@ export function OperationsControlCenter() {
     loadOperations();
   }, []);
 
+  const renewalByBusiness = useMemo(() => {
+    const byBusiness = new Map<string, { renewal: any; days: number }>();
+    renewals.forEach((renewal) => {
+      if (!renewal.business_id || renewal.attribution_status !== "matched") return;
+      const days = renewalDaysRemaining({
+        status: renewal.status,
+        renewalState: renewal.renewal_state,
+        cancelAtPeriodEnd: renewal.cancel_at_period_end,
+        renewalDate: renewal.minimum_term_end_date,
+      });
+      if (days === null) return;
+      const current = byBusiness.get(renewal.business_id);
+      if (!current || days < current.days) byBusiness.set(renewal.business_id, { renewal, days });
+    });
+    return byBusiness;
+  }, [renewals]);
+
   const healthRows = useMemo(
     () =>
       businesses.map((business) => {
@@ -112,6 +146,8 @@ export function OperationsControlCenter() {
         const openTickets = tickets.filter((ticket) => ticket.business_id === business.id && !["resolved", "closed"].includes(ticket.status));
         const website = websites.find((item) => item.business_id === business.id);
         const risks: string[] = [];
+        if (renewalByBusiness.has(business.id)) risks.push("Verified renewal approaching · 60 days");
+        if (isOnboardingStalled({ lifecycleStage: business.lifecycle_stage, onboardingComplete: Boolean(business.onboarding_completed), createdAt: business.created_at })) risks.push("Onboarding stalled · 7+ days");
         if (["unpaid", "past_due"].includes(business.subscription_status) || business.status === "unpaid") risks.push("Payment attention");
         if (["inactive", "suspended", "cancelled"].includes(business.status)) risks.push("Account inactive");
         if (!website) risks.push("No website record");
@@ -121,7 +157,7 @@ export function OperationsControlCenter() {
         const health = calculateCustomerHealth({ onboardingComplete: Boolean(business.onboarding_completed), websiteLive: ["live", "published"].includes(String(website?.status || "")), paymentHealthy: !["unpaid", "past_due"].includes(String(business.subscription_status || "")) && business.status !== "unpaid", recentEngagement: businessLeads.length > 0, openIssues: openTickets.length, overdueApproval: false });
         return { business, risks, health, leads: businessLeads.length, tickets: openTickets.length };
       }).sort((a, b) => b.risks.length - a.risks.length),
-    [businesses, leads, tickets, websites],
+    [businesses, leads, tickets, websites, renewalByBusiness],
 	  );
 
   const commandItems = useMemo(() => {
@@ -191,6 +227,23 @@ export function OperationsControlCenter() {
           nextAction: "Ask customer to complete onboarding",
           priority: "medium",
           href: "/admin/client-onboarding",
+        });
+      }
+      const renewal = renewalByBusiness.get(business.id);
+      if (renewal) {
+        const renewalAt = Date.parse(renewal.renewal.minimum_term_end_date);
+        items.push({
+          id: `renewal-${business.id}`,
+          customer: business.owner_email || business.email || business.name || "Customer",
+          business: business.name || business.id,
+          planOrService: renewal.renewal.commercial_product_slug || business.plan || "Managed website",
+          status: `renewal_in_${renewal.days}_days`,
+          owner: "Customer Health",
+          dueAt: Number.isFinite(renewalAt) ? renewalAt : undefined,
+          dueDate: Number.isFinite(renewalAt) ? new Date(renewalAt).toLocaleDateString() : "Verified contract date",
+          nextAction: "Review account health and verified renewal terms",
+          priority: renewal.days <= 30 ? "high" : "medium",
+          href: "/admin/operations",
         });
       }
     });
@@ -280,7 +333,7 @@ export function OperationsControlCenter() {
       if (b.dueAt) return 1;
       return 0;
     }).slice(0, 25);
-  }, [approvals, billingEvents, businesses, projects, updateRequests]);
+  }, [approvals, billingEvents, businesses, projects, renewalByBusiness, updateRequests]);
 
   const togglePermission = async (member: any, permission: string) => {
     if (!isSuperAdmin) return toast.error("Only Super Admins can change staff permissions");

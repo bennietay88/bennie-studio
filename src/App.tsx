@@ -24,8 +24,15 @@ import "./styles/publicBrand.css";
 import "./styles/studioCaseStudies.css";
 import { AgencyMotionDirector } from "./components/AgencyMotionDirector";
 import { classifyTenantHost } from "./lib/tenantDomains";
+import { shouldRetryLazyChunkLoad } from "./lib/lazyChunkRecovery";
 
 const CHUNK_RETRY_KEY = "bt_chunk_retry_once";
+let documentNavigationStarted = false;
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => { documentNavigationStarted = true; }, { once: true });
+  window.addEventListener("pagehide", () => { documentNavigationStarted = true; }, { once: true });
+}
 
 // Vite assets are content-hashed. A browser that cached the previous index
 // can request an old lazy chunk after a deployment, so recover once with a
@@ -48,7 +55,10 @@ const lazy = <T extends React.ComponentType<any>>(
     return module;
   } catch (error) {
     try {
-      if (!sessionStorage.getItem(CHUNK_RETRY_KEY)) {
+      if (shouldRetryLazyChunkLoad({
+        navigationStarted: documentNavigationStarted,
+        retryUsed: Boolean(sessionStorage.getItem(CHUNK_RETRY_KEY)),
+      })) {
         sessionStorage.setItem(CHUNK_RETRY_KEY, "1");
         const retryUrl = new URL(window.location.href);
         retryUrl.searchParams.set("_chunk_retry", String(Date.now()));
@@ -66,6 +76,7 @@ const LandingPage = lazy(() => import("./components/BrandLedLandingPage"));
 const PersonalProfilePage = lazy(() => import("./components/PersonalProfilePage"));
 const LoginPage = lazy(() => import("./components/LoginPage"));
 const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
+const ComparisonGuidePage = lazy(() => import("./components/ComparisonGuidePage"));
 const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPages"));
 const StudioCaseStudyDetail = lazy(() => import("./components/StudioCaseStudyDetail"));
 const StudioShowcaseLivePreview = lazy(() => import("./components/StudioShowcaseLivePreview"));
@@ -628,6 +639,8 @@ export default function App() {
               <Route path="/website-design/*" element={<Navigate to="/website-subscription-service" replace />} />
               <Route path="/website-subscription-service" element={<OwnSalesSeoPage />} />
               <Route path="/website-subscription-service/:market" element={<Navigate to="/website-subscription-service" replace />} />
+              <Route path="/managed-website-vs-diy" element={<ComparisonGuidePage kind="diy" />} />
+              <Route path="/managed-website-vs-agency" element={<ComparisonGuidePage kind="agency" />} />
               <Route path="/portfolio" element={<Navigate to="/case-studies" replace />} />
               <Route path="/services" element={<PublicMarketingPages />} />
               <Route path="/about" element={<PublicMarketingPages />} />

@@ -45,6 +45,8 @@ test("sitemap contains current canonical marketing routes only", () => {
     "/accounting-firm-website-design",
     "/local-service-website-design",
     "/resources/website-launch-checklist",
+    "/managed-website-vs-diy",
+    "/managed-website-vs-agency",
   ]) {
     assert.equal(sitemap.includes(`<loc>https://app.bennietay.com${route}</loc>`), true, `Missing ${route}`);
   }

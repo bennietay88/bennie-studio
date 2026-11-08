@@ -112,6 +112,9 @@ export default function DashboardOverview() {
   const [recentLeads, setRecentLeads] = React.useState<any[]>([]);
   const [recentAppointments, setRecentAppointments] = React.useState<any[]>([]);
   const [reviewCount, setReviewCount] = React.useState(0);
+  const [publishedMonthlyReports, setPublishedMonthlyReports] = React.useState<any[]>([]);
+  const [publishedReportsLoading, setPublishedReportsLoading] = React.useState(true);
+  const [publishedReportsError, setPublishedReportsError] = React.useState("");
   const [business, setBusiness] = React.useState<any>(null);
   const [website, setWebsite] = React.useState<any>(null);
   const [projects, setProjects] = React.useState<any[]>([]);
@@ -151,6 +154,32 @@ export default function DashboardOverview() {
 
   const [analyticsData, setAnalyticsData] = React.useState<any[]>([]);
   const isDevelopmentMode = false;
+
+  const loadPublishedMonthlyReports = React.useCallback(async () => {
+    if (!profile?.businessId) {
+      setPublishedMonthlyReports([]);
+      setPublishedReportsLoading(false);
+      return;
+    }
+    setPublishedReportsLoading(true);
+    setPublishedReportsError("");
+    try {
+      const { data, error } = await supabase.from("monthly_growth_reports")
+        .select("id,report_month,status,summary,payload,published_at,created_at")
+        .eq("business_id", profile.businessId)
+        .eq("status", "published")
+        .order("report_month", { ascending: false })
+        .limit(12);
+      if (error) throw error;
+      setPublishedMonthlyReports(data || []);
+    } catch (error: any) {
+      console.error("Failed to load reviewed monthly reports:", error);
+      setPublishedMonthlyReports([]);
+      setPublishedReportsError("Reviewed reports could not be loaded. Try again.");
+    } finally {
+      setPublishedReportsLoading(false);
+    }
+  }, [profile?.businessId]);
 
   const handleViewLive = () => {
     if (!profile?.businessId) {
@@ -268,6 +297,7 @@ export default function DashboardOverview() {
           setApprovals(approvalData || []);
           setUpdateRequests(updateData || []);
           setSupportTickets(ticketData || []);
+          await loadPublishedMonthlyReports();
         const { count: reviewsTotal } = await supabase
           .from("reviews")
           .select("id", { count: "exact", head: true })
@@ -791,9 +821,13 @@ export default function DashboardOverview() {
     }
 
     setSavingGrowthAction("done_for_you_request");
-    const draft = { title: requestDraft.type, details: requestDraft.details.trim(), savedAt: new Date().toISOString() };
-    const clientRequestId = crypto.randomUUID();
-    const { error: requestError } = await supabase.from("monthly_update_requests").insert({
+    const draftKey = `bts_update_request_draft_${profile.businessId}`;
+    let clientRequestId = "";
+    try { clientRequestId = JSON.parse(localStorage.getItem(draftKey) || "null")?.clientRequestId || ""; } catch { /* Keep a fresh request ID if the saved draft is invalid. */ }
+    clientRequestId ||= crypto.randomUUID();
+    const draft = { title: requestDraft.type, details: requestDraft.details.trim(), clientRequestId, savedAt: new Date().toISOString() };
+    localStorage.setItem(draftKey, JSON.stringify(draft));
+    const { error: requestError } = await supabase.rpc("submit_monthly_update_request", { p_request: {
       business_id: profile.businessId,
       profile_id: profile.uid,
       request_type: "managed_growth_request",
@@ -807,15 +841,14 @@ export default function DashboardOverview() {
       submitted_at: new Date().toISOString(),
       estimated_response_at: new Date(Date.now() + 2 * 86400000).toISOString(),
       customer_draft: draft,
-    });
+    } });
     setSavingGrowthAction(null);
 
     if (requestError) {
-      localStorage.setItem(`bts_update_request_draft_${profile.businessId}`, JSON.stringify(draft));
       console.error("Managed dashboard update request submission failed:", requestError);
       toast.error(
-        requestError.message.includes("monthly_update_requests")
-          ? "Apply the update request Supabase migration before submitting requests."
+        requestError.message.includes("monthly_update_allowance_exceeded")
+          ? "Your monthly update allowance has been reached. Your draft was saved in this browser."
           : `Request not submitted. Your draft was saved in this browser. ${requestError.message}`,
       );
       return;
@@ -827,6 +860,7 @@ export default function DashboardOverview() {
       payload: { details: requestDraft.details.trim() },
     });
     toast.success(`${requestDraft.type} request queued.`);
+    localStorage.removeItem(draftKey);
     setRequestDraft((current) => ({ ...current, details: "" }));
   };
 
@@ -964,7 +998,7 @@ export default function DashboardOverview() {
           completedWebsiteImprovements,
           recommendation: recommendedConversionImprovement,
         },
-      }, { onConflict: "business_id,report_month" });
+      }, { onConflict: "business_id,report_month", ignoreDuplicates: true });
       if (reportError && !reportError.message.includes("monthly_growth_reports")) {
         console.warn("Monthly growth report persistence failed:", reportError.message);
       }
@@ -980,6 +1014,39 @@ export default function DashboardOverview() {
         recommendation: recommendedConversionImprovement,
       },
     });
+  };
+
+  const downloadPublishedMonthlyReport = (report: any) => {
+    const measured = report.payload?.measured || {};
+    const completedWork = Array.isArray(report.payload?.completedWork) ? report.payload.completedWork : [];
+    const reportText = [
+      MONTHLY_WEBSITE_REPORT.title,
+      `Business: ${business?.name || "Your Business"}`,
+      `Report period: ${report.report_month}`,
+      "",
+      "VERIFIED WEBSITE ACTIVITY",
+      `Page views: ${measured.pageViews ?? "Not enough data yet"}`,
+      `Recorded sessions: ${measured.viewSessions ?? "Not enough data yet"}`,
+      `Enquiries: ${measured.enquiries ?? report.lead_count ?? "Not enough data yet"}`,
+      `WhatsApp clicks: ${measured.whatsappClicks ?? "Not enough data yet"}`,
+      `Call clicks: ${measured.callClicks ?? "Not enough data yet"}`,
+      `Bookings: ${measured.bookings ?? "Not enough data yet"}`,
+      `Top enquiry page: ${measured.topEnquiryPage || "Not enough data yet"}`,
+      `Most-used enquiry path: ${measured.mostUsedEnquiryPath || "Not enough data yet"}`,
+      "",
+      "COMPLETED WEBSITE UPDATES",
+      ...(completedWork.length ? completedWork.map((item: any) => `- ${item.title}${item.details ? `: ${item.details}` : ""}`) : ["- No completed updates recorded for this period."]),
+      "",
+      report.summary || "Not enough verified data yet.",
+      "",
+      "No recommendations are included in this automated report. The activity above is limited to measured platform records for the stated period.",
+    ].join("\n");
+    const url = URL.createObjectURL(new Blob([reportText], { type: "text/plain;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `monthly-website-report-${report.report_month}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   if (loading && !stats.websites && !recentLeads.length) {
@@ -1213,6 +1280,28 @@ export default function DashboardOverview() {
         </section>
 
         <section className="grid gap-6 lg:grid-cols-2">
+          <Card className="rounded-[2rem] border-slate-200 bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl font-black text-slate-950">Monthly Website Reports</CardTitle>
+              <CardDescription>Reviewed reports show measured activity for a completed period. Drafts remain private until the studio reviews them.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button onClick={downloadMonthlyReport} className="w-full rounded-xl bg-indigo-600 font-black uppercase tracking-widest">Download current report</Button>
+              <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-500">Reviewed reports</p>
+                {publishedReportsError && <Button variant="outline" size="sm" onClick={loadPublishedMonthlyReports} className="rounded-lg">Retry</Button>}
+              </div>
+              {publishedReportsLoading && <p role="status" className="text-xs font-semibold text-slate-500">Loading reviewed reports…</p>}
+              {publishedReportsError && <p role="alert" className="text-xs font-semibold text-rose-700">{publishedReportsError}</p>}
+              {!publishedReportsLoading && !publishedReportsError && !publishedMonthlyReports.length && <p className="rounded-xl bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">No reviewed monthly reports have been published yet. Unpublished drafts are not shown here.</p>}
+              {publishedMonthlyReports.map((report) => <div key={report.id} className="rounded-xl border border-slate-100 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1"><p className="text-sm font-black text-slate-900">{report.report_month}</p><p className="mt-1 text-xs text-slate-600">{report.summary || "Not enough verified data yet."}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">Reviewed · customer dashboard</p></div>
+                  <Button variant="outline" size="sm" onClick={() => downloadPublishedMonthlyReport(report)} className="rounded-lg">Download</Button>
+                </div>
+              </div>)}
+            </CardContent>
+          </Card>
           <Card className="rounded-[2rem] border-slate-200 bg-white shadow-sm">
             <CardHeader><CardTitle className="text-xl font-black text-slate-950">What We Improved</CardTitle><CardDescription>Completed website update records from this month.</CardDescription></CardHeader>
             <CardContent className="space-y-3">
@@ -2078,6 +2167,23 @@ export default function DashboardOverview() {
                 <Button onClick={downloadMonthlyReport} className="w-full rounded-xl bg-indigo-600 font-black uppercase tracking-widest">
                   Download Report
                 </Button>
+                <div className="border-t border-slate-100 pt-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">Published reports</p>
+                    {publishedReportsError && <Button variant="outline" size="sm" onClick={loadPublishedMonthlyReports} className="rounded-lg">Retry</Button>}
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {publishedReportsLoading && <p role="status" className="text-xs font-semibold text-slate-500">Loading reviewed reports…</p>}
+                    {publishedReportsError && <p role="alert" className="text-xs font-semibold text-rose-700">{publishedReportsError}</p>}
+                    {publishedMonthlyReports.map((report) => <div key={report.id} className="rounded-xl border border-slate-100 p-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1"><p className="text-sm font-black text-slate-900">{report.report_month}</p><p className="mt-1 text-xs text-slate-600">{report.summary || "Not enough verified data yet."}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">Reviewed · customer dashboard</p></div>
+                        <Button variant="outline" size="sm" onClick={() => downloadPublishedMonthlyReport(report)} className="rounded-lg">Download</Button>
+                      </div>
+                    </div>)}
+                    {!publishedReportsLoading && !publishedReportsError && !publishedMonthlyReports.length && <p className="text-xs font-semibold text-slate-500">No reviewed monthly reports have been published yet. Drafts remain private until the studio reviews them.</p>}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

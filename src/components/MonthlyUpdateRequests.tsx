@@ -3,13 +3,10 @@ import { AlertCircle, CalendarCheck, Plus, RefreshCw, Send } from "lucide-react"
 import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
+import { canSubmitMonthlyUpdateRequest, countMonthlyUpdateAllowance } from "../lib/monthlyUpdateAllowance";
 import { getLocalSeoLimits } from "../constants/localSeoEngine";
 import { PLANS, findPlan, normalizePlans } from "../constants/plans";
-import {
-  PLAN_DELIVERY_STANDARDS,
-  addBusinessDays,
-  legacyPlanToPublicPlanSlug,
-} from "../constants/deliveryStandards";
+import { PLAN_DELIVERY_STANDARDS, legacyPlanToPublicPlanSlug } from "../constants/deliveryStandards";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -22,6 +19,10 @@ export default function MonthlyUpdateRequests() {
   const [business, setBusiness] = React.useState<any>(null);
   const [planSettings, setPlanSettings] = React.useState<any[]>(normalizePlans(PLANS));
   const [requests, setRequests] = React.useState<any[]>([]);
+  const [requestsLoading, setRequestsLoading] = React.useState(true);
+  const [allowanceSummary, setAllowanceSummary] = React.useState<any>(null);
+  const [allowanceLoading, setAllowanceLoading] = React.useState(true);
+  const [allowanceError, setAllowanceError] = React.useState("");
   const [title, setTitle] = React.useState("");
   const [details, setDetails] = React.useState("");
   const [requestType, setRequestType] = React.useState("content_update");
@@ -29,12 +30,13 @@ export default function MonthlyUpdateRequests() {
   const [submitting, setSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState("");
   const [failureCount, setFailureCount] = React.useState(0);
+  const [clientRequestId, setClientRequestId] = React.useState("");
   const draftKey = React.useMemo(() => `bts_update_request_draft_${profile?.businessId || "none"}`, [profile?.businessId]);
 
   React.useEffect(() => {
     const load = async () => {
       if (!profile?.businessId) return;
-      const [{ data: businessData }, { data: requestData }, { data: planData }] = await Promise.all([
+      const [{ data: businessData }, { data: requestData }, { data: planData }, allowanceResult] = await Promise.all([
         supabase.from("businesses").select("*").eq("id", profile.businessId).maybeSingle(),
         supabase
           .from("monthly_update_requests")
@@ -43,9 +45,19 @@ export default function MonthlyUpdateRequests() {
           .order("created_at", { ascending: false })
           .limit(100),
         supabase.from("settings").select("content").eq("id", "plans").maybeSingle(),
+        supabase.rpc("get_monthly_update_allowance", { p_business_id: profile.businessId }),
       ]);
       if (businessData) setBusiness(businessData);
       if (Array.isArray(requestData)) setRequests(requestData);
+      setRequestsLoading(false);
+      const allowanceRow = Array.isArray(allowanceResult.data) ? allowanceResult.data[0] : allowanceResult.data;
+      if (allowanceResult.error || !allowanceRow) {
+        setAllowanceError("Your current update allowance could not be verified. Try refreshing before submitting.");
+      } else {
+        setAllowanceSummary(allowanceRow);
+        setAllowanceError("");
+      }
+      setAllowanceLoading(false);
       if (Array.isArray(planData?.content?.pricing)) setPlanSettings(normalizePlans(planData.content.pricing));
       try {
         const savedDraft = localStorage.getItem(`bts_update_request_draft_${profile.businessId}`);
@@ -55,6 +67,7 @@ export default function MonthlyUpdateRequests() {
           setDetails(draft.details || "");
           setRequestType(draft.requestType || "content_update");
           setPriority(draft.priority || "normal");
+          setClientRequestId(draft.clientRequestId || "");
         }
       } catch {
         // Draft restore is best effort.
@@ -67,11 +80,11 @@ export default function MonthlyUpdateRequests() {
   const limits = getLocalSeoLimits(business?.plan || "starter", currentPlan.maxPages, currentPlan);
   const currentAllowancePeriod = new Date().toISOString().slice(0, 7);
   const monthlyAllowance = Math.max(0, Number(currentPlan.monthlyUpdateLimit ?? 1));
-  const usedAllowance = requests.filter((request) =>
-    request.allowance_period === currentAllowancePeriod &&
-    !["declined", "cancelled"].includes(String(request.status || "")),
-  ).length;
-  const remainingAllowance = Math.max(0, monthlyAllowance - usedAllowance);
+  const usedAllowance = countMonthlyUpdateAllowance(requests, currentAllowancePeriod);
+  const verifiedAllowance = Math.max(0, Number(allowanceSummary?.base_allowance ?? monthlyAllowance) + Number(allowanceSummary?.extra_allowance || 0));
+  const verifiedUsedAllowance = Number.isFinite(Number(allowanceSummary?.used_allowance)) ? Number(allowanceSummary.used_allowance) : usedAllowance;
+  const remainingAllowance = Math.max(0, Number(allowanceSummary?.remaining_allowance ?? (verifiedAllowance - verifiedUsedAllowance)));
+  const canSubmitRequest = !allowanceError && !allowanceLoading && canSubmitMonthlyUpdateRequest({ loading: requestsLoading, allowance: verifiedAllowance, used: verifiedUsedAllowance });
   const activeRequests = requests.filter((item) => ["submitted", "acknowledged", "in_progress", "waiting_for_customer"].includes(String(item.status || "")));
   const completedThisMonth = requests.filter((item) =>
     item.status === "completed" && String(item.completed_at || item.updated_at || "").startsWith(currentAllowancePeriod)
@@ -82,6 +95,10 @@ export default function MonthlyUpdateRequests() {
 
   const submitRequest = async () => {
     if (submitting) return;
+    if (!canSubmitRequest) {
+      toast.error(allowanceError || (requestsLoading || allowanceLoading ? "Loading your request allowance. Try again shortly." : "Your monthly update allowance has been reached."));
+      return;
+    }
     if (!profile?.businessId) {
       toast.error("Business profile missing.");
       return;
@@ -91,11 +108,12 @@ export default function MonthlyUpdateRequests() {
       return;
     }
 
-    const draft = { title, details, requestType, priority, savedAt: new Date().toISOString() };
+    const stableRequestId = clientRequestId || crypto.randomUUID();
+    if (!clientRequestId) setClientRequestId(stableRequestId);
+    const draft = { title, details, requestType, priority, clientRequestId: stableRequestId, savedAt: new Date().toISOString() };
     localStorage.setItem(draftKey, JSON.stringify(draft));
     setSubmitError("");
     setSubmitting(true);
-    const clientRequestId = crypto.randomUUID();
     const payload = {
       business_id: profile.businessId,
       profile_id: profile.uid,
@@ -106,35 +124,37 @@ export default function MonthlyUpdateRequests() {
       title,
       details,
       allowance_period: new Date().toISOString().slice(0, 7),
-      client_request_id: clientRequestId,
+      client_request_id: stableRequestId,
       submitted_at: new Date().toISOString(),
-      estimated_response_at: addBusinessDays(new Date(), updateStandard.updateBusinessDays).toISOString(),
       customer_draft: draft,
     };
 
     try {
-      const { data, error } = await supabase
-        .from("monthly_update_requests")
-        .insert([payload])
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc("submit_monthly_update_request", { p_request: payload });
 
       if (error) throw error;
 
-      setRequests((prev) => [data, ...prev]);
+      setRequests((prev) => [data, ...prev.filter((request) => request.id !== data.id)]);
+      const { data: refreshedAllowance } = await supabase.rpc("get_monthly_update_allowance", { p_business_id: profile.businessId });
+      const refreshedRow = Array.isArray(refreshedAllowance) ? refreshedAllowance[0] : refreshedAllowance;
+      if (refreshedRow) setAllowanceSummary(refreshedRow);
       toast.success("Monthly update request submitted.");
       localStorage.removeItem(draftKey);
       setTitle("");
       setDetails("");
       setRequestType("content_update");
       setPriority("normal");
+      setClientRequestId("");
       setFailureCount(0);
     } catch (error: any) {
       const nextFailureCount = failureCount + 1;
       setFailureCount(nextFailureCount);
-      setSubmitError(error?.message || "Request not submitted.");
+      const message = error?.message || "Request not submitted.";
+      setSubmitError(message);
       console.error("Monthly update request submission failed:", error);
-      toast.error("Request not submitted. Your draft is saved in this browser.");
+      toast.error(message.includes("monthly_update_allowance_exceeded")
+        ? "Your monthly update allowance has been reached. Your draft is saved in this browser."
+        : "Request not submitted. Your draft is saved in this browser.");
       if (nextFailureCount >= 3 && profile.businessId) {
         await supabase.from("support_tickets").insert({
           user_id: profile.uid,
@@ -179,8 +199,8 @@ export default function MonthlyUpdateRequests() {
             <div className="grid gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-3">
               <div>
                 <p className="text-xs font-black uppercase tracking-widest text-slate-400">Remaining allowance</p>
-                <p className="mt-1 text-lg font-black text-slate-950">{remainingAllowance} / {monthlyAllowance}</p>
-                <p className="mt-1 text-xs font-bold text-slate-500">{usedAllowance} used this month</p>
+                <p className="mt-1 text-lg font-black text-slate-950">{remainingAllowance} / {verifiedAllowance}</p>
+                <p className="mt-1 text-xs font-bold text-slate-500">{verifiedUsedAllowance} used this month{Number(allowanceSummary?.extra_allowance || 0) > 0 ? ` · includes ${allowanceSummary.extra_allowance} approved extra` : ""}</p>
               </div>
               <div>
                 <p className="text-xs font-black uppercase tracking-widest text-slate-400">Estimated response</p>
@@ -191,6 +211,7 @@ export default function MonthlyUpdateRequests() {
                 <p className="mt-1 text-lg font-black text-slate-950">Saved locally on failure</p>
               </div>
             </div>
+            {allowanceError && <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">{allowanceError}</div>}
             {submitError && (
               <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
                 <div className="flex gap-3">
@@ -239,7 +260,7 @@ export default function MonthlyUpdateRequests() {
               <Label>Details</Label>
               <Textarea value={details} onChange={(event) => setDetails(event.target.value)} placeholder="Describe exactly what should change." className="min-h-[160px]" />
             </div>
-            <Button onClick={submitRequest} disabled={submitting} className="w-full rounded-xl bg-indigo-600 font-black">
+            <Button onClick={submitRequest} disabled={submitting || !canSubmitRequest} className="w-full rounded-xl bg-indigo-600 font-black">
               {submitting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : submitError ? <RefreshCw className="mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
               {submitError ? "Retry Submission" : "Submit Request"}
             </Button>
@@ -271,6 +292,7 @@ export default function MonthlyUpdateRequests() {
                       </div>
 	                      <p className="mt-1 text-sm font-semibold text-slate-500">{request.details}</p>
 	                      {request.admin_response && <p className="mt-3 rounded-xl bg-indigo-50 p-3 text-sm font-bold text-indigo-800">Admin response: {request.admin_response}</p>}
+	                      {request.customer_response && <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">Your response: {request.customer_response}</p>}
 	                      {request.completion_details && <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Completed: {request.completion_details}</p>}
 	                      {request.estimated_response_at && <p className="mt-2 text-xs font-bold text-slate-400">Estimated response: {new Date(request.estimated_response_at).toLocaleDateString()}</p>}
 	                    </div>
@@ -286,10 +308,16 @@ export default function MonthlyUpdateRequests() {
                       </div>
                       <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-slate-500">
                         <span>Submitted {request.submitted_at ? new Date(request.submitted_at).toLocaleDateString() : ""}</span>
-                        {request.status === "waiting_for_customer" ? <span className="font-semibold text-amber-700">Your response is needed</span> : null}
+                        {request.status === "waiting_for_customer" ? <span className="font-semibold text-amber-700">Your response is needed · SLA paused</span> : null}
                         {request.status === "completed" && request.completed_at ? <span>Completed {new Date(request.completed_at).toLocaleDateString()}</span> : null}
                       </div>
                     </div>
+                  )}
+                  {request.status === "waiting_for_customer" && (
+                    <CustomerUpdateResponse
+                      requestId={request.id}
+                      onResponded={(updated) => setRequests((previous) => previous.map((item) => item.id === updated.id ? updated : item))}
+                    />
                   )}
                 </div>
               ))
@@ -297,6 +325,52 @@ export default function MonthlyUpdateRequests() {
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+}
+
+function CustomerUpdateResponse({ requestId, onResponded }: { requestId: string; onResponded: (request: any) => void }) {
+  const [response, setResponse] = React.useState("");
+  const [idempotencyKey, setIdempotencyKey] = React.useState("");
+  const [sending, setSending] = React.useState(false);
+
+  const submitResponse = async () => {
+    if (sending || response.trim().length < 2) return;
+    const stableKey = idempotencyKey || crypto.randomUUID();
+    setIdempotencyKey(stableKey);
+    setSending(true);
+    const { data, error } = await supabase.rpc("customer_respond_monthly_update_request", {
+      p_request_id: requestId,
+      p_response: response.trim(),
+      p_idempotency_key: stableKey,
+    });
+    setSending(false);
+    if (error) {
+      toast.error("Your response was not saved. Please retry.");
+      return;
+    }
+    const updated = Array.isArray(data) ? data[0] : data;
+    if (updated) onResponded(updated);
+    setResponse("");
+    setIdempotencyKey("");
+    toast.success("Your response was sent. The request SLA has resumed.");
+  };
+
+  return (
+    <div className="mt-4 space-y-3 rounded-xl border border-amber-200 bg-amber-50/70 p-4">
+      <label className="block text-sm font-bold text-amber-950" htmlFor={`update-response-${requestId}`}>Reply to the studio
+        <Textarea
+          id={`update-response-${requestId}`}
+          value={response}
+          onChange={(event) => setResponse(event.target.value)}
+          placeholder="Add the missing details or answer the question above."
+          className="mt-2 min-h-20 bg-white"
+          maxLength={5000}
+        />
+      </label>
+      <Button size="sm" disabled={sending || response.trim().length < 2} onClick={() => void submitResponse()} className="rounded-xl bg-indigo-600">
+        {sending ? "Sending response…" : "Send response and resume request"}
+      </Button>
     </div>
   );
 }

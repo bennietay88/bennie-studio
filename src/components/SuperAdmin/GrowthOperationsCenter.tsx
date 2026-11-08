@@ -53,6 +53,8 @@ export function GrowthOperationsCenter() {
   const [data, setData] = useState<LoadState>(EMPTY_STATE);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
+  const [reportWorkflowEnabled, setReportWorkflowEnabled] = useState(false);
+  const [reportActionLoading, setReportActionLoading] = useState(false);
   const [experiment, setExperiment] = useState({ name: "", templateId: "", hypothesis: "", event: "lead_submitted" });
 
   const load = useCallback(async () => {
@@ -80,6 +82,14 @@ export function GrowthOperationsCenter() {
       else missing.push(key);
     });
     setData(next);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const flagResponse = await fetch("/api/admin/launch-flags", {
+      headers: sessionData.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {},
+    }).catch(() => null);
+    if (flagResponse?.ok) {
+      const flagData = await flagResponse.json();
+      setReportWorkflowEnabled(flagData.flags?.monthly_reporting_workflow === true);
+    }
     if (missing.length) toast.warning("Some growth operations data is not available yet.", { description: "Apply the latest Supabase migration, then refresh." });
     setLoading(false);
   }, []);
@@ -155,6 +165,43 @@ export function GrowthOperationsCenter() {
     setExperiment({ name: "", templateId: "", hypothesis: "", event: "lead_submitted" });
     toast.success("Experiment saved as a draft");
     await load();
+  };
+
+  const runMonthlyReportDrafts = async () => {
+    if (!reportWorkflowEnabled) return toast.error("Enable the monthly report workflow in Release controls first.");
+    setReportActionLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await fetch("/api/admin/monthly-growth-reports/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(sessionData.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {}) },
+        body: JSON.stringify({}),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Monthly report drafts could not be generated.");
+      toast.success(`${result.created} draft report(s) created for ${result.month}.`, { description: `${result.alreadyExists} existing report(s) left unchanged.` });
+      await load();
+    } catch (reason: any) {
+      toast.error(reason.message || "Monthly report drafts could not be generated.");
+    } finally { setReportActionLoading(false); }
+  };
+
+  const publishMonthlyReport = async (reportId: string) => {
+    if (!reportWorkflowEnabled) return toast.error("Enable the monthly report workflow in Release controls first.");
+    setReportActionLoading(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await fetch(`/api/admin/monthly-growth-reports/${reportId}/publish`, {
+        method: "POST",
+        headers: sessionData.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {},
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Report could not be published.");
+      toast.success("Report published to the customer dashboard. No email was sent.");
+      await load();
+    } catch (reason: any) {
+      toast.error(reason.message || "Report could not be published.");
+    } finally { setReportActionLoading(false); }
   };
 
   if (loading) return <div className="grid min-h-72 place-items-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600" /></div>;
@@ -236,6 +283,7 @@ export function GrowthOperationsCenter() {
         </TabsContent>
 
         <TabsContent value="customers" className="grid gap-4 pt-4 xl:grid-cols-2">
+          <Card className="rounded-3xl border-indigo-100 bg-indigo-50/40 xl:col-span-2"><CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><div><CardTitle className="flex items-center gap-2"><Send className="h-5 w-5 text-indigo-600" />Monthly website reports</CardTitle><p className="mt-1 text-sm font-semibold text-slate-500">Drafts use measured page views, enquiry events and completed update records. A reviewer must publish each draft. Publishing makes it visible in the customer dashboard; it never sends email.</p></div><Button disabled={!reportWorkflowEnabled || reportActionLoading} onClick={() => void runMonthlyReportDrafts()} className="rounded-xl bg-indigo-600">{reportActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Generate last month’s drafts</Button></div></CardHeader><CardContent className="space-y-3">{data.reports.filter((report) => report.source_kind === "scheduled").map((report) => <div key={report.id} className="flex flex-col gap-3 rounded-2xl border border-indigo-100 bg-white p-4 lg:flex-row lg:items-center"><div className="min-w-0 flex-1"><p className="font-black text-slate-950">{businessName(report.business_id)} · {report.report_month}</p><p className="mt-1 text-sm text-slate-700">{report.summary || "Not enough verified data yet."}</p><p className="mt-1 text-xs font-semibold text-slate-500">{Number(report.payload?.measured?.pageViews || 0)} measured page views · {Number(report.payload?.measured?.enquiries || 0)} recorded enquiries · {Array.isArray(report.payload?.completedWork) ? report.payload.completedWork.length : 0} completed updates · v{report.report_version || 1}</p><p className="mt-1 text-xs font-bold text-slate-500">{label(report.status)} · {report.status === "published" ? "Customer dashboard only · no email sent" : "Human review required"}</p></div>{report.status === "draft" && <Button disabled={!reportWorkflowEnabled || reportActionLoading} onClick={() => void publishMonthlyReport(report.id)} className="rounded-xl bg-emerald-600">Review and publish</Button>}</div>)}{!data.reports.some((report) => report.source_kind === "scheduled") && <Empty text={reportWorkflowEnabled ? "No scheduled monthly report drafts exist yet." : "The monthly report workflow is off. Enable it from the admin release controls after migration and staging checks."} />}</CardContent></Card>
           {data.businesses.map((business) => {
             const report = data.reports.find((item) => item.business_id === business.id);
             const integration = data.integrations.find((item) => item.business_id === business.id);

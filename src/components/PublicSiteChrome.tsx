@@ -24,6 +24,8 @@ const footerGroups = [
   ]],
   ["Resources", [
     { label: "Insights", href: "/resources" },
+    { label: "Managed website vs DIY", href: "/managed-website-vs-diy" },
+    { label: "Managed website vs agency", href: "/managed-website-vs-agency" },
     { label: "Website Review", href: "/website-audit" },
     { label: "Design Directions", href: "/templates" },
     { label: "Try a Website Direction", href: "/generate-preview" },

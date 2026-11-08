@@ -166,6 +166,76 @@ async function signIn(page: Page, role: "super_admin" | "client") {
   );
 }
 
+test("customer dashboard shows only reviewed monthly reports with loading, empty and retry states", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Run the authenticated report flow once in Chromium.");
+
+  await installPersona(page, "client");
+  await page.route(`**/api/dashboard/summary/${businessId}`, (route) => json(route, {
+    stats: { leads: 0, websites: 1, appointments: 0 },
+    recentLeads: [],
+    recentAppointments: [],
+    business: { id: businessId, name: "Example Dental", plan: "business", status: "active" },
+    analytics: [],
+    conversionInsights: null,
+    measuredResults: { enquiries: 0, whatsAppClicks: 0, callClicks: 0, bookings: 0, pageViews: 0, topEnquiryPage: null, mostUsedEnquiryPath: null, opportunity: "Not enough data yet." },
+  }));
+  let requestFails = false;
+  let includePublished = true;
+  let holdFirstReportRequest = true;
+  let markReportRequestStarted!: () => void;
+  let releaseReportResponse!: () => void;
+  const reportRequestStarted = new Promise<void>((resolve) => { markReportRequestStarted = resolve; });
+  const reportResponseRelease = new Promise<void>((resolve) => { releaseReportResponse = resolve; });
+  let requestedStatus: string | null = null;
+  await page.route("**/rest/v1/monthly_growth_reports*", async (route) => {
+    const url = new URL(route.request().url());
+    requestedStatus = url.searchParams.get("status");
+    if (holdFirstReportRequest) {
+      holdFirstReportRequest = false;
+      markReportRequestStarted();
+      await reportResponseRelease;
+    }
+    if (requestFails) {
+      await json(route, { message: "fixture report read failure" }, 503);
+      return;
+    }
+    const reports = requestedStatus !== "eq.published" ? [{ id: "draft-only", report_month: "2026-10", status: "draft", summary: "This draft must stay private." }] : includePublished ? [{
+      id: "00000000-0000-4000-8000-000000001140",
+      report_month: "2026-10",
+      status: "published",
+      summary: "2 measured page views, 0 recorded enquiries, and 0 recorded bookings in 2026-10.",
+      payload: { measured: { pageViews: 2, viewSessions: 1, enquiries: 0, whatsappClicks: 0, callClicks: 0, bookings: 0 } },
+      published_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+    }] : [];
+    await json(route, reports);
+  });
+
+  await signIn(page, "client");
+  await reportRequestStarted;
+  await expect(page.getByRole("status").filter({ hasText: "Loading reviewed reports" })).toBeVisible();
+  releaseReportResponse();
+  await expect(page.getByText("Monthly Website Reports", { exact: true })).toBeVisible();
+  await expect(page.getByText("2026-10", { exact: true })).toBeVisible();
+  await expect(page.getByText("This draft must stay private.")).toHaveCount(0);
+  expect(requestedStatus).toBe("eq.published");
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download", exact: true }).click();
+  expect((await downloadPromise).suggestedFilename()).toBe("monthly-website-report-2026-10.txt");
+
+  includePublished = false;
+  await page.reload();
+  await expect(page.getByText("No reviewed monthly reports have been published yet. Unpublished drafts are not shown here.")).toBeVisible();
+
+  requestFails = true;
+  await page.reload();
+  await expect(page.getByRole("alert").filter({ hasText: "Reviewed reports could not be loaded" })).toBeVisible();
+  requestFails = false;
+  includePublished = true;
+  await page.getByRole("button", { name: "Retry" }).click();
+  await expect(page.getByText("2026-10", { exact: true })).toBeVisible();
+});
+
 test("commercial lifecycle covers conversion, customer access and fresh launch QA", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium-desktop", "Run the lifecycle once in Chromium.");
 

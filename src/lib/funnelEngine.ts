@@ -95,6 +95,7 @@ export interface FunnelEvent {
   campaign?: string | null;
   device?: string | null;
   revenue?: number | null;
+  revenue_verified?: boolean | null;
   currency?: string | null;
   created_at?: string;
   metadata?: Record<string, any>;
@@ -106,6 +107,7 @@ export interface FunnelStepMetrics {
   conversions: number;
   conversionRate: number;
   revenue: number;
+  revenueByCurrency: Record<string, number>;
   dropOffRate: number;
 }
 
@@ -116,11 +118,12 @@ export interface FunnelSummaryMetrics {
   checkoutStarts: number;
   purchases: number;
   revenue: number;
+  revenueByCurrency: Record<string, number>;
   conversionRate: number;
   averageOrderValue: number;
   byStep: Record<string, FunnelStepMetrics>;
-  bySource: Array<{ key: string; visitors: number; conversions: number; revenue: number }>;
-  byDevice: Array<{ key: string; visitors: number; conversions: number; revenue: number }>;
+  bySource: Array<{ key: string; visitors: number; conversions: number; revenue: number; revenueByCurrency: Record<string, number> }>;
+  byDevice: Array<{ key: string; visitors: number; conversions: number; revenue: number; revenueByCurrency: Record<string, number> }>;
 }
 
 export interface FunnelInsight {
@@ -219,21 +222,25 @@ export function summarizeFunnelAnalytics(events: FunnelEvent[], steps: FunnelSte
   const leads = new Set<string>();
   const appointments = new Set<string>();
   const purchases = new Set<string>();
-  let checkoutStarts = 0;
+  const checkoutSessions = new Set<string>();
+  const conversionSessions = new Set<string>();
   let revenue = 0;
+  const revenueByCurrency: Record<string, number> = {};
 
   const stepViews = new Map<string, Set<string>>();
   const stepConversions = new Map<string, Set<string>>();
   const stepRevenue = new Map<string, number>();
+  const stepRevenueByCurrency = new Map<string, Record<string, number>>();
   for (const step of steps) {
     stepViews.set(step.id, new Set());
     stepConversions.set(step.id, new Set());
     stepRevenue.set(step.id, 0);
+    stepRevenueByCurrency.set(step.id, {});
   }
 
-  const sourceMap = new Map<string, { visitors: Set<string>; conversions: Set<string>; revenue: number }>();
-  const deviceMap = new Map<string, { visitors: Set<string>; conversions: Set<string>; revenue: number }>();
-  const primaryConversionEvents = new Set(["form_submitted","survey_completed","appointment_booked","purchase_completed"]);
+  const sourceMap = new Map<string, { visitors: Set<string>; conversions: Set<string>; revenue: number; revenueByCurrency: Record<string, number> }>();
+  const deviceMap = new Map<string, { visitors: Set<string>; conversions: Set<string>; revenue: number; revenueByCurrency: Record<string, number> }>();
+  const primaryConversionEvents = new Set(["form_submitted","survey_completed","appointment_booked"]);
   const stepConversionEvents = new Set(["form_submitted","survey_completed","appointment_booked","checkout_started","purchase_completed","upsell_accepted","order_bump_accepted"]);
 
   for (const event of events) {
@@ -241,26 +248,50 @@ export function summarizeFunnelAnalytics(events: FunnelEvent[], steps: FunnelSte
     if (!sessionKey) continue;
 
     if (event.event_type === "funnel_view" || event.event_type === "step_view") sessions.add(sessionKey);
-    if (event.event_type === "form_submitted" && event.lead_id) leads.add(event.lead_id);
-    if (event.event_type === "appointment_booked") appointments.add(event.lead_id || sessionKey);
-    if (event.event_type === "checkout_started") checkoutStarts += 1;
-    if (event.event_type === "purchase_completed") purchases.add(event.lead_id || sessionKey);
-    revenue += Number(event.revenue || 0);
+    if (event.event_type === "form_submitted") {
+      if (event.lead_id) leads.add(event.lead_id);
+      conversionSessions.add(sessionKey);
+    }
+    if (event.event_type === "appointment_booked") {
+      appointments.add(event.lead_id || sessionKey);
+      conversionSessions.add(sessionKey);
+    }
+    if (event.event_type === "checkout_started") checkoutSessions.add(sessionKey);
+    const stripeVerifiedPurchase = event.event_type === "purchase_completed"
+      && (event.revenue_verified === true || Boolean(event.metadata?.stripeSessionId));
+    if (stripeVerifiedPurchase) {
+      purchases.add(String(event.metadata?.stripeSessionId || event.lead_id || sessionKey));
+      conversionSessions.add(sessionKey);
+      revenue += Math.max(0, Number(event.revenue || 0));
+      const currency = String(event.currency || "UNKNOWN").toUpperCase();
+      revenueByCurrency[currency] = (revenueByCurrency[currency] || 0) + Math.max(0, Number(event.revenue || 0));
+    }
 
     if (event.step_id && stepViews.has(event.step_id)) {
       if (event.event_type === "step_view") stepViews.get(event.step_id)!.add(sessionKey);
-      if (stepConversionEvents.has(event.event_type)) stepConversions.get(event.step_id)!.add(sessionKey);
-      stepRevenue.set(event.step_id, (stepRevenue.get(event.step_id) || 0) + Number(event.revenue || 0));
+      if (stepConversionEvents.has(event.event_type) && (event.event_type !== "purchase_completed" || stripeVerifiedPurchase)) stepConversions.get(event.step_id)!.add(sessionKey);
+      if (stripeVerifiedPurchase) {
+        const amount = Math.max(0, Number(event.revenue || 0));
+        const currency = String(event.currency || "UNKNOWN").toUpperCase();
+        stepRevenue.set(event.step_id, (stepRevenue.get(event.step_id) || 0) + amount);
+        const amounts = stepRevenueByCurrency.get(event.step_id)!;
+        amounts[currency] = (amounts[currency] || 0) + amount;
+      }
     }
 
     const addBreakdown = (
-      map: Map<string, { visitors: Set<string>; conversions: Set<string>; revenue: number }>,
+      map: Map<string, { visitors: Set<string>; conversions: Set<string>; revenue: number; revenueByCurrency: Record<string, number> }>,
       key: string,
     ) => {
-      const bucket = map.get(key) || { visitors: new Set<string>(), conversions: new Set<string>(), revenue: 0 };
+      const bucket = map.get(key) || { visitors: new Set<string>(), conversions: new Set<string>(), revenue: 0, revenueByCurrency: {} };
       bucket.visitors.add(sessionKey);
-      if (primaryConversionEvents.has(event.event_type)) bucket.conversions.add(sessionKey);
-      bucket.revenue += Number(event.revenue || 0);
+      if (primaryConversionEvents.has(event.event_type) || (event.event_type === "purchase_completed" && stripeVerifiedPurchase)) bucket.conversions.add(sessionKey);
+      if (stripeVerifiedPurchase) {
+        const amount = Math.max(0, Number(event.revenue || 0));
+        bucket.revenue += amount;
+        const currency = String(event.currency || "UNKNOWN").toUpperCase();
+        bucket.revenueByCurrency[currency] = (bucket.revenueByCurrency[currency] || 0) + amount;
+      }
       map.set(key, bucket);
     };
     addBreakdown(sourceMap, event.source || "Direct / unknown");
@@ -270,41 +301,45 @@ export function summarizeFunnelAnalytics(events: FunnelEvent[], steps: FunnelSte
   const byStep: Record<string, FunnelStepMetrics> = {};
   for (const step of steps) {
     const views = stepViews.get(step.id)?.size || 0;
-    const conversions = stepConversions.get(step.id)?.size || 0;
+    const viewSessions = stepViews.get(step.id) || new Set<string>();
+    const conversions = Array.from(stepConversions.get(step.id) || []).filter((sessionKey) => viewSessions.has(sessionKey)).length;
     const conversionRate = views ? Math.min(100, (conversions / views) * 100) : 0;
     byStep[step.id] = {
       stepId: step.id,
       views,
       conversions,
       conversionRate,
-      revenue: stepRevenue.get(step.id) || 0,
+      revenue: Object.keys(stepRevenueByCurrency.get(step.id) || {}).length <= 1 ? stepRevenue.get(step.id) || 0 : 0,
+      revenueByCurrency: stepRevenueByCurrency.get(step.id) || {},
       dropOffRate: views ? Math.max(0, 100 - conversionRate) : 0,
     };
   }
 
   const toBreakdown = (
-    map: Map<string, { visitors: Set<string>; conversions: Set<string>; revenue: number }>,
+    map: Map<string, { visitors: Set<string>; conversions: Set<string>; revenue: number; revenueByCurrency: Record<string, number> }>,
   ) =>
     Array.from(map.entries())
       .map(([key, value]) => ({
         key,
         visitors: value.visitors.size,
         conversions: value.conversions.size,
-        revenue: value.revenue,
+        revenue: Object.keys(value.revenueByCurrency).length <= 1 ? value.revenue : 0,
+        revenueByCurrency: value.revenueByCurrency,
       }))
       .sort((a,b) => b.conversions - a.conversions);
 
-  const primaryOutcomeCount = Math.max(leads.size, appointments.size, purchases.size);
+  const attributedConversions = Array.from(conversionSessions).filter((sessionKey) => sessions.has(sessionKey)).length;
 
   return {
     visitors: sessions.size,
     leads: leads.size,
     appointments: appointments.size,
-    checkoutStarts,
+    checkoutStarts: checkoutSessions.size,
     purchases: purchases.size,
-    revenue,
-    conversionRate: sessions.size ? Math.min(100, (primaryOutcomeCount / sessions.size) * 100) : 0,
-    averageOrderValue: purchases.size ? revenue / purchases.size : 0,
+    revenue: Object.keys(revenueByCurrency).length <= 1 ? revenue : 0,
+    revenueByCurrency,
+    conversionRate: sessions.size ? Math.min(100, (attributedConversions / sessions.size) * 100) : 0,
+    averageOrderValue: purchases.size && Object.keys(revenueByCurrency).length <= 1 ? revenue / purchases.size : 0,
     byStep,
     bySource: toBreakdown(sourceMap),
     byDevice: toBreakdown(deviceMap),

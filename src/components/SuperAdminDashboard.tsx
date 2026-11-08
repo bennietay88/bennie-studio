@@ -10,6 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import {
   Users,
+  UserCheck,
   Globe,
   BarChart3,
   Settings,
@@ -283,7 +284,10 @@ export default function SuperAdminDashboard() {
       avgViewsPerVisitor: number;
       totalClicks: number;
       registrations: number;
+      businessAccounts: number;
       totalLeads: number;
+      qualifiedLeads: number;
+      attributedLeadVisitors: number;
       totalEvents: number;
       conversionRate: number;
     };
@@ -299,7 +303,10 @@ export default function SuperAdminDashboard() {
       avgViewsPerVisitor: 0,
       totalClicks: 0,
       registrations: 0,
+      businessAccounts: 0,
       totalLeads: 0,
+      qualifiedLeads: 0,
+      attributedLeadVisitors: 0,
       totalEvents: 0,
       conversionRate: 0,
     },
@@ -908,7 +915,10 @@ export default function SuperAdminDashboard() {
             avgViewsPerVisitor: Number(result.aggregate?.avgViewsPerVisitor || 0),
             totalClicks: Number(result.aggregate?.totalClicks || 0),
             registrations: Number(result.aggregate?.registrations || 0),
+            businessAccounts: Number(result.aggregate?.businessAccounts || 0),
             totalLeads: Number(result.aggregate?.totalLeads || 0),
+            qualifiedLeads: Number(result.aggregate?.qualifiedLeads || 0),
+            attributedLeadVisitors: Number(result.aggregate?.attributedLeadVisitors || 0),
             totalEvents: Number(result.aggregate?.totalEvents || 0),
             conversionRate: Number(result.aggregate?.conversionRate || 0),
           },
@@ -2253,12 +2263,14 @@ export default function SuperAdminDashboard() {
                 {[
                   { label: "Page Views", value: trafficMetrics.aggregate.totalViews.toLocaleString(), icon: Eye, color: "text-indigo-600", bg: "bg-indigo-50" },
                   { label: "CTA / Link Clicks", value: trafficMetrics.aggregate.totalClicks.toLocaleString(), icon: Target, color: "text-violet-600", bg: "bg-violet-50" },
-                  { label: "Registrations", value: trafficMetrics.aggregate.registrations.toLocaleString(), icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+                  { label: "User Registrations", value: trafficMetrics.aggregate.registrations.toLocaleString(), icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+                  { label: "Business Accounts", value: trafficMetrics.aggregate.businessAccounts.toLocaleString(), icon: Briefcase, color: "text-cyan-700", bg: "bg-cyan-50" },
                   { label: "Leads Captured", value: trafficMetrics.aggregate.totalLeads.toLocaleString(), icon: MessageSquare, color: "text-emerald-600", bg: "bg-emerald-50" },
+                  { label: "Qualified Leads", value: trafficMetrics.aggregate.qualifiedLeads.toLocaleString(), icon: UserCheck, color: "text-green-700", bg: "bg-green-50" },
                   { label: "Unique Visitors", value: trafficMetrics.aggregate.uniqueVisitors.toLocaleString(), icon: Globe, color: "text-cyan-600", bg: "bg-cyan-50" },
                   { label: "Views / Visitor", value: trafficMetrics.aggregate.avgViewsPerVisitor.toFixed(1), icon: BarChart3, color: "text-amber-600", bg: "bg-amber-50" },
                   { label: "Tracked Events", value: trafficMetrics.aggregate.totalEvents.toLocaleString(), icon: Zap, color: "text-rose-600", bg: "bg-rose-50" },
-                  { label: "Lead / Signup Rate", value: `${trafficMetrics.aggregate.conversionRate.toFixed(1)}%`, icon: TrendingUp, color: "text-slate-700", bg: "bg-slate-100" },
+                  { label: "Attributed Lead Rate", value: `${trafficMetrics.aggregate.conversionRate.toFixed(1)}%`, icon: TrendingUp, color: "text-slate-700", bg: "bg-slate-100" },
                 ].map((stat, i) => (
                   <Card key={i} className="p-6 rounded-3xl border-slate-100 shadow-sm flex items-center gap-4">
                     <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", stat.bg)}>
@@ -2271,6 +2283,7 @@ export default function SuperAdminDashboard() {
                   </Card>
                 ))}
               </div>
+              <p className="-mt-3 text-xs font-medium text-slate-500">Counts are distinct records by type. Attributed lead rate uses unique visitors with a visitor-linked lead submission; registrations and business accounts are not treated as paid customers.</p>
 
               <Card className="rounded-[2rem] border-slate-100 p-8 min-h-[400px]">
                 <div className="mb-8 flex flex-wrap items-end justify-between gap-2"><div><h2 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">Daily activity</h2><p className="mt-1 text-xs font-semibold text-slate-400">UTC · {trafficDays} days · tracked visits may include admin and automated traffic</p></div></div>

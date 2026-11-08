@@ -6,6 +6,11 @@ import { FunnelEvent, FunnelStep, generateFunnelInsights, summarizeFunnelAnalyti
 import { FlowCanvas } from "./FlowCanvas";
 
 const money = (value: number, currency = "USD") => new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(value || 0);
+const moneyByCurrency = (amounts: Record<string, number>, fallbackCurrency: string) => {
+  const entries = Object.entries(amounts).filter(([, value]) => value > 0);
+  if (!entries.length) return money(0, fallbackCurrency);
+  return entries.map(([code, value]) => code === "UNKNOWN" ? `${value.toFixed(2)} (currency unknown)` : money(value, code)).join(" · ");
+};
 const number = (value: number) => new Intl.NumberFormat().format(Math.round(value || 0));
 
 export function FunnelAnalyticsDashboard({
@@ -37,7 +42,7 @@ export function FunnelAnalyticsDashboard({
         { label: "Views", value: number(metric?.views || 0) },
         { label: "Converted", value: number(metric?.conversions || 0) },
         { label: "Rate", value: `${(metric?.conversionRate || 0).toFixed(1)}%` },
-        { label: "Revenue", value: money(metric?.revenue || 0, currency) },
+        { label: "Revenue", value: moneyByCurrency(metric?.revenueByCurrency || {}, currency) },
       ],
     };
   });
@@ -49,7 +54,7 @@ export function FunnelAnalyticsDashboard({
     { label: "Leads", value: number(summary.leads), icon: MousePointerClick },
     { label: "Bookings", value: number(summary.appointments), icon: CalendarCheck2 },
     { label: "Purchases", value: number(summary.purchases), icon: CreditCard },
-    { label: "Revenue", value: money(summary.revenue, currency), icon: TrendingUp },
+    { label: "Revenue", value: moneyByCurrency(summary.revenueByCurrency, currency), icon: TrendingUp },
     { label: "Conversion", value: `${summary.conversionRate.toFixed(1)}%`, icon: Activity },
   ];
 
@@ -66,6 +71,7 @@ export function FunnelAnalyticsDashboard({
           </Card>
         ))}
       </div>
+      <p className="-mt-5 text-xs font-medium text-slate-500">Visitors and conversion rate use unique sessions. Leads use unique lead records; purchases and revenue use Stripe-confirmed checkout records.</p>
 
       <div>
         <div className="mb-4 flex items-end justify-between gap-4">
@@ -99,7 +105,7 @@ export function FunnelAnalyticsDashboard({
                       <td>{number(metric?.conversions || 0)}</td>
                       <td>{(metric?.conversionRate || 0).toFixed(1)}%</td>
                       <td>{(metric?.dropOffRate || 0).toFixed(1)}%</td>
-                      <td>{money(metric?.revenue || 0, currency)}</td>
+                      <td>{moneyByCurrency(metric?.revenueByCurrency || {}, currency)}</td>
                     </tr>
                   );
                 })}

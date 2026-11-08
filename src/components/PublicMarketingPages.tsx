@@ -2071,7 +2071,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                   <div><p className="text-sm font-bold text-[#172033]">Your recommended website direction</p><p className="mt-1 text-xs text-[#657186]">Based on your answers, Bennie Studio prepares a tailored direction.</p></div>
                 </div>
                 <div className="mt-5 overflow-hidden rounded-xl border border-[#e5e8ef] bg-[#0b1020] p-2">
-                  <img src="/images/studio-insights-v3.jpg" alt="" className="aspect-[16/10] w-full rounded-lg object-cover" />
+                  <img src="/images/studio-insights-v3.jpg" alt="" className="block aspect-[16/10] w-full min-w-0 max-w-full rounded-lg object-cover" style={{ width: "100%", maxWidth: "100%" }} />
                 </div>
                 <div className="mt-5 space-y-4">
                   {[

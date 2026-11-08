@@ -35,7 +35,24 @@ async function installPersonaMocks(
 ) {
   const isInternal = persona.role === "super_admin" || persona.role === "platform_staff";
   const isBusinessMember = ["business_admin", "staff", "client"].includes(persona.role);
-  const calls = { signupKind: null as string | null };
+  const calls = { signupKind: null as string | null, customerResponses: 0 };
+  const updateRequest: any = {
+    id: "00000000-0000-4000-8000-000000000109",
+    business_id: businessId,
+    profile_id: testPersonas.businessAdmin.id,
+    request_type: "monthly_update",
+    status: "waiting_for_customer",
+    title: "Update the service page",
+    details: "Please confirm the service hours before we publish the update.",
+    admin_response: "Could you confirm your weekday and weekend opening hours?",
+    customer_response: null,
+    allowance_period: new Date().toISOString().slice(0, 7),
+    created_at: new Date().toISOString(),
+    submitted_at: new Date().toISOString(),
+    estimated_response_at: new Date(Date.now() + 86400000).toISOString(),
+    sla_paused_at: new Date().toISOString(),
+    business: { name: "Persona Test Business", plan: "business" },
+  };
   const user = {
     id: persona.id,
     aud: "authenticated",
@@ -110,6 +127,20 @@ async function installPersonaMocks(
       await json(route, user);
       return;
     }
+    if (url.pathname.endsWith("/rpc/get_monthly_update_allowance")) {
+      await json(route, [{ allowance_period: new Date().toISOString().slice(0, 7), base_allowance: 1, extra_allowance: 0, used_allowance: 0, remaining_allowance: 1 }]);
+      return;
+    }
+    if (url.pathname.endsWith("/rpc/customer_respond_monthly_update_request")) {
+      const payload = request.postDataJSON();
+      calls.customerResponses += 1;
+      updateRequest.customer_response = payload.p_response;
+      updateRequest.customer_response_at = new Date().toISOString();
+      updateRequest.status = "submitted";
+      updateRequest.sla_paused_at = null;
+      await json(route, updateRequest);
+      return;
+    }
 
     const table = url.pathname.split("/").filter(Boolean).at(-1);
     if (table === "profiles") {
@@ -124,6 +155,10 @@ async function installPersonaMocks(
       await json(route, business);
       return;
     }
+    if (table === "monthly_update_requests") {
+      await json(route, [updateRequest]);
+      return;
+    }
     if (table === "settings") {
       await json(route, []);
       return;
@@ -134,6 +169,15 @@ async function installPersonaMocks(
 
   await page.route("**/auth/v1/**", handleSupabase);
   await page.route("**/rest/v1/**", handleSupabase);
+  await page.route("**/rest/v1/rpc/customer_respond_monthly_update_request", async (route) => {
+    calls.customerResponses += 1;
+    const payload = route.request().postDataJSON();
+    updateRequest.customer_response = payload?.p_response;
+    updateRequest.customer_response_at = new Date().toISOString();
+    updateRequest.status = "submitted";
+    updateRequest.sla_paused_at = null;
+    await json(route, updateRequest);
+  });
   return calls;
 }
 
@@ -148,7 +192,7 @@ async function navigateTo(page: Page, path: string) {
 }
 
 async function signInAs(page: Page, persona: Persona, state?: CustomerState) {
-  await installPersonaMocks(page, persona, state);
+  const calls = await installPersonaMocks(page, persona, state);
   await page.goto("/login");
   await page.getByTestId("auth-email").fill(persona.email);
   await page.getByTestId("auth-password").fill("Password123!");
@@ -164,12 +208,25 @@ async function signInAs(page: Page, persona: Persona, state?: CustomerState) {
       .or(page.getByRole("heading", { name: "Subscription access paused" }))
       .waitFor({ state: "visible" });
   }
+  return calls;
 }
 
 test("business admin can open team management", async ({ page }) => {
   await signInAs(page, testPersonas.businessAdmin);
   await navigateTo(page, "/dashboard/team");
   await expect(page.getByRole("heading", { name: "Team Management" })).toBeVisible();
+});
+
+test("authenticated customer can reply to an update request and resume its paused SLA", async ({ page }) => {
+  const calls = await signInAs(page, testPersonas.client);
+  await navigateTo(page, "/dashboard/update-requests");
+  await expect(page.getByRole("heading", { name: "Monthly Update Requests" })).toBeVisible();
+  await expect(page.getByText("Your response is needed · SLA paused")).toBeVisible();
+  await page.getByRole("textbox", { name: "Reply to the studio" }).fill("Weekdays 9 am to 6 pm, Saturday 10 am to 2 pm.");
+  await page.getByRole("button", { name: "Send response and resume request" }).click();
+  await expect.poll(() => calls.customerResponses).toBe(1);
+  await expect(page.getByText("SLA has resumed")).toBeVisible();
+  await expect(page.getByText(/Weekdays 9 am to 6 pm/)).toBeVisible();
 });
 
 test("active staff can use dashboard but cannot open billing or team administration", async ({ page }) => {

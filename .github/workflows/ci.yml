@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - 'release-candidate/**'
 
 permissions:
   contents: read
@@ -17,20 +18,54 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      code_changed: ${{ steps.scope.outputs.code_changed }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Classify changed paths
+        id: scope
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          code_changed=true
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git fetch --no-tags --depth=1 origin "$BASE_SHA"
+            base="$BASE_SHA"
+          else
+            base="${HEAD_SHA}^"
+          fi
+
+          changed_files="$(git diff --name-only "$base" "$HEAD_SHA")"
+          if [ -n "$changed_files" ] && ! printf '%s\n' "$changed_files" | grep -Ev '(^|/)[^/]+\.md$' >/dev/null; then
+            code_changed=false
+          fi
+          printf 'code_changed=%s\n' "$code_changed" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
+        if: steps.scope.outputs.code_changed == 'true'
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+        if: steps.scope.outputs.code_changed == 'true'
       - run: npm run lint
+        if: steps.scope.outputs.code_changed == 'true'
       - run: npm run build
+        if: steps.scope.outputs.code_changed == 'true'
       - name: Run complete unit and domain regression suite
+        if: steps.scope.outputs.code_changed == 'true'
         run: node --import tsx --test tests/*.test.ts
       - run: npm audit --audit-level=high
+        if: steps.scope.outputs.code_changed == 'true'
 
   browser-e2e:
+    if: needs.verify.outputs.code_changed == 'true'
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 30

@@ -31,6 +31,19 @@ VITE_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ```
 
+The server starts with missing or malformed Supabase settings so platform health
+checks can report the fault instead of failing during function initialization.
+`GET /api/health-check` returns HTTP 200 only after the required server
+configuration is present and a bounded database read succeeds. Missing or
+invalid configuration and an unavailable database return a sanitized HTTP 503;
+the response names missing/invalid variables but never includes their values.
+
+For preview acceptance, configure `VITE_SUPABASE_URL`,
+`VITE_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` from a dedicated
+nonproduction Supabase project. Do not reuse production credentials or customer
+data. Other provider integrations are optional to application startup and should
+be enabled only with isolated test-mode credentials and controlled fixtures.
+
 Required for billing:
 
 ```text

@@ -10,6 +10,36 @@ export function canAutomationExecute(action: AutomationAction, mode: AutomationM
 }
 
 export type HealthInput = { onboardingComplete?: boolean; websiteLive?: boolean; paymentHealthy?: boolean; recentEngagement?: boolean; openIssues?: number; overdueApproval?: boolean; renewalDays?: number | null };
+
+export function renewalDaysRemaining(input: {
+  status?: string | null;
+  renewalState?: string | null;
+  cancelAtPeriodEnd?: boolean | null;
+  renewalDate?: string | null;
+}, now = new Date()) {
+  if (!input.renewalDate || input.cancelAtPeriodEnd || ["cancelled", "canceled", "cancellation_requested", "cancellation_scheduled"].includes(String(input.renewalState || "").toLowerCase())) return null;
+  if (!["active", "trialing", "past_due"].includes(String(input.status || "").toLowerCase())) return null;
+  const renewalAt = Date.parse(input.renewalDate);
+  if (!Number.isFinite(renewalAt)) return null;
+  const days = Math.ceil((renewalAt - now.getTime()) / 86400000);
+  return days >= 0 && days <= 60 ? days : null;
+}
+
+export function isOnboardingStalled(input: {
+  lifecycleStage?: string | null;
+  onboardingComplete?: boolean;
+  createdAt?: string | null;
+  now?: Date;
+  thresholdDays?: number;
+}) {
+  const activeOnboardingStage = ["onboarding", "content_collection"].includes(String(input.lifecycleStage || "").toLowerCase());
+  if (!activeOnboardingStage || input.onboardingComplete || !input.createdAt) return false;
+  const createdAt = Date.parse(input.createdAt);
+  if (!Number.isFinite(createdAt)) return false;
+  const ageDays = ((input.now?.getTime() ?? Date.now()) - createdAt) / 86400000;
+  return ageDays >= (input.thresholdDays ?? 7);
+}
+
 export function calculateCustomerHealth(input: HealthInput) {
   let score = 50; const reasons: string[] = [];
   if (input.onboardingComplete) { score += 15; reasons.push("Onboarding complete"); } else { score -= 20; reasons.push("Onboarding incomplete"); }

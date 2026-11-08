@@ -242,6 +242,7 @@ export default function BrandLedLandingPage() {
             </div>
             <p className="mt-5 text-center text-sm text-[#687386]">Building a personal brand? <Link to="/personal-profile" className="font-semibold text-[#5746e8] underline underline-offset-4">See Personal Profile.</Link></p>
             <p className="mt-5 text-center text-sm text-[#687386]">Not ready to decide? <Link to="/generate-preview" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Pricing section free preview", target: "/generate-preview" })} className="font-semibold text-[#5746e8] underline underline-offset-4">Get a free website direction first.</Link></p>
+            <p className="mt-3 text-center text-sm text-[#687386]">Still comparing? <Link to="/managed-website-vs-diy" className="font-semibold text-[#5746e8] underline underline-offset-4">Managed website vs DIY</Link> · <Link to="/managed-website-vs-agency" className="font-semibold text-[#5746e8] underline underline-offset-4">Managed website vs agency</Link>.</p>
             <p className="mt-3 text-center text-sm text-[#687386]">Need a one-time WordPress build instead? <a href="https://web.bennietay.com/#packages" className="font-semibold text-[#5746e8] underline underline-offset-4">Compare SiteFoundry packages.</a></p>
           </div>
         </section>

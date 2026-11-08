@@ -27,6 +27,10 @@ test("public funnel data is limited to published funnels and checkout remains St
   assert.match(api, /type: "funnel_sale"/);
   assert.match(api, /getStripe\(funnel\.business_id\)/);
   assert.match(api, /purchase_completed/);
+  const publicEventRoute = api.slice(api.indexOf('"/api/public/funnels/:funnelId/events"'), api.indexOf('"/api/public/funnels/:funnelId/submit"'));
+  assert.match(publicEventRoute, /z\.enum\(\["funnel_view"/);
+  assert.doesNotMatch(publicEventRoute, /revenue:\s*z\./);
+  assert.match(api, /revenue_verified:\s*true/);
 });
 
 test("funnel delays reuse the existing automation cron instead of adding another Vercel cron", () => {

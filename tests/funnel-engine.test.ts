@@ -74,14 +74,20 @@ test("analytics calculate step conversion, attribution, revenue and funnel outco
     { id: "e1", funnel_id: step.funnel_id, step_id: step.id, session_id: "s1", event_type: "step_view", source: "Google Ads", device: "Mobile" },
     { id: "e2", funnel_id: step.funnel_id, step_id: step.id, session_id: "s2", event_type: "step_view", source: "Google Ads", device: "Desktop" },
     { id: "e3", funnel_id: step.funnel_id, step_id: step.id, session_id: "s1", lead_id: "l1", event_type: "form_submitted", source: "Google Ads", device: "Mobile" },
-    { id: "e4", funnel_id: step.funnel_id, step_id: step.id, session_id: "s1", lead_id: "l1", event_type: "purchase_completed", revenue: 250, currency: "USD", source: "Google Ads", device: "Mobile" },
+    { id: "e4", funnel_id: step.funnel_id, step_id: step.id, session_id: "s1", lead_id: "l1", event_type: "purchase_completed", revenue: 250, currency: "USD", revenue_verified: true, metadata: { stripeSessionId: "cs_test_1" }, source: "Google Ads", device: "Mobile" },
+    { id: "e5", funnel_id: step.funnel_id, step_id: step.id, session_id: "s1", lead_id: "l1", event_type: "checkout_started", source: "Google Ads", device: "Mobile" },
+    { id: "e6", funnel_id: step.funnel_id, step_id: step.id, session_id: "s1", lead_id: "l1", event_type: "checkout_started", source: "Google Ads", device: "Mobile" },
+    { id: "e7", funnel_id: step.funnel_id, step_id: step.id, session_id: "s2", event_type: "purchase_completed", revenue: 9999, source: "Google Ads", device: "Desktop" },
+    { id: "e8", funnel_id: step.funnel_id, step_id: step.id, event_type: "form_submitted", source: "Google Ads", device: "Mobile" },
   ];
   const summary = summarizeFunnelAnalytics(events, [step]);
 
   assert.equal(summary.visitors, 2);
   assert.equal(summary.leads, 1);
   assert.equal(summary.purchases, 1);
+  assert.equal(summary.checkoutStarts, 1);
   assert.equal(summary.revenue, 250);
+  assert.equal(summary.conversionRate, 50);
   assert.equal(summary.averageOrderValue, 250);
   assert.equal(summary.byStep[step.id].views, 2);
   assert.equal(summary.byStep[step.id].conversions, 1);
@@ -96,6 +102,7 @@ test("intelligence stays evidence-based when traffic is too small", () => {
     checkoutStarts: 0,
     purchases: 0,
     revenue: 0,
+    revenueByCurrency: {},
     conversionRate: 25,
     averageOrderValue: 0,
     byStep: {},
@@ -105,4 +112,18 @@ test("intelligence stays evidence-based when traffic is too small", () => {
   const insights = generateFunnelInsights(summary, []);
   assert.equal(insights[0].confidence, "low");
   assert.match(insights[0].observation, /enough traffic/i);
+});
+
+test("funnel revenue preserves Stripe currencies instead of summing unlike amounts", () => {
+  const summary = summarizeFunnelAnalytics([
+    { funnel_id: "f", session_id: "s1", event_type: "funnel_view" },
+    { funnel_id: "f", session_id: "s1", event_type: "purchase_completed", revenue: 20, currency: "MYR", revenue_verified: true, metadata: { stripeSessionId: "cs1" } },
+    { funnel_id: "f", session_id: "s2", event_type: "funnel_view" },
+    { funnel_id: "f", session_id: "s2", event_type: "purchase_completed", revenue: 5, currency: "USD", revenue_verified: true, metadata: { stripeSessionId: "cs2" } },
+  ], []);
+  assert.deepEqual(summary.revenueByCurrency, { MYR: 20, USD: 5 });
+  assert.equal(summary.revenue, 0);
+  assert.equal(summary.averageOrderValue, 0);
+  assert.equal(summary.bySource[0].revenueByCurrency.MYR, 20);
+  assert.equal(summary.bySource[0].revenueByCurrency.USD, 5);
 });

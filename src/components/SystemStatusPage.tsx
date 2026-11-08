@@ -26,10 +26,17 @@ export function SystemStatusPage() {
     try {
       const response = await fetch("/api/health-check");
       const payload = await response.json().catch(() => null);
+      const healthDetail = response.ok
+        ? `Online at ${new Date(payload.timestamp).toLocaleString()}`
+        : payload?.code
+          ? `${payload.code}${[...(payload.missingEnvironment || []), ...(payload.invalidEnvironment || [])].length
+            ? `: ${[...(payload.missingEnvironment || []), ...(payload.invalidEnvironment || [])].join(", ")}`
+            : ""}`
+          : `HTTP ${response.status}`;
       next.push({
         name: "API Health",
         status: response.ok && payload?.status === "ok" ? "ok" : "error",
-        detail: response.ok ? `Online at ${new Date(payload.timestamp).toLocaleString()}` : `HTTP ${response.status}`,
+        detail: healthDetail,
         icon: Server,
       });
     } catch (error: any) {

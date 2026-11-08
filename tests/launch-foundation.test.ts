@@ -7,7 +7,9 @@ test("launch flags fail closed and never enable customer AI by default", () => {
   assert.deepEqual(normalizeLaunchFlags(undefined), DEFAULT_LAUNCH_FLAGS);
   assert.equal(DEFAULT_LAUNCH_FLAGS.otc_mrc_catalogue, false);
   assert.equal(DEFAULT_LAUNCH_FLAGS.customer_ai_controls, false);
+  assert.equal(DEFAULT_LAUNCH_FLAGS.monthly_reporting_workflow, false);
   assert.equal(normalizeLaunchFlags({ otc_mrc_catalogue: true }).otc_mrc_catalogue, true);
+  assert.equal(normalizeLaunchFlags({ monthly_reporting_workflow: true }).monthly_reporting_workflow, true);
 });
 
 test("internal content brief requires verified facts and drafts stay schema-bound", () => {
