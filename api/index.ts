@@ -3615,12 +3615,17 @@ async function startServer() {
 
   const fetchAuditResource = async (initialUrl: string, method: "GET" | "HEAD" = "GET") => {
     let current = initialUrl;
+    const startedAt = Date.now();
+    const totalBudgetMs = 16_000;
     for (let redirect = 0; redirect <= 4; redirect += 1) {
+      if (Date.now() - startedAt >= totalBudgetMs) throw new Error("AUDIT_FETCH_TIMEOUT");
       await assertPublicAuditUrl(current);
+      const remainingMs = totalBudgetMs - (Date.now() - startedAt);
+      if (remainingMs <= 0) throw new Error("AUDIT_FETCH_TIMEOUT");
       const response = await fetch(current, {
         method,
         redirect: "manual",
-        signal: AbortSignal.timeout(10_000),
+        signal: AbortSignal.timeout(Math.max(1, Math.min(5_000, remainingMs))),
         headers: { "user-agent": "BennieStudioWebsiteAudit/1.0", accept: "text/html,application/xhtml+xml" },
       });
       if ([301, 302, 303, 307, 308].includes(response.status)) {
@@ -4708,13 +4713,13 @@ async function startServer() {
   };
 
   const processQueuedJob = async (jobId?: string) => {
-    const workerId = `api-worker-${process.pid}-${Date.now()}`;
+    const workerId = `api-worker-${process.pid}-${crypto.randomUUID()}`;
     const job = await claimAsyncJob(supabaseAdmin, jobId, workerId);
     if (!job) return { processed: false, job: null };
 
     try {
       const result = await runAsyncJob(job);
-      await completeAsyncJob(supabaseAdmin, job.id, result);
+      await completeAsyncJob(supabaseAdmin, job.id, result, job.locked_by);
       return { processed: true, job: { ...job, status: "completed" as const }, result };
     } catch (error: any) {
       const message = safeErrorMessage(error);
@@ -5209,30 +5214,84 @@ async function startServer() {
     }
   });
 
-  // Recovery path when a browser disconnects or serverless execution stops
-  // before an inline audit finishes. Reuse the existing authenticated Vercel
-  // cron rather than relying on an in-browser polling session.
+  // Each audit gets its own invocation and deadline. The cron request only
+  // recovers expired leases and orchestrates a small bounded batch.
+  app.post("/api/cron/website-audit-worker", async (req: any, res: any) => {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
+    const body = validateBody(z.object({ jobId: UUID_SCHEMA }).strict(), req, res);
+    if (!body) return;
+    try {
+      const candidate = await getAsyncJob(supabaseAdmin, body.jobId);
+      if (!candidate || candidate.job_type !== "website_audit") return res.status(404).json({ error: "Audit job not found" });
+      const outcome = await processQueuedJob(body.jobId);
+      res.setHeader("Cache-Control", "no-store");
+      return res.json({ processed: outcome.processed, status: outcome.job?.status || "not_claimed" });
+    } catch (error: any) {
+      captureServerError(error, { phase: "website_audit_worker" });
+      return res.status(503).json({ error: "Audit worker temporarily unavailable" });
+    }
+  });
+
+  // Production recovery: never execute four long-running audits inside the
+  // cron's own 60-second function invocation.
   app.get("/api/cron/website-audits", async (req: any, res: any) => {
     const secret = process.env.CRON_SECRET;
     if (!secret || req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
     try {
+      const now = new Date().toISOString();
       const staleBefore = new Date(Date.now() - 15 * 60 * 1000).toISOString();
       const { data: stale, error: staleError } = await supabaseAdmin.from("async_jobs")
-        .update({ status: "queued", locked_at: null, locked_by: null, run_after: new Date().toISOString() })
+        .select("id,locked_at,attempts,max_attempts")
         .eq("job_type", "website_audit").eq("status", "processing").lt("locked_at", staleBefore)
-        .select("id").limit(5);
+        .order("locked_at", { ascending: true }).limit(12);
       if (staleError) throw staleError;
+      let recoveredStaleJobs = 0;
+      let exhaustedStaleJobs = 0;
+      for (const staleJob of stale || []) {
+        const exhausted = Number(staleJob.attempts) >= Number(staleJob.max_attempts);
+        const { data, error } = await supabaseAdmin.from("async_jobs").update({
+          status: exhausted ? "failed" : "queued",
+          locked_at: null,
+          locked_by: null,
+          run_after: now,
+          ...(exhausted ? { last_error: "Audit worker expired after its maximum attempts." } : {}),
+        }).eq("id", staleJob.id).eq("status", "processing")
+          .eq("locked_at", staleJob.locked_at).eq("attempts", staleJob.attempts)
+          .select("id").maybeSingle();
+        if (error) throw error;
+        if (data) {
+          if (exhausted) exhaustedStaleJobs += 1;
+          else recoveredStaleJobs += 1;
+        }
+      }
+
       const { data: queued, error: pendingError } = await supabaseAdmin.from("async_jobs")
         .select("id").eq("job_type", "website_audit").eq("status", "queued")
-        .lte("run_after", new Date().toISOString()).order("created_at", { ascending: true }).limit(4);
+        .lte("run_after", now).order("created_at", { ascending: true }).limit(4);
       if (pendingError) throw pendingError;
-      const completed: string[] = [];
-      const failures: string[] = [];
-      await Promise.all((queued || []).map(async (job: any) => {
-        const outcome = await processQueuedJob(job.id);
-        if (outcome.processed && outcome.job?.status === "completed") completed.push(job.id);
-        else if (outcome.processed) failures.push(job.id);
+      // This is a fixed platform domain, never a user-supplied callback URL.
+      // A worker is authenticated and can only claim a website_audit job.
+      const workerPath = "/api/cron/website-audit-worker";
+      const workerUrl = process.env.VERCEL_ENV === "production"
+        ? `https://app.bennietay.com${workerPath}`
+        : process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}${workerPath}`
+          : `http://127.0.0.1:${PORT}${workerPath}`;
+      const outcomes = await Promise.allSettled((queued || []).map(async (job: any) => {
+        const response = await fetch(workerUrl, {
+          method: "POST",
+          headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" },
+          body: JSON.stringify({ jobId: job.id }),
+          signal: AbortSignal.timeout(40_000),
+        });
+        if (!response.ok) throw new Error(`AUDIT_WORKER_HTTP_${response.status}`);
+        return await response.json() as { processed: boolean; status: string };
       }));
+      const completed = outcomes.filter((result) => result.status === "fulfilled" && result.value.status === "completed").length;
+      const failedAttempts = outcomes.filter((result) => result.status === "fulfilled" && result.value.status === "failed").length;
+      const unconfirmed = outcomes.filter((result) => result.status === "rejected").length;
+
       let monthlyReportDrafts: any = { enabled: false };
       const flags = await refreshLaunchFlags();
       if (flags.monthly_reporting_workflow) {
@@ -5248,9 +5307,9 @@ async function startServer() {
         }
       }
       res.setHeader("Cache-Control", "no-store");
-      return res.json({ recoveredStaleJobs: stale?.length || 0, processed: (queued || []).length, completed: completed.length, failedAttempts: failures.length, monthlyReportDrafts });
+      return res.json({ recoveredStaleJobs, exhaustedStaleJobs, dispatched: (queued || []).length, completed, failedAttempts, unconfirmed, monthlyReportDrafts });
     } catch (err: any) {
-      console.error("[WebsiteAuditCron] Retry failed", err?.message || err);
+      captureServerError(err, { phase: "website_audit_cron" });
       return res.status(503).json({ error: "Website audit recovery temporarily unavailable." });
     }
   });
@@ -5386,10 +5445,24 @@ async function startServer() {
           let report: any = null;
           let jobError: string | null = null;
 
-          // QStash is an acceleration path, not a hard dependency. If it is
-          // unavailable, process the supported audit job in the current
-          // request so public website reviews never remain queued forever.
-          if (!dispatch.published) {
+          // Production browser requests must not wait for an entire audit.
+          // Dispatch an authenticated worker in the background if QStash is
+          // absent. Keep local/E2E fixtures synchronous for compatibility.
+          const inlineTestFallback = process.env.E2E_TEST === "true" || process.env.VERCEL_ENV !== "production";
+          if (!dispatch.published && job.status === "queued" && !inlineTestFallback && process.env.CRON_SECRET) {
+            const workerPromise = fetch(`https://app.bennietay.com/api/cron/website-audit-worker`, {
+              method: "POST",
+              headers: { authorization: `Bearer ${process.env.CRON_SECRET}`, "content-type": "application/json" },
+              body: JSON.stringify({ jobId: job.id }),
+              signal: AbortSignal.timeout(40_000),
+            }).then((response) => {
+              if (!response.ok) throw new Error(`AUDIT_WORKER_HTTP_${response.status}`);
+            }).catch((error) => {
+              captureServerError(error, { phase: "requested_audit_dispatch", jobId: job.id });
+            });
+            waitUntil(workerPromise);
+          }
+          if (!dispatch.published && inlineTestFallback) {
             const outcome = await processQueuedJob(job.id);
             const outcomeError = "error" in outcome ? outcome.error : null;
             const refreshedJob = await getAsyncJob(supabaseAdmin, job.id);
@@ -5404,7 +5477,7 @@ async function startServer() {
                 : null;
           }
 
-          return res.status(dispatch.published && !existing ? 202 : 200).json({
+          return res.status(status !== "completed" && !existing ? 202 : 200).json({
             success: true,
             queued: status !== "completed",
             jobId: job.id,

@@ -18,9 +18,11 @@ test("production public pages are indexable while Vercel previews stay noindex",
   assert.doesNotMatch(app, /WordPress/i);
 });
 
-test("public website reviews have an inline worker fallback", () => {
-  assert.match(api, /QStash is an acceleration path, not a hard dependency/);
-  assert.match(api, /if \(!dispatch\.published\)[\s\S]*processQueuedJob\(job\.id\)/);
+test("public website reviews dispatch asynchronously in production and retain a local test fallback", () => {
+  assert.match(api, /const inlineTestFallback = process\.env\.E2E_TEST === "true" \|\| process\.env\.VERCEL_ENV !== "production"/);
+  assert.match(api, /if \(!dispatch\.published && inlineTestFallback\)[\s\S]*processQueuedJob\(job\.id\)/);
+  assert.match(api, /waitUntil\(workerPromise\)/);
+  assert.match(api, /status !== "completed" && !existing \? 202 : 200/);
   assert.doesNotMatch(api, /marketingSsr/);
   assert.doesNotMatch(api, /\/api\/marketing/);
 });

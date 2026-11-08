@@ -138,6 +138,9 @@ export async function claimAsyncJob(
     })
     .eq("id", candidate.id)
     .eq("status", candidate.status)
+    // Compare-and-swap: another invocation must not claim the same queued attempt.
+    .eq("attempts", candidate.attempts)
+    .eq("run_after", candidate.run_after)
     .select("*")
     .maybeSingle();
 
@@ -149,8 +152,9 @@ export async function completeAsyncJob(
   supabaseAdmin: SupabaseClient,
   jobId: string,
   result: Record<string, any>,
+  workerId?: string | null,
 ) {
-  const { error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from("async_jobs")
     .update({
       status: "completed",
@@ -160,7 +164,11 @@ export async function completeAsyncJob(
       completed_at: new Date().toISOString(),
     })
     .eq("id", jobId);
+  // A timed-out invocation must never complete a job claimed by a newer worker.
+  if (workerId) query = query.eq("status", "processing").eq("locked_by", workerId);
+  const { data, error } = await query.select("id").maybeSingle();
   if (error) throw error;
+  if (workerId && !data) throw new Error("JOB_LEASE_LOST");
 }
 
 export async function failAsyncJob(
@@ -170,7 +178,7 @@ export async function failAsyncJob(
 ) {
   const retry = job.attempts < job.max_attempts;
   const delayMs = Math.min(15 * 60 * 1000, 30_000 * Math.max(job.attempts, 1));
-  const { error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from("async_jobs")
     .update({
       status: retry ? "queued" : "failed",
@@ -180,6 +188,9 @@ export async function failAsyncJob(
       last_error: errorMessage,
     })
     .eq("id", job.id);
+  // Do not requeue or fail an attempt after its lease has been replaced.
+  if (job.locked_by) query = query.eq("status", "processing").eq("locked_by", job.locked_by).eq("attempts", job.attempts);
+  const { error } = await query;
   if (error) throw error;
 }
 
