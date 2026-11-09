@@ -5,7 +5,8 @@ import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { PublicSiteHeader, PublicSiteFooter } from "./PublicSiteChrome";
-import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
+import { useStudioPortfolioCatalog } from "../lib/studioShowcaseCms";
+import { PortfolioShowcaseVisual } from "./PortfolioShowcaseVisual";
 
 export const STUDIO_SHOWCASES = [
 {slug:"dental-clinic",id:"dental-clinic-v1",category:"Healthcare",title:"Dental clinic",headline:"A calmer path from treatment search to appointment",goal:"Appointment enquiry",challenge:"Patients need treatment clarity, practitioner information and easy-to-find booking options.",approach:"Make treatments easy to scan, introduce the care team, answer common questions and emphasise the appointment path.",sections:["Treatments","Practitioners","Patient FAQs","Opening hours","Appointment CTA"],industry:"clinic",colour:"#17645e"},
@@ -19,21 +20,65 @@ export type StudioShowcase={slug:string;id:string;category:string;title:string;h
 export function StudioShowcaseVisual({study,compact=false}:{study:StudioShowcase,compact?:boolean}){
  return <div className="c27-visual" style={{background:study.colour}}><div className="c27-rendered"><TemplatePreviewThumbnail templateId={study.id} templateName={study.title} className={compact?"h-[218px]":"h-[340px] sm:h-[440px]"}/></div></div>
 }
-export default function StudioCaseStudyDetail(){
- const {slug}=useParams();const studies=useStudioShowcaseCatalog(STUDIO_SHOWCASES);const study=studies.find(s=>s.slug===slug);
- return <div className="brand-public c27-public min-h-screen bg-[#f8f8f5]">
- <PublicSiteHeader/>
- {study?<><Helmet><title>{study.title} Website | Studio Showcase | Bennie Studio</title><meta name="description" content={study.challenge+" Explore a website built by Bennie Studio."}/><link rel="canonical" href={"https://app.bennietay.com/case-studies/showcase/"+study.slug}/></Helmet>
- <main>
- <section className="c27-editorial"><div className="brand-shell py-12 sm:py-20">
- <Link to="/case-studies" className="c27-quiet"><ArrowLeft size={16}/> All case studies</Link>
- <div className="mt-9 grid gap-10 lg:grid-cols-12 lg:items-center"><div className="lg:col-span-5"><h1 className="c27-major">{study.headline}</h1><p className="mt-6 text-base leading-8 text-[#525b66]">{study.challenge}</p><p className="mt-3 text-sm font-medium text-[#566273]">Illustrative concept, not paid client work.</p><div className="mt-8 flex flex-wrap gap-3"><Link to={"/case-studies/showcase/"+study.slug+"/preview"} className="c27-button" onClick={()=>trackPublicEvent({eventType:"showcase_live_preview_clicked",label:study.title,target:"/case-studies/showcase/"+study.slug+"/preview",metadata:{showcase:study.slug}})}>Open live preview <ArrowUpRight size={18}/></Link><Link to={"/generate-preview?industry="+study.industry} className="c27-quiet" onClick={()=>trackPublicEvent({eventType:"showcase_preview_cta",label:study.title,target:"/generate-preview",metadata:{showcase:study.slug}})}>Get a free preview for my business <ArrowRight size={16}/></Link></div></div><div className="lg:col-span-7"><StudioShowcaseVisual study={study}/></div></div>
- </div></section>
- <section className="brand-shell py-20"><div className="grid gap-12 lg:grid-cols-12"><div className="lg:col-span-4"><h2 className="c27-section-title">Designed for the next customer decision.</h2></div><div className="lg:col-span-8">
- {[["01","The business brief",study.challenge],["02","Our design approach",study.approach],["03","Primary website goal",study.goal]].map(([num,title,body])=><div key={num} className="c27-decision"><span>{num}</span><div><h3>{title}</h3><p>{body}</p></div></div>)}
- <div className="c27-decision"><span>04</span><div><h3>Website sections represented</h3><div className="mt-4 flex flex-wrap gap-2">{study.sections.map(section=><span className="c27-chip" key={section}>{section}</span>)}</div></div></div>
- </div></div></section>
- <section className="c27-bottom"><div className="brand-shell grid gap-7 py-16 lg:grid-cols-[1fr_auto] lg:items-center"><div><h2>See what we can design for you.</h2><p className="mt-3 !text-white/80">Start with a free website preview, then review the managed plans when ready.</p></div><Link to={"/generate-preview?industry="+study.industry} className="c27-button !bg-white !text-[#172033]">Get my free preview <ArrowRight size={18}/></Link></div></section>
- </main></>:<main className="brand-shell py-24"><h1>Case study not found.</h1><Link to="/case-studies">Browse case studies →</Link></main>}
- <PublicSiteFooter/></div>
+export default function StudioCaseStudyDetail() {
+  const { slug } = useParams();
+  const catalog = useStudioPortfolioCatalog();
+  const study = catalog.find((item) => item.slug === slug && item.published);
+  if (!study) return <div className="brand-public min-h-screen bg-[#f8f8f5]"><PublicSiteHeader/><main className="brand-shell py-24"><h1 className="c27-section-title">Design study not found.</h1><p className="mt-4 text-slate-600">This design may be unpublished or no longer available.</p><Link to="/case-studies" className="c27-quiet mt-6">Browse the portfolio →</Link></main><PublicSiteFooter/></div>;
+  const previewPath = study.livePreviewSlug ? "/case-studies/showcase/" + study.livePreviewSlug + "/preview" : "";
+  return <div className="brand-public c27-public min-h-screen bg-[#f8f8f5]">
+    <Helmet>
+      <title>{study.title} Website Concept | Bennie Studio Portfolio</title>
+      <meta name="description" content={study.challenge || study.headline}/>
+      <link rel="canonical" href={"https://app.bennietay.com/case-studies/showcase/" + study.slug}/>
+      {(study.coverImage || study.desktopImage) && <meta property="og:image" content={study.coverImage || study.desktopImage}/>}
+    </Helmet>
+    <PublicSiteHeader/>
+    <main>
+      <section className="c27-editorial">
+        <div className="brand-shell py-12 sm:py-20">
+          <Link to="/case-studies" className="c27-quiet"><ArrowLeft size={16}/> All design studies</Link>
+          <div className="mt-10 grid gap-10 lg:grid-cols-12 lg:items-center">
+            <div className="lg:col-span-5">
+              <p className="text-xs font-bold uppercase tracking-[.16em] text-[#1741ed]">{study.category} · {study.style}</p>
+              <h1 className="c27-major mt-5">{study.headline || study.title}</h1>
+              <p className="mt-6 text-base leading-8 text-[#525b66]">{study.challenge}</p>
+              <p className="mt-3 text-sm font-medium text-[#566273]">Illustrative design concept, not a claimed client commission or business result.</p>
+              <div className="mt-8 flex flex-wrap gap-4">
+                {previewPath && <Link to={previewPath} className="c27-button" onClick={() => trackPublicEvent({eventType:"showcase_live_preview_clicked",label:study.title,target:previewPath,metadata:{showcase:study.slug}})}>Explore interactive demo <ArrowUpRight size={18}/></Link>}
+                <Link to={"/generate-preview?industry=" + encodeURIComponent(study.industry)} className={previewPath ? "c27-quiet" : "c27-button"}>Get a preview for my business <ArrowRight size={16}/></Link>
+              </div>
+            </div>
+            <div className="min-w-0 lg:col-span-7">
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_30px_60px_-45px_rgba(0,0,0,.55)]"><PortfolioShowcaseVisual item={study} priority/></div>
+            </div>
+          </div>
+        </div>
+      </section>
+      {(study.desktopImage || study.mobileImage) && <section className="border-y border-slate-200 bg-white">
+        <div className="brand-shell py-16 sm:py-20">
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-[#1741ed]">Visual walkthrough</p>
+          <h2 className="c27-section-title mt-4">See the design across devices.</h2>
+          <div className="mt-9 grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,.35fr)]">
+            {study.desktopImage && <div className="min-w-0"><div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-bold">Desktop</h3><a href={study.desktopImage} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-indigo-700 underline">View full image</a></div>
+              <div className="max-h-[720px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50"><img src={study.desktopImage} alt={study.imageAlt || study.title + " desktop website screenshot"} loading="lazy" decoding="async" className="block h-auto w-full"/></div></div>}
+            {study.mobileImage && <div className="min-w-0"><div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-bold">Mobile</h3><a href={study.mobileImage} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-indigo-700 underline">View full image</a></div>
+              <div className="mx-auto max-h-[720px] max-w-[390px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50"><img src={study.mobileImage} alt={study.title + " mobile website screenshot"} loading="lazy" decoding="async" className="block h-auto w-full"/></div></div>}
+          </div>
+        </div>
+      </section>}
+      <section className="brand-shell py-20">
+        <div className="grid gap-12 lg:grid-cols-12">
+          <div className="lg:col-span-4"><h2 className="c27-section-title">A website built around the customer's next decision.</h2></div>
+          <div className="lg:col-span-8">
+            {([["01","The business challenge",study.challenge],["02","Our design approach",study.approach],["03","Primary enquiry goal",study.goal]] as const).map(([num,title,body]) =>
+              <div key={num} className="c27-decision"><span>{num}</span><div><h3>{title}</h3><p>{body}</p></div></div>)}
+            <div className="c27-decision"><span>04</span><div><h3>Website structure</h3><div className="mt-4 flex flex-wrap gap-2">{(study.sections || []).map((section) => <span className="c27-chip" key={section}>{section}</span>)}</div></div></div>
+          </div>
+        </div>
+      </section>
+      <section className="c27-bottom"><div className="brand-shell grid gap-7 py-16 lg:grid-cols-[1fr_auto] lg:items-center"><div><h2>Make this approach your own.</h2><p className="mt-3 !text-white/80">Explore a free website direction for your business, then review managed hosting and ongoing support.</p></div><Link to={"/generate-preview?industry=" + encodeURIComponent(study.industry)} className="c27-button !bg-white !text-[#172033]">Get my free preview <ArrowRight size={18}/></Link></div></section>
+    </main>
+    <PublicSiteFooter/>
+  </div>;
 }

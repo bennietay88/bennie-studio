@@ -89,12 +89,25 @@ test.describe("Public site freeze QA",()=>{
   });
   test("case study gallery opens a labelled studio project",async({page})=>{
     await page.goto("/case-studies");
-    await expect(page.getByRole("heading",{name:/see the websites/i})).toBeVisible();
+    await expect(page.getByRole("heading",{name:/websites designed to/i})).toBeVisible();
     const links=page.locator('a[href^="/case-studies/showcase/"]:not([href*="/preview"])');
     expect(await links.count()).toBeGreaterThanOrEqual(6);
     await links.first().click();
     await expect(page).toHaveURL(/\/case-studies\/showcase\//);
-    await expect(page.getByText(/not paid client work|not a paid customer/i)).toBeVisible();
+    await expect(page.getByText(/illustrative design concept, not a claimed client commission/i)).toBeVisible();
+  });
+  test("portfolio category and visual-style filters only show matching published examples",async({page})=>{
+    await page.goto("/case-studies");
+    const cards=page.getByTestId("portfolio-card");
+    await expect(cards).toHaveCount(6);
+    await page.getByLabel("Filter by industry").selectOption("Healthcare");
+    await expect(cards).toHaveCount(1);
+    await expect(cards.first().getByRole("heading",{name:"Dental clinic"})).toBeVisible();
+    await page.getByRole("button",{name:"Clear filters"}).click();
+    await expect(cards).toHaveCount(6);
+    await page.getByLabel("Search portfolio").fill("accounting");
+    await expect(cards).toHaveCount(1);
+    await expect(cards.first().getByRole("heading",{name:"Accounting firm"})).toBeVisible();
   });
   test("pricing presents costs and commitments",async({page})=>{
     await mockPublicPricing(page);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { DEFAULT_PORTFOLIO_ITEMS, resolvePortfolioCatalog, type PortfolioItem } from "./portfolioCatalog";
 
 export type StudioShowcaseCmsEntry = {
   study?: Record<string, unknown>;
@@ -52,4 +53,21 @@ export function useStudioShowcaseCatalog<T extends { slug: string; colour?: stri
     const merged = mergeCmsValue(study, config?.study) as T;
     return { ...merged, colour: config?.theme?.accent || merged.colour };
   });
+}
+
+/** Portfolio catalog shares the existing read-only studio showcase endpoint. */
+export function useStudioPortfolioCatalog(): PortfolioItem[] {
+  const [items, setItems] = useState<PortfolioItem[]>(DEFAULT_PORTFOLIO_ITEMS);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/public/studio-showcases", { headers: { Accept: "application/json" } })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (active && payload && Array.isArray(payload.portfolio)) {
+          setItems(resolvePortfolioCatalog(payload.portfolio));
+        }
+      }).catch(() => { /* Built-in showcase content remains available offline. */ });
+    return () => { active = false; };
+  }, []);
+  return items;
 }

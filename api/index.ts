@@ -9620,40 +9620,113 @@ async function startServer() {
     return res.json({ promotion: data });
   });
 
+
+  const portfolioAllowedDemoSlugs = new Set(["dental-clinic", "renovation-contractor", "professional-advisory", "tuition-centre", "beauty-wellness", "accounting-firm"]);
+  const safePortfolioImageUrl = z.string().max(2048).refine(
+    (url) => !url || /^\/(?!\/)[^\s\\]*$/.test(url) || /^https:\/\/[^\s]+$/i.test(url),
+    "Images must use a site-relative or secure HTTPS URL",
+  );
+  const portfolioText = (limit: number) => z.string().trim().max(limit);
+  const portfolioRecordSchema = z.object({
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
+    title: z.string().trim().min(2).max(100),
+    category: z.string().trim().min(2).max(70),
+    style: portfolioText(70),
+    headline: portfolioText(180),
+    goal: portfolioText(100),
+    challenge: portfolioText(700),
+    approach: portfolioText(700),
+    industry: portfolioText(70),
+    sections: z.array(z.string().trim().max(90)).max(12),
+    livePreviewSlug: portfolioText(80).refine((slug) => !slug || portfolioAllowedDemoSlugs.has(slug)),
+    published: z.boolean(),
+    featured: z.boolean(),
+    order: z.number().int().min(0).max(10000),
+    coverImage: safePortfolioImageUrl,
+    desktopImage: safePortfolioImageUrl,
+    mobileImage: safePortfolioImageUrl,
+    imageAlt: portfolioText(200),
+  }).strict().superRefine((item, context) => {
+    if (item.published && !item.coverImage && !item.desktopImage && item.livePreviewSlug !== item.slug) {
+      context.addIssue({ code: "custom", message: "A published concept requires a screenshot or its own existing live demo" });
+    }
+  });
+  const portfolioArraySchema = z.array(portfolioRecordSchema).max(60).superRefine((items, context) => {
+    if (new Set(items.map((item) => item.slug)).size !== items.length) {
+      context.addIssue({ code: "custom", message: "Portfolio slugs must be unique" });
+    }
+  });
+
   app.get("/api/public/studio-showcases", rateLimit({ windowMs: 60 * 1000, max: 90, keyPrefix: "public-studio-showcases" }), async (_req, res) => {
-    if (process.env.E2E_TEST === "true") return res.json({ showcases: {} });
+    if (process.env.E2E_TEST === "true") return res.json({ showcases: {}, portfolio: null });
     const { data, error } = await supabaseAdmin.from("settings").select("content").eq("id", "platform_studio_showcases").maybeSingle();
     if (error) return res.status(500).json({ error: "Studio showcase content is unavailable" });
     const showcases = data?.content?.showcases && typeof data.content.showcases === "object" ? data.content.showcases : {};
+    const portfolio = Array.isArray(data?.content?.portfolio)
+      ? data.content.portfolio.filter((item: any) => item && item.published === true)
+      : null;
     res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=120");
-    return res.json({ showcases });
+    return res.json({ showcases, portfolio });
   });
 
   app.get("/api/admin/studio-showcases", authenticate, superAdminOnly, async (_req: any, res: any) => {
     const { data, error } = await supabaseAdmin.from("settings").select("content,updated_at").eq("id", "platform_studio_showcases").maybeSingle();
     if (error) return res.status(500).json({ error: "Studio showcase CMS could not be loaded" });
-    return res.json({ showcases: data?.content?.showcases || {}, updatedAt: data?.updated_at || null });
+    return res.json({ showcases: data?.content?.showcases || {}, portfolio: data?.content?.portfolio || null, updatedAt: data?.updated_at || null });
   });
 
   app.put("/api/admin/studio-showcases", authenticate, superAdminOnly, async (req: any, res: any) => {
     const body = validateBody(z.object({
       showcases: z.record(z.string(), z.unknown()).refine((value) => Object.keys(value).length <= 20, "Too many showcase entries"),
+      portfolio: portfolioArraySchema.optional(),
     }), req, res);
     if (!body) return;
-    const allowedSlugs = new Set(["dental-clinic", "renovation-contractor", "professional-advisory", "tuition-centre", "beauty-wellness", "accounting-firm"]);
-    if (Object.keys(body.showcases).some((slug) => !allowedSlugs.has(slug))) return res.status(400).json({ error: "Unknown studio showcase slug" });
-    if (Buffer.byteLength(JSON.stringify(body.showcases), "utf8") > 400_000) return res.status(413).json({ error: "Showcase content exceeds the 400 KB limit" });
+    if (Object.keys(body.showcases).some((slug) => !portfolioAllowedDemoSlugs.has(slug))) {
+      return res.status(400).json({ error: "Unknown studio showcase slug" });
+    }
+    if (Buffer.byteLength(JSON.stringify(body), "utf8") > 400_000) {
+      return res.status(413).json({ error: "Showcase content exceeds the 400 KB limit" });
+    }
+    const { data: existing, error: readError } = await supabaseAdmin.from("settings").select("content").eq("id", "platform_studio_showcases").maybeSingle();
+    if (readError) return res.status(500).json({ error: "Studio showcase content could not be loaded before save" });
     const now = new Date().toISOString();
+    const content = { ...(existing?.content || {}), showcases: body.showcases, ...(body.portfolio !== undefined ? { portfolio: body.portfolio } : {}) };
     const { error } = await supabaseAdmin.from("settings").upsert({
-      id: "platform_studio_showcases",
-      content: { showcases: body.showcases },
-      updated_at: now,
+      id: "platform_studio_showcases", content, updated_at: now,
     }, { onConflict: "id" });
     if (error) {
       console.error("Studio showcase CMS save failed", error.message);
       return res.status(500).json({ error: "Studio showcase changes could not be saved" });
     }
     return res.json({ success: true, updatedAt: now });
+  });
+
+  // Signed direct-to-storage uploads avoid exposing the service-role key or accepting large base64 bodies.
+  app.post("/api/admin/studio-portfolio/upload-url", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const body = validateBody(z.object({
+      slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
+      slot: z.enum(["coverImage", "desktopImage", "mobileImage"]),
+      mimeType: z.enum(["image/jpeg", "image/png", "image/webp", "image/avif"]),
+      size: z.number().int().min(1).max(5 * 1024 * 1024),
+    }), req, res);
+    if (!body) return;
+    const bucket = "website-assets";
+    const { data: bucketInfo, error: bucketError } = await supabaseAdmin.storage.getBucket(bucket);
+    if (bucketError || !bucketInfo?.public) {
+      return res.status(503).json({ error: "A public website-assets storage bucket is required for portfolio screenshots." });
+    }
+    const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" } as Record<string, string>)[body.mimeType];
+    const assetPath = "portfolio/" + body.slug + "/" + body.slot + "-" + crypto.randomUUID() + "." + extension;
+    const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUploadUrl(assetPath);
+    if (error || !data?.token) {
+      console.error("Portfolio image signing failed", error?.message);
+      return res.status(500).json({ error: "Could not prepare a portfolio image upload." });
+    }
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.json({
+      bucket, path: assetPath, token: data.token,
+      publicUrl: supabaseAdmin.storage.from(bucket).getPublicUrl(assetPath).data.publicUrl,
+    });
   });
 
   const validatePlatformSiteCms = (content: Record<string, unknown>) => {

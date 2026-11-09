@@ -27,9 +27,8 @@ import {
 import { Pricing as CommercialPricing } from "./Pricing";
 import { RESOURCE_ARTICLES } from "../content/resources";
 import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
-import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
-import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
-import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
+import { PortfolioShowcaseCard, PortfolioShowcaseVisual } from "./PortfolioShowcaseVisual";
+import { useStudioPortfolioCatalog } from "../lib/studioShowcaseCms";
 import type { PlatformCmsPage } from "../lib/platformSiteCms";
 
 const primary =
@@ -546,38 +545,79 @@ export function ProcessStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
 }
 
 export function WorkStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
-  const showcases = useStudioShowcaseCatalog(STUDIO_SHOWCASES);
-  return (
-    <>
-      <section className="c27-marketing-hero">
-        <div className="brand-shell c30-case-hero-grid py-14 lg:py-20">
-          <div className="c30-case-hero-copy">
-            <h1 className="!max-w-[18ch]">{cmsPage?.heroTitle || <>See the websites <em>we can build.</em></>}</h1>
-            <p className="brand-copy mt-7 max-w-3xl">{cmsPage?.heroDescription || "Explore six websites built by Bennie Studio for service industries. Each presents a service clearly, builds confidence and guides visitors towards a useful next step."}</p>
-            <div className="mt-8 flex flex-wrap gap-5">
-              <a href="#industry-examples" className="c27-button">Explore the collection <ArrowRight className="h-4 w-4"/></a>
-              <Link to="/generate-preview" className="c27-quiet">Get a free website preview <ArrowRight className="h-4 w-4"/></Link>
-            </div>
-          </div>
-          <div className="c30-case-hero-art" aria-label="Studio-built website previews">
-            <div className="c30-case-preview-main"><TemplatePreviewThumbnail templateId="dental-clinic-v1" templateName="Dental clinic website" className="h-[270px] sm:h-[340px]" /></div>
-            <div className="c30-case-preview-second"><TemplatePreviewThumbnail templateId="renovation-contractor-v1" templateName="Renovation website" className="h-[150px] sm:h-[185px]" /></div>
-            
-          </div>
-        </div>
-      </section>
-      
-      <section className="border-y border-[#dfe3e8] bg-[#f2f4f7]" id="industry-examples">
-        <div className="brand-shell brand-section">
-          <div className="mb-10 grid gap-6 lg:grid-cols-[1fr_.8fr] lg:items-end"><div><h2 className="mt-4">Six industries. Six different buying journeys.</h2></div><p className="brand-copy">Explore six studio-built websites, each shaped around how customers in that industry choose.</p></div>
-          <div className="c27-grid">{showcases.map(study=><article key={study.slug} className="c27-card">
-            <StudioShowcaseVisual study={study} compact />
-            <div className="c27-card-content"><p className="c27-kicker">{study.category} · Studio-built</p><h3>{study.title}</h3><p>{study.headline}</p><p className="mt-3 !text-xs">Enquiry goal: {study.goal}</p><div className="mt-5 flex flex-wrap gap-x-5 gap-y-3"><Link to={"/case-studies/showcase/"+study.slug+"/preview"} className="inline-flex items-center gap-2 text-sm font-semibold text-[#1741ed]">Open live preview <ArrowRight className="h-4 w-4"/></Link><Link to={"/case-studies/showcase/"+study.slug} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">Explore case study <ArrowRight className="h-4 w-4"/></Link></div></div>
-          </article>)}</div>
-          
-        </div>
-      </section>
-      <section className="brand-shell brand-section grid gap-9 lg:grid-cols-[1fr_auto] lg:items-center"><div><h2 className="mt-4">Wondering what this would look like for your business?</h2><p className="brand-copy mt-5">Tell us about your business and receive a preliminary website direction before choosing a managed plan.</p></div><Link to="/generate-preview" className="c27-button">Get your free website preview <ArrowRight className="h-4 w-4"/></Link></section>
-    </>
+  const catalog = useStudioPortfolioCatalog();
+  const published = catalog.filter((item) => item.published);
+  const [industry, setIndustry] = React.useState("all");
+  const [style, setStyle] = React.useState("all");
+  const [search, setSearch] = React.useState("");
+  const industries = Array.from(new Set(published.map((item) => item.category))).sort();
+  const styles = Array.from(new Set(published.map((item) => item.style))).sort();
+  const filtered = published.filter((item) =>
+    (industry === "all" || item.category === industry)
+    && (style === "all" || item.style === style)
+    && (!search.trim() || [item.title, item.category, item.style, item.headline].join(" ").toLowerCase().includes(search.trim().toLowerCase()))
   );
+  const featured = published.filter((item) => item.featured).slice(0, 2);
+  const heroItems = featured.length ? featured : published.slice(0, 2);
+  return <>
+    <section className="c27-marketing-hero">
+      <div className="brand-shell grid gap-10 py-14 lg:grid-cols-[minmax(0,.87fr)_minmax(0,1.13fr)] lg:items-center lg:py-20">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[.18em] text-[#1741ed]">Bennie Studio · Website design directions</p>
+          <h1 className="mt-5 !max-w-[18ch]">{cmsPage?.heroTitle || <>Websites designed to <em>win trust.</em></>}</h1>
+          <p className="brand-copy mt-7 max-w-2xl">{cmsPage?.heroDescription || "Browse distinctive website concepts for service businesses. Explore the visual direction, customer journey and conversion goal behind each design."}</p>
+          <p className="mt-3 text-xs text-slate-500">Illustrative design studies, not claimed client projects or verified business results.</p>
+          <div className="mt-8 flex flex-wrap gap-4">
+            <a href="#industry-examples" className="c27-button">Explore the collection <ArrowRight className="h-4 w-4"/></a>
+            <Link to="/generate-preview" className="c27-quiet">Preview a site for my business <ArrowRight className="h-4 w-4"/></Link>
+          </div>
+        </div>
+        <div className="grid min-w-0 grid-cols-[1.25fr_.75fr] items-center gap-3" aria-label="Featured design examples">
+          {heroItems.map((item, index) => <Link key={item.slug} to={"/case-studies/showcase/" + item.slug}
+            className={`block min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl ${index === 1 ? "translate-y-8" : ""}`}>
+            <PortfolioShowcaseVisual item={item} compact priority={index === 0}/>
+            <div className="p-3"><p className="truncate text-xs font-bold text-slate-900">{item.title}</p><p className="mt-1 truncate text-[11px] text-slate-500">{item.category}</p></div>
+          </Link>)}
+        </div>
+      </div>
+    </section>
+    <section id="industry-examples" className="border-y border-[#dfe3e8] bg-[#f5f6f8]">
+      <div className="brand-shell brand-section">
+        <div className="mb-7 grid gap-5 lg:grid-cols-[1fr_.7fr] lg:items-end">
+          <div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#1741ed]">Explore the portfolio</p>
+            <h2 className="mt-3">Designs for different businesses and buying journeys.</h2>
+          </div>
+          <p className="brand-copy">Select an industry or design style. Each study explains how a website can help customers take the next step.</p>
+        </div>
+        <div className="mb-7 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-3" aria-label="Portfolio filters">
+          <label className="flex flex-col gap-2 text-xs font-bold text-slate-600">Industry
+            <select aria-label="Filter by industry" value={industry} onChange={(e) => setIndustry(e.target.value)} className="h-11 min-w-0 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900">
+              <option value="all">All industries</option>{industries.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-2 text-xs font-bold text-slate-600">Visual style
+            <select aria-label="Filter by visual style" value={style} onChange={(e) => setStyle(e.target.value)} className="h-11 min-w-0 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900">
+              <option value="all">All styles</option>{styles.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-2 text-xs font-bold text-slate-600">Search examples
+            <input aria-label="Search portfolio" value={search} onChange={(e) => setSearch(e.target.value)}
+              placeholder="e.g. clinic, editorial…" className="h-11 min-w-0 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal text-slate-900"/>
+          </label>
+        </div>
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <p className="text-sm text-slate-600" aria-live="polite">Showing {filtered.length} of {published.length} design studies</p>
+          {(industry !== "all" || style !== "all" || search) && <button type="button" onClick={() => {setIndustry("all");setStyle("all");setSearch("");}} className="text-sm font-semibold text-[#1741ed] hover:underline">Clear filters</button>}
+        </div>
+        {filtered.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{filtered.map((item) =>
+          <PortfolioShowcaseCard key={item.slug} item={item}/>)}</div> :
+          <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-slate-600">No designs match these filters. Try another industry or style.</div>}
+      </div>
+    </section>
+    <section className="brand-shell brand-section grid gap-9 lg:grid-cols-[1fr_auto] lg:items-center">
+      <div><h2 className="mt-4">Want a website designed around your own business?</h2>
+        <p className="brand-copy mt-5">See a tailored direction, then explore managed website plans that include hosting and ongoing support.</p></div>
+      <Link to="/generate-preview" className="c27-button">Get your free website preview <ArrowRight className="h-4 w-4"/></Link>
+    </section>
+  </>;
 }

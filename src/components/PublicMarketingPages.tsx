@@ -121,7 +121,7 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
   "case-studies": {
     title: "Case Studies | In-House & Studio Website Showcases | Bennie Studio",
     description:
-      "Explore Bennie Studio in-house work and six app-rendered studio website showcases for clinics, contractors, advisory firms, tuition centres and more.",
+      "Browse illustrated website design concepts across service industries. Explore image-led case studies, optional interactive demos and tailored managed website directions.",
   },
   "website-audit": {
     title: "Free Website Growth Audit | Bennie Studio",
