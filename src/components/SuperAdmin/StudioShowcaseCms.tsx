@@ -11,6 +11,7 @@ import { DEMOS, NICHE_PAGE_CONTENT } from "../StudioShowcaseLivePreview";
 import { mergeCmsValue, type StudioShowcaseCms } from "../../lib/studioShowcaseCms";
 import { DEFAULT_PORTFOLIO_ITEMS, resolvePortfolioCatalog, type PortfolioItem } from "../../lib/portfolioCatalog";
 import { PortfolioImageUpload } from "./PortfolioImageUpload";
+import { PortfolioBulkUpload } from "./PortfolioBulkUpload";
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
@@ -87,7 +88,7 @@ export function StudioShowcaseCms() {
     return () => { active = false; };
   }, []);
 
-  const save = async () => {
+  const save = async (nextPortfolio: PortfolioItem[] = portfolio): Promise<boolean> => {
     setSaving(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -95,13 +96,14 @@ export function StudioShowcaseCms() {
       const response = await fetch("/api/admin/studio-showcases", {
         method: "PUT",
         headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ showcases, portfolio: portfolio.map((item) => ({ ...item, sections: item.sections.map((section) => section.trim()).filter(Boolean) })) }),
+        body: JSON.stringify({ showcases, portfolio: nextPortfolio.map((item) => ({ ...item, sections: item.sections.map((section) => section.trim()).filter(Boolean) })) }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload?.error || "The showcase changes could not be saved.");
       setSavedAt(new Date().toLocaleTimeString());
       toast.success("Studio content saved. Only published portfolio entries appear publicly.");
-    } catch (error: any) { toast.error(error?.message || "The showcase changes could not be saved."); }
+      return true;
+    } catch (error: any) { toast.error(error?.message || "The showcase changes could not be saved."); return false; }
     finally { setSaving(false); }
   };
 
@@ -144,12 +146,18 @@ export function StudioShowcaseCms() {
   return <div className="mx-auto max-w-7xl space-y-6 pb-12">
     <header className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div><p className="text-xs font-bold uppercase tracking-[.18em] text-indigo-600">Content & CMS</p><h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950">Studio showcase CMS</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Upload and manage portfolio screenshots, draft new concepts, publish individual designs, or edit the existing six interactive demos.</p></div>
-      <div className="flex flex-wrap gap-2"><a href={view === "portfolio" ? "/case-studies" : `/case-studies/showcase/${selectedSlug}/preview`} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Open preview <ExternalLink size={15}/></a><Button onClick={save} disabled={loading || saving} className="gap-2">{saving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>} Save changes</Button></div>
+      <div className="flex flex-wrap gap-2"><a href={view === "portfolio" ? "/case-studies" : `/case-studies/showcase/${selectedSlug}/preview`} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Open preview <ExternalLink size={15}/></a><Button onClick={() => { void save(); }} disabled={loading || saving} className="gap-2">{saving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>} Save changes</Button></div>
     </header>
     <div className="flex flex-wrap gap-2">
       <Button type="button" variant={view === "portfolio" ? "default" : "outline"} onClick={() => setView("portfolio")}>Portfolio manager ({portfolio.length})</Button>
       <Button type="button" variant={view === "previews" ? "default" : "outline"} onClick={() => setView("previews")}>Six interactive demos</Button>
     </div>
+    {view === "portfolio" && !loading && <PortfolioBulkUpload portfolio={portfolio} disabled={saving}
+      onImported={async (urls) => {
+        const next = portfolio.map((item) => ({ ...item, ...(urls[item.slug] || {}) }));
+        setPortfolio(next);
+        return save(next);
+      }}/>}
     {view === "portfolio" ? <section className="grid gap-5 lg:grid-cols-[280px_1fr]">
       <aside className="h-fit space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Portfolio entries</p>
@@ -189,7 +197,7 @@ export function StudioShowcaseCms() {
           {!selectedPortfolio.coverImage && !selectedPortfolio.desktopImage && !selectedPortfolio.livePreviewSlug &&
             <p className="mt-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900">Upload at least one image before publishing this concept.</p>}
         </div>
-        <div className="flex flex-wrap items-center gap-4">{selectedPortfolio.published ? <a href={`/case-studies/showcase/${selectedPortfolio.slug}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-indigo-700 underline">Open design study ↗</a> : <span className="text-sm text-slate-500">Publish this draft to make its case study public.</span>}<Button onClick={save} disabled={saving || loading}>{saving ? "Saving…" : "Save portfolio changes"}</Button></div>
+        <div className="flex flex-wrap items-center gap-4">{selectedPortfolio.published ? <a href={`/case-studies/showcase/${selectedPortfolio.slug}`} target="_blank" rel="noreferrer" className="text-sm font-semibold text-indigo-700 underline">Open design study ↗</a> : <span className="text-sm text-slate-500">Publish this draft to make its case study public.</span>}<Button onClick={() => { void save(); }} disabled={saving || loading}>{saving ? "Saving…" : "Save portfolio changes"}</Button></div>
       </div>}
     </section> : <section className="grid gap-5 lg:grid-cols-[260px_1fr]">
       <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"><p className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400">Choose a niche</p>{STUDIO_SHOWCASES.map((study) => <button type="button" key={study.slug} onClick={() => setSelectedSlug(study.slug)} className={`mb-1 block w-full rounded-lg px-3 py-3 text-left text-sm font-semibold transition ${selectedSlug === study.slug ? "bg-indigo-50 text-indigo-700" : "text-slate-700 hover:bg-slate-50"}`}>{study.title}<span className="mt-1 block text-xs font-normal text-slate-500">{study.category}</span></button>)}</aside>
