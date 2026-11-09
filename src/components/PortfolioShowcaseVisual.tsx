@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Image as ImageIcon } from "lucide-react";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import type { PortfolioItem } from "../lib/portfolioCatalog";
+import { portfolioDemoSlug } from "../lib/studioInteractiveDemos";
 
 /** Static image first; the legacy in-app template preview is only a fallback until screenshots are uploaded. */
 export function PortfolioShowcaseVisual({ item, compact = false, priority = false }: {
@@ -54,7 +55,7 @@ export function PortfolioShowcaseCard({ item }: { item: PortfolioItem }) {
       <p className="mt-3 text-xs text-slate-500">Illustrative design concept · {item.goal}</p>
       <div className="mt-auto flex flex-wrap gap-x-5 gap-y-2 pt-5 text-sm font-semibold">
         <Link to={`/case-studies/showcase/${item.slug}`} className="text-[#1741ed] hover:underline">Explore design study →</Link>
-        {item.livePreviewSlug && <Link to={`/case-studies/showcase/${item.livePreviewSlug}/preview`} className="text-slate-700 hover:underline">Live demo ↗</Link>}
+        {portfolioDemoSlug(item.slug,item.livePreviewSlug) && <Link to={`/case-studies/showcase/${portfolioDemoSlug(item.slug,item.livePreviewSlug)}/preview`} className="text-slate-700 hover:underline">Live demo ↗</Link>}
       </div>
     </div>
   </article>;

@@ -7,6 +7,7 @@ import { trackPublicEvent } from "../lib/publicTracking";
 import { PublicSiteHeader, PublicSiteFooter } from "./PublicSiteChrome";
 import { useStudioPortfolioCatalog } from "../lib/studioShowcaseCms";
 import { PortfolioShowcaseVisual } from "./PortfolioShowcaseVisual";
+import { portfolioDemoSlug } from "../lib/studioInteractiveDemos";
 
 export const STUDIO_SHOWCASES = [
 {slug:"dental-clinic",id:"dental-clinic-v1",category:"Healthcare",title:"Dental clinic",headline:"A calmer path from treatment search to appointment",goal:"Appointment enquiry",challenge:"Patients need treatment clarity, practitioner information and easy-to-find booking options.",approach:"Make treatments easy to scan, introduce the care team, answer common questions and emphasise the appointment path.",sections:["Treatments","Practitioners","Patient FAQs","Opening hours","Appointment CTA"],industry:"clinic",colour:"#17645e"},
@@ -25,7 +26,8 @@ export default function StudioCaseStudyDetail() {
   const catalog = useStudioPortfolioCatalog();
   const study = catalog.find((item) => item.slug === slug && item.published);
   if (!study) return <div className="brand-public min-h-screen bg-[#f8f8f5]"><PublicSiteHeader/><main className="brand-shell py-24"><h1 className="c27-section-title">Design study not found.</h1><p className="mt-4 text-slate-600">This design may be unpublished or no longer available.</p><Link to="/case-studies" className="c27-quiet mt-6">Browse the portfolio →</Link></main><PublicSiteFooter/></div>;
-  const previewPath = study.livePreviewSlug ? "/case-studies/showcase/" + study.livePreviewSlug + "/preview" : "";
+  const activeDemoSlug = portfolioDemoSlug(study.slug,study.livePreviewSlug);
+  const previewPath = activeDemoSlug ? "/case-studies/showcase/" + activeDemoSlug + "/preview" : "";
   return <div className="brand-public c27-public min-h-screen bg-[#f8f8f5]">
     <Helmet>
       <title>{study.title} Website Concept | Bennie Studio Portfolio</title>

@@ -99,12 +99,12 @@ test.describe("Public site freeze QA",()=>{
   test("portfolio category and visual-style filters only show matching published examples",async({page})=>{
     await page.goto("/case-studies");
     const cards=page.getByTestId("portfolio-card");
-    await expect(cards).toHaveCount(6);
+    await expect(cards).toHaveCount(18);
     await page.getByLabel("Filter by industry").selectOption("Healthcare");
-    await expect(cards).toHaveCount(1);
+    await expect(cards).toHaveCount(2);
     await expect(cards.first().getByRole("heading",{name:"Dental clinic"})).toBeVisible();
     await page.getByRole("button",{name:"Clear filters"}).click();
-    await expect(cards).toHaveCount(6);
+    await expect(cards).toHaveCount(18);
     await page.getByLabel("Search portfolio").fill("accounting");
     await expect(cards).toHaveCount(1);
     await expect(cards.first().getByRole("heading",{name:"Accounting firm"})).toBeVisible();

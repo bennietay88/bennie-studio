@@ -79,7 +79,7 @@ const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
 const ComparisonGuidePage = lazy(() => import("./components/ComparisonGuidePage"));
 const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPages"));
 const StudioCaseStudyDetail = lazy(() => import("./components/StudioCaseStudyDetail"));
-const StudioShowcaseLivePreview = lazy(() => import("./components/StudioShowcaseLivePreview"));
+const StudioShowcaseLivePreview = lazy(() => import("./components/StudioShowcasePreviewRouter"));
 const PublicBlogPostPage = lazy(() => import("./components/PublicBlogPostPage"));
 const PublicResourceArticlePage = lazy(() => import("./components/PublicResourceArticlePage"));
 const WaasSamplePage = lazy(() => import("./components/WaasSamplePage"));
