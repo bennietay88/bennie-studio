@@ -54,6 +54,8 @@ import { getOutreachObservation, getConfirmedReviewObservation, getConfirmedRevi
 import { renderProspectEmailTemplate, PORTFOLIO_URL } from "../../lib/prospectOutreachTemplates";
 import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "../../lib/prospectOutreachTemplates";
 import { chooseProspectFollowUp, chooseProspectFollowUpTemplate, isStagedFollowUpTemplate } from "../../lib/prospectFollowUpComposer";
+import { MAX_MANUAL_BULK_FOLLOW_UP } from "../../lib/manualBulkProspectFollowUps";
+import { ManualBulkProspectFollowUps } from "./ManualBulkProspectFollowUps";
 
 const WEBSITE_STATUSES = ["unknown", "no_website", "weak", "average", "strong"];
 const OPPORTUNITY_LEVELS = ["low", "medium", "high"];
@@ -156,6 +158,7 @@ export function ProspectExplorer() {
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [bulkAction, setBulkAction] = useState<"stop_follow_up" | "delete" | null>(null);
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [manualBulkOpen, setManualBulkOpen] = useState(false);
   const [consentAttestationOpen, setConsentAttestationOpen] = useState(false);
   const [consentAttestationConfirmed, setConsentAttestationConfirmed] = useState(false);
   const [consentAttestationSaving, setConsentAttestationSaving] = useState(false);
@@ -1381,7 +1384,7 @@ export function ProspectExplorer() {
       const followUpNotice = payload?.followUp?.status === "queued"
         ? ` Website review email scheduled for ${new Date(payload.followUp.scheduledAt).toLocaleString()}.`
         : payload?.followUp?.status === "draft"
-          ? ` Website review email prepared for ${new Date(payload.followUp.scheduledAt).toLocaleString()}; documented email permission is needed for automatic sending, so it will remain a draft.`
+          ? ` Manual follow-up drafts prepared for review. No follow-up emails are sent automatically.`
           : "";
       toast.success(payload?.alreadySent
         ? `This email was already sent; no duplicate was created.${followUpNotice}`
@@ -1700,6 +1703,10 @@ export function ProspectExplorer() {
               {allVisibleSelected ? "Unselect visible" : `Select all ${visibleIds.length} visible`}
             </Button>
             <Button size="sm" variant="outline" className="rounded-xl bg-white" onClick={() => setSelectedIds([])}>Clear selection</Button>
+            <Button size="sm" className="rounded-xl bg-indigo-600 text-white hover:bg-indigo-700" onClick={() => setManualBulkOpen(true)}>
+              <Send className="mr-1.5 h-4 w-4" /> Send selected follow-ups
+            </Button>
+            {selectedIds.length > MAX_MANUAL_BULK_FOLLOW_UP && <span className="text-xs font-medium text-amber-800">Review at most {MAX_MANUAL_BULK_FOLLOW_UP} prospects per send.</span>}
             <Button size="sm" variant="outline" className="rounded-xl bg-white" onClick={() => setBulkAction("stop_follow_up")}><Check className="mr-1.5 h-4 w-4" />Stop follow-up</Button>
             <Button size="sm" variant="outline" className="rounded-xl border-rose-200 bg-white text-rose-700 hover:bg-rose-50" onClick={() => setBulkAction("delete")}><Trash2 className="mr-1.5 h-4 w-4" />Delete selected</Button>
           </div>
@@ -1946,6 +1953,17 @@ export function ProspectExplorer() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ManualBulkProspectFollowUps
+        open={manualBulkOpen}
+        selectedIds={selectedIds}
+        onOpenChange={setManualBulkOpen}
+        onCompleted={(sentIds) => {
+          const sent = new Set(sentIds);
+          setSelectedIds((current) => current.filter((id) => !sent.has(id)));
+          void fetchProspects();
+        }}
+      />
 
       <Dialog open={Boolean(scheduleProspect)} onOpenChange={(open) => { if (!open && !scheduleSaving) setScheduleProspect(null); }}>
         <DialogContent className="max-w-md rounded-3xl">

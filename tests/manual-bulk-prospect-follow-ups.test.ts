@@ -1,0 +1,59 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { MAX_MANUAL_BULK_FOLLOW_UP, prepareManualBulkFollowUp, safeProspectFollowUpAsset } from "../src/lib/manualBulkProspectFollowUps.ts";
+
+const INTRO = { direction: "outbound", channel: "email", status: "sent", sent_at: "2026-11-01T09:00:00Z" };
+const OUTBOUND = { direction: "outbound", channel: "email", status: "sent" };
+const CONTACT = { id: "p1", name: "Carpentry Service", contact_email: "info@example.com", website_status: "no_website" };
+
+test("manual bulk review only offers confirmed, due follow-up stages", () => {
+  assert.equal(MAX_MANUAL_BULK_FOLLOW_UP, 25);
+  const due = prepareManualBulkFollowUp(CONTACT, [INTRO], {}, new Date("2026-11-04T09:00:00Z"));
+  assert.equal(due.kind, "ready");
+  assert.equal(due.stage, 1);
+  assert.equal(due.templateId, "day3_portfolio_no_site");
+  assert.match(String(due.subject), /Carpentry Service/);
+  assert.match(String(due.bodyText), /app.bennietay.com/);
+  const waiting = prepareManualBulkFollowUp(CONTACT, [INTRO], {}, new Date("2026-11-03T09:00:00Z"));
+  assert.equal(waiting.kind, "skip");
+  assert.match(String(waiting.reason), /Not due until/);
+  assert.match(String(prepareManualBulkFollowUp(CONTACT, [], {}, new Date("2026-11-04T09:00:00Z")).reason), /confirmed opening/);
+});
+
+test("manual bulk respects replies, previous steps and exhausted or converted contacts", () => {
+  const now = new Date("2026-11-18T09:00:00Z");
+  const day3 = { ...OUTBOUND, sent_at: "2026-11-04T09:00:00Z" };
+  const day8 = { ...OUTBOUND, sent_at: "2026-11-09T09:00:00Z" };
+  assert.equal(prepareManualBulkFollowUp(CONTACT, [INTRO, day3], {}, now).stage, 2);
+  assert.equal(prepareManualBulkFollowUp(CONTACT, [INTRO, day3, day8], {}, now).stage, 3);
+  assert.equal(prepareManualBulkFollowUp(CONTACT,
+    [INTRO, day3, { direction: "inbound", status: "replied" }], {}, now).kind, "skip");
+  assert.equal(prepareManualBulkFollowUp(CONTACT, [INTRO, day3, day8, { ...OUTBOUND, sent_at: "2026-11-16T09:00:00Z" }], {}, now).kind, "skip");
+  assert.equal(prepareManualBulkFollowUp({ ...CONTACT, converted_business_id: "customer-id" }, [INTRO], {}, now).kind, "skip");
+  assert.equal(prepareManualBulkFollowUp({ ...CONTACT, contact_email: "" }, [INTRO], {}, now).kind, "skip");
+  assert.equal(prepareManualBulkFollowUp(CONTACT, [INTRO, { ...OUTBOUND, status: "queued", provider_payload: { directStage: 1 } }], {}, now).kind, "skip");
+});
+
+test("review assets must be genuinely prospect-specific and on the approved host", () => {
+  const bespoke = "https://app.bennietay.com/preview/prospect/example_preview_123456";
+  const audit = "https://app.bennietay.com/review/1234567890123456789012";
+  assert.deepEqual(safeProspectFollowUpAsset({ ...CONTACT, design_preview_url: bespoke }), { kind: "design", url: bespoke });
+  assert.deepEqual(safeProspectFollowUpAsset({ ...CONTACT, audit_report_url: audit }), { kind: "audit", url: audit });
+  assert.equal(safeProspectFollowUpAsset({ ...CONTACT, design_preview_url: "https://other.example.com/preview/prospect/example_preview_123456" }), null);
+  assert.equal(safeProspectFollowUpAsset({ ...CONTACT, design_preview_url: "https://app.bennietay.com/preview/template/cleaner" }), null);
+  const preview = prepareManualBulkFollowUp({ ...CONTACT, design_preview_url: bespoke },
+    [INTRO], {}, new Date("2026-11-04T09:00:00Z"));
+  assert.equal(preview.templateId, "day3_design");
+  assert.match(String(preview.bodyText), /example_preview_123456/);
+});
+
+test("manual batch previews use validated saved template overrides", () => {
+  const result = prepareManualBulkFollowUp(CONTACT, [INTRO], {
+    day3_portfolio_no_site: {
+      subject: "A note for {{business_name}}",
+      body: "Hi {{first_name}},\n\nYou can see our work here: {{portfolio_url}}\n\nBennie",
+    },
+  }, new Date("2026-11-04T09:00:00Z"));
+  assert.equal(result.subject, "A note for Carpentry Service");
+  assert.match(String(result.bodyText), /Carpentry Service team/);
+});

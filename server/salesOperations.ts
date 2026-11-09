@@ -233,6 +233,13 @@ export async function runSalesDelivery(input: {
       .update({ ...updates, updated_at: now }).eq("id", message.id).eq("status", "sending"));
     let deliveryAttempted = false;
     try {
+      // Direct prospect follow-ups are manual-only. Never let a legacy queued
+      // message (or an approved draft) be dispatched by the scheduled worker.
+      if (message.provider_payload?.directProspectFollowUp) {
+        await release({ status: "draft", error: "Manual review and send required; automatic follow-ups are disabled." });
+        result.deferred++;
+        continue;
+      }
       const email = normalizeSalesEmail(message.recipient);
       if (!email) throw new Error("INVALID_SALES_RECIPIENT");
       if (await isSalesSuppressed(db, email)) {
@@ -349,6 +356,13 @@ export async function runSalesDelivery(input: {
         }
         if (enrollment.outreach_sequences?.name === "Permissioned website review") {
           const step = Number(message.provider_payload?.stepOrder);
+          if (step >= 2 && step <= 4) {
+            // Keep managed cold-sequence follow-ups available for review only.
+            // All prospect follow-up sends now require an explicit operator action.
+            await release({ status: "draft", error: "Manual review and send required; automatic follow-ups are disabled." });
+            result.deferred++;
+            continue;
+          }
           if (step < 1 || step > 4 || !Number.isInteger(step)) {
             await stopSalesEnrollment(db, enrollment.id, "Unexpected prospect follow-up stage", now);
             await release({ status: "cancelled", error: "Unexpected prospect follow-up stage" });
@@ -699,6 +713,10 @@ export async function sendDirectProspectOutreach(
       .eq("prospect_id", prospect.id).order("created_at", { ascending: true }).limit(100));
     const next = chooseProspectFollowUp(prospect, history || [], new Date(now));
     if (next.kind !== "follow_up" || next.stage !== followUpStage) throw new Error("OUTREACH_FOLLOW_UP_STAGE_NOT_DUE");
+    const { data: enrollment } = checked(await db.from("outreach_enrollments").select("id")
+      .eq("prospect_id", prospect.id).in("status", ["pending", "active", "paused"])
+      .limit(1).maybeSingle());
+    if (enrollment) throw new Error("OUTREACH_ACTIVE_SEQUENCE");
   }
 
   const recipient = input.channel === "email" ? email : phone;
@@ -712,7 +730,6 @@ export async function sendDirectProspectOutreach(
       .eq("prospect_id", contact.id).in("status", ["pending", "active", "paused"]).limit(1).maybeSingle());
     if (enrolled) return null;
     const startMs = new Date(firstMessage.sent_at || now).getTime();
-    const autoSendEligible = hasDocumentedMarketingConsent(contact, new Date(now));
     const asset = resolveProspectFollowUpAsset(contact);
     const overrides = await loadProspectEmailOverrides(db);
     const stages = ([3, 8, 15] as const).map((day, i) => ({
@@ -728,7 +745,7 @@ export async function sendDirectProspectOutreach(
         prospect_id: contact.id, direction: "outbound", channel: "email",
         recipient: normalizeSalesEmail(contact.contact_email),
         subject: stage.subject.slice(0, 500), body_text: stage.body_text,
-        status: i === 0 && autoSendEligible ? "queued" : "draft",
+        status: "draft",
         scheduled_at: new Date(startMs + stage.day * 86_400_000).toISOString(),
         provider_payload: {
           directProspectFollowUp: true,
@@ -737,13 +754,13 @@ export async function sendDirectProspectOutreach(
           directStage: i + 1, followUpStage: "FOLLOW_UP_" + (i + 1) + "_OF_3",
           delayHours: stage.delayHours, reviewUrl: reviewUrl || null,
           reviewAssetKind: i === 0 ? asset?.kind || "portfolio" : null,
-          autoSendEligible, awaitingPriorStage: i > 0,
+          autoSendEligible: false, awaitingPriorStage: i > 0,
         }, updated_at: now,
       }, { onConflict: "idempotency_key", ignoreDuplicates: true });
       if (error) throw error;
     }
     return { scheduledAt: new Date(startMs + 3 * 86_400_000).toISOString(),
-      status: autoSendEligible ? "queued" : "draft", stages: 3 };
+      status: "draft", stages: 3 };
   };
   const { data: prior } = checked(
     await db
@@ -767,7 +784,7 @@ export async function sendDirectProspectOutreach(
       followUp,
     };
   }
-  if (!prior && !input.replyToMessageId && input.channel === "email") {
+  if (!prior && !input.replyToMessageId && input.channel === "email" && !followUpStage) {
     const earliest = new Date(new Date(now).getTime() - 72 * 3_600_000).toISOString();
     const { data: recent } = checked(await db.from("sales_messages").select("id")
       .eq("direction", "outbound").eq("channel", "email")
@@ -899,8 +916,15 @@ export async function sendDirectProspectOutreach(
   };
 
   if (!["replied", "call_booked"].includes(String(prospect.outreach_status || ""))) {
-    updates.outreach_status = "contacted";
-    updates.next_follow_up_at = existingFollowUp || followUpAt;
+    if (followUpStage === 3) {
+      updates.status = "lost";
+      updates.outreach_status = "lost";
+      updates.outreach_exhausted_at = now;
+      updates.next_follow_up_at = null;
+    } else {
+      updates.outreach_status = "contacted";
+      updates.next_follow_up_at = existingFollowUp || followUpAt;
+    }
   }
 
   const { data: updatedProspect } = checked(

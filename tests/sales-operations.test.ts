@@ -31,6 +31,7 @@ class Query {
   insert(values: Row) { this.op = "insert"; this.values = values; return this; }
   upsert(values: Row, options: any = {}) { this.op = "upsert"; this.values = values; this.conflict = options.onConflict || "id"; this.ignore = options.ignoreDuplicates; return this; }
   eq(key: string, value: any) { this.filters.push((row) => key.split(".").reduce((v, k) => v?.[k], row) === value); return this; }
+  neq(key: string, value: any) { this.filters.push((row) => key.split(".").reduce((v, k) => v?.[k], row) !== value); return this; }
   in(key: string, values: any[]) { this.filters.push((row) => values.includes(row[key])); return this; }
   is(key: string, value: any) { this.filters.push((row) => (row[key] ?? null) === value); return this; }
   not(key: string, _op: string, _value: any) { this.filters.push((row) => row[key] != null); return this; }
@@ -107,102 +108,97 @@ test("admin direct email sends without adding fabricated consent evidence", asyn
     /OUTREACH_TOO_SOON/);
 });
 
-test("direct permissioned prospect outreach sends 3/5/7-day preview-first follow-ups and archives after the final stage", async () => {
+test("manual prospect follow-ups stay as drafts and require explicit sends at each stage", async () => {
   const db = new MemoryDb({
     prospects: [{
       id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "not_started",
-      contact_email: "clinic@example.com", design_preview_url: "https://app.bennietay.com/preview/prospect/preview_1234567890",
+      contact_email: "clinic@example.com",
+      design_preview_url: "https://app.bennietay.com/preview/prospect/preview_1234567890",
       marketing_consent: true, consent_timestamp: "2026-08-25T10:00:00.000Z",
       consent_source: "Recipient subscribed through a verified email consent form",
       consent_email: "clinic@example.com", notes: "",
     }],
   });
-  const sent: string[] = [];
-  const start = await sendDirectProspectOutreach(db as any, {
-    prospectId: "p1", channel: "email", subject: "Website idea", bodyText: "I noticed a useful improvement",
-    observation: "The main contact route is not easy to locate",
-    requestId: "sequence-test-1", actorId: "admin",
-    deliver: async () => ({ id: "initial-outreach-provider-id" }),
+  const intro = await sendDirectProspectOutreach(db as any, {
+    prospectId: "p1", channel: "email", subject: "Website idea",
+    bodyText: "I noticed a useful improvement",
+    observation: "The contact route is not clear enough",
+    requestId: "initial-clinic-1", actorId: "admin",
+    deliver: async () => ({ id: "intro-provider" }),
   }, NOW);
-  assert.equal(start.message.status, "sent");
+  assert.equal(intro.message.status, "sent");
   const followups = db.tables.sales_messages.filter((row) => row.provider_payload?.directProspectFollowUp);
-  assert.deepEqual(followups.map((row) => row.provider_payload.directStage), [1, 2, 3]);
-  assert.deepEqual(followups.map((row) => row.status), ["queued", "draft", "draft"]);
-  assert.deepEqual(followups.map((row) => row.provider_payload.followUpStage),
-    ["FOLLOW_UP_1_OF_3", "FOLLOW_UP_2_OF_3", "FOLLOW_UP_3_OF_3"]);
-  const send = async (message: Row) => {
-    sent.push(message.subject);
-    return { id: "provider-" + sent.length };
-  };
-  const first = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-03T10:00:00Z") });
-  assert.equal(first.sent, 1);
-  assert.match(sent[0], /website concept/i);
-  assert.match(followups[0].body_text, /preview\/prospect\/preview_1234567890/);
-  assert.equal(followups[1].status, "queued");
-  const premature = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-07T10:00:00Z") });
-  assert.equal(premature.sent, 0);
-  const second = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-08T10:00:00Z") });
-  assert.equal(second.sent, 1);
-  assert.equal(followups[2].status, "queued");
-  const third = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-15T10:00:00Z") });
-  assert.equal(third.sent, 1);
+  assert.deepEqual(followups.map((row) => row.status), ["draft", "draft", "draft"]);
+  assert.deepEqual(followups.map((row) => row.provider_payload.autoSendEligible), [false, false, false]);
+  let automaticSends = 0;
+  const automatic = async () => { automaticSends++; return { id: "unexpected" }; };
+  assert.equal((await runSalesDelivery({ db: db as any, send: automatic, now: new Date("2026-09-03T10:00:00Z") })).sent, 0);
+  assert.equal(automaticSends, 0);
+  // Even previously queued messages are forced back into manual review.
+  followups[0].status = "queued";
+  const legacy = await runSalesDelivery({ db: db as any, send: automatic, now: new Date("2026-09-03T10:00:00Z") });
+  assert.equal(legacy.sent, 0);
+  assert.equal(followups[0].status, "draft");
+  assert.match(followups[0].error, /Manual review and send required/);
+  assert.equal(automaticSends, 0);
+
+  const manualStage = (stage: 1 | 2 | 3, templateId: string, time: string) =>
+    sendDirectProspectOutreach(db as any, {
+      prospectId: "p1", channel: "email", templateId,
+      subject: "Reviewed follow-up for Example Clinic",
+      bodyText: "A carefully reviewed individual follow-up with the prospect.",
+      requestId: "manually-sent-stage-" + stage, actorId: "admin",
+      deliver: async () => ({ id: "manual-provider-" + stage }),
+    }, time);
+  await assert.rejects(manualStage(1, "day3_design", "2026-09-02T10:00:00Z"), /OUTREACH_FOLLOW_UP_STAGE_NOT_DUE/);
+  const day3 = await manualStage(1, "day3_design", "2026-09-03T10:00:00Z");
+  assert.equal(day3.message.status, "sent");
+  await assert.rejects(manualStage(2, "day8_existing", "2026-09-07T10:00:00Z"), /OUTREACH_FOLLOW_UP_STAGE_NOT_DUE/);
+  assert.equal((await manualStage(2, "day8_existing", "2026-09-08T10:00:00Z")).message.status, "sent");
+  assert.equal((await manualStage(3, "day15_existing", "2026-09-15T10:00:00Z")).message.status, "sent");
   assert.equal(db.tables.prospects[0].outreach_status, "lost");
-  assert.equal(db.tables.prospects[0].outreach_exhausted_at, "2026-09-15T10:00:00.000Z");
+  assert.equal(db.tables.prospects[0].outreach_exhausted_at, "2026-09-15T10:00:00Z");
   assert.equal(db.tables.prospects[0].next_follow_up_at, null);
-  assert.deepEqual(db.tables.sales_tasks.filter((row) => row.status === "open" && row.task_type === "follow_up"), []);
-  assert.equal((await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-16T10:00:00Z") })).sent, 0);
-  assert.equal(sent.length, 3);
+  assert.equal(automaticSends, 0);
 });
 
-test("no-website direct prospect receives portfolio Day 3, service Day 8, and a final Day 15 then archives", async () => {
+test("no-website prospect receives no automated follow-ups and can be manually contacted using portfolio copy", async () => {
   const db = new MemoryDb({
     prospects: [{
       id: "p1", name: "American Carpentry NC LLC", domain: null, website_status: "no_website",
       status: "qualified", outreach_status: "not_started", contact_email: "carpentry@example.com",
-      marketing_consent: true, consent_timestamp: "2026-08-25T10:00:00.000Z",
-      consent_source: "Recipient subscribed through a verified email consent form",
-      consent_email: "carpentry@example.com", notes: "",
+      marketing_consent: false, notes: "",
     }],
     outreach_sequences: [{ id: "s1", name: "Permissioned website review", settings: { emailTemplateOverrides: {} } }],
   });
   const started = await sendDirectProspectOutreach(db as any, {
     prospectId: "p1", channel: "email", templateId: "general-introduction",
     subject: "A website question", bodyText: "Hello, we build and manage websites.",
-    requestId: "no-site-followups-1", actorId: "admin",
+    requestId: "no-site-intro-1", actorId: "admin",
     deliver: async () => ({ id: "intro-accepted" }),
   }, NOW);
   assert.equal(started.message.status, "sent");
-  const followUps = db.tables.sales_messages.filter((message) => message.provider_payload?.directProspectFollowUp);
-  assert.deepEqual(followUps.map((message) => message.status), ["queued", "draft", "draft"]);
-  assert.match(followUps[0].body_text, /https:\/\/app.bennietay.com\/portfolio/);
-  assert.doesNotMatch(followUps[0].body_text, /prepared a short review|put together a homepage concept/i);
-
-  // Editing a saved template after scheduling must change the email actually sent.
-  db.tables.outreach_sequences[0].settings.emailTemplateOverrides.day3_portfolio_no_site = {
-    subject: "Personal note for {{business_name}}",
-    body: "Hi {{first_name}},\\n\\nSee our recent work at {{portfolio_url}}.\\n\\nWould a conversation be useful?",
-  };
-  const sent: Row[] = [];
-  const send = async (message: Row) => { sent.push(structuredClone(message)); return { id: "followup-" + sent.length }; };
-  const first = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-03T10:00:00Z") });
-  assert.equal(first.sent, 1);
-  assert.equal(sent[0].subject, "Personal note for American Carpentry NC LLC");
-  assert.match(sent[0].body_text, /recent work at https:\/\/app.bennietay.com\/portfolio/);
-  assert.match(sent[0].body_text, /portfolio/);
-  assert.equal(sent[0].provider_payload?.reviewAssetKind, "portfolio");
-  const early = await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-07T10:00:00Z") });
-  assert.equal(early.sent, 0);
-  assert.equal((await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-08T10:00:00Z") })).sent, 1);
-  assert.match(sent[1].body_text, /initial setup and ongoing updates/);
-  assert.equal((await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-15T10:00:00Z") })).sent, 1);
-  assert.match(sent[2].body_text, /won't send further follow-ups/);
-  assert.equal(db.tables.prospects[0].outreach_status, "lost");
-  assert.equal(db.tables.prospects[0].outreach_exhausted_at, "2026-09-15T10:00:00.000Z");
-  assert.equal((await runSalesDelivery({ db: db as any, send, now: new Date("2026-09-18T10:00:00Z") })).sent, 0);
-  assert.equal(sent.length, 3);
+  const drafts = db.tables.sales_messages.filter((message) => message.provider_payload?.directProspectFollowUp);
+  assert.deepEqual(drafts.map((message) => message.status), ["draft", "draft", "draft"]);
+  assert.match(drafts[0].body_text, /https:\/\/app.bennietay.com\/portfolio/);
+  assert.doesNotMatch(drafts[0].body_text, /prepared a short review|put together a homepage concept/i);
+  let sent = 0;
+  const day3 = await sendDirectProspectOutreach(db as any, {
+    prospectId: "p1", channel: "email", templateId: "day3_portfolio_no_site",
+    subject: "Following up on my earlier email — American Carpentry NC LLC",
+    bodyText: drafts[0].body_text,
+    requestId: "no-site-manual-stage1", actorId: "admin",
+    deliver: async () => ({ id: "manually-accepted-" + ++sent }),
+  }, "2026-09-03T10:00:00Z");
+  assert.equal(day3.message.status, "sent");
+  assert.equal(sent, 1);
+  assert.equal(drafts[0].status, "cancelled");
+  assert.equal(drafts[1].status, "draft");
+  assert.equal((await runSalesDelivery({ db: db as any, send: async () => { throw Error("Never auto-send"); },
+    now: new Date("2026-09-08T10:00:00Z") })).sent, 0);
 });
 
-test("permissioned managed sequence can send a no-website portfolio follow-up at stage two", async () => {
+test("managed prospect follow-up sequences never dispatch a queued follow-up automatically", async () => {
   const company = { id: "p1", name: "Example Carpenter", domain: null, website_status: "no_website",
     status: "qualified", outreach_status: "contacted", contact_email: "carpentry@example.com",
     marketing_consent: true, consent_email: "carpentry@example.com",
@@ -214,8 +210,6 @@ test("permissioned managed sequence can send a no-website portfolio follow-up at
     outreach_sequence_steps: [
       { id: "step1", sequence_id: "s1", step_order: 1, delay_hours: 0 },
       { id: "step2", sequence_id: "s1", step_order: 2, delay_hours: 72 },
-      { id: "step3", sequence_id: "s1", step_order: 3, delay_hours: 120 },
-      { id: "step4", sequence_id: "s1", step_order: 4, delay_hours: 168 },
     ],
     sales_messages: [
       { id: "intro", enrollment_id: "e1", prospect_id: "p1", recipient: company.contact_email,
@@ -228,13 +222,13 @@ test("permissioned managed sequence can send a no-website portfolio follow-up at
         } },
     ],
   });
-  const sent: Row[] = [];
+  let sends = 0;
   const result = await runSalesDelivery({ db: db as any, now: new Date("2026-09-03T10:00:00Z"),
-    send: async (message) => { sent.push(message); return { id: "managed-1" }; } });
-  assert.equal(result.sent, 1);
-  assert.match(sent[0].body_text, /Just following up on my earlier email/);
-  assert.match(sent[0].body_text, /https:\/\/app.bennietay.com\/portfolio/);
-  assert.equal(sent[0].provider_payload?.reviewAssetKind, "portfolio");
+    send: async () => { sends++; return { id: "unexpected-auto" }; } });
+  assert.equal(result.sent, 0);
+  assert.equal(sends, 0);
+  assert.equal(db.tables.sales_messages[1].status, "draft");
+  assert.match(db.tables.sales_messages[1].error, /Manual review and send required/);
 });
 
 test("recipient reply cancels all direct prospect follow-ups before they send", async () => {
