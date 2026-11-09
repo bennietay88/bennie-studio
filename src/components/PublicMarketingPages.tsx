@@ -2668,6 +2668,12 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
         leadType: "website_audit",
       });
       leadSaved = true;
+      trackPublicEvent({
+        eventType: "website_audit_requested",
+        label: form.businessName,
+        target: "/website-audit",
+        metadata: { industry: form.industry || null },
+      });
       const auditResponse = await fetch("/api/public/website-audit", {
         method: "POST",
         headers: { "content-type": "application/json" },

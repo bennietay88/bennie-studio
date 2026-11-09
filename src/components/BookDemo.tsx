@@ -208,6 +208,12 @@ export default function BookDemo() {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.message || "Your request could not be saved.");
+      trackPublicEvent({
+        eventType: "consultation_request_saved",
+        label: form.company,
+        target: "/book-demo",
+        metadata: { market: form.market, hasPreview: Boolean(saved.previewId) },
+      });
       if (requestFollowUp) {
         setBookingConfirmed(false);
         setSubmitted(true);

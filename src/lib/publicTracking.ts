@@ -43,8 +43,8 @@ export function trackPublicEvent(input: PublicEventInput) {
 
   const gtag = (window as any).gtag;
   if (typeof gtag === "function") {
-    const leadEvent = input.eventType === "website_audit_completed" ||
-      input.eventType === "consultation_followup_requested";
+    const leadEvent = input.eventType === "website_audit_requested" ||
+      input.eventType === "consultation_request_saved";
     const eventName = leadEvent ? "generate_lead" : input.eventType;
     const eventParams: Record<string, string> = {
       event_category: leadEvent ? "lead_generation" : "public_engagement",
