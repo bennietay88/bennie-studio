@@ -55,7 +55,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
   {
     id: "day3_design", stage: "Day 3", label: "Personalized design preview",
     description: "Only selected when a checked, prospect-specific redesign has been saved.",
-    requiredToken: "asset_url",
+    requiredTokens: ["asset_url"],
     defaultTemplate: {
       subject: "I put together a website concept for {{business_name}}",
       body: body(
@@ -87,7 +87,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
   {
     id: "day3_portfolio_existing", stage: "Day 3", label: "Existing site · portfolio fallback",
     description: "Used when a website exists but there is no verified redesign or review.",
-    requiredToken: "portfolio_url",
+    requiredTokens: ["portfolio_url"],
     defaultTemplate: {
       subject: "Following up on my earlier email — {{business_name}}",
       body: body(
@@ -104,7 +104,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
   {
     id: "day3_portfolio_no_site", stage: "Day 3", label: "No website · portfolio follow-up",
     description: "No audit claims; references the introduction and invites a conversation.",
-    requiredToken: "portfolio_url",
+    requiredTokens: ["portfolio_url"],
     defaultTemplate: {
       subject: "Following up on my earlier email — {{business_name}}",
       body: body(
