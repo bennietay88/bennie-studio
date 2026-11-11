@@ -68,7 +68,6 @@ import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server
 import { attestImportedProspectConsent, canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, renderProspectInitialEmail, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { buildProspectFollowUpPlan, bulkManageProspectFollowUps, scheduleProspectFollowUpPlan, syncProspectNextFollowUp } from "../server/prospectFollowUps.js";
 import { attachUploaderOutreachDeclaration, parseProspectCsv } from "../src/lib/prospectImport.js";
-import { hasDocumentedMarketingConsent } from "../src/lib/salesAutomation.js";
 import { PROSPECT_TEMPLATE_KEYS, validateProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
 import type { ProspectEmailTemplateKey, ProspectEmailOverrides } from "../src/lib/prospectOutreachTemplates.js";
 import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, getMinimumTermMonths } from "../src/lib/commercialPricing.js";
@@ -8632,10 +8631,6 @@ async function startServer() {
           status: 400,
           message: "Complete every bracketed detail before sending.",
         },
-        OUTREACH_CONSENT_REQUIRED: {
-          status: 409,
-          message: "Email blocked: this prospect has no verified marketing opt-in. Resend is for permissioned outreach or replying to a genuine inbound enquiry.",
-        },
         OUTREACH_REQUEST_CONFLICT: {
           status: 409,
           message: "This outreach request belongs to another prospect.",
@@ -8919,11 +8914,6 @@ async function startServer() {
       const finalText = `${updates.subject ?? candidate.subject ?? ""}\n${updates.body_text ?? candidate.body_text ?? ""}`;
       if (/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(finalText)) return res.status(422).json({ error: "Resolve all email placeholders before approval." });
       if (await isSalesSuppressed(supabaseAdmin, normalizeSalesEmail(candidate.recipient))) return res.status(409).json({ error: "This recipient has opted out or bounced. Approval blocked." });
-      if (candidate.prospect_id && !candidate.reply_to_message_id) {
-        const { data: prospect, error: prospectError } = await supabaseAdmin.from("prospects").select("*").eq("id", candidate.prospect_id).maybeSingle();
-        if (prospectError) throw prospectError;
-        if (!hasDocumentedMarketingConsent(prospect)) return res.status(409).json({ error: "Approval blocked. This prospect has no documented opt-in." });
-      }
       const futureAuditFollowUp = candidate.provider_payload?.directAuditFollowUp && candidate.scheduled_at && new Date(candidate.scheduled_at) > new Date();
       if (body.sendNow && !futureAuditFollowUp) updates.scheduled_at = new Date().toISOString();
       const { data, error } = await supabaseAdmin.from("sales_messages").update(updates).eq("id", req.params.messageId).eq("status", "draft").select("*").maybeSingle();
@@ -8961,9 +8951,6 @@ async function startServer() {
       const recipient = normalizeSalesEmail(entity.email || entity.contact_email);
       if (!EMAIL_SCHEMA.safeParse(recipient).success) return res.status(400).json({ error: "Contact has no valid email" });
       if (await isSalesSuppressed(supabaseAdmin, recipient)) return res.status(409).json({ error: "This contact is suppressed" });
-      if (!["inbound", "proposal"].includes(String(sequence.audience_type || "cold")) && !hasDocumentedMarketingConsent(entity)) {
-        return res.status(409).json({ error: "Record verified email marketing opt-in before enrolling this contact." });
-      }
       if (entity.outreach_exhausted_at || [entity.status, entity.outreach_status].some((status) => ["won", "lost", "closed", "converted", "paid", "meeting", "call_booked", "appointment_booked", "replied"].includes(String(status).toLowerCase()))) {
         return res.status(409).json({ error: "This contact has replied, is closed or has a booked call. Use a personal follow-up." });
       }

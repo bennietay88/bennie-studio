@@ -330,23 +330,23 @@ test("marketing opt-in requires boolean permission, actual timestamp and meaning
   assert.equal(hasDocumentedMarketingConsent({ ...good, consent_timestamp: "2027-01-01T00:00:00Z" }, new Date(NOW)), false);
 });
 
-test("unconsented standalone prospect marketing is also blocked at delivery", async () => {
+test("operator-authorized standalone prospect email is delivered without a CRM consent flag", async () => {
   const db = fixture(); let sends = 0;
   db.tables.prospects[0].marketing_consent = false;
   db.tables.sales_messages[0].enrollment_id = null;
-  const outcome = await run(db, async () => { sends++; return { id: "unexpected" }; });
-  assert.equal(sends, 0);
-  assert.equal(outcome.deliveryBlocked, 1);
-  assert.equal(db.tables.sales_messages[0].status, "draft");
+  const outcome = await run(db, async () => { sends++; return { id: "receipt" }; });
+  assert.equal(sends, 1);
+  assert.equal(outcome.deliveryBlocked, 0);
+  assert.equal(db.tables.sales_messages[0].status, "sent");
 });
 
-test("unconsented cold marketing cannot enter the provider and is returned to draft", async () => {
+test("operator-authorized prospect sequence email does not require a duplicate CRM consent flag", async () => {
   const db = fixture(); let sends = 0;
   db.tables.prospects[0].marketing_consent = false;
-  const outcome = await run(db, async () => { sends++; return { id: "unexpected" }; });
-  assert.equal(sends, 0);
-  assert.equal(outcome.deliveryBlocked, 1);
-  assert.equal(db.tables.sales_messages[0].status, "draft");
+  const outcome = await run(db, async () => { sends++; return { id: "receipt" }; });
+  assert.equal(sends, 1);
+  assert.equal(outcome.deliveryBlocked, 0);
+  assert.equal(db.tables.sales_messages[0].status, "sent");
 });
 
 test("two concurrent workers claim and send the message once", async () => {

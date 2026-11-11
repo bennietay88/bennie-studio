@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { classifyReply, getOutreachObservation, hasDocumentedMarketingConsent, saveOutreachObservation } from "../src/lib/salesAutomation.js";
+import { classifyReply, getOutreachObservation, saveOutreachObservation } from "../src/lib/salesAutomation.js";
 import { PORTFOLIO_URL, renderProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
 import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "../src/lib/prospectOutreachTemplates.js";
 import { chooseProspectFollowUp, FOLLOW_UP_TEMPLATE_STAGES } from "../src/lib/prospectFollowUpComposer.js";
@@ -110,14 +110,15 @@ export function renderProspectFollowUpStage(
   overrides: ProspectEmailOverrides = {},
 ) {
   const { company, firstName, hasExistingWebsite } = prospectEmailIdentity(contact);
+  const specificObservation = getOutreachObservation(contact.notes).replace(/\s+/g, " ").trim().slice(0, 240);
   let id: ProspectEmailTemplateKey;
-  if (stage === 1) id = asset?.kind === "design" ? "day3_design" : asset?.kind === "audit" ? "day3_audit"
+  if (stage === 1) id = asset?.kind === "design" ? "day3_design" : asset?.kind === "audit" && specificObservation ? "day3_audit"
     : hasExistingWebsite ? "day3_portfolio_existing" : "day3_portfolio_no_site";
   else if (stage === 2) id = hasExistingWebsite ? "day8_existing" : "day8_no_site";
   else id = hasExistingWebsite ? "day15_existing" : "day15_no_site";
   return renderProspectEmailTemplate(id, {
     first_name: firstName, business_name: company,
-    asset_url: asset?.url, portfolio_url: PORTFOLIO_URL,
+    asset_url: asset?.url, portfolio_url: PORTFOLIO_URL, specific_observation: specificObservation,
   }, overrides);
 }
 
@@ -314,12 +315,6 @@ export async function runSalesDelivery(input: {
             reviewAssetUrl: stage === 1 ? asset?.url || BENNIE_STUDIO_PORTFOLIO_URL : null,
           } });
         }
-        // Standalone prospect messages are marketing unless they reply to a verified inbound conversation.
-        if (message.prospect_id && !message.reply_to_message_id && !hasDocumentedMarketingConsent(contact)) {
-          await release({ status: "draft", error: "Documented recipient opt-in required for prospect email." });
-          result.deliveryBlocked++;
-          continue;
-        }
       }
       if (message.enrollment_id) {
         const { data: enrollment } = checked(await db.from("outreach_enrollments").select("*, outreach_sequences(status,audience_type,name,settings)")
@@ -332,13 +327,6 @@ export async function runSalesDelivery(input: {
         const table = enrollment.lead_id ? "leads" : "prospects";
         const { data: contact } = checked(await db.from(table).select("*")
           .eq("id", enrollment.lead_id || enrollment.prospect_id).maybeSingle());
-        // Queued marketing must require evidence of recipient opt-in, not merely approval.
-        const audience = String(enrollment.outreach_sequences?.audience_type || "cold");
-        if (!["inbound", "proposal"].includes(audience) && !hasDocumentedMarketingConsent(contact)) {
-          await release({ status: "draft", error: "Documented recipient opt-in is required before marketing email." });
-          result.deliveryBlocked++;
-          continue;
-        }
         const { data: siblings } = checked(await db.from("sales_messages").select("*").eq("enrollment_id", enrollment.id));
         const replied = (siblings || []).some((row) => row.direction === "inbound" || row.status === "replied");
         if (!contact || replied || [contact.status, contact.outreach_status].some((status) => STOPPED_CONTACT.includes(String(status).toLowerCase()))) {
@@ -830,11 +818,8 @@ export async function sendDirectProspectOutreach(
     replyToMessageId = parent.id;
   }
 
-  // First-contact and follow-up marketing emails require recorded recipient opt-in.
-  // Only a reply to a verified inbound message is exempt.
-  if (input.channel === "email" && !replyToMessageId && !hasDocumentedMarketingConsent(prospect, new Date(now))) {
-    throw new Error("OUTREACH_CONSENT_REQUIRED");
-  }
+  // The studio operator is responsible for prospect permission; suppression,
+  // opt-out, reply-thread and cadence checks remain enforced here.
 
   const messageId = prior?.id || salesRecordId(key);
   const messagePayload = {

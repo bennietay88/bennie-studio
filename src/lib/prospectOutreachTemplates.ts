@@ -23,6 +23,7 @@ export type ProspectEmailContext = {
   business_name: string;
   asset_url?: string;
   portfolio_url?: string;
+  specific_observation?: string;
 };
 
 type TemplateDefinition = {
@@ -30,7 +31,7 @@ type TemplateDefinition = {
   label: string;
   stage: string;
   description: string;
-  requiredToken?: "asset_url" | "portfolio_url";
+  requiredTokens?: readonly ("asset_url" | "portfolio_url" | "specific_observation")[];
   defaultTemplate: ProspectEmailTemplate;
 };
 
@@ -62,7 +63,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
         "Just following up on my earlier email. I put together a homepage concept for {{business_name}}, showing a possible direction for clearer service messaging and easier enquiries.",
         "You can view the concept here:",
         "{{asset_url}}",
-        "It's a no-obligation starting point. Would you be open to a short conversation about it?",
+        "If you want, reply “show me” and I’ll explain the design choices in a few bullets.",
         "Bennie\nBennie Studio",
       ),
     },
@@ -70,15 +71,15 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
   {
     id: "day3_audit", stage: "Day 3", label: "Verified website review",
     description: "Only selected when a verified, access-controlled review URL exists.",
-    requiredToken: "asset_url",
+    requiredTokens: ["asset_url", "specific_observation"],
     defaultTemplate: {
-      subject: "A website review for {{business_name}}",
+      subject: "One website improvement for {{business_name}}",
       body: body(
         "Hi {{first_name}},",
-        "Just following up on my earlier email. I prepared a short website review for {{business_name}}, including findings and practical recommendations.",
-        "You can read it here:",
+        "I reviewed the website and one opportunity stood out: {{specific_observation}}",
+        "I put the short review and a few practical recommendations here:",
         "{{asset_url}}",
-        "Would you be open to a short conversation about the improvements?",
+        "If you want, reply “first step” and I’ll send the one change I’d prioritize. No call needed.",
         "Bennie\nBennie Studio",
       ),
     },
@@ -95,7 +96,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
         "We build and manage websites for service businesses, making it easier for potential customers to learn about their services and get in touch.",
         "If you're curious about our work, you can view our portfolio here:",
         "{{portfolio_url}}",
-        "Would you be open to a quick conversation about whether your current website could work harder for {{business_name}}?",
+        "Would a relevant example and the setup and monthly cost help you decide if it’s worth considering? Reply “send it” and I’ll share them.",
         "Bennie\nBennie Studio",
       ),
     },
@@ -112,7 +113,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
         "We build and manage websites for service businesses, making it easier for potential customers to learn about their services and get in touch.",
         "If you're curious about our work, you can view our portfolio here:",
         "{{portfolio_url}}",
-        "Would you be open to a quick conversation about whether a website could be useful for {{business_name}}?",
+        "Would a relevant example and the setup and monthly cost help you decide if a website is worth considering? Reply “send it” and I’ll share them.",
         "Bennie\nBennie Studio",
       ),
     },
@@ -126,7 +127,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
         "Hi {{first_name}},",
         "I wanted to share one practical thought following my previous note. A business website can do more than introduce services: it can make the next step clear when someone is ready to enquire.",
         "Bennie Studio can help improve the website and take care of ongoing updates, without your team having to manage the technical side.",
-        "Would it be helpful if I outlined a possible scope and the setup and monthly management costs for {{business_name}}?",
+        "Want a plain-English outline with the setup and monthly costs for {{business_name}}? Reply “outline” and I’ll send it.",
         "Bennie\nBennie Studio",
       ),
     },
@@ -140,7 +141,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
         "Hi {{first_name}},",
         "One more thought in case my earlier email was relevant. A simple business website could give customers one place to understand your services, see where you operate and get in touch.",
         "With Bennie Studio, we can handle both the initial setup and ongoing updates, so there's no need to manage the technical work yourself.",
-        "Would a short outline of the options and the setup and monthly management costs be useful for {{business_name}}?",
+        "Want a plain-English outline with the setup and monthly costs for {{business_name}}? Reply “outline” and I’ll send it.",
         "Bennie\nBennie Studio",
       ),
     },
@@ -174,7 +175,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
 ];
 
 export const PROSPECT_TEMPLATE_KEYS = PROSPECT_EMAIL_TEMPLATE_DEFINITIONS.map((row) => row.id);
-const PLACEHOLDERS = new Set(["first_name", "business_name", "asset_url", "portfolio_url"]);
+const PLACEHOLDERS = new Set(["first_name", "business_name", "asset_url", "portfolio_url", "specific_observation"]);
 
 export function validateProspectEmailTemplate(key: ProspectEmailTemplateKey, template: ProspectEmailTemplate): string | null {
   const definition = PROSPECT_EMAIL_TEMPLATE_DEFINITIONS.find((item) => item.id === key);
@@ -190,8 +191,8 @@ export function validateProspectEmailTemplate(key: ProspectEmailTemplateKey, tem
       return "Check incomplete or malformed template variables.";
     }
   }
-  if (definition.requiredToken && !template.body.includes("{{" + definition.requiredToken + "}}")) {
-    return "This template must include {{" + definition.requiredToken + "}}.";
+  for (const token of definition.requiredTokens || []) {
+    if (!template.body.includes("{{" + token + "}}")) return "This template must include {{" + token + "}}.";
   }
   return null;
 }
@@ -210,8 +211,9 @@ export function renderProspectEmailTemplate(
     business_name: context.business_name,
     asset_url: context.asset_url || "",
     portfolio_url: context.portfolio_url || PORTFOLIO_URL,
+    specific_observation: context.specific_observation || "",
   };
-  const substitute = (text: string) => text.replace(/\{\{\s*(first_name|business_name|asset_url|portfolio_url)\s*\}\}/g,
+  const substitute = (text: string) => text.replace(/\{\{\s*(first_name|business_name|asset_url|portfolio_url|specific_observation)\s*\}\}/g,
     (_match, token: string) => values[token] || "");
   return { subject: substitute(template.subject), body_text: substitute(template.body) };
 }

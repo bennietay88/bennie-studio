@@ -52,7 +52,7 @@ test("prospect composer avoids extra checkboxes while server rules reject missin
   assert.match(api, /OUTREACH_OBSERVATION_REQUIRED/);
   assert.match(sales, /CONTACT_SUPPRESSED/);
   assert.match(sales, /CONTACT_SUPPRESSED/);
-  assert.match(sales, /hasDocumentedMarketingConsent\(contact\)/);
+  assert.doesNotMatch(sales, /hasDocumentedMarketingConsent\(contact\)/);
 });
 
 test("first-touch outreach does not require scored intent evidence on the client or API", () => {
