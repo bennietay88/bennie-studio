@@ -16,7 +16,7 @@ type PricingState = {
   error: string | null;
 };
 
-// Never display rates from the previous country under a newly selected currency.
+// Never display stale amounts from another pricing request. New-customer pricing is USD-only.
 // If pricing cannot be verified, show package descriptions without any amounts.
 const unpricedProducts = (): CommercialProduct[] =>
   COMMERCIAL_FALLBACK_PRODUCTS.map((product) => ({ ...product, prices: [] }));
@@ -63,7 +63,7 @@ export function usePublicCommercialPricing(_market: CommercialMarket) {
           throw new Error("Live pricing is temporarily unavailable.");
         const products = payload.products.map((product) => ({
           ...product,
-          // Never substitute a price from a different billing market.
+          // Never substitute an unverified or different-market price.
           prices: product.price?.market === market ? [product.price] : [],
         })) as CommercialProduct[];
         setState({ market, products, loading: false, error: null });
@@ -87,7 +87,7 @@ export function usePublicCommercialPricing(_market: CommercialMarket) {
     };
   }, [market]);
 
-  // Market changes take effect during render, *before* the fetch effect runs.
+  // Verified USD pricing takes effect during render, *before* the fetch effect runs.
   const marketMatches = state.market === market;
   return {
     products: marketMatches ? state.products : unpricedProducts(),

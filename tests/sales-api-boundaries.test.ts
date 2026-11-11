@@ -50,6 +50,7 @@ test("sales API rejects unauthorized callers and malformed privileged actions", 
     ["POST", "/api/admin/sales-automation/enroll"], ["POST", "/api/admin/sales-automation/run"],
     ["POST", `/api/admin/sales-automation/messages/${id}/approve`], ["PATCH", `/api/admin/sales-automation/bookings/${id}`],
     ["DELETE", `/api/admin/businesses/${id}`],
+    ["PATCH", `/api/admin/commercial-catalogue/products/${id}`],
   ];
   try {
     for (let attempt = 0; ; attempt++) {

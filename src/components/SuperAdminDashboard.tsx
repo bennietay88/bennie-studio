@@ -381,9 +381,6 @@ export default function SuperAdminDashboard() {
   const [businessDeleteText, setBusinessDeleteText] = useState("");
   const [isBusinessDeleteDialogOpen, setIsBusinessDeleteDialogOpen] = useState(false);
   const [deletingBusinessId, setDeletingBusinessId] = useState<string | null>(null);
-  const [isPurgeDialogOpen, setIsPurgeDialogOpen] = useState(false);
-  const [purgeConfirmText, setPurgeConfirmText] = useState("");
-  const [purgeConfirmEmail, setPurgeConfirmEmail] = useState("");
   const [isBulkLoading, setIsBulkLoading] = useState(false);
   const [exportingBusinessId, setExportingBusinessId] = useState<string | null>(null);
   const [showTour, setShowTour] = useState(false);
@@ -1113,78 +1110,6 @@ export default function SuperAdminDashboard() {
       toast.error("Failed to update settings");
     } finally {
       setSavingSettings(false);
-    }
-  };
-
-  const handleClearAllData = async () => {
-    if (profile?.role !== "super_admin") {
-      toast.error("Only Super Admins can purge platform data");
-      return;
-    }
-    if (import.meta.env.VITE_ENABLE_PLATFORM_PURGE !== "true") {
-      toast.error("Platform purge is disabled. Set VITE_ENABLE_PLATFORM_PURGE=true only for an approved maintenance window.");
-      return;
-    }
-    if (purgeConfirmText !== "PURGE PLATFORM DATA") {
-      toast.error("Typed confirmation must exactly match PURGE PLATFORM DATA");
-      return;
-    }
-    if (purgeConfirmEmail !== (profile as any)?.email) {
-      toast.error("Admin email confirmation does not match your signed-in account.");
-      return;
-    }
-    setLoading(true);
-    try {
-      // In a real environment with cascades, this is simple.
-      // Here we might need to delete from multiple tables if cascades aren't fully set up.
-
-      const tables = [
-        "affiliate_referrals",
-        "affiliate_payouts",
-        "affiliates",
-        "affiliate_programs",
-        "analytic_events",
-        "appointments",
-        "blog_posts",
-        "leads",
-        "websites",
-        "profiles",
-        "businesses",
-      ];
-
-      const failures: string[] = [];
-      for (const table of tables) {
-        const { error } = await supabase
-          .from(table)
-          .delete()
-          .neq("id", "00000000-0000-0000-0000-000000000000"); // Delete everything
-        if (error) {
-          failures.push(`${table}: ${error.message}`);
-          console.warn(`Error clearing ${table}:`, error);
-        }
-      }
-
-      if (failures.length > 0) {
-        toast.error(`Purge failed for ${failures.length} table(s): ${failures.slice(0, 3).join("; ")}`);
-        await recordAdminAction(
-          "platform.data_purge_failed",
-          { type: "platform", id: "all", label: "All platform data" },
-          { failures },
-        );
-        return;
-      }
-
-      toast.success("Platform data cleared successfully. Please refresh.");
-      await recordAdminAction("platform.data_purged", {
-        type: "platform",
-        id: "all",
-        label: "All platform data",
-      });
-      window.location.reload();
-    } catch (error: any) {
-      toast.error("Failed to clear data: " + error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -2057,25 +1982,14 @@ export default function SuperAdminDashboard() {
                       </div>
                    </Card>
                    
-                   <Card className="rounded-[2rem] p-8 border-none ring-1 ring-rose-100 bg-rose-50/30 flex flex-col justify-between">
+                   <Card className="rounded-[2rem] p-8 border-none ring-1 ring-slate-200 bg-slate-50/50 flex flex-col justify-between">
                       <div>
-                         <h3 className="text-lg font-black italic uppercase italic tracking-tight text-rose-900 mb-2">Danger Zone</h3>
-                         <p className="text-sm font-medium text-rose-700/70 mb-8 leading-relaxed">
-                           Resetting the platform will purge all business data, user accounts, and billing records. This action is irreversible and should only be performed during system re-genesis.
+                         <h3 className="text-lg font-black tracking-tight text-slate-900 mb-2">Data Protection</h3>
+                         <p className="text-sm font-medium text-slate-600 leading-relaxed">
+                           Bulk deletion of platform, customer, subscription, and billing records is not available in the admin portal.
+                           Use the scoped customer-management actions and approved backup or retention procedures for exceptional requests.
                          </p>
                       </div>
-                      <Button 
-                         variant="ghost" 
-                         onClick={() => {
-                           setPurgeConfirmText("");
-                           setPurgeConfirmEmail("");
-                           setIsPurgeDialogOpen(true);
-                         }}
-                         className="w-full h-12 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 font-black uppercase tracking-widest text-[10px]"
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Purge Entire Ecosystem
-                      </Button>
                    </Card>
                 </div>
                 )}
@@ -2934,72 +2848,6 @@ export default function SuperAdminDashboard() {
                 <Trash2 className="mr-2 h-4 w-4" />
               )}
               Delete Permanently
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isPurgeDialogOpen} onOpenChange={setIsPurgeDialogOpen}>
-        <DialogContent className="rounded-3xl max-w-xl">
-          <DialogHeader>
-            <DialogTitle className="text-rose-600 flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" /> Purge Platform Data
-            </DialogTitle>
-            <DialogDescription>
-              This is an irreversible emergency action. It deletes data from
-              customer, website, lead, appointment, affiliate, and analytics tables.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-xs font-bold leading-relaxed text-rose-800">
-              Tables affected: affiliate_referrals, affiliate_payouts, affiliates,
-              affiliate_programs, analytic_events, appointments, blog_posts,
-              leads, websites, profiles, businesses.
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                Type PURGE PLATFORM DATA
-              </Label>
-              <Input
-                value={purgeConfirmText}
-                onChange={(event) => setPurgeConfirmText(event.target.value)}
-                className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                Re-enter your superadmin email
-              </Label>
-              <Input
-                type="email"
-                value={purgeConfirmEmail}
-                onChange={(event) => setPurgeConfirmEmail(event.target.value)}
-                placeholder={(profile as any)?.email || "admin@example.com"}
-                className="rounded-xl"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsPurgeDialogOpen(false)}
-              className="rounded-xl"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleClearAllData}
-              disabled={
-                import.meta.env.VITE_ENABLE_PLATFORM_PURGE !== "true" ||
-                purgeConfirmText !== "PURGE PLATFORM DATA" ||
-                purgeConfirmEmail !== (profile as any)?.email
-              }
-              className="rounded-xl"
-            >
-              {import.meta.env.VITE_ENABLE_PLATFORM_PURGE === "true"
-                ? "Permanently Purge Data"
-                : "Purge Disabled"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -9415,6 +9415,40 @@ async function startServer() {
     return res.json({ products: products.data || [], prices: prices.data || [], promotions: promotions.data || [], legacyPlans: legacyPlans.data || [] });
   });
 
+  // Keep product availability controllable from Super Admin without editing
+  // the production database or changing historical customer entitlements.
+  app.patch("/api/admin/commercial-catalogue/products/:id", authenticate, superAdminOnly, async (req: any, res: any) => {
+    const id = String(req.params.id || "");
+    if (!UUID_SCHEMA.safeParse(id).success) return res.status(400).json({ error: "Invalid product record" });
+    const body = validateBody(z.object({ active: z.boolean() }), req, res);
+    if (!body) return;
+    const { data: existing, error: lookupError } = await supabaseAdmin.from("commercial_products")
+      .select("id,slug,active").eq("id", id).maybeSingle();
+    if (lookupError) return res.status(503).json({ error: "Product availability cannot be verified" });
+    if (!existing || !["personal-profile", "managed-website", "website-growth", "growth-partner"].includes(existing.slug)) {
+      return res.status(404).json({ error: "Managed website product not found" });
+    }
+    const { data, error } = await supabaseAdmin.from("commercial_products")
+      .update({ active: body.active }).eq("id", id).select("id,slug,active").single();
+    if (error || !data) return res.status(503).json({ error: "Product availability could not be updated" });
+    if (existing.active !== body.active) {
+      const { error: auditError } = await supabaseAdmin.from("admin_action_audit_logs").insert({
+        actor_user_id: req.user.id,
+        actor_email: req.user.email || null,
+        action_type: body.active ? "commercial_product.sales_resumed" : "commercial_product.sales_paused",
+        target_type: "commercial_product",
+        target_id: id,
+        target_label: data.slug,
+        metadata: { previousActive: existing.active, active: body.active },
+      });
+      if (auditError) {
+        captureServerError(auditError, { phase: "commercial_product_availability_audit" });
+        return res.status(503).json({ error: "Product updated but the audit log could not be saved. Refresh before changing it again." });
+      }
+    }
+    return res.json({ product: data });
+  });
+
   app.get("/api/admin/launch-flags", authenticate, superAdminOnly, async (_req: any, res: any) => {
     const flags = await refreshLaunchFlags(true);
     return res.json({ flags });

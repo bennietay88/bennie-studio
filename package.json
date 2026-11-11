@@ -5,7 +5,7 @@
   "description": "Professionally managed website service for customer enquiry generation.",
   "type": "module",
   "engines": {
-    "node": ">=22 <25"
+    "node": ">=22 <27"
   },
   "scripts": {
     "dev": "tsx api/index.ts",
