@@ -830,9 +830,11 @@ export async function sendDirectProspectOutreach(
     replyToMessageId = parent.id;
   }
 
-  // This is an explicit administrator-initiated send, not an automated sequence.
-  // The operator is responsible for holding valid recipient permission; do not
-  // manufacture consent evidence. Suppression, opt-out and rate limits still apply.
+  // First-contact and follow-up marketing emails require recorded recipient opt-in.
+  // Only a reply to a verified inbound message is exempt.
+  if (input.channel === "email" && !replyToMessageId && !hasDocumentedMarketingConsent(prospect, new Date(now))) {
+    throw new Error("OUTREACH_CONSENT_REQUIRED");
+  }
 
   const messageId = prior?.id || salesRecordId(key);
   const messagePayload = {

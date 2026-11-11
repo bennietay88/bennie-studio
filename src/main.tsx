@@ -11,6 +11,16 @@ import { AgencyVisualDirector } from "./components/AgencyVisualDirector";
 import { initClientObservability } from "./lib/observability";
 import { MotionConfig } from "motion/react";
 
+const staleAssetReloadKey = "bennie-vite-preload-reload-at";
+window.addEventListener("vite:preloadError", (event: Event) => {
+  event.preventDefault();
+  const now = Date.now();
+  const lastReload = Number(sessionStorage.getItem(staleAssetReloadKey) || 0);
+  if (now - lastReload < 60_000) return;
+  sessionStorage.setItem(staleAssetReloadKey, String(now));
+  window.location.reload();
+});
+
 const referralCode = new URLSearchParams(window.location.search).get("ref");
 if (referralCode) localStorage.setItem("ref_platform", referralCode);
 

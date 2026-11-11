@@ -9073,7 +9073,7 @@ async function startServer() {
   app.post("/api/webhooks/hostinger-mail", async (req: any, res: any) => {
     const configuredSecret = String(process.env.HOSTINGER_MAIL_WEBHOOK_SECRET || "");
     if (!configuredSecret) return res.status(503).json({ error: "Mail webhook is not configured" });
-    const suppliedToken = String(req.headers.authorization || "").replace(/^Bearer\\s+/i, "");
+    const suppliedToken = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
     const provided = Buffer.from(suppliedToken);
     const configured = Buffer.from(configuredSecret);
     if (!suppliedToken || provided.length !== configured.length || !crypto.timingSafeEqual(provided, configured)) {
