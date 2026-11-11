@@ -662,7 +662,8 @@ export async function sendDirectProspectOutreach(
 
   const reviewUrl = safeAuditReviewUrl(input.reviewUrl);
   const followUpStage = FOLLOW_UP_TEMPLATE_STAGES[String(input.templateId || "")] || null;
-  if (!input.replyToMessageId && input.templateId !== "general-introduction" && !followUpStage && String(input.observation || "").trim().length < 10 && !reviewUrl) {
+  const bulkIntro = input.templateId === "bulk-introduction";
+  if (!input.replyToMessageId && input.templateId !== "general-introduction" && !bulkIntro && !followUpStage && String(input.observation || "").trim().length < 10 && !reviewUrl) {
     throw new Error("OUTREACH_OBSERVATION_REQUIRED");
   }
   if (/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(`${input.subject || ""}\n${input.bodyText}`)) {
@@ -772,6 +773,25 @@ export async function sendDirectProspectOutreach(
 
   if (prior && prior.prospect_id !== prospect.id) {
     throw new Error("OUTREACH_REQUEST_CONFLICT");
+  }
+  // Manual bulk introductions are first-contact only. The preview is advisory;
+  // history, replies and ongoing campaigns must be checked again at send time.
+  // An already-sent request ID remains idempotent so uncertain client retries
+  // cannot result in a second provider delivery.
+  if (bulkIntro && !prior) {
+    if (input.channel !== "email" || input.replyToMessageId) throw new Error("OUTREACH_INTRO_INVALID");
+    if (String(prospect.outreach_status || "") !== "not_started") throw new Error("OUTREACH_INTRO_NOT_NEW");
+    const { data: previous } = checked(await db.from("sales_messages").select("id")
+      .eq("direction", "outbound").eq("channel", "email")
+      .ilike("recipient", exactEmailPattern(email)).limit(1).maybeSingle());
+    if (previous) throw new Error("OUTREACH_INTRO_ALREADY_ATTEMPTED");
+    const { data: inbound } = checked(await db.from("sales_messages").select("id")
+      .eq("prospect_id", prospect.id).eq("direction", "inbound").limit(1).maybeSingle());
+    if (inbound) throw new Error("OUTREACH_INTRO_ALREADY_REPLIED");
+    const { data: enrolled } = checked(await db.from("outreach_enrollments").select("id")
+      .eq("prospect_id", prospect.id).in("status", ["pending", "active", "paused"])
+      .limit(1).maybeSingle());
+    if (enrolled) throw new Error("OUTREACH_ACTIVE_SEQUENCE");
   }
   if (prior && SENT.includes(prior.status)) {
     const followUp = await scheduleAuditFollowUp(prior, prospect);

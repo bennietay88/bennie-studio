@@ -1,0 +1,55 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { MAX_MANUAL_BULK_INTRO, prepareManualBulkIntro } from "../src/lib/manualBulkProspectIntros.ts";
+
+const CONTACT = { id: "p1", name: "Example Carpentry", contact_email: "info@example.com", outreach_status: "not_started", status: "qualified" };
+const SENT = { direction: "outbound", channel: "email", status: "sent", sent_at: "2026-10-01T09:00:00Z" };
+
+test("manual bulk introductions show up to 25 personalized opening emails", () => {
+  assert.equal(MAX_MANUAL_BULK_INTRO, 25);
+  const preview = prepareManualBulkIntro(CONTACT, []);
+  assert.equal(preview.kind, "ready");
+  assert.match(String(preview.subject), /Example Carpentry/);
+  assert.match(String(preview.bodyText), /Bennie Studio/);
+  assert.match(String(preview.bodyText), /Example Carpentry team/);
+});
+
+test("saved intro template overrides are rendered for every individual prospect", () => {
+  const preview = prepareManualBulkIntro({ ...CONTACT, contact_first_name: "Jamie" }, [], {
+    intro: { subject: "Hello {{business_name}}", body: "Hi {{first_name}},\n\nHere is our portfolio: {{portfolio_url}}\n\nBennie" },
+  });
+  assert.equal(preview.kind, "ready");
+  assert.equal(preview.subject, "Hello Example Carpentry");
+  assert.match(String(preview.bodyText), /Hi Jamie,/);
+  assert.match(String(preview.bodyText), /https:\/\/app\.bennietay\.com\/portfolio/);
+});
+
+test("manual bulk introductions skip any existing email record, including drafts, failures and cancellations", () => {
+  for (const status of ["sent", "delivered", "draft", "sending", "queued", "failed", "cancelled", "bounced"]) {
+    const outcome = prepareManualBulkIntro(CONTACT, [{ ...SENT, status }]);
+    assert.equal(outcome.kind, "skip", status);
+    assert.match(String(outcome.reason), /already exists/);
+  }
+  const reply = prepareManualBulkIntro(CONTACT, [{ direction: "inbound", status: "replied" }]);
+  assert.equal(reply.kind, "skip");
+  assert.match(String(reply.reason), /replied/);
+});
+
+test("manual bulk introductions exclude missing emails, queued and closed or converted prospects", () => {
+  assert.equal(prepareManualBulkIntro({ ...CONTACT, contact_email: "" }, []).kind, "skip");
+  assert.equal(prepareManualBulkIntro({ ...CONTACT, contact_email: "bad-email" }, []).kind, "skip");
+  assert.equal(prepareManualBulkIntro({ ...CONTACT, outreach_status: "queued" }, []).kind, "skip");
+  assert.equal(prepareManualBulkIntro({ ...CONTACT, outreach_status: "contacted" }, []).kind, "skip");
+  assert.equal(prepareManualBulkIntro({ ...CONTACT, outreach_status: "replied" }, []).kind, "skip");
+  assert.equal(prepareManualBulkIntro({ ...CONTACT, status: "lost" }, []).kind, "skip");
+  assert.equal(prepareManualBulkIntro({ ...CONTACT, outreach_exhausted_at: "2026-10-01" }, []).kind, "skip");
+  assert.equal(prepareManualBulkIntro({ ...CONTACT, converted_business_id: "customer-1" }, []).kind, "skip");
+});
+
+test("unresolved placeholders never become send-ready messages", () => {
+  const outcome = prepareManualBulkIntro(CONTACT, [], {
+    intro: { subject: "For {{business_name}}", body: "Hello {{first_name}}, please see [INSERT LINK]." },
+  });
+  assert.equal(outcome.kind, "skip");
+  assert.match(String(outcome.reason), /missing information/);
+});

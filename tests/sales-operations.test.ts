@@ -108,6 +108,59 @@ test("admin direct email sends without adding fabricated consent evidence", asyn
     /OUTREACH_TOO_SOON/);
 });
 
+test("manual bulk intro uses the existing direct provider safely, without fabricated consent", async () => {
+  const db = new MemoryDb({ prospects: [{ id: "p1", name: "Example Clinic", status: "qualified",
+    outreach_status: "not_started", contact_email: "clinic@example.com", marketing_consent: false, notes: "" }] });
+  let sends = 0;
+  const input = { prospectId: "p1", channel: "email" as const, templateId: "bulk-introduction",
+    subject: "A website question", bodyText: "Hi there, can we help with your business website?",
+    requestId: "bulk-intro-1", actorId: "admin",
+    deliver: async () => { sends++; return { id: "provider-bulk-intro" }; } };
+  const result = await sendDirectProspectOutreach(db as any, input, NOW);
+  assert.equal(result.message.status, "sent");
+  assert.equal(result.message.provider_payload.templateId, "bulk-introduction");
+  assert.equal(result.prospect.outreach_status, "contacted");
+  assert.equal(result.prospect.marketing_consent, false);
+  assert.equal(result.prospect.consent_timestamp, undefined);
+  assert.equal(sends, 1);
+  const retry = await sendDirectProspectOutreach(db as any, input, NOW);
+  assert.equal(retry.alreadySent, true);
+  assert.equal(sends, 1);
+  await assert.rejects(sendDirectProspectOutreach(db as any, { ...input, requestId: "bulk-intro-2" }, NOW),
+    /OUTREACH_INTRO_NOT_NEW/);
+  assert.equal(sends, 1);
+});
+
+test("manual bulk intros reject earlier attempts to the same address even from another prospect", async () => {
+  const db = new MemoryDb({
+    prospects: [{ id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "not_started",
+      contact_email: "clinic@example.com", notes: "" }],
+    sales_messages: [{ id: "old-intro", prospect_id: "p2", recipient: "clinic@example.com",
+      channel: "email", direction: "outbound", status: "delivered", sent_at: "2026-01-01T10:00:00.000Z" }],
+  });
+  await assert.rejects(sendDirectProspectOutreach(db as any, {
+    prospectId: "p1", channel: "email", templateId: "bulk-introduction",
+    subject: "Hello", bodyText: "Hello, a new website question",
+    requestId: "duplicate-bulk", actorId: "admin",
+    deliver: async () => { throw new Error("Provider must not be called"); },
+  }, NOW), /OUTREACH_INTRO_ALREADY_ATTEMPTED/);
+});
+
+test("manual bulk intros reject replies and active outreach enrollments", async () => {
+  const input = { prospectId: "p1", channel: "email" as const, templateId: "bulk-introduction",
+    subject: "Hello", bodyText: "Hello, a new website question",
+    requestId: "another-bulk-intro", actorId: "admin",
+    deliver: async () => { throw new Error("Provider must not be called"); } };
+  const prospect = { id: "p1", name: "Example Clinic", status: "qualified",
+    outreach_status: "not_started", contact_email: "clinic@example.com", notes: "" };
+  const replyDb = new MemoryDb({ prospects: [prospect],
+    sales_messages: [{ id: "inbound", prospect_id: "p1", direction: "inbound", channel: "email", status: "replied" }] });
+  await assert.rejects(sendDirectProspectOutreach(replyDb as any, input, NOW), /OUTREACH_INTRO_ALREADY_REPLIED/);
+  const enrolledDb = new MemoryDb({ prospects: [prospect],
+    outreach_enrollments: [{ id: "e1", prospect_id: "p1", status: "active" }] });
+  await assert.rejects(sendDirectProspectOutreach(enrolledDb as any, input, NOW), /OUTREACH_ACTIVE_SEQUENCE/);
+});
+
 test("manual prospect follow-ups stay as drafts and require explicit sends at each stage", async () => {
   const db = new MemoryDb({
     prospects: [{

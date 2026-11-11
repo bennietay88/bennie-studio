@@ -56,6 +56,8 @@ import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "../../lib
 import { chooseProspectFollowUp, chooseProspectFollowUpTemplate, isStagedFollowUpTemplate } from "../../lib/prospectFollowUpComposer";
 import { MAX_MANUAL_BULK_FOLLOW_UP } from "../../lib/manualBulkProspectFollowUps";
 import { ManualBulkProspectFollowUps } from "./ManualBulkProspectFollowUps";
+import { MAX_MANUAL_BULK_INTRO } from "../../lib/manualBulkProspectIntros";
+import { ManualBulkProspectIntros } from "./ManualBulkProspectIntros";
 
 const WEBSITE_STATUSES = ["unknown", "no_website", "weak", "average", "strong"];
 const OPPORTUNITY_LEVELS = ["low", "medium", "high"];
@@ -63,7 +65,7 @@ const OUTREACH_STATUSES = ["not_started", "queued", "contacted", "replied", "cal
 const CONTACTED_OUTREACH_STATUSES = ["contacted", "replied", "call_booked", "won"];
 const NOT_CONTACTED_OUTREACH_STATUSES = ["not_started", "queued"];
 
-const PROSPECT_PAGE_SIZE = 50;
+const PROSPECT_PAGE_SIZE = 25;
 
 const cleanDomain = (value: string) =>
   value
@@ -159,6 +161,7 @@ export function ProspectExplorer() {
   const [bulkAction, setBulkAction] = useState<"stop_follow_up" | "delete" | null>(null);
   const [bulkSaving, setBulkSaving] = useState(false);
   const [manualBulkOpen, setManualBulkOpen] = useState(false);
+  const [manualBulkIntroOpen, setManualBulkIntroOpen] = useState(false);
   const [consentAttestationOpen, setConsentAttestationOpen] = useState(false);
   const [consentAttestationConfirmed, setConsentAttestationConfirmed] = useState(false);
   const [consentAttestationSaving, setConsentAttestationSaving] = useState(false);
@@ -333,6 +336,12 @@ export function ProspectExplorer() {
     setCurrentPage(1);
   }, [debouncedSearchQuery, industryFilter, statusFilter, quickFilter, sortMode]);
 
+  // Keep a bulk operation scoped to the current 25-row page. Changing pages,
+  // filters or sort order cannot silently carry recipients into the next send.
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [currentPage, debouncedSearchQuery, industryFilter, statusFilter, quickFilter, sortMode]);
+
   const fetchProspects = useCallback(async () => {
     const requestId = ++prospectFetchRequest.current;
     try {
@@ -359,6 +368,7 @@ export function ProspectExplorer() {
         case "follow_up_due":
           query = query.lte("next_follow_up_at", new Date().toISOString()).not("outreach_status", "in", "(\"won\",\"lost\")");
           break;
+        case "new_prospects": query = query.eq("outreach_status", "not_started"); break;
         case "high": query = query.eq("opportunity_level", "high"); break;
         case "contacted": query = query.in("outreach_status", CONTACTED_OUTREACH_STATUSES); break;
         case "not_contacted": query = query.in("outreach_status", NOT_CONTACTED_OUTREACH_STATUSES); break;
@@ -1638,7 +1648,7 @@ export function ProspectExplorer() {
 
       <Card className="rounded-[2rem] border-slate-100 shadow-sm overflow-hidden">
         <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white p-4">
-          {[["all","All"],["follow_up_due","Follow-up due"],["high","High opportunity"],["contacted","Contacted"],["not_contacted","Not contacted"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"],["archived","Archived · no reply"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
+          {[["all","All"],["new_prospects","New prospects"],["follow_up_due","Follow-up due"],["high","High opportunity"],["contacted","Contacted"],["not_contacted","Not contacted"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"],["archived","Archived · no reply"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
         </div>
         <div className="grid gap-3 border-b border-slate-100 bg-slate-50 p-4 xl:grid-cols-[1fr_190px_190px_220px_auto]">
           <div className="relative">
@@ -1703,7 +1713,10 @@ export function ProspectExplorer() {
               {allVisibleSelected ? "Unselect visible" : `Select all ${visibleIds.length} visible`}
             </Button>
             <Button size="sm" variant="outline" className="rounded-xl bg-white" onClick={() => setSelectedIds([])}>Clear selection</Button>
-            <Button size="sm" className="rounded-xl bg-indigo-600 text-white hover:bg-indigo-700" onClick={() => setManualBulkOpen(true)}>
+            <Button size="sm" className="rounded-xl bg-indigo-600 text-white hover:bg-indigo-700" disabled={selectedIds.length > MAX_MANUAL_BULK_INTRO} onClick={() => setManualBulkIntroOpen(true)}>
+              <Mail className="mr-1.5 h-4 w-4" /> Send selected introductions
+            </Button>
+            <Button size="sm" variant="outline" className="rounded-xl border-indigo-200 bg-white text-indigo-700" disabled={selectedIds.length > MAX_MANUAL_BULK_FOLLOW_UP} onClick={() => setManualBulkOpen(true)}>
               <Send className="mr-1.5 h-4 w-4" /> Send selected follow-ups
             </Button>
             {selectedIds.length > MAX_MANUAL_BULK_FOLLOW_UP && <span className="text-xs font-medium text-amber-800">Review at most {MAX_MANUAL_BULK_FOLLOW_UP} prospects per send.</span>}
@@ -1953,6 +1966,17 @@ export function ProspectExplorer() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ManualBulkProspectIntros
+        open={manualBulkIntroOpen}
+        selectedIds={selectedIds}
+        onOpenChange={setManualBulkIntroOpen}
+        onCompleted={(sentIds) => {
+          const sent = new Set(sentIds);
+          setSelectedIds((current) => current.filter((id) => !sent.has(id)));
+          void fetchProspects();
+        }}
+      />
 
       <ManualBulkProspectFollowUps
         open={manualBulkOpen}
