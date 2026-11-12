@@ -33,8 +33,13 @@ test("saved no-website Day 3 template changes the email used by the sender", () 
 });
 
 test("review and personalized redesign retain verified asset links", () => {
-  const review = renderProspectFollowUpStage(existing, 1, { kind: "audit", url: "https://app.bennietay.com/website-audit?report=xyz&key=key" });
+  const review = renderProspectFollowUpStage({
+    ...existing,
+    notes: "Verified website observation: The contact form is difficult to find on mobile.",
+  }, 1, { kind: "audit", url: "https://app.bennietay.com/website-audit?report=xyz&key=key" });
   assert.match(review.body_text, /website-audit\?report=/);
+  const withoutEvidence = renderProspectFollowUpStage(existing, 1, {kind:"audit",url:"https://app.bennietay.com/website-audit?report=xyz&key=key"});
+  assert.doesNotMatch(withoutEvidence.body_text, /I reviewed|website-audit\?report=/);
   const design = renderProspectFollowUpStage(existing, 1, { kind: "design", url: "https://app.bennietay.com/preview/prospect/concept_123456" });
   assert.match(design.body_text, /preview\/prospect\/concept_123456/);
   assert.doesNotMatch(design.body_text, /\{\{/);

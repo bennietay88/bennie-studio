@@ -2,7 +2,7 @@ import React from "react";
 import { Activity, BarChart3, CalendarCheck2, CreditCard, MousePointerClick, TrendingUp, Users } from "lucide-react";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { FunnelEvent, FunnelStep, generateFunnelInsights, summarizeFunnelAnalytics } from "../../lib/funnelEngine";
+import { FunnelEvent, FunnelStep, generateFunnelInsights, summarizeFunnelAnalytics, summarizeFunnelVariants } from "../../lib/funnelEngine";
 import { FlowCanvas } from "./FlowCanvas";
 
 const money = (value: number, currency = "USD") => new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(value || 0);
@@ -17,15 +17,20 @@ export function FunnelAnalyticsDashboard({
   steps,
   connections,
   events,
+  variants = [],
   currency = "USD",
+  basic = false,
 }: {
   steps: FunnelStep[];
+  basic?: boolean;
   connections: Array<{ id: string; source_step_id: string; target_step_id: string; label?: string | null }>;
   events: FunnelEvent[];
+  variants?: Array<{ id: string; step_id: string; name: string }>;
   currency?: string;
 }) {
   const summary = React.useMemo(() => summarizeFunnelAnalytics(events, steps), [events, steps]);
   const insights = React.useMemo(() => generateFunnelInsights(summary, steps), [summary, steps]);
+  const experiments = React.useMemo(() => summarizeFunnelVariants(events, variants), [events, variants]);
 
   const graphNodes = steps.map((step) => {
     const metric = summary.byStep[step.id];
@@ -52,7 +57,7 @@ export function FunnelAnalyticsDashboard({
   const stats = [
     { label: "Visitors", value: number(summary.visitors), icon: Users },
     { label: "Leads", value: number(summary.leads), icon: MousePointerClick },
-    { label: "Bookings", value: number(summary.appointments), icon: CalendarCheck2 },
+    { label: "Appointment requests", value: number(summary.appointments), icon: CalendarCheck2 },
     { label: "Purchases", value: number(summary.purchases), icon: CreditCard },
     { label: "Revenue", value: moneyByCurrency(summary.revenueByCurrency, currency), icon: TrendingUp },
     { label: "Conversion", value: `${summary.conversionRate.toFixed(1)}%`, icon: Activity },
@@ -73,6 +78,18 @@ export function FunnelAnalyticsDashboard({
       </div>
       <p className="-mt-5 text-xs font-medium text-slate-500">Visitors and conversion rate use unique sessions. Leads use unique lead records; purchases and revenue use Stripe-confirmed checkout records.</p>
 
+      {!basic && experiments.length ? <Card className="rounded-2xl border-slate-200 p-6">
+        <h2 className="font-black text-slate-950">A/B experiment performance</h2>
+        <p className="mt-1 text-xs text-slate-500">Sessions are counted once per variant. Results are descriptive, not a declaration of a statistically significant winner.</p>
+        <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm">
+          <thead><tr className="border-b text-xs text-slate-500"><th className="py-2">Step / Variation</th><th>Visitors</th><th>Conversions</th><th>Rate</th><th>Sample</th></tr></thead>
+          <tbody>{experiments.map((item)=><tr key={item.stepId + ":" + (item.variantId || "base")} className="border-b">
+            <td className="py-3 font-medium">{steps.find((s)=>s.id===item.stepId)?.name || "Step"} / {item.name}</td>
+            <td>{item.visitors}</td><td>{item.conversions}</td><td>{item.conversionRate.toFixed(1)}%</td>
+            <td className="text-xs text-slate-500">{item.sampleStatus}</td>
+          </tr>)}</tbody>
+        </table></div>
+      </Card> : null}
       <div>
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
@@ -135,7 +152,7 @@ export function FunnelAnalyticsDashboard({
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {!basic ? <div className="grid gap-6 lg:grid-cols-2">
         {[
           { title: "Traffic sources", rows: summary.bySource },
           { title: "Device performance", rows: summary.byDevice },
@@ -153,7 +170,7 @@ export function FunnelAnalyticsDashboard({
             </div>
           </Card>
         ))}
-      </div>
+      </div> : null}
     </div>
   );
 }

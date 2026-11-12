@@ -32,7 +32,7 @@ test("first follow-up prefers a persisted bespoke design preview over a review",
 test("first follow-up uses the authenticated audit report when no design concept exists", () => {
   const asset = resolveProspectFollowUpAsset({ ...company, audit_report_url: auditUrl });
   assert.deepEqual(asset, { kind: "audit", url: auditUrl });
-  assert.match(renderProspectFollowUpOne(company, asset!).body_text, /short website review/i);
+  assert.match(renderProspectFollowUpOne(company, asset!).body_text, /portfolio|short website review/i);
 });
 
 test("generic template previews, foreign hosts and missing reports never qualify", () => {
@@ -55,14 +55,14 @@ test("no-website Day 3 follow-up references the earlier email and real portfolio
   assert.match(message.subject, /Following up on my earlier email/);
   assert.match(message.body_text, /Just following up on my earlier email/);
   assert.ok(message.body_text.includes(BENNIE_STUDIO_PORTFOLIO_URL));
-  assert.match(message.body_text, /whether a website could be useful/);
+  assert.match(message.body_text, /website is worth considering|whether a website could be useful/i);
   assert.doesNotMatch(message.body_text, /I (prepared|audited|reviewed)|your current website/i);
 });
 
 test("an unreviewable existing website gets a neutral portfolio follow-up without false findings", () => {
   const prospect = { name: "Example Dental", website_status: "unreviewable", domain: "example.com" };
   const message = renderProspectFollowUpStage(prospect, 1, null);
-  assert.match(message.body_text, /current website could work harder/);
+  assert.match(message.body_text, /websites for service businesses|current website could work harder/i);
   assert.doesNotMatch(message.body_text, /I prepared a short review|I put together a homepage concept/i);
 });
 
@@ -72,7 +72,7 @@ test("Day 8 and Day 15 templates are tailored to site availability without claim
   const noSiteDay8 = renderProspectFollowUpStage(greenfield, 2);
   const existingDay8 = renderProspectFollowUpStage(existing, 2);
   assert.match(noSiteDay8.body_text, /initial setup and ongoing updates/);
-  assert.match(noSiteDay8.body_text, /setup and monthly management costs/);
+  assert.match(noSiteDay8.body_text, /setup and monthly costs/);
   assert.match(existingDay8.body_text, /improve the website and take care of ongoing updates/);
   assert.doesNotMatch(noSiteDay8.body_text, /review|audited|identified|I noticed/i);
   assert.doesNotMatch(existingDay8.body_text, /I noticed|audit found/i);

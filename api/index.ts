@@ -84,7 +84,11 @@ import { buildPortableWebsiteFiles } from "../src/lib/websiteHandover.js";
 import { HANDOVER_GRACE_DAYS, handoverGraceUntil, subscriptionAllowsPermanentDeletion } from "../src/lib/billingLifecycle.js";
 import { nextStepForSubmission } from "../src/lib/funnelEngine.js";
 import { registerSimpleFunnelAddonRoutes, handleSimpleFunnelAddonWebhook, cancelSimpleFunnelWithParent } from "../server/simpleFunnelAddon.js";
+import { registerUnifiedFunnelTierRoutes, handleUnifiedFunnelTierWebhook, cancelUnifiedFunnelWithParent, unifiedFunnelMayServe, getUnifiedFunnelAccess } from "../server/unifiedFunnelTiers.js";
 import { processDueFunnelWorkflowRuns, runFunnelAutomations } from "../server/funnelAutomation.js";
+// Dark-launch until the new entitlement migration has been installed and verified.
+const UNIFIED_FUNNEL_TIERS_ENABLED = process.env.UNIFIED_FUNNEL_TIERS_ENABLED === "true";
+import { queueFunnelTrigger, processFunnelTriggerQueue } from "../server/funnelTriggerQueue.js";
 import { runFinalLaunchCrawler } from "../server/finalLaunchQa.js";
 import { isNewIntroOfferCustomer } from "./introOfferEligibility.js";
 import { resolveStripeCommercialPlan } from "../src/lib/stripeCommercialPlanMapping.js";
@@ -2582,7 +2586,7 @@ async function startServer() {
       }
       if (!claim.claimed) return res.json({ received: true, duplicate: true, reason: claim.reason });
       try {
-      if (!(await handleSimpleFunnelAddonWebhook(supabaseAdmin, getStripe, event))) switch (event.type) {
+      if (!(UNIFIED_FUNNEL_TIERS_ENABLED && await handleUnifiedFunnelTierWebhook(supabaseAdmin, event)) && !(await handleSimpleFunnelAddonWebhook(supabaseAdmin, getStripe, event))) switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
           const businessId = session.metadata?.businessId;
@@ -2768,21 +2772,40 @@ async function startServer() {
                       next_follow_up_at: new Date().toISOString(),
                     }).eq("id", funnelLeadId);
                   }
-                  void runFunnelAutomations({
-                    db: supabaseAdmin,
-                    sendEmail: sendFunnelEmail,
-                    businessId,
-                    funnelId,
-                    triggerEvent: "purchase_completed",
-                    leadId: funnelLeadId && UUID_SCHEMA.safeParse(funnelLeadId).success ? funnelLeadId : null,
-                    sessionId: funnelSessionId && UUID_SCHEMA.safeParse(funnelSessionId).success ? funnelSessionId : null,
-                    context: {
-                      email: session.customer_details?.email || session.customer_email || null,
-                      amount: Number(session.amount_total || 0) / 100,
-                      currency: String(session.currency || "usd").toUpperCase(),
-                      offerId: offerId || null,
-                    },
-                  }).catch((automationError) => console.warn("Purchase funnel automation failed:", safeErrorMessage(automationError)));
+                  if (UNIFIED_FUNNEL_TIERS_ENABLED) {
+                  const triggerJob = await queueFunnelTrigger({
+                     db: supabaseAdmin, businessId, funnelId,
+                     eventKey: "funnel-purchase:" + session.id,
+                     triggerEvent: "purchase_completed",
+                     leadId: funnelLeadId && UUID_SCHEMA.safeParse(funnelLeadId).success ? funnelLeadId : null,
+                     sessionId: funnelSessionId && UUID_SCHEMA.safeParse(funnelSessionId).success ? funnelSessionId : null,
+                     context: {
+                       email: session.customer_details?.email || session.customer_email || null,
+                       amount: Number(session.amount_total || 0) / 100,
+                       currency: String(session.currency || "usd").toUpperCase(),
+                       offerId: offerId || null,
+                     },
+                   });
+                   if (triggerJob) {
+                     try { await processFunnelTriggerQueue({ db: supabaseAdmin, sendEmail: sendFunnelEmail, jobId: triggerJob, limit: 1 }); }
+                     catch (error) { console.warn("Purchase trigger queued for retry:", safeErrorMessage(error)); }
+                   }
+                  } else {
+                    try {
+                      await runFunnelAutomations({
+                        db: supabaseAdmin, sendEmail: sendFunnelEmail,
+                        businessId, funnelId, triggerEvent: "purchase_completed",
+                        leadId: funnelLeadId && UUID_SCHEMA.safeParse(funnelLeadId).success ? funnelLeadId : null,
+                        sessionId: funnelSessionId && UUID_SCHEMA.safeParse(funnelSessionId).success ? funnelSessionId : null,
+                        context: {
+                          email: session.customer_details?.email || session.customer_email || null,
+                          amount: Number(session.amount_total || 0) / 100,
+                          currency: String(session.currency || "usd").toUpperCase(),
+                          offerId: offerId || null,
+                        },
+                      });
+                    } catch (error) { console.warn("Legacy purchase funnel automation failed:", safeErrorMessage(error)); }
+                  }
                 }
               } else if (type === "product_sale") {
                 const orderId = session.metadata?.orderId;
@@ -3325,6 +3348,7 @@ async function startServer() {
 
             if (cancelledBusiness) {
               await cancelSimpleFunnelWithParent(supabaseAdmin, getStripe, cancelledBusiness.id);
+              if (UNIFIED_FUNNEL_TIERS_ENABLED) await cancelUnifiedFunnelWithParent(supabaseAdmin, getStripe, cancelledBusiness.id);
               await insertBillingLifecycleEvent({
                 business_id: cancelledBusiness.id,
                 event_type: "subscription_cancelled",
@@ -8698,6 +8722,9 @@ async function startServer() {
     try {
       const sales = await processDueSalesMessages();
       const funnelRuns = await processDueFunnelWorkflowRuns({ db: supabaseAdmin, sendEmail: sendFunnelEmail, limit: 50 });
+      const funnelQueue = UNIFIED_FUNNEL_TIERS_ENABLED
+        ? await processFunnelTriggerQueue({ db: supabaseAdmin, sendEmail: sendFunnelEmail, limit: 50 })
+        : null;
 
       // Reuse the existing daily cron invocation for lightweight customer-site health
       // monitoring instead of adding another Vercel cron/deployment cost. Keep the
@@ -8788,6 +8815,7 @@ async function startServer() {
         success: true,
         ...sales,
         funnelWorkflowRuns: funnelRuns.length,
+        funnelTriggerQueue: funnelQueue,
         websiteHealthChecks: {
           checked: completedHealth.length,
           critical: completedHealth.filter((item: any) => item.healthStatus === "critical").length,
@@ -9397,7 +9425,8 @@ async function startServer() {
     return res.json({ market, currency: commercialCurrencyForMarket(market), products });
   });
 
-  // Isolated managed, two-page funnel add-on. No browser-side price or entitlement authority.
+  // Unified Sales Funnel Engine commercial entitlements; legacy add-on routes retained for safe migration.
+  if (UNIFIED_FUNNEL_TIERS_ENABLED) registerUnifiedFunnelTierRoutes({ app, db: supabaseAdmin, authenticate, superAdminOnly, getStripe, publicAppUrl, rateLimit });
   registerSimpleFunnelAddonRoutes({
     app, db: supabaseAdmin, authenticate, superAdminOnly, assertBusinessAdminAccess,
     getStripe, publicAppUrl, rateLimit,
@@ -10136,6 +10165,8 @@ async function startServer() {
       .from("funnel_sessions")
       .select("*")
       .eq("public_session_key", sessionKey)
+      .eq("funnel_id", funnel.id)
+      .eq("business_id", funnel.business_id)
       .maybeSingle();
 
     if (existing) {
@@ -10200,6 +10231,13 @@ async function startServer() {
       && ["active", "trialing"].includes(String(businessResult.data?.subscription_status || ""));
   };
 
+  // One public entitlement check for all modern funnels; historical simple funnels
+  // retain their dedicated billing guard until their records are migrated.
+  const funnelMayServe = (funnel: any) => funnel.template_key === "simple-two-page"
+    ? simpleFunnelMayServe(funnel)
+    : UNIFIED_FUNNEL_TIERS_ENABLED ? unifiedFunnelMayServe(supabaseAdmin, funnel)
+    : Promise.resolve(true); // preserve existing published advanced funnel traffic
+
   app.get(
     "/api/public/funnels/:businessId/:funnelSlug",
     rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: "public-funnel-read" }),
@@ -10219,7 +10257,7 @@ async function startServer() {
           .maybeSingle();
         if (error) throw error;
         if (!funnel) return res.status(404).json({ error: "This funnel is not published." });
-        if (!(await simpleFunnelMayServe(funnel))) {
+        if (!(await funnelMayServe(funnel))) {
           return res.status(404).json({ error: "This funnel is not currently available." });
         }
 
@@ -10268,8 +10306,10 @@ async function startServer() {
       }), req, res);
       if (!body) return;
       try {
-        const { data: funnel } = await supabaseAdmin.from("funnels").select("id,business_id,status").eq("id", funnelId).maybeSingle();
-        if (!funnel || funnel.status !== "published") return res.status(404).json({ error: "Funnel not found." });
+        const { data: funnel } = await supabaseAdmin.from("funnels").select("id,business_id,status,template_key").eq("id", funnelId).maybeSingle();
+        if (!funnel || funnel.status !== "published" || !(await funnelMayServe(funnel))) {
+          return res.status(404).json({ error: "Funnel not found." });
+        }
         if (body.stepId) {
           const { data: step } = await supabaseAdmin.from("funnel_steps").select("id").eq("id", body.stepId).eq("funnel_id", funnelId).maybeSingle();
           if (!step) return res.status(400).json({ error: "Invalid funnel step." });
@@ -10332,11 +10372,26 @@ async function startServer() {
       try {
         const { data: funnel } = await supabaseAdmin.from("funnels").select("*").eq("id", funnelId).eq("status", "published").maybeSingle();
         if (!funnel) return res.status(404).json({ error: "Funnel not found." });
-        if (!(await simpleFunnelMayServe(funnel))) {
+        if (!(await funnelMayServe(funnel))) {
           return res.status(404).json({ error: "This funnel is not currently available." });
         }
         const { data: step } = await supabaseAdmin.from("funnel_steps").select("*").eq("id", body.stepId).eq("funnel_id", funnel.id).eq("status", "published").maybeSingle();
         if (!step) return res.status(400).json({ error: "Invalid funnel step." });
+        // Honor customer-configured required fields on the server (HTML required is not a security boundary).
+        const provided = (body.data || {}) as Record<string, any>;
+        if (provided.__website) return res.status(201).json({ success: true, nextStepId: null }); // honeypot
+        if (!["lead_form","survey","application","appointment"].includes(step.step_type)) {
+          return res.status(400).json({ error: "This step does not accept form submissions." });
+        }
+        for (const field of (Array.isArray(step.page_content?.fields) ? step.page_content.fields : [])) {
+          if (field.required && (String(provided[field.name] ?? "").trim() === "" ||
+              (field.type === "checkbox" && provided[field.name] !== true))) {
+            return res.status(400).json({ error: "Complete all required fields." });
+          }
+          if (field.type === "email" && provided[field.name] && !EMAIL_SCHEMA.safeParse(String(provided[field.name])).success) {
+            return res.status(400).json({ error: "Enter a valid email address." });
+          }
+        }
 
         let session = await getOrCreateFunnelSession({ funnel, ...body, stepId: step.id });
         const emailValue = String((cleaned as any).email || "").trim().toLowerCase();
@@ -10422,7 +10477,7 @@ async function startServer() {
             status: "pending",
           });
           if (appointmentError) throw appointmentError;
-          triggerEvent = "appointment_booked";
+          triggerEvent = "appointment_requested";
         }
 
         const { data: edges } = await supabaseAdmin.from("funnel_connections").select("*").eq("funnel_id", funnel.id).order("priority");
@@ -10445,16 +10500,27 @@ async function startServer() {
           metadata: { submissionId: submission.id, nextStepId: nextStep?.id || null },
         });
 
-        void runFunnelAutomations({
-          db: supabaseAdmin,
-          sendEmail: sendFunnelEmail,
-          businessId: funnel.business_id,
-          funnelId: funnel.id,
-          triggerEvent,
-          leadId: lead?.id || null,
-          sessionId: session.id,
-          context: { ...cleaned, email: lead?.email || email || null, submissionId: submission.id, stepId: step.id },
-        }).catch((automationError) => console.warn("Funnel automation start failed:", safeErrorMessage(automationError)));
+        if (UNIFIED_FUNNEL_TIERS_ENABLED) {
+        const triggerJob = await queueFunnelTrigger({
+           db: supabaseAdmin, businessId: funnel.business_id, funnelId: funnel.id,
+           eventKey: "funnel-submission:" + submission.id,
+           triggerEvent, leadId: lead?.id || null, sessionId: session.id,
+           context: { ...cleaned, email: lead?.email || email || null, submissionId: submission.id, stepId: step.id },
+         });
+         if (triggerJob) {
+           try { await processFunnelTriggerQueue({ db: supabaseAdmin, sendEmail: sendFunnelEmail, jobId: triggerJob, limit: 1 }); }
+           catch (error) { console.warn("Funnel trigger queued for retry:", safeErrorMessage(error)); }
+         }
+        } else {
+          try {
+            await runFunnelAutomations({
+              db: supabaseAdmin, sendEmail: sendFunnelEmail,
+              businessId: funnel.business_id, funnelId: funnel.id,
+              triggerEvent, leadId: lead?.id || null, sessionId: session.id,
+              context: { ...cleaned, email: lead?.email || email || null, submissionId: submission.id, stepId: step.id },
+            });
+          } catch (error) { console.warn("Legacy funnel automation failed:", safeErrorMessage(error)); }
+        }
 
         return res.status(201).json({ success: true, leadId: lead?.id || null, submissionId: submission.id, nextStepId: nextStep?.id || null, nextSlug: nextStep?.slug || null });
       } catch (error: any) {
@@ -10480,12 +10546,18 @@ async function startServer() {
       try {
         const { data: funnel } = await supabaseAdmin.from("funnels").select("*").eq("id", funnelId).eq("status", "published").maybeSingle();
         if (!funnel) return res.status(404).json({ error: "Funnel not found." });
-        if (!(await simpleFunnelMayServe(funnel))) {
+        if (!(await funnelMayServe(funnel))) {
           return res.status(404).json({ error: "This funnel is not currently available." });
         }
-        const { data: step } = await supabaseAdmin.from("funnel_steps").select("id,slug").eq("id", body.stepId).eq("funnel_id", funnel.id).maybeSingle();
-        if (!step) return res.status(400).json({ error: "Invalid checkout step." });
-        const { data: offer } = await supabaseAdmin.from("funnel_offers").select("*").eq("id", body.offerId).eq("funnel_id", funnel.id).eq("active", true).maybeSingle();
+        const access = UNIFIED_FUNNEL_TIERS_ENABLED ? await getUnifiedFunnelAccess(supabaseAdmin, funnel.business_id) : null;
+        // Historical simple add-on never includes checkout; the free unified plan cannot sell products.
+        if (funnel.template_key === "simple-two-page" ||
+          (UNIFIED_FUNNEL_TIERS_ENABLED && (!access?.active || !access.limits.checkout))) {
+          return res.status(403).json({ error: "Checkout is not included in this funnel plan." });
+        }
+        const { data: step } = await supabaseAdmin.from("funnel_steps").select("id,slug,step_type").eq("id", body.stepId).eq("funnel_id", funnel.id).eq("status","published").maybeSingle();
+        if (!step || !["checkout","order_bump","upsell","downsell"].includes(step.step_type)) return res.status(400).json({ error: "Invalid checkout step." });
+        const { data: offer } = await supabaseAdmin.from("funnel_offers").select("*").eq("id", body.offerId).eq("funnel_id", funnel.id).eq("step_id", step.id).eq("business_id", funnel.business_id).eq("active", true).maybeSingle();
         if (!offer) return res.status(409).json({ error: "This funnel offer is not active." });
         if (Number(offer.amount || 0) <= 0 && !offer.stripe_price_id) return res.status(409).json({ error: "This offer does not have a valid payment amount." });
 
@@ -10519,7 +10591,7 @@ async function startServer() {
           mode,
           payment_method_types: ["card"],
           line_items: [lineItem],
-          success_url: `${publicAppUrl()}/f/${funnel.business_id}/${funnel.slug}/${successSlug}?paid=1&session_id={CHECKOUT_SESSION_ID}`,
+          success_url: `${publicAppUrl()}/f/${funnel.business_id}/${funnel.slug}/${successSlug}?checkout=returned&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${publicAppUrl()}/f/${funnel.business_id}/${funnel.slug}/${step.slug}?checkout_cancelled=1`,
           metadata: {
             type: "funnel_sale",
@@ -10555,6 +10627,31 @@ async function startServer() {
   );
 
 
+  app.get("/api/public/funnels/:funnelId/checkout-status/:sessionId",
+    rateLimit({ windowMs: 60 * 1000, max: 15, keyPrefix: "public-funnel-checkout-status" }),
+    async (req: any, res: any) => {
+      const funnelId = String(req.params.funnelId || "");
+      const sessionId = String(req.params.sessionId || "");
+      if (!UUID_SCHEMA.safeParse(funnelId).success || !/^cs_(test|live)_[a-zA-Z0-9_]{8,}$/.test(sessionId)) {
+        return res.status(400).json({ error: "Invalid confirmation reference." });
+      }
+      try {
+        const { data: funnel } = await supabaseAdmin.from("funnels")
+          .select("id,business_id").eq("id", funnelId).maybeSingle();
+        if (!funnel) return res.status(404).json({ error: "Funnel not found." });
+        const stripe = await getStripe(funnel.business_id);
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        const valid = session.metadata?.type === "funnel_sale"
+          && session.metadata?.funnelId === funnel.id
+          && session.metadata?.businessId === funnel.business_id;
+        if (!valid) return res.status(404).json({ error: "Checkout record not found." });
+        return res.json({ paid: session.payment_status === "paid", status: session.payment_status });
+      } catch (error: any) {
+        console.warn("Funnel payment confirmation unavailable:", safeErrorMessage(error));
+        return res.status(503).json({ error: "Payment confirmation is temporarily unavailable." });
+      }
+    });
+
   app.post(
     "/api/funnels/strategy",
     authenticate,
@@ -10583,6 +10680,7 @@ async function startServer() {
         if (!business) return res.status(404).json({ error: "Business not found." });
 
         const features = Array.isArray(business.custom_enabled_features) ? business.custom_enabled_features : [];
+        const access = UNIFIED_FUNNEL_TIERS_ENABLED ? await getUnifiedFunnelAccess(supabaseAdmin, body.businessId) : null;
         const internalAllowed =
           caller?.role === "super_admin"
           || (caller?.role === "platform_staff" && (caller?.staff_permissions || []).includes("delivery"));
@@ -10590,6 +10688,7 @@ async function startServer() {
           caller?.role === "business_admin"
           && caller?.business_id === body.businessId
           && features.includes("sales_funnels")
+          && (!UNIFIED_FUNNEL_TIERS_ENABLED || (Boolean(access?.active) && Boolean(access?.limits.ai)))
           && business.sales_funnels_access_mode !== "managed";
 
         if (!internalAllowed && !customerAllowed) {

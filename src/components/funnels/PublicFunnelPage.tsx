@@ -62,6 +62,7 @@ export function PublicFunnelPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [formData, setFormData] = React.useState<Record<string, any>>({});
   const [submitted, setSubmitted] = React.useState(false);
+  const [paymentVerified, setPaymentVerified] = React.useState<boolean | null>(null);
   const trackedFunnel = React.useRef(false);
   const trackedStep = React.useRef("");
 
@@ -96,6 +97,18 @@ export function PublicFunnelPage() {
   const selected = currentStep ? chooseContent(currentStep, variants, sessionKey) : { content: {} as FunnelPageContent, variantId: null };
   const content = selected.content as FunnelPageContent;
   const currentOffer = currentStep ? offers.find((offer: any) => offer.step_id === currentStep.id && offer.active) : null;
+
+  React.useEffect(() => {
+    const checkoutSession = searchParams.get("session_id");
+    if (!funnel?.id || searchParams.get("checkout") !== "returned" || !checkoutSession) return;
+    let live = true;
+    setPaymentVerified(null);
+    void fetch("/api/public/funnels/" + encodeURIComponent(funnel.id) + "/checkout-status/" + encodeURIComponent(checkoutSession))
+      .then((res) => res.ok ? res.json() : Promise.reject(new Error("Payment status unavailable")))
+      .then((body) => { if (live) setPaymentVerified(body.paid === true); })
+      .catch(() => { if (live) setPaymentVerified(false); });
+    return () => { live = false; };
+  }, [funnel?.id, searchParams]);
 
   const track = React.useCallback(async (eventType: string, metadata: Record<string, any> = {}, revenue?: number) => {
     if (!funnel?.id || !currentStep?.id || !sessionKey) return;
@@ -220,10 +233,12 @@ export function PublicFunnelPage() {
 
   const primary = content.theme?.primary || "#4f46e5";
   const fields: FunnelPageField[] = content.fields || [];
+  const mediaUrl = typeof content.mediaUrl === "string" && /^https:\/\//i.test(content.mediaUrl) ? content.mediaUrl : null;
   const isForm = ["lead_form","survey","application","appointment"].includes(currentStep.step_type);
   const isCheckout = ["checkout","order_bump","upsell","downsell"].includes(currentStep.step_type);
   const isTerminal = ["thank_you","confirmation"].includes(currentStep.step_type);
-  const paid = searchParams.get("paid") === "1";
+  const checkoutReturned = searchParams.get("checkout") === "returned";
+  const paid = checkoutReturned && paymentVerified === true;
 
   const renderField = (field: FunnelPageField) => {
     const common = {
@@ -235,6 +250,7 @@ export function PublicFunnelPage() {
       className: "h-12 rounded-none border-slate-300 bg-white text-slate-950",
       placeholder: field.placeholder,
     };
+    if (field.type === "checkbox") return <input type="checkbox" id={field.id} name={field.name} required={field.required} checked={formData[field.name] === true} onChange={(event)=>setFormData((current)=>({...current,[field.name]:event.target.checked}))} className="h-5 w-5 accent-indigo-600" />;
     if (field.type === "textarea") return <Textarea {...(common as any)} className="min-h-28 rounded-none border-slate-300 bg-white text-slate-950" />;
     if (field.type === "select" || field.type === "radio") return <select {...(common as any)}>{<option value="">Select…</option>}{(field.options || []).map((option) => <option key={option} value={option}>{option}</option>)}</select>;
     return <Input {...(common as any)} type={field.type === "tel" ? "tel" : field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "time" ? "time" : field.type === "email" ? "email" : "text"} />;
@@ -256,8 +272,12 @@ export function PublicFunnelPage() {
           <h1 className="mt-4 max-w-4xl text-[clamp(2.8rem,6vw,5.8rem)] font-black leading-[0.96] tracking-[-0.055em] text-slate-950">{content.headline || currentStep.name}</h1>
           {content.subheadline ? <p className="mt-6 max-w-2xl text-lg font-medium leading-8 text-slate-600">{content.subheadline}</p> : null}
           {content.body ? <p className="mt-6 max-w-2xl whitespace-pre-line text-base leading-7 text-slate-600">{content.body}</p> : null}
+          {mediaUrl ? <div className="mt-7 max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+            <img src={mediaUrl} alt={content.headline || "Service illustration"} className="max-h-[380px] w-full object-cover" loading="lazy" decoding="async" />
+          </div> : null}
           {content.benefits?.length ? <div className="mt-8 grid gap-3 sm:grid-cols-2">{content.benefits.map((benefit) => <div key={benefit} className="flex items-start gap-3 border-t border-slate-200 pt-4 text-sm font-bold text-slate-700"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" style={{ color: primary }} />{benefit}</div>)}</div> : null}
-          {paid ? <div className="mt-8 max-w-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">Payment completed. Your funnel journey has been updated.</div> : null}
+          {content.proof?.length ? <div className="mt-8 grid gap-3 sm:grid-cols-2">{content.proof.map((item) => <div key={item} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"><ShieldCheck className="mr-2 inline h-4 w-4 text-indigo-600" />{item}</div>)}</div> : null}
+          {paid ? <div className="mt-8 max-w-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">Payment verified with Stripe. Thank you.</div> : checkoutReturned ? <div className="mt-8 max-w-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">Your payment is being verified. Please check your receipt before assuming it was completed.</div> : null}
           {!isForm && !isCheckout && !isTerminal ? <Button onClick={() => { void track("cta_click"); navigateToStep(defaultNext()); }} className="mt-9 min-h-13 rounded-none px-7 font-black text-white" style={{ backgroundColor: primary }}>{content.ctaLabel || "Continue"}<ArrowRight className="ml-2 h-4 w-4" /></Button> : null}
           {isTerminal ? <div className="mt-9 flex items-center gap-3 text-sm font-bold text-slate-600"><CheckCircle2 className="h-5 w-5 text-emerald-600" />{content.successMessage || "Your information has been recorded."}</div> : null}
         </div>
@@ -265,6 +285,7 @@ export function PublicFunnelPage() {
         {isForm ? (
           <div className="lg:col-span-5">
             <form onSubmit={submitForm} className="border border-slate-200 bg-[#f8f9fc] p-6 shadow-xl shadow-slate-200/40 sm:p-8">
+              <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden"><label htmlFor="bt-hidden-site">Leave this blank</label><input id="bt-hidden-site" type="text" name="__website" tabIndex={-1} autoComplete="off" value={formData.__website || ""} onChange={(e)=>setFormData((current)=>({...current,__website:e.target.value}))}/></div>
               {currentStep.step_type === "appointment" ? <div className="mb-5 flex items-start gap-3 border-b border-slate-200 pb-5"><CalendarCheck2 className="mt-0.5 h-5 w-5 text-indigo-600" /><p className="text-xs font-semibold leading-5 text-slate-600">Request your preferred date and time. This does not claim real-time availability; the business will confirm the appointment.</p></div> : null}
               <div className="space-y-4">{fields.map((field) => <div key={field.id} className="space-y-1.5"><Label htmlFor={field.id}>{field.label}{field.required ? " *" : ""}</Label>{renderField(field)}</div>)}</div>
               {error ? <p className="mt-4 text-sm font-semibold text-rose-600">{error}</p> : null}
@@ -297,6 +318,13 @@ export function PublicFunnelPage() {
           </div>
         ) : null}
       </section>
+      {content.faq?.length ? <section className="mx-auto max-w-5xl px-6 pb-20">
+        <h2 className="mb-6 text-2xl font-bold tracking-tight">Frequently asked questions</h2>
+        <div className="grid gap-3">{content.faq.map((item) => <details key={item.question} className="rounded-xl border border-slate-200 bg-white p-5">
+          <summary className="cursor-pointer font-semibold text-slate-950">{item.question}</summary>
+          <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-600">{item.answer}</p>
+        </details>)}</div>
+      </section> : null}
     </main>
   );
 }

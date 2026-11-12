@@ -28,7 +28,7 @@ test("GitHub CI retains an always-present required check and cancels superseded 
   assert.match(ci, /code_changed=true/);
   assert.match(ci, /\(\^\|\/\)\[\^\/\]\+\\\.md\$/);
   assert.match(ci, /browser-e2e:[\s\S]*?needs:\s*verify/);
-  assert.match(ci, /if:\s*needs\.verify\.outputs\.code_changed == 'true'/);
+  assert.match(ci, /if:\s*\$\{\{ always\(\) && \(needs\.verify\.outputs\.code_changed == 'true'/);
 });
 
 test("the separate preview-order QA workflow is manual-only to avoid duplicate pushes", () => {

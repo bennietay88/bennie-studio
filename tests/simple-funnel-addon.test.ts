@@ -55,5 +55,9 @@ test("managed funnel addon is paid-gated, two-page-only and customer scoped", ()
   assert.match(route, /if \(steps\?\.length !== 2/);
   assert.match(route, /Simple funnel add-on access is isolated from the advanced sales_funnels/);
   assert.doesNotMatch(route, /custom_enabled_features:.*sales_funnels/);
-  assert.match(app, /<SimpleFunnelAddonPortal \/>/);
+  // Legacy billing data and webhook compatibility remain, but new Simple Funnel orders
+  // and the duplicate portal have been retired in favour of the unified engine.
+  assert.equal(app.includes("<SimpleFunnelAddonPortal />"), false);
+  assert.match(route, /SIMPLE_FUNNEL_NEW_SALES_RETIRED = true/);
+  assert.match(app, /FunnelPlansPortal/);
 });

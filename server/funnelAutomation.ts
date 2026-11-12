@@ -1,3 +1,5 @@
+import { getUnifiedFunnelAccess } from "./unifiedFunnelTiers.js";
+
 type FunnelAutomationDependencies = {
   db: any;
   sendEmail?: (payload: { to: string; subject: string; html: string }) => Promise<void>;
@@ -10,6 +12,7 @@ type StartAutomationArgs = FunnelAutomationDependencies & {
   leadId?: string | null;
   sessionId?: string | null;
   context?: Record<string, any>;
+  triggerJobId?: string | null;
 };
 
 const escapeEmailHtml = (value: string) => value
@@ -75,6 +78,15 @@ async function executeRun({
     if (!node) continue;
 
     try {
+      // Resuming an interrupted run must not repeat already logged actions.
+      const { data: finishedActions, error: finishedError } = await db.from("funnel_workflow_events")
+        .select("event_type").eq("workflow_run_id", run.id).eq("node_id", node.id)
+        .in("event_type", ["node_completed","email_sent"]).limit(1);
+      if (finishedError) throw finishedError;
+      if (finishedActions?.length && node.node_kind === "action") {
+        queue.push(...nextNodeIds(edges, node.id, "next"));
+        continue;
+      }
       await db.from("funnel_workflow_runs").update({ current_node_id: node.id, updated_at: new Date().toISOString() }).eq("id", run.id);
       await logRunEvent(db, run.business_id, run.id, node.id, "node_started", "running", node.name || node.action_type, { actionType: node.action_type });
 
@@ -134,7 +146,23 @@ async function executeRun({
             await logRunEvent(db, run.business_id, run.id, node.id, "email_sent", "completed", `Email sent to ${email}`, { subject });
           }
         } else if (node.action_type === "notify_team") {
-          await logRunEvent(db, run.business_id, run.id, node.id, "team_notification_created", "completed", String(node.config?.message || "A funnel lead needs attention."), { channel: node.config?.channel || "dashboard" });
+          const { data: recipients, error: recipientError } = await db.from("profiles")
+            .select("email").eq("business_id", run.business_id).eq("role", "business_admin").limit(3);
+          if (recipientError) throw recipientError;
+          const message = String(node.config?.message || "A funnel lead needs attention.");
+          if (sendEmail && recipients?.length) {
+            for (const recipient of recipients) {
+              if (!recipient.email) continue;
+              await sendEmail({
+                to: recipient.email,
+                subject: "New funnel enquiry needs attention",
+                html: "<p>" + escapeEmailHtml(message) + "</p><p>Open your Bennie Studio Leads dashboard to follow up.</p>",
+              });
+            }
+            await logRunEvent(db, run.business_id, run.id, node.id, "team_notification_sent", "completed", "Team notified by email.");
+          } else {
+            await logRunEvent(db, run.business_id, run.id, node.id, "team_notification_skipped", "skipped", "No team email recipient configured.");
+          }
         }
       }
 
@@ -161,7 +189,12 @@ export async function runFunnelAutomations({
   leadId = null,
   sessionId = null,
   context = {},
+  triggerJobId = null,
 }: StartAutomationArgs) {
+  if (process.env.UNIFIED_FUNNEL_TIERS_ENABLED === "true") {
+    const access = await getUnifiedFunnelAccess(db, businessId);
+    if (!access.active || !access.limits.workflows) return [];
+  }
   const { data: workflows, error } = await db
     .from("funnel_workflows")
     .select("*")
@@ -175,16 +208,35 @@ export async function runFunnelAutomations({
     const { nodes, edges } = await loadWorkflowGraph(db, workflow.id);
     const triggers = nodes.filter((node: any) => node.node_kind === "trigger" && node.action_type === triggerEvent);
     for (const trigger of triggers) {
+      // Never replay a partially executed workflow after an interrupted function.
+      // This sacrifices automatic recovery of a mid-action failure rather than
+      // risk duplicate customer communications; operators can review stuck runs.
+      if (triggerJobId) {
+        const { data: existing, error: lookupError } = await db.from("funnel_workflow_runs")
+          .select("id,status").eq("source_trigger_job_id", triggerJobId)
+          .eq("workflow_id", workflow.id).eq("source_trigger_node_id", trigger.id).maybeSingle();
+        if (lookupError) throw lookupError;
+        if (existing) {
+          results.push({status: ["completed","waiting"].includes(existing.status) ? "already_started" : "needs_review"});
+          continue;
+        }
+      }
       const { data: run, error: runError } = await db.from("funnel_workflow_runs").insert({
         workflow_id: workflow.id,
         business_id: businessId,
         funnel_id: funnelId,
         lead_id: leadId,
         session_id: sessionId,
+        source_trigger_job_id: triggerJobId,
+        source_trigger_node_id: triggerJobId ? trigger.id : null,
         status: "running",
         trigger_event: triggerEvent,
         context,
       }).select("*").single();
+      if (runError?.code === "23505" && triggerJobId) {
+        results.push({status:"needs_review"});
+        continue;
+      }
       if (runError) throw runError;
       await logRunEvent(db, businessId, run.id, trigger.id, "workflow_triggered", "completed", trigger.name || triggerEvent, { triggerEvent });
       const starting = nextNodeIds(edges, trigger.id, "next");
@@ -209,7 +261,16 @@ export async function processDueFunnelWorkflowRuns({ db, sendEmail, limit = 50 }
   for (const run of runs || []) {
     const { nodes, edges } = await loadWorkflowGraph(db, run.workflow_id);
     const starting = run.current_node_id ? nextNodeIds(edges, run.current_node_id, "next") : [];
-    await db.from("funnel_workflow_runs").update({ status: "running", next_run_at: null, updated_at: now }).eq("id", run.id);
+    if (process.env.UNIFIED_FUNNEL_TIERS_ENABLED === "true") {
+      const access = await getUnifiedFunnelAccess(db, run.business_id);
+      if (!access.active || !access.limits.workflows) continue;
+    }
+    // Atomic status predicate prevents concurrent cron calls from resuming twice.
+    const { data: claimed, error: claimError } = await db.from("funnel_workflow_runs")
+      .update({ status: "running", next_run_at: null, updated_at: now })
+      .eq("id", run.id).eq("status","waiting").lte("next_run_at",now).select("id").maybeSingle();
+    if (claimError) throw claimError;
+    if (!claimed) continue;
     results.push(await executeRun({ db, sendEmail, run: { ...run, status: "running" }, nodes, edges, startingNodeIds: starting }));
   }
   return results;

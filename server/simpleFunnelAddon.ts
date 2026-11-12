@@ -189,6 +189,9 @@ export async function handleSimpleFunnelAddonWebhook(db: Store, getStripe: () =>
   return true;
 }
 
+// Historical billing and fulfilment are retained; new Simple Funnel sales are retired.
+const SIMPLE_FUNNEL_NEW_SALES_RETIRED = true;
+
 export function registerSimpleFunnelAddonRoutes(options: HandlerOptions) {
   const { app, db, authenticate, superAdminOnly, assertBusinessAdminAccess, getStripe, publicAppUrl, rateLimit } = options;
   const customer = async (req: any, res: any, next: any) => {
@@ -241,6 +244,7 @@ export function registerSimpleFunnelAddonRoutes(options: HandlerOptions) {
   app.post("/api/customer/simple-funnel-addon", authenticate, customer,
     rateLimit({ windowMs: 60 * 60 * 1000, max: 5, keyPrefix: "simple-funnel-addon-checkout" }),
     async (req: any, res: any) => {
+      if (SIMPLE_FUNNEL_NEW_SALES_RETIRED) return res.status(410).json({ error: "Simple Funnel ordering has been retired. Use the unified Sales Funnel plans." });
       const parsed = briefSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Complete the offer, audience and contact details." });
       const business = req.addonBusiness;

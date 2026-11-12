@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { BarChart3, Copy, ExternalLink, Filter, Plus, Rocket, Route, Users } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../contexts/AuthContext";
+import { useFunnelTier } from "../../hooks/useFunnelTier";
+import { FREE_FUNNEL_TEMPLATE } from "../../lib/funnelTiers";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
@@ -26,6 +28,7 @@ export function FunnelsDashboard({
   onOpenFunnel?: (funnelId: string) => void;
 }) {
   const { profile } = useAuth();
+  const { access } = useFunnelTier();
   const navigate = useNavigate();
   const businessId = businessIdOverride || profile?.businessId || null;
   const [funnels, setFunnels] = React.useState<FunnelRow[]>([]);
@@ -92,9 +95,10 @@ export function FunnelsDashboard({
 
   const createFunnel = async () => {
     if (!businessId || !name.trim()) return;
+    if (!adminMode && (!access?.active || funnels.length >= access.limits.maxFunnels)) return toast.error("Your funnel plan limit has been reached.");
     setCreating(true);
     try {
-      const template = FUNNEL_TEMPLATES.find((item) => item.key === templateKey) || FUNNEL_TEMPLATES[0];
+      const template = FUNNEL_TEMPLATES.find((item) => item.key === (access?.tier === "free" && !adminMode ? FREE_FUNNEL_TEMPLATE : templateKey)) || FUNNEL_TEMPLATES[0];
       const funnelId = crypto.randomUUID();
       const slugBase = slugifyFunnel(name);
       const slug = funnels.some((funnel) => funnel.slug === slugBase) ? `${slugBase}-${Date.now().toString().slice(-5)}` : slugBase;
@@ -134,6 +138,7 @@ export function FunnelsDashboard({
 
   const duplicateFunnel = async (funnel: FunnelRow) => {
     if (!businessId) return;
+    if (!adminMode && (!access?.active || funnels.length >= access.limits.maxFunnels)) return toast.error("Your funnel plan limit has been reached.");
     try {
       const [{ data: steps }, { data: connections }] = await Promise.all([
         supabase.from("funnel_steps").select("*").eq("funnel_id", funnel.id),
@@ -181,7 +186,7 @@ export function FunnelsDashboard({
   };
 
   const filtered = statusFilter === "all" ? funnels : funnels.filter((funnel) => funnel.status === statusFilter);
-  const canCreate = adminMode || (profile?.role === "business_admin" && businessAccessMode !== "managed");
+  const canCreate = adminMode || (profile?.role === "business_admin" && businessAccessMode !== "managed" && Boolean(access?.active) && funnels.length < (access?.limits.maxFunnels ?? 0));
 
   return (
     <div className="space-y-8">
@@ -196,11 +201,15 @@ export function FunnelsDashboard({
             <SelectTrigger className="w-36 rounded-xl bg-white"><Filter className="mr-2 h-4 w-4" /><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="all">All funnels</SelectItem><SelectItem value="draft">Draft</SelectItem><SelectItem value="published">Published</SelectItem><SelectItem value="archived">Archived</SelectItem></SelectContent>
           </Select>
-          {canCreate ? <FunnelAiStrategist businessId={businessId || ""} accessMode={businessAccessMode} onCreated={(id)=>{void load();openFunnel(id);}} /> : null}
-          {canCreate ? <Button onClick={() => setCreateOpen(true)} className="rounded-xl bg-indigo-600 font-black"><Plus className="mr-2 h-4 w-4" />New Funnel</Button> : <Badge className="border-0 bg-slate-900 px-3 py-2 text-white">Managed by Bennie Studio</Badge>}
+          {canCreate && (adminMode || access?.limits.ai) ? <FunnelAiStrategist businessId={businessId || ""} accessMode={businessAccessMode} onCreated={(id)=>{void load();openFunnel(id);}} /> : null}
+          {canCreate ? <Button onClick={() => {if(access?.tier==="free"&&!adminMode)setTemplateKey(FREE_FUNNEL_TEMPLATE);setCreateOpen(true);}} className="rounded-xl bg-indigo-600 font-black"><Plus className="mr-2 h-4 w-4" />New Funnel</Button> : <Badge className="border-0 bg-slate-900 px-3 py-2 text-white">Managed by Bennie Studio</Badge>}
         </div>
       </div>
 
+      {!adminMode && access ? <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3 text-sm text-slate-600">
+        <span><b className="capitalize">{access.tier}</b> funnel access · {funnels.length}/{access.limits.maxFunnels} funnels · {access.limits.maxSteps} steps each</span>
+        <button type="button" onClick={()=>navigate("/dashboard/funnels/plans")} className="font-semibold text-indigo-700 underline">View funnel plan</button>
+      </div> : null}
       {loading ? (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{[1,2,3].map((item) => <div key={item} className="h-64 animate-pulse rounded-[2rem] bg-slate-100" />)}</div>
       ) : filtered.length ? (
@@ -242,7 +251,7 @@ export function FunnelsDashboard({
           <DialogHeader><DialogTitle>Create Sales Funnel</DialogTitle><DialogDescription>Choose the journey first. The pages, analytics and automations will all use this same graph.</DialogDescription></DialogHeader>
           <div className="space-y-5 py-3">
             <div className="space-y-2"><Label>Funnel name</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Invisalign Consultation Campaign" className="h-12 rounded-xl" /></div>
-            <div className="space-y-2"><Label>Starting structure</Label><Select value={templateKey} onValueChange={setTemplateKey}><SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{FUNNEL_TEMPLATES.map((template) => <SelectItem key={template.key} value={template.key}>{template.name} · {template.steps.length} steps</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label>Starting structure</Label><Select value={templateKey} onValueChange={setTemplateKey}><SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{FUNNEL_TEMPLATES.filter((template) => adminMode || access?.tier !== "free" || template.key === FREE_FUNNEL_TEMPLATE).map((template) => <SelectItem key={template.key} value={template.key}>{template.name} · {template.steps.length} steps</SelectItem>)}</SelectContent></Select></div>
             <div className="space-y-2"><Label>Customer access</Label><Select value={accessMode} onValueChange={(value: any) => setAccessMode(value)}><SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="managed">Managed · Bennie Studio edits</SelectItem><SelectItem value="collaborative">Collaborative · customer can edit</SelectItem><SelectItem value="self_managed">Self-managed · customer full builder access</SelectItem></SelectContent></Select></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setCreateOpen(false)} className="rounded-xl">Cancel</Button><Button disabled={!name.trim() || creating} onClick={() => void createFunnel()} className="rounded-xl bg-indigo-600">{creating ? "Creating…" : "Create Funnel"}</Button></DialogFooter>

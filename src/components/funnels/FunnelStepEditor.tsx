@@ -15,10 +15,14 @@ export function FunnelStepEditor({
   step,
   onSaved,
   readOnly = false,
+  allowVariants = true,
+  allowCheckout = true,
 }: {
   step: FunnelStep;
   onSaved?: (step: FunnelStep) => void;
   readOnly?: boolean;
+  allowVariants?: boolean;
+  allowCheckout?: boolean;
 }) {
   const [content, setContent] = React.useState<FunnelPageContent>(step.page_content || {});
   const [name, setName] = React.useState(step.name);
@@ -67,7 +71,7 @@ export function FunnelStepEditor({
   const removeField = (id: string) => updateField("fields", fields.filter((field) => field.id !== id));
 
   const addVariant = async () => {
-    if (readOnly) return;
+    if (readOnly || !allowVariants) return;
     const { data, error } = await supabase.from("funnel_variants").insert({
       business_id: step.business_id,
       funnel_id: step.funnel_id,
@@ -115,7 +119,7 @@ export function FunnelStepEditor({
   };
 
   const saveOffer = async () => {
-    if (readOnly) return;
+    if (readOnly || !allowCheckout) return;
     const offerType = step.step_type === "order_bump"
       ? "order_bump"
       : step.step_type === "upsell"
@@ -163,7 +167,18 @@ export function FunnelStepEditor({
           <div className="space-y-2 md:col-span-2"><Label>Subheadline</Label><Textarea disabled={readOnly} value={content.subheadline || ""} onChange={(e) => updateField("subheadline", e.target.value)} /></div>
           <div className="space-y-2 md:col-span-2"><Label>Body / supporting copy</Label><Textarea disabled={readOnly} value={content.body || ""} onChange={(e) => updateField("body", e.target.value)} className="min-h-32" /></div>
           <div className="space-y-2"><Label>Primary colour</Label><Input disabled={readOnly} type="color" value={content.theme?.primary || "#4f46e5"} onChange={(e) => updateField("theme", { ...(content.theme || {}), primary: e.target.value })} /></div>
-          <div className="space-y-2"><Label>Media / video URL</Label><Input disabled={readOnly} value={content.mediaUrl || ""} onChange={(e) => updateField("mediaUrl", e.target.value)} placeholder="Optional" /></div>
+          <div className="space-y-2"><Label>Media / image URL (HTTPS)</Label><Input disabled={readOnly} value={content.mediaUrl || ""} onChange={(e) => updateField("mediaUrl", e.target.value)} placeholder="https://…" /></div>
+          <div className="space-y-2 md:col-span-2"><Label>Benefits — one per line</Label>
+            <Textarea disabled={readOnly} rows={3} value={(content.benefits || []).join("\n")}
+              onChange={(e)=>updateField("benefits",e.target.value.split("\n").map(v=>v.trim()).filter(Boolean))} /></div>
+          <div className="space-y-2 md:col-span-2"><Label>Verified proof / customer trust — one per line</Label>
+            <Textarea disabled={readOnly} rows={3} value={(content.proof || []).join("\n")}
+              onChange={(e)=>updateField("proof",e.target.value.split("\n").map(v=>v.trim()).filter(Boolean))}
+              placeholder="Only facts or testimonials you have permission to publish" /></div>
+          <div className="space-y-2 md:col-span-2"><Label>FAQ — one question | answer per line</Label>
+            <Textarea disabled={readOnly} rows={3} value={(content.faq || []).map((item)=>item.question+" | "+item.answer).join("\n")}
+              onChange={(e)=>updateField("faq",e.target.value.split("\n").map(v=>v.split("|").map(s=>s.trim())).filter(v=>v.length===2&&v[0]&&v[1]).map(v=>({question:v[0],answer:v[1]})))}
+              placeholder="How does it work? | We will contact you after the enquiry." /></div>
         </div>
       </Card>
 
@@ -184,7 +199,7 @@ export function FunnelStepEditor({
         </Card>
       ) : null}
 
-      {["checkout","order_bump","upsell","downsell"].includes(step.step_type) ? (
+      {allowCheckout && ["checkout","order_bump","upsell","downsell"].includes(step.step_type) ? (
         <Card className="rounded-[2rem] border-slate-200 p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -206,7 +221,7 @@ export function FunnelStepEditor({
         </Card>
       ) : null}
 
-      <Card className="rounded-[2rem] border-slate-200 p-6">
+      {allowVariants ? <Card className="rounded-[2rem] border-slate-200 p-6">
         <div className="flex items-center justify-between"><div className="flex items-center gap-2"><FlaskConical className="h-5 w-5 text-violet-600" /><div><h3 className="font-black text-slate-950">A/B variants</h3><p className="text-xs font-semibold text-slate-500">Variants share this step's destination but can test different page content.</p></div></div>{!readOnly ? <Button variant="outline" onClick={() => void addVariant()} className="rounded-xl">Create variant</Button> : null}</div>
         <div className="mt-5 space-y-3">
           {variants.length ? variants.map((variant) => (
@@ -229,7 +244,7 @@ export function FunnelStepEditor({
             </div>
           ) : null}
         </div>
-      </Card>
+      </Card> : null}
     </div>
   );
 }

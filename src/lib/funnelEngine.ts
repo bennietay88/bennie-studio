@@ -7,7 +7,7 @@ export type FunnelStepType =
 
 export type FunnelEventType =
   | "funnel_view" | "step_view" | "cta_click" | "form_started" | "form_submitted"
-  | "survey_completed" | "appointment_started" | "appointment_booked"
+  | "survey_completed" | "appointment_started" | "appointment_requested" | "appointment_booked"
   | "checkout_started" | "purchase_completed" | "order_bump_accepted"
   | "upsell_viewed" | "upsell_accepted" | "upsell_declined";
 
@@ -174,6 +174,7 @@ export const DEFAULT_FUNNEL_PAGE_CONTENT: Record<FunnelStepType, FunnelPageConte
 };
 
 export const FUNNEL_TEMPLATES = [
+  { key: "simple-lead-capture", name: "Lead Capture — Landing + Thank You", objective: "lead" as FunnelObjective, steps: ["lead_form","thank_you"] as FunnelStepType[] },
   { key: "lead-generation", name: "Lead Generation", objective: "lead" as FunnelObjective, steps: ["landing","lead_form","thank_you"] as FunnelStepType[] },
   { key: "appointment-booking", name: "Appointment Booking", objective: "appointment" as FunnelObjective, steps: ["landing","application","appointment","confirmation"] as FunnelStepType[] },
   { key: "quote-request", name: "Quote Request", objective: "quote" as FunnelObjective, steps: ["landing","survey","lead_form","thank_you"] as FunnelStepType[] },
@@ -240,8 +241,8 @@ export function summarizeFunnelAnalytics(events: FunnelEvent[], steps: FunnelSte
 
   const sourceMap = new Map<string, { visitors: Set<string>; conversions: Set<string>; revenue: number; revenueByCurrency: Record<string, number> }>();
   const deviceMap = new Map<string, { visitors: Set<string>; conversions: Set<string>; revenue: number; revenueByCurrency: Record<string, number> }>();
-  const primaryConversionEvents = new Set(["form_submitted","survey_completed","appointment_booked"]);
-  const stepConversionEvents = new Set(["form_submitted","survey_completed","appointment_booked","checkout_started","purchase_completed","upsell_accepted","order_bump_accepted"]);
+  const primaryConversionEvents = new Set(["form_submitted","survey_completed","appointment_requested","appointment_booked"]);
+  const stepConversionEvents = new Set(["form_submitted","survey_completed","appointment_requested","appointment_booked","checkout_started","purchase_completed","upsell_accepted","order_bump_accepted"]);
 
   for (const event of events) {
     const sessionKey = String(event.session_id || event.metadata?.sessionKey || event.id || "");
@@ -252,7 +253,7 @@ export function summarizeFunnelAnalytics(events: FunnelEvent[], steps: FunnelSte
       if (event.lead_id) leads.add(event.lead_id);
       conversionSessions.add(sessionKey);
     }
-    if (event.event_type === "appointment_booked") {
+    if (event.event_type === "appointment_booked" || event.event_type === "appointment_requested") {
       appointments.add(event.lead_id || sessionKey);
       conversionSessions.add(sessionKey);
     }
@@ -344,6 +345,39 @@ export function summarizeFunnelAnalytics(events: FunnelEvent[], steps: FunnelSte
     bySource: toBreakdown(sourceMap),
     byDevice: toBreakdown(deviceMap),
   };
+}
+
+// Stable per-variant analysis: only compare sessions that actually viewed a step.
+export function summarizeFunnelVariants(
+  events: FunnelEvent[], variants: Array<{ id: string; step_id: string; name: string }>,
+) {
+  const testedSteps = new Set(variants.map((v) => v.step_id));
+  const rows = new Map<string, { stepId: string; variantId: string | null; name: string; views: Set<string>; conversions: Set<string> }>();
+  for (const v of variants) rows.set(v.step_id + ":" + v.id,
+    { stepId: v.step_id, variantId: v.id, name: v.name, views: new Set(), conversions: new Set() });
+  for (const stepId of testedSteps) rows.set(stepId + ":base",
+    { stepId, variantId: null, name: "Original", views: new Set(), conversions: new Set() });
+  const conversionEvents = new Set(["form_submitted","survey_completed","appointment_booked","purchase_completed"]);
+  for (const event of events) {
+    if (!event.step_id || !testedSteps.has(event.step_id) || !event.session_id) continue;
+    const key = event.step_id + ":" + (event.variant_id || "base");
+    const bucket = rows.get(key);
+    if (!bucket) continue;
+    if (event.event_type === "step_view") bucket.views.add(event.session_id);
+    if (conversionEvents.has(event.event_type) &&
+        (event.event_type !== "purchase_completed" || event.revenue_verified === true)) {
+      bucket.conversions.add(event.session_id);
+    }
+  }
+  return Array.from(rows.values()).map((row) => {
+    const visitors = row.views.size;
+    const conversions = Array.from(row.conversions).filter((id) => row.views.has(id)).length;
+    return { stepId: row.stepId, variantId: row.variantId, name: row.name,
+      visitors, conversions, conversionRate: visitors ? (conversions / visitors) * 100 : 0,
+      // A/B tests need meaningful samples before anyone declares a winner.
+      sampleStatus: visitors >= 100 ? "Review with statistical testing" : "Collect more data",
+    };
+  }).sort((a,b) => a.stepId.localeCompare(b.stepId) || a.name.localeCompare(b.name));
 }
 
 export function generateFunnelInsights(summary: FunnelSummaryMetrics, steps: FunnelStep[]): FunnelInsight[] {

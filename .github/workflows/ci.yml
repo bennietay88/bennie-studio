@@ -35,14 +35,18 @@ jobs:
         run: |
           set -euo pipefail
           code_changed=true
+          # A PR's synthetic merge SHA may be shallow or inaccessible via a
+          # separate fetch. Fail *open to testing*, never fail the entire job.
+          # This keeps the required verify check present for every PR.
           if [ "$EVENT_NAME" = "pull_request" ]; then
-            git fetch --no-tags --depth=1 origin "$BASE_SHA"
-            base="$BASE_SHA"
+            changed_files="src/App.tsx"
           else
-            base="${HEAD_SHA}^"
+            if git rev-parse "${HEAD_SHA}^" >/dev/null 2>&1; then
+              changed_files="$(git diff --name-only "${HEAD_SHA}^" "$HEAD_SHA" || true)"
+            else
+              changed_files="src/App.tsx"
+            fi
           fi
-
-          changed_files="$(git diff --name-only "$base" "$HEAD_SHA")"
           if [ -n "$changed_files" ] && ! printf '%s\n' "$changed_files" | grep -Ev '(^|/)[^/]+\.md$' >/dev/null; then
             code_changed=false
           fi
@@ -52,20 +56,46 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - name: Install locked dependencies
         if: steps.scope.outputs.code_changed == 'true'
-      - run: npm run lint
+        run: |
+          set -o pipefail
+          node --version
+          npm --version
+          npm ci 2>&1 | tee /tmp/bennie-ci-install.log
+      - name: TypeScript typecheck
         if: steps.scope.outputs.code_changed == 'true'
-      - run: npm run build
+        run: |
+          set -o pipefail
+          npm run lint 2>&1 | tee /tmp/bennie-ci-types.log
+      - name: Build client and server
         if: steps.scope.outputs.code_changed == 'true'
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee /tmp/bennie-ci-build.log
       - name: Run complete unit and domain regression suite
         if: steps.scope.outputs.code_changed == 'true'
-        run: node --import tsx --test tests/*.test.ts
-      - run: npm audit --audit-level=high
+        run: |
+          set -o pipefail
+          node --import tsx --test tests/*.test.ts 2>&1 | tee /tmp/bennie-ci-tests.log
+      - name: Dependency vulnerability audit
         if: steps.scope.outputs.code_changed == 'true'
+        run: |
+          set -o pipefail
+          npm audit --audit-level=high 2>&1 | tee /tmp/bennie-ci-audit.log
+      - name: Preserve non-secret CI diagnostics if verify fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-verify-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/bennie-ci-*.log
+          retention-days: 3
+          if-no-files-found: warn
+
 
   browser-e2e:
-    if: needs.verify.outputs.code_changed == 'true'
+    # Run browser tests even when verify fails, to identify independent regressions.
+    if: ${{ always() && (needs.verify.outputs.code_changed == 'true' || github.event_name == 'pull_request') }}
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 30

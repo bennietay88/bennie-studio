@@ -70,7 +70,7 @@ export function FeatureGate({
           <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               {isCustomCapability ? (
-                <>Sales Funnels is enabled by Bennie Studio for specific custom-build customers.</>
+                <>Sales Funnels is available when enabled on your account. Contact Bennie Studio about funnel access.</>
               ) : (
                 <>
                   Upgrade your package to unlock{" "}

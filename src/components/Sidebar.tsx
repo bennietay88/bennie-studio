@@ -264,7 +264,10 @@ export function Sidebar({
           { to: "/dashboard/appointments", icon: CalendarIcon, label: "Appointments", featureId: "booking" },
         ]},
         { label: "Growth", items: [
-          { to: "/dashboard/funnels", icon: Waypoints, label: "Simple Sales Funnel" },
+          { to: "/dashboard/funnels", icon: Waypoints, label: "Sales Funnels", featureId: "sales_funnels" },
+          ...(import.meta.env.VITE_UNIFIED_FUNNEL_TIERS_ENABLED === "true"
+            ? [{ to: "/dashboard/funnels/plans", icon: CreditCard, label: "Funnel Plans" }]
+            : []),
           { to: "/dashboard/blog", icon: FileText, label: "Blog CMS", featureId: "blog" },
           { to: "/dashboard/marketing-hub", icon: Megaphone, label: "Marketing Pro" },
         ]},

@@ -10,14 +10,17 @@ supabase/.temp/
 audit-current/
 prospects/
 design-audit-*.png
-tests/
-e2e/
-docs/
-supabase/
-scripts/
+# Include tests in this feature's preview build for release qualification.
+# Include browser test fixtures for preview TypeScript checks.
+# included for complete preview regression validation: docs/
+# Include migration SQL for preview-only funnel security regression tests.
+# included for complete preview regression validation: scripts/
 pricing-audit/
 design-qa-*.png
 template-preview*.png
 *.md
 playwright.config.ts
-.github/
+# Include workflows for production release safety regressions in the QA preview
+
+# Non-secret fixture for system-integrity tests
+!.env.example

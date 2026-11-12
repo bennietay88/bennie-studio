@@ -13,7 +13,8 @@ import { toast } from "sonner";
 
 const NODE_LIBRARY = [
   { kind: "trigger", type: "form_submitted", name: "Form submitted" },
-  { kind: "trigger", type: "appointment_booked", name: "Appointment booked" },
+  { kind: "trigger", type: "appointment_requested", name: "Appointment requested" },
+  { kind: "trigger", type: "appointment_booked", name: "Appointment confirmed (legacy)" },
   { kind: "trigger", type: "purchase_completed", name: "Purchase completed" },
   { kind: "action", type: "send_email", name: "Send email" },
   { kind: "action", type: "update_lead_status", name: "Update lead status" },

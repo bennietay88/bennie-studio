@@ -187,7 +187,7 @@ export function validateProspectEmailTemplate(key: ProspectEmailTemplateKey, tem
     for (const match of text.matchAll(/\{\{([^{}]+)\}\}/g)) {
       if (!PLACEHOLDERS.has(match[1].trim())) return "Unsupported variable: " + match[1].trim();
     }
-    if (/{{|}}/.test(text.replace(/\{\{(?:first_name|business_name|asset_url|portfolio_url)\}\}/g, ""))) {
+    if (/{{|}}/.test(text.replace(/\{\{(?:first_name|business_name|asset_url|portfolio_url|specific_observation)\}\}/g, ""))) {
       return "Check incomplete or malformed template variables.";
     }
   }

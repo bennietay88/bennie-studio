@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { BarChart3, ExternalLink, GitBranch, Globe2, ListChecks, Plus, Save, Settings2, Trash2, Users, Workflow } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../contexts/AuthContext";
+import { useFunnelTier } from "../../hooks/useFunnelTier";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
@@ -33,11 +34,13 @@ export function FunnelWorkspace({
   const params = useParams();
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { access } = useFunnelTier();
   const funnelId = funnelIdOverride || params.funnelId || "";
   const [funnel, setFunnel] = React.useState<FunnelRecord | null>(null);
   const [steps, setSteps] = React.useState<FunnelStep[]>([]);
   const [connections, setConnections] = React.useState<FunnelConnection[]>([]);
   const [events, setEvents] = React.useState<FunnelEvent[]>([]);
+  const [variants, setVariants] = React.useState<any[]>([]);
   const [submissions, setSubmissions] = React.useState<any[]>([]);
   const [selectedStepId, setSelectedStepId] = React.useState<string | null>(null);
   const [connectingFrom, setConnectingFrom] = React.useState<string | null>(null);
@@ -54,6 +57,7 @@ export function FunnelWorkspace({
     profile?.role !== "super_admin" &&
     (
       profile?.role !== "business_admin" ||
+      !access?.active ||
       businessAccessMode === "managed" ||
       funnel.access_mode === "managed"
     )
@@ -63,12 +67,13 @@ export function FunnelWorkspace({
     if (!funnelId) return;
     setLoading(true);
     try {
-      const [{ data: funnelData, error: funnelError }, { data: stepData }, { data: connectionData }, { data: eventData }, { data: submissionData }] = await Promise.all([
+      const [{ data: funnelData, error: funnelError }, { data: stepData }, { data: connectionData }, { data: eventData }, { data: submissionData }, { data: variantData }] = await Promise.all([
         supabase.from("funnels").select("*").eq("id", funnelId).single(),
         supabase.from("funnel_steps").select("*").eq("funnel_id", funnelId).order("sort_order"),
         supabase.from("funnel_connections").select("*").eq("funnel_id", funnelId).order("priority"),
         supabase.from("funnel_events").select("*").eq("funnel_id", funnelId).gte("created_at", new Date(Date.now()-90*24*60*60*1000).toISOString()).order("created_at", { ascending: false }).limit(5000),
         supabase.from("funnel_submissions").select("*,leads(id,name,email,phone,status,automation_score,automation_temperature)").eq("funnel_id", funnelId).order("created_at", { ascending: false }).limit(200),
+        supabase.from("funnel_variants").select("id,step_id,name,status").eq("funnel_id",funnelId).eq("status","active"),
       ]);
       if (funnelError) throw funnelError;
       setFunnel(funnelData as FunnelRecord);
@@ -81,6 +86,7 @@ export function FunnelWorkspace({
       setSteps((stepData || []) as FunnelStep[]);
       setConnections((connectionData || []) as FunnelConnection[]);
       setEvents((eventData || []) as FunnelEvent[]);
+      setVariants(variantData || []);
       setSubmissions(submissionData || []);
       setSelectedStepId((current) => current && (stepData || []).some((step: any) => step.id === current) ? current : (stepData || []).find((step: any) => step.is_entry)?.id || (stepData || [])[0]?.id || null);
     } catch (error: any) {
@@ -119,6 +125,10 @@ export function FunnelWorkspace({
 
   const addStep = async () => {
     if (readOnly) return;
+    if (!adminMode && (steps.length >= (access?.limits.maxSteps ?? 0) ||
+      (access?.tier === "free" && !["lead_form","thank_you"].includes(newStepType)))) {
+      return toast.error("This step is not included in your funnel plan.");
+    }
     const name = newStepName.trim() || FUNNEL_STEP_LABELS[newStepType];
     const slugBase = slugifyFunnel(name);
     const slug = steps.some((step) => step.slug === slugBase) ? `${slugBase}-${steps.length+1}` : slugBase;
@@ -173,12 +183,23 @@ export function FunnelWorkspace({
       const problems = validatePublish();
       if (problems.length) return toast.error(problems[0]);
     }
-    const status = publish ? "published" : "draft";
-    const { error } = await supabase.from("funnels").update({ status, published_at: publish ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq("id", funnel.id);
-    if (error) return toast.error(error.message);
-    await supabase.from("funnel_steps").update({ status }).eq("funnel_id", funnel.id);
-    setFunnel({ ...funnel, status, published_at: publish ? new Date().toISOString() : null });
-    setSteps((current) => current.map((step) => ({ ...step, status })));
+    if (import.meta.env.VITE_UNIFIED_FUNNEL_TIERS_ENABLED === "true") {
+      const { error } = await supabase.rpc("publish_funnel_safely", {
+        p_funnel_id: funnel.id, p_publish: publish,
+      });
+      if (error) return toast.error(error.message);
+    } else {
+      // Keep pre-migration customer publishing operational.
+      const status = publish ? "published" : "draft";
+      const { error: funnelError } = await supabase.from("funnels")
+        .update({ status, published_at: publish ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString() }).eq("id", funnel.id);
+      if (funnelError) return toast.error(funnelError.message);
+      const { error: stepsError } = await supabase.from("funnel_steps")
+        .update({ status }).eq("funnel_id", funnel.id);
+      if (stepsError) return toast.error("Funnel status changed, but some steps could not be published. Please retry.");
+    }
+    await load();
     toast.success(publish ? "Funnel published" : "Funnel returned to draft");
   };
 
@@ -222,7 +243,7 @@ export function FunnelWorkspace({
           <TabsTrigger value="flow" className="rounded-xl"><GitBranch className="mr-2 h-4 w-4" />Flow</TabsTrigger>
           <TabsTrigger value="pages" className="rounded-xl"><ListChecks className="mr-2 h-4 w-4" />Pages</TabsTrigger>
           <TabsTrigger value="leads" className="rounded-xl"><Users className="mr-2 h-4 w-4" />Leads</TabsTrigger>
-          <TabsTrigger value="automations" className="rounded-xl"><Workflow className="mr-2 h-4 w-4" />Automations</TabsTrigger>
+          {(adminMode || access?.limits.workflows) ? <TabsTrigger value="automations" className="rounded-xl"><Workflow className="mr-2 h-4 w-4" />Automations</TabsTrigger> : null}
           <TabsTrigger value="analytics" className="rounded-xl"><BarChart3 className="mr-2 h-4 w-4" />Analytics</TabsTrigger>
           <TabsTrigger value="settings" className="rounded-xl"><Settings2 className="mr-2 h-4 w-4" />Settings</TabsTrigger>
         </TabsList>
@@ -230,7 +251,7 @@ export function FunnelWorkspace({
         <TabsContent value="flow" className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div><h2 className="text-xl font-black text-slate-950">Funnel Flow</h2><p className="text-xs font-semibold text-slate-500">Drag steps to arrange them. Connect nodes to define where visitors go next.</p></div>
-            {!readOnly ? <Button onClick={() => setAddStepOpen(true)} variant="outline" className="rounded-xl"><Plus className="mr-2 h-4 w-4" />Add step</Button> : null}
+            {!readOnly && (adminMode || steps.length < (access?.limits.maxSteps ?? 0)) ? <Button onClick={() => {if (access?.tier === "free" && !adminMode) setNewStepType("lead_form"); setAddStepOpen(true);}} variant="outline" className="rounded-xl"><Plus className="mr-2 h-4 w-4" />Add step</Button> : null}
           </div>
           <FlowCanvas nodes={graphNodes} edges={graphEdges} editable={!readOnly} selectedNodeId={selectedStepId} connectingFrom={connectingFrom} onSelectNode={setSelectedStepId} onMoveNode={moveNode} onMoveNodeCommit={(id,x,y)=>void commitMove(id,x,y)} onStartConnection={(id)=>setConnectingFrom((current)=>current===id?null:id)} onCompleteConnection={(source,target)=>void connect(source,target)} onDeleteEdge={(id)=>void deleteEdge(id)} />
 
@@ -260,7 +281,7 @@ export function FunnelWorkspace({
               <p className="px-2 pb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Funnel steps</p>
               <div className="space-y-1">{steps.map((step) => <button key={step.id} type="button" onClick={()=>setSelectedStepId(step.id)} className={`w-full rounded-xl px-3 py-3 text-left text-sm font-bold transition ${selectedStepId===step.id?"bg-indigo-50 text-indigo-700":"text-slate-600 hover:bg-slate-50"}`}><span className="block">{step.name}</span><span className="mt-1 block text-[9px] font-black uppercase tracking-wider opacity-60">{FUNNEL_STEP_LABELS[step.step_type]}</span></button>)}</div>
             </Card>
-            {selectedStep ? <FunnelStepEditor step={selectedStep} readOnly={readOnly} onSaved={(updated)=>setSteps((current)=>current.map((step)=>step.id===updated.id?updated:step))} /> : <Card className="rounded-[2rem] p-12 text-center">Select a step.</Card>}
+            {selectedStep ? <FunnelStepEditor step={selectedStep} readOnly={readOnly} allowVariants={adminMode || Boolean(access?.limits.variants)} allowCheckout={adminMode || Boolean(access?.limits.checkout)} onSaved={(updated)=>setSteps((current)=>current.map((step)=>step.id===updated.id?updated:step))} /> : <Card className="rounded-[2rem] p-12 text-center">Select a step.</Card>}
           </div>
         </TabsContent>
 
@@ -272,8 +293,8 @@ export function FunnelWorkspace({
           </Card>
         </TabsContent>
 
-        <TabsContent value="automations"><FunnelAutomationBuilder businessId={funnel.business_id} funnelId={funnel.id} readOnly={readOnly} /></TabsContent>
-        <TabsContent value="analytics"><FunnelAnalyticsDashboard steps={steps} connections={connections} events={events} currency={funnel.settings?.currency || "USD"} /></TabsContent>
+        {(adminMode || access?.limits.workflows) ? <TabsContent value="automations"><FunnelAutomationBuilder businessId={funnel.business_id} funnelId={funnel.id} readOnly={readOnly} /></TabsContent> : null}
+        <TabsContent value="analytics"><FunnelAnalyticsDashboard steps={steps} connections={connections} events={events} variants={variants} currency={funnel.settings?.currency || "USD"} basic={!adminMode && access?.tier === "free"} /></TabsContent>
 
         <TabsContent value="settings">
           <Card className="max-w-3xl rounded-[2rem] border-slate-200 p-7">
@@ -293,7 +314,7 @@ export function FunnelWorkspace({
       </Tabs>
 
       <Dialog open={addStepOpen} onOpenChange={setAddStepOpen}>
-        <DialogContent className="rounded-[2rem]"><DialogHeader><DialogTitle>Add funnel step</DialogTitle><DialogDescription>Add the real next action in the customer journey.</DialogDescription></DialogHeader><div className="space-y-4 py-3"><div className="space-y-2"><Label>Step type</Label><Select value={newStepType} onValueChange={(value:any)=>{setNewStepType(value);setNewStepName(FUNNEL_STEP_LABELS[value as FunnelStepType]);}}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(FUNNEL_STEP_LABELS).map(([value,label])=><SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Name</Label><Input value={newStepName} onChange={(e)=>setNewStepName(e.target.value)} /></div></div><DialogFooter><Button variant="outline" onClick={()=>setAddStepOpen(false)}>Cancel</Button><Button onClick={()=>void addStep()} className="bg-indigo-600">Add step</Button></DialogFooter></DialogContent>
+        <DialogContent className="rounded-[2rem]"><DialogHeader><DialogTitle>Add funnel step</DialogTitle><DialogDescription>Add the real next action in the customer journey.</DialogDescription></DialogHeader><div className="space-y-4 py-3"><div className="space-y-2"><Label>Step type</Label><Select value={newStepType} onValueChange={(value:any)=>{setNewStepType(value);setNewStepName(FUNNEL_STEP_LABELS[value as FunnelStepType]);}}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(FUNNEL_STEP_LABELS).filter(([value]) => adminMode || access?.tier !== "free" || ["lead_form","thank_you"].includes(value)).map(([value,label])=><SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Name</Label><Input value={newStepName} onChange={(e)=>setNewStepName(e.target.value)} /></div></div><DialogFooter><Button variant="outline" onClick={()=>setAddStepOpen(false)}>Cancel</Button><Button onClick={()=>void addStep()} className="bg-indigo-600">Add step</Button></DialogFooter></DialogContent>
       </Dialog>
     </div>
   );

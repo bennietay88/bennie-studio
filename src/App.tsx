@@ -147,8 +147,8 @@ const BlogCMS = lazy(() =>
 const FunnelsDashboard = lazy(() =>
   import("./components/funnels/FunnelsDashboard").then((m) => ({ default: m.FunnelsDashboard })),
 );
-const SimpleFunnelAddonPortal = lazy(() =>
-  import("./components/funnels/SimpleFunnelAddonPortal").then((m) => ({ default: m.SimpleFunnelAddonPortal })),
+const FunnelPlansPortal = lazy(() =>
+  import("./components/funnels/FunnelPlansPortal").then((m) => ({ default: m.FunnelPlansPortal })),
 );
 const FunnelWorkspace = lazy(() =>
   import("./components/funnels/FunnelWorkspace").then((m) => ({ default: m.FunnelWorkspace })),
@@ -892,19 +892,19 @@ export default function App() {
                               path="funnels"
                               element={
                                 <ProtectedRoute allowedRoles={["business_admin", "staff", "client"]}>
-                                  <SimpleFunnelAddonPortal />
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route
-                              path="funnels/advanced"
-                              element={
-                                <ProtectedRoute allowedRoles={["business_admin", "staff", "client"]}>
                                   <FeatureGate featureId="sales_funnels">
                                     <FunnelsDashboard />
                                   </FeatureGate>
                                 </ProtectedRoute>
                               }
+                            />
+                            <Route
+                              path="funnels/plans"
+                              element={<ProtectedRoute allowedRoles={["business_admin"]}>{import.meta.env.VITE_UNIFIED_FUNNEL_TIERS_ENABLED === "true" ? <FunnelPlansPortal /> : <Navigate to="/dashboard/funnels" replace />}</ProtectedRoute>}
+                            />
+                            <Route
+                              path="funnels/advanced"
+                              element={<Navigate to="/dashboard/funnels" replace />}
                             />
                             <Route
                               path="funnels/:funnelId"
