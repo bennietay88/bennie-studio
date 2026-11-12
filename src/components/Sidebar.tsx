@@ -264,7 +264,7 @@ export function Sidebar({
           { to: "/dashboard/appointments", icon: CalendarIcon, label: "Appointments", featureId: "booking" },
         ]},
         { label: "Growth", items: [
-          { to: "/dashboard/funnels", icon: Waypoints, label: "Sales Funnels", featureId: "sales_funnels" },
+          { to: "/dashboard/funnels", icon: Waypoints, label: "Simple Sales Funnel" },
           { to: "/dashboard/blog", icon: FileText, label: "Blog CMS", featureId: "blog" },
           { to: "/dashboard/marketing-hub", icon: Megaphone, label: "Marketing Pro" },
         ]},

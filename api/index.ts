@@ -83,6 +83,7 @@ import { buildDesignDirectionPrompt, DESIGN_DIRECTOR_SYSTEM_PROMPT, parseDesignD
 import { buildPortableWebsiteFiles } from "../src/lib/websiteHandover.js";
 import { HANDOVER_GRACE_DAYS, handoverGraceUntil, subscriptionAllowsPermanentDeletion } from "../src/lib/billingLifecycle.js";
 import { nextStepForSubmission } from "../src/lib/funnelEngine.js";
+import { registerSimpleFunnelAddonRoutes, handleSimpleFunnelAddonWebhook, cancelSimpleFunnelWithParent } from "../server/simpleFunnelAddon.js";
 import { processDueFunnelWorkflowRuns, runFunnelAutomations } from "../server/funnelAutomation.js";
 import { runFinalLaunchCrawler } from "../server/finalLaunchQa.js";
 import { isNewIntroOfferCustomer } from "./introOfferEligibility.js";
@@ -2328,12 +2329,12 @@ async function startServer() {
     if (!filters.length) return null;
     const { data, error } = await supabaseAdmin
       .from("businesses")
-      .select("id, owner_id")
+      .select("id, owner_id, stripe_subscription_id")
       .or(filters.join(","))
       .limit(1)
       .maybeSingle();
     if (error) throw error;
-    return data as { id: string; owner_id?: string | null } | null;
+    return data as { id: string; owner_id?: string | null; stripe_subscription_id?: string | null } | null;
   };
 
   const syncUserSubscriptionByStripe = async (input: {
@@ -2581,7 +2582,7 @@ async function startServer() {
       }
       if (!claim.claimed) return res.json({ received: true, duplicate: true, reason: claim.reason });
       try {
-      switch (event.type) {
+      if (!(await handleSimpleFunnelAddonWebhook(supabaseAdmin, getStripe, event))) switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
           const businessId = session.metadata?.businessId;
@@ -3323,6 +3324,7 @@ async function startServer() {
             }
 
             if (cancelledBusiness) {
+              await cancelSimpleFunnelWithParent(supabaseAdmin, getStripe, cancelledBusiness.id);
               await insertBillingLifecycleEvent({
                 business_id: cancelledBusiness.id,
                 event_type: "subscription_cancelled",
@@ -3333,6 +3335,8 @@ async function startServer() {
             }
           } catch (err) {
             console.error(`Error handling subscription deletion:`, err);
+            // Stripe must retry if the dependent add-on could not be cancelled.
+            throw err;
           }
           break;
         }
@@ -3379,10 +3383,11 @@ async function startServer() {
         }
         case "invoice.payment_failed": {
           const invoice = event.data.object as any;
-          const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+          const invoiceSubscription = invoice.subscription || invoice.parent?.subscription_details?.subscription;
+          const subscriptionId = typeof invoiceSubscription === "string" ? invoiceSubscription : invoiceSubscription?.id;
           const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
           const business = await resolveBusinessForStripe({ subscriptionId, customerId });
-          if (business) {
+          if (business && subscriptionId && business.stripe_subscription_id === subscriptionId) {
             const dueAt = stripeTimestampToIso(invoice.next_payment_attempt);
             const graceUntil = billingGraceUntil(invoice.next_payment_attempt);
             await supabaseAdmin
@@ -3409,10 +3414,11 @@ async function startServer() {
         }
         case "invoice.paid": {
           const invoice = event.data.object as any;
-          const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+          const invoiceSubscription = invoice.subscription || invoice.parent?.subscription_details?.subscription;
+          const subscriptionId = typeof invoiceSubscription === "string" ? invoiceSubscription : invoiceSubscription?.id;
           const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
           const business = await resolveBusinessForStripe({ subscriptionId, customerId });
-          if (business) {
+          if (business && subscriptionId && business.stripe_subscription_id === subscriptionId) {
             await supabaseAdmin.from("businesses").update({ subscription_status: "active", status: "active", subscription_grace_until: null }).eq("id", business.id);
             await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "active", renewalState: "active", lastPaymentStatus: "paid", lastWebhookEventId: event.id });
             await supabaseAdmin.from("billing_lifecycle_events").update({ status: "resolved", resolved_at: new Date().toISOString() }).eq("business_id", business.id).eq("event_type", "payment_failed").eq("status", "open");
@@ -9391,6 +9397,12 @@ async function startServer() {
     return res.json({ market, currency: commercialCurrencyForMarket(market), products });
   });
 
+  // Isolated managed, two-page funnel add-on. No browser-side price or entitlement authority.
+  registerSimpleFunnelAddonRoutes({
+    app, db: supabaseAdmin, authenticate, superAdminOnly, assertBusinessAdminAccess,
+    getStripe, publicAppUrl, rateLimit,
+  });
+
   app.get("/api/admin/commercial-catalogue", authenticate, superAdminOnly, async (_req: any, res: any) => {
     const [products, prices, promotions, legacyPlans] = await Promise.all([
       supabaseAdmin.from("commercial_products").select("*").order("sort_order", { ascending: true }),
@@ -10172,6 +10184,22 @@ async function startServer() {
     return data;
   };
 
+  // A simple funnel must never serve visitors or accept submissions after its
+  // parent website subscription or separate add-on entitlement lapses.
+  const simpleFunnelMayServe = async (funnel: any) => {
+    if (funnel.template_key !== "simple-two-page") return true;
+    const [addonResult, businessResult] = await Promise.all([
+      supabaseAdmin.from("simple_funnel_addons").select("status")
+        .eq("funnel_id", funnel.id).eq("business_id", funnel.business_id).maybeSingle(),
+      supabaseAdmin.from("businesses").select("subscription_status,status")
+        .eq("id", funnel.business_id).maybeSingle(),
+    ]);
+    if (addonResult.error || businessResult.error) throw addonResult.error || businessResult.error;
+    return addonResult.data?.status === "active"
+      && businessResult.data?.status === "active"
+      && ["active", "trialing"].includes(String(businessResult.data?.subscription_status || ""));
+  };
+
   app.get(
     "/api/public/funnels/:businessId/:funnelSlug",
     rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: "public-funnel-read" }),
@@ -10191,6 +10219,9 @@ async function startServer() {
           .maybeSingle();
         if (error) throw error;
         if (!funnel) return res.status(404).json({ error: "This funnel is not published." });
+        if (!(await simpleFunnelMayServe(funnel))) {
+          return res.status(404).json({ error: "This funnel is not currently available." });
+        }
 
         const [{ data: business }, { data: steps }, { data: connections }, { data: variants }, { data: offers }] = await Promise.all([
           supabaseAdmin.from("businesses").select("id,name,industry,location").eq("id", businessId).maybeSingle(),
@@ -10301,6 +10332,9 @@ async function startServer() {
       try {
         const { data: funnel } = await supabaseAdmin.from("funnels").select("*").eq("id", funnelId).eq("status", "published").maybeSingle();
         if (!funnel) return res.status(404).json({ error: "Funnel not found." });
+        if (!(await simpleFunnelMayServe(funnel))) {
+          return res.status(404).json({ error: "This funnel is not currently available." });
+        }
         const { data: step } = await supabaseAdmin.from("funnel_steps").select("*").eq("id", body.stepId).eq("funnel_id", funnel.id).eq("status", "published").maybeSingle();
         if (!step) return res.status(400).json({ error: "Invalid funnel step." });
 
@@ -10446,6 +10480,9 @@ async function startServer() {
       try {
         const { data: funnel } = await supabaseAdmin.from("funnels").select("*").eq("id", funnelId).eq("status", "published").maybeSingle();
         if (!funnel) return res.status(404).json({ error: "Funnel not found." });
+        if (!(await simpleFunnelMayServe(funnel))) {
+          return res.status(404).json({ error: "This funnel is not currently available." });
+        }
         const { data: step } = await supabaseAdmin.from("funnel_steps").select("id,slug").eq("id", body.stepId).eq("funnel_id", funnel.id).maybeSingle();
         if (!step) return res.status(400).json({ error: "Invalid checkout step." });
         const { data: offer } = await supabaseAdmin.from("funnel_offers").select("*").eq("id", body.offerId).eq("funnel_id", funnel.id).eq("active", true).maybeSingle();

@@ -147,6 +147,9 @@ const BlogCMS = lazy(() =>
 const FunnelsDashboard = lazy(() =>
   import("./components/funnels/FunnelsDashboard").then((m) => ({ default: m.FunnelsDashboard })),
 );
+const SimpleFunnelAddonPortal = lazy(() =>
+  import("./components/funnels/SimpleFunnelAddonPortal").then((m) => ({ default: m.SimpleFunnelAddonPortal })),
+);
 const FunnelWorkspace = lazy(() =>
   import("./components/funnels/FunnelWorkspace").then((m) => ({ default: m.FunnelWorkspace })),
 );
@@ -887,6 +890,14 @@ export default function App() {
                             <Route path="automations" element={<Navigate to="/dashboard" replace />} />
                             <Route
                               path="funnels"
+                              element={
+                                <ProtectedRoute allowedRoles={["business_admin", "staff", "client"]}>
+                                  <SimpleFunnelAddonPortal />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="funnels/advanced"
                               element={
                                 <ProtectedRoute allowedRoles={["business_admin", "staff", "client"]}>
                                   <FeatureGate featureId="sales_funnels">

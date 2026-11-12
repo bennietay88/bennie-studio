@@ -1,5 +1,6 @@
 import React from "react";
 import { FunnelWorkspace } from "../funnels/FunnelWorkspace";
+import { SimpleFunnelAddonAdmin } from "./SimpleFunnelAddonAdmin";
 import { FunnelsDashboard } from "../funnels/FunnelsDashboard";
 import { supabase } from "../../lib/supabase";
 import { Card } from "../ui/card";
@@ -34,6 +35,10 @@ export function AdminFunnels() {
 
   return (
     <div className="space-y-8">
+      <SimpleFunnelAddonAdmin onOpenFunnel={(targetBusinessId, targetFunnelId) => {
+        setBusinessId(targetBusinessId);
+        setFunnelId(targetFunnelId);
+      }} />
       <Card className="rounded-[2rem] border-slate-200 p-6 sm:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div><div className="flex items-center gap-2 text-indigo-600"><Route className="h-5 w-5" /><span className="text-[10px] font-black uppercase tracking-[0.2em]">Custom build delivery</span></div><h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Sales Funnel Customers</h1><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">Only businesses with the Sales Funnels custom capability appear here. Super Admin keeps full delivery control regardless of customer access mode.</p></div>
