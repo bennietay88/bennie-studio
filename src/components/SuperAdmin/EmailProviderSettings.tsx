@@ -20,6 +20,8 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
   const [status, setStatus] = useState<Status | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [verifying, setVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState("");
   useEffect(() => {
     let active = true;
     const load = async () => {
@@ -42,6 +44,27 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
     void load();
     return () => { active = false; };
   }, []);
+  const verifyConnection = async () => {
+    setVerifying(true);
+    setVerificationResult("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Admin session expired.");
+      const response = await fetch("/api/admin/email-providers/hostinger/verify", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + session.access_token },
+        cache: "no-store",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "SMTP connection failed.");
+      setVerificationResult("SMTP authentication and TLS verified. No email was sent.");
+    } catch (err) {
+      setVerificationResult(err instanceof Error ? err.message : "Hostinger verification failed.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 space-y-5" aria-label="Email provider settings">
       <div>
@@ -61,6 +84,14 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
           ))}
         </div>
       )}
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" onClick={() => void verifyConnection()}
+          disabled={!status?.providers.hostinger.configured || loading || verifying}
+          className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-800 disabled:cursor-not-allowed disabled:opacity-50">
+          {verifying ? "Testing SMTP…" : "Test Hostinger connection"}
+        </button>
+        {verificationResult && <p role="status" className="text-sm text-slate-700">{verificationResult}</p>}
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {([
           ["Transactional / onboarding", "transactionalEmailProvider", transactional],
