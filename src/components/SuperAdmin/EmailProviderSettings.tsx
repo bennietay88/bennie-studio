@@ -4,7 +4,7 @@ import { supabase } from "../../lib/supabase";
 type Provider = "resend" | "hostinger";
 type ProviderStatus = {
   providers: {
-    resend: { configured: boolean; from: string | null };
+    resend: { configured: boolean; from: string | null; source?: "portal" | "environment"; updatedAt?: string | null };
     hostinger: {
       configured: boolean;
       from: string | null;
@@ -42,6 +42,9 @@ async function adminRequest(path: string, options: RequestInit = {}) {
 
 export function EmailProviderSettings({ transactional, sales, onChange }: Props) {
   const [status, setStatus] = useState<ProviderStatus | null>(null);
+  const [resendFrom, setResendFrom] = useState("");
+  const [resendApiKey, setResendApiKey] = useState("");
+  const [resendSaving, setResendSaving] = useState(false);
   const [mailbox, setMailbox] = useState("");
   const [password, setPassword] = useState("");
   const [port, setPort] = useState<465 | 587>(465);
@@ -56,6 +59,7 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
     const data = await adminRequest("/api/admin/email-providers/status") as ProviderStatus;
     setStatus(data);
     if (prefill) {
+      setResendFrom(data.providers.resend.from || "");
       setMailbox(data.providers.hostinger.from || "");
       setPort(data.providers.hostinger.smtpPort === 587 ? 587 : 465);
     }
@@ -102,6 +106,41 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
     }
   };
 
+  const saveResend = async () => {
+    setError("");
+    setNotice("");
+    const from = resendFrom.trim();
+    const email = from.includes("<") ? from.match(/<([^<>]+)>$/)?.[1]?.trim() : from;
+    if (!email || !emailPattern.test(email) || from.length > 320 || /[\r\n]/.test(from)) {
+      setError("Enter a valid verified Resend sender address, optionally with a display name.");
+      return;
+    }
+    if (!status?.providers.resend.configured || status.providers.resend.source !== "portal") {
+      if (!resendApiKey) {
+        setError("Enter your Resend API key to enable portal-managed credentials.");
+        return;
+      }
+    }
+    if (resendApiKey && !/^re_[A-Za-z0-9_-]{12,256}$/.test(resendApiKey)) {
+      setError("Enter a valid Resend API key.");
+      return;
+    }
+    setResendSaving(true);
+    try {
+      await adminRequest("/api/admin/email-providers/resend", {
+        method: "PUT",
+        body: JSON.stringify({ fromAddress: from, ...(resendApiKey ? { apiKey: resendApiKey } : {}) }),
+      });
+      setResendApiKey("");
+      setNotice("Resend settings saved securely. The API key is encrypted in Vault and never shown again.");
+      await refresh(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save Resend settings.");
+    } finally {
+      setResendSaving(false);
+    }
+  };
+
   const verifyConnection = async () => {
     setVerifying(true);
     setError("");
@@ -117,15 +156,15 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
   };
 
   const hostingerReady = Boolean(status?.providers.hostinger.configured);
-  const busy = loading || saving || verifying;
+  const busy = loading || saving || verifying || resendSaving;
 
   return (
     <section className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6" aria-label="Email provider settings">
       <div>
         <h3 className="text-lg font-bold text-slate-900">Email Providers</h3>
         <p className="mt-1 text-sm text-slate-600">
-          Set up Hostinger directly in this portal, then choose the provider for each permitted message category.
-          The SMTP password is encrypted using Supabase Vault, not stored in the visible settings JSON.
+          Set up Resend and Hostinger here, then choose the provider for each permitted message category.
+          API keys and SMTP passwords are encrypted using Supabase Vault and never returned to the browser.
         </p>
       </div>
       {loading && <p className="text-sm text-slate-500">Loading email provider configuration…</p>}
@@ -192,6 +231,41 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
           </button>
           {verificationResult && <p role="status" className="text-sm text-slate-700">{verificationResult}</p>}
         </div>
+      </div>
+
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div>
+          <h4 className="font-semibold text-slate-900">Resend API</h4>
+          <p className="mt-1 text-xs text-slate-600">
+            The sender must be authorized in your Resend account. This configuration changes outbound email only;
+            webhook verification uses a separate secret.
+          </p>
+          <p className="mt-1 text-xs text-slate-600">
+            Current credential source: <strong>{status?.providers.resend.source === "portal" ? "Encrypted portal settings" : "Vercel environment fallback"}</strong>.
+          </p>
+        </div>
+        <label className="block space-y-1 text-sm font-medium text-slate-800">
+          <span>Verified sender address</span>
+          <input type="text" value={resendFrom} maxLength={320} disabled={busy}
+            placeholder="Bennie Studio <hello@example.com>"
+            onChange={(event) => setResendFrom(event.target.value)}
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+        </label>
+        <label className="block space-y-1 text-sm font-medium text-slate-800">
+          <span>Resend API key</span>
+          <input type="password" value={resendApiKey} maxLength={260} autoComplete="new-password"
+            placeholder={status?.providers.resend.source === "portal" ? "Leave blank to keep saved key" : "Enter a Resend API key (re_…)"}
+            disabled={busy} onChange={(event) => setResendApiKey(event.target.value)}
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+        </label>
+        <p className="text-xs text-slate-600">
+          The key clears immediately after saving. Saving does not send an email or prove delivery.
+          Existing Vercel credentials remain as a fallback until a portal key is configured.
+        </p>
+        <button type="button" onClick={() => void saveResend()} disabled={busy}
+          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+          {resendSaving ? "Saving securely…" : "Save Resend settings"}
+        </button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
