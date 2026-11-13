@@ -7,7 +7,8 @@ const env = readFileSync(".env.example", "utf8");
 
 test("direct and scheduled sales emails can be archived to an operator mailbox", () => {
   const matches = api.match(/bcc: process\.env\.SALES_ARCHIVE_EMAIL \|\| undefined/g) || [];
-  assert.equal(matches.length, 2);
+  // Scheduled Resend, direct Hostinger SMTP, and direct Resend all preserve archive copies.
+  assert.equal(matches.length, 3);
   assert.match(api, /replyTo: process\.env\.SALES_REPLY_TO/);
 });
 
