@@ -12,7 +12,7 @@ import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { waitUntil } from "@vercel/functions";
 import { Resend } from "resend";
-import { classifyResendSendError, emailProviderStatus, selectEmailProvider, sendHostingerMail } from "../server/emailProviders.js";
+import { classifyResendSendError, emailProviderStatus, selectEmailProvider, sendHostingerMail, verifyHostingerSmtp } from "../server/emailProviders.js";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
 import { callDeepSeek, callOpenAI } from "../src/lib/ai-providers.js";
@@ -8644,6 +8644,24 @@ async function startServer() {
       });
     } catch {
       return res.status(503).json({ error: "Email provider status unavailable" });
+    }
+  });
+
+  app.post("/api/admin/email-providers/hostinger/verify", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
+      if (!emailProviderStatus().hostinger.configured) {
+        return res.status(503).json({ error: "Hostinger SMTP credentials are not configured." });
+      }
+      await verifyHostingerSmtp();
+      return res.json({ connected: true, description: "Hostinger SMTP authentication and TLS verified. No email was sent." });
+    } catch (error: any) {
+      const authFailed = error?.message === "HOSTINGER_AUTH_ERROR";
+      structuredLog("warn", "hostinger_smtp_connection_failed", { category: authFailed ? "auth" : "connection" });
+      return res.status(503).json({ error: authFailed
+        ? "Hostinger rejected the mailbox credentials. Check the username/password."
+        : "Hostinger SMTP could not be verified. Check credentials and SMTP connectivity." });
     }
   });
 
