@@ -48,6 +48,13 @@ begin
   perform pg_advisory_xact_lock(485253176);
   select password_secret_id into v_secret_id
     from public.hostinger_smtp_settings where id = 1 for update;
+  -- A changed mailbox must never inherit a previous mailbox's SMTP secret.
+  if exists (
+    select 1 from public.hostinger_smtp_settings
+    where id = 1 and smtp_user <> v_user
+  ) and (p_password is null or p_password = '') then
+    raise exception 'A password is required when changing the mailbox' using errcode = '22023';
+  end if;
   if v_secret_id is null and (p_password is null or p_password = '') then
     raise exception 'A password is required for the first configuration' using errcode = '22023';
   end if;
