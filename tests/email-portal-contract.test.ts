@@ -3,6 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 const migration = readFileSync(new URL("../supabase/migrations/20261113010447_hostinger_portal_vault_20261113.sql", import.meta.url), "utf8");
+const roleFix = readFileSync(new URL("../supabase/migrations/20261113022143_hostinger_vault_service_role_claim_fix_20261113.sql", import.meta.url), "utf8");
 const api = readFileSync(new URL("../api/index.ts", import.meta.url), "utf8");
 const portal = readFileSync(new URL("../src/components/SuperAdmin/EmailProviderSettings.tsx", import.meta.url), "utf8");
 
@@ -12,6 +13,13 @@ test("Hostinger Vault secret is not exposed to anonymous or authenticated PostgR
   assert.match(migration, /revoke all on function public\.get_hostinger_smtp_credentials\(\)\s+from public, anon, authenticated/i);
   assert.match(migration, /grant execute on function public\.get_hostinger_smtp_credentials\(\)\s+to service_role/i);
   assert.match(migration, /current_setting\('request\.jwt\.claim\.role', true\) is distinct from 'service_role'/);
+});
+
+test("Vault RPC hotfix uses Supabase JWT role and retains server-only grants", () => {
+  assert.equal((roleFix.match(/auth\\.role\\(\\) is distinct from 'service_role'/g) || []).length, 2);
+  assert.match(roleFix, /revoke all on function public\\.save_hostinger_smtp_settings\\(text, text, integer, text\\) from public, anon, authenticated/i);
+  assert.match(roleFix, /revoke all on function public\\.get_hostinger_smtp_credentials\\(\\) from public, anon, authenticated/i);
+  assert.match(roleFix, /grant execute on function public\\.get_hostinger_smtp_credentials\\(\\) to service_role/i);
 });
 
 test("Hostinger new mailbox requires its own SMTP secret", () => {
