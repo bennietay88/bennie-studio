@@ -3532,6 +3532,23 @@ async function startServer() {
     + "?redirectTo=" + encodeURIComponent("/dashboard/onboarding")
     + "&email=" + encodeURIComponent(email);
 
+  // Vault secrets are available only to this server-side service-role client.
+  const loadHostingerSettings = async (): Promise<NodeJS.ProcessEnv> => {
+    const { data, error } = await supabaseAdmin.rpc("get_hostinger_smtp_credentials");
+    if (error) {
+      structuredLog("warn", "hostinger_vault_settings_unavailable", { code: error.code || "unknown" });
+      throw new Error("HOSTINGER_CONFIG_ERROR");
+    }
+    const record = Array.isArray(data) ? data[0] : null;
+    if (!record?.smtp_user || !record?.smtp_password) throw new Error("HOSTINGER_CONFIG_ERROR");
+    return {
+      HOSTINGER_SMTP_USER: String(record.smtp_user),
+      HOSTINGER_SMTP_PASSWORD: String(record.smtp_password),
+      HOSTINGER_FROM_EMAIL: String(record.from_email),
+      HOSTINGER_SMTP_PORT: String(record.smtp_port),
+    };
+  };
+
   const reserveHostingerEmailQuota = async (mailbox: string) => {
     // Database reservation is required on every serverless instance, never in memory.
     const { data, error } = await supabaseAdmin.rpc("claim_hostinger_smtp_slot", {
@@ -3569,7 +3586,7 @@ async function startServer() {
         html: inviteHtml,
         text: inviteText,
         replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
-      }, process.env, reserveHostingerEmailQuota);
+      }, await loadHostingerSettings(), reserveHostingerEmailQuota);
       return {
         status: input.hasAccount ? "existing_user_notified" : "invite_sent",
         email: input.email, sentAt: new Date().toISOString(),
@@ -3654,7 +3671,7 @@ async function startServer() {
         replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
         bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
         headers: { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
-      }, process.env, reserveHostingerEmailQuota);
+      }, await loadHostingerSettings(), reserveHostingerEmailQuota);
     }
     const { data, error } = await getResend().emails.send({
       from:
@@ -8635,15 +8652,58 @@ async function startServer() {
       const profile = await getProfileForUser(req.user.id);
       if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
       await refreshPlatformSettings();
+      const { data, error } = await supabaseAdmin.from("hostinger_smtp_settings")
+        .select("smtp_user,from_email,smtp_port,updated_at").eq("id", 1).maybeSingle();
+      if (error) throw new Error("HOSTINGER_SETTINGS_UNAVAILABLE");
       return res.json({
-        providers: emailProviderStatus(),
+        providers: {
+          ...emailProviderStatus(),
+          hostinger: {
+            configured: Boolean(data?.smtp_user),
+            from: data?.from_email || null,
+            smtpHost: "smtp.hostinger.com",
+            smtpPort: data?.smtp_port || 465,
+            updatedAt: data?.updated_at || null,
+            quotaNote: "Respect the mailbox rolling 24-hour sending limit and Hostinger acceptable-use rules.",
+          },
+        },
         selection: {
           transactional: selectEmailProvider(platformSettings?.transactionalEmailProvider),
           sales: selectEmailProvider(platformSettings?.salesEmailProvider),
         },
       });
     } catch {
-      return res.status(503).json({ error: "Email provider status unavailable" });
+      return res.status(503).json({ error: "Email provider settings unavailable. Check database migration." });
+    }
+  });
+
+  app.put("/api/admin/email-providers/hostinger", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
+      const parsed = z.object({
+        smtpUser: z.string().trim().email().max(254),
+        fromEmail: z.string().trim().email().max(254),
+        smtpPort: z.union([z.literal(465), z.literal(587)]),
+        password: z.string().min(1).max(1024).optional(),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid Hostinger mailbox settings." });
+      const { smtpUser, fromEmail, smtpPort, password } = parsed.data;
+      if (smtpUser.toLowerCase() !== fromEmail.toLowerCase()) {
+        return res.status(400).json({ error: "The sender must match the authenticated Hostinger mailbox." });
+      }
+      const { data, error } = await supabaseAdmin.rpc("save_hostinger_smtp_settings", {
+        p_smtp_user: smtpUser, p_from_email: fromEmail, p_smtp_port: smtpPort, p_password: password ?? null,
+      });
+      if (error) {
+        structuredLog("warn", "hostinger_portal_save_rejected", { code: error.code || "unknown" });
+        return res.status(error.code === "22023" ? 400 : 503)
+          .json({ error: error.code === "22023" ? "Mailbox configuration or password is invalid." : "Could not securely store Hostinger settings." });
+      }
+      structuredLog("info", "hostinger_portal_settings_updated", { actorId: req.user.id });
+      return res.json({ success: true, configured: true, from: data?.from || fromEmail, smtpPort });
+    } catch {
+      return res.status(503).json({ error: "Could not securely store Hostinger settings." });
     }
   });
 
@@ -8651,17 +8711,14 @@ async function startServer() {
     try {
       const profile = await getProfileForUser(req.user.id);
       if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
-      if (!emailProviderStatus().hostinger.configured) {
-        return res.status(503).json({ error: "Hostinger SMTP credentials are not configured." });
-      }
-      await verifyHostingerSmtp();
+      await verifyHostingerSmtp(await loadHostingerSettings());
       return res.json({ connected: true, description: "Hostinger SMTP authentication and TLS verified. No email was sent." });
     } catch (error: any) {
       const authFailed = error?.message === "HOSTINGER_AUTH_ERROR";
       structuredLog("warn", "hostinger_smtp_connection_failed", { category: authFailed ? "auth" : "connection" });
       return res.status(503).json({ error: authFailed
         ? "Hostinger rejected the mailbox credentials. Check the username/password."
-        : "Hostinger SMTP could not be verified. Check credentials and SMTP connectivity." });
+        : "Hostinger SMTP could not be verified. Check saved credentials and SMTP connectivity." });
     }
   });
 
