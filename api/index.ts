@@ -12,6 +12,7 @@ import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { waitUntil } from "@vercel/functions";
 import { Resend } from "resend";
+import { classifyResendSendError, emailProviderStatus, selectEmailProvider, sendHostingerMail } from "../server/emailProviders.js";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
 import { callDeepSeek, callOpenAI } from "../src/lib/ai-providers.js";
@@ -3549,6 +3550,20 @@ async function startServer() {
     const inviteText = "Your Bennie Studio customer workspace for " + input.businessName
       + " is ready. Start onboarding: " + onboardingUrl
       + "\n\nUse " + input.email + " when signing in or creating your account. Your workspace will attach automatically.";
+    if (selectEmailProvider(platformSettings?.transactionalEmailProvider) === "hostinger") {
+      const receipt = await sendHostingerMail({
+        to: input.email,
+        subject: "Your Bennie Studio onboarding is ready",
+        html: inviteHtml,
+        text: inviteText,
+        replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
+      });
+      return {
+        status: input.hasAccount ? "existing_user_notified" : "invite_sent",
+        email: input.email, sentAt: new Date().toISOString(),
+        providerMessageId: receipt.id, onboardingUrl,
+      };
+    }
     const { data, error } = await getResend().emails.send({
       from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "Bennie Studio <onboarding@resend.dev>",
       to: input.email,
@@ -3589,7 +3604,12 @@ async function startServer() {
         },
         tags: [{ name: "sales_message_id", value: message.id }],
       }, { idempotencyKey: message.idempotency_key });
-      if (error || !data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
+      if (error) {
+        const kind = classifyResendSendError(error);
+        structuredLog("warn", "resend_sales_provider_rejected", kind);
+        throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED" : "EMAIL_DELIVERY_FAILED");
+      }
+      if (!data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
       return { id: data.id };
     },
   });
@@ -3600,6 +3620,30 @@ async function startServer() {
     await refreshPlatformSettings();
     const unsubscribeUrl = `${publicAppUrl()}/api/public/unsubscribe/${message.unsubscribe_token}`;
     const html = `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
+    const selectedProvider = selectEmailProvider(platformSettings?.salesEmailProvider);
+    if (selectedProvider === "hostinger") {
+      // Sending eligibility is checked again by the prospect outreach workflow.
+      // Hostinger is not a route around Resend's free-plan or acceptable-use limits.
+      const { data: prospect } = await supabaseAdmin.from("prospects")
+        .select("marketing_consent,consent_email,consent_timestamp,consent_source,contact_email")
+        .eq("id", message.prospect_id).maybeSingle();
+      if (!prospect || prospect.marketing_consent !== true
+        || normalizeSalesEmail(prospect.consent_email) !== target
+        || !prospect.consent_timestamp || !Number.isFinite(new Date(prospect.consent_timestamp).getTime())
+        || new Date(prospect.consent_timestamp).getTime() > Date.now()
+        || String(prospect.consent_source || "").trim().length < 10) {
+        throw new Error("CONTACT_CONSENT_REQUIRED");
+      }
+      return sendHostingerMail({
+        to: message.recipient,
+        subject: message.subject || "A note from Bennie Studio",
+        html,
+        text: `${message.body_text}\n\nStop receiving these emails: ${unsubscribeUrl}`,
+        replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
+        bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
+        headers: { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+      });
+    }
     const { data, error } = await getResend().emails.send({
       from:
         process.env.RESEND_FROM_EMAIL
@@ -3620,7 +3664,12 @@ async function startServer() {
         },
         tags: [{ name: "sales_message_id", value: message.id }],
     }, { idempotencyKey: message.idempotency_key });
-    if (error || !data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
+    if (error) {
+      const kind = classifyResendSendError(error);
+      structuredLog("warn", "resend_direct_provider_rejected", kind);
+      throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED" : "EMAIL_DELIVERY_FAILED");
+    }
+    if (!data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
     return { id: data.id };
   };
 
@@ -8569,6 +8618,23 @@ async function startServer() {
     }
   });
 
+  app.get("/api/admin/email-providers/status", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
+      await refreshPlatformSettings();
+      return res.json({
+        providers: emailProviderStatus(),
+        selection: {
+          transactional: selectEmailProvider(platformSettings?.transactionalEmailProvider),
+          sales: selectEmailProvider(platformSettings?.salesEmailProvider),
+        },
+      });
+    } catch {
+      return res.status(503).json({ error: "Email provider status unavailable" });
+    }
+  });
+
   app.post("/api/admin/prospects/:prospectId/outreach", authenticate, async (req: any, res) => {
     if (!UUID_SCHEMA.safeParse(req.params.prospectId).success) {
       return res.status(400).json({ error: "Invalid prospect ID" });
@@ -8687,8 +8753,17 @@ async function startServer() {
         },
         EMAIL_DELIVERY_FAILED: {
           status: 502,
-          message: "The email provider rejected the message. Check the verified sender/domain and try again.",
+          message: "The email provider could not accept the message. Check provider logs before retrying.",
         },
+        EMAIL_RATE_LIMITED: {
+          status: 429,
+          message: "Email sending limit reached. Stop this batch and wait for the provider quota to reset.",
+        },
+        HOSTINGER_CONFIG_ERROR: { status: 503, message: "Hostinger SMTP is not configured correctly." },
+        HOSTINGER_AUTH_ERROR: { status: 503, message: "Hostinger SMTP authentication failed. Check configured credentials." },
+        HOSTINGER_DELIVERY_UNCERTAIN: { status: 502, message: "Hostinger SMTP delivery is uncertain. Verify the mailbox logs before retrying." },
+        HOSTINGER_ACCEPTANCE_UNCERTAIN: { status: 502, message: "Hostinger did not confirm the recipient. Verify delivery before retrying." },
+        CONTACT_CONSENT_REQUIRED: { status: 409, message: "Hostinger requires documented recipient consent for this sales message." },
       };
       const known = errors[error?.message];
       if (known) return res.status(known.status).json({ error: known.message });
