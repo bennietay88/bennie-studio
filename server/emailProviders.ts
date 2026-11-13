@@ -56,10 +56,14 @@ export type HostingerMailInput = {
 export async function sendHostingerMail(
   input: HostingerMailInput,
   env: NodeJS.ProcessEnv = process.env,
+  reserveQuota?: (mailbox: string) => Promise<boolean>,
 ): Promise<{ id: string }> {
   const config = hostingerConfiguration(env);
   if (!config.configured) throw new Error("HOSTINGER_CONFIG_ERROR");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.to)) throw new Error("INVALID_EMAIL_RECIPIENT");
+  if (!reserveQuota) throw new Error("EMAIL_QUOTA_TRACKER_UNAVAILABLE");
+  // Reserve conservatively: an attempted SMTP transaction may have succeeded despite a timeout.
+  if (!(await reserveQuota(config.user))) throw new Error("EMAIL_RATE_LIMITED");
 
   const smtp = nodemailer.createTransport({
     host: "smtp.hostinger.com",
