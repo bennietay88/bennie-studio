@@ -210,16 +210,27 @@ const merchantStripeCache = new Map<
 >();
 
 let resendInstance: Resend | null = null;
-function getResend() {
-  // Production credentials belong in the deployment environment, never in CMS data.
-  const key = process.env.RESEND_API_KEY;
-  if (!key || key.trim() === "" || key.includes("TODO")) {
-    throw new Error("RESEND_CONFIG_ERROR");
+let resendInstanceKey: string | null = null;
+let resendConfigCache: { expires: number; key: string; from: string } | null = null;
+async function getResendProvider(): Promise<{ client: Resend; from: string }> {
+  // Only the server-role connection reads Vault; no API key is returned to the UI.
+  if (!resendConfigCache || resendConfigCache.expires <= Date.now()) {
+    const { data, error } = await supabaseAdmin.rpc("get_resend_provider_credentials");
+    if (error) {
+      structuredLog("warn", "resend_provider_vault_read_failed", { code: error.code || "unknown" });
+      throw new Error("RESEND_CONFIG_ERROR");
+    }
+    const portal = Array.isArray(data) ? data[0] : null;
+    const key = String(portal?.api_key || process.env.RESEND_API_KEY || "").trim();
+    const from = String(portal?.from_address || process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "").trim();
+    if (!key.startsWith("re_") || key.includes("TODO") || !from) throw new Error("RESEND_CONFIG_ERROR");
+    resendConfigCache = { expires: Date.now() + 15_000, key, from };
   }
-  if (!resendInstance) {
-    resendInstance = new Resend(key.trim());
+  if (!resendInstance || resendInstanceKey !== resendConfigCache.key) {
+    resendInstance = new Resend(resendConfigCache.key);
+    resendInstanceKey = resendConfigCache.key;
   }
-  return resendInstance;
+  return { client: resendInstance, from: resendConfigCache.from };
 }
 const MAX_CACHE_SIZE = 500; // Keep up to 500 active merchant instances in memory
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour TTL
@@ -3593,8 +3604,8 @@ async function startServer() {
         providerMessageId: receipt.id, onboardingUrl,
       };
     }
-    const { data, error } = await getResend().emails.send({
-      from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "Bennie Studio <onboarding@resend.dev>",
+    const { data, error } = await (await getResendProvider()).client.emails.send({
+      from: (await getResendProvider()).from,
       to: input.email,
       subject: "Your Bennie Studio onboarding is ready",
       html: inviteHtml,
@@ -3619,8 +3630,8 @@ async function startServer() {
       const unsubscribeUrl = `${publicAppUrl()}/api/public/unsubscribe/${message.unsubscribe_token}`;
       // Approved text is authoritative; a previous HTML draft must not override edits.
       const html = `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
-      const { data, error } = await getResend().emails.send({
-        from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "Bennie Studio <onboarding@resend.dev>",
+      const { data, error } = await (await getResendProvider()).client.emails.send({
+        from: (await getResendProvider()).from,
         to: message.recipient,
         subject: message.subject || "A note from Bennie Studio",
         html,
@@ -3673,11 +3684,8 @@ async function startServer() {
         headers: { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
       }, await loadHostingerSettings(), reserveHostingerEmailQuota);
     }
-    const { data, error } = await getResend().emails.send({
-      from:
-        process.env.RESEND_FROM_EMAIL
-        || platformSettings?.emailFrom
-        || "Bennie Studio <onboarding@resend.dev>",
+    const { data, error } = await (await getResendProvider()).client.emails.send({
+      from: (await getResendProvider()).from,
       to: message.recipient,
       subject: message.subject || "A note from Bennie Studio",
       html,
@@ -4725,9 +4733,12 @@ async function startServer() {
       const reportUrl = `${publicAppUrl()}${auditReportPath(job)}`;
       let delivery: "sent" | "not_configured" | "failed" | "skipped" = "skipped";
       if (job.payload?.leadEmail && job.payload?.leadId && job.payload?.reportAccessKey) {
-        if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+        try {
+          await getResendProvider();
+        } catch {
           delivery = "not_configured";
-        } else {
+        }
+        if (delivery !== "not_configured") {
           try {
             const safeWebsite = escapeHtml(String(job.payload?.businessName || report.analyzedUrl || "your website").slice(0, 160));
             const findings = (report.findings || []).slice(0, 3);
@@ -4743,8 +4754,8 @@ async function startServer() {
               `Discuss with the studio: ${publicAppUrl()}/book-demo`,
               "This automated review is based on accessible page evidence. It is not a guarantee of rankings or revenue.",
             ].join("\n\n");
-            const { data, error } = await getResend().emails.send({
-              from: process.env.RESEND_FROM_EMAIL,
+            const { data, error } = await (await getResendProvider()).client.emails.send({
+              from: (await getResendProvider()).from,
               to: String(job.payload.leadEmail),
               replyTo: process.env.SALES_REPLY_TO || undefined,
               subject: "Your Bennie Studio website review is ready",
@@ -6838,13 +6849,13 @@ async function startServer() {
         let notificationStatus = "sent";
         try {
           const recipient = process.env.SALES_REPLY_TO || platformSettings?.supportEmail || "support@bennietay.com";
-          const resend = getResend();
+          const { client: resend } = await getResendProvider();
           const safeName = escapePortfolioHtml(leadBody.name);
           const safeEmail = escapePortfolioHtml(leadBody.email);
           const safeIndustry = escapePortfolioHtml(leadBody.industry || "Not specified");
           const safeMessage = escapePortfolioHtml(leadBody.message).replace(/\n/g, "<br />");
           const { error: emailError } = await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "Bennie Studio <onboarding@resend.dev>",
+            from: (await getResendProvider()).from,
             to: recipient,
             replyTo: leadBody.email,
             subject: `New portfolio enquiry from ${safeName}`,
@@ -8655,9 +8666,18 @@ async function startServer() {
       const { data, error } = await supabaseAdmin.from("hostinger_smtp_settings")
         .select("smtp_user,from_email,smtp_port,updated_at").eq("id", 1).maybeSingle();
       if (error) throw new Error("HOSTINGER_SETTINGS_UNAVAILABLE");
+      const { data: resendSettings, error: resendError } = await supabaseAdmin
+        .from("resend_provider_settings").select("from_address,updated_at").eq("id", 1).maybeSingle();
+      if (resendError) throw new Error("RESEND_SETTINGS_UNAVAILABLE");
       return res.json({
         providers: {
           ...emailProviderStatus(),
+          resend: {
+            configured: Boolean(resendSettings?.from_address || (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL)),
+            from: resendSettings?.from_address || process.env.RESEND_FROM_EMAIL || null,
+            source: resendSettings?.from_address ? "portal" : "environment",
+            updatedAt: resendSettings?.updated_at || null,
+          },
           hostinger: {
             configured: Boolean(data?.smtp_user),
             from: data?.from_email || null,
@@ -8674,6 +8694,34 @@ async function startServer() {
       });
     } catch {
       return res.status(503).json({ error: "Email provider settings unavailable. Check database migration." });
+    }
+  });
+
+  app.put("/api/admin/email-providers/resend", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
+      const parsed = z.object({
+        fromAddress: z.string().trim().min(5).max(320),
+        apiKey: z.string().regex(/^re_[A-Za-z0-9_-]{12,256}$/).optional(),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid Resend sender or API key format." });
+      const { data, error } = await supabaseAdmin.rpc("save_resend_provider_settings", {
+        p_from_address: parsed.data.fromAddress,
+        p_api_key: parsed.data.apiKey ?? null,
+      });
+      if (error) {
+        structuredLog("warn", "resend_portal_save_rejected", { code: error.code || "unknown" });
+        return res.status(error.code === "22023" ? 400 : 503)
+          .json({ error: error.code === "22023" ? "Invalid Resend sender or API key format." : "Could not securely store Resend settings." });
+      }
+      resendConfigCache = null;
+      resendInstance = null;
+      resendInstanceKey = null;
+      structuredLog("info", "resend_portal_settings_updated", { actorId: req.user.id });
+      return res.json({ success: true, configured: true, from: data?.from || parsed.data.fromAddress });
+    } catch {
+      return res.status(503).json({ error: "Could not securely store Resend settings." });
     }
   });
 
@@ -8836,7 +8884,7 @@ async function startServer() {
         },
         RESEND_CONFIG_ERROR: {
           status: 503,
-          message: "Direct email is not configured. Add RESEND_API_KEY and RESEND_FROM_EMAIL in Vercel.",
+          message: "Direct email is not configured. Set up Resend in Super Admin → Email Providers.",
         },
         EMAIL_DELIVERY_FAILED: {
           status: 502,
@@ -9305,7 +9353,7 @@ async function startServer() {
     if (!webhookSecret) return res.status(503).json({ error: "Webhook is not configured" });
     let event: any;
     try {
-      event = getResend().webhooks.verify({
+      event = (await getResendProvider()).client.webhooks.verify({
         payload: Buffer.isBuffer(req.body) ? req.body.toString("utf8") : "",
         headers: {
           id: String(req.headers["svix-id"] || req.headers["webhook-id"] || ""),
@@ -9323,7 +9371,7 @@ async function startServer() {
         await recordSalesReply(supabaseAdmin, event, async () => {
           // Keep the optional receiving credential server-side. Permission failures
           // are recorded as a manual-review task instead of failing delivery.
-          const receiver = process.env.RESEND_RECEIVING_API_KEY ? new Resend(process.env.RESEND_RECEIVING_API_KEY) : getResend();
+          const receiver = process.env.RESEND_RECEIVING_API_KEY ? new Resend(process.env.RESEND_RECEIVING_API_KEY) : (await getResendProvider()).client;
           const received = await receiver.emails.receiving.get(event.data.email_id);
           if (received.error || !received.data) {
             const statusCode = Number((received.error as any)?.statusCode || (received.error as any)?.status || 0);
@@ -10262,9 +10310,9 @@ async function startServer() {
 
       const { to, subject, html } = emailBody;
       console.log(`[Email] Sending to ${to} subject: ${subject}`);
-      const resend = getResend();
+      const { client: resend } = await getResendProvider();
       const { data, error } = await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "onboarding@resend.dev",
+        from: (await getResendProvider()).from,
         to,
         subject,
         html,
@@ -10286,7 +10334,7 @@ async function startServer() {
       if (error.message === "RESEND_CONFIG_ERROR") {
         return res.status(503).json({
           error: "Email service not configured",
-          message: "RESEND_API_KEY is missing from environment or settings.",
+          message: "Configure the Resend API key and sender address in Super Admin → Email Providers.",
         });
       }
       res.status(500).json({ 
@@ -10305,9 +10353,9 @@ async function startServer() {
   const sendFunnelEmail = async ({ to, subject, html }: { to: string; subject: string; html: string }) => {
     const recipient = normalizeSalesEmail(to);
     if (!recipient || await isSalesSuppressed(supabaseAdmin, recipient)) throw new Error("CONTACT_SUPPRESSED");
-    const resend = getResend();
+    const { client: resend } = await getResendProvider();
     const { error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "onboarding@resend.dev",
+      from: (await getResendProvider()).from,
       to,
       subject,
       html,
@@ -13685,9 +13733,9 @@ async function startServer() {
 
           // 5. Send Email via Resend
           try {
-            const resend = getResend();
+            const { client: resend } = await getResendProvider();
             await resend.emails.send({
-              from: "Bennie Studio Support <support@bennietay.com>",
+              from: (await getResendProvider()).from,
               to: owner.email,
               subject: `New Lead: ${name} is interested!`,
               html: `

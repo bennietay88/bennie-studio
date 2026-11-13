@@ -3,6 +3,8 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 const migration = readFileSync(new URL("../supabase/migrations/20261113010447_hostinger_portal_vault_20261113.sql", import.meta.url), "utf8");
+const resendMigration = readFileSync(new URL("../supabase/migrations/20261113053756_resend_portal_vault_20261113.sql", import.meta.url), "utf8");
+const resendValidationFix = readFileSync(new URL("../supabase/migrations/20261113053926_resend_api_key_validation_fix_20261113.sql", import.meta.url), "utf8");
 const roleFix = readFileSync(new URL("../supabase/migrations/20261113022143_hostinger_vault_service_role_claim_fix_20261113.sql", import.meta.url), "utf8");
 const api = readFileSync(new URL("../api/index.ts", import.meta.url), "utf8");
 const portal = readFileSync(new URL("../src/components/SuperAdmin/EmailProviderSettings.tsx", import.meta.url), "utf8");
@@ -34,7 +36,7 @@ test("Hostinger admin endpoints authorize super admin and do not return the pass
   const end = api.indexOf('app.post("/api/admin/prospects/:prospectId/outreach"', start);
   assert.ok(start > -1 && end > start);
   const endpoints = api.slice(start, end);
-  assert.equal((endpoints.match(/profile\?\.role !== "super_admin"/g) || []).length, 3);
+  assert.equal((endpoints.match(/profile\?\.role !== "super_admin"/g) || []).length, 4);
   assert.match(endpoints, /\.select\("smtp_user,from_email,smtp_port,updated_at"\)/);
   assert.doesNotMatch(endpoints, /res\.json\([^\n]*smtp_password/);
   assert.match(endpoints, /save_hostinger_smtp_settings/);
@@ -47,4 +49,31 @@ test("Portal sends secret once and never displays saved password", () => {
   assert.match(portal, /\.\.\.\(password \? \{ password \} : \{\}\)/);
   assert.match(portal, /\/api\/admin\/email-providers\/hostinger/);
   assert.match(portal, /Leave blank to keep existing password/);
+});
+
+test("Resend API settings use encrypted Vault storage and deny direct client access", () => {
+  assert.match(resendMigration, /alter table public\.resend_provider_settings enable row level security/i);
+  assert.match(resendMigration, /revoke all on table public\.resend_provider_settings from public, anon, authenticated/i);
+  assert.match(resendMigration, /revoke all on function public\.get_resend_provider_credentials\(\) from public,anon,authenticated/i);
+  assert.match(resendMigration, /grant execute on function public\.get_resend_provider_credentials\(\) to service_role/i);
+  assert.ok(resendMigration.includes("auth.role() is distinct from 'service_role'"));
+  assert.ok(resendMigration.includes("vault.create_secret"));
+  assert.ok(resendMigration.includes("vault.update_secret"));
+});
+
+test("Resend portal configuration is server-only and covers all server-side sending paths", () => {
+  assert.match(api, /supabaseAdmin\.rpc\("get_resend_provider_credentials"\)/);
+  assert.match(api, /supabaseAdmin\.rpc\("save_resend_provider_settings"/);
+  assert.match(api, /app\.put\("\/api\/admin\/email-providers\/resend", authenticate/);
+  assert.match(api, /resendConfigCache = null/);
+  assert.doesNotMatch(api, /getResend\(\)/);
+  assert.match(portal, /Save Resend settings/);
+  assert.match(portal, /setResendApiKey\(""\)/);
+  assert.match(portal, /Leave blank to keep saved key/);
+});
+
+test("Resend key validation hotfix avoids PostgreSQL excessive regex repetition bound", () => {
+  assert.ok(resendValidationFix.includes("length(p_api_key) > 259"));
+  assert.ok(resendValidationFix.includes("length(p_api_key) < 15"));
+  assert.ok(!resendValidationFix.includes("{12,256}"));
 });
