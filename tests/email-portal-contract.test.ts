@@ -3,7 +3,8 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 const migration = readFileSync(new URL("../supabase/migrations/20261113010447_hostinger_portal_vault_20261113.sql", import.meta.url), "utf8");
-const resendMigration = readFileSync(new URL("../supabase/migrations/20261113060000_resend_portal_vault.sql", import.meta.url), "utf8");
+const resendMigration = readFileSync(new URL("../supabase/migrations/20261113053756_resend_portal_vault_20261113.sql", import.meta.url), "utf8");
+const resendValidationFix = readFileSync(new URL("../supabase/migrations/20261113053926_resend_api_key_validation_fix_20261113.sql", import.meta.url), "utf8");
 const roleFix = readFileSync(new URL("../supabase/migrations/20261113022143_hostinger_vault_service_role_claim_fix_20261113.sql", import.meta.url), "utf8");
 const api = readFileSync(new URL("../api/index.ts", import.meta.url), "utf8");
 const portal = readFileSync(new URL("../src/components/SuperAdmin/EmailProviderSettings.tsx", import.meta.url), "utf8");
@@ -69,4 +70,10 @@ test("Resend portal configuration is server-only and covers all server-side send
   assert.match(portal, /Save Resend settings/);
   assert.match(portal, /setResendApiKey\(""\)/);
   assert.match(portal, /Leave blank to keep saved key/);
+});
+
+test("Resend key validation hotfix avoids PostgreSQL excessive regex repetition bound", () => {
+  assert.ok(resendValidationFix.includes("length(p_api_key) > 259"));
+  assert.ok(resendValidationFix.includes("length(p_api_key) < 15"));
+  assert.ok(!resendValidationFix.includes("{12,256}"));
 });
