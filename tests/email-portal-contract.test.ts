@@ -16,10 +16,10 @@ test("Hostinger Vault secret is not exposed to anonymous or authenticated PostgR
 });
 
 test("Vault RPC hotfix uses Supabase JWT role and retains server-only grants", () => {
-  assert.equal((roleFix.match(/auth\\.role\\(\\) is distinct from 'service_role'/g) || []).length, 2);
-  assert.match(roleFix, /revoke all on function public\\.save_hostinger_smtp_settings\\(text, text, integer, text\\) from public, anon, authenticated/i);
-  assert.match(roleFix, /revoke all on function public\\.get_hostinger_smtp_credentials\\(\\) from public, anon, authenticated/i);
-  assert.match(roleFix, /grant execute on function public\\.get_hostinger_smtp_credentials\\(\\) to service_role/i);
+  assert.equal(roleFix.split("auth.role() is distinct from 'service_role'").length - 1, 2);
+  assert.ok(roleFix.includes("revoke all on function public.save_hostinger_smtp_settings(text, text, integer, text) from public, anon, authenticated"));
+  assert.ok(roleFix.includes("revoke all on function public.get_hostinger_smtp_credentials() from public, anon, authenticated"));
+  assert.ok(roleFix.includes("grant execute on function public.get_hostinger_smtp_credentials() to service_role"));
 });
 
 test("Hostinger new mailbox requires its own SMTP secret", () => {
