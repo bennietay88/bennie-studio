@@ -9,7 +9,7 @@
 - The legacy Resend integrations for other transactional message categories remain unchanged; do not assume every email route has been migrated.
 
 ## Required deployment order
-1. Run migrations `20261113090000_hostinger_smtp_quota.sql` and `20261113094500_hostinger_portal_vault.sql` in isolated staging first. Confirm RPC access is service-role only; anonymous and authenticated users cannot claim quota or read secrets.
+1. Run migrations `20261113010436_hostinger_smtp_quota_20261113.sql` and `20261113010447_hostinger_portal_vault_20261113.sql` in isolated staging first. Confirm RPC access is service-role only; anonymous and authenticated users cannot claim quota or read secrets.
 2. After staging deployment and migration, open Super Admin → Settings → Email Providers, enter the actual Hostinger mailbox and password, save, and run the no-send SMTP connection test. This configures the mailbox entirely in the portal. Never put passwords into commits, ordinary platform settings JSON, or ChatGPT.
 3. Deploy preview branch with dedicated staging Supabase, use disposable test mailboxes and an allowlisted test recipient.
 4. Run `npm ci && npm run lint && npm run build && npm test && npm audit --audit-level=high` and the authenticated Stripe/customer journey. Validate SMTP on ports 465/587 from actual deployment runtime with one authorized test email, then compare mail logs.
