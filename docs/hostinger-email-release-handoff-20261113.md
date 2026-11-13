@@ -21,3 +21,14 @@
 **NO-GO until independently verified:** migration baseline/replay and rollback, cross-tenant/auth isolation, Stripe sandbox checkout/webhooks, customer onboarding E2E, security and secrets scan, performance baselines, email-provider acceptance and reply handling, DNS/SPF/DKIM/DMARC, GitHub Actions execution, and runtime error scan. This PR does not claim these have passed.
 
 This branch does not migrate existing contact data, change production credentials, deploy to production, or initiate unsolicited outreach. No live email was sent by this work.
+
+## 2026-11-13 additional release qualification
+
+- GitHub CI verified the initial provider branch: dependency install, TypeScript, production build, full unit suite and dependency audit passed.
+- Browser E2E of commit `dc33d4a` passed 198 tests, skipped 4, and failed 2 corresponding desktop/mobile payment initiation flows. Playwright trace identified the cookie-preferences banner (`z-[120]`) intercepting the order-summary checkout button (`z-50`). The order-summary modal now uses `z-[130]` to remain above the cookie banner. **Re-run E2E on the corrected commit before GO**.
+- Added admin-only SMTP TLS/authentication verification endpoint and Super Admin test button; it sends **no email** and does not attest message delivery.
+- Vercel project Git link was confirmed migrated to `bennietay/bennietay-studio`. Last production deployment still reflects prior `bennietayhh` commit. Do not confuse Git connection with production rollout.
+- Production environment has no `HOSTINGER_SMTP_USER` or `HOSTINGER_SMTP_PASSWORD` defined. The quota migration is not applied. No SMTP acceptance test performed.
+- The production Supabase project has no staging branch. Avoid running untested migrations on the live database. Run isolated migration/replay, validate cross-tenant access and database advisors before release.
+- Supabase security advisor flags signed-in execution of 9 security-definer functions, and leaked-password protection disabled. Review business authorization checks for each function and enable authentication hardening; do not blanket revoke customer RPCs that the app requires.
+- Release candidate PR #1 remains independent, with authentication/tenant, tax-approved checkout, migration replay, performance and recovery evidence still required.
