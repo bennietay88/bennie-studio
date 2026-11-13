@@ -108,6 +108,37 @@ export async function sendHostingerMail(
   }
 }
 
+/**
+ * Verify Hostinger SMTP authentication and TLS without sending a message.
+ * This is an admin-only diagnostic and does not count as proof of delivery.
+ */
+export async function verifyHostingerSmtp(env: NodeJS.ProcessEnv = process.env): Promise<boolean> {
+  const config = hostingerConfiguration(env);
+  if (!config.configured) throw new Error("HOSTINGER_CONFIG_ERROR");
+  const smtp = nodemailer.createTransport({
+    host: "smtp.hostinger.com",
+    port: config.port,
+    secure: config.port === 465,
+    requireTLS: config.port === 587,
+    auth: { user: config.user, pass: config.password },
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 15_000,
+    tls: { servername: "smtp.hostinger.com", minVersion: "TLSv1.2", rejectUnauthorized: true },
+  });
+  try {
+    await smtp.verify();
+    return true;
+  } catch (error: unknown) {
+    const code = typeof error === "object" && error !== null && "responseCode" in error
+      ? Number((error as { responseCode?: number }).responseCode)
+      : 0;
+    throw new Error(code === 535 || code === 534 ? "HOSTINGER_AUTH_ERROR" : "HOSTINGER_SMTP_UNAVAILABLE");
+  } finally {
+    smtp.close();
+  }
+}
+
 export function classifyResendSendError(error: unknown): {
   category: "quota" | "throttled" | "sender" | "authentication" | "provider";
   status: number;
