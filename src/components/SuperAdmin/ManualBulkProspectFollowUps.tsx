@@ -119,12 +119,20 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
             }),
           });
           const payload = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(payload.error || "Provider did not confirm the send.");
+          if (!response.ok) {
+            const failure = new Error(payload.error || "Provider did not confirm the send.") as Error & { status?: number };
+            failure.status = response.status;
+            throw failure;
+          }
           sentIds.push(row.prospectId);
           setRows((current) => current.map((item) => item.prospectId === row.prospectId ? { ...item, delivery: "submitted" } : item));
         } catch (error: any) {
           setRows((current) => current.map((item) => item.prospectId === row.prospectId
             ? { ...item, delivery: "failed", error: error?.message || "Delivery failed. Verify with the email provider before trying again." } : item));
+          if (error?.status === 429 || error?.status === 503) {
+            setLoadError("Sending stopped after a shared provider failure or quota restriction. Remaining messages were not attempted.");
+            break;
+          }
         }
       }
       setFinished(true);

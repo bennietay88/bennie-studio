@@ -12,6 +12,7 @@ import axios from "axios";
 import { createClient } from "@supabase/supabase-js";
 import { waitUntil } from "@vercel/functions";
 import { Resend } from "resend";
+import { classifyResendSendError, emailProviderStatus, selectEmailProvider, sendHostingerMail, verifyHostingerSmtp } from "../server/emailProviders.js";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
 import { callDeepSeek, callOpenAI } from "../src/lib/ai-providers.js";
@@ -3531,6 +3532,35 @@ async function startServer() {
     + "?redirectTo=" + encodeURIComponent("/dashboard/onboarding")
     + "&email=" + encodeURIComponent(email);
 
+  // Vault secrets are available only to this server-side service-role client.
+  const loadHostingerSettings = async (): Promise<NodeJS.ProcessEnv> => {
+    const { data, error } = await supabaseAdmin.rpc("get_hostinger_smtp_credentials");
+    if (error) {
+      structuredLog("warn", "hostinger_vault_settings_unavailable", { code: error.code || "unknown" });
+      throw new Error("HOSTINGER_CONFIG_ERROR");
+    }
+    const record = Array.isArray(data) ? data[0] : null;
+    if (!record?.smtp_user || !record?.smtp_password) throw new Error("HOSTINGER_CONFIG_ERROR");
+    return {
+      HOSTINGER_SMTP_USER: String(record.smtp_user),
+      HOSTINGER_SMTP_PASSWORD: String(record.smtp_password),
+      HOSTINGER_FROM_EMAIL: String(record.from_email),
+      HOSTINGER_SMTP_PORT: String(record.smtp_port),
+    };
+  };
+
+  const reserveHostingerEmailQuota = async (mailbox: string) => {
+    // Database reservation is required on every serverless instance, never in memory.
+    const { data, error } = await supabaseAdmin.rpc("claim_hostinger_smtp_slot", {
+      p_mailbox: mailbox, p_daily_limit: 100,
+    });
+    if (error) {
+      structuredLog("error", "hostinger_quota_reservation_failed", { code: error.code || "unknown" });
+      throw new Error("EMAIL_QUOTA_TRACKER_UNAVAILABLE");
+    }
+    return data === true;
+  };
+
   const deliverCustomerOnboardingInvite = async (input: {
     businessId: string;
     businessName: string;
@@ -3549,6 +3579,20 @@ async function startServer() {
     const inviteText = "Your Bennie Studio customer workspace for " + input.businessName
       + " is ready. Start onboarding: " + onboardingUrl
       + "\n\nUse " + input.email + " when signing in or creating your account. Your workspace will attach automatically.";
+    if (selectEmailProvider(platformSettings?.transactionalEmailProvider) === "hostinger") {
+      const receipt = await sendHostingerMail({
+        to: input.email,
+        subject: "Your Bennie Studio onboarding is ready",
+        html: inviteHtml,
+        text: inviteText,
+        replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
+      }, await loadHostingerSettings(), reserveHostingerEmailQuota);
+      return {
+        status: input.hasAccount ? "existing_user_notified" : "invite_sent",
+        email: input.email, sentAt: new Date().toISOString(),
+        providerMessageId: receipt.id, onboardingUrl,
+      };
+    }
     const { data, error } = await getResend().emails.send({
       from: process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "Bennie Studio <onboarding@resend.dev>",
       to: input.email,
@@ -3589,7 +3633,12 @@ async function startServer() {
         },
         tags: [{ name: "sales_message_id", value: message.id }],
       }, { idempotencyKey: message.idempotency_key });
-      if (error || !data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
+      if (error) {
+        const kind = classifyResendSendError(error);
+        structuredLog("warn", "resend_sales_provider_rejected", kind);
+        throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED" : "EMAIL_DELIVERY_FAILED");
+      }
+      if (!data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
       return { id: data.id };
     },
   });
@@ -3600,6 +3649,30 @@ async function startServer() {
     await refreshPlatformSettings();
     const unsubscribeUrl = `${publicAppUrl()}/api/public/unsubscribe/${message.unsubscribe_token}`;
     const html = `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
+    const selectedProvider = selectEmailProvider(platformSettings?.salesEmailProvider);
+    if (selectedProvider === "hostinger") {
+      // Sending eligibility is checked again by the prospect outreach workflow.
+      // Hostinger is not a route around Resend's free-plan or acceptable-use limits.
+      const { data: prospect } = await supabaseAdmin.from("prospects")
+        .select("marketing_consent,consent_email,consent_timestamp,consent_source,contact_email")
+        .eq("id", message.prospect_id).maybeSingle();
+      if (!prospect || prospect.marketing_consent !== true
+        || normalizeSalesEmail(prospect.consent_email) !== target
+        || !prospect.consent_timestamp || !Number.isFinite(new Date(prospect.consent_timestamp).getTime())
+        || new Date(prospect.consent_timestamp).getTime() > Date.now()
+        || String(prospect.consent_source || "").trim().length < 10) {
+        throw new Error("CONTACT_CONSENT_REQUIRED");
+      }
+      return sendHostingerMail({
+        to: message.recipient,
+        subject: message.subject || "A note from Bennie Studio",
+        html,
+        text: `${message.body_text}\n\nStop receiving these emails: ${unsubscribeUrl}`,
+        replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
+        bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
+        headers: { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
+      }, await loadHostingerSettings(), reserveHostingerEmailQuota);
+    }
     const { data, error } = await getResend().emails.send({
       from:
         process.env.RESEND_FROM_EMAIL
@@ -3620,7 +3693,12 @@ async function startServer() {
         },
         tags: [{ name: "sales_message_id", value: message.id }],
     }, { idempotencyKey: message.idempotency_key });
-    if (error || !data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
+    if (error) {
+      const kind = classifyResendSendError(error);
+      structuredLog("warn", "resend_direct_provider_rejected", kind);
+      throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED" : "EMAIL_DELIVERY_FAILED");
+    }
+    if (!data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
     return { id: data.id };
   };
 
@@ -8569,6 +8647,81 @@ async function startServer() {
     }
   });
 
+  app.get("/api/admin/email-providers/status", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
+      await refreshPlatformSettings();
+      const { data, error } = await supabaseAdmin.from("hostinger_smtp_settings")
+        .select("smtp_user,from_email,smtp_port,updated_at").eq("id", 1).maybeSingle();
+      if (error) throw new Error("HOSTINGER_SETTINGS_UNAVAILABLE");
+      return res.json({
+        providers: {
+          ...emailProviderStatus(),
+          hostinger: {
+            configured: Boolean(data?.smtp_user),
+            from: data?.from_email || null,
+            smtpHost: "smtp.hostinger.com",
+            smtpPort: data?.smtp_port || 465,
+            updatedAt: data?.updated_at || null,
+            quotaNote: "Respect the mailbox rolling 24-hour sending limit and Hostinger acceptable-use rules.",
+          },
+        },
+        selection: {
+          transactional: selectEmailProvider(platformSettings?.transactionalEmailProvider),
+          sales: selectEmailProvider(platformSettings?.salesEmailProvider),
+        },
+      });
+    } catch {
+      return res.status(503).json({ error: "Email provider settings unavailable. Check database migration." });
+    }
+  });
+
+  app.put("/api/admin/email-providers/hostinger", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
+      const parsed = z.object({
+        smtpUser: z.string().trim().email().max(254),
+        fromEmail: z.string().trim().email().max(254),
+        smtpPort: z.union([z.literal(465), z.literal(587)]),
+        password: z.string().min(1).max(1024).optional(),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid Hostinger mailbox settings." });
+      const { smtpUser, fromEmail, smtpPort, password } = parsed.data;
+      if (smtpUser.toLowerCase() !== fromEmail.toLowerCase()) {
+        return res.status(400).json({ error: "The sender must match the authenticated Hostinger mailbox." });
+      }
+      const { data, error } = await supabaseAdmin.rpc("save_hostinger_smtp_settings", {
+        p_smtp_user: smtpUser, p_from_email: fromEmail, p_smtp_port: smtpPort, p_password: password ?? null,
+      });
+      if (error) {
+        structuredLog("warn", "hostinger_portal_save_rejected", { code: error.code || "unknown" });
+        return res.status(error.code === "22023" ? 400 : 503)
+          .json({ error: error.code === "22023" ? "Mailbox configuration or password is invalid." : "Could not securely store Hostinger settings." });
+      }
+      structuredLog("info", "hostinger_portal_settings_updated", { actorId: req.user.id });
+      return res.json({ success: true, configured: true, from: data?.from || fromEmail, smtpPort });
+    } catch {
+      return res.status(503).json({ error: "Could not securely store Hostinger settings." });
+    }
+  });
+
+  app.post("/api/admin/email-providers/hostinger/verify", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
+      await verifyHostingerSmtp(await loadHostingerSettings());
+      return res.json({ connected: true, description: "Hostinger SMTP authentication and TLS verified. No email was sent." });
+    } catch (error: any) {
+      const authFailed = error?.message === "HOSTINGER_AUTH_ERROR";
+      structuredLog("warn", "hostinger_smtp_connection_failed", { category: authFailed ? "auth" : "connection" });
+      return res.status(503).json({ error: authFailed
+        ? "Hostinger rejected the mailbox credentials. Check the username/password."
+        : "Hostinger SMTP could not be verified. Check saved credentials and SMTP connectivity." });
+    }
+  });
+
   app.post("/api/admin/prospects/:prospectId/outreach", authenticate, async (req: any, res) => {
     if (!UUID_SCHEMA.safeParse(req.params.prospectId).success) {
       return res.status(400).json({ error: "Invalid prospect ID" });
@@ -8687,8 +8840,21 @@ async function startServer() {
         },
         EMAIL_DELIVERY_FAILED: {
           status: 502,
-          message: "The email provider rejected the message. Check the verified sender/domain and try again.",
+          message: "The email provider could not accept the message. Check provider logs before retrying.",
         },
+        EMAIL_QUOTA_TRACKER_UNAVAILABLE: {
+          status: 503,
+          message: "Hostinger quota tracker is unavailable. No SMTP message was attempted.",
+        },
+        EMAIL_RATE_LIMITED: {
+          status: 429,
+          message: "Email sending limit reached. Stop this batch and wait for the provider quota to reset.",
+        },
+        HOSTINGER_CONFIG_ERROR: { status: 503, message: "Hostinger SMTP is not configured correctly." },
+        HOSTINGER_AUTH_ERROR: { status: 503, message: "Hostinger SMTP authentication failed. Check configured credentials." },
+        HOSTINGER_DELIVERY_UNCERTAIN: { status: 502, message: "Hostinger SMTP delivery is uncertain. Verify the mailbox logs before retrying." },
+        HOSTINGER_ACCEPTANCE_UNCERTAIN: { status: 502, message: "Hostinger did not confirm the recipient. Verify delivery before retrying." },
+        CONTACT_CONSENT_REQUIRED: { status: 409, message: "Hostinger requires documented recipient consent for this sales message." },
       };
       const known = errors[error?.message];
       if (known) return res.status(known.status).json({ error: known.message });
