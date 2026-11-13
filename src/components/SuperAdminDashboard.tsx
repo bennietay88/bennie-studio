@@ -139,6 +139,7 @@ const WebsiteEditor = React.lazy(() => import("./WebsiteEditor").then((module) =
 const SuperAdminAffiliates = React.lazy(() => import("./SuperAdminAffiliates").then((module) => ({ default: module.SuperAdminAffiliates })));
 const SuperAdminAffiliatePartners = React.lazy(() => import("./SuperAdminAffiliatePartners").then((module) => ({ default: module.SuperAdminAffiliatePartners })));
 const StyleThemeManager = React.lazy(() => import("./SuperAdmin/StyleThemeManager").then((module) => ({ default: module.StyleThemeManager })));
+import { EmailProviderSettings } from "./SuperAdmin/EmailProviderSettings";
 const RevenueCommand = React.lazy(() => import("./SuperAdmin/RevenueCommand").then((module) => ({ default: module.RevenueCommand })));
 const FinanceDashboard = React.lazy(() => import("./SuperAdmin/FinanceDashboard").then((module) => ({ default: module.FinanceDashboard })));
 const SalesHome = React.lazy(() => import("./SuperAdmin/SalesHome").then((module) => ({ default: module.SalesHome })));
@@ -345,6 +346,8 @@ export default function SuperAdminDashboard() {
       "Hi, I found Bennie Studio and I’m interested in a managed website plan. Can you share more details?",
     salesWhatsappAriaLabel: "Chat with Bennie Studio on WhatsApp",
     supportEmail: "support@bennietay.com",
+    transactionalEmailProvider: "resend" as "resend" | "hostinger",
+    salesEmailProvider: "resend" as "resend" | "hostinger",
     supportPhone: "",
     companyName: "",
     companyRegistrationNumber: "",
@@ -1997,6 +2000,11 @@ export default function SuperAdminDashboard() {
                 {activeTab === "settings" && (
                 <>
                 <Separator className="bg-slate-100 my-8" />
+                {isSuperAdmin && <EmailProviderSettings
+                  transactional={platformSettings.transactionalEmailProvider}
+                  sales={platformSettings.salesEmailProvider}
+                  onChange={(key, value) => setPlatformSettings((previous) => ({ ...previous, [key]: value }))}
+                />}
                 <StyleThemeManager />
                 </>
                 )}
