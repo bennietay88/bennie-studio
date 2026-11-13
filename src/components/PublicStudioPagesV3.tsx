@@ -389,18 +389,12 @@ export function ContactStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
         formName: "Contact project brief",
         leadType: "project_brief",
       });
-      try { localStorage.setItem("bt_contact_brief", JSON.stringify(brief)); } catch {}
-      const params = new URLSearchParams({
-        mode: "business",
-        source: "contact",
-        name: brief.name.trim(),
-        business: brief.company.trim(),
-        email: brief.email.trim(),
-      });
-      if (brief.details.trim()) params.set("problem", brief.details.trim());
-      navigate(`/generate-preview?${params.toString()}`);
+      // Keep submitted contact details within this browser tab only; never put
+      // email, name or project notes in the URL (history, analytics or referrers).
+      try { sessionStorage.removeItem("bt_preview_intent"); sessionStorage.setItem("bt_contact_brief", JSON.stringify(brief)); } catch {}
+      navigate("/generate-preview?mode=business&source=contact");
     } catch (error: any) {
-      setSubmitError(error?.message || "We could not send your project brief. Please try again.");
+      setSubmitError(error?.message || "We could not submit your brief. No preview was started; please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -414,12 +408,12 @@ export function ContactStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
             
             <h1 className="mt-5 !max-w-[13ch] !text-white">{cmsPage?.heroTitle || <>Let’s talk about <span className="bs3-accent">your website.</span></>}</h1>
             <p className="brand-copy mt-6 !text-white/65">{cmsPage?.heroDescription || "Have a project in mind? Share a short brief or book a focused call. The goal is to understand what you need and give you a clear next step."}</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to={cmsPage?.primaryCtaHref || "/book-demo"} className={primary}>{cmsPage?.primaryCtaLabel || "Book a free call"}<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/generate-preview" className={secondary}>Send a project brief</Link></div>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to={cmsPage?.primaryCtaHref || "/book-demo"} className={primary}>{cmsPage?.primaryCtaLabel || "Book a free call"}<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/generate-preview" className={secondary}>Start a website preview</Link></div>
             <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-white/58"><span>No-obligation call</span><span>Focused on real results</span><span>Clear next steps</span></div>
           </div>
           <form onSubmit={submit} className="bs3-card-dark p-6 lg:col-span-6">
             <div className="flex items-center gap-3"><MessageCircle className="h-5 w-5 text-[#9f93ff]" /><h3 className="!text-white">Book a call or send a message</h3></div>
-            <p className="mt-2 text-sm text-white/55">Tell us a little about your project and we’ll take it from there.</p>
+            <p className="mt-2 text-sm text-white/55">Send your brief to Bennie Studio, then continue to a website preview using the same details.</p>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <label className="text-xs font-semibold text-white/75">Your name<input required value={brief.name} onChange={(e)=>setBrief({...brief,name:e.target.value})} className="bs3-input mt-2" placeholder="Your name" /></label>
               <label className="text-xs font-semibold text-white/75">Company<input required value={brief.company} onChange={(e)=>setBrief({...brief,company:e.target.value})} className="bs3-input mt-2" placeholder="Company" /></label>
@@ -427,7 +421,7 @@ export function ContactStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
               <label className="text-xs font-semibold text-white/75 sm:col-span-2">I’m interested in<select value={brief.interest} onChange={(e)=>setBrief({...brief,interest:e.target.value})} className="bs3-input mt-2"><option>New website design</option><option>Website redesign</option><option>Website audit</option><option>Ongoing website support</option></select></label>
               <label className="text-xs font-semibold text-white/75 sm:col-span-2">Tell us about your project<textarea value={brief.details} onChange={(e)=>setBrief({...brief,details:e.target.value})} className="bs3-input mt-2 min-h-28 resize-y" placeholder="A few details about your goals, timeline or questions..." /></label>
             </div>
-            <button type="submit" disabled={submitting} className={`${primary} mt-5 w-full disabled:cursor-not-allowed disabled:opacity-65`}>{submitting ? "Sending brief…" : "Start project brief"}<ArrowRight className="ml-2 h-4 w-4" /></button>
+            <button type="submit" disabled={submitting} className={`${primary} mt-5 w-full disabled:cursor-not-allowed disabled:opacity-65`}>{submitting ? "Sending brief…" : "Send brief & start preview"}<ArrowRight className="ml-2 h-4 w-4" /></button>
             {submitError ? <p role="alert" className="mt-3 text-sm font-semibold text-red-200">{submitError}</p> : null}
           </form>
         </div>

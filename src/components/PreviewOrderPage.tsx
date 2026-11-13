@@ -73,7 +73,7 @@ const fitCopy: Record<string, { kicker: string; title: string; points: string[] 
 
 function readPreviewIntent(): PreviewIntent {
   try {
-    return JSON.parse(localStorage.getItem("bt_preview_intent") || "{}");
+    return JSON.parse(sessionStorage.getItem("bt_preview_intent") || "{}");
   } catch {
     return {};
   }

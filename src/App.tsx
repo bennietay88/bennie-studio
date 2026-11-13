@@ -30,6 +30,12 @@ const CHUNK_RETRY_KEY = "bt_chunk_retry_once";
 let documentNavigationStarted = false;
 
 if (typeof window !== "undefined") {
+  // Remove legacy persistent preview/contact details from older releases.
+  // Session-scoped preview state remains intact for the current tab.
+  try {
+    window.localStorage.removeItem("bt_preview_intent");
+    window.localStorage.removeItem("bt_contact_brief");
+  } catch { /* Storage can be blocked in privacy-restricted browsers. */ }
   window.addEventListener("beforeunload", () => { documentNavigationStarted = true; }, { once: true });
   window.addEventListener("pagehide", () => { documentNavigationStarted = true; }, { once: true });
 }

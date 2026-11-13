@@ -478,6 +478,19 @@ export function ProspectExplorer() {
   }, [currentPage, debouncedSearchQuery, industryFilter, statusFilter, quickFilter, sortMode]);
 
   useEffect(() => { void fetchProspects(); }, [fetchProspects]);
+  // A CRM-wide task may link to a prospect outside the current paginated list.
+  // Fetch that single authorized record instead of dropping the deep link.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("prospect");
+    if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) return;
+    let active = true;
+    void supabase.from("prospects").select("*").eq("id", id).maybeSingle().then(({ data, error }) => {
+      if (active && data && !error) setSelectedProspect({ ...data, _score: scoreProspect(data) });
+    });
+    return () => { active = false; };
+  }, []);
+
+
 
   const resetNewProspect = () => {
     setNewProspect({

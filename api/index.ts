@@ -7185,6 +7185,55 @@ async function startServer() {
     },
   );
 
+  // CRM-wide overdue task queue. Uses the identical open/due predicate as the
+  // revenue-health headline, with exact count and pagination (not an arbitrary
+  // latest-prospects-only subset). Read-only; never edits or sends on click.
+  app.get(
+    "/api/admin/revenue-health/overdue-tasks",
+    authenticate,
+    rateLimit({ windowMs: 60 * 1000, max: 60, keyPrefix: "admin-overdue-sales-tasks", key: (req) => req.user?.id || getClientIp(req) }),
+    async (req: any, res: any) => {
+      try {
+        const profile = await getProfileForUser(req.user.id);
+        if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales permission required." });
+        const requested = Number(req.query.page ?? 1);
+        if (!Number.isInteger(requested) || requested < 1 || requested > 10000) {
+          return res.status(400).json({ error: "Invalid overdue task page" });
+        }
+        const pageSize = 50;
+        const offset = (requested - 1) * pageSize;
+        const { data, count, error } = await supabaseAdmin.from("sales_tasks")
+          .select("id,lead_id,prospect_id,title,task_type,priority,notes,status,due_at", { count: "exact" })
+          .eq("status", "open").lte("due_at", new Date().toISOString())
+          .order("due_at", { ascending: true }).order("id", { ascending: true })
+          .range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        const rows = data || [];
+        const leadIds = [...new Set(rows.map((task: any) => task.lead_id).filter(Boolean))];
+        const prospectIds = [...new Set(rows.map((task: any) => task.prospect_id).filter(Boolean))];
+        const [leads, prospects] = await Promise.all([
+          leadIds.length ? supabaseAdmin.from("leads").select("id,name,email,status,automation_next_action").in("id", leadIds) : Promise.resolve({ data: [], error: null }),
+          prospectIds.length ? supabaseAdmin.from("prospects").select("id,name,contact_email,outreach_status").in("id", prospectIds) : Promise.resolve({ data: [], error: null }),
+        ]);
+        if (leads.error || prospects.error) throw leads.error || prospects.error;
+        const leadLookup = new Map((leads.data || []).map((lead: any) => [lead.id, lead]));
+        const prospectLookup = new Map((prospects.data || []).map((prospect: any) => [prospect.id, prospect]));
+        res.setHeader("Cache-Control", "no-store");
+        return res.json({
+          page: requested, pageSize, total: count ?? 0,
+          tasks: rows.map((task: any) => ({
+            ...task,
+            lead: task.lead_id ? leadLookup.get(task.lead_id) || null : null,
+            prospect: task.prospect_id ? prospectLookup.get(task.prospect_id) || null : null,
+          })),
+        });
+      } catch (error: any) {
+        structuredLog("warn", "admin_overdue_tasks_unavailable", { reason: String(error?.code || "unknown").slice(0, 32) });
+        return res.status(503).json({ error: "Could not load overdue sales tasks." });
+      }
+    },
+  );
+
   // Commercial data integrity is read-only. Never recreate historical leads from
   // anonymous tracking events: those events do not contain a verified enquiry.
   app.get(
@@ -7197,7 +7246,7 @@ async function startServer() {
       try {
         const [
           leads, trackedLeads, previewEvents, checkoutEvents, salesTasks,
-          prospects, messages, calls, proposals, customerServices, checkouts
+          prospects, messages, calls, proposals, customerServices, checkouts, overdueTaskCount
         ] = await Promise.all([
           supabaseAdmin.from("leads").select("id,status,created_at,first_response_at,next_follow_up_at").order("created_at", { ascending: false }).limit(1000),
           supabaseAdmin.from("tracking_events").select("metadata").eq("event_type", "platform_lead_submitted").gte("created_at", since).limit(1000),
@@ -7210,8 +7259,9 @@ async function startServer() {
           supabaseAdmin.from("proposals").select("id,status,created_at").limit(1000),
           supabaseAdmin.from("customer_services").select("id,status,stripe_subscription_id,product_slug").limit(1000),
           supabaseAdmin.from("stripe_webhook_events").select("event_type,status").gte("created_at", since).limit(1000),
+          supabaseAdmin.from("sales_tasks").select("id", { count: "exact", head: true }).eq("status", "open").lte("due_at", new Date().toISOString()),
         ]);
-        const queries = [leads, trackedLeads, previewEvents, checkoutEvents, salesTasks, prospects, messages, calls, proposals, customerServices, checkouts];
+        const queries = [leads, trackedLeads, previewEvents, checkoutEvents, salesTasks, prospects, messages, calls, proposals, customerServices, checkouts, overdueTaskCount];
         const failed = queries.find((response) => response.error);
         if (failed?.error) throw failed.error;
         const leadRows = leads.data || [];
@@ -7235,7 +7285,7 @@ async function startServer() {
             pendingLeadResponses: leadRows.filter((lead: any) => lead.status === "new" && !lead.first_response_at).length,
             previewsGenerated30d: (previewEvents.data || []).filter((event: any) => event.event_type === "preview_generated").length,
             checkoutStartedEvents30d: (checkoutEvents.data || []).length,
-            overdueOpenTasks: openTasks.filter((task: any) => task.due_at && Date.parse(task.due_at) <= now).length,
+            overdueOpenTasks: overdueTaskCount.count ?? 0,
             openSalesTasks: openTasks.length,
             deliveredOutreach30d: (messages.data || []).filter((message: any) => message.direction === "outbound" && message.status === "delivered").length,
             bouncedOutreach30d: (messages.data || []).filter((message: any) => message.direction === "outbound" && message.status === "bounced").length,
@@ -7320,6 +7370,18 @@ async function startServer() {
           .limit(250);
 
         if (error) throw error;
+        // A CRM-wide overdue task can target an old lead outside the recent
+        // 250-row inbox window. Include only the explicitly requested UUID.
+        const focusedLeadId = String(req.query.lead || "");
+        if (focusedLeadId && !UUID_SCHEMA.safeParse(focusedLeadId).success) {
+          return res.status(400).json({ error: "Invalid lead ID" });
+        }
+        if (focusedLeadId && !(data || []).some((lead: any) => lead.id === focusedLeadId)) {
+          const { data: focused, error: focusedError } = await supabaseAdmin.from("leads")
+            .select("*").eq("id", focusedLeadId).maybeSingle();
+          if (focusedError) throw focusedError;
+          if (focused) return res.json({ leads: [focused, ...(data || [])] });
+        }
         return res.json({ leads: data || [] });
       } catch (error: any) {
         if (error?.message === "PROFILE_NOT_FOUND") {

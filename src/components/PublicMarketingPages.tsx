@@ -877,7 +877,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   const initialParams = React.useMemo(() => new URLSearchParams(location.search), [location.search]);
   const salesMode = initialParams.get("sales") === "1";
   const savedPreviewIntent = React.useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("bt_preview_intent") || "{}") as Record<string, any>; }
+    try { return JSON.parse(sessionStorage.getItem("bt_preview_intent") || "{}") as Record<string, any>; }
     catch { return {} as Record<string, any>; }
   }, []);
   const savedPreviewIsCurrent = Number(savedPreviewIntent.previewGenerationVersion || 0) === PREVIEW_GENERATION_VERSION
@@ -921,22 +921,29 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
     } catch {
       auditContext = {};
     }
+    let initialBrief: Record<string, string> = {};
+    if (initialParams.get("source") === "contact") {
+      try {
+        initialBrief = JSON.parse(sessionStorage.getItem("bt_contact_brief") || "{}");
+        sessionStorage.removeItem("bt_contact_brief");
+      } catch { initialBrief = {}; }
+    }
     return {
-      contactName: String(savedPreviewIntent.contactName || auditContext.contactName || initialParams.get("name") || ""),
-      businessName: String((savedPreviewIsCurrent ? savedPreviewIntent.businessName : "") || auditContext.businessName || initialParams.get("business") || ""),
+      contactName: String(initialBrief.name || savedPreviewIntent.contactName || auditContext.contactName || ""),
+      businessName: String(initialBrief.company || (savedPreviewIsCurrent ? savedPreviewIntent.businessName : "") || auditContext.businessName || ""),
       location: String(initialParams.get("location") || initialParams.get("city") || (savedPreviewIsCurrent ? savedPreviewIntent.location : "") || ""),
       mainService: String((savedPreviewIsCurrent ? savedPreviewIntent.mainService : "") || initialParams.get("service") || ""),
       websiteUrl: String(initialParams.get("website") || (savedPreviewIsCurrent ? savedPreviewIntent.websiteUrl : "") || auditContext.website || ""),
       websiteStatus: String(savedPreviewIntent.websiteStatus || initialParams.get("websiteStatus") || (auditContext.website ? "yes" : "no")),
       phone: String(savedPreviewIntent.phone || ""),
-      email: String(savedPreviewIntent.email || auditContext.email || initialParams.get("email") || ""),
+      email: String(initialBrief.email || savedPreviewIntent.email || auditContext.email || ""),
       brandStyle: String(savedPreviewIntent.brandStyle || "Modern professional"),
       brandColorMode: String(savedPreviewIntent.brandColorMode || "auto"),
       brandPrimaryColor: String(savedPreviewIntent.brandPrimaryColor || "#5746e8"),
       brandAccentColor: String(savedPreviewIntent.brandAccentColor || "#141821"),
       socialUrl: String(savedPreviewIntent.socialUrl || ""),
       reviews: String(savedPreviewIntent.reviews || ""),
-      biggestProblem: String(savedPreviewIntent.biggestProblem || initialParams.get("problem") || ""),
+      biggestProblem: String(initialBrief.details || savedPreviewIntent.biggestProblem || ""),
       pageCount: 5,
     };
   });
@@ -1075,7 +1082,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
 
     try {
       let existingPreview: Record<string, unknown> = {};
-      try { existingPreview = JSON.parse(localStorage.getItem("bt_preview_intent") || "{}"); } catch { /* start a fresh preview */ }
+      try { existingPreview = JSON.parse(sessionStorage.getItem("bt_preview_intent") || "{}"); } catch { /* start a fresh preview */ }
       const previewId = !(salesMode && initialParams.get("prospectId"))
         && typeof existingPreview.previewId === "string" && existingPreview.previewId
         ? existingPreview.previewId
@@ -1112,7 +1119,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
         leadResult = { leadId: payload.leadId, leadEmail: payload.leadEmail };
         intake = payload;
       } else {
-        // A localStorage leadId can become stale after admin cleanup or data reset.
+        // A session-scoped leadId can become stale after admin cleanup or data reset.
         // Revalidate the preview through the lead-intake endpoint every time.
         // The endpoint deduplicates by previewId + email when the lead still exists.
         leadResult = await submitPlatformLead({
@@ -1578,7 +1585,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
         // The in-browser preview remains usable if share-link persistence is unavailable.
       }
 
-      localStorage.setItem("bt_preview_intent", JSON.stringify({
+      sessionStorage.setItem("bt_preview_intent", JSON.stringify({
         ...resolvedForm,
         previewMode,
         previewId,

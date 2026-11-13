@@ -143,6 +143,7 @@ import { EmailProviderSettings } from "./SuperAdmin/EmailProviderSettings";
 const RevenueCommand = React.lazy(() => import("./SuperAdmin/RevenueCommand").then((module) => ({ default: module.RevenueCommand })));
 const FinanceDashboard = React.lazy(() => import("./SuperAdmin/FinanceDashboard").then((module) => ({ default: module.FinanceDashboard })));
 const SalesHome = React.lazy(() => import("./SuperAdmin/SalesHome").then((module) => ({ default: module.SalesHome })));
+const OverdueSalesTasks = React.lazy(() => import("./SuperAdmin/OverdueSalesTasks").then((module) => ({ default: module.OverdueSalesTasks })));
 const ProspectExplorer = React.lazy(() => import("./SuperAdmin/ProspectExplorer").then((module) => ({ default: module.ProspectExplorer })));
 const WebsiteReviewAuditor = React.lazy(() => import("./SuperAdmin/WebsiteReviewAuditor").then((module) => ({ default: module.WebsiteReviewAuditor })));
 const OutreachLab = React.lazy(() => import("./SuperAdmin/OutreachLab").then((module) => ({ default: module.OutreachLab })));
@@ -225,6 +226,7 @@ export default function SuperAdminDashboard() {
     if (location.pathname.includes("/admin/templates")) return "templates";
     if (last === "admin" || last === "overview") return "overview";
     if (last === "sales_home") return "sales_home";
+    if (last === "overdue_followups") return "overdue_followups";
     if (last === "inbound_leads") return "inbound_leads";
     if (last === "daily_operations") return "daily_operations";
     if (last === "growth_os_config") return "growth_os_config";
@@ -329,6 +331,7 @@ export default function SuperAdminDashboard() {
   const isPlatformStaff = profile?.role === "platform_staff";
   const canAccessActiveTab = React.useMemo(() => {
     if (isSuperAdmin || !isPlatformStaff || activeTab === "overview") return true;
+    if (activeTab === "overdue_followups") return Boolean(profile?.staffPermissions?.includes("sales"));
     if (activeTab === "daily_operations") {
       return ["sales", "customer_health"].some((permission) => profile?.staffPermissions?.includes(permission));
     }
@@ -1401,7 +1404,7 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-12">
+    <div className="mx-auto min-w-0 w-full max-w-[100rem] space-y-8 px-0 sm:space-y-10">
       {/* Active Component Mapping */}
       
       {/* OVERVIEW TAB */}
@@ -1416,6 +1419,7 @@ export default function SuperAdminDashboard() {
       {activeTab === "finance" && <FinanceDashboard />}
 
       {activeTab === "sales_home" && <SalesHome />}
+       {activeTab === "overdue_followups" && <OverdueSalesTasks />}
       {activeTab === "growth_operations" && <SalesHome />}
 
       {activeTab === "daily_operations" && <DailyOperations />}

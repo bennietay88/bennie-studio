@@ -51,7 +51,8 @@ export function AdminLeadInbox() {
   const [leads, setLeads] = useState<AdminLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState(() => new URLSearchParams(window.location.search).get("filter") === "overdue" ? "overdue" : "all");
+  const focusedLeadId = new URLSearchParams(window.location.search).get("lead");
   const [savingLeadId, setSavingLeadId] = useState("");
   const [deletingLeadId, setDeletingLeadId] = useState("");
   const [pendingResponse, setPendingResponse] = useState<{ id: string; channel: "email" | "phone" | "whatsapp" } | null>(null);
@@ -62,7 +63,7 @@ export function AdminLeadInbox() {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Your admin session has expired. Please sign in again.");
-      const response = await fetch("/api/admin/leads", {
+      const response = await fetch("/api/admin/leads" + (focusedLeadId ? "?lead=" + encodeURIComponent(focusedLeadId) : ""), {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const payload = await response.json().catch(() => ({}));
@@ -74,7 +75,7 @@ export function AdminLeadInbox() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [focusedLeadId]);
 
   useEffect(() => {
     void fetchLeads();
@@ -92,13 +93,16 @@ export function AdminLeadInbox() {
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return leads.filter((lead) => {
-      const matchesStatus = status === "all" || lead.status === status;
+      const matchesStatus = status === "all" || (status === "overdue" ? Boolean(lead.nextFollowUpAt && new Date(lead.nextFollowUpAt).getTime() <= Date.now() && !["won", "lost"].includes(lead.status)) : lead.status === status);
       const matchesSearch = !query || [lead.name, lead.email, lead.phone, lead.businessName, lead.websiteUrl]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
-      return matchesStatus && matchesSearch;
+      return matchesStatus && matchesSearch && (!focusedLeadId || lead.id === focusedLeadId);
+    }).sort((a, b) => {
+      const risk = (item: AdminLead) => item.nextFollowUpAt && new Date(item.nextFollowUpAt).getTime() <= Date.now() && !["won", "lost"].includes(item.status) ? 2 : item.status === "new" ? 1 : 0;
+      return risk(b) - risk(a) || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
-  }, [leads, search, status]);
+  }, [leads, search, status, focusedLeadId]);
 
   const updateLead = async (leadId: string, updates: Record<string, unknown>) => {
     const previous = leads;
@@ -234,6 +238,7 @@ export function AdminLeadInbox() {
               </div>
               <select aria-label="Filter leads by status" value={status} onChange={(event) => setStatus(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-200">
                 <option value="all">All statuses</option>
+                <option value="overdue">Overdue follow-ups</option>
                 {LEAD_STATUSES.map((item) => <option key={item} value={item}>{item[0].toUpperCase() + item.slice(1)}</option>)}
               </select>
             </div>
@@ -249,11 +254,15 @@ export function AdminLeadInbox() {
               {filtered.map((lead) => {
                 const whatsapp = lead.phone ? String(lead.phone).replace(/[^0-9]/g, "") : "";
                 return (
-                  <article key={lead.id} className="grid gap-4 p-5 hover:bg-slate-50/70 lg:grid-cols-[1.05fr_1.35fr_1fr] lg:items-start dark:hover:bg-slate-800/50">
+                  <article key={lead.id} id={`lead-${lead.id}`} className={`grid min-w-0 gap-4 p-5 hover:bg-slate-50/70 lg:grid-cols-[1.05fr_1.35fr_1fr] lg:items-start dark:hover:bg-slate-800/50 ${focusedLeadId === lead.id ? "ring-2 ring-inset ring-indigo-500" : ""}`}>
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2"><h2 className="truncate font-black text-slate-950 dark:text-white">{lead.businessName || lead.name}</h2>{lead.status === "new" && <Badge className="border-0 bg-indigo-50 text-indigo-700">New</Badge>}</div>
+                      <div className="flex flex-wrap items-center gap-2"><h2 className="truncate font-black text-slate-950 dark:text-white">{lead.businessName || lead.name}</h2>{lead.status === "new" && <Badge className="border-0 bg-indigo-50 text-indigo-700">New</Badge>}
+                        {lead.nextFollowUpAt && new Date(lead.nextFollowUpAt).getTime() <= Date.now() && !["won", "lost"].includes(lead.status) && <Badge className="border-0 bg-rose-100 text-rose-800">Overdue {Math.max(0, Math.floor((Date.now() - new Date(lead.nextFollowUpAt).getTime()) / 86_400_000))}d</Badge>}
+                        {lead.status === "new" && Date.now() - new Date(lead.createdAt).getTime() >= 7 * 86_400_000 && <Badge className="border-0 bg-amber-100 text-amber-900">Unanswered {Math.floor((Date.now() - new Date(lead.createdAt).getTime()) / 86_400_000)}d</Badge>}</div>
                       {lead.businessName && <p className="mt-1 text-xs font-semibold text-slate-500">Contact: {lead.name}</p>}
                       <p className="mt-1 text-xs text-slate-400">{formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })} · {lead.source}</p>
+                      <p className="mt-2 text-xs font-semibold text-slate-600">Next: {lead.nextAction?.trim() || (lead.status === "new" ? "Respond to enquiry and record first contact" : "Review and set next action")}</p>
+                      {lead.nextFollowUpAt && <p className="mt-1 text-xs text-slate-600">Follow-up due: <time dateTime={lead.nextFollowUpAt}>{new Date(lead.nextFollowUpAt).toLocaleString()}</time></p>}
                     </div>
                     <div className="min-w-0">
                       <p className="line-clamp-2 text-sm font-medium leading-6 text-slate-600 dark:text-slate-300">{lead.message || "No message supplied."}</p>

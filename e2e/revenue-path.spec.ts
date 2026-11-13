@@ -506,7 +506,7 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
 
 test("preview order carries the captured lead into payment without signup", async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem("bt_preview_intent", JSON.stringify({
+    sessionStorage.setItem("bt_preview_intent", JSON.stringify({
       previewId: "preview_e2e_12345678",
       leadId: "00000000-0000-4000-8000-000000000901",
       email: "buyer@example.test",

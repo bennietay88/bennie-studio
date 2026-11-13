@@ -247,14 +247,16 @@ test("contact project brief is captured and carried into the preview", async ({ 
   await expect(page.getByRole("link", { name: /Open live calendar/i })).toBeVisible();
   await expect(page.getByText("Dates and times below are illustrative.")).toBeVisible();
 
-  await page.getByRole("button", { name: "Start project brief" }).click();
+  await page.getByRole("button", { name: "Send brief & start preview" }).click();
 
   await expect(page).toHaveURL(/\/generate-preview\?/);
   const url = new URL(page.url());
   expect(url.searchParams.get("mode")).toBe("business");
-  expect(url.searchParams.get("name")).toBe("Jane Prospect");
-  expect(url.searchParams.get("business")).toBe("Example Advisory");
-  expect(url.searchParams.get("email")).toBe("jane@example.com");
+  expect(url.searchParams.get("source")).toBe("contact");
+  expect(url.searchParams.get("name")).toBeNull();
+  expect(url.searchParams.get("business")).toBeNull();
+  expect(url.searchParams.get("email")).toBeNull();
+  expect(url.searchParams.get("problem")).toBeNull();
   expect(submittedLead?.leadType).toBe("project_brief");
   expect(submittedLead?.businessName).toBe("Example Advisory");
 
@@ -462,4 +464,81 @@ test("generated managed website preview uses agency architecture and AA-readable
     const failures = await auditVisibleTextContrast();
     expect(failures, title + " generated preview has low-contrast visible text").toEqual([]);
   }
+});
+
+test("personal preview context never populates another browser session", async ({ page, browser }) => {
+  await mockAnonymousPublicDependencies(page);
+  await page.goto("/generate-preview", { waitUntil: "networkidle" });
+  await page.evaluate(() => {
+    sessionStorage.setItem("bt_preview_intent", JSON.stringify({
+      previewGenerationVersion: 3,
+      contactName: "Private Visitor",
+      businessName: "Private Studio",
+      email: "private@example.test",
+      createdAt: new Date().toISOString(),
+    }));
+  });
+  const separate = await browser.newContext();
+  try {
+    const guest = await separate.newPage();
+    await mockAnonymousPublicDependencies(guest);
+    await guest.goto("/generate-preview", { waitUntil: "networkidle" });
+    await expect(guest.locator("#preview-email")).not.toHaveValue("private@example.test");
+    await expect(guest.locator("#preview-name")).not.toHaveValue("Private Visitor");
+    await expect(guest.locator("#preview-business")).not.toHaveValue("Private Studio");
+  } finally {
+    await separate.close();
+  }
+});
+
+test("public routes settle from temporary loading under normal network latency", async ({ page }) => {
+  await mockAnonymousPublicDependencies(page);
+  await page.route("**/api/public/platform-site-cms", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: null }) });
+  });
+  for (const path of ["/about","/personal-profile","/managed-website-vs-diy","/book-demo","/resources","/templates"]) {
+    const response = await page.goto(path, { waitUntil: "domcontentloaded" });
+    expect(response?.ok(), path).toBeTruthy();
+    await expect(page.locator("h1:visible").first(), path).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator("[role='alert']:visible")).toHaveCount(0);
+    const overflow = await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth));
+    expect(overflow, path).toBeLessThanOrEqual(3);
+  }
+});
+
+test("mobile plan comparisons are readable without sideways scrolling", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockAnonymousPublicDependencies(page);
+  await page.goto("/pricing", { waitUntil: "networkidle" });
+  // The comparison is a labeled stacked card group, not a horizontally scrolling table.
+  const mobile = page.locator('[aria-label="Mobile managed website plan comparison"]');
+  await expect(mobile).toBeVisible();
+  await expect(mobile.locator("section[aria-label$='plan scope']")).toHaveCount(4);
+  await expect(page.locator(".s28-compare-scroll")).toBeHidden();
+  const extra = await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth));
+  expect(extra).toBeLessThanOrEqual(3);
+});
+
+test("contact form supports keyboard focus, labeled controls and accessible submission errors", async ({ page }) => {
+  await mockAnonymousPublicDependencies(page);
+  await page.route("**/api/platform-leads", async (route) =>
+    route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Temporarily unavailable" }) }));
+  await page.goto("/contact", { waitUntil: "networkidle" });
+  const name = page.getByPlaceholder("Your name");
+  const company = page.getByPlaceholder("Company", { exact: true });
+  await name.focus();
+  await page.keyboard.press("Tab");
+  await expect(company).toBeFocused();
+  const focus = await company.evaluate((node) => {
+    const style = getComputedStyle(node);
+    return { outline: style.outlineStyle, border: style.borderColor, shadow: style.boxShadow };
+  });
+  expect(focus.outline !== "none" || focus.shadow !== "none").toBeTruthy();
+  await name.fill("Demo Visitor");
+  await company.fill("Demo Company");
+  await page.getByPlaceholder("you@company.com").fill("demo@example.test");
+  await page.getByRole("button", { name: "Send brief & start preview" }).click();
+  await expect(page.getByRole("alert")).toContainText(/temporarily unavailable|could not submit/i);
+  await expect(page).toHaveURL(/\/contact/);
 });

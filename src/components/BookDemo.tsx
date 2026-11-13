@@ -55,7 +55,7 @@ type SavedCallContext = Partial<CallForm> & {
 const readSavedContext = (): SavedCallContext => {
   try {
     const audit = JSON.parse(sessionStorage.getItem("bt_audit_preview_context") || "{}");
-    const preview = JSON.parse(localStorage.getItem("bt_preview_intent") || "{}");
+    const preview = JSON.parse(sessionStorage.getItem("bt_preview_intent") || "{}");
     const storedMarket = getStoredMarket();
     const revenueMarket: RevenueMarket = storedMarket === "INTL" ? "US" : storedMarket;
     return {

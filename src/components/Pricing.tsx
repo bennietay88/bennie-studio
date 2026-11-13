@@ -63,7 +63,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
 
   const startCheckout = async (product: CommercialProduct) => {
     let previewId: string | null = null;
-    try { previewId = JSON.parse(localStorage.getItem("bt_preview_intent") || "{}").previewId || null; } catch { /* ignore malformed preview state */ }
+    try { previewId = JSON.parse(sessionStorage.getItem("bt_preview_intent") || "{}").previewId || null; } catch { /* ignore malformed preview state */ }
     const queryReferral = new URLSearchParams(window.location.search).get("ref")?.trim() || "";
     if (queryReferral) localStorage.setItem("bt_platform_affiliate_ref", queryReferral);
     const referralCode = queryReferral || localStorage.getItem("bt_platform_affiliate_ref") || undefined;
@@ -241,8 +241,30 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
       </div>
       <div className="s28-compare" id="compare-scope">
         <h2>Compare what's actually included.</h2>
-        <p>The published delivery scope and ongoing growth support vary by plan. Scroll sideways on mobile to compare all four.</p>
-        <div className="s28-compare-scroll" role="region" aria-label="Detailed managed website plan comparison" tabIndex={0}>
+        <p>The published delivery scope and ongoing growth support vary by plan. On mobile, compare each plan's complete scope without horizontal scrolling.</p>
+        <div className="mt-5 grid gap-4 md:hidden" aria-label="Mobile managed website plan comparison">
+          {planSet.map(([product], index) => {
+            const standard = PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug];
+            const mobileRows: Array<[string, string]> = [
+              ["Website pages", standard?.pages || "Confirm scope"],
+              ["Design revisions", standard?.revisions || "Confirm scope"],
+              ["First draft target", standard?.targetFirstDraft || "Confirm scope"],
+              ["Ongoing updates", standard?.updates || "Confirm scope"],
+              ["Update turnaround target", standard?.targetUpdateTurnaround || "Confirm scope"],
+              ...comparisonRows.map(([label, values]: any) => [String(label), String(values[index] || "—")] as [string, string]),
+            ];
+            return <section key={product.slug} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4" aria-label={product.name + " plan scope"}>
+              <h3 className="text-lg font-bold text-slate-900">{product.name}</h3>
+              <dl className="mt-4 divide-y divide-slate-100">
+                {mobileRows.map(([label, value]) => <div key={label} className="grid min-w-0 grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] gap-3 py-3 text-sm">
+                  <dt className="min-w-0 break-words font-semibold text-slate-600">{label}</dt>
+                  <dd className="min-w-0 break-words text-right font-semibold text-slate-900">{value}</dd>
+                </div>)}
+              </dl>
+            </section>;
+          })}
+        </div>
+        <div className="s28-compare-scroll hidden md:block" role="region" aria-label="Detailed managed website plan comparison" tabIndex={0}>
           <table><thead><tr><th scope="col">Included scope</th>{planSet.map(([product])=><th scope="col" key={product.slug}>{product.name}</th>)}</tr></thead>
           <tbody>
             {[
@@ -251,8 +273,8 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
               ["First draft target","targetFirstDraft"],
               ["Ongoing updates","updates"],
               ["Update turnaround target","targetUpdateTurnaround"],
-            ].map(([label,field])=><tr key={field}><td>{label}</td>{planSet.map(([product])=><td key={product.slug}>{PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug]?.[field as keyof typeof PLAN_DELIVERY_STANDARDS[PublicPlanSlug]]||"Confirm scope"}</td>)}</tr>)}
-            {comparisonRows.map(([label,values]:any)=><tr key={label}><td>{label}</td>{values.map((value:string,index:number)=><td key={planSet[index][0].slug}>{value}</td>)}</tr>)}
+            ].map(([label,field])=><tr key={field}><th scope="row">{label}</th>{planSet.map(([product])=><td key={product.slug}>{PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug]?.[field as keyof typeof PLAN_DELIVERY_STANDARDS[PublicPlanSlug]]||"Confirm scope"}</td>)}</tr>)}
+            {comparisonRows.map(([label,values]:any)=><tr key={label}><th scope="row">{label}</th>{values.map((value:string,index:number)=><td key={planSet[index][0].slug}>{value}</td>)}</tr>)}
           </tbody></table>
         </div>
       </div>
