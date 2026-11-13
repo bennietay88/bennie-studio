@@ -3532,6 +3532,18 @@ async function startServer() {
     + "?redirectTo=" + encodeURIComponent("/dashboard/onboarding")
     + "&email=" + encodeURIComponent(email);
 
+  const reserveHostingerEmailQuota = async (mailbox: string) => {
+    // Database reservation is required on every serverless instance, never in memory.
+    const { data, error } = await supabaseAdmin.rpc("claim_hostinger_smtp_slot", {
+      p_mailbox: mailbox, p_daily_limit: 100,
+    });
+    if (error) {
+      structuredLog("error", "hostinger_quota_reservation_failed", { code: error.code || "unknown" });
+      throw new Error("EMAIL_QUOTA_TRACKER_UNAVAILABLE");
+    }
+    return data === true;
+  };
+
   const deliverCustomerOnboardingInvite = async (input: {
     businessId: string;
     businessName: string;
@@ -3557,7 +3569,7 @@ async function startServer() {
         html: inviteHtml,
         text: inviteText,
         replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
-      });
+      }, process.env, reserveHostingerEmailQuota);
       return {
         status: input.hasAccount ? "existing_user_notified" : "invite_sent",
         email: input.email, sentAt: new Date().toISOString(),
@@ -3642,7 +3654,7 @@ async function startServer() {
         replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
         bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
         headers: { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
-      });
+      }, process.env, reserveHostingerEmailQuota);
     }
     const { data, error } = await getResend().emails.send({
       from:
@@ -8754,6 +8766,10 @@ async function startServer() {
         EMAIL_DELIVERY_FAILED: {
           status: 502,
           message: "The email provider could not accept the message. Check provider logs before retrying.",
+        },
+        EMAIL_QUOTA_TRACKER_UNAVAILABLE: {
+          status: 503,
+          message: "Hostinger quota tracker is unavailable. No SMTP message was attempted.",
         },
         EMAIL_RATE_LIMITED: {
           status: 429,
