@@ -219,7 +219,7 @@ export function StyleThemeManager() {
                     >
                       {theme}
                     </Label>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Preset Bundle</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Ready-to-use theme preset</p>
                   </div>
                   <Switch
                     id={`theme-${theme}`}
