@@ -125,9 +125,7 @@ export function PublicSiteHeader() {
         </div>
 
         <div className="hidden items-center gap-3 xl:flex">
-          <Link to={user ? "/dashboard" : "/login"} className="px-2 py-2 text-sm font-semibold text-[#697386] transition hover:text-[#1741ed]">
-            {user ? "Dashboard" : "Client login"}
-          </Link>
+          {!user ? <Link to="/login" className="px-2 py-2 text-sm font-semibold text-[#697386] transition hover:text-[#1741ed]">Client login</Link> : null}
           {primaryExternal ? <a href={primaryHref} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref })} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#1741ed]">{primaryLabel} <span className="ml-2">→</span></a> : <Link to={primaryHref} onClick={() => !user && trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref })} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#1741ed]">{primaryLabel} <span className="ml-2">→</span></Link>}
         </div>
 
@@ -153,7 +151,7 @@ export function PublicSiteHeader() {
               })}
             </div>
             <div className="mt-auto grid gap-3 border-t border-[#e5e7ef] pt-5">
-              <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#cfd4df] px-5 text-sm font-semibold text-[#0d1426]">{user ? "Dashboard" : "Client login"}</Link>
+              {!user ? <Link to="/login" onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#cfd4df] px-5 text-sm font-semibold text-[#0d1426]">Client login</Link> : null}
               {primaryExternal ? <a href={primaryHref} target="_blank" rel="noreferrer" onClick={() => { trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref }); setMobileOpen(false); }} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{primaryLabel} →</a> : <Link to={primaryHref} onClick={() => { if (!user) trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref }); setMobileOpen(false); }} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{primaryLabel} →</Link>}
             </div>
           </div>
