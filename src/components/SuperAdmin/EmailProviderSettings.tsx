@@ -49,7 +49,7 @@ async function adminRequest(path: string, options: RequestInit = {}) {
   return body;
 }
 
-export function EmailProviderSettings({ transactional, sales, onChange }: Props) {
+export function EmailProviderSettings({ onChange }: Props) {
   const [status, setStatus] = useState<ProviderStatus | null>(null);
   const [resendAccountId, setResendAccountId] = useState("");
   const [resendAccountName, setResendAccountName] = useState("");
@@ -57,6 +57,7 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
   const [resendApiKey, setResendApiKey] = useState("");
   const [resendSaving, setResendSaving] = useState(false);
   const [assignmentSaving, setAssignmentSaving] = useState(false);
+  const [deliveryChoice, setDeliveryChoice] = useState("mixed");
   const [mailbox, setMailbox] = useState("");
   const [password, setPassword] = useState("");
   const [port, setPort] = useState<465 | 587>(465);
@@ -73,6 +74,13 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
     if (prefill) {
       setMailbox(data.providers.hostinger.from || "");
       setPort(data.providers.hostinger.smtpPort === 587 ? 587 : 465);
+      const { transactional, sales } = data.selection;
+      const assigned = data.providers.resend.assignments;
+      if (transactional === "hostinger" && sales === "hostinger") setDeliveryChoice("hostinger");
+      else if (transactional === "resend" && sales === "resend" && assigned.transactional === assigned.sales && assigned.transactional) {
+        setDeliveryChoice("resend:" + assigned.transactional);
+      } else if (transactional === "resend" && sales === "resend" && !assigned.transactional && !assigned.sales) setDeliveryChoice("resend:fallback");
+      else setDeliveryChoice("mixed");
     }
   }, []);
 
@@ -174,19 +182,39 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
     }
   };
 
-  const assignResendAccount = async (purpose: "transactional" | "sales", accountId: string) => {
+  const selectDeliveryProvider = async (choice: string) => {
+    if (!status) return;
     setError("");
     setNotice("");
     setAssignmentSaving(true);
+    const oldAssignments = status.providers.resend.assignments;
+    const accountId = choice.startsWith("resend:") && choice !== "resend:fallback" ? choice.slice("resend:".length) : null;
+    const provider: Provider = choice === "hostinger" ? "hostinger" : "resend";
+    const updated: Array<"transactional" | "sales"> = [];
     try {
-      await adminRequest("/api/admin/email-providers/resend/assignments/" + purpose, {
-        method: "PUT",
-        body: JSON.stringify({ accountId: accountId || null }),
-      });
-      setNotice("Resend account assignment updated.");
+      for (const purpose of ["transactional", "sales"] as const) {
+        await adminRequest("/api/admin/email-providers/resend/assignments/" + purpose, {
+          method: "PUT",
+          body: JSON.stringify({ accountId }),
+        });
+        updated.push(purpose);
+      }
+      setDeliveryChoice(choice);
+      onChange("transactionalEmailProvider", provider);
+      onChange("salesEmailProvider", provider);
+      setNotice("One provider selected for all outbound email. Use Persist Configuration to save the provider choice.");
       await refresh(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update Resend account assignment.");
+      for (const purpose of updated.reverse()) {
+        try {
+          await adminRequest("/api/admin/email-providers/resend/assignments/" + purpose, {
+            method: "PUT",
+            body: JSON.stringify({ accountId: oldAssignments[purpose] }),
+          });
+        } catch { /* keep the original error visible */ }
+      }
+      setError(err instanceof Error ? err.message : "Could not update outbound email provider.");
+      await refresh(false);
     } finally {
       setAssignmentSaving(false);
     }
@@ -228,7 +256,7 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
       <div>
         <h3 className="text-lg font-bold text-slate-900">Email Providers</h3>
         <p className="mt-1 text-sm text-slate-600">
-          Set up Resend and Hostinger here, then choose the provider for each permitted message category.
+          Set up Resend accounts and Hostinger here, then choose one provider for all outbound email.
           API keys and SMTP passwords are encrypted using Supabase Vault and never returned to the browser.
         </p>
       </div>
@@ -302,33 +330,27 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
         <div>
           <h4 className="font-semibold text-slate-900">Resend accounts</h4>
           <p className="mt-1 text-xs text-slate-600">
-            Add separate accounts for transactional mail and sales follow-ups. API keys stay encrypted in Supabase Vault.
-            Saving or assigning an account does not send email.
+            Add and manage your Resend accounts here. API keys stay encrypted in Supabase Vault.
+            Saving or selecting an account does not send email.
           </p>
           <p className="mt-1 text-xs text-slate-600">
             Environment fallback: {status?.providers.resend.fallbackConfigured ? "configured" : "not configured"}.
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          {([
-            ["Transactional email", "transactional"],
-            ["Sales follow-ups", "sales"],
-          ] as const).map(([label, purpose]) => (
-            <label key={purpose} className="space-y-1 text-sm font-medium text-slate-800">
-              <span>{label} account</span>
-              <select className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
-                value={status?.providers.resend.assignments[purpose] || ""}
-                disabled={busy || assignmentSaving}
-                onChange={(event) => void assignResendAccount(purpose, event.target.value)}>
-                <option value="">Environment fallback</option>
-                {(status?.providers.resend.accounts || []).map((account) => (
-                  <option key={account.id} value={account.id}>{account.name} · {account.from}</option>
-                ))}
-              </select>
-            </label>
-          ))}
-        </div>
+        <label className="block space-y-1 text-sm font-medium text-slate-800">
+          <span>All outbound email</span>
+          <select className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3"
+            value={deliveryChoice} disabled={busy || assignmentSaving}
+            onChange={(event) => void selectDeliveryProvider(event.target.value)}>
+            <option value="mixed" disabled>Current setup is mixed — choose one option to unify</option>
+            <option value="hostinger" disabled={!hostingerReady}>Hostinger SMTP · {status?.providers.hostinger.from || "configure first"}</option>
+            <option value="resend:fallback">Resend · environment fallback</option>
+            {(status?.providers.resend.accounts || []).map((account) => (
+              <option key={account.id} value={"resend:" + account.id}>Resend · {account.name} · {account.from}</option>
+            ))}
+          </select>
+        </label>
 
         <div className="space-y-2">
           {(status?.providers.resend.accounts || []).map((account) => (
@@ -387,22 +409,7 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {([
-          ["Customer onboarding", "transactionalEmailProvider", transactional],
-          ["Permissioned sales email", "salesEmailProvider", sales],
-        ] as const).map(([label, key, value]) => (
-          <label key={key} className="space-y-2 text-sm font-medium text-slate-800">
-            <span>{label}</span>
-            <select className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3" value={value}
-              disabled={loading}
-              onChange={(event) => onChange(key, event.target.value as Provider)}>
-              <option value="resend">Resend</option>
-              <option value="hostinger" disabled={!hostingerReady}>Hostinger SMTP {!hostingerReady ? "(configure first)" : ""}</option>
-            </select>
-          </label>
-        ))}
-      </div>
+
       <p className="text-xs leading-5 text-slate-600">
         Save provider selection using <strong>Persist Configuration</strong> in the parent settings page.
         Resend API and Hostinger SMTP count messages separately, even if they use the same sender address.

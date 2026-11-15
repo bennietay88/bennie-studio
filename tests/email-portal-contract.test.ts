@@ -77,7 +77,12 @@ test("Resend portal configuration is server-only and covers all server-side send
   assert.match(api, /getResendProvider\("transactional"\)/);
   assert.doesNotMatch(api, /getResend\(\)/);
   assert.match(portal, /Add Resend account/);
-  assert.match(portal, /assignResendAccount/);
+  assert.match(portal, /All outbound email/);
+  assert.match(portal, /selectDeliveryProvider/);
+  assert.doesNotMatch(portal, /Transactional email account|Sales follow-ups account/);
+  assert.match(api, /const sendConfiguredEmail = async/);
+  assert.match(api, /sendConfiguredEmail\("transactional", \{ to, subject, html \}\)/);
+  assert.match(api, /sendConfiguredEmail\("sales", \{ to, subject, html \}\)/);
   assert.match(portal, /setResendApiKey\(""\)/);
   assert.match(portal, /Leave blank to keep saved key/);
 });

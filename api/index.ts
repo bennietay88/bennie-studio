@@ -3570,6 +3570,44 @@ async function startServer() {
     return data === true;
   };
 
+  const sendConfiguredEmail = async (
+    purpose: ResendPurpose,
+    input: {
+      to: string | string[];
+      subject: string;
+      html: string;
+      text?: string;
+      replyTo?: string;
+      bcc?: string;
+      headers?: Record<string, string>;
+      tags?: Array<{ name: string; value: string }>;
+    },
+    idempotencyKey?: string,
+  ): Promise<{ data: { id: string } | null; error: any; provider: "resend" | "hostinger" }> => {
+    const setting = purpose === "sales"
+      ? platformSettings?.salesEmailProvider
+      : platformSettings?.transactionalEmailProvider;
+    if (selectEmailProvider(setting) === "hostinger") {
+      const { to, tags: _tags, ...message } = input;
+      const recipients = Array.isArray(to) ? to : [to];
+      const receipts: Array<{ id: string }> = [];
+      for (const recipient of recipients) {
+        receipts.push(await sendHostingerMail(
+          { ...message, to: recipient },
+          await loadHostingerSettings(),
+          reserveHostingerEmailQuota,
+        ));
+      }
+      return { data: { id: receipts[0]?.id || "" }, error: null, provider: "hostinger" };
+    }
+    const { client, from } = await getResendProvider(purpose);
+    const payload = { ...input, from };
+    const result = idempotencyKey
+      ? await client.emails.send(payload, { idempotencyKey })
+      : await client.emails.send(payload);
+    return { data: result.data || null, error: result.error || null, provider: "resend" };
+  };
+
   const deliverCustomerOnboardingInvite = async (input: {
     businessId: string;
     businessName: string;
@@ -4732,7 +4770,11 @@ async function startServer() {
       let delivery: "sent" | "not_configured" | "failed" | "skipped" = "skipped";
       if (job.payload?.leadEmail && job.payload?.leadId && job.payload?.reportAccessKey) {
         try {
-          await getResendProvider();
+          if (selectEmailProvider(platformSettings?.transactionalEmailProvider) === "hostinger") {
+            await loadHostingerSettings();
+          } else {
+            await getResendProvider("transactional");
+          }
         } catch {
           delivery = "not_configured";
         }
@@ -4752,14 +4794,13 @@ async function startServer() {
               `Discuss with the studio: ${publicAppUrl()}/book-demo`,
               "This automated review is based on accessible page evidence. It is not a guarantee of rankings or revenue.",
             ].join("\n\n");
-            const { data, error } = await (await getResendProvider()).client.emails.send({
-              from: (await getResendProvider()).from,
+            const { data, error } = await sendConfiguredEmail("transactional", {
               to: String(job.payload.leadEmail),
               replyTo: process.env.SALES_REPLY_TO || undefined,
               subject: "Your Bennie Studio website review is ready",
               html: emailHtml,
               text: textBody,
-            }, { idempotencyKey: `requested-website-audit-${job.id}` });
+            }, `requested-website-audit-${job.id}`);
             if (error || !data?.id) throw new Error("AUDIT_EMAIL_NOT_ACCEPTED");
             delivery = "sent";
           } catch (emailError: any) {
@@ -6847,13 +6888,11 @@ async function startServer() {
         let notificationStatus = "sent";
         try {
           const recipient = process.env.SALES_REPLY_TO || platformSettings?.supportEmail || "support@bennietay.com";
-          const { client: resend } = await getResendProvider("sales");
           const safeName = escapePortfolioHtml(leadBody.name);
           const safeEmail = escapePortfolioHtml(leadBody.email);
           const safeIndustry = escapePortfolioHtml(leadBody.industry || "Not specified");
           const safeMessage = escapePortfolioHtml(leadBody.message).replace(/\n/g, "<br />");
-          const { error: emailError } = await resend.emails.send({
-            from: (await getResendProvider("sales")).from,
+          const { error: emailError } = await sendConfiguredEmail("sales", {
             to: recipient,
             replyTo: leadBody.email,
             subject: `New portfolio enquiry from ${safeName}`,
@@ -10455,13 +10494,7 @@ async function startServer() {
 
       const { to, subject, html } = emailBody;
       console.log(`[Email] Sending to ${to} subject: ${subject}`);
-      const { client: resend } = await getResendProvider();
-      const { data, error } = await resend.emails.send({
-        from: (await getResendProvider()).from,
-        to,
-        subject,
-        html,
-      });
+      const { data, error } = await sendConfiguredEmail("transactional", { to, subject, html });
 
       if (error) {
         console.error("Resend API Error:", error);
@@ -10498,13 +10531,7 @@ async function startServer() {
   const sendFunnelEmail = async ({ to, subject, html }: { to: string; subject: string; html: string }) => {
     const recipient = normalizeSalesEmail(to);
     if (!recipient || await isSalesSuppressed(supabaseAdmin, recipient)) throw new Error("CONTACT_SUPPRESSED");
-    const { client: resend } = await getResendProvider("sales");
-    const { error } = await resend.emails.send({
-      from: (await getResendProvider("sales")).from,
-      to,
-      subject,
-      html,
-    });
+    const { error } = await sendConfiguredEmail("sales", { to, subject, html });
     if (error) throw new Error("EMAIL_PROVIDER_ERROR");
   };
 
@@ -13878,9 +13905,7 @@ async function startServer() {
 
           // 5. Send Email via Resend
           try {
-            const { client: resend } = await getResendProvider("transactional");
-            await resend.emails.send({
-              from: (await getResendProvider("transactional")).from,
+            await sendConfiguredEmail("transactional", {
               to: owner.email,
               subject: `New Lead: ${name} is interested!`,
               html: `
