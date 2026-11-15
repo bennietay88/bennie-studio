@@ -1911,7 +1911,7 @@ export function ProspectExplorer() {
                         <Button type="button" size="sm" variant="link" className="mt-1 h-7 px-0 text-xs font-semibold text-indigo-700"
                           disabled={Boolean(prospect.converted_business_id) || ["won","lost"].includes(prospect.outreach_status)}
                           onClick={() => openFollowUpPlan(prospect)}>
-                          <CalendarDays className="mr-1 h-3.5 w-3.5" /> 3 / 7 day plan
+                          <CalendarDays className="mr-1 h-3.5 w-3.5" /> 3 / 8 / 15 day plan
                         </Button>
                         {prospect.preview_url && <a href={prospect.preview_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600"><LinkIcon className="h-3 w-3" /> Preview link</a>}
                       </td>
@@ -1934,8 +1934,19 @@ export function ProspectExplorer() {
           </div>
         </CardContent>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-4">
-          <p className="text-xs font-semibold text-slate-500">Page {currentPage} of {pageCount} · {PROSPECT_PAGE_SIZE} per page</p>
-          <div className="flex items-center gap-2">
+          <p className="text-xs font-semibold text-slate-500">{PROSPECT_PAGE_SIZE} per page · page {currentPage} of {pageCount}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="prospect-page-select" className="text-xs font-semibold text-slate-500">Go to page</label>
+            <select
+              id="prospect-page-select"
+              aria-label="Go to prospect page"
+              value={currentPage}
+              disabled={loading || pageCount <= 1}
+              onChange={(event) => setCurrentPage(Number(event.target.value))}
+              className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800"
+            >
+              {Array.from({ length: pageCount }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}</option>)}
+            </select>
             <Button type="button" size="sm" variant="outline" disabled={loading || currentPage <= 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}>Previous</Button>
             <Button type="button" size="sm" variant="outline" disabled={loading || currentPage >= pageCount} onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}>Next</Button>
           </div>
@@ -2010,7 +2021,7 @@ export function ProspectExplorer() {
           </DialogHeader>
           <div className="space-y-5 py-2">
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" type="button" variant={followUpDays === "3,8,15" ? "default" : "outline"} onClick={() => setFollowUpDays("3,8,15")} className="rounded-xl">Day 3 + 8 + 15 (3/5/7-day intervals)</Button>
+              <Button size="sm" type="button" variant={followUpDays === "3,8,15" ? "default" : "outline"} onClick={() => setFollowUpDays("3,8,15")} className="rounded-xl">Day 3, 8 & 15 (3, 5 & 7 days apart)</Button>
             </div>
             <Field label="Start date">
               <Input type="date" className="rounded-xl" value={followUpStartDate} onChange={(event) => setFollowUpStartDate(event.target.value)} />

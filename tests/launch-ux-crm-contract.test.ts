@@ -21,7 +21,7 @@ test("overdue overview count and queue share the exact open-task/date predicate"
   assert.match(taskEndpoint, /count: "exact"/);
   assert.match(taskEndpoint, /\.eq\("status", "open"\)\.lte\("due_at", new Date\(\)\.toISOString\(\)\)/);
   assert.match(taskEndpoint, /\.range\(offset, offset \+ pageSize - 1\)/);
-  assert.match(api, /overdueOpenTasks: overdueTaskCount\.count \?\? 0/);
+  assert.match(api, /overdueOpenTasks: Number\(\(overdueTaskCount\.data as any\)\?\.overdueOpenTasks \|\| 0\)/);
   assert.match(sales, /navigate\("\/admin\/overdue_followups"\)/);
   assert.match(queue, /\/admin\/inbound_leads\?lead=/);
   assert.match(queue, /\/admin\/prospect_explorer\?prospect=/);

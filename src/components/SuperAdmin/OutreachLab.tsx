@@ -24,6 +24,11 @@ const buildDraft = (prospect: any, channel: "email" | "whatsapp") => {
 export function OutreachLab() {
   const [prospects, setProspects] = React.useState<any[]>([]);
   const [selectedId, setSelectedId] = React.useState("");
+  const [page, setPage] = React.useState(0);
+  const [total, setTotal] = React.useState(0);
+  const [dueTotal, setDueTotal] = React.useState(0);
+  const [engagedTotal, setEngagedTotal] = React.useState(0);
+  const PAGE_SIZE = 50;
   const [channel, setChannel] = React.useState<"email" | "whatsapp">("email");
   const [draft, setDraft] = React.useState("");
   const [templateId, setTemplateId] = React.useState("enquiry");
@@ -39,30 +44,50 @@ export function OutreachLab() {
 
   const fetchProspects = React.useCallback(async () => {
     setLoading(true);
-    const [prospectResult, suppressedResult] = await Promise.all([
-      supabase.from("prospects").select("*").order("next_follow_up_at", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false }).limit(5000),
-      supabase.from("sales_suppressions").select("email").not("email", "is", null),
+    const now = new Date().toISOString();
+    let listQuery = supabase.from("prospects").select("*", { count: "exact" })
+      .order("next_follow_up_at", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false });
+    if (view === "due") listQuery = listQuery.lte("next_follow_up_at", now).not("outreach_status", "in", '("won","lost")');
+    if (view === "engaged") listQuery = listQuery.in("outreach_status", ["replied", "call_booked"]);
+    const term = search.trim().replace(/[,%()\\]/g, " ").replace(/\s+/g, " ");
+    if (term) {
+      const pattern = `%${term}%`;
+      listQuery = listQuery.or(`name.ilike.${pattern},domain.ilike.${pattern},industry.ilike.${pattern},location.ilike.${pattern}`);
+    }
+    const from = page * PAGE_SIZE;
+    const [prospectResult, dueResult, engagedResult] = await Promise.all([
+      listQuery.range(from, from + PAGE_SIZE - 1),
+      supabase.from("prospects").select("id", { count: "exact", head: true }).lte("next_follow_up_at", now).not("outreach_status", "in", '("won","lost")'),
+      supabase.from("prospects").select("id", { count: "exact", head: true }).in("outreach_status", ["replied", "call_booked"]),
     ]);
-    if (prospectResult.error) toast.error(prospectResult.error.message || "Could not load prospects");
-    if (suppressedResult.error) toast.error("Suppression status unavailable; outreach is disabled until it can be checked.");
-    setSuppressedEmails(new Set((suppressedResult.data || []).map((row) => String(row.email || "").toLowerCase().trim())));
-    setSuppressionUnavailable(Boolean(suppressedResult.error));
+    if (prospectResult.error) {
+      toast.error(prospectResult.error.message || "Could not load prospects");
+      setProspects([]);
+      setTotal(0);
+      setLoading(false);
+      return;
+    }
     setProspects(prospectResult.data || []);
+    setTotal(prospectResult.count || 0);
+    setDueTotal(dueResult.error ? 0 : dueResult.count || 0);
+    setEngagedTotal(engagedResult.error ? 0 : engagedResult.count || 0);
+    const emails = [...new Set((prospectResult.data || []).map((row) => String(row.contact_email || "").toLowerCase().trim()).filter(Boolean))];
+    const suppressedResult = emails.length
+      ? await supabase.from("sales_suppressions").select("email").in("email", emails)
+      : { data: [], error: null };
+    if (suppressedResult.error) toast.error("Suppression status unavailable; outreach is disabled until it can be checked.");
+    setSuppressedEmails(new Set((suppressedResult.data || []).map((row: any) => String(row.email || "").toLowerCase().trim())));
+    setSuppressionUnavailable(Boolean(suppressedResult.error));
     setLoading(false);
-  }, []);
+  }, [page, search, view]);
 
   React.useEffect(() => { void fetchProspects(); }, [fetchProspects]);
 
   const selected = prospects.find((prospect) => prospect.id === selectedId);
   const selectedSuppressed = suppressionUnavailable || Boolean(selected?.contact_email && suppressedEmails.has(String(selected.contact_email).toLowerCase().trim()));
-  const filtered = prospects.filter((prospect) => {
-    const query = search.trim().toLowerCase();
-    const matchesSearch = !query || [prospect.name, prospect.domain, prospect.industry, prospect.location].some((value) => String(value || "").toLowerCase().includes(query));
-    const isDue = !suppressedEmails.has(String(prospect.contact_email || "").toLowerCase().trim()) && prospect.next_follow_up_at && new Date(prospect.next_follow_up_at) <= new Date() && !["won", "lost"].includes(prospect.outreach_status);
-    const isEngaged = ["replied", "call_booked"].includes(prospect.outreach_status);
-    return matchesSearch && (view === "all" || (view === "due" && isDue) || (view === "engaged" && isEngaged));
-  });
-  const due = prospects.filter((prospect) => !suppressedEmails.has(String(prospect.contact_email || "").toLowerCase().trim()) && prospect.next_follow_up_at && new Date(prospect.next_follow_up_at) <= new Date() && !["won", "lost"].includes(prospect.outreach_status)).length;
+  const filtered = prospects;
+  const due = dueTotal;
 
   React.useEffect(() => {
     if (!selected) return;
@@ -79,12 +104,6 @@ export function OutreachLab() {
   React.useEffect(() => {
     if (selected) setDraft(channel === "email" ? buildEmailTemplateDraft(templateId, selected, finding) : buildDraft({ ...selected, notes: finding }, channel));
   }, [selectedId, channel, finding, templateId]);
-
-  React.useEffect(() => {
-    if (selectedId || !prospects.length) return;
-    const next = prospects.find((prospect) => prospect.next_follow_up_at && new Date(prospect.next_follow_up_at) <= new Date() && !["won", "lost"].includes(prospect.outreach_status)) || prospects[0];
-    setSelectedId(next.id);
-  }, [prospects, selectedId]);
 
   const updateProspect = async (prospectId: string, updates: Record<string, any>) => {
     const { data, error } = await supabase.from("prospects").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", prospectId).select("*").single();
@@ -167,7 +186,7 @@ export function OutreachLab() {
         </div>
         <div className="flex gap-3">
           <Badge variant="outline" className="rounded-xl px-4 py-2 text-sm"><CalendarClock className="mr-2 h-4 w-4 text-rose-500" /> {due} due</Badge>
-          <Badge variant="outline" className="rounded-xl px-4 py-2 text-sm"><CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" /> {prospects.filter((p) => ["replied", "call_booked", "won"].includes(p.outreach_status)).length} engaged</Badge>
+          <Badge variant="outline" className="rounded-xl px-4 py-2 text-sm"><CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" /> {engagedTotal} engaged</Badge>
         </div>
       </div>
 
@@ -175,9 +194,17 @@ export function OutreachLab() {
 
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <Card className="overflow-hidden rounded-3xl border-slate-200 shadow-sm">
-          <CardHeader className="border-b border-slate-100 p-5"><CardTitle className="text-base">Choose a prospect</CardTitle><div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Prospect view">{([['due','Due now'],['engaged','Engaged'],['all','All']] as const).map(([value,label]) => <button key={value} type="button" onClick={() => setView(value)} className={`min-h-9 rounded-xl px-3 text-xs font-black ${view === value ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-600"}`}>{label}</button>)}</div></CardHeader>
+          <CardHeader className="border-b border-slate-100 p-5"><CardTitle className="text-base">Choose a prospect</CardTitle><div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Prospect view">{([['due','Due now'],['engaged','Engaged'],['all','All']] as const).map(([value,label]) => <button key={value} type="button" onClick={() => { setPage(0); setView(value); }} className={`min-h-9 rounded-xl px-3 text-xs font-black ${view === value ? "bg-slate-950 text-white" : "border border-slate-200 bg-white text-slate-600"}`}>{label}</button>)}</div></CardHeader>
           <CardContent className="p-5">
-            <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search business, niche or market" className="rounded-xl pl-9" /></div>
+            <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input value={search} onChange={(event) => { setPage(0); setSearch(event.target.value); }} placeholder="Search business, niche or market" className="rounded-xl pl-9" /></div>
+            <div className="mt-3 flex items-center justify-between text-xs font-semibold text-slate-500">
+              <span>{loading ? "Loading…" : `${total} matching prospects`}</span>
+              <span>Page {page + 1} of {Math.max(1, Math.ceil(total / PAGE_SIZE))}</span>
+            </div>
+            <div className="mt-2 flex gap-2">
+              <Button type="button" variant="outline" size="sm" disabled={loading || page === 0} onClick={() => setPage((current) => Math.max(0, current - 1))}>Previous</Button>
+              <Button type="button" variant="outline" size="sm" disabled={loading || (page + 1) * PAGE_SIZE >= total} onClick={() => setPage((current) => current + 1)}>Next</Button>
+            </div>
             <div className="mt-4 max-h-[560px] space-y-2 overflow-auto pr-1">
               {loading ? <p className="py-12 text-center text-sm font-semibold text-slate-500">Loading prospects…</p> : filtered.length === 0 ? <p className="py-12 text-center text-sm font-semibold text-slate-500">No prospects match this view.</p> : filtered.map((prospect) => (
                 <button key={prospect.id} type="button" onClick={() => setSelectedId(prospect.id)} className={`w-full rounded-2xl border p-4 text-left transition ${selectedId === prospect.id ? "border-indigo-300 bg-indigo-50" : "border-slate-200 bg-white hover:border-indigo-200"}`}>

@@ -51,8 +51,14 @@ const isOpen = (status?: string) => !["completed", "dismissed", "won", "lost", "
 
 export function GrowthOperationsCenter() {
   const [data, setData] = useState<LoadState>(EMPTY_STATE);
+  const [previewPage, setPreviewPage] = useState(0);
+  const [previewRows, setPreviewRows] = useState<any[]>([]);
+  const [previewTotal, setPreviewTotal] = useState(0);
+  const [funnel, setFunnel] = useState({ prospects: 0, previews: 0, enquiries: 0, proposals: 0, customers: 0 });
+  const PREVIEW_PAGE_SIZE = 50;
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
+  const [overdueFollowUps, setOverdueFollowUps] = useState<number | null>(null);
   const [reportWorkflowEnabled, setReportWorkflowEnabled] = useState(false);
   const [reportActionLoading, setReportActionLoading] = useState(false);
   const [experiment, setExperiment] = useState({ name: "", templateId: "", hypothesis: "", event: "lead_submitted" });
@@ -95,6 +101,70 @@ export function GrowthOperationsCenter() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const response = await fetch("/api/admin/revenue-health", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          cache: "no-store",
+        });
+        if (!response.ok || cancelled) return;
+        const payload = await response.json();
+        const count = payload.counts?.overdueFollowUps;
+        if (typeof count === "number") setOverdueFollowUps(count);
+      } catch {
+        if (!cancelled) setOverdueFollowUps(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const from = previewPage * PREVIEW_PAGE_SIZE;
+    void supabase.from("prospects").select("*", { count: "exact" })
+      .is("preview_url", null)
+      .or("status.is.null,status.neq.lost")
+      .order("created_at", { ascending: false })
+      .range(from, from + PREVIEW_PAGE_SIZE - 1)
+      .then(({ data: rows, count, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setPreviewRows([]);
+          setPreviewTotal(0);
+          toast.error("The preview queue could not be loaded.");
+          return;
+        }
+        setPreviewRows(rows || []);
+        setPreviewTotal(count || 0);
+      });
+    return () => { cancelled = true; };
+  }, [previewPage]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const active = (query: any) => query.or("status.is.null,status.neq.lost");
+    void Promise.all([
+      active(supabase.from("prospects").select("id", { count: "exact", head: true })),
+      active(supabase.from("prospects").select("id", { count: "exact", head: true }).not("preview_url", "is", null)),
+      supabase.from("leads").select("id", { count: "exact", head: true }).not("status", "in", '("spam","lost")'),
+      supabase.from("proposals").select("id", { count: "exact", head: true }).not("status", "in", '("lost","cancelled")'),
+      supabase.from("businesses").select("id", { count: "exact", head: true }).not("status", "in", '("cancelled","paused")'),
+    ]).then(([prospects, previews, enquiries, proposals, customers]) => {
+      if (cancelled || [prospects, previews, enquiries, proposals, customers].some((item) => item.error)) return;
+      setFunnel({
+        prospects: prospects.count || 0,
+        previews: previews.count || 0,
+        enquiries: enquiries.count || 0,
+        proposals: proposals.count || 0,
+        customers: customers.count || 0,
+      });
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const today = useMemo(() => {
     const now = Date.now();
@@ -105,14 +175,7 @@ export function GrowthOperationsCenter() {
     return { responseDue, dueTasks, engagedProposals, blockers };
   }, [data]);
 
-  const previewQueue = data.prospects.filter((prospect) => !prospect.design_preview_url && prospect.status !== "lost");
-  const funnel = {
-    prospects: data.prospects.filter((prospect) => prospect.status !== "lost").length,
-    previews: data.prospects.filter((prospect) => prospect.design_preview_url && prospect.status !== "lost").length,
-    enquiries: data.leads.filter((lead) => !["spam", "lost"].includes(String(lead.status || "").toLowerCase())).length,
-    proposals: data.proposals.filter((proposal) => !["lost", "cancelled"].includes(String(proposal.status || "").toLowerCase())).length,
-    customers: data.businesses.filter((business) => !["cancelled", "paused"].includes(String(business.status || "").toLowerCase())).length,
-  };
+  const previewQueue = previewRows;
   const businessName = (id?: string) => data.businesses.find((business) => business.id === id)?.name || "Customer";
 
   const generatePreview = (prospect: any) => {
@@ -126,9 +189,9 @@ export function GrowthOperationsCenter() {
 
   const openWhatsApp = async (prospect: any) => {
     if (!prospect.contact_whatsapp && !prospect.contact_phone) return toast.error("This prospect has no WhatsApp number.");
-    if (!prospect.design_preview_url) return toast.error("Save the verified design preview before sharing it.");
+    if (!prospect.preview_url) return toast.error("Save the verified design preview before sharing it.");
     const phone = String(prospect.contact_whatsapp || prospect.contact_phone).replace(/\D/g, "");
-    const message = `Hi ${prospect.name}, I prepared a short website direction for your business based on what a customer needs to see before enquiring: ${prospect.design_preview_url}`;
+    const message = `Hi ${prospect.name}, I prepared a short website direction for your business based on what a customer needs to see before enquiring: ${prospect.preview_url}`;
     await supabase.from("sales_tasks").insert({
       prospect_id: prospect.id,
       title: `Follow up on preview with ${prospect.name}`,
@@ -136,7 +199,7 @@ export function GrowthOperationsCenter() {
       priority: "high",
       due_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       notes: "Confirm the prospect opened the personalised preview and offer a short fit call.",
-      metadata: { previewUrl: prospect.design_preview_url, channel: "whatsapp" },
+      metadata: { previewUrl: prospect.preview_url, channel: "whatsapp" },
     });
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
     toast.success("Follow-up task created for tomorrow");
@@ -219,7 +282,7 @@ export function GrowthOperationsCenter() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric icon={Clock3} label="Needs first response" value={today.responseDue.length} attention={today.responseDue.length > 0} />
-        <Metric icon={Send} label="Due sales actions" value={today.dueTasks.length} attention={today.dueTasks.length > 0} />
+        <Metric icon={Send} label="Overdue follow-up records" value={overdueFollowUps ?? "—"} attention={(overdueFollowUps ?? 0) > 0} />
         <Metric icon={Target} label="Viewed proposals" value={today.engagedProposals.length} />
         <Metric icon={AlertCircle} label="Delivery blockers" value={today.blockers.length} attention={today.blockers.length > 0} />
       </div>
@@ -264,7 +327,15 @@ export function GrowthOperationsCenter() {
         </TabsContent>
 
         <TabsContent value="previews" className="space-y-4 pt-4">
-          <SectionIntro title="Turn research into a concrete preview" copy="Generate a personalised direction from stored prospect data, then create a human follow-up task. Sending remains approval-first." />
+          <SectionIntro title="Turn research into a concrete preview" copy="Showing prospects without a saved design preview. Generate a personalised direction from stored data; sending remains approval-first." />
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+            <span>{previewTotal} prospects waiting for a preview</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Page {previewPage + 1} of {Math.max(1, Math.ceil(previewTotal / PREVIEW_PAGE_SIZE))}</span>
+              <Button variant="outline" size="sm" disabled={previewPage === 0} onClick={() => setPreviewPage((page) => Math.max(0, page - 1))}>Previous</Button>
+              <Button variant="outline" size="sm" disabled={(previewPage + 1) * PREVIEW_PAGE_SIZE >= previewTotal} onClick={() => setPreviewPage((page) => page + 1)}>Next</Button>
+            </div>
+          </div>
           {previewQueue.map((prospect) => (
             <Card key={prospect.id} className="rounded-3xl border-slate-200"><CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center">
               <div className="min-w-0 flex-1"><p className="font-black text-slate-950">{prospect.name}</p><p className="text-xs font-semibold text-slate-500">{prospect.industry || "Industry not set"} · {prospect.location || "Location not set"}</p></div>
@@ -273,7 +344,7 @@ export function GrowthOperationsCenter() {
             </CardContent></Card>
           ))}
           {!previewQueue.length && <Empty text="No prospect is waiting for a preview." />}
-          {!!data.prospects.filter((prospect) => prospect.design_preview_url && prospect.status !== "lost").length && <div className="space-y-3 pt-3"><h3 className="text-lg font-black">Ready to send</h3>{data.prospects.filter((prospect) => prospect.design_preview_url && prospect.status !== "lost").slice(0, 12).map((prospect) => <Card key={prospect.id} className="rounded-2xl"><CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center"><div className="flex-1"><p className="font-black">{prospect.name}</p><p className="truncate text-xs text-slate-500">{prospect.design_preview_url}</p></div><Button variant="outline" className="rounded-xl" onClick={() => window.open(prospect.design_preview_url, "_blank", "noopener,noreferrer")}>Preview <ArrowUpRight className="ml-2 h-4 w-4" /></Button><Button className="rounded-xl bg-emerald-600" onClick={() => void openWhatsApp(prospect)}><MessageCircle className="mr-2 h-4 w-4" />Prepare WhatsApp</Button></CardContent></Card>)}</div>}
+          {!!data.prospects.filter((prospect) => prospect.preview_url && prospect.status !== "lost").length && <div className="space-y-3 pt-3"><h3 className="text-lg font-black">Ready to send</h3>{data.prospects.filter((prospect) => prospect.preview_url && prospect.status !== "lost").slice(0, 12).map((prospect) => <Card key={prospect.id} className="rounded-2xl"><CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center"><div className="flex-1"><p className="font-black">{prospect.name}</p><p className="truncate text-xs text-slate-500">{prospect.preview_url}</p></div><Button variant="outline" className="rounded-xl" onClick={() => window.open(prospect.preview_url, "_blank", "noopener,noreferrer")}>Preview <ArrowUpRight className="ml-2 h-4 w-4" /></Button><Button className="rounded-xl bg-emerald-600" onClick={() => void openWhatsApp(prospect)}><MessageCircle className="mr-2 h-4 w-4" />Prepare WhatsApp</Button></CardContent></Card>)}</div>}
         </TabsContent>
 
         <TabsContent value="delivery" className="space-y-4 pt-4">
@@ -303,7 +374,7 @@ export function GrowthOperationsCenter() {
   );
 }
 
-function Metric({ icon: Icon, label: metricLabel, value, attention = false }: { icon: React.ElementType; label: string; value: number; attention?: boolean }) {
+function Metric({ icon: Icon, label: metricLabel, value, attention = false }: { icon: React.ElementType; label: string; value: number | string; attention?: boolean }) {
   return <Card className="rounded-3xl border-slate-200 shadow-sm"><CardContent className="p-5"><Icon className={`h-5 w-5 ${attention ? "text-rose-600" : "text-indigo-600"}`} /><p className="mt-4 text-xs font-bold text-slate-500">{metricLabel}</p><p className={`mt-1 text-4xl font-black ${attention ? "text-rose-600" : "text-slate-950"}`}>{value}</p></CardContent></Card>;
 }
 

@@ -7259,7 +7259,7 @@ async function startServer() {
           supabaseAdmin.from("proposals").select("id,status,created_at").limit(1000),
           supabaseAdmin.from("customer_services").select("id,status,stripe_subscription_id,product_slug").limit(1000),
           supabaseAdmin.from("stripe_webhook_events").select("event_type,status").gte("created_at", since).limit(1000),
-          supabaseAdmin.from("sales_tasks").select("id", { count: "exact", head: true }).eq("status", "open").lte("due_at", new Date().toISOString()),
+          supabaseAdmin.rpc("admin_sales_follow_up_summary"),
         ]);
         const queries = [leads, trackedLeads, previewEvents, checkoutEvents, salesTasks, prospects, messages, calls, proposals, customerServices, checkouts, overdueTaskCount];
         const failed = queries.find((response) => response.error);
@@ -7285,7 +7285,8 @@ async function startServer() {
             pendingLeadResponses: leadRows.filter((lead: any) => lead.status === "new" && !lead.first_response_at).length,
             previewsGenerated30d: (previewEvents.data || []).filter((event: any) => event.event_type === "preview_generated").length,
             checkoutStartedEvents30d: (checkoutEvents.data || []).length,
-            overdueOpenTasks: overdueTaskCount.count ?? 0,
+            overdueFollowUps: Number((overdueTaskCount.data as any)?.overdueFollowUps || 0),
+            overdueOpenTasks: Number((overdueTaskCount.data as any)?.overdueOpenTasks || 0),
             openSalesTasks: openTasks.length,
             deliveredOutreach30d: (messages.data || []).filter((message: any) => message.direction === "outbound" && message.status === "delivered").length,
             bouncedOutreach30d: (messages.data || []).filter((message: any) => message.direction === "outbound" && message.status === "bounced").length,
