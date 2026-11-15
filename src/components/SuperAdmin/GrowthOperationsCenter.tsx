@@ -51,6 +51,11 @@ const isOpen = (status?: string) => !["completed", "dismissed", "won", "lost", "
 
 export function GrowthOperationsCenter() {
   const [data, setData] = useState<LoadState>(EMPTY_STATE);
+  const [previewPage, setPreviewPage] = useState(0);
+  const [previewRows, setPreviewRows] = useState<any[]>([]);
+  const [previewTotal, setPreviewTotal] = useState(0);
+  const [funnel, setFunnel] = useState({ prospects: 0, previews: 0, enquiries: 0, proposals: 0, customers: 0 });
+  const PREVIEW_PAGE_SIZE = 50;
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
   const [reportWorkflowEnabled, setReportWorkflowEnabled] = useState(false);
@@ -96,6 +101,50 @@ export function GrowthOperationsCenter() {
 
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const from = previewPage * PREVIEW_PAGE_SIZE;
+    void supabase.from("prospects").select("*", { count: "exact" })
+      .is("design_preview_url", null)
+      .or("status.is.null,status.neq.lost")
+      .order("created_at", { ascending: false })
+      .range(from, from + PREVIEW_PAGE_SIZE - 1)
+      .then(({ data: rows, count, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setPreviewRows([]);
+          setPreviewTotal(0);
+          toast.error("The preview queue could not be loaded.");
+          return;
+        }
+        setPreviewRows(rows || []);
+        setPreviewTotal(count || 0);
+      });
+    return () => { cancelled = true; };
+  }, [previewPage]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const active = (query: any) => query.or("status.is.null,status.neq.lost");
+    void Promise.all([
+      active(supabase.from("prospects").select("id", { count: "exact", head: true })),
+      active(supabase.from("prospects").select("id", { count: "exact", head: true }).not("design_preview_url", "is", null)),
+      supabase.from("leads").select("id", { count: "exact", head: true }).not("status", "in", '("spam","lost")'),
+      supabase.from("proposals").select("id", { count: "exact", head: true }).not("status", "in", '("lost","cancelled")'),
+      supabase.from("businesses").select("id", { count: "exact", head: true }).not("status", "in", '("cancelled","paused")'),
+    ]).then(([prospects, previews, enquiries, proposals, customers]) => {
+      if (cancelled || [prospects, previews, enquiries, proposals, customers].some((item) => item.error)) return;
+      setFunnel({
+        prospects: prospects.count || 0,
+        previews: previews.count || 0,
+        enquiries: enquiries.count || 0,
+        proposals: proposals.count || 0,
+        customers: customers.count || 0,
+      });
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   const today = useMemo(() => {
     const now = Date.now();
     const responseDue = data.leads.filter((lead) => !lead.first_response_at && !["won", "lost", "closed"].includes(lead.status));
@@ -105,14 +154,7 @@ export function GrowthOperationsCenter() {
     return { responseDue, dueTasks, engagedProposals, blockers };
   }, [data]);
 
-  const previewQueue = data.prospects.filter((prospect) => !prospect.design_preview_url && prospect.status !== "lost");
-  const funnel = {
-    prospects: data.prospects.filter((prospect) => prospect.status !== "lost").length,
-    previews: data.prospects.filter((prospect) => prospect.design_preview_url && prospect.status !== "lost").length,
-    enquiries: data.leads.filter((lead) => !["spam", "lost"].includes(String(lead.status || "").toLowerCase())).length,
-    proposals: data.proposals.filter((proposal) => !["lost", "cancelled"].includes(String(proposal.status || "").toLowerCase())).length,
-    customers: data.businesses.filter((business) => !["cancelled", "paused"].includes(String(business.status || "").toLowerCase())).length,
-  };
+  const previewQueue = previewRows;
   const businessName = (id?: string) => data.businesses.find((business) => business.id === id)?.name || "Customer";
 
   const generatePreview = (prospect: any) => {
@@ -264,7 +306,15 @@ export function GrowthOperationsCenter() {
         </TabsContent>
 
         <TabsContent value="previews" className="space-y-4 pt-4">
-          <SectionIntro title="Turn research into a concrete preview" copy="Generate a personalised direction from stored prospect data, then create a human follow-up task. Sending remains approval-first." />
+          <SectionIntro title="Turn research into a concrete preview" copy="Showing prospects without a saved design preview. Generate a personalised direction from stored data; sending remains approval-first." />
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+            <span>{previewTotal} prospects waiting for a preview</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Page {previewPage + 1} of {Math.max(1, Math.ceil(previewTotal / PREVIEW_PAGE_SIZE))}</span>
+              <Button variant="outline" size="sm" disabled={previewPage === 0} onClick={() => setPreviewPage((page) => Math.max(0, page - 1))}>Previous</Button>
+              <Button variant="outline" size="sm" disabled={(previewPage + 1) * PREVIEW_PAGE_SIZE >= previewTotal} onClick={() => setPreviewPage((page) => page + 1)}>Next</Button>
+            </div>
+          </div>
           {previewQueue.map((prospect) => (
             <Card key={prospect.id} className="rounded-3xl border-slate-200"><CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center">
               <div className="min-w-0 flex-1"><p className="font-black text-slate-950">{prospect.name}</p><p className="text-xs font-semibold text-slate-500">{prospect.industry || "Industry not set"} · {prospect.location || "Location not set"}</p></div>
