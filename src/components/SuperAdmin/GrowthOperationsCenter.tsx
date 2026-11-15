@@ -58,6 +58,7 @@ export function GrowthOperationsCenter() {
   const PREVIEW_PAGE_SIZE = 50;
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
+  const [overdueFollowUps, setOverdueFollowUps] = useState<number | null>(null);
   const [reportWorkflowEnabled, setReportWorkflowEnabled] = useState(false);
   const [reportActionLoading, setReportActionLoading] = useState(false);
   const [experiment, setExperiment] = useState({ name: "", templateId: "", hypothesis: "", event: "lead_submitted" });
@@ -100,6 +101,26 @@ export function GrowthOperationsCenter() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const response = await fetch("/api/admin/revenue-health", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          cache: "no-store",
+        });
+        if (!response.ok || cancelled) return;
+        const payload = await response.json();
+        const count = payload.counts?.overdueFollowUps;
+        if (typeof count === "number") setOverdueFollowUps(count);
+      } catch {
+        if (!cancelled) setOverdueFollowUps(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -261,7 +282,7 @@ export function GrowthOperationsCenter() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric icon={Clock3} label="Needs first response" value={today.responseDue.length} attention={today.responseDue.length > 0} />
-        <Metric icon={Send} label="Due sales actions" value={today.dueTasks.length} attention={today.dueTasks.length > 0} />
+        <Metric icon={Send} label="Overdue follow-up records" value={overdueFollowUps ?? "—"} attention={(overdueFollowUps ?? 0) > 0} />
         <Metric icon={Target} label="Viewed proposals" value={today.engagedProposals.length} />
         <Metric icon={AlertCircle} label="Delivery blockers" value={today.blockers.length} attention={today.blockers.length > 0} />
       </div>
@@ -353,7 +374,7 @@ export function GrowthOperationsCenter() {
   );
 }
 
-function Metric({ icon: Icon, label: metricLabel, value, attention = false }: { icon: React.ElementType; label: string; value: number; attention?: boolean }) {
+function Metric({ icon: Icon, label: metricLabel, value, attention = false }: { icon: React.ElementType; label: string; value: number | string; attention?: boolean }) {
   return <Card className="rounded-3xl border-slate-200 shadow-sm"><CardContent className="p-5"><Icon className={`h-5 w-5 ${attention ? "text-rose-600" : "text-indigo-600"}`} /><p className="mt-4 text-xs font-bold text-slate-500">{metricLabel}</p><p className={`mt-1 text-4xl font-black ${attention ? "text-rose-600" : "text-slate-950"}`}>{value}</p></CardContent></Card>;
 }
 
