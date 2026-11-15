@@ -126,7 +126,7 @@ export function GrowthOperationsCenter() {
     let cancelled = false;
     const from = previewPage * PREVIEW_PAGE_SIZE;
     void supabase.from("prospects").select("*", { count: "exact" })
-      .is("design_preview_url", null)
+      .is("preview_url", null)
       .or("status.is.null,status.neq.lost")
       .order("created_at", { ascending: false })
       .range(from, from + PREVIEW_PAGE_SIZE - 1)
@@ -149,7 +149,7 @@ export function GrowthOperationsCenter() {
     const active = (query: any) => query.or("status.is.null,status.neq.lost");
     void Promise.all([
       active(supabase.from("prospects").select("id", { count: "exact", head: true })),
-      active(supabase.from("prospects").select("id", { count: "exact", head: true }).not("design_preview_url", "is", null)),
+      active(supabase.from("prospects").select("id", { count: "exact", head: true }).not("preview_url", "is", null)),
       supabase.from("leads").select("id", { count: "exact", head: true }).not("status", "in", '("spam","lost")'),
       supabase.from("proposals").select("id", { count: "exact", head: true }).not("status", "in", '("lost","cancelled")'),
       supabase.from("businesses").select("id", { count: "exact", head: true }).not("status", "in", '("cancelled","paused")'),
@@ -189,9 +189,9 @@ export function GrowthOperationsCenter() {
 
   const openWhatsApp = async (prospect: any) => {
     if (!prospect.contact_whatsapp && !prospect.contact_phone) return toast.error("This prospect has no WhatsApp number.");
-    if (!prospect.design_preview_url) return toast.error("Save the verified design preview before sharing it.");
+    if (!prospect.preview_url) return toast.error("Save the verified design preview before sharing it.");
     const phone = String(prospect.contact_whatsapp || prospect.contact_phone).replace(/\D/g, "");
-    const message = `Hi ${prospect.name}, I prepared a short website direction for your business based on what a customer needs to see before enquiring: ${prospect.design_preview_url}`;
+    const message = `Hi ${prospect.name}, I prepared a short website direction for your business based on what a customer needs to see before enquiring: ${prospect.preview_url}`;
     await supabase.from("sales_tasks").insert({
       prospect_id: prospect.id,
       title: `Follow up on preview with ${prospect.name}`,
@@ -199,7 +199,7 @@ export function GrowthOperationsCenter() {
       priority: "high",
       due_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       notes: "Confirm the prospect opened the personalised preview and offer a short fit call.",
-      metadata: { previewUrl: prospect.design_preview_url, channel: "whatsapp" },
+      metadata: { previewUrl: prospect.preview_url, channel: "whatsapp" },
     });
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
     toast.success("Follow-up task created for tomorrow");
@@ -344,7 +344,7 @@ export function GrowthOperationsCenter() {
             </CardContent></Card>
           ))}
           {!previewQueue.length && <Empty text="No prospect is waiting for a preview." />}
-          {!!data.prospects.filter((prospect) => prospect.design_preview_url && prospect.status !== "lost").length && <div className="space-y-3 pt-3"><h3 className="text-lg font-black">Ready to send</h3>{data.prospects.filter((prospect) => prospect.design_preview_url && prospect.status !== "lost").slice(0, 12).map((prospect) => <Card key={prospect.id} className="rounded-2xl"><CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center"><div className="flex-1"><p className="font-black">{prospect.name}</p><p className="truncate text-xs text-slate-500">{prospect.design_preview_url}</p></div><Button variant="outline" className="rounded-xl" onClick={() => window.open(prospect.design_preview_url, "_blank", "noopener,noreferrer")}>Preview <ArrowUpRight className="ml-2 h-4 w-4" /></Button><Button className="rounded-xl bg-emerald-600" onClick={() => void openWhatsApp(prospect)}><MessageCircle className="mr-2 h-4 w-4" />Prepare WhatsApp</Button></CardContent></Card>)}</div>}
+          {!!data.prospects.filter((prospect) => prospect.preview_url && prospect.status !== "lost").length && <div className="space-y-3 pt-3"><h3 className="text-lg font-black">Ready to send</h3>{data.prospects.filter((prospect) => prospect.preview_url && prospect.status !== "lost").slice(0, 12).map((prospect) => <Card key={prospect.id} className="rounded-2xl"><CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center"><div className="flex-1"><p className="font-black">{prospect.name}</p><p className="truncate text-xs text-slate-500">{prospect.preview_url}</p></div><Button variant="outline" className="rounded-xl" onClick={() => window.open(prospect.preview_url, "_blank", "noopener,noreferrer")}>Preview <ArrowUpRight className="ml-2 h-4 w-4" /></Button><Button className="rounded-xl bg-emerald-600" onClick={() => void openWhatsApp(prospect)}><MessageCircle className="mr-2 h-4 w-4" />Prepare WhatsApp</Button></CardContent></Card>)}</div>}
         </TabsContent>
 
         <TabsContent value="delivery" className="space-y-4 pt-4">
