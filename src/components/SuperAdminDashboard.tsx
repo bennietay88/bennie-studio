@@ -143,6 +143,7 @@ import { EmailProviderSettings } from "./SuperAdmin/EmailProviderSettings";
 const RevenueCommand = React.lazy(() => import("./SuperAdmin/RevenueCommand").then((module) => ({ default: module.RevenueCommand })));
 const FinanceDashboard = React.lazy(() => import("./SuperAdmin/FinanceDashboard").then((module) => ({ default: module.FinanceDashboard })));
 const SalesHome = React.lazy(() => import("./SuperAdmin/SalesHome").then((module) => ({ default: module.SalesHome })));
+const GrowthOperationsCenter = React.lazy(() => import("./SuperAdmin/GrowthOperationsCenter").then((module) => ({ default: module.GrowthOperationsCenter })));
 const OverdueSalesTasks = React.lazy(() => import("./SuperAdmin/OverdueSalesTasks").then((module) => ({ default: module.OverdueSalesTasks })));
 const ProspectExplorer = React.lazy(() => import("./SuperAdmin/ProspectExplorer").then((module) => ({ default: module.ProspectExplorer })));
 const WebsiteReviewAuditor = React.lazy(() => import("./SuperAdmin/WebsiteReviewAuditor").then((module) => ({ default: module.WebsiteReviewAuditor })));
@@ -1420,7 +1421,7 @@ export default function SuperAdminDashboard() {
 
       {activeTab === "sales_home" && <SalesHome />}
        {activeTab === "overdue_followups" && <OverdueSalesTasks />}
-      {activeTab === "growth_operations" && <SalesHome />}
+      {activeTab === "growth_operations" && <GrowthOperationsCenter />}
 
       {activeTab === "daily_operations" && <DailyOperations />}
       {activeTab === "operations_control" && <DailyOperations />}
