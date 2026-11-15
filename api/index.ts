@@ -190,7 +190,7 @@ async function refreshPlatformSettings(force = false) {
       const resendKeyChanged = data.content.resendApiKey !== platformSettings?.resendApiKey;
       platformSettings = data.content;
       if (stripeKeyChanged) stripeInstance = null;
-      if (resendKeyChanged) resendInstance = null;
+      if (resendKeyChanged) resendConfigCache.clear();
     }
     platformSettingsLoadedAt = Date.now();
   } catch (err) {
@@ -209,28 +209,26 @@ const merchantStripeCache = new Map<
   { instance: Stripe; timestamp: number }
 >();
 
-let resendInstance: Resend | null = null;
-let resendInstanceKey: string | null = null;
-let resendConfigCache: { expires: number; key: string; from: string } | null = null;
-async function getResendProvider(): Promise<{ client: Resend; from: string }> {
-  // Only the server-role connection reads Vault; no API key is returned to the UI.
-  if (!resendConfigCache || resendConfigCache.expires <= Date.now()) {
-    const { data, error } = await supabaseAdmin.rpc("get_resend_provider_credentials");
+type ResendPurpose = "transactional" | "sales";
+type ResendProviderConfig = { expires: number; key: string; from: string; client: Resend };
+const resendConfigCache = new Map<ResendPurpose, ResendProviderConfig>();
+async function getResendProvider(purpose: ResendPurpose = "transactional"): Promise<{ client: Resend; from: string }> {
+  const cached = resendConfigCache.get(purpose);
+  if (!cached || cached.expires <= Date.now()) {
+    // Only the server-role connection reads Vault; API keys are never returned to the UI.
+    const { data, error } = await supabaseAdmin.rpc("get_resend_provider_credentials_for_purpose", { p_purpose: purpose });
     if (error) {
-      structuredLog("warn", "resend_provider_vault_read_failed", { code: error.code || "unknown" });
+      structuredLog("warn", "resend_provider_vault_read_failed", { code: error.code || "unknown", purpose });
       throw new Error("RESEND_CONFIG_ERROR");
     }
     const portal = Array.isArray(data) ? data[0] : null;
     const key = String(portal?.api_key || process.env.RESEND_API_KEY || "").trim();
     const from = String(portal?.from_address || process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || "").trim();
     if (!key.startsWith("re_") || key.includes("TODO") || !from) throw new Error("RESEND_CONFIG_ERROR");
-    resendConfigCache = { expires: Date.now() + 15_000, key, from };
+    resendConfigCache.set(purpose, { expires: Date.now() + 15_000, key, from, client: new Resend(key) });
   }
-  if (!resendInstance || resendInstanceKey !== resendConfigCache.key) {
-    resendInstance = new Resend(resendConfigCache.key);
-    resendInstanceKey = resendConfigCache.key;
-  }
-  return { client: resendInstance, from: resendConfigCache.from };
+  const config = resendConfigCache.get(purpose)!;
+  return { client: config.client, from: config.from };
 }
 const MAX_CACHE_SIZE = 500; // Keep up to 500 active merchant instances in memory
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour TTL
@@ -3630,8 +3628,8 @@ async function startServer() {
       const unsubscribeUrl = `${publicAppUrl()}/api/public/unsubscribe/${message.unsubscribe_token}`;
       // Approved text is authoritative; a previous HTML draft must not override edits.
       const html = `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
-      const { data, error } = await (await getResendProvider()).client.emails.send({
-        from: (await getResendProvider()).from,
+      const { data, error } = await (await getResendProvider("sales")).client.emails.send({
+        from: (await getResendProvider("sales")).from,
         to: message.recipient,
         subject: message.subject || "A note from Bennie Studio",
         html,
@@ -3684,8 +3682,8 @@ async function startServer() {
         headers: { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
       }, await loadHostingerSettings(), reserveHostingerEmailQuota);
     }
-    const { data, error } = await (await getResendProvider()).client.emails.send({
-      from: (await getResendProvider()).from,
+    const { data, error } = await (await getResendProvider("sales")).client.emails.send({
+      from: (await getResendProvider("sales")).from,
       to: message.recipient,
       subject: message.subject || "A note from Bennie Studio",
       html,
@@ -6849,13 +6847,13 @@ async function startServer() {
         let notificationStatus = "sent";
         try {
           const recipient = process.env.SALES_REPLY_TO || platformSettings?.supportEmail || "support@bennietay.com";
-          const { client: resend } = await getResendProvider();
+          const { client: resend } = await getResendProvider("sales");
           const safeName = escapePortfolioHtml(leadBody.name);
           const safeEmail = escapePortfolioHtml(leadBody.email);
           const safeIndustry = escapePortfolioHtml(leadBody.industry || "Not specified");
           const safeMessage = escapePortfolioHtml(leadBody.message).replace(/\n/g, "<br />");
           const { error: emailError } = await resend.emails.send({
-            from: (await getResendProvider()).from,
+            from: (await getResendProvider("sales")).from,
             to: recipient,
             replyTo: leadBody.email,
             subject: `New portfolio enquiry from ${safeName}`,
@@ -8729,17 +8727,33 @@ async function startServer() {
       const { data, error } = await supabaseAdmin.from("hostinger_smtp_settings")
         .select("smtp_user,from_email,smtp_port,updated_at").eq("id", 1).maybeSingle();
       if (error) throw new Error("HOSTINGER_SETTINGS_UNAVAILABLE");
-      const { data: resendSettings, error: resendError } = await supabaseAdmin
-        .from("resend_provider_settings").select("from_address,updated_at").eq("id", 1).maybeSingle();
-      if (resendError) throw new Error("RESEND_SETTINGS_UNAVAILABLE");
+      const { data: resendAccounts, error: resendAccountsError } = await supabaseAdmin
+        .from("resend_provider_accounts").select("id,name,from_address,updated_at").order("created_at", { ascending: true });
+      if (resendAccountsError) throw new Error("RESEND_SETTINGS_UNAVAILABLE");
+      const { data: resendAssignments, error: resendAssignmentsError } = await supabaseAdmin
+        .from("resend_provider_assignments").select("purpose,account_id");
+      if (resendAssignmentsError) throw new Error("RESEND_SETTINGS_UNAVAILABLE");
+      const accountById = new Map((resendAccounts || []).map((account: any) => [account.id, account]));
+      const assignmentMap = Object.fromEntries((resendAssignments || []).map((assignment: any) => [assignment.purpose, assignment.account_id]));
+      const primaryResendAccount: any = assignmentMap.transactional ? accountById.get(assignmentMap.transactional) : null;
+      const resendEnvironmentFrom = process.env.RESEND_FROM_EMAIL || platformSettings?.emailFrom || null;
+      const resendEnvironmentConfigured = Boolean(process.env.RESEND_API_KEY && resendEnvironmentFrom);
       return res.json({
         providers: {
           ...emailProviderStatus(),
           resend: {
-            configured: Boolean(resendSettings?.from_address || (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL)),
-            from: resendSettings?.from_address || process.env.RESEND_FROM_EMAIL || null,
-            source: resendSettings?.from_address ? "portal" : "environment",
-            updatedAt: resendSettings?.updated_at || null,
+            configured: Boolean(resendAccounts?.length || resendEnvironmentConfigured),
+            fallbackConfigured: resendEnvironmentConfigured,
+            from: primaryResendAccount?.from_address || resendEnvironmentFrom,
+            source: primaryResendAccount ? "portal" : "environment",
+            updatedAt: primaryResendAccount?.updated_at || null,
+            accounts: (resendAccounts || []).map((account: any) => ({
+              id: account.id, name: account.name, from: account.from_address, updatedAt: account.updated_at,
+            })),
+            assignments: {
+              transactional: assignmentMap.transactional || null,
+              sales: assignmentMap.sales || null,
+            },
           },
           hostinger: {
             configured: Boolean(data?.smtp_user),
@@ -8757,6 +8771,76 @@ async function startServer() {
       });
     } catch {
       return res.status(503).json({ error: "Email provider settings unavailable. Check database migration." });
+    }
+  });
+
+  app.put("/api/admin/email-providers/resend/accounts", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
+      const parsed = z.object({
+        accountId: z.string().uuid().optional(),
+        name: z.string().trim().min(1).max(80),
+        fromAddress: z.string().trim().min(5).max(320),
+        apiKey: z.string().regex(/^re_[A-Za-z0-9_-]{12,256}$/).optional(),
+      }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid Resend account name, sender or API key format." });
+      const { data, error } = await supabaseAdmin.rpc("save_resend_provider_account", {
+        p_account_id: parsed.data.accountId || null,
+        p_name: parsed.data.name,
+        p_from_address: parsed.data.fromAddress,
+        p_api_key: parsed.data.apiKey || null,
+      });
+      if (error) {
+        structuredLog("warn", "resend_account_save_rejected", { code: error.code || "unknown" });
+        return res.status(error.code === "22023" ? 400 : error.code === "23505" ? 409 : 503)
+          .json({ error: error.code === "23505" ? "An account with that name already exists." : error.code === "22023" ? "Invalid Resend account name, sender or API key format." : "Could not securely store Resend settings." });
+      }
+      resendConfigCache.clear();
+      structuredLog("info", "resend_account_updated", { actorId: req.user.id, accountId: data?.id });
+      return res.json({ success: true, account: { id: data.id, name: data.name, from: data.from } });
+    } catch {
+      return res.status(503).json({ error: "Could not securely store Resend settings." });
+    }
+  });
+
+  app.put("/api/admin/email-providers/resend/assignments/:purpose", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
+      if (!["transactional", "sales"].includes(String(req.params.purpose))) return res.status(400).json({ error: "Invalid email purpose." });
+      const parsed = z.object({ accountId: z.string().uuid().nullable() }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid Resend account assignment." });
+      const { error } = await supabaseAdmin.rpc("assign_resend_provider_account", {
+        p_purpose: req.params.purpose, p_account_id: parsed.data.accountId,
+      });
+      if (error) {
+        structuredLog("warn", "resend_assignment_rejected", { code: error.code || "unknown", purpose: req.params.purpose });
+        return res.status(error.code === "22023" ? 400 : 503).json({ error: "Could not update Resend account assignment." });
+      }
+      resendConfigCache.clear();
+      return res.json({ success: true });
+    } catch {
+      return res.status(503).json({ error: "Could not update Resend account assignment." });
+    }
+  });
+
+  app.delete("/api/admin/email-providers/resend/accounts/:accountId", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
+      if (!UUID_SCHEMA.safeParse(req.params.accountId).success) return res.status(400).json({ error: "Invalid Resend account." });
+      const { data, error } = await supabaseAdmin.rpc("delete_resend_provider_account", { p_account_id: req.params.accountId });
+      if (error) {
+        structuredLog("warn", "resend_account_delete_rejected", { code: error.code || "unknown" });
+        return res.status(error.code === "23503" ? 409 : 503).json({
+          error: error.code === "23503" ? "Reassign this account before removing it." : "Could not remove Resend account.",
+        });
+      }
+      resendConfigCache.clear();
+      return res.json({ success: Boolean(data) });
+    } catch {
+      return res.status(503).json({ error: "Could not remove Resend account." });
     }
   });
 
@@ -8778,9 +8862,7 @@ async function startServer() {
         return res.status(error.code === "22023" ? 400 : 503)
           .json({ error: error.code === "22023" ? "Invalid Resend sender or API key format." : "Could not securely store Resend settings." });
       }
-      resendConfigCache = null;
-      resendInstance = null;
-      resendInstanceKey = null;
+      resendConfigCache.clear();
       structuredLog("info", "resend_portal_settings_updated", { actorId: req.user.id });
       return res.json({ success: true, configured: true, from: data?.from || parsed.data.fromAddress });
     } catch {
@@ -10416,9 +10498,9 @@ async function startServer() {
   const sendFunnelEmail = async ({ to, subject, html }: { to: string; subject: string; html: string }) => {
     const recipient = normalizeSalesEmail(to);
     if (!recipient || await isSalesSuppressed(supabaseAdmin, recipient)) throw new Error("CONTACT_SUPPRESSED");
-    const { client: resend } = await getResendProvider();
+    const { client: resend } = await getResendProvider("sales");
     const { error } = await resend.emails.send({
-      from: (await getResendProvider()).from,
+      from: (await getResendProvider("sales")).from,
       to,
       subject,
       html,
@@ -13796,9 +13878,9 @@ async function startServer() {
 
           // 5. Send Email via Resend
           try {
-            const { client: resend } = await getResendProvider();
+            const { client: resend } = await getResendProvider("transactional");
             await resend.emails.send({
-              from: (await getResendProvider()).from,
+              from: (await getResendProvider("transactional")).from,
               to: owner.email,
               subject: `New Lead: ${name} is interested!`,
               html: `

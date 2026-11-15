@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 const migration = readFileSync(new URL("../supabase/migrations/20261113010447_hostinger_portal_vault_20261113.sql", import.meta.url), "utf8");
 const resendMigration = readFileSync(new URL("../supabase/migrations/20261113053756_resend_portal_vault_20261113.sql", import.meta.url), "utf8");
 const resendValidationFix = readFileSync(new URL("../supabase/migrations/20261113053926_resend_api_key_validation_fix_20261113.sql", import.meta.url), "utf8");
+const multiResendMigration = readFileSync(new URL("../supabase/migrations/20261115062335_resend_multi_account_routing.sql", import.meta.url), "utf8");
 const roleFix = readFileSync(new URL("../supabase/migrations/20261113022143_hostinger_vault_service_role_claim_fix_20261113.sql", import.meta.url), "utf8");
 const api = readFileSync(new URL("../api/index.ts", import.meta.url), "utf8");
 const portal = readFileSync(new URL("../src/components/SuperAdmin/EmailProviderSettings.tsx", import.meta.url), "utf8");
@@ -36,7 +37,7 @@ test("Hostinger admin endpoints authorize super admin and do not return the pass
   const end = api.indexOf('app.post("/api/admin/prospects/:prospectId/outreach"', start);
   assert.ok(start > -1 && end > start);
   const endpoints = api.slice(start, end);
-  assert.equal((endpoints.match(/profile\?\.role !== "super_admin"/g) || []).length, 4);
+  assert.equal((endpoints.match(/profile\?\.role !== "super_admin"/g) || []).length, 7);
   assert.match(endpoints, /\.select\("smtp_user,from_email,smtp_port,updated_at"\)/);
   assert.doesNotMatch(endpoints, /res\.json\([^\n]*smtp_password/);
   assert.match(endpoints, /save_hostinger_smtp_settings/);
@@ -59,15 +60,24 @@ test("Resend API settings use encrypted Vault storage and deny direct client acc
   assert.ok(resendMigration.includes("auth.role() is distinct from 'service_role'"));
   assert.ok(resendMigration.includes("vault.create_secret"));
   assert.ok(resendMigration.includes("vault.update_secret"));
+  assert.match(multiResendMigration, /create table if not exists public\.resend_provider_accounts/i);
+  assert.match(multiResendMigration, /create table if not exists public\.resend_provider_assignments/i);
+  assert.match(multiResendMigration, /revoke all on function public\.get_resend_provider_credentials_for_purpose\(text\) from public,anon,authenticated/i);
+  assert.match(multiResendMigration, /delete from vault\.secrets where id=v_secret_id/i);
 });
 
 test("Resend portal configuration is server-only and covers all server-side sending paths", () => {
-  assert.match(api, /supabaseAdmin\.rpc\("get_resend_provider_credentials"\)/);
-  assert.match(api, /supabaseAdmin\.rpc\("save_resend_provider_settings"/);
-  assert.match(api, /app\.put\("\/api\/admin\/email-providers\/resend", authenticate/);
-  assert.match(api, /resendConfigCache = null/);
+  assert.match(api, /supabaseAdmin\.rpc\("get_resend_provider_credentials_for_purpose"/);
+  assert.match(api, /supabaseAdmin\.rpc\("save_resend_provider_account"/);
+  assert.match(api, /app\.put\("\/api\/admin\/email-providers\/resend\/accounts", authenticate/);
+  assert.match(api, /app\.put\("\/api\/admin\/email-providers\/resend\/assignments\/\:purpose", authenticate/);
+  assert.match(api, /app\.delete\("\/api\/admin\/email-providers\/resend\/accounts\/\:accountId", authenticate/);
+  assert.match(api, /resendConfigCache\.clear\(\)/);
+  assert.match(api, /getResendProvider\("sales"\)/);
+  assert.match(api, /getResendProvider\("transactional"\)/);
   assert.doesNotMatch(api, /getResend\(\)/);
-  assert.match(portal, /Save Resend settings/);
+  assert.match(portal, /Add Resend account/);
+  assert.match(portal, /assignResendAccount/);
   assert.match(portal, /setResendApiKey\(""\)/);
   assert.match(portal, /Leave blank to keep saved key/);
 });

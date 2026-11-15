@@ -2,9 +2,18 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 type Provider = "resend" | "hostinger";
+type ResendAccount = { id: string; name: string; from: string; updatedAt?: string | null };
 type ProviderStatus = {
   providers: {
-    resend: { configured: boolean; from: string | null; source?: "portal" | "environment"; updatedAt?: string | null };
+    resend: {
+      configured: boolean;
+      from: string | null;
+      source?: "portal" | "environment";
+      fallbackConfigured?: boolean;
+      updatedAt?: string | null;
+      accounts: ResendAccount[];
+      assignments: { transactional: string | null; sales: string | null };
+    };
     hostinger: {
       configured: boolean;
       from: string | null;
@@ -42,9 +51,12 @@ async function adminRequest(path: string, options: RequestInit = {}) {
 
 export function EmailProviderSettings({ transactional, sales, onChange }: Props) {
   const [status, setStatus] = useState<ProviderStatus | null>(null);
+  const [resendAccountId, setResendAccountId] = useState("");
+  const [resendAccountName, setResendAccountName] = useState("");
   const [resendFrom, setResendFrom] = useState("");
   const [resendApiKey, setResendApiKey] = useState("");
   const [resendSaving, setResendSaving] = useState(false);
+  const [assignmentSaving, setAssignmentSaving] = useState(false);
   const [mailbox, setMailbox] = useState("");
   const [password, setPassword] = useState("");
   const [port, setPort] = useState<465 | 587>(465);
@@ -59,7 +71,6 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
     const data = await adminRequest("/api/admin/email-providers/status") as ProviderStatus;
     setStatus(data);
     if (prefill) {
-      setResendFrom(data.providers.resend.from || "");
       setMailbox(data.providers.hostinger.from || "");
       setPort(data.providers.hostinger.smtpPort === 587 ? 587 : 465);
     }
@@ -106,20 +117,39 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
     }
   };
 
+  const resetResendForm = () => {
+    setResendAccountId("");
+    setResendAccountName("");
+    setResendFrom("");
+    setResendApiKey("");
+  };
+
+  const editResendAccount = (account: ResendAccount) => {
+    setResendAccountId(account.id);
+    setResendAccountName(account.name);
+    setResendFrom(account.from);
+    setResendApiKey("");
+    setError("");
+    setNotice("");
+  };
+
   const saveResend = async () => {
     setError("");
     setNotice("");
+    const name = resendAccountName.trim();
     const from = resendFrom.trim();
     const email = from.includes("<") ? from.match(/<([^<>]+)>$/)?.[1]?.trim() : from;
+    if (!name || name.length > 80) {
+      setError("Enter a name for this Resend account.");
+      return;
+    }
     if (!email || !emailPattern.test(email) || from.length > 320 || /[\r\n]/.test(from)) {
       setError("Enter a valid verified Resend sender address, optionally with a display name.");
       return;
     }
-    if (!status?.providers.resend.configured || status.providers.resend.source !== "portal") {
-      if (!resendApiKey) {
-        setError("Enter your Resend API key to enable portal-managed credentials.");
-        return;
-      }
+    if (!resendAccountId && !resendApiKey) {
+      setError("Enter the Resend API key for this account.");
+      return;
     }
     if (resendApiKey && !/^re_[A-Za-z0-9_-]{12,256}$/.test(resendApiKey)) {
       setError("Enter a valid Resend API key.");
@@ -127,17 +157,52 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
     }
     setResendSaving(true);
     try {
-      await adminRequest("/api/admin/email-providers/resend", {
+      await adminRequest("/api/admin/email-providers/resend/accounts", {
         method: "PUT",
-        body: JSON.stringify({ fromAddress: from, ...(resendApiKey ? { apiKey: resendApiKey } : {}) }),
+        body: JSON.stringify({
+          ...(resendAccountId ? { accountId: resendAccountId } : {}),
+          name, fromAddress: from, ...(resendApiKey ? { apiKey: resendApiKey } : {}),
+        }),
       });
-      setResendApiKey("");
-      setNotice("Resend settings saved securely. The API key is encrypted in Vault and never shown again.");
+      resetResendForm();
+      setNotice("Resend account saved securely. Its API key is encrypted in Vault and never shown again.");
       await refresh(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save Resend settings.");
+      setError(err instanceof Error ? err.message : "Could not save Resend account.");
     } finally {
       setResendSaving(false);
+    }
+  };
+
+  const assignResendAccount = async (purpose: "transactional" | "sales", accountId: string) => {
+    setError("");
+    setNotice("");
+    setAssignmentSaving(true);
+    try {
+      await adminRequest("/api/admin/email-providers/resend/assignments/" + purpose, {
+        method: "PUT",
+        body: JSON.stringify({ accountId: accountId || null }),
+      });
+      setNotice("Resend account assignment updated.");
+      await refresh(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update Resend account assignment.");
+    } finally {
+      setAssignmentSaving(false);
+    }
+  };
+
+  const deleteResendAccount = async (account: ResendAccount) => {
+    if (!window.confirm("Remove " + account.name + "? You must re-enter its API key to add it again.")) return;
+    setError("");
+    setNotice("");
+    try {
+      await adminRequest("/api/admin/email-providers/resend/accounts/" + account.id, { method: "DELETE" });
+      if (resendAccountId === account.id) resetResendForm();
+      setNotice(account.name + " removed.");
+      await refresh(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove Resend account.");
     }
   };
 
@@ -156,7 +221,7 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
   };
 
   const hostingerReady = Boolean(status?.providers.hostinger.configured);
-  const busy = loading || saving || verifying || resendSaving;
+  const busy = loading || saving || verifying || resendSaving || assignmentSaving;
 
   return (
     <section className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6" aria-label="Email provider settings">
@@ -235,37 +300,91 @@ export function EmailProviderSettings({ transactional, sales, onChange }: Props)
 
       <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
         <div>
-          <h4 className="font-semibold text-slate-900">Resend API</h4>
+          <h4 className="font-semibold text-slate-900">Resend accounts</h4>
           <p className="mt-1 text-xs text-slate-600">
-            The sender must be authorized in your Resend account. This configuration changes outbound email only;
-            webhook verification uses a separate secret.
+            Add separate accounts for transactional mail and sales follow-ups. API keys stay encrypted in Supabase Vault.
+            Saving or assigning an account does not send email.
           </p>
           <p className="mt-1 text-xs text-slate-600">
-            Current credential source: <strong>{status?.providers.resend.source === "portal" ? "Encrypted portal settings" : "Vercel environment fallback"}</strong>.
+            Environment fallback: {status?.providers.resend.fallbackConfigured ? "configured" : "not configured"}.
           </p>
         </div>
-        <label className="block space-y-1 text-sm font-medium text-slate-800">
-          <span>Verified sender address</span>
-          <input type="text" value={resendFrom} maxLength={320} disabled={busy}
-            placeholder="Bennie Studio <hello@example.com>"
-            onChange={(event) => setResendFrom(event.target.value)}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
-        </label>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {([
+            ["Transactional email", "transactional"],
+            ["Sales follow-ups", "sales"],
+          ] as const).map(([label, purpose]) => (
+            <label key={purpose} className="space-y-1 text-sm font-medium text-slate-800">
+              <span>{label} account</span>
+              <select className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2"
+                value={status?.providers.resend.assignments[purpose] || ""}
+                disabled={busy || assignmentSaving}
+                onChange={(event) => void assignResendAccount(purpose, event.target.value)}>
+                <option value="">Environment fallback</option>
+                {(status?.providers.resend.accounts || []).map((account) => (
+                  <option key={account.id} value={account.id}>{account.name} · {account.from}</option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          {(status?.providers.resend.accounts || []).map((account) => (
+            <div key={account.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3">
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-900">{account.name}</p>
+                <p className="break-all text-xs text-slate-600">{account.from}</p>
+                <p className="text-xs text-slate-500">
+                  Used for {(["transactional", "sales"] as const).filter((purpose) => status?.providers.resend.assignments[purpose] === account.id).map((purpose) => purpose === "sales" ? "sales follow-ups" : "transactional email").join(" and ") || "no category"}.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => editResendAccount(account)} disabled={busy}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700">Edit</button>
+                <button type="button" onClick={() => void deleteResendAccount(account)} disabled={busy}
+                  className="rounded-lg border border-rose-200 px-3 py-1.5 text-sm font-medium text-rose-700">Remove</button>
+              </div>
+            </div>
+          ))}
+          {!status?.providers.resend.accounts.length && (
+            <p className="rounded-xl border border-dashed border-slate-300 bg-white p-3 text-sm text-slate-600">
+              No portal-managed accounts yet. You can keep using the environment fallback or add an account below.
+            </p>
+          )}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="space-y-1 text-sm font-medium text-slate-800">
+            <span>Account name</span>
+            <input type="text" value={resendAccountName} maxLength={80} disabled={busy}
+              placeholder="Sales account" onChange={(event) => setResendAccountName(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+          </label>
+          <label className="space-y-1 text-sm font-medium text-slate-800">
+            <span>Verified sender address</span>
+            <input type="text" value={resendFrom} maxLength={320} disabled={busy}
+              placeholder="Bennie Studio <hello@example.com>" onChange={(event) => setResendFrom(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+          </label>
+        </div>
         <label className="block space-y-1 text-sm font-medium text-slate-800">
           <span>Resend API key</span>
           <input type="password" value={resendApiKey} maxLength={260} autoComplete="new-password"
-            placeholder={status?.providers.resend.source === "portal" ? "Leave blank to keep saved key" : "Enter a Resend API key (re_…)"}
+            placeholder={resendAccountId ? "Leave blank to keep saved key" : "Enter a Resend API key (re_…)"}
             disabled={busy} onChange={(event) => setResendApiKey(event.target.value)}
             className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
         </label>
-        <p className="text-xs text-slate-600">
-          The key clears immediately after saving. Saving does not send an email or prove delivery.
-          Existing Vercel credentials remain as a fallback until a portal key is configured.
-        </p>
-        <button type="button" onClick={() => void saveResend()} disabled={busy}
-          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
-          {resendSaving ? "Saving securely…" : "Save Resend settings"}
-        </button>
+        <p className="text-xs text-slate-600">A sender address must be verified in its Resend account. The key clears after saving and is never returned to the browser.</p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => void saveResend()} disabled={busy}
+            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50">
+            {resendSaving ? "Saving securely…" : resendAccountId ? "Update account" : "Add Resend account"}
+          </button>
+          {resendAccountId && <button type="button" onClick={resetResendForm} disabled={busy}
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Cancel edit</button>}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
