@@ -70,7 +70,6 @@ export const SalesHome: React.FC = () => {
 
   React.useEffect(() => { void load(); }, [load]);
 
-  const now = new Date();
   const newLeads = data.leads.filter((lead) => lead.status === "new");
   const overdueFollowUps = health?.counts.overdueFollowUps;
   const openProposals = data.proposals.filter((proposal) => !["Accepted", "Declined", "Expired"].includes(proposal.status));
