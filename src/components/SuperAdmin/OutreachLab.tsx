@@ -50,7 +50,7 @@ export function OutreachLab() {
       .order("created_at", { ascending: false });
     if (view === "due") listQuery = listQuery.lte("next_follow_up_at", now).not("outreach_status", "in", '("won","lost")');
     if (view === "engaged") listQuery = listQuery.in("outreach_status", ["replied", "call_booked"]);
-    const term = search.trim().replace(/[,%()\\]/g, " ").replace(/\\s+/g, " ");
+    const term = search.trim().replace(/[,%()\\]/g, " ").replace(/\s+/g, " ");
     if (term) {
       const pattern = `%${term}%`;
       listQuery = listQuery.or(`name.ilike.${pattern},domain.ilike.${pattern},industry.ilike.${pattern},location.ilike.${pattern}`);
