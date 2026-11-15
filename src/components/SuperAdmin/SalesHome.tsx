@@ -72,10 +72,7 @@ export const SalesHome: React.FC = () => {
 
   const now = new Date();
   const newLeads = data.leads.filter((lead) => lead.status === "new");
-  const overdue = [
-    ...data.leads.filter((lead) => lead.next_follow_up_at && new Date(lead.next_follow_up_at) <= now && !["won", "lost", "closed"].includes(lead.status)),
-    ...data.prospects.filter((prospect) => prospect.next_follow_up_at && new Date(prospect.next_follow_up_at) <= now && !["won", "lost"].includes(prospect.outreach_status)),
-  ];
+  const overdueFollowUps = health?.counts.overdueFollowUps;
   const openProposals = data.proposals.filter((proposal) => !["Accepted", "Declined", "Expired"].includes(proposal.status));
   const accepted = data.proposals.filter((proposal) => proposal.status === "Accepted");
 
@@ -95,7 +92,7 @@ export const SalesHome: React.FC = () => {
         {[
           ["Actual inbound lead records", health.counts.actualLeads30d, "Persistent CRM records"],
           ["Tracked leads absent from CRM", health.counts.trackedLeadIdsNotInActiveCRM, "Investigate test cleanup or missing records"],
-          ["Open follow-up tasks overdue", health.counts.overdueOpenTasks, "Requires owner action"],
+          ["Overdue follow-up records", health.counts.overdueFollowUps, "CRM leads and prospects, counted once"],
           ["Active Stripe-linked services", health.counts.activeStripeLinkedServices, "Not inferred from checkout events"],
         ].map(([label, value, note]) => <div key={String(label)} className="rounded-xl border border-indigo-100 bg-white p-4"><p className="text-xs font-semibold text-slate-600">{label}</p><p className="mt-2 text-3xl font-semibold tabular-nums text-slate-950">{value}</p><p className="mt-1 text-xs text-slate-500">{note}</p></div>)}
       </div>
@@ -119,7 +116,7 @@ export const SalesHome: React.FC = () => {
     </div>}
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <Metric icon={Inbox} label="New inbound leads" value={String(health?.counts.pendingLeadResponses ?? newLeads.length)} note="Actual saved, unresponded enquiries" action="Open inbox" onClick={() => navigate("/admin/inbound_leads")} />
-      <Metric icon={CalendarClock} label="Follow-ups overdue" value={String(health?.counts.overdueOpenTasks ?? overdue.length)} note="All overdue CRM tasks across leads and prospects" action="Review all overdue" onClick={() => navigate("/admin/overdue_followups")} alert={(health?.counts.overdueOpenTasks ?? overdue.length) > 0} />
+      <Metric icon={CalendarClock} label="Follow-ups overdue" value={overdueFollowUps === undefined ? "—" : String(overdueFollowUps)} note="CRM leads and prospects with overdue follow-up; linked tasks are counted once" action="Review all overdue" onClick={() => navigate("/admin/overdue_followups")} alert={(overdueFollowUps ?? 0) > 0} />
       <Metric icon={CircleDollarSign} label="Open proposals" value={String(openProposals.length)} note="Mixed-market amounts are not treated as one currency" action="Open pipeline" onClick={() => navigate("/admin/proposals_deals")} />
       <Metric icon={CheckCircle2} label="Accepted proposals" value={String(accepted.length)} note="Accepted deals are not assumed to be paid subscriptions" action="Review deals" onClick={() => navigate("/admin/proposals_deals")} />
     </div>
@@ -127,9 +124,9 @@ export const SalesHome: React.FC = () => {
     <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
       <Card className="overflow-hidden rounded-3xl border-slate-200 shadow-sm"><CardHeader className="border-b border-slate-100 p-5"><CardTitle className="text-base">Today’s next actions</CardTitle></CardHeader><CardContent className="p-5"><div className="space-y-3">
         {newLeads.length > 0 && <Action icon={Inbox} title={`Respond to ${newLeads.length} new lead${newLeads.length === 1 ? "" : "s"}`} copy="Review the website context, respond personally, and set the next follow-up before leaving the record." button="Open lead inbox" onClick={() => navigate("/admin/inbound_leads")} />}
-        {(health?.counts.overdueOpenTasks ?? overdue.length) > 0 && <Action icon={CalendarClock} title={`Review ${health?.counts.overdueOpenTasks ?? overdue.length} overdue follow-up${(health?.counts.overdueOpenTasks ?? overdue.length) === 1 ? "" : "s"}`} copy="Every contacted prospect should have a dated next action until won or lost." button="Review all follow-ups" onClick={() => navigate("/admin/overdue_followups")} />}
+        {(overdueFollowUps ?? 0) > 0 && <Action icon={CalendarClock} title={`Review ${overdueFollowUps} overdue follow-up${overdueFollowUps === 1 ? "" : "s"}`} copy="Overdue leads and prospects, with linked open tasks deduplicated." button="Review all follow-ups" onClick={() => navigate("/admin/overdue_followups")} />}
         {engaged > 0 && <Action icon={MessageSquare} title={`${engaged} engaged prospect${engaged === 1 ? "" : "s"}`} copy="Move replies and booked calls toward a same-day proposal while context is fresh." button="Review prospects" onClick={() => navigate("/admin/prospect_explorer")} />}
-        {newLeads.length === 0 && (health?.counts.overdueOpenTasks ?? overdue.length) === 0 && engaged === 0 && <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center"><Target className="mx-auto h-8 w-8 text-slate-300" /><p className="mt-3 font-semibold text-slate-700">The pipeline needs prospecting activity.</p><p className="mt-2 text-sm font-semibold text-slate-500">Add qualified prospects, prepare specific reviews, and record every follow-up.</p><Button onClick={() => navigate("/admin/prospect_explorer")} className="mt-5 rounded-xl bg-slate-950 text-white">Build prospect list</Button></div>}
+        {health && newLeads.length === 0 && overdueFollowUps === 0 && engaged === 0 && <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center"><Target className="mx-auto h-8 w-8 text-slate-300" /><p className="mt-3 font-semibold text-slate-700">The pipeline needs prospecting activity.</p><p className="mt-2 text-sm font-semibold text-slate-500">Add qualified prospects, prepare specific reviews, and record every follow-up.</p><Button onClick={() => navigate("/admin/prospect_explorer")} className="mt-5 rounded-xl bg-slate-950 text-white">Build prospect list</Button></div>}
       </div></CardContent></Card>
 
       <Card className="overflow-hidden rounded-3xl border-slate-200 bg-slate-950 text-white shadow-sm"><CardHeader className="border-b border-white/10 p-5"><CardTitle className="text-base">Target markets</CardTitle></CardHeader><CardContent className="space-y-4 p-5">{[
