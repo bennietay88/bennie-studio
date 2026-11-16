@@ -127,6 +127,7 @@ export function ProspectExplorer() {
   const [outreachRequestId, setOutreachRequestId] = useState("");
   const [outreachReplyToMessageId, setOutreachReplyToMessageId] = useState<string | null>(null);
   const [outreachSending, setOutreachSending] = useState(false);
+  const [recipientPermissionConfirmed, setRecipientPermissionConfirmed] = useState(false);
   const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
   const reviewCache = useRef<Map<string, { url: string; observation: string; recommendation: string }>>(new Map());
   const [engagement, setEngagement] = useState<{ messages: any[]; tasks: any[]; events: any[] } | null>(null);
@@ -1296,6 +1297,7 @@ export function ProspectExplorer() {
         return;
       }
     }
+    setRecipientPermissionConfirmed(false);
     setOutreachProspect(prospect);
     setOutreachReplyToMessageId(replyToMessage?.id || null);
     setOutreachTemplateId(initialTemplateId);
@@ -1321,6 +1323,7 @@ export function ProspectExplorer() {
   const closeOutreachComposer = () => {
     if (outreachSending) return;
     setOutreachProspect(null);
+    setRecipientPermissionConfirmed(false);
     setOutreachSubject("");
     setOutreachBody("");
     setOutreachObservation("");
@@ -1341,6 +1344,10 @@ export function ProspectExplorer() {
 
   const sendOutreach = async () => {
     if (!outreachProspect || !outreachBody.trim()) return;
+    if (!outreachReplyToMessageId && !recipientPermissionConfirmed) {
+      toast.error("Confirm this recipient opted in before sending.");
+      return;
+    }
     if (!outreachSubject.trim()) {
       toast.error("Add an email subject");
       return;
@@ -1374,6 +1381,7 @@ export function ProspectExplorer() {
           body: JSON.stringify({
             action: "send",
             channel: "email",
+            recipientPermissionConfirmed: recipientPermissionConfirmed,
             subject: outreachSubject.trim(),
             bodyText: outreachBody.trim(),
             observation: outreachReplyToMessageId ? "Personal reply sent from Prospect Explorer." : outreachObservation.trim(),
@@ -2393,6 +2401,12 @@ export function ProspectExplorer() {
                   <p className="text-xs font-medium leading-5 text-slate-500">
                     Email is submitted through your configured provider. WhatsApp opens externally through wa.me and is not automatically delivered.
                   </p>
+                  {!outreachReplyToMessageId && (
+                    <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                      <input type="checkbox" checked={recipientPermissionConfirmed} onChange={(event) => setRecipientPermissionConfirmed(event.target.checked)} className="mt-1" />
+                      I confirm this recipient has opted in to receive this email. No additional CRM consent document is required, and this does not change the recipient\u0027s consent records.
+                    </label>
+                  )}
                 </section>
               </div>
             )}
@@ -2408,7 +2422,7 @@ export function ProspectExplorer() {
               <Copy className="mr-2 h-4 w-4" />Copy email draft
             </Button>
             <Button type="button" onClick={sendOutreach}
-              disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() ||
+              disabled={outreachSending || (!outreachReplyToMessageId && !recipientPermissionConfirmed) || !outreachBody.trim() || !outreachSubject.trim() ||
                 (!outreachReplyToMessageId && !["introduction", "general-introduction"].includes(outreachTemplateId) && !isStagedFollowUpTemplate(outreachTemplateId) && outreachObservation.trim().length < 10 && !outreachProspect?.preview_url) ||
                 hasUnresolvedEmailPlaceholders(outreachSubject + "\n" + outreachBody)}
               className="rounded-xl bg-indigo-600 hover:bg-indigo-700">

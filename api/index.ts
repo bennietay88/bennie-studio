@@ -3698,17 +3698,14 @@ async function startServer() {
     const html = `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
     const selectedProvider = selectEmailProvider(platformSettings?.salesEmailProvider);
     if (selectedProvider === "hostinger") {
-      // Sending eligibility is checked again by the prospect outreach workflow.
-      // Hostinger is not a route around Resend's free-plan or acceptable-use limits.
-      const { data: prospect } = await supabaseAdmin.from("prospects")
-        .select("marketing_consent,consent_email,consent_timestamp,consent_source,contact_email")
-        .eq("id", message.prospect_id).maybeSingle();
-      if (!prospect || prospect.marketing_consent !== true
-        || normalizeSalesEmail(prospect.consent_email) !== target
-        || !prospect.consent_timestamp || !Number.isFinite(new Date(prospect.consent_timestamp).getTime())
-        || new Date(prospect.consent_timestamp).getTime() > Date.now()
-        || String(prospect.consent_source || "").trim().length < 10) {
-        throw new Error("CONTACT_CONSENT_REQUIRED");
+      // This path is called only by the authenticated administrator-initiated
+      // prospect send endpoint. Hostinger requires actual recipient opt-in.
+      // Confirm it for this specific send without fabricating or modifying the
+      // CRM's separate consent-source/timestamp records.
+      if (!message.reply_to_message_id &&
+        (message.provider_payload?.directSend !== true ||
+          message.provider_payload?.recipientPermissionConfirmed !== true)) {
+        throw new Error("CONTACT_PERMISSION_CONFIRMATION_REQUIRED");
       }
       return sendHostingerMail({
         to: message.recipient,
@@ -8975,6 +8972,7 @@ async function startServer() {
           bodyText: z.string().trim().min(1).max(10000),
           reviewUrl: z.string().trim().url().max(2000).nullable().optional(),
           replyToMessageId: UUID_SCHEMA.optional().nullable(),
+          recipientPermissionConfirmed: z.boolean().optional(),
           requestId: UUID_SCHEMA,
         }),
         req,
@@ -9086,7 +9084,7 @@ async function startServer() {
         HOSTINGER_AUTH_ERROR: { status: 503, message: "Hostinger SMTP authentication failed. Check configured credentials." },
         HOSTINGER_DELIVERY_UNCERTAIN: { status: 502, message: "Hostinger SMTP delivery is uncertain. Verify the mailbox logs before retrying." },
         HOSTINGER_ACCEPTANCE_UNCERTAIN: { status: 502, message: "Hostinger did not confirm the recipient. Verify delivery before retrying." },
-        CONTACT_CONSENT_REQUIRED: { status: 409, message: "Hostinger requires documented recipient consent for this sales message." },
+        CONTACT_PERMISSION_CONFIRMATION_REQUIRED: { status: 409, message: "Confirm that this recipient opted in before sending through Hostinger." },
       };
       const known = errors[error?.message];
       if (known) return res.status(known.status).json({ error: known.message });

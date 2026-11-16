@@ -109,6 +109,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
             body: JSON.stringify({
               action: "send",
               channel: "email",
+              recipientPermissionConfirmed: confirmed,
               subject: row.subject,
               bodyText: row.bodyText,
               templateId: row.templateId,
