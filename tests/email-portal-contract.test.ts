@@ -92,3 +92,31 @@ test("Resend key validation hotfix avoids PostgreSQL excessive regex repetition 
   assert.ok(resendValidationFix.includes("length(p_api_key) < 15"));
   assert.ok(!resendValidationFix.includes("{12,256}"));
 });
+
+test("Hostinger manual sends use explicit recipient permission confirmation instead of duplicate document fields", () => {
+  const direct = api.slice(api.indexOf("const sendDirectSalesEmail = async"), api.indexOf("const isPrivateAddress", api.indexOf("const sendDirectSalesEmail = async")));
+  assert.match(direct, /message\\.provider_payload\\?\\.directSend !== true/);
+  assert.match(direct, /message\\.provider_payload\\?\\.recipientPermissionConfirmed !== true/);
+  assert.match(direct, /CONTACT_PERMISSION_CONFIRMATION_REQUIRED/);
+  assert.doesNotMatch(direct, /consent_timestamp|consent_source|marketing_consent/);
+  assert.match(api, /recipientPermissionConfirmed: z\\.boolean\\(\\)\\.optional\\(\\)/);
+  assert.match(api, /canManageSalesOperations\\(profile\\)/);
+  assert.match(direct, /await isSalesSuppressed\\(supabaseAdmin, target\\)/);
+  assert.match(direct, /sendHostingerMail\\(/);
+});
+
+test("Manual outreach confirmation propagates through single and bulk UI without writing consent records", () => {
+  const operations = readFileSync(new URL("../server/salesOperations.ts", import.meta.url), "utf8");
+  const prospectUi = readFileSync(new URL("../src/components/SuperAdmin/ProspectExplorer.tsx", import.meta.url), "utf8");
+  const labUi = readFileSync(new URL("../src/components/SuperAdmin/OutreachLab.tsx", import.meta.url), "utf8");
+  const bulkIntro = readFileSync(new URL("../src/components/SuperAdmin/ManualBulkProspectIntros.tsx", import.meta.url), "utf8");
+  const bulkFollowUp = readFileSync(new URL("../src/components/SuperAdmin/ManualBulkProspectFollowUps.tsx", import.meta.url), "utf8");
+  assert.match(operations, /recipientPermissionConfirmed: input\\.recipientPermissionConfirmed === true/);
+  assert.match(operations, /permissionConfirmedAt: input\\.recipientPermissionConfirmed === true/);
+  assert.match(prospectUi, /recipientPermissionConfirmed: recipientPermissionConfirmed/);
+  assert.match(labUi, /templateId, recipientPermissionConfirmed, requestId/);
+  assert.match(bulkIntro, /recipientPermissionConfirmed: confirmed/);
+  assert.match(bulkFollowUp, /recipientPermissionConfirmed: confirmed/);
+  assert.match(operations, /OUTREACH_TOO_SOON/);
+  assert.match(operations, /CONTACT_SUPPRESSED/);
+});
