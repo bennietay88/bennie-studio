@@ -637,6 +637,7 @@ export async function sendDirectProspectOutreach(
     templateId?: string;
     reviewUrl?: string | null;
     replyToMessageId?: string | null;
+    recipientPermissionConfirmed?: boolean;
     requestId: string;
     actorId: string;
     deliver: (message: Row) => Promise<{ id: string }>;
@@ -840,6 +841,9 @@ export async function sendDirectProspectOutreach(
     provider_payload: {
       directSend: true,
       actorId: input.actorId,
+      // Operator confirmation is not a fabricated opt-in record.
+      recipientPermissionConfirmed: input.recipientPermissionConfirmed === true,
+      permissionConfirmedAt: input.recipientPermissionConfirmed === true ? now : null,
       observation: input.observation || null,
       templateId: input.templateId || null,
       ...(followUpStage ? { directStage: followUpStage, followUpStage: "FOLLOW_UP_" + followUpStage + "_OF_3" } : {}),
