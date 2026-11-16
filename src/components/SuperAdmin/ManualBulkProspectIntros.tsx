@@ -118,6 +118,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
             body: JSON.stringify({
               action: "send",
               channel: "email",
+              recipientPermissionConfirmed: confirmed,
               subject: row.subject,
               bodyText: row.bodyText,
               templateId: "bulk-introduction",
