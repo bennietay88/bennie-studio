@@ -3006,6 +3006,7 @@ async function startServer() {
                   commercial_currency: currentPrice?.currency || session.metadata?.currency || null,
                   commercial_term_months: session.metadata?.termMonths ? Number(session.metadata.termMonths) : null,
                   commercial_started_at: activatedAt,
+                  trial_ends_at: stripeTimestampToIso(subscription.trial_end),
                   ai_credits: plan?.monthly_credit_limit || 300
                 };
                 const { data: activatedBusiness, error: activationError } = await supabaseAdmin
@@ -3037,11 +3038,42 @@ async function startServer() {
                       stripe_customer_id: session.customer as string,
                       stripe_subscription_id: session.subscription as string,
                       commercial_started_at: activatedAt,
+                      trial_ends_at: stripeTimestampToIso(subscription.trial_end),
                       ai_credits: plan?.monthly_credit_limit || 300,
                       admin_notes: `Restored from confirmed Stripe checkout ${session.id}.`,
                     });
                   if (restoreBusinessError) throw restoreBusinessError;
                   console.warn(`Restored missing business ${businessId} from confirmed Stripe checkout`);
+                }
+
+                if (subscription.status === "trialing") {
+                  const { data: trialBusiness } = await supabaseAdmin
+                    .from("businesses")
+                    .select("onboarding_steps")
+                    .eq("id", businessId)
+                    .maybeSingle();
+                  const steps = trialBusiness?.onboarding_steps && typeof trialBusiness.onboarding_steps === "object"
+                    ? trialBusiness.onboarding_steps
+                    : {};
+                  const trialGrant = steps.subscriptionTrialGrant;
+                  if (trialGrant?.status === "pending") {
+                    const { error: grantUpdateError } = await supabaseAdmin
+                      .from("businesses")
+                      .update({
+                        onboarding_steps: {
+                          ...steps,
+                          subscriptionTrialGrant: {
+                            ...trialGrant,
+                            status: "granted",
+                            trialEndsAt: stripeTimestampToIso(subscription.trial_end),
+                            stripeSubscriptionId: subscription.id,
+                          },
+                        },
+                        updated_at: activatedAt,
+                      })
+                      .eq("id", businessId);
+                    if (grantUpdateError) throw grantUpdateError;
+                  }
                 }
 
                 // Payment is the handoff boundary: create the first delivery
@@ -3262,6 +3294,7 @@ async function startServer() {
               subscription_status: subscription.status,
               status: isActiveAccess || isPastDue ? "active" : "inactive",
               subscription_grace_until: graceUntil,
+              trial_ends_at: stripeTimestampToIso(subscription.trial_end),
             };
             if (isTerminal) {
               updateData.handover_grace_until = handoverGraceUntil(new Date());
@@ -8658,6 +8691,123 @@ async function startServer() {
     }
   });
 
+  app.post(
+    "/api/admin/businesses/:businessId/grant-trial",
+    authenticate,
+    superAdminOnly,
+    rateLimit({ windowMs: 60 * 60 * 1000, max: 10, keyPrefix: "admin-grant-trial", key: (req) => req.user?.id || getClientIp(req) }),
+    async (req: any, res: any) => {
+      const businessId = String(req.params.businessId || "");
+      if (!UUID_SCHEMA.safeParse(businessId).success) return res.status(400).json({ error: "Invalid business reference." });
+      try {
+        const { data: business, error } = await supabaseAdmin
+          .from("businesses")
+          .select("id,name,status,subscription_status,stripe_customer_id,stripe_subscription_id,trial_ends_at,onboarding_steps")
+          .eq("id", businessId)
+          .maybeSingle();
+        if (error) throw error;
+        if (!business) return res.status(404).json({ error: "Business not found." });
+
+        const now = new Date();
+        const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+        const onboardingSteps = business.onboarding_steps && typeof business.onboarding_steps === "object"
+          ? business.onboarding_steps
+          : {};
+        const existingGrant = onboardingSteps.subscriptionTrialGrant;
+        if (existingGrant?.grantedAt || business.subscription_status === "trialing") {
+          return res.status(409).json({ error: "A trial has already been granted to this customer." });
+        }
+
+        let updatedBusiness: any;
+        if (business.stripe_subscription_id) {
+          const stripe = await getStripe();
+          const subscription: any = await stripe.subscriptions.retrieve(business.stripe_subscription_id, { expand: ["customer", "default_payment_method"] });
+          if (subscription.status !== "active") {
+            return res.status(409).json({ error: "Only an active subscription can be moved into a free trial." });
+          }
+          const customer: any = typeof subscription.customer === "object"
+            ? subscription.customer
+            : await stripe.customers.retrieve(String(subscription.customer));
+          if (customer?.deleted) {
+            return res.status(409).json({ error: "The Stripe customer is unavailable. Update the billing profile before granting a trial." });
+          }
+          const paymentMethod = subscription.default_payment_method
+            || customer?.invoice_settings?.default_payment_method
+            || customer?.default_source;
+          if (!paymentMethod) {
+            return res.status(409).json({ error: "Add a payment method in billing before granting a trial, so automatic billing can resume when it ends." });
+          }
+          const updatedSubscription: any = await stripe.subscriptions.update(business.stripe_subscription_id, {
+            trial_end: Math.floor(trialEnd.getTime() / 1000),
+            proration_behavior: "none",
+            trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
+            metadata: { ...(subscription.metadata || {}), adminGrantedTrialDays: "14" },
+          });
+          const { data, error: updateError } = await supabaseAdmin
+            .from("businesses")
+            .update({
+              status: "active",
+              subscription_status: updatedSubscription.status,
+              trial_ends_at: stripeTimestampToIso(updatedSubscription.trial_end),
+              onboarding_steps: {
+                ...onboardingSteps,
+                subscriptionTrialGrant: {
+                  status: "granted",
+                  days: 14,
+                  grantedAt: now.toISOString(),
+                  grantedBy: req.user.id,
+                  trialEndsAt: stripeTimestampToIso(updatedSubscription.trial_end),
+                },
+              },
+              updated_at: now.toISOString(),
+            })
+            .eq("id", businessId)
+            .select("*")
+            .single();
+          if (updateError) throw updateError;
+          updatedBusiness = data;
+        } else {
+          if (!["incomplete", "pending"].includes(String(business.subscription_status || ""))) {
+            return res.status(409).json({ error: "This customer has no active Stripe subscription. Grant a trial after billing is set up." });
+          }
+          const pendingGrant = {
+            status: "pending",
+            days: 14,
+            grantedAt: now.toISOString(),
+            grantedBy: req.user.id,
+          };
+          const { data, error: updateError } = await supabaseAdmin
+            .from("businesses")
+            .update({
+              onboarding_steps: { ...onboardingSteps, subscriptionTrialGrant: pendingGrant },
+              updated_at: now.toISOString(),
+            })
+            .eq("id", businessId)
+            .select("*")
+            .single();
+          if (updateError) throw updateError;
+          updatedBusiness = data;
+        }
+
+        const grant = updatedBusiness.onboarding_steps?.subscriptionTrialGrant;
+        const { error: auditError } = await supabaseAdmin.from("admin_action_audit_logs").insert({
+          actor_user_id: req.user.id,
+          actor_email: req.user.email || null,
+          action_type: "business.trial_granted",
+          target_type: "business",
+          target_id: businessId,
+          target_label: business.name || null,
+          metadata: { days: 14, status: grant?.status || "granted", trialEndsAt: grant?.trialEndsAt || updatedBusiness.trial_ends_at || null },
+        });
+        if (auditError) console.error("[Admin Trial Grant] Audit record could not be saved:", auditError.message);
+        return res.json({ success: true, business: updatedBusiness, trialEndsAt: grant?.trialEndsAt || updatedBusiness.trial_ends_at || null });
+      } catch (error: any) {
+        console.error("[Admin Trial Grant] Failed:", error?.message || error);
+        return res.status(503).json({ error: "The 14-day trial could not be granted." });
+      }
+    },
+  );
+
   app.post("/api/admin/businesses/:businessId/onboarding-invite", authenticate, async (req: any, res: any) => {
     const businessId = String(req.params.businessId || "");
     if (!UUID_SCHEMA.safeParse(businessId).success) return res.status(400).json({ error: "Invalid business reference." });
@@ -12139,7 +12289,7 @@ async function startServer() {
       await assertBusinessAdminAccess(req.user.id, businessId);
       const { data: checkoutBusiness } = await supabaseAdmin
         .from("businesses")
-        .select("id,commercial_term_months,commercial_market")
+        .select("id,commercial_term_months,commercial_market,onboarding_steps")
         .eq("id", businessId)
         .maybeSingle();
       const businessMarket = checkoutBusiness?.commercial_market
@@ -12322,13 +12472,12 @@ async function startServer() {
       // Check if business already has a stripe_customer_id and trial info
       const { data: business } = await supabase
         .from("businesses")
-        .select("stripe_customer_id, stripe_subscription_id, trial_ends_at, commercial_term_months")
+        .select("stripe_customer_id, stripe_subscription_id, trial_ends_at, commercial_term_months, onboarding_steps")
         .eq("id", businessId)
         .single();
 
 	      const termsAcceptedAt = checkoutBody.termsAccepted === true ? new Date().toISOString() : "";
 	      const sessionOptions: any = {
-	        payment_method_types: ["card"],
         billing_address_collection: resolvedProductSlug ? "required" : "auto",
         ...(resolvedProductSlug ? { tax_id_collection: { enabled: true } } : {}),
         line_items: (useDynamicCatalogPrices || (process.env.NODE_ENV !== "production" && process.env.STRIPE_TEST_DYNAMIC_PRICES === "true")) && resolvedProductSlug && testDynamicMonthlyAmount
@@ -12405,16 +12554,35 @@ async function startServer() {
         }
       }
 
-      // Current commercial products are paid from day one. Keep legacy trial
-      // handling for historical plan checkouts only; new Managed Website and
-      // Website Growth customers must not receive the retired public trial.
-      if (!business?.stripe_subscription_id && !resolvedProductSlug) {
+      // Current commercial products remain paid from day one unless a super admin
+      // explicitly grants a one-time trial. Checkout collects payment details so
+      // Stripe can begin regular billing automatically when the 14-day trial ends.
+      const trialGrant = business?.onboarding_steps?.subscriptionTrialGrant;
+      const adminGrantedTrial =
+        !business?.stripe_subscription_id &&
+        resolvedProductSlug &&
+        trialGrant?.status === "pending" &&
+        Number(trialGrant?.days) === 14;
+      if (adminGrantedTrial) {
+        sessionOptions.subscription_data = {
+          ...(sessionOptions.subscription_data || {}),
+          trial_period_days: 14,
+          trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
+          metadata: {
+            ...(sessionOptions.subscription_data?.metadata || {}),
+            adminGrantedTrialDays: "14",
+          },
+        };
+        sessionOptions.metadata.adminGrantedTrialDays = "14";
+      } else if (!business?.stripe_subscription_id && !resolvedProductSlug) {
         if (trialEnd) {
           sessionOptions.subscription_data = {
+            ...(sessionOptions.subscription_data || {}),
             trial_end: trialEnd,
           };
         } else if (platformSettings?.defaultTrialDays > 0) {
           sessionOptions.subscription_data = {
+            ...(sessionOptions.subscription_data || {}),
             trial_period_days: platformSettings.defaultTrialDays,
           };
         }
@@ -14743,7 +14911,9 @@ async function startServer() {
 
       const subscriptionStatus = String(business.subscription_status || "").toLowerCase();
       const graceUntil = business.subscription_grace_until ? new Date(business.subscription_grace_until).getTime() : 0;
-      const subscriptionAllowed = subscriptionStatus === "active" || (graceUntil > Date.now() && ["past_due", "trialing", "grace"].includes(subscriptionStatus));
+      const trialEnd = business.trial_ends_at ? new Date(business.trial_ends_at).getTime() : 0;
+      const trialActive = subscriptionStatus === "trialing" && trialEnd > Date.now();
+      const subscriptionAllowed = subscriptionStatus === "active" || trialActive || (graceUntil > Date.now() && ["past_due", "trialing", "grace"].includes(subscriptionStatus));
       if (!subscriptionAllowed) {
         return publicDomainFailure(402, "SUBSCRIPTION_INACTIVE", "This website is not available.");
       }

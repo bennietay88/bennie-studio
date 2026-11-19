@@ -23,10 +23,10 @@ export const TrialReminder: React.FC<TrialReminderProps> = ({ business }) => {
 
   const getMessage = () => {
     if (daysLeft === 0)
-      return "Your trial ends today! Upgrade now to avoid any service interruption.";
+      return "Your free trial ends today. Your saved payment method will be charged for your plan unless you cancel before it ends.";
     if (daysLeft === 1)
-      return "Your trial ends tomorrow! Upgrade now to keep your business running smoothly.";
-    return `Your trial ends in 3 days. Upgrade to a paid plan to unlock full potential.`;
+      return "Your free trial ends tomorrow. Your saved payment method will be charged for your plan unless you cancel before then.";
+    return `Your free trial ends in 3 days. Your saved payment method will be charged for your plan unless you cancel before then.`;
   };
 
   return (
@@ -40,7 +40,7 @@ export const TrialReminder: React.FC<TrialReminderProps> = ({ business }) => {
         onClick={() => navigate("/dashboard/billing")}
         className="bg-white text-indigo-600 hover:bg-indigo-50 rounded-lg font-bold text-xs h-8 gap-2"
       >
-        Upgrade Now <ArrowRight className="h-3 w-3" />
+        Manage Subscription <ArrowRight className="h-3 w-3" />
       </Button>
     </div>
   );

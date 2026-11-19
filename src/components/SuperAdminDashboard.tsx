@@ -371,6 +371,7 @@ export default function SuperAdminDashboard() {
   const [editingBusiness, setEditingBusiness] = useState<any>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [savingBusiness, setSavingBusiness] = useState(false);
+  const [grantingTrial, setGrantingTrial] = useState(false);
   const [viewingUser, setViewingUser] = useState<any>(null);
   const [isViewUserDialogOpen, setIsViewUserDialogOpen] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(
@@ -1173,6 +1174,35 @@ export default function SuperAdminDashboard() {
         ? Array.from(new Set([...adminOnly, featureId]))
         : adminOnly.filter((item: string) => item !== featureId),
     });
+  };
+
+  const grantBusinessTrial = async () => {
+    if (!editingBusiness?.id || grantingTrial) return;
+    try {
+      setGrantingTrial(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Your admin session has expired.");
+      const response = await fetch(
+        `/api/admin/businesses/${encodeURIComponent(editingBusiness.id)}/grant-trial`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          body: "{}",
+        },
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.error || "The free trial could not be granted.");
+      const updatedBusiness = payload.business;
+      setEditingBusiness((current: any) => current?.id === updatedBusiness.id ? { ...current, ...updatedBusiness } : current);
+      setBusinesses((current) => current.map((business) => business.id === updatedBusiness.id ? { ...business, ...updatedBusiness } : business));
+      toast.success(payload.trialEndsAt
+        ? `14-day free trial granted through ${new Date(payload.trialEndsAt).toLocaleDateString()}.`
+        : "14-day free trial will start when the customer completes checkout.");
+    } catch (error: any) {
+      toast.error(error?.message || "The free trial could not be granted.");
+    } finally {
+      setGrantingTrial(false);
+    }
   };
 
   const handleUpdateBusiness = async () => {
@@ -2406,6 +2436,45 @@ export default function SuperAdminDashboard() {
                 </Select>
               </div>
             </div>
+            {isSuperAdmin && (() => {
+              const trialGrant = editingBusiness?.onboarding_steps?.subscriptionTrialGrant;
+              const alreadyGranted = Boolean(trialGrant?.grantedAt) || editingBusiness?.subscription_status === "trialing";
+              const pendingCheckout = !editingBusiness?.stripe_subscription_id && ["incomplete", "pending"].includes(String(editingBusiness?.subscription_status || ""));
+              const canGrantTrial = !alreadyGranted && (Boolean(editingBusiness?.stripe_subscription_id) || pendingCheckout);
+              return (
+                <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <Label className="text-sm font-black text-slate-950">14-day free trial</Label>
+                      <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">
+                        {alreadyGranted
+                          ? trialGrant?.status === "pending"
+                            ? "Trial is ready and will start at the customer's first checkout."
+                            : trialGrant?.trialEndsAt || editingBusiness?.trial_ends_at
+                              ? `Trial ends ${new Date(trialGrant?.trialEndsAt || editingBusiness.trial_ends_at).toLocaleDateString()}.`
+                              : "A trial has already been granted to this customer."
+                          : "The customer provides payment details first. Monthly billing starts automatically after 14 days; any one-time setup fee is charged at checkout."}
+                      </p>
+                    </div>
+                    {!alreadyGranted && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => void grantBusinessTrial()}
+                        disabled={!canGrantTrial || grantingTrial}
+                        className="shrink-0 rounded-xl border-sky-300 bg-white"
+                      >
+                        {grantingTrial ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Gift className="mr-2 h-4 w-4" />}
+                        Grant 14-day trial
+                      </Button>
+                    )}
+                  </div>
+                  {!canGrantTrial && !alreadyGranted && (
+                    <p className="mt-2 text-xs font-semibold text-amber-700">Billing must be active or awaiting its first checkout before a trial can be granted.</p>
+                  )}
+                </div>
+              );
+            })()}
             <div className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-4">
               <div className="flex flex-col gap-1">
                 <Label className="text-sm font-black text-slate-950">
