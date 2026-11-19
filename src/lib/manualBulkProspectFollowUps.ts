@@ -46,7 +46,8 @@ export function safeProspectFollowUpAsset(prospect: Prospect): { kind: "design" 
     try {
       const url = new URL(value, APP_ORIGIN);
       if (url.origin !== APP_ORIGIN || url.hash) continue;
-      if (kind === "design" && /^\/preview\/prospect\/[A-Za-z0-9_-]{8,160}$/.test(url.pathname)) {
+      if (kind === "design" && (/^\/preview\/prospect\/[A-Za-z0-9_-]{8,160}$/.test(url.pathname)
+        || /^\/p\/s_[A-Za-z0-9_-]{20}$/.test(url.pathname))) {
         return { kind, url: url.href };
       }
       if (kind === "audit" && (/^\/review\/[A-Za-z0-9_-]{22}$/.test(url.pathname)

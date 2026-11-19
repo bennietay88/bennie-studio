@@ -90,7 +90,7 @@ export default function ProspectPreviewPage() {
   const ctaHref = selfServe
     ? `/pricing?product=${encodeURIComponent(product!.slug)}#plan-${product!.slug}`
     : `/book-demo?preview_id=${encodeURIComponent(preview.previewId)}`;
-  const ctaLabel = selfServe ? "Launch this website" : "Build this website";
+  const ctaLabel = selfServe ? "See plan and price" : "Discuss this preview";
   const frameWidth = device === "mobile" ? "max-w-[430px]" : device === "tablet" ? "max-w-[820px]" : "max-w-[1600px]";
   const originalUrl = safeExternalUrl(preview.sourceUrl);
   const cleanPreviewUrl = safeExternalUrl(preview.websiteOnlyUrl);
@@ -114,7 +114,7 @@ export default function ProspectPreviewPage() {
               <span className="truncate text-sm font-semibold text-[#141821]">Website preview for {preview.businessName}</span>
             </div>
             <p className="mt-1 hidden text-xs text-[#687180] md:block">
-              Built from the business information and brand assets available on the current website.
+              A first-pass direction for review. Final content and scope are confirmed with you before launch.
             </p>
           </div>
 

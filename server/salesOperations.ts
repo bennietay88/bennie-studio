@@ -82,7 +82,8 @@ export function resolveProspectFollowUpAsset(contact: Row | null | undefined): {
     try {
       const url = new URL(String(raw || ""));
       if (url.protocol !== "https:" || url.origin !== appOrigin || url.username || url.password || url.hash) return null;
-      if (kind === "design" && !/^\/preview\/prospect\/[a-zA-Z0-9_-]{8,160}$/.test(url.pathname)) return null;
+      if (kind === "design" && !(/^\/preview\/prospect\/[a-zA-Z0-9_-]{8,160}$/.test(url.pathname)
+        || /^\/p\/s_[a-zA-Z0-9_-]{20}$/.test(url.pathname))) return null;
       if (kind === "audit" && !((url.pathname === "/website-audit" && url.searchParams.get("report") && url.searchParams.get("key")) || /^\/review\/[A-Za-z0-9_-]{22}$/.test(url.pathname))) return null;
       return { kind, url: url.toString() };
     } catch { return null; }
@@ -124,9 +125,13 @@ export function renderProspectFollowUpStage(
 
 export function renderProspectInitialEmail(contact: Row, overrides: ProspectEmailOverrides = {}) {
   const { company, firstName } = prospectEmailIdentity(contact);
+  const observation = getOutreachObservation(contact.notes).replace(/\s+/g, " ").trim().slice(0, 240);
   return renderProspectEmailTemplate("intro", {
     first_name: firstName, business_name: company,
     portfolio_url: PORTFOLIO_URL,
+    specific_observation: observation
+      ? `I looked at your website and noticed: ${observation}`
+      : "I help service businesses make their websites clearer and easier for customers to enquire through.",
   }, overrides);
 }
 

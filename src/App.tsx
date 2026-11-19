@@ -250,6 +250,7 @@ const PRIVATE_ROUTE_PREFIXES = [
   "/manage-call",
   "/preview/template",
   "/preview/prospect",
+  "/p/",
   "/w/",
   "/affiliate",
 ];
@@ -686,6 +687,7 @@ export default function App() {
               <Route path="/manage-call/:token" element={<ManageCallBooking />} />
               <Route path="/proposal/:token" element={<PublicProposalPage />} />
               <Route path="/preview/prospect/:previewId" element={<ProspectPreviewPage />} />
+              <Route path="/p/:previewId" element={<ProspectPreviewPage />} />
               <Route path="/privacy" element={<PolicyPage type="privacy" />} />
               <Route path="/privacy-policy" element={<PolicyPage type="privacy" />} />
               <Route path="/terms" element={<PolicyPage type="terms" />} />

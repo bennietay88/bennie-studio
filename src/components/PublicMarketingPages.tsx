@@ -2021,7 +2021,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-[#141821]">{previewMode === "website" ? "2" : "4"}</span>
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#b9b1ff]">{salesMode ? "Build prospect preview" : "Send the preview"}</p>
-                    <h3 className="mt-1 text-2xl font-semibold text-white">{salesMode ? "Generate a shareable direction." : "Link the preview to your email."}</h3>
+                    <h3 className="mt-1 text-2xl font-semibold text-white">{salesMode ? "Generate a shareable direction." : "Where should we connect your preview?"}</h3>
                   </div>
                 </div>
 
@@ -2031,7 +2031,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                     <Input id="preview-name" autoComplete="name" value={form.contactName} onChange={(e) => setForm({...form, contactName:e.target.value})} placeholder="Your name" className="h-12 rounded-xl border-white/15 bg-white text-[#141821]" />
                   </div>
                   <div>
-                    <label htmlFor="preview-email" className="mb-2 block text-sm font-semibold text-slate-200">Email <span className="font-normal text-slate-400">(required to link your preview)</span></label>
+                    <label htmlFor="preview-email" className="mb-2 block text-sm font-semibold text-slate-200">Email <span className="font-normal text-slate-400">(required to connect this request)</span></label>
                     <Input id="preview-email" required={!salesMode} autoComplete="email" type="email" value={form.email} onChange={(e) => setForm({...form, email:e.target.value})} placeholder="you@business.com" className="h-12 rounded-xl border-white/15 bg-white text-[#141821]" />
                   </div>
                   <div className="sm:col-span-2">
@@ -2066,7 +2066,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                   <Button type="submit" disabled={generating} className="min-h-14 rounded-xl bg-[#6758ff] px-7 text-base font-bold text-white shadow-[0_18px_35px_-22px_rgba(103,88,255,.85)] hover:bg-[#7a6cff]">
                     {generating ? "Building your website preview..." : previewMode === "website" ? "Build preview from my URL" : "Build preview from business details"} <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <p className="max-w-md text-xs leading-5 text-slate-400">Free to explore—no card required. Your email lets you return to your preview. See our privacy policy.</p>
+                  <p className="max-w-md text-xs leading-5 text-slate-400">Free to explore—no card required. We use this email to connect your preview request; marketing updates are optional below. See our privacy policy.</p>
                 </div>
               </section>
             </div>

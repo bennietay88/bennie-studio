@@ -173,6 +173,9 @@ export function ProspectExplorer() {
       first_name: String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0] || String(prospect.name || "there") + " team",
       business_name: String(prospect.name || "your business"),
       portfolio_url: PORTFOLIO_URL,
+      specific_observation: getOutreachObservation(prospect.notes).trim()
+        ? `I looked at your website and noticed: ${getOutreachObservation(prospect.notes).replace(/\s+/g, " ").trim().slice(0, 240)}`
+        : "I help service businesses make their websites clearer and easier for customers to enquire through.",
     }, overrides);
 
   const applyOutreachTemplate = (templateId: string, prospect = outreachProspect, observation = outreachObservation) => {

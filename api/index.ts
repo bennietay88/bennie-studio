@@ -4285,11 +4285,16 @@ async function startServer() {
           websiteId = created.id;
         }
 
-        const shareUrl = `${publicAppUrl()}/preview/prospect/${encodeURIComponent(body.previewId)}`;
+        const existingShareToken = String(raw.previewShareToken || "");
+        const shareToken = /^s_[A-Za-z0-9_-]{20}$/.test(existingShareToken)
+          ? existingShareToken
+          : `s_${crypto.randomBytes(15).toString("base64url")}`;
+        const shareUrl = `${publicAppUrl()}/p/${encodeURIComponent(shareToken)}`;
         const { error: leadUpdateError } = await supabaseAdmin.from("leads").update({
           business_id: businessId,
           raw_fields: {
             ...raw,
+            previewShareToken: shareToken,
             salesPreviewSummary: body.summary,
             previewBusinessId: businessId,
             previewWebsiteId: websiteId,
@@ -4319,17 +4324,21 @@ async function startServer() {
     "/api/public/prospect-preview/:previewId",
     rateLimit({ windowMs: 60 * 60 * 1000, max: 120, keyPrefix: "prospect-preview-read" }),
     async (req: any, res: any) => {
-      const previewId = String(req.params.previewId || "").trim();
-      if (previewId.length < 8 || previewId.length > 160) return res.status(404).json({ error: "Preview not found." });
+      const requestedId = String(req.params.previewId || "").trim();
+      const isShortShareToken = /^s_[A-Za-z0-9_-]{20}$/.test(requestedId);
+      if ((!isShortShareToken && (requestedId.length < 8 || requestedId.length > 160))) return res.status(404).json({ error: "Preview not found." });
       try {
-        const { data: lead, error: leadError } = await supabaseAdmin
+        let leadQuery = supabaseAdmin
           .from("leads")
           .select("id,name,business_id,preview_id,raw_fields,source")
-          .eq("preview_id", previewId)
-          .eq("source", "sales_preview")
-          .maybeSingle();
+          .eq("source", "sales_preview");
+        leadQuery = isShortShareToken
+          ? leadQuery.contains("raw_fields", { previewShareToken: requestedId })
+          : leadQuery.eq("preview_id", requestedId);
+        const { data: lead, error: leadError } = await leadQuery.maybeSingle();
         if (leadError) throw leadError;
         if (!lead?.business_id) return res.status(404).json({ error: "Preview not found." });
+        const previewId = String(lead.preview_id || requestedId);
 
         const raw = lead.raw_fields && typeof lead.raw_fields === "object" ? lead.raw_fields : {};
         const summary = raw.salesPreviewSummary && typeof raw.salesPreviewSummary === "object" ? raw.salesPreviewSummary : null;

@@ -19,8 +19,9 @@ import { Textarea } from "../ui/textarea";
 const EXAMPLE = {
   first_name: "Alex",
   business_name: "Example Service Company",
-  asset_url: "https://app.bennietay.com/preview/prospect/example_123456",
+  asset_url: "https://app.bennietay.com/p/s_a1B2c3D4e5F6g7H8i9J0",
   portfolio_url: PORTFOLIO_URL,
+  specific_observation: "I help service businesses make their websites clearer and easier for customers to enquire through.",
 };
 
 async function requestTemplates(method: "GET" | "PATCH", payload?: unknown) {
@@ -165,6 +166,7 @@ export function ProspectEmailTemplateEditor() {
                 <p className="text-xs leading-5 text-slate-500">
                   Variables: <code>{"{{first_name}}"}</code>, <code>{"{{business_name}}"}</code>,
                   <code>{"{{portfolio_url}}"}</code>, <code>{"{{asset_url}}"}</code>.
+                  {" "}<code>{"{{specific_observation}}"}</code> is available for the first email.
                   {" "}Design and review templates must include the asset URL; portfolio templates must include the portfolio URL.
                 </p>
                 {problem && <p className="text-sm font-semibold text-rose-700">{problem}</p>}

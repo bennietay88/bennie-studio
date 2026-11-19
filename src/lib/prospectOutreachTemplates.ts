@@ -40,14 +40,13 @@ const body = (...paragraphs: string[]) => paragraphs.join("\n\n");
 export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] = [
   {
     id: "intro", stage: "Day 0", label: "Initial introduction",
-    description: "Used for the permissioned sequence and as the default first email in the prospect composer.",
+    description: "Used for the permissioned sequence and as the default first email in the prospect composer. A verified observation is included when one has been recorded.",
     defaultTemplate: {
-      subject: "A website question for {{business_name}}",
+      subject: "One practical website idea for {{business_name}}",
       body: body(
         "Hi {{first_name}},",
-        "I'm Bennie from Bennie Studio. We build and manage websites for service businesses, from the initial setup to ongoing updates.",
-        "If you're considering making it easier for customers to learn about your services and get in touch, I can share a relevant example and explain the setup and monthly costs.",
-        "Would that be useful?",
+        "{{specific_observation}}",
+        "Would one practical suggestion for making it easier for customers to enquire be useful? Reply “yes” and I’ll send it. No call needed.",
         "Bennie\nBennie Studio",
       ),
     },
@@ -60,10 +59,10 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
       subject: "I put together a website concept for {{business_name}}",
       body: body(
         "Hi {{first_name}},",
-        "Just following up on my earlier email. I put together a homepage concept for {{business_name}}, showing a possible direction for clearer service messaging and easier enquiries.",
-        "You can view the concept here:",
+        "I made a first-pass homepage concept for {{business_name}} to show one possible direction for clearer services and easier enquiries. It’s a concept for discussion, not a live site.",
+        "View your concept:",
         "{{asset_url}}",
-        "If you want, reply “show me” and I’ll explain the design choices in a few bullets.",
+        "What would you change first? Reply with one thing and I’ll take a look.",
         "Bennie\nBennie Studio",
       ),
     },
@@ -96,7 +95,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
         "We build and manage websites for service businesses, making it easier for potential customers to learn about their services and get in touch.",
         "If you're curious about our work, you can view our portfolio here:",
         "{{portfolio_url}}",
-        "Would a relevant example and the setup and monthly cost help you decide if it’s worth considering? Reply “send it” and I’ll share them.",
+        "Is making the website easier to enquire through a priority this year? Reply “yes” or “not now” and I’ll take it from there.",
         "Bennie\nBennie Studio",
       ),
     },
@@ -113,7 +112,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
         "We build and manage websites for service businesses, making it easier for potential customers to learn about their services and get in touch.",
         "If you're curious about our work, you can view our portfolio here:",
         "{{portfolio_url}}",
-        "Would a relevant example and the setup and monthly cost help you decide if a website is worth considering? Reply “send it” and I’ll share them.",
+        "Is getting a website on your list this year? Reply “yes” or “not now” and I’ll send a short outline if it is.",
         "Bennie\nBennie Studio",
       ),
     },
@@ -127,7 +126,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
         "Hi {{first_name}},",
         "I wanted to share one practical thought following my previous note. A business website can do more than introduce services: it can make the next step clear when someone is ready to enquire.",
         "Bennie Studio can help improve the website and take care of ongoing updates, without your team having to manage the technical side.",
-        "Want a plain-English outline with the setup and monthly costs for {{business_name}}? Reply “outline” and I’ll send it.",
+        "Are you looking at website improvements this year? A quick “yes” or “not now” is enough; if yes, I’ll send the scope, setup fee and monthly costs for {{business_name}}.",
         "Bennie\nBennie Studio",
       ),
     },
@@ -141,7 +140,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
         "Hi {{first_name}},",
         "One more thought in case my earlier email was relevant. A simple business website could give customers one place to understand your services, see where you operate and get in touch.",
         "With Bennie Studio, we can handle both the initial setup and ongoing updates, so there's no need to manage the technical work yourself.",
-        "Want a plain-English outline with the setup and monthly costs for {{business_name}}? Reply “outline” and I’ll send it.",
+        "Are you planning to get a website this year? A quick “yes” or “not now” is enough; if yes, I’ll send the scope, setup fee and monthly costs for {{business_name}}.",
         "Bennie\nBennie Studio",
       ),
     },
@@ -214,7 +213,7 @@ export function renderProspectEmailTemplate(
     specific_observation: context.specific_observation || "",
   };
   const substitute = (text: string) => text.replace(/\{\{\s*(first_name|business_name|asset_url|portfolio_url|specific_observation)\s*\}\}/g,
-    (_match, token: string) => values[token] || "");
+    (_match, token: string) => values[token] || "").split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean).join("\n\n");
   return { subject: substitute(template.subject), body_text: substitute(template.body) };
 }
 
