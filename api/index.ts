@@ -3673,7 +3673,6 @@ async function startServer() {
         html,
         text: `${message.body_text}\n\nStop receiving these emails: ${unsubscribeUrl}`,
         replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
-        bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
         headers: {
           "List-Unsubscribe": `<${unsubscribeUrl}>`,
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
@@ -3713,7 +3712,6 @@ async function startServer() {
         html,
         text: `${message.body_text}\n\nStop receiving these emails: ${unsubscribeUrl}`,
         replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
-        bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
         headers: { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
       }, await loadHostingerSettings(), reserveHostingerEmailQuota);
     }
@@ -3727,7 +3725,6 @@ async function startServer() {
         process.env.SALES_REPLY_TO
         || platformSettings?.supportEmail
         || undefined,
-      bcc: process.env.SALES_ARCHIVE_EMAIL || undefined,
       headers: {
           "List-Unsubscribe": `<${unsubscribeUrl}>`,
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
