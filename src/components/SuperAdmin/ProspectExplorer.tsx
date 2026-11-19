@@ -1833,6 +1833,7 @@ export function ProspectExplorer() {
                     <Checkbox checked={allVisibleSelected} onCheckedChange={(checked) => toggleVisibleSelection(checked === true)} aria-label="Select all visible prospects" />
                   </th>
                   <SortableHeader label="Company" column="company" sortMode={sortMode} ascMode="name_asc" descMode="name_desc" onChange={setSortMode} />
+                  <SortableHeader label="Added" column="added" sortMode={sortMode} ascMode="oldest" descMode="newest" onChange={setSortMode} />
                   <SortableHeader label="Contact" column="contact" sortMode={sortMode} ascMode="contact_asc" descMode="contact_desc" onChange={setSortMode} />
                   <SortableHeader label="Website" column="website" sortMode={sortMode} ascMode="website_asc" descMode="website_desc" onChange={setSortMode} />
                   <SortableHeader label="Opportunity" column="opportunity" sortMode={sortMode} ascMode="opportunity_asc" descMode="opportunity_desc" onChange={setSortMode} />
@@ -1844,9 +1845,9 @@ export function ProspectExplorer() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr><td colSpan={9} className="py-20 text-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" /><p className="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Loading prospects...</p></td></tr>
+                  <tr><td colSpan={10} className="py-20 text-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" /><p className="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest">Loading prospects...</p></td></tr>
                 ) : sortedProspects.length === 0 ? (
-                  <tr><td colSpan={9} className="py-20 text-center"><p className="text-slate-400 font-bold text-sm">No prospects found.</p></td></tr>
+                  <tr><td colSpan={10} className="py-20 text-center"><p className="text-slate-400 font-bold text-sm">No prospects found.</p></td></tr>
                 ) : (
                   sortedProspects.map((prospect) => (
                     <tr key={prospect.id} className="hover:bg-slate-50/50 transition-colors align-top">
@@ -1864,6 +1865,11 @@ export function ProspectExplorer() {
                             {prospect.domain && <a className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-indigo-600" href={`https://${prospect.domain}`} target="_blank" rel="noreferrer">{prospect.domain}<ExternalLink className="h-3 w-3" /></a>}
                           </div>
                         </div>
+                      </td>
+                      <td className="min-w-0 px-3 py-6 text-xs font-semibold text-slate-500">
+                        {prospect.created_at
+                          ? <time dateTime={prospect.created_at} title={formatDistanceToNowStrict(new Date(prospect.created_at), { addSuffix: true })}>{format(new Date(prospect.created_at), "MMM dd, yyyy")}</time>
+                          : "—"}
                       </td>
                       <td className="min-w-0 px-3 py-6">
                         {renderContactActions(prospect)}
