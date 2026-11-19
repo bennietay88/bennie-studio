@@ -11,10 +11,13 @@ export type ProspectEmailTemplateKey =
   | "day3_audit"
   | "day3_portfolio_existing"
   | "day3_portfolio_no_site"
+  | "day3_neutral"
   | "day8_existing"
   | "day8_no_site"
+  | "day8_neutral"
   | "day15_existing"
-  | "day15_no_site";
+  | "day15_no_site"
+  | "day15_neutral";
 
 export type ProspectEmailTemplate = { subject: string; body: string };
 export type ProspectEmailOverrides = Partial<Record<ProspectEmailTemplateKey, ProspectEmailTemplate>>;
@@ -132,6 +135,14 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
     },
   },
   {
+    id: "day3_neutral", stage: "Day 3", label: "Research stage · neutral follow-up",
+    description: "Does not make claims about whether the business has a website.",
+    requiredTokens: ["portfolio_url"], defaultTemplate: {
+      subject: "Following up on my note — {{business_name}}",
+      body: body("Hi {{first_name}},", "Just following up on my earlier note about Bennie Studio. We build and manage websites for service businesses.", "You can see examples of our work here:", "{{portfolio_url}}", "If a website project is something you're considering, would a short outline be useful? Reply “yes” or “not now” and I’ll take it from there.", "Bennie\nBennie Studio"),
+    },
+  },
+  {
     id: "day8_no_site", stage: "Day 8", label: "No website · new website opportunity",
     description: "Talk about a new website and managed setup without assuming an existing website.",
     defaultTemplate: {
@@ -159,6 +170,13 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
     },
   },
   {
+    id: "day8_neutral", stage: "Day 8", label: "Research stage · neutral check-in",
+    description: "A neutral check-in while website status remains unknown.", defaultTemplate: {
+      subject: "A quick check-in — {{business_name}}",
+      body: body("Hi {{first_name}},", "I wanted to check whether a website project is on your plans this year. Bennie Studio builds and manages websites for service businesses.", "If it would help, I can send a short outline of the process and costs. A quick “yes” or “not now” is enough.", "Bennie\nBennie Studio"),
+    },
+  },
+  {
     id: "day15_no_site", stage: "Day 15", label: "No website · final check-in",
     description: "Final message without suggesting a website audit took place.",
     defaultTemplate: {
@@ -169,6 +187,13 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
         "I'll close the loop here and won't send further follow-ups. If the timing changes, you're welcome to get in touch.",
         "Bennie\nBennie Studio",
       ),
+    },
+  },
+  {
+    id: "day15_neutral", stage: "Day 15", label: "Research stage · final check-in",
+    description: "Closes the sequence without claiming a website is absent or present.", defaultTemplate: {
+      subject: "Closing the loop — {{business_name}}",
+      body: body("Hi {{first_name}},", "Just a final check-in about whether a website project is relevant for {{business_name}}. I understand it may not be a priority right now.", "I'll close the loop here and won't send further follow-ups. If the timing changes, you're welcome to get in touch.", "Bennie\nBennie Studio"),
     },
   },
 ];

@@ -13,6 +13,8 @@ test("real Nashville prospect history selects a no-site Day 3 follow-up", () => 
   assert.equal(chooseProspectFollowUpTemplate(1, true, "audit"), "day3_audit");
   assert.equal(chooseProspectFollowUpTemplate(2, false), "day8_no_site");
   assert.equal(chooseProspectFollowUpTemplate(3, false), "day15_no_site");
+  assert.equal(chooseProspectFollowUpTemplate(1, "unknown"), "day3_neutral");
+  assert.equal(chooseProspectFollowUpTemplate(2, "unknown"), "day8_neutral");
 });
 
 test("3/5/7 intervals and sequence cap use only confirmed sends", () => {

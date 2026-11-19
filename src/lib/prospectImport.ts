@@ -69,6 +69,11 @@ const ALIASES: Record<string, string> = {
   contact_page_or_listing: "contact_source_url",
   contact_page: "contact_source_url",
   listing_url: "contact_source_url",
+  website_evidence_url: "website_evidence_source_url",
+  website_source_url: "website_evidence_source_url",
+  website_checked_at: "website_verified_at",
+  website_check_method: "website_verification_method",
+  website_evidence: "website_finding",
 };
 
 const canonicalHeader = (value: string) => {
@@ -277,6 +282,21 @@ export function parseProspectCsv(csv: string): { prospects: Record<string, any>[
 
     const requestedWebsiteStatus = String(record.website_status || "").trim().toLowerCase();
     const requestedOpportunity = String(record.opportunity_level || "").trim().toLowerCase();
+    let websiteEvidenceSourceUrl: string | null = null;
+    let websiteEvidenceComplete = false;
+    if (record.website_evidence_source_url && !isMissing(record.website_evidence_source_url)) {
+      const evidenceUrl = normalizePublicUrl(String(record.website_evidence_source_url), "website_evidence_source_url", fail);
+      websiteEvidenceSourceUrl = evidenceUrl.toString();
+      const verifiedAt = new Date(String(record.website_verified_at || ""));
+      websiteEvidenceComplete = Number.isFinite(verifiedAt.getTime()) && verifiedAt.getTime() <= Date.now()
+        && Boolean(String(record.website_verification_method || "").trim())
+        && String(record.website_verification_method).trim().length <= 80
+        && String(record.website_finding || "").trim().length >= 10
+        && String(record.website_finding).trim().length <= 1000;
+      if ((requestedWebsiteStatus === "no_website" || noWebsiteSignal) && !websiteEvidenceComplete) {
+        fail("a no-website finding requires a source URL, verification date, method, and finding.");
+      }
+    }
 
     const prospect = {
       name: String(record.name).trim(),
@@ -289,11 +309,15 @@ export function parseProspectCsv(csv: string): { prospects: Record<string, any>[
       social_url: record.social_url,
       notes: notes || null,
       source: String(record.source || "csv_import").trim().slice(0, 160) || "csv_import",
-      website_status: noWebsiteSignal
-        ? "no_website"
-        : WEBSITE_STATUSES.has(requestedWebsiteStatus)
-          ? requestedWebsiteStatus
-          : "unknown",
+      website_status: websiteEvidenceComplete && (noWebsiteSignal || WEBSITE_STATUSES.has(requestedWebsiteStatus))
+        ? (noWebsiteSignal ? "no_website" : requestedWebsiteStatus)
+        : "unknown",
+      website_evidence_source_url: websiteEvidenceComplete ? websiteEvidenceSourceUrl : null,
+      website_verified_at: websiteEvidenceComplete ? new Date(String(record.website_verified_at)).toISOString() : null,
+      website_verification_method: websiteEvidenceComplete ? String(record.website_verification_method).trim() : null,
+      website_finding: websiteEvidenceComplete ? String(record.website_finding).trim() : null,
+      website_evidence_confidence: websiteEvidenceComplete && ["low", "medium", "high"].includes(String(record.website_evidence_confidence || "").toLowerCase())
+        ? String(record.website_evidence_confidence).toLowerCase() : null,
       outreach_status: "not_started",
       opportunity_level: OPPORTUNITY_LEVELS.has(requestedOpportunity)
         ? requestedOpportunity

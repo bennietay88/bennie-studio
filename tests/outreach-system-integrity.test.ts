@@ -46,7 +46,7 @@ test("portal makes delivered, failed, bounced, and suppression states discoverab
   assert.match(prospects, /_latestDelivery/);
   assert.match(prospects, /Email Delivery/);
   assert.match(salesUi, /deliveryOutcomes/);
-  assert.match(salesUi, /Bounce rate among sent/);
+  assert.match(salesUi, /Bounce rate among provider-accepted emails/);
 });
 
 test("scheduled B2B delivery runs in overlapping market hours", () => {

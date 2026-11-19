@@ -25,6 +25,11 @@ type Prospect = {
   contact_name?: string | null;
   domain?: string | null;
   website_status?: string | null;
+  website_evidence_source_url?: string | null;
+  website_verified_at?: string | null;
+  website_verification_method?: string | null;
+  website_finding?: string | null;
+  website_verified_by?: string | null;
   design_preview_url?: string | null;
   audit_report_url?: string | null;
   preview_url?: string | null;
@@ -76,10 +81,13 @@ export function prepareManualBulkFollowUp(
   if (next.kind === "intro") return skip("No confirmed opening email. This action sends follow-ups only.");
   if (next.kind === "wait") return skip("Not due until " + new Date(String(next.dueAt)).toLocaleString() + ".");
   if (next.kind === "stop" || !next.stage) return skip(next.reason || "Follow-up not available.");
-  const hasExistingWebsite = Boolean(String(prospect.domain || "").trim())
-    && !["no_website", "no website", "none", "not_found"].includes(String(prospect.website_status || "").toLowerCase().trim());
+  const verifiedWebsite = Boolean(prospect.website_evidence_source_url && prospect.website_verified_at
+    && prospect.website_verification_method && prospect.website_finding && prospect.website_verified_by);
+  const status = String(prospect.website_status || "").toLowerCase().trim();
+  const websiteStatus = !verifiedWebsite ? "unknown" as const
+    : status === "no_website" ? false : ["weak", "average", "strong"].includes(status) ? true : "unknown" as const;
   const asset = safeProspectFollowUpAsset(prospect);
-  const templateId = chooseProspectFollowUpTemplate(next.stage, hasExistingWebsite, asset?.kind) as ProspectEmailTemplateKey;
+  const templateId = chooseProspectFollowUpTemplate(next.stage, websiteStatus, asset?.kind) as ProspectEmailTemplateKey;
   const contact = String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0]
     || name + " team";
   const rendered = renderProspectEmailTemplate(templateId, {

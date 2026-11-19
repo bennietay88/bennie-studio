@@ -6,6 +6,9 @@ export type ReplyClassification =
   | "not_now"
   | "not_interested"
   | "unsubscribe"
+  | "automatic_reply"
+  | "delivery_notification"
+  | "manual_review"
   | "unknown";
 
 export type OutreachSequence = {
@@ -35,6 +38,11 @@ export type SalesMessage = {
   lead_id?: string | null;
   reply_to_message_id?: string | null;
   provider_payload?: Record<string, any> | null;
+  delivery_state?: string | null;
+  provider_accepted_at?: string | null;
+  delivery_confirmed_at?: string | null;
+  provider_name?: string | null;
+  delivery_uncertainty_reason?: string | null;
 };
 
 export type SalesCallBooking = {
@@ -71,6 +79,8 @@ export const getObservablePriority = (input: {
 export const classifyReply = (value: string): ReplyClassification => {
   // Classify the new reply, not the original sales email quoted underneath it.
   const text = value.split(/\n\s*(?:On .+wrote:|From:|>)/i)[0].toLowerCase();
+  if (/\b(?:delivery status notification|undeliver(?:ed|able)|delivery failed|mail delivery subsystem|returned mail|message not delivered|failure notice)\b/.test(text)) return "delivery_notification";
+  if (/\b(?:out of office|automatic reply|auto.?reply|vacation responder|currently away|away from the office|autoreply)\b/.test(text)) return "automatic_reply";
   if (/^(?:stop|unsubscribe|remove me|opt[ -]?out)[!.\s]*$/.test(text) ||
     /\b(?:unsubscribe|remove me|opt out|stop (?:email(?:ing)?|contacting|sending)|do not contact|don't contact|no (?:more|further) emails)\b/.test(text)) return "unsubscribe";
   if (/\b(?:not interested|no thanks|no thank you)\b/.test(text)) return "not_interested";
@@ -99,6 +109,32 @@ export const hasDocumentedMarketingConsent = (contact: {
   const recordedAt = new Date(String(contact.consent_timestamp || "")).getTime();
   const source = String(contact.consent_source || contact.consent_text || contact.raw_fields?.marketingConsentSource || "").trim();
   return Number.isFinite(recordedAt) && recordedAt <= now.getTime() && source.length >= 10;
+};
+
+export const salesEmailPermissionBlockReason = (contact: {
+  marketing_consent?: boolean | null;
+  consent_timestamp?: string | null;
+  consent_source?: string | null;
+  consent_text?: string | null;
+  consent_email?: string | null;
+  contact_email?: string | null;
+  email?: string | null;
+  contact_jurisdiction?: string | null;
+  country?: string | null;
+  market?: string | null;
+  contact_recipient_type?: string | null;
+  recipient_type?: string | null;
+  contact_lawful_basis?: string | null;
+  raw_fields?: { marketingConsentEmail?: string; marketingConsentSource?: string; country?: string; market?: string } | null;
+} | null | undefined, now = new Date()): string | null => {
+  if (!hasDocumentedMarketingConsent(contact, now)) return "recipient_consent_missing_or_not_bound_to_address";
+  const jurisdiction = String(contact?.contact_jurisdiction || contact?.country || contact?.market
+    || contact?.raw_fields?.country || contact?.raw_fields?.market || "").trim().toUpperCase();
+  if (!["US", "GB", "SG", "MY"].includes(jurisdiction)) return "jurisdiction_unknown";
+  const recipientType = String(contact?.contact_recipient_type || contact?.recipient_type || "unknown").trim().toLowerCase();
+  if (!["business", "individual"].includes(recipientType)) return "recipient_type_unknown";
+  if (String(contact?.contact_lawful_basis || "").trim().toLowerCase() !== "consent") return "lawful_basis_not_reviewed";
+  return null;
 };
 
 export const renderSalesTemplate = (template: string, values: Record<string, string | null | undefined>) =>

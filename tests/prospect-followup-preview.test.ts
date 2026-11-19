@@ -32,7 +32,7 @@ test("first follow-up prefers a persisted bespoke design preview over a review",
 test("first follow-up uses the authenticated audit report when no design concept exists", () => {
   const asset = resolveProspectFollowUpAsset({ ...company, audit_report_url: auditUrl });
   assert.deepEqual(asset, { kind: "audit", url: auditUrl });
-  assert.match(renderProspectFollowUpOne(company, asset!).body_text, /portfolio|short website review/i);
+  assert.match(renderProspectFollowUpOne(company, asset!).body_text, /short outline|earlier note/i);
 });
 
 test("generic template previews, foreign hosts and missing reports never qualify", () => {
@@ -49,13 +49,16 @@ test("invalid design link falls back to a genuine audit, not to an unverified co
   }), { kind: "audit", url: auditUrl });
 });
 
-test("no-website Day 3 follow-up references the earlier email and real portfolio, not a nonexistent review", () => {
-  const prospect = { name: "American Carpentry NC LLC", website_status: "no_website", domain: null };
+test("no-site Day 3 follow-up requires documented investigation and avoids nonexistent reviews", () => {
+  const prospect = { name: "American Carpentry NC LLC", website_status: "no_website", domain: null,
+    website_evidence_source_url: "https://directory.example/company", website_verified_at: "2026-11-05T00:00:00.000Z",
+    website_verification_method: "Search official profile and local listings", website_finding: "No independent website found",
+    website_verified_by: "admin", website_evidence_confidence: "high" };
   const message = renderProspectFollowUpOne(prospect, resolveProspectFollowUpAsset(prospect));
   assert.match(message.subject, /Following up on my earlier email/);
   assert.match(message.body_text, /Just following up on my earlier email/);
   assert.ok(message.body_text.includes(BENNIE_STUDIO_PORTFOLIO_URL));
-  assert.match(message.body_text, /website is worth considering|whether a website could be useful/i);
+  assert.match(message.body_text, /website could be useful/i);
   assert.doesNotMatch(message.body_text, /I (prepared|audited|reviewed)|your current website/i);
 });
 
@@ -67,8 +70,10 @@ test("an unreviewable existing website gets a neutral portfolio follow-up withou
 });
 
 test("Day 8 and Day 15 templates are tailored to site availability without claiming audit evidence", () => {
-  const greenfield = { name: "Example Carpentry", domain: null, website_status: "no_website" };
-  const existing = { name: "Example Dental", domain: "example.com", website_status: "existing" };
+  const evidence = { website_evidence_source_url: "https://example.com", website_verified_at: "2026-11-05T00:00:00.000Z",
+    website_verification_method: "Manual review", website_finding: "Verified website", website_verified_by: "admin", website_evidence_confidence: "high" };
+  const greenfield = { name: "Example Carpentry", domain: null, website_status: "no_website", ...evidence };
+  const existing = { name: "Example Dental", domain: "example.com", website_status: "strong", ...evidence };
   const noSiteDay8 = renderProspectFollowUpStage(greenfield, 2);
   const existingDay8 = renderProspectFollowUpStage(existing, 2);
   assert.match(noSiteDay8.body_text, /initial setup and ongoing updates/);
