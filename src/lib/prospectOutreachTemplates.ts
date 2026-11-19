@@ -112,7 +112,7 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
         "We build and manage websites for service businesses, making it easier for potential customers to learn about their services and get in touch.",
         "If you're curious about our work, you can view our portfolio here:",
         "{{portfolio_url}}",
-        "If a website could be useful for {{business_name}}, is getting one on your list this year? Reply “yes” or “not now” and I’ll send a short outline if it is.",
+        "If you’d like to explore whether a website could be useful for {{business_name}}, reply “yes” or “not now” and I’ll send a short outline.",
         "Bennie\nBennie Studio",
       ),
     },
