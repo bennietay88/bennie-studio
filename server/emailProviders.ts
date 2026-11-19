@@ -45,7 +45,6 @@ export type HostingerMailInput = {
   html: string;
   text?: string;
   replyTo?: string;
-  bcc?: string;
   headers?: Record<string, string>;
 };
 
@@ -84,7 +83,6 @@ export async function sendHostingerMail(
       html: input.html,
       text: input.text,
       replyTo: input.replyTo,
-      bcc: input.bcc,
       headers: input.headers,
       disableFileAccess: true,
       disableUrlAccess: true,

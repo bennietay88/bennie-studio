@@ -5,14 +5,13 @@ import { readFileSync } from "node:fs";
 const api = readFileSync("api/index.ts", "utf8");
 const env = readFileSync(".env.example", "utf8");
 
-test("direct and scheduled sales emails can be archived to an operator mailbox", () => {
-  const matches = api.match(/bcc: process\.env\.SALES_ARCHIVE_EMAIL \|\| undefined/g) || [];
-  // Scheduled Resend, direct Hostinger SMTP, and direct Resend all preserve archive copies.
-  assert.equal(matches.length, 3);
+test("sales emails do not send archive BCC copies", () => {
+  assert.doesNotMatch(api, /\bbcc\s*:/i);
+  assert.doesNotMatch(api, /SALES_ARCHIVE_EMAIL/);
   assert.match(api, /replyTo: process\.env\.SALES_REPLY_TO/);
 });
 
-test("sales archive mailbox is documented as server-only configuration", () => {
-  assert.match(env, /SALES_ARCHIVE_EMAIL=/);
+test("sales archive mailbox is not configurable", () => {
+  assert.doesNotMatch(env, /SALES_ARCHIVE_EMAIL/);
   assert.doesNotMatch(env, /VITE_SALES_ARCHIVE_EMAIL/);
 });

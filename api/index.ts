@@ -3578,7 +3578,6 @@ async function startServer() {
       html: string;
       text?: string;
       replyTo?: string;
-      bcc?: string;
       headers?: Record<string, string>;
       tags?: Array<{ name: string; value: string }>;
     },
