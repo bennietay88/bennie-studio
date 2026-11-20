@@ -2,6 +2,8 @@ import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { scoreProspect } from "../src/lib/prospectScoring.js";
 import { buildOutreachReport, deterministicVariant, reviewOutreachTasks, type OutreachDataset } from "../src/lib/outreachCompletion.js";
+import { prepareExperimentCopy } from "../src/lib/outreachExperiments.js";
+import { salesEmailPermissionBlockReason } from "../src/lib/salesAutomation.js";
 import { canManageSalesOperations } from "./salesOperations.js";
 
 /** Server-only, authenticated outreach research and reporting. Never sends email. */
@@ -291,4 +293,50 @@ export function registerOutreachCompletionRoutes({app,db,authenticate,getProfile
       return res.json({event,verified:true});
     }catch(e){return replyError(res,e,"Stripe reconciliation");}
   });
+  // Explicit experiment activation never queues mail. Both variants require at least one assigned prospect.
+  app.post("/api/admin/outreach-completion/experiments/:id/state",...gate,async(req:any,res:Response)=>{
+    const id=requestPayload(oneId,req.params.id,res);
+    const input=requestPayload(z.object({status:z.enum(["active","paused","completed"])}),req.body,res);
+    if(!id||!input)return;
+    try{
+      const experiment=await ensureExists(db,"outreach_experiments",id,"*");
+      const allowed:Record<string,string[]>={draft:["active","paused"],paused:["active","completed"],active:["paused","completed"],completed:[]};
+      if(!allowed[experiment.status]?.includes(input.status))
+        return res.status(409).json({error:"Experiment cannot transition to that state"});
+      if(input.status==="active"){
+        const {data:assigned,error}=await db.from("outreach_experiment_assignments")
+          .select("variant").eq("experiment_id",id);
+        if(error)throw error;
+        const sides=new Set((assigned||[]).map((item:any)=>item.variant));
+        if(!sides.has("A")||!sides.has("B"))return res.status(409).json({error:"Assign a prospect to both A and B before activation"});
+      }
+      const now=new Date().toISOString();
+      const updated=checked(await db.from("outreach_experiments").update({status:input.status,updated_at:now,
+        ...(input.status==="active"&&!experiment.started_at?{started_at:now}:{}),
+        ...(input.status==="completed"?{completed_at:now}:{})})
+        .eq("id",id).eq("status",experiment.status).select("*").single()).data;
+      return res.json({experiment:updated,note:"No emails sent or queued. Manual send and permission evidence are always required."});
+    }catch(e){return replyError(res,e,"experiment state");}
+  });
+  app.get("/api/admin/outreach-completion/experiments/:id/preview/:prospectId",...gate,async(req:any,res:Response)=>{
+    const id=requestPayload(oneId,req.params.id,res);
+    const prospectId=requestPayload(oneId,req.params.prospectId,res);
+    if(!id||!prospectId)return;
+    try{
+      const [experiment,prospect]=await Promise.all([
+        ensureExists(db,"outreach_experiments",id,"*"),
+        ensureExists(db,"prospects",prospectId,"*"),
+      ]);
+      const {data:assigned,error}=await db.from("outreach_experiment_assignments")
+        .select("variant").eq("experiment_id",id).eq("prospect_id",prospectId).maybeSingle();
+      if(error)throw error;
+      if(!assigned)return res.status(409).json({error:"Prospect is not assigned to this experiment"});
+      const copy=prepareExperimentCopy(experiment,assigned.variant,prospect);
+      const reason=salesEmailPermissionBlockReason(prospect,new Date());
+      return res.json({copy,prospect:{id:prospect.id,name:prospect.name,contact_email:prospect.contact_email},
+        permissionEligible:reason===null,permissionBlockReason:reason,
+        note:"Copy preview only. Sending requires explicit operator confirmation and all send-time safety checks."});
+    }catch(e){return replyError(res,e,"experiment preview");}
+  });
+
 }
