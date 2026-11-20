@@ -1582,3 +1582,39 @@
     max-width: 100%;
   }
 }
+
+
+/* Master QA: override component-specific !important hero sizing with a narrowly scoped
+   and more specific selector, preserving preview typography inside screenshots. */
+.brand-public .conversion-home .c26-hero h1,
+.brand-public .bs-sales .s28-services-hero h1,
+.brand-public .bs-sales .s28-pricing-hero h1,
+.brand-public .c27-marketing-hero h1,
+.brand-public .bs3-sales-hero h1,
+.brand-public main > section h1 {
+  font-size: clamp(2.75rem, 3.8vw, 3.5rem) !important;
+  line-height: 1.1 !important;
+}
+.brand-public .bs-sales .s28-services-layout {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+  column-gap: 3rem;
+}
+.brand-public .conversion-home .c26-hero-grid > *,
+.brand-public .bs-sales .s28-services-layout > * {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 767px) {
+  .brand-public .conversion-home .c26-hero h1,
+  .brand-public .bs-sales .s28-services-hero h1,
+  .brand-public .bs-sales .s28-pricing-hero h1,
+  .brand-public .c27-marketing-hero h1,
+  .brand-public .bs3-sales-hero h1,
+  .brand-public main > section h1 {
+    font-size: clamp(2rem, 8.8vw, 2.25rem) !important;
+    line-height: 1.1 !important;
+  }
+  .brand-public .bs-sales .s28-services-layout {
+    grid-template-columns: minmax(0,1fr);
+  }
+}
