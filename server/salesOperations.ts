@@ -476,7 +476,7 @@ export function deliveryStatus(current: string, incoming: string): string {
 }
 
 export async function recordSalesDeliveryEvent(db: Db, event: Row, now: string) {
-  const states: Record<string, string> = { "email.sent": "provider_accepted", "email.delivered": "delivery_confirmed", "email.opened": "delivery_confirmed", "email.clicked": "delivery_confirmed", "email.bounced": "bounced", "email.complained": "complained", "email.suppressed": "rejected", "email.failed": "failed" };
+  const states: Record<string, string> = { "email.sent": "provider_accepted", "email.delivered": "delivery_confirmed", "email.opened": "engagement_only", "email.clicked": "engagement_only", "email.bounced": "bounced", "email.complained": "complained", "email.suppressed": "rejected", "email.failed": "failed" };
   const state = states[event.type];
   if (!state || !event.data?.email_id) return;
   const { data: message } = checked(await db.from("sales_messages").select("*")
@@ -492,7 +492,8 @@ export async function recordSalesDeliveryEvent(db: Db, event: Row, now: string) 
     match_method: message ? "provider_message_id" : "unmatched",
     event_payload: event.data || {},
   }, { onConflict: "provider,event_key", ignoreDuplicates: true }));
-  if (!message) return;
+  if (!message || state === "engagement_only") return;
+  // Opens and clicks are engagement signals, never proof of recipient-server acceptance.
   // Keep engagement status separate from provider delivery evidence.
   const rank: Record<string, number> = { unknown: 0, provider_accepted: 1, delivery_unconfirmed: 1, delivery_confirmed: 2, bounced: 3, complained: 4, rejected: 3, failed: 3, uncertain: 1 };
   const current = String(message.delivery_state || "unknown");
