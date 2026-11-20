@@ -115,14 +115,14 @@ export default function PersonalProfilePage() {
               <p className="text-xs font-bold uppercase tracking-[.12em] text-[#1D4ED8]">PERSONAL PROFILE</p>
               <div aria-live="polite" className="mt-4">
                 <p className="text-4xl font-semibold tracking-tight text-[#0F172A]">
-                  {priceReady ? formatCommercialMoney(price.monthlyPrice, price.currency) : loading ? "Checking rates…" : "Pricing unavailable"}
+                  {priceReady ? formatCommercialMoney(price!.monthlyPrice!, price!.currency) : loading ? "Checking rates…" : "Pricing unavailable"}
                   {priceReady && <span className="text-base font-normal text-[#64748b]"> / month</span>}
                 </p>
-                <p className="mt-2 text-sm text-[#475569]">{priceReady ? `+ ${formatCommercialMoney(price.setupFee, price.currency)} one-time setup` : "See verified rates before choosing."}</p>
+                <p className="mt-2 text-sm text-[#475569]">{priceReady ? `+ ${formatCommercialMoney(price!.setupFee, price!.currency)} one-time setup` : "See verified rates before choosing."}</p>
               </div>
               {priceReady && <div className="mt-6 border-t border-[#e2e8f0] pt-5 text-sm leading-6 text-[#475569]">
-                <p><strong className="text-[#0F172A]">First payment:</strong> {formatCommercialMoney(price.setupFee + price.monthlyPrice, price.currency)}</p>
-                <p className="mt-2">{term}-month initial commitment; {formatCommercialMoney(price.setupFee + term * price.monthlyPrice, price.currency)} total, including setup, before tax. Then month-to-month unless the accepted order states otherwise.</p>
+                <p><strong className="text-[#0F172A]">First payment:</strong> {formatCommercialMoney(price!.setupFee + price!.monthlyPrice!, price!.currency)}</p>
+                <p className="mt-2">{term}-month initial commitment; {formatCommercialMoney(price!.setupFee + term * price!.monthlyPrice!, price!.currency)} total, including setup, before tax. Then month-to-month unless the accepted order states otherwise.</p>
               </div>}
               <div className="mt-6 flex items-start gap-2 border-t border-[#e2e8f0] pt-5 text-sm text-[#475569]">
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#1D4ED8]" />
