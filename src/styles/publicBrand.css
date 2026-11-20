@@ -1461,3 +1461,110 @@
 .bt-template-canvas [class~="text-[11px]"] {
   font-size: 15px !important;
 }
+
+
+/* Bennie Studio 2026 design-system master tokens and structural QA rules.
+ * Public marketing only. Template preview canvases retain their industry colors.
+ */
+.brand-public {
+  --brand-ink: #0F172A;
+  --brand-muted: #475569;
+  --brand-soft: #475569;
+  --brand-line: #E2E8F0;
+  --brand-paper: #F8FAFC;
+  --brand-white: #FFFFFF;
+  --brand-accent: #1D4ED8;
+  --brand-accent-soft: #EFF6FF;
+  --brand-dark: #0F172A;
+  background-color: #F8FAFC;
+  color: #0F172A;
+}
+.brand-public .brand-shell {
+  width: min(calc(100% - 3rem), 80rem);
+  max-width: 80rem;
+  margin-inline: auto;
+}
+.brand-public h1 {
+  font-size: clamp(2rem, 3.8vw, 3.5rem) !important;
+  line-height: 1.1 !important;
+}
+.brand-public h2 {
+  font-size: clamp(2rem, 3vw, 2.5rem) !important;
+  line-height: 1.14 !important;
+}
+.brand-public .bt-sales-hero-title {
+  font-size: clamp(2rem, 3.8vw, 3.5rem) !important;
+  line-height: 1.1 !important;
+}
+.brand-public :is(p,li).text-sm:not(.bt-template-preview *),
+.brand-public :is(p,li).brand-copy {
+  font-size: 1rem !important;
+  line-height: 1.55 !important;
+}
+.brand-public .brand-copy {
+  color: #475569;
+}
+.brand-public .brand-kicker {
+  color: #1D4ED8;
+}
+.brand-public :is(.brand-elevated,.brand-browser-frame,.bt-premium-card) {
+  border: 1px solid #E2E8F0;
+  background-color: #FFFFFF;
+  border-radius: 1rem !important;
+  box-shadow: 0 18px 55px -46px rgba(15,23,42,.4);
+}
+.brand-public :is(.c27-button,.c26-primary-button) {
+  background: #1D4ED8 !important;
+  border-color: #1D4ED8 !important;
+  color: #FFFFFF !important;
+}
+.brand-public :is(.c27-button,.c26-primary-button):hover {
+  background: #2563EB !important;
+}
+.brand-public :is(.c27-marketing-hero .brand-shell, .c27-marketing-hero .grid) {
+  column-gap: max(3rem, 48px);
+}
+.brand-public .c27-marketing-hero .brand-shell > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.brand-public .c27-marketing-hero .c27-visual {
+  max-width: 100%;
+  overflow: hidden;
+}
+.brand-public .c27-marketing-hero .c27-rendered {
+  max-width: 100%;
+  overflow: hidden;
+}
+.brand-public :is(input, textarea, select):focus-visible {
+  outline-offset: 2px;
+}
+.brand-public .brand-on-dark {
+  background-color: #0F172A;
+}
+.brand-public .brand-muted-on-dark {
+  color: #CBD5E1;
+}
+@media (min-width: 1024px) {
+  .brand-public .brand-shell {
+    width: min(calc(100% - 6rem), 80rem);
+  }
+  .brand-public h1,
+  .brand-public .bt-sales-hero-title {
+    font-size: clamp(2.75rem, 3.8vw, 3.5rem) !important;
+  }
+}
+@media (max-width: 767px) {
+  .brand-public .c27-marketing-hero .brand-shell {
+    gap: 3rem;
+  }
+  .brand-public .c27-marketing-hero .brand-shell > * {
+    width: 100%;
+  }
+  .brand-public .bt-sales-hero-title {
+    font-size: clamp(2rem, 8.8vw, 2.25rem) !important;
+  }
+  .brand-public :is(.c27-visual,.brand-browser-frame) {
+    transform: none;
+  }
+}
