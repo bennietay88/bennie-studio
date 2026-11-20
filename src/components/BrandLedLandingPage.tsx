@@ -256,11 +256,11 @@ export default function BrandLedLandingPage() {
             </div>
             <div className="border-t border-[#dfe2ea] lg:col-span-8">
               {faqs.map(([question, answer]) => (
-                <details key={question} className="group border-b border-[#dfe2ea] py-5">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-lg font-semibold">
-                    {question}<span className="text-xl text-[#5746e8] transition group-open:rotate-45">+</span>
+                <details key={question} className="group border-b border-[#dfe2ea] px-5 py-5 sm:px-8">
+                  <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-6 rounded-sm text-base font-semibold text-[#0F172A] outline-none focus-visible:ring-2 focus-visible:ring-[#1D4ED8] focus-visible:ring-offset-4 sm:text-lg">
+                    {question}<span aria-hidden="true" className="shrink-0 text-xl text-[#1D4ED8] transition-transform group-open:rotate-45">+</span>
                   </summary>
-                  <p className="max-w-2xl pt-4 text-[#526071]">{answer}</p>
+                  <p className="max-w-2xl pb-2 pt-3 leading-7 text-[#526071]">{answer}</p>
                 </details>
               ))}
             </div>
