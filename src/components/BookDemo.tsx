@@ -272,7 +272,7 @@ export default function BookDemo() {
       <main>
         <section className="relative overflow-hidden border-b border-[#dfe3e8] bg-[#f8f8f5] text-[#15191f]">
           <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#1741ed]/10 blur-3xl" />
-          <div className="brand-shell relative grid min-w-0 gap-10 py-16 lg:grid-cols-12 lg:items-start lg:py-24">
+          <div className="brand-shell relative grid min-w-0 gap-12 py-16 lg:grid-cols-12 lg:items-start lg:py-24">
             <div className="min-w-0 lg:col-span-5">
               
               <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.03] tracking-tight text-[#15191f] sm:text-5xl">
