@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 type PreviewRow = ManualBulkIntroPreview & {
   requestId: string;
-  delivery: "ready" | "skipped" | "sending" | "submitted" | "failed";
+  delivery: "ready" | "permission_review" | "skipped" | "sending" | "submitted" | "failed";
   error?: string;
 };
 
@@ -60,7 +60,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               const history = await response.json();
               if (!history.prospect || !Array.isArray(history.messages)) throw new Error("Current prospect history is incomplete.");
               const preview = prepareManualBulkIntro(history.prospect, history.messages, overrides);
-              return { ...preview, requestId, delivery: preview.kind === "ready" ? "ready" : "skipped" };
+              return { ...preview, requestId, delivery: preview.kind === "ready" ? "ready" : preview.kind === "permission_review" ? "permission_review" : "skipped" };
             } catch (error: any) {
               return { prospectId: id, name: "Selected prospect", email: "", kind: "skip",
                 reason: error?.message || "Could not verify current prospect history.", requestId, delivery: "skipped" };
@@ -68,11 +68,11 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
           }));
           for (const row of batch) {
             const key = row.email.trim().toLowerCase();
-            if (row.kind === "ready" && key && emails.has(key)) {
+            if (row.kind !== "skip" && key && emails.has(key)) {
               checked.push({ ...row, kind: "skip", delivery: "skipped", reason: "Duplicate recipient email in this selection." });
             } else {
               checked.push(row);
-              if (row.kind === "ready" && key) emails.add(key);
+              if (row.kind !== "skip" && key) emails.add(key);
             }
           }
           if (!active) return;
@@ -92,6 +92,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
 
   const ready = rows.filter((row) => row.delivery === "ready");
   const skipped = rows.filter((row) => row.delivery === "skipped");
+  const permissionReview = rows.filter((row) => row.delivery === "permission_review");
   const submitted = rows.filter((row) => row.delivery === "submitted");
   const failed = rows.filter((row) => row.delivery === "failed");
 
@@ -133,8 +134,15 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
           setRows((current) => current.map((item) => item.prospectId === row.prospectId
             ? { ...item, delivery: "submitted" } : item));
         } catch (error: any) {
+          const message = String(error?.message || "Delivery uncertain. Check provider records before retrying.");
+          const blockedByPermission = message.includes("Email contact is blocked until")
+            || message.includes("Confirm the independently recorded permission details");
           setRows((current) => current.map((item) => item.prospectId === row.prospectId
-            ? { ...item, delivery: "failed", error: error?.message || "Delivery uncertain. Check provider records before retrying." } : item));
+            ? blockedByPermission
+              ? { ...item, kind: "permission_review", delivery: "permission_review",
+                  reason: "The backend blocked this request before any provider delivery. Verify recipient opt-in and CRM details.", error: undefined }
+              : { ...item, delivery: "failed", error: message }
+            : item));
         }
       }
       setFinished(true);
@@ -170,6 +178,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               <div className="flex flex-wrap gap-3 text-sm font-medium">
                 <span className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-800">{ready.length} ready</span>
                 <span className="rounded-lg bg-slate-100 px-3 py-2 text-slate-700">{skipped.length} skipped</span>
+                {!!permissionReview.length && <span className="rounded-lg bg-amber-50 px-3 py-2 text-amber-900">{permissionReview.length} permission review · not sent</span>}
                 {!!submitted.length && <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">{submitted.length} submitted</span>}
                 {!!failed.length && <span className="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">{failed.length} failed / needs review</span>}
               </div>
@@ -177,7 +186,8 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                 {rows.map((row, index) => (
                   <div key={row.prospectId} className={"rounded-xl border p-4 " +
                     (row.delivery === "skipped" ? "border-slate-200 bg-slate-50" :
-                      row.delivery === "failed" ? "border-rose-200 bg-rose-50" : "border-slate-200 bg-white")}>
+                      row.delivery === "failed" ? "border-rose-200 bg-rose-50" :
+                      row.delivery === "permission_review" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white")}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-900">{row.name}</p>
@@ -186,15 +196,17 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                       <span className={"rounded-full px-2.5 py-1 text-xs font-semibold " +
                         (row.delivery === "ready" ? "bg-indigo-100 text-indigo-800" :
                           row.delivery === "submitted" ? "bg-emerald-100 text-emerald-800" :
-                            row.delivery === "failed" ? "bg-rose-100 text-rose-800" : "bg-slate-200 text-slate-600")}>
+                            row.delivery === "failed" ? "bg-rose-100 text-rose-800" :
+                            row.delivery === "permission_review" ? "bg-amber-100 text-amber-900" : "bg-slate-200 text-slate-600")}>
                         {row.delivery === "ready" ? "Introduction · Ready" :
                           row.delivery === "sending" ? "Sending…" :
                             row.delivery === "submitted" ? "Submitted" :
-                              row.delivery === "failed" ? "Needs review" : "Skipped"}
+                              row.delivery === "failed" ? "Delivery needs review" :
+                              row.delivery === "permission_review" ? "Permission review · Not sent" : "Skipped"}
                       </span>
                     </div>
-                    {row.kind === "ready" ? (
-                      <details className="mt-3" open={index === rows.findIndex((item) => item.kind === "ready") ? true : undefined}>
+                    {row.kind !== "skip" ? (
+                      <details className="mt-3" open={index === rows.findIndex((item) => item.kind !== "skip") ? true : undefined}>
                         <summary className="cursor-pointer text-sm font-semibold text-indigo-700">Review subject and full email</summary>
                         <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
                           <p className="mb-2 text-sm font-semibold text-slate-900">{row.subject}</p>
@@ -202,6 +214,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                         </div>
                       </details>
                     ) : <p className="mt-2 text-xs leading-5 text-slate-600">{row.reason}</p>}
+                    {row.kind === "permission_review" && <p className="mt-3 text-xs font-medium leading-5 text-amber-900">{row.reason} No delivery attempted.</p>}
                     {row.error && <p className="mt-2 text-xs font-medium text-rose-800">{row.error} {row.error.includes("Email contact is blocked until") || row.error.includes("Confirm the independently recorded permission details")
                       ? "The server blocked this before provider delivery. Verify recipient permission records; do not invent an opt-in."
                       : "Do not resend until provider delivery is checked."}</p>}
@@ -213,7 +226,8 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
           {!loading && !loadError && !!rows.length && !finished && (
             <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
               Clicking Send confirms this operator-initiated request. It does not create recipient consent.
-              The server checks each recipient's recorded permission and suppression status before sending.
+              Only eligible contacts are send-ready; permission-review contacts are never submitted to the provider.
+              The server rechecks recipient permission, suppression status and delivery safeguards before sending.
             </p>
           )}
           {finished && <div role="status" className="flex gap-2 rounded-xl bg-indigo-50 p-4 text-sm text-indigo-900">
@@ -223,6 +237,9 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
         </div>
         <DialogFooter className="!mx-0 !mb-0 shrink-0 gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>{finished ? "Close" : "Cancel"}</Button>
+          {!finished && !loading && !loadError && !ready.length && !!rows.length && (
+            <p className="text-sm font-medium text-amber-900">No eligible recipients to send. Review permission records or use an outreach channel that permits this contact type.</p>
+          )}
           {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             {sending ? "Sending individually…" : "Send " + ready.length + " reviewed introduction" + (ready.length === 1 ? "" : "s")}
