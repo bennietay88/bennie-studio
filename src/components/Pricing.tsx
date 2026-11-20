@@ -108,6 +108,19 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
     } catch (error: any) { toast.error(error.message || "Payment process failed"); }
   };
 
+  // Product-specific landing pages can open the existing reviewed order
+  // summary directly. This never bypasses the verified price, contract
+  // acknowledgement, or Stripe checkout safeguards.
+  const requestedProduct = new URLSearchParams(location.search).get("product");
+  React.useEffect(() => {
+    if (location.pathname !== "/pricing" || requestedProduct !== "personal-profile"
+      || loading || pricingError || pendingProduct || currentPlan || onSelectPlan) return;
+    const item = products.find((product) => product.slug === "personal-profile");
+    if (!item || item.salesMotion !== "self_serve" || !getCommercialPrice(item, publicMarket)) return;
+    setTermsAccepted(false);
+    setPendingProduct(item);
+  }, [location.pathname, requestedProduct, loading, pricingError, pendingProduct, currentPlan, onSelectPlan, products, publicMarket]);
+
   const handleSelect = async (product: CommercialProduct) => {
     trackPublicEvent({eventType:"plan_selected",label:product.name,target:"/pricing",metadata:{product:product.slug,currency:checkoutCurrency,market:publicMarket}});
     if (loading || pricingError) { toast.error("Wait for verified market pricing before selecting a plan."); return; }
