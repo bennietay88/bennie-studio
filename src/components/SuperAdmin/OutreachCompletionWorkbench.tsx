@@ -55,6 +55,9 @@ export function OutreachCompletionWorkbench() {
   const [experiment,setExperiment]=React.useState({name:"",hypothesis:"",segment:"all",primaryMetric:"human_reply",
     variantA:{subject:"",body:""},variantB:{subject:"",body:""}});
   const [selectedExperiment,setSelectedExperiment]=React.useState("");
+  const [experimentProspect,setExperimentProspect]=React.useState("");
+  const [experimentPreview,setExperimentPreview]=React.useState<Json|null>(null);
+  const [experimentSendConfirmed,setExperimentSendConfirmed]=React.useState(false);
   const [assignmentProspects,setAssignmentProspects]=React.useState("");
   const [milestone,setMilestone]=React.useState({prospectId:"",eventType:"qualified_conversation",notes:"",amount:"",currency:"USD"});
   const [invoice,setInvoice]=React.useState({prospectId:"",invoiceId:""});
@@ -255,6 +258,50 @@ export function OutreachCompletionWorkbench() {
           const result=await post("/api/admin/outreach-completion/experiments/"+encodeURIComponent(selectedExperiment)+"/assign",{prospectIds:ids});
           if(result)void load();
         }}>Assign variants, no sending</Button>
+        <div className="space-y-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+          <p className="text-base font-semibold">Controlled experiment workflow</p>
+          <p className="text-base leading-relaxed text-[#475569]">Assign prospects, activate the reviewed experiment, preview their exact variant and confirm each send separately.</p>
+          <Button variant="outline" disabled={busy||!selectedExperiment} onClick={async()=>{
+            const exp=(report?.experiments||[]).find((x:any)=>x.id===selectedExperiment);
+            if(!exp)return;
+            const next=exp.status==="active"?"paused":"active";
+            if(!window.confirm("Change this experiment to "+next+"? This does not send any email."))return;
+            const result=await post("/api/admin/outreach-completion/experiments/"+selectedExperiment+"/state",{status:next});
+            if(result)void load();
+          }}>Activate / pause experiment</Button>
+          <Input placeholder="Assigned prospect UUID to preview" value={experimentProspect}
+            onChange={e=>{setExperimentProspect(e.target.value);setExperimentPreview(null);setExperimentSendConfirmed(false);}}/>
+          <Button variant="outline" disabled={busy||!selectedExperiment||!experimentProspect} onClick={async()=>{
+            try{
+              const result=await request("/api/admin/outreach-completion/experiments/"+encodeURIComponent(selectedExperiment)+"/preview/"+encodeURIComponent(experimentProspect));
+              setExperimentPreview(result);setExperimentSendConfirmed(false);
+            }catch(e:any){toast.error(e?.message||"Variant preview unavailable.");}
+          }}>Preview assigned exact copy</Button>
+          {experimentPreview&&<div className="space-y-3 rounded-2xl border border-[#E2E8F0] bg-white p-4">
+            <Badge variant="outline">Variant {experimentPreview.copy?.variant}</Badge>
+            <p className="text-base font-semibold">To {experimentPreview.prospect?.contact_email}</p>
+            <p className="text-base font-semibold">{experimentPreview.copy?.subject}</p>
+            <pre className="whitespace-pre-wrap break-words font-sans text-base leading-relaxed">{experimentPreview.copy?.body}</pre>
+            {!experimentPreview.permissionEligible&&<p className="text-base font-semibold text-amber-800">Sending blocked: {experimentPreview.permissionBlockReason||"No independently verified permission."}</p>}
+            <label className="flex gap-3 text-base leading-relaxed">
+              <input type="checkbox" disabled={!experimentPreview.permissionEligible} checked={experimentSendConfirmed}
+                onChange={e=>setExperimentSendConfirmed(e.target.checked)}/>
+              I verified the recipient, lawful permission, actual observation and final rendered email. Send this one message only.
+            </label>
+            <Button className="bg-[#1D4ED8] text-white hover:bg-[#2563EB]"
+              disabled={busy||!experimentPreview.permissionEligible||!experimentSendConfirmed}
+              onClick={async()=>{
+                if(!window.confirm("Send this one approved experiment email to "+experimentPreview.prospect.contact_email+"?"))return;
+                const result=await post("/api/admin/prospects/"+encodeURIComponent(experimentProspect)+"/outreach",{
+                  action:"send",channel:"email",experimentId:selectedExperiment,templateId:"general-introduction",
+                  subject:experimentPreview.copy.subject,bodyText:experimentPreview.copy.body,
+                  observation:experimentPreview.copy.observation,recipientPermissionConfirmed:true,
+                  requestId:crypto.randomUUID(),
+                });
+                if(result){setExperimentPreview(null);setExperimentSendConfirmed(false);void load();}
+              }}>Send one reviewed email</Button>
+          </div>}
+        </div>
         {(report?.experiments||[]).map((exp:any)=><div key={exp.id} className="rounded-xl border border-[#E2E8F0] p-4">
           <p className="font-semibold">{exp.name}</p>
           <p className="mt-1 text-base text-[#475569]">{exp.note}</p>
