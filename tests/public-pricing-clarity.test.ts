@@ -50,7 +50,7 @@ test("Personal Profile landing makes the offer visible, demonstrates profiles an
   assert.match(page, /getMinimumTermMonths\(price\)/);
   assert.match(page, /usePublicCommercialPricing/);
   assert.match(page, /priceReady/);
-  assert.match(pricing, /requestedProduct === "personal-profile"/);
+  assert.match(pricing, /requestedProduct !== "personal-profile"/);
   assert.match(pricing, /setPendingProduct\(item\)/);
   assert.match(pricing, /termsAccepted/);
   assert.match(stylesheet, /@media\(max-width:620px\)/);
