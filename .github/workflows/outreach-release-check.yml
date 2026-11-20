@@ -1,0 +1,58 @@
+name: Outreach Completion Release Gate
+
+on:
+  pull_request:
+    paths:
+      - "server/outreach*.ts"
+      - "src/lib/outreach*.ts"
+      - "src/lib/prospectOutreachTemplates.ts"
+      - "src/components/SuperAdmin/OutreachCompletionWorkbench.tsx"
+      - "src/components/SuperAdmin/SalesAutomation.tsx"
+      - "src/styles/publicBrand.css"
+      - "src/components/PublicSiteChrome.tsx"
+      - "src/components/PublicMarketingPages.tsx"
+      - "src/components/BookDemo.tsx"
+      - "src/components/BrandLedLandingPage.tsx"
+      - "tests/outreach*.test.ts"
+      - "tests/prospect-email-templates.test.ts"
+      - "e2e/marketing-design-system.spec.ts"
+      - ".github/workflows/outreach-release-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-outreach:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type-check the entire application
+        run: npm run lint
+      - name: Run focused outreach regressions
+        run: node --import tsx --test tests/outreach*.test.ts tests/prospect-email-templates.test.ts tests/sales-operations.test.ts
+      - name: Compile production client and server
+        run: npm run build
+  design-viewport-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Exercise 390, 1024 and 1440px viewports on all target marketing routes
+        run: npx playwright test e2e/marketing-design-system.spec.ts --project=chromium-desktop
