@@ -7,6 +7,11 @@ export const PORTFOLIO_URL = "https://app.bennietay.com/portfolio";
 
 export type ProspectEmailTemplateKey =
   | "intro"
+  | "verified_no_site_intro"
+  | "verified_existing_site_intro"
+  | "social_first_intro"
+  | "recent_launch_intro"
+  | "booking_friction_intro"
   | "day3_design"
   | "day3_audit"
   | "day3_portfolio_existing"
@@ -52,6 +57,66 @@ export const PROSPECT_EMAIL_TEMPLATE_DEFINITIONS: readonly TemplateDefinition[] 
         "Would one practical suggestion for making it easier for customers to enquire be useful? Reply “yes” and I’ll send it. No call needed.",
         "Bennie\nBennie Studio",
       ),
+    },
+  },
+  {
+    id: "verified_no_site_intro", stage: "Day 0", label: "Verified no website · new website",
+    description: "A researched website absence, with date and a verifiable source, is required before this email can be sent.",
+    requiredTokens: ["specific_observation"],
+    defaultTemplate: {
+      subject: "One website question for {{business_name}}",
+      body: body("Hi {{first_name}},", "{{specific_observation}}",
+        "If you decide an independent website would help customers find your services and enquire more easily, Bennie Studio can take care of the setup and updates.",
+        "Would a short outline of the scope and costs be useful? No call needed.",
+        "Bennie\nBennie Studio"),
+    },
+  },
+  {
+    id: "verified_existing_site_intro", stage: "Day 0", label: "Verified existing website · specific improvement",
+    description: "Requires a dated, source-backed finding about an existing site. Do not claim missed revenue.",
+    requiredTokens: ["specific_observation"],
+    defaultTemplate: {
+      subject: "A practical website observation for {{business_name}}",
+      body: body("Hi {{first_name}},", "{{specific_observation}}",
+        "Bennie Studio helps service businesses make their pages clearer and easier to enquire through, with ongoing updates handled.",
+        "Would it be useful if I suggested one improvement? Reply “yes” or “not now”.",
+        "Bennie\nBennie Studio"),
+    },
+  },
+  {
+    id: "social_first_intro", stage: "Day 0", label: "Verified social-first business",
+    description: "Requires evidence the business currently relies on a social profile as its primary enquiry destination.",
+    requiredTokens: ["specific_observation"],
+    defaultTemplate: {
+      subject: "A simpler customer enquiry path for {{business_name}}",
+      body: body("Hi {{first_name}},", "{{specific_observation}}",
+        "A small website could complement your social posts by giving customers a stable place to see services, business details and how to enquire.",
+        "Would a short example layout be useful? No meeting needed.",
+        "Bennie\nBennie Studio"),
+    },
+  },
+  {
+    id: "recent_launch_intro", stage: "Day 0", label: "Verified recently launched business",
+    description: "Requires independently dated launch evidence; do not infer the launch date from social activity.",
+    requiredTokens: ["specific_observation"],
+    defaultTemplate: {
+      subject: "A website idea for the next stage of {{business_name}}",
+      body: body("Hi {{first_name}},", "{{specific_observation}}",
+        "When a business is getting established, a clear services page and enquiry link can help people understand what to ask for.",
+        "Would you like a one-page outline of how that could work? Reply “yes” and I’ll send it.",
+        "Bennie\nBennie Studio"),
+    },
+  },
+  {
+    id: "booking_friction_intro", stage: "Day 0", label: "Verified enquiry or booking friction",
+    description: "Requires a reproducible enquiry or booking-flow finding. Never invent lost bookings.",
+    requiredTokens: ["specific_observation"],
+    defaultTemplate: {
+      subject: "A booking-flow observation for {{business_name}}",
+      body: body("Hi {{first_name}},", "{{specific_observation}}",
+        "One practical improvement could make the next step clearer for someone who is ready to enquire or book.",
+        "Would a brief suggestion be useful? I can send it by email without a call.",
+        "Bennie\nBennie Studio"),
     },
   },
   {
