@@ -6,6 +6,7 @@ import { PORTFOLIO_URL, renderProspectEmailTemplate } from "../src/lib/prospectO
 import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "../src/lib/prospectOutreachTemplates.js";
 import { chooseProspectFollowUp, FOLLOW_UP_TEMPLATE_STAGES } from "../src/lib/prospectFollowUpComposer.js";
 import { segmentIntroEvidenceError } from "../src/lib/outreachSegmentation.js";
+import { prepareExperimentCopy } from "../src/lib/outreachExperiments.js";
 
 type Db = Pick<SupabaseClient, "from">;
 type Row = Record<string, any>;
@@ -668,6 +669,7 @@ export async function sendDirectProspectOutreach(
     bodyText: string;
     observation?: string;
     templateId?: string;
+    experimentId?: string | null;
     reviewUrl?: string | null;
     replyToMessageId?: string | null;
     recipientPermissionConfirmed?: boolean;
@@ -687,7 +689,7 @@ export async function sendDirectProspectOutreach(
   const reviewUrl = safeAuditReviewUrl(input.reviewUrl);
   const followUpStage = FOLLOW_UP_TEMPLATE_STAGES[String(input.templateId || "")] || null;
   const bulkIntro = input.templateId === "bulk-introduction";
-  if (!input.replyToMessageId && input.templateId !== "general-introduction" && !bulkIntro && !followUpStage && String(input.observation || "").trim().length < 10 && !reviewUrl) {
+  if (!input.replyToMessageId && !input.experimentId && input.templateId !== "general-introduction" && !bulkIntro && !followUpStage && String(input.observation || "").trim().length < 10 && !reviewUrl) {
     throw new Error("OUTREACH_OBSERVATION_REQUIRED");
   }
   if (/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(`${input.subject || ""}\n${input.bodyText}`)) {
@@ -748,6 +750,26 @@ export async function sendDirectProspectOutreach(
       .eq("prospect_id", prospect.id).in("status", ["pending", "active", "paused"])
       .limit(1).maybeSingle());
     if (enrollment) throw new Error("OUTREACH_ACTIVE_SEQUENCE");
+  }
+
+  // Experiment assignment is resolved server-side; callers cannot choose a variant or forge attribution.
+  let experimentIdentity: {id:string;variant:"A"|"B"} | null = null;
+  if (input.experimentId) {
+    if (input.channel !== "email" || input.replyToMessageId || followUpStage)
+      throw new Error("OUTREACH_EXPERIMENT_FIRST_EMAIL_ONLY");
+    const { data: experiment } = checked(await db.from("outreach_experiments")
+      .select("id,name,status,segment,variant_a,variant_b").eq("id", input.experimentId).maybeSingle());
+    const { data: assignment } = checked(await db.from("outreach_experiment_assignments")
+      .select("variant").eq("experiment_id", input.experimentId).eq("prospect_id", prospect.id).maybeSingle());
+    if (!experiment || !assignment || !["A","B"].includes(String(assignment.variant)))
+      throw new Error("OUTREACH_EXPERIMENT_ASSIGNMENT_MISSING");
+    const variant = assignment.variant as "A"|"B";
+    const copy = prepareExperimentCopy(experiment, variant, prospect);
+    if (String(input.subject || "").trim() !== copy.subject ||
+        String(input.bodyText || "").trim() !== copy.body ||
+        String(input.observation || "").trim() !== copy.observation)
+      throw new Error("OUTREACH_EXPERIMENT_COPY_CHANGED");
+    experimentIdentity = { id: experiment.id, variant };
   }
 
   const recipient = input.channel === "email" ? email : phone;
@@ -874,6 +896,8 @@ export async function sendDirectProspectOutreach(
         ? String(input.subject || `A quick website idea for ${prospect.name}`).slice(0, 500)
         : null,
     body_text: input.bodyText,
+    outreach_experiment_id: experimentIdentity?.id || null,
+    outreach_experiment_variant: experimentIdentity?.variant || null,
     reply_to_message_id: replyToMessageId,
     status: "sending",
     attempted_at: now,
@@ -888,6 +912,8 @@ export async function sendDirectProspectOutreach(
       permissionConfirmedAt: input.recipientPermissionConfirmed === true ? now : null,
       observation: input.observation || null,
       templateId: input.templateId || null,
+      experimentId: experimentIdentity?.id || null,
+      experimentVariant: experimentIdentity?.variant || null,
       ...(followUpStage ? { directStage: followUpStage, followUpStage: "FOLLOW_UP_" + followUpStage + "_OF_3" } : {}),
       reviewUrl: reviewUrl || null,
       replyToMessageId,
