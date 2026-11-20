@@ -281,7 +281,7 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
     expect(payload.action).toBe("send");
     expect(payload.channel).toBe("email");
     expect(String(payload.bodyText)).toContain("Bennie Studio");
-    expect(String(payload.bodyText)).toContain("We build and manage websites");
+    expect(String(payload.bodyText)).toContain("I help service businesses make their websites clearer and easier for customers to enquire through.");
     expect(String(payload.bodyText)).not.toContain("Primary enquiry action is not prominent");
     expect(String(payload.bodyText)).not.toContain("/website-audit?");
     outreachSent = true;
