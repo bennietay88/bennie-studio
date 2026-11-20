@@ -604,7 +604,7 @@ test("prospect sales preview presents consistent plan-aware CTAs and responsive 
   await page.goto(`/preview/prospect/${previewId}`);
   await expect(page.getByRole("heading", { name: /Example Plumbing, presented with a clearer website direction/i })).toBeVisible();
   await expect(page.getByText("Website Growth", { exact: true })).toBeVisible();
-  const primaryCtas = page.getByRole("link", { name: "Launch this website" });
+  const primaryCtas = page.getByRole("link", { name: "See plan and price" });
   expect(await primaryCtas.count()).toBeGreaterThanOrEqual(2);
   const primaryHrefs = await primaryCtas.evaluateAll((links) => links.map((link) => link.getAttribute("href") || ""));
   expect(primaryHrefs.every((href) => /\/pricing\?product=website-growth/.test(href))).toBe(true);
