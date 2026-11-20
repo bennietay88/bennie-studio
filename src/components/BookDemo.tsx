@@ -272,8 +272,8 @@ export default function BookDemo() {
       <main>
         <section className="relative overflow-hidden border-b border-[#dfe3e8] bg-[#f8f8f5] text-[#15191f]">
           <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#1741ed]/10 blur-3xl" />
-          <div className="brand-shell relative grid min-w-0 gap-12 py-16 lg:grid-cols-12 lg:items-start lg:py-24">
-            <div className="min-w-0 lg:col-span-5">
+          <div className="brand-shell relative grid min-w-0 gap-12 py-16 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:py-24">
+            <div className="min-w-0">
               
               <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.03] tracking-tight text-[#15191f] sm:text-5xl">
                 {isGrowthPartner ? "Plan the next stage of your website growth." : "Let’s discuss the website your business needs."}
@@ -295,7 +295,7 @@ export default function BookDemo() {
               </div>
             </div>
 
-            <div className="min-w-0 rounded-2xl border border-[#E2E8F0] bg-white p-8 text-[#0F172A] shadow-sm sm:p-10 lg:col-span-7">
+            <div className="min-w-0 rounded-2xl border border-[#E2E8F0] bg-white p-8 text-[#0F172A] shadow-sm sm:p-10">
               {submitted ? (
                 <div className="py-10 text-center">
                   <div className="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-8 w-8" /></div>
