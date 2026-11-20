@@ -61,6 +61,8 @@ export function OutreachCompletionWorkbench() {
   const [assignmentProspects,setAssignmentProspects]=React.useState("");
   const [milestone,setMilestone]=React.useState({prospectId:"",eventType:"qualified_conversation",notes:"",amount:"",currency:"USD"});
   const [invoice,setInvoice]=React.useState({prospectId:"",invoiceId:""});
+  const [cost,setCost]=React.useState({campaignId:"",sourceType:"lead_research",market:"",periodStart:new Date().toISOString().slice(0,10),
+    periodEnd:new Date().toISOString().slice(0,10),amount:"",currency:"MYR",evidenceUrl:"",notes:""});
   const load=React.useCallback(async()=>{
     setBusy(true);setError("");
     try {
@@ -338,6 +340,47 @@ export function OutreachCompletionWorkbench() {
           const result=await post("/api/admin/outreach-completion/reconcile-stripe-invoice",invoice);
           if(result)void load();
         }}>Verify invoice in Stripe</Button>
+        <div className="space-y-3 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+          <p className="text-lg font-semibold">Record actual acquisition spend</p>
+          <p className="text-base leading-relaxed text-[#475569]">Log only paid or evidenced research, provider and campaign costs. No assumed customer-acquisition cost or ROI is generated.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-base font-medium">Cost category
+              <select className="mt-1 w-full rounded-xl border border-[#E2E8F0] bg-white p-3" value={cost.sourceType}
+                onChange={e=>setCost(old=>({...old,sourceType:e.target.value}))}>
+                {["lead_research","verified_data","campaign_production","email_provider","other"].map(x=><option key={x} value={x}>{x.replaceAll("_"," ")}</option>)}
+              </select>
+            </label>
+            <label className="text-base font-medium">Market
+              <Input placeholder="MY / SG / GB / US" maxLength={2} value={cost.market} onChange={e=>setCost(old=>({...old,market:e.target.value.toUpperCase()}))}/>
+            </label>
+          </div>
+          <Input placeholder="Campaign ID, if attributable" value={cost.campaignId}
+            onChange={e=>setCost(old=>({...old,campaignId:e.target.value}))}/>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-base font-medium">Period from <Input type="date" value={cost.periodStart} onChange={e=>setCost(old=>({...old,periodStart:e.target.value}))}/></label>
+            <label className="text-base font-medium">Period to <Input type="date" value={cost.periodEnd} onChange={e=>setCost(old=>({...old,periodEnd:e.target.value}))}/></label>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input type="number" min="0" step="0.01" placeholder="Actual cost" value={cost.amount} onChange={e=>setCost(old=>({...old,amount:e.target.value}))}/>
+            <Input placeholder="Currency" value={cost.currency} onChange={e=>setCost(old=>({...old,currency:e.target.value.toUpperCase()}))}/>
+          </div>
+          <Input placeholder="Invoice or receipt URL (required)" value={cost.evidenceUrl} onChange={e=>setCost(old=>({...old,evidenceUrl:e.target.value}))}/>
+          <Textarea placeholder="What was purchased, and how this amount was verified?" value={cost.notes}
+            onChange={e=>setCost(old=>({...old,notes:e.target.value}))}/>
+          <Button className="w-full bg-[#1D4ED8] text-white hover:bg-[#2563EB]" disabled={busy||!cost.evidenceUrl||!cost.amount} onClick={async()=>{
+            if(!window.confirm("Record this actual acquisition expense using the supporting evidence provided?"))return;
+            const result=await post("/api/admin/outreach-completion/acquisition-costs",{
+              ...cost,amount:Number(cost.amount),...(cost.campaignId?{campaignId:cost.campaignId}:{}),
+              ...(cost.market?{market:cost.market}:{})
+            });
+            if(result)void load();
+          }}>Record evidenced cost</Button>
+          <p className="text-base font-semibold">Spend by currency</p>
+          {Object.entries(metrics.acquisitionSpendByCurrency||{}).map(([currency,value])=><p key={currency} className="text-base">{currency}: {formatNumber(value)}</p>)}
+          {!Object.keys(metrics.acquisitionSpendByCurrency||{}).length&&<p className="text-base text-[#475569]">No compatible evidenced expenses in these filters.</p>}
+          {(report?.campaignCosts||[]).slice(0,10).map((item:any)=><p key={item.campaign+"-"+item.currency} className="text-base">
+            {item.campaign}: {item.currency} {formatNumber(item.spend)} ({item.entries} records)</p>)}
+        </div>
         <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
           <p className="font-semibold">Verified amounts by currency</p>
           {Object.entries(metrics.verifiedRevenueByCurrency||{}).map(([currency,value])=><p key={currency} className="mt-2 text-base">{currency}: {formatNumber(value)}</p>)}
