@@ -115,11 +115,13 @@ export default function BrandLedLandingPage() {
     price: getCommercialPrice(product, market),
   }));
   const planBestFor = ["Professional identity", "First business website", "More business enquiries", "Hands-on growth support"];
-  const planComparisonRows = [
-    ["Website management", ["Included", "Included", "Included", "Included"]],
-    ["Conversion optimisation", ["Contact CTA", "Foundation", "Monthly", "Advanced"]],
-    ["Local SEO", ["Basic on-page", "Foundation", "Expansion", "Ongoing"]],
-    ["Growth support", ["—", "—", "Limited", "Ongoing"]],
+  // Three differentiators per plan, rather than repeating the same comparison
+  // labels and terms in every card. Full contractual scope stays on /pricing.
+  const planHighlights = [
+    ["3–5 professional profile pages", "Contact and social links", "1 small monthly content update"],
+    ["Up to 5 core pages", "Clear enquiry paths", "Routine managed updates"],
+    ["Conversion improvements", "Local SEO expansion", "Monthly growth support"],
+    ["Priority growth support", "Campaign landing pages", "Ongoing performance guidance"],
   ] as const;
 
   const go = (path: string, label: string) => {
@@ -203,7 +205,7 @@ export default function BrandLedLandingPage() {
                 <p className="brand-kicker">Simple, transparent pricing</p>
                 <h2 className="mt-4">A managed website for every stage.</h2>
               </div>
-              <p className="max-w-xl text-sm leading-6 text-[#526071]">Compare what you pay today and the support included at each level. <Link to="/pricing" className="font-semibold text-[#5746e8] underline underline-offset-4">See full scope and terms</Link>.</p>
+              <p className="max-w-lg text-sm leading-6 text-[#526071]">Choose the level of website support that fits your next stage.</p>
             </div>
             <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {priced.map(({ product, price }, index) => {
@@ -218,27 +220,30 @@ export default function BrandLedLandingPage() {
                         <p className={isRecommended ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{priceReady ? formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD") : pricingLoading ? "Checking…" : "Ask for quote"}<span className={isRecommended ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
                         <p className={isRecommended ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {priceReady ? formatCommercialMoney(price?.setupFee, price?.currency || "USD") : "—"} one-time setup</p>
                         <p className={isRecommended ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>First payment: {!priceReady || price?.monthlyPrice == null ? "By quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}</p>
-                        <p className={isRecommended ? "mt-2 text-sm font-semibold !text-white/75" : "mt-2 text-sm font-semibold text-[#687386]"}>{formatCommitmentLabel(getMinimumTermMonths(price))}, then month-to-month unless the accepted order states otherwise.</p>
-                        <p className={isRecommended ? "mt-2 text-sm leading-5 !text-white/75" : "mt-2 text-sm leading-5 text-[#526071]"}>Standard initial term total (including setup, before tax): {priceReady && price?.monthlyPrice != null ? formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice * getMinimumTermMonths(price), price.currency) : "Confirm by quote"}</p>
-                        <div className={isRecommended ? "mt-6 flex-1 space-y-3 border-t border-white/25 pt-5" : "mt-6 flex-1 space-y-3 border-t border-[#E2E8F0] pt-5"}>
-                          {planComparisonRows.map(([label, values]) => (
-                            <div key={label} className="flex items-start justify-between gap-4 text-sm">
-                              <span className={isRecommended ? "font-semibold !text-white/80" : "font-semibold text-[#526071]"}>{label}</span>
-                              <span className={isRecommended ? "text-right font-semibold !text-white" : "text-right text-[#526071]"}>{values[index]}</span>
-                            </div>
-                          ))}
+                        <div className={isRecommended ? "mt-5 flex-1 border-t border-white/25 pt-5" : "mt-5 flex-1 border-t border-[#E2E8F0] pt-5"}>
+                          <ul className="space-y-3">
+                            {planHighlights[index].map((highlight) => (
+                              <li key={highlight} className={isRecommended ? "flex items-start gap-2.5 text-sm leading-5 !text-white/85" : "flex items-start gap-2.5 text-sm leading-5 text-[#526071]"}>
+                                <Check className={isRecommended ? "mt-0.5 h-4 w-4 shrink-0 text-[#b9b1ff]" : "mt-0.5 h-4 w-4 shrink-0 text-[#1D4ED8]"} aria-hidden="true" />
+                                {highlight}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                         <button onClick={() => go("/pricing#plan-" + product.slug, "Choose " + product.name)} className={isRecommended ? "mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#1D4ED8] px-5 font-semibold text-white hover:bg-[#2563EB]" : "mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#1D4ED8] px-5 font-semibold text-white hover:bg-[#2563EB]"}>
-                          See scope & choose plan <ArrowRight className="ml-2 h-4 w-4" />
+                          Explore plan <ArrowRight className="ml-2 h-4 w-4" />
                         </button>
                       </article>
                     );
                   })}
             </div>
-            <p className="mt-5 text-center text-sm text-[#687386]">Building a personal brand? <Link to="/personal-profile" className="font-semibold text-[#5746e8] underline underline-offset-4">See Personal Profile.</Link></p>
-            <p className="mt-5 text-center text-sm text-[#687386]">Not ready to decide? <Link to="/generate-preview" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Pricing section free preview", target: "/generate-preview" })} className="font-semibold text-[#5746e8] underline underline-offset-4">Get a free website direction first.</Link></p>
-            <p className="mt-3 text-center text-sm text-[#687386]">Still comparing? <Link to="/managed-website-vs-diy" className="font-semibold text-[#5746e8] underline underline-offset-4">Managed website vs DIY</Link> · <Link to="/managed-website-vs-agency" className="font-semibold text-[#5746e8] underline underline-offset-4">Managed website vs agency</Link>.</p>
-            <p className="mt-3 text-center text-sm text-[#687386]">Need a one-time WordPress build instead? <a href="https://web.bennietay.com/#packages" className="font-semibold text-[#5746e8] underline underline-offset-4">Compare SiteFoundry packages.</a></p>
+            <p className="mt-6 text-center text-xs leading-6 text-[#687386]">
+              Managed hosting and maintenance are included. {formatCommitmentLabel(getMinimumTermMonths(priced[0]?.price))}, then month-to-month unless your accepted order states otherwise. Prices before tax.
+            </p>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm font-semibold">
+              <Link to="/pricing" className="text-[#1D4ED8] underline underline-offset-4 hover:text-[#1741ed]">Compare full plan scope</Link>
+              <Link to="/generate-preview" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Pricing section free preview", target: "/generate-preview" })} className="text-[#1D4ED8] underline underline-offset-4 hover:text-[#1741ed]">Get a free website direction</Link>
+            </div>
           </div>
         </section>
 
