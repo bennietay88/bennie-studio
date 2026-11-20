@@ -77,6 +77,18 @@ const manualAttribution=z.object({
 }).refine(value=>Boolean(value.prospectId||value.leadId),{message:"Prospect or lead is required"})
  .refine(value=>value.amount==null||(value.currency!=null),{message:"Currency required with an amount"});
 const paymentReconcile=z.object({prospectId:oneId,invoiceId:z.string().min(5).max(150).regex(/^in_[A-Za-z0-9]+$/)});
+const costRecord=z.object({
+  campaignId:z.string().trim().max(150).optional(),
+  sourceType:z.enum(["lead_research","verified_data","campaign_production","email_provider","other"]),
+  market:z.string().trim().max(2).optional(),
+  periodStart:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  periodEnd:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  amount:z.number().nonnegative().max(1_000_000_000),
+  currency:z.string().regex(/^[A-Z]{3}$/),
+  evidenceUrl:z.string().url().max(2048),
+  notes:z.string().trim().min(8).max(2000),
+}).refine(value=>value.periodEnd>=value.periodStart,{message:"End date must follow start date"});
+
 const timestampOk=(value:string)=>Date.parse(value)<=Date.now()+60_000;
 function requestPayload<T>(schema:z.ZodType<T>,value:unknown,res:Response):T|null{
   const result=schema.safeParse(value);
@@ -119,14 +131,14 @@ export function registerOutreachCompletionRoutes({app,db,authenticate,getProfile
     if(!input)return;
     if(input.from&&input.to&&input.from>input.to)return res.status(400).json({error:"Invalid date range"});
     try{
-      const [prospects,messages,tasks,leads,bookings,proposals,businesses,attribution,experiments,assignments,suppressions]=await Promise.all([
+      const [prospects,messages,tasks,leads,bookings,proposals,businesses,attribution,experiments,assignments,suppressions,costs]=await Promise.all([
         getAll(db,"prospects"),getAll(db,"sales_messages"),getAll(db,"sales_tasks"),
         getAll(db,"leads"),getAll(db,"sales_call_bookings"),getAll(db,"proposals"),
         getAll(db,"businesses","id,name,created_at,status"),
         getAll(db,"outreach_attribution_events"),getAll(db,"outreach_experiments"),
-        getAll(db,"outreach_experiment_assignments"),getAll(db,"sales_suppressions"),
+        getAll(db,"outreach_experiment_assignments"),getAll(db,"sales_suppressions"),getAll(db,"outreach_acquisition_costs"),
       ]);
-      const dataset:OutreachDataset={prospects,messages,tasks,leads,bookings,proposals,businesses,attribution,experiments,assignments};
+      const dataset:OutreachDataset={prospects,messages,tasks,leads,bookings,proposals,businesses,attribution,experiments,assignments,costs};
       const report=buildOutreachReport(dataset,input);
       const taskReview=reviewOutreachTasks(tasks,prospects,leads,suppressions,messages);
       return res.json({report,taskReview:{summary:taskReview.summary,items:taskReview.items.slice(0,300)},datasetTruncated:false});
@@ -337,6 +349,20 @@ export function registerOutreachCompletionRoutes({app,db,authenticate,getProfile
         permissionEligible:reason===null,permissionBlockReason:reason,
         note:"Copy preview only. Sending requires explicit operator confirmation and all send-time safety checks."});
     }catch(e){return replyError(res,e,"experiment preview");}
+  });
+
+  app.post("/api/admin/outreach-completion/acquisition-costs",...gate,async (req:any,res:Response)=>{
+    const input=requestPayload(costRecord,req.body,res);
+    if(!input)return;
+    try{
+      const row=checked(await db.from("outreach_acquisition_costs").insert({
+        campaign_id:input.campaignId||null,source_type:input.sourceType,market:input.market||null,
+        period_start:input.periodStart,period_end:input.periodEnd,amount:input.amount,
+        currency:input.currency,evidence_url:input.evidenceUrl,notes:input.notes,
+        created_by:req.user.id,
+      }).select("*").single()).data;
+      return res.status(201).json({cost:row,note:"Evidence-backed spend recorded. No forecast, exchange rate or CAC is implied."});
+    }catch(e){return replyError(res,e,"cost recording");}
   });
 
 }
