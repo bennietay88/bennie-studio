@@ -19,6 +19,7 @@ export type OutreachDataset = {
   attribution: OutreachRow[];
   experiments: OutreachRow[];
   assignments: OutreachRow[];
+  costs?: OutreachRow[];
 };
 const CLOSED = new Set(["won","lost","closed","converted","paid","unsubscribed","invalid","suppressed"]);
 const HUMAN = new Set(["interested","question","objection","not_interested","not_now","unsubscribe"]);
@@ -137,6 +138,28 @@ export function buildOutreachReport(data: OutreachDataset, filters: OutreachFilt
     &&inside(e.occurred_at,filters.from,filters.to));
   const sums=new Map<string,number>();
   for(const e of verifiedPayments){const currency=asText(e.currency).toUpperCase()||"UNKNOWN";sums.set(currency,(sums.get(currency)||0)+number(e.amount));}
+  // Spend is a verified manual ledger, not a fabricated acquisition cost or a currency-converted forecast.
+  // Avoid cross-segment comparisons when the cost source has no compatible attribution dimension.
+  const costCompatible = !(filters.industry||filters.tier||filters.websiteStatus||filters.segment||filters.provider||filters.template);
+  const relevantCosts = costCompatible ? (data.costs||[]).filter(cost=>
+    (!filters.country||asText(cost.market).toUpperCase()===filters.country.toUpperCase()) &&
+    (!filters.campaign||asText(cost.campaign_id)===filters.campaign) &&
+    (!filters.from||String(cost.period_end)>=filters.from.slice(0,10)) &&
+    (!filters.to||String(cost.period_start)<=filters.to.slice(0,10))
+  ):[];
+  const costByCurrency=new Map<string,number>();
+  const costByCampaign=new Map<string,{campaign:string;currency:string;spend:number;entries:number}>();
+  for(const cost of relevantCosts){
+    const currency=asText(cost.currency).toUpperCase();
+    const amount=number(cost.amount);
+    if(!/^[A-Z]{3}$/.test(currency)||amount<0)continue;
+    costByCurrency.set(currency,(costByCurrency.get(currency)||0)+amount);
+    const campaign=asText(cost.campaign_id)||"Unattributed cost";
+    const key=campaign+"|"+currency;
+    const existing=costByCampaign.get(key)||{campaign,currency,spend:0,entries:0};
+    existing.spend+=amount;existing.entries++;
+    costByCampaign.set(key,existing);
+  }
   const taskReviews=reviewOutreachTasks(data.tasks, data.prospects, data.leads, [], data.messages);
   const emailProspects=new Set(outbound.filter(m=>m.sent_at&&m.prospect_id).map(m=>asText(m.prospect_id)));
   const humanProspects=new Set(human.map(m=>asText(m.prospect_id)).filter(Boolean));
@@ -183,6 +206,7 @@ export function buildOutreachReport(data: OutreachDataset, filters: OutreachFilt
       confirmedDeliveryRate:pct(confirmed,accepted),linkedHumanReplyRate:pct(repliedIds.size,outbound.filter(m=>m.sent_at).length),
       bookedConsultations:booked.length,proposals:proposals.length,convertedBusinesses:converted.length,
       paymentVerified:verifiedPayments.length,verifiedRevenueByCurrency:Object.fromEntries(sums),
+      acquisitionSpendByCurrency:Object.fromEntries(costByCurrency),acquisitionCostEntries:relevantCosts.length,
       openTasks:taskReviews.summary.open,overdueTasks:taskReviews.summary.overdue},
     funnel:[{stage:"Prospects",count:prospects.length},
       {stage:"Website verified",count:prospects.filter(p=>Boolean(p.website_verified_at)).length},
@@ -202,12 +226,13 @@ export function buildOutreachReport(data: OutreachDataset, filters: OutreachFilt
       template:breakdown(outbound,template,repliedIds),
       campaign:breakdown(outbound,campaign,repliedIds),
       stage:breakdown(outbound,m=>asText(m.provider_payload?.directStage||m.provider_payload?.followUpStage)||"Intro/unspecified",repliedIds),
-    },experiments:byExperiment,
+    },experiments:byExperiment,campaignCosts:Array.from(costByCampaign.values()).sort((a,b)=>b.spend-a.spend),
     caveats:["Delivery confirmation means provider-supplied receiving-server acceptance, not inbox placement.",
       "Legacy messages without provider evidence are excluded from delivery-confirmation percentages.",
       "Unmatched inbound replies are not attributed to an outbound message.",
       "Conversions and Stripe-verified payments are separate commercial milestones; currencies are never combined.",
-      "Daily and weekly cohorts classify activity by event date, not guaranteed causal conversion cohorts."],
+      "Daily and weekly cohorts classify activity by event date, not guaranteed causal conversion cohorts.",
+      "Acquisition spend comes from operator-supplied evidence; CAC and ROI are N/A until customer-level source attribution is verified."],
   };
 }
 export type TaskReview = {id:string; title:string; dueAt:string|null; category:string; reason:string; priority:number; prospectId:string|null; taskType:string};
