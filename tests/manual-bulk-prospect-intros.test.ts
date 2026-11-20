@@ -3,7 +3,13 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { MAX_MANUAL_BULK_INTRO, prepareManualBulkIntro } from "../src/lib/manualBulkProspectIntros.ts";
 
-const CONTACT = { id: "p1", name: "Example Carpentry", contact_email: "info@example.com", outreach_status: "not_started", status: "qualified" };
+const CONTACT = {
+  id: "p1", name: "Example Carpentry", contact_email: "info@example.com",
+  outreach_status: "not_started", status: "qualified",
+  marketing_consent: true, consent_email: "info@example.com",
+  consent_timestamp: "2026-08-25T10:00:00Z", consent_source: "Recipient requested information via website signup",
+  contact_jurisdiction: "US", contact_recipient_type: "business", contact_lawful_basis: "consent",
+};
 const SENT = { direction: "outbound", channel: "email", status: "sent", sent_at: "2026-10-01T09:00:00Z" };
 
 test("manual bulk introductions show up to 25 personalized opening emails", () => {
@@ -62,4 +68,26 @@ test("bulk send uses the Send click for operator confirmation without creating r
   assert.match(ui, /recipientPermissionConfirmed: true/);
   assert.match(ui, /It does not create recipient consent/);
   assert.match(ui, /The server blocked this before provider delivery/);
+});
+
+test("unconsented prospect is marked permission review before provider delivery", () => {
+  const prospect = { ...CONTACT, marketing_consent: false, consent_timestamp: null, consent_email: null };
+  const preview = prepareManualBulkIntro(prospect, []);
+  assert.equal(preview.kind, "permission_review");
+  assert.match(String(preview.reason), /No verified opt-in/);
+  assert.match(String(preview.subject), /Example Carpentry/);
+});
+
+test("consented prospect with unknown jurisdiction is not send-ready", () => {
+  const preview = prepareManualBulkIntro({ ...CONTACT, contact_jurisdiction: "" }, []);
+  assert.equal(preview.kind, "permission_review");
+  assert.match(String(preview.reason), /jurisdiction/);
+});
+
+test("bulk preview differentiates permission review from failed provider delivery", () => {
+  const ui = readFileSync("src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "utf8");
+  assert.match(ui, /permissionReview.length/);
+  assert.match(ui, /permission review · not sent/);
+  assert.match(ui, /No delivery attempted/);
+  assert.match(ui, /blockedByPermission/);
 });
