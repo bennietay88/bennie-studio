@@ -20,8 +20,7 @@ import { Toaster } from "./components/ui/sonner";
 import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingFallback } from "./components/LoadingFallback";
-import "./styles/publicBrand.css";
-import "./styles/studioCaseStudies.css";
+
 import { AgencyMotionDirector } from "./components/AgencyMotionDirector";
 import { classifyTenantHost } from "./lib/tenantDomains";
 import { shouldRetryLazyChunkLoad } from "./lib/lazyChunkRecovery";
