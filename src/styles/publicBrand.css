@@ -1587,8 +1587,8 @@
 /* Master QA: override component-specific !important hero sizing with a narrowly scoped
    and more specific selector, preserving preview typography inside screenshots. */
 .brand-public .conversion-home .c26-hero h1,
-.brand-public .bs-sales .s28-services-hero h1,
-.brand-public .bs-sales .s28-pricing-hero h1,
+.brand-public .bs-sales .s28-services-hero .s28-services-copy h1,
+.brand-public .bs-sales .s28-pricing-hero .s28-pricing-hero-content h1,
 .brand-public .c27-marketing-hero h1,
 .brand-public .bs3-sales-hero h1,
 .brand-public main > section h1 {
@@ -1606,8 +1606,8 @@
 }
 @media (max-width: 767px) {
   .brand-public .conversion-home .c26-hero h1,
-  .brand-public .bs-sales .s28-services-hero h1,
-  .brand-public .bs-sales .s28-pricing-hero h1,
+  .brand-public .bs-sales .s28-services-hero .s28-services-copy h1,
+  .brand-public .bs-sales .s28-pricing-hero .s28-pricing-hero-content h1,
   .brand-public .c27-marketing-hero h1,
   .brand-public .bs3-sales-hero h1,
   .brand-public main > section h1 {
