@@ -254,7 +254,8 @@ export function reviewOutreachTasks(
     const identity=asText(task.prospect_id||task.lead_id||task.proposal_id);
     const fingerprint=[identity,asText(task.task_type),day(task.due_at),asText(task.title).toLowerCase()].join("|");
     let category="actionable",reason="Open sales action; operator review needed.",priority=4;
-    if(["reply","reply_reconciliation","reply_review"].includes(lower(task.task_type))){category="reply_review";reason="Reply or reconciliation takes priority over cold follow-ups.";priority=0;}
+    if(["reply","reply_reconciliation","reply_review","new_lead_response"].includes(lower(task.task_type))){category="reply_review";reason="A real inbound lead or reply takes priority over cold follow-ups.";priority=0;}
+    else if(["call","meeting","proposal","proposal_review"].includes(lower(task.task_type))){category="proposal_review";reason="An active customer consultation or proposal needs timely review.";priority=1;}
     else if(!identity){category="orphaned";reason="Task has no prospect, lead or proposal link.";priority=5;}
     else if(target&&CLOSED.has(lower(target.status))||target&&CLOSED.has(lower(target.outreach_status))){
       category="closed_contact";reason="Related contact was closed or opted out.";priority=5;
