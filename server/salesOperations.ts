@@ -898,6 +898,7 @@ export async function sendDirectProspectOutreach(
     body_text: input.bodyText,
     outreach_experiment_id: experimentIdentity?.id || null,
     outreach_experiment_variant: experimentIdentity?.variant || null,
+    campaign_id: experimentIdentity ? "experiment:" + experimentIdentity.id : null,
     reply_to_message_id: replyToMessageId,
     status: "sending",
     attempted_at: now,
@@ -983,7 +984,7 @@ export async function sendDirectProspectOutreach(
         delivery_state: "delivery_unconfirmed",
         delivery_uncertainty_reason: "Provider accepted the message; no receiving-server confirmation has been recorded.",
         template_version: receipt.templateVersion || createHash("sha256").update(`${message.subject || ""}\n${message.body_text || ""}`).digest("hex"),
-        campaign_id: receipt.campaignId || null,
+        campaign_id: receipt.campaignId || message.campaign_id || null,
         error: null,
         updated_at: now,
       })
