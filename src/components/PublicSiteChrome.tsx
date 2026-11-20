@@ -106,9 +106,9 @@ export function PublicSiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#e8eaf0] bg-white/94 shadow-[0_10px_30px_-28px_rgba(15,23,42,.45)] backdrop-blur-xl">
-      <nav className="mx-auto flex h-[74px] w-[92%] max-w-[84rem] items-center justify-between gap-3 px-1 sm:w-[90%] lg:gap-4" aria-label="Main navigation">
+      <nav className="mx-auto flex h-[74px] w-[calc(100%-3rem)] max-w-[80rem] items-center justify-between gap-3 px-0 lg:w-[calc(100%-6rem)] lg:gap-4" aria-label="Main navigation">
         <Link to="/" className="group flex min-w-0 shrink items-center gap-3 text-[#0d1426]">
-          <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#1741ed] text-sm font-black text-white shadow-[0_10px_24px_-14px_rgba(87,70,232,.85)]">B</span>
+          <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#1D4ED8] text-sm font-black text-white shadow-[0_10px_24px_-14px_rgba(87,70,232,.85)]">B</span>
           <span className="min-w-0">
             <span className="block max-w-[10rem] truncate text-[15px] font-semibold tracking-[-0.035em] sm:max-w-none">Bennie Studio</span>
             <span className="hidden text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500 xl:block">Websites that convert</span>
@@ -117,7 +117,7 @@ export function PublicSiteHeader() {
 
         <div className="hidden items-center gap-4 xl:flex xl:gap-7">
           {navigation.map((item) => {
-            const className = isActive(item.href) ? "relative py-2 text-sm font-semibold text-[#0d1426] after:absolute after:inset-x-0 after:-bottom-[19px] after:h-0.5 after:bg-[#1741ed]" : "py-2 text-sm font-semibold text-[#697386] transition hover:text-[#0d1426]";
+            const className = isActive(item.href) ? "relative py-2 text-sm font-semibold text-[#0d1426] after:absolute after:inset-x-0 after:-bottom-[19px] after:h-0.5 after:bg-[#1D4ED8]" : "py-2 text-sm font-semibold text-[#475569] transition hover:text-[#0d1426]";
             return /^https?:\/\//i.test(item.href)
               ? <a key={item.href} href={item.href} target="_blank" rel="noreferrer" className={className}>{item.label}</a>
               : <Link key={item.href} to={item.href} aria-current={isActive(item.href) ? "page" : undefined} className={className}>{item.label}</Link>;
@@ -125,11 +125,11 @@ export function PublicSiteHeader() {
         </div>
 
         <div className="hidden items-center gap-3 xl:flex">
-          {!user ? <Link to="/login" className="px-2 py-2 text-sm font-semibold text-[#697386] transition hover:text-[#1741ed]">Client login</Link> : null}
-          {primaryExternal ? <a href={primaryHref} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref })} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#1741ed]">{primaryLabel} <span className="ml-2">→</span></a> : <Link to={primaryHref} onClick={() => !user && trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref })} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-[#0d1426] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#1741ed]">{primaryLabel} <span className="ml-2">→</span></Link>}
+          {!user ? <Link to="/login" className="px-2 py-2 text-sm font-semibold text-[#475569] transition hover:text-[#1D4ED8]">Client login</Link> : null}
+          {primaryExternal ? <a href={primaryHref} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref })} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-[#1D4ED8] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#1D4ED8]">{primaryLabel} <span className="ml-2">→</span></a> : <Link to={primaryHref} onClick={() => !user && trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref })} className="inline-flex min-h-11 items-center justify-center rounded-sm bg-[#1D4ED8] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-18px_rgba(13,20,38,.8)] transition hover:-translate-y-0.5 hover:bg-[#1D4ED8]">{primaryLabel} <span className="ml-2">→</span></Link>}
         </div>
 
-        {!user && location.pathname !== "/generate-preview" ? (primaryExternal ? <a href={primaryHref} target="_blank" rel="noreferrer" className="ml-auto inline-flex min-h-10 items-center justify-center bg-[#1741ed] px-3 py-2 text-xs font-semibold text-white xl:hidden" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:`Mobile header ${primaryLabel}`,target:primaryHref})}>{primaryLabel} ↗</a> : <Link to={primaryHref} className="ml-auto inline-flex min-h-10 items-center justify-center bg-[#1741ed] px-3 py-2 text-xs font-semibold text-white xl:hidden" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:`Mobile header ${primaryLabel}`,target:primaryHref})}>{primaryLabel} ↗</Link>) : null}
+        {!user && location.pathname !== "/generate-preview" ? (primaryExternal ? <a href={primaryHref} target="_blank" rel="noreferrer" className="ml-auto hidden min-h-10 sm:inline-flex items-center justify-center bg-[#1D4ED8] px-3 py-2 text-xs font-semibold text-white xl:hidden" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:`Mobile header ${primaryLabel}`,target:primaryHref})}>{primaryLabel} ↗</a> : <Link to={primaryHref} className="ml-auto hidden min-h-10 sm:inline-flex items-center justify-center bg-[#1D4ED8] px-3 py-2 text-xs font-semibold text-white xl:hidden" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:`Mobile header ${primaryLabel}`,target:primaryHref})}>{primaryLabel} ↗</Link>) : null}
         <Button ref={mobileTriggerRef} type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(true)} className="shrink-0 xl:hidden" aria-label="Open navigation menu" aria-expanded={mobileOpen} aria-controls="public-mobile-navigation">
           <Menu className="h-5 w-5" />
         </Button>
@@ -144,7 +144,7 @@ export function PublicSiteHeader() {
             </div>
             <div className="flex flex-col py-4">
               {navigation.map((item) => {
-                const className = isActive(item.href) ? "border-b border-[#eceef3] py-4 text-lg font-semibold text-[#1741ed]" : "border-b border-[#eceef3] py-4 text-lg font-semibold text-[#0d1426]";
+                const className = isActive(item.href) ? "border-b border-[#eceef3] py-4 text-lg font-semibold text-[#1D4ED8]" : "border-b border-[#eceef3] py-4 text-lg font-semibold text-[#0d1426]";
                 return /^https?:\/\//i.test(item.href)
                   ? <a key={item.href} href={item.href} target="_blank" rel="noreferrer" onClick={() => setMobileOpen(false)} className={className}>{item.label}</a>
                   : <Link key={item.href} to={item.href} aria-current={isActive(item.href) ? "page" : undefined} onClick={() => setMobileOpen(false)} className={className}>{item.label}</Link>;
@@ -152,7 +152,7 @@ export function PublicSiteHeader() {
             </div>
             <div className="mt-auto grid gap-3 border-t border-[#e5e7ef] pt-5">
               {!user ? <Link to="/login" onClick={() => setMobileOpen(false)} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#cfd4df] px-5 text-sm font-semibold text-[#0d1426]">Client login</Link> : null}
-              {primaryExternal ? <a href={primaryHref} target="_blank" rel="noreferrer" onClick={() => { trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref }); setMobileOpen(false); }} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{primaryLabel} →</a> : <Link to={primaryHref} onClick={() => { if (!user) trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref }); setMobileOpen(false); }} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#0d1426] px-5 text-sm font-semibold text-white">{primaryLabel} →</Link>}
+              {primaryExternal ? <a href={primaryHref} target="_blank" rel="noreferrer" onClick={() => { trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref }); setMobileOpen(false); }} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#1D4ED8] px-5 text-sm font-semibold text-white">{primaryLabel} →</a> : <Link to={primaryHref} onClick={() => { if (!user) trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref }); setMobileOpen(false); }} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#1D4ED8] px-5 text-sm font-semibold text-white">{primaryLabel} →</Link>}
             </div>
           </div>
         </div>
@@ -186,28 +186,28 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
   const footerGroupsToRender = cms.footer.groups?.length ? cms.footer.groups : footerGroups.map(([title, links]) => ({ title, links }));
 
   return (
-    <footer className="bg-[#08101f] text-white">
-      <div className="mx-auto grid max-w-[88rem] gap-10 px-6 py-16 sm:px-10 md:grid-cols-2 lg:grid-cols-5 lg:px-12 lg:py-20">
-        <div className="lg:col-span-2">
+    <footer className="bg-[#0F172A] text-white">
+      <div className="mx-auto grid max-w-[80rem] gap-10 px-6 py-16 sm:px-10 md:grid-cols-2 lg:grid-cols-4 lg:px-12 lg:py-20">
+        <div className="lg:col-span-4">
           <Link to="/" className="mb-5 inline-flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#1741ed] text-sm font-black">B</span>
+            <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#1D4ED8] text-sm font-black">B</span>
             <span>
               <span className="block text-lg font-semibold tracking-[-0.035em]">Bennie Studio</span>
-              <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Websites that convert</span>
+              <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-slate-300">Websites that convert</span>
             </span>
           </Link>
-          <p className="max-w-md text-sm font-medium leading-7 text-white/65">{footerTagline}</p>
-          <div className="mt-5 space-y-1 text-sm font-semibold text-white/55">
-            {companyName ? <p className="text-white/75">{companyName}</p> : null}
+          <p className="max-w-md text-sm font-medium leading-7 text-slate-300">{footerTagline}</p>
+          <div className="mt-5 space-y-1 text-sm font-semibold text-slate-300">
+            {companyName ? <p className="text-slate-300">{companyName}</p> : null}
             {registrationNumber ? <p>Registration: {registrationNumber}</p> : null}
             {businessAddress ? <p className="max-w-sm">{businessAddress}</p> : null}
-            {supportEmail ? <a href={`mailto:${supportEmail}`} className="inline-flex font-semibold text-[#b9b1ff] hover:text-white">Contact: {supportEmail}</a> : null}
+            {supportEmail ? <a href={`mailto:${supportEmail}`} className="inline-flex font-semibold text-blue-200 hover:text-white">Contact: {supportEmail}</a> : null}
             {supportPhone ? <p><a href={`tel:${supportPhone.replace(/\s+/g, "")}`} className="hover:text-white">{supportPhone}</a></p> : null}
           </div>
         </div>
         {footerGroupsToRender.map((group: any, groupIndex: number) => (
           <div key={`${groupIndex}-${group.title}`}>
-            <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">{group.title}</p>
+            <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">{group.title}</p>
             <div className="space-y-3">
               {group.links.filter((link: any) => link.label?.trim() && safePublicHref(link.href, "")).map((link: any, linkIndex: number) => /^https?:\/\//i.test(safePublicHref(link.href, "")) ? (
                 <a key={`${linkIndex}-${link.href}`} href={safePublicHref(link.href, "#")} target="_blank" rel="noreferrer" onClick={() => trackPublicEvent({ eventType: "ecosystem_link_clicked", label: `Footer ${link.label}`, target: link.href })} className="flex items-center gap-2 text-sm font-semibold text-white/60 hover:text-white">{link.label}<ExternalLink className="h-3 w-3" /></a>
