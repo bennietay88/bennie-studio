@@ -2803,17 +2803,17 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
             </div>
           </div>
         </div>
-        <form id="review-form" onSubmit={submitAudit} className="order-1 min-w-0 scroll-mt-28 rounded-xl border border-slate-200 bg-slate-950 p-5 text-white shadow-xl sm:p-8 lg:order-2">
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-200">Free website review</p>
-          <h2 className="mt-4 text-3xl font-bold text-white">Enter your website. See what to improve.</h2>
-          <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">
+        <form id="review-form" onSubmit={submitAudit} className="order-1 min-w-0 scroll-mt-28 rounded-2xl border border-[#E2E8F0] bg-white p-8 text-[#0F172A] shadow-sm sm:p-10 lg:order-2">
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-700">Free website review</p>
+          <h2 className="mt-4 text-3xl font-bold text-[#0F172A]">Enter your website. See what to improve.</h2>
+          <p className="mt-3 text-sm font-semibold leading-6 text-[#475569]">
             Get a free, automated assessment using publicly accessible page evidence. We need your website, business name and email to send your private report.
           </p>
-          <Link to="/generate-preview?mode=business" className="mt-4 inline-flex text-sm font-semibold text-indigo-200 underline decoration-indigo-300/40 underline-offset-4 hover:text-white">
+          <Link to="/generate-preview?mode=business" className="mt-4 inline-flex text-sm font-semibold text-blue-700 underline decoration-indigo-300/40 underline-offset-4 hover:text-white">
             No website yet? Start with a business brief instead.
           </Link>
-          {loadingSharedReport ? <p role="status" className="mt-8 text-sm font-semibold text-indigo-100">Loading your private website review…</p> : submitted ? (
-            <div className="mt-8 rounded-3xl bg-emerald-500/10 p-6 text-emerald-100">
+          {loadingSharedReport ? <p role="status" className="mt-8 text-sm font-semibold text-blue-700">Loading your private website review…</p> : submitted ? (
+            <div className="mt-8 rounded-3xl bg-emerald-50 p-6 text-emerald-800">
               <Check className="mb-4 h-8 w-8" />
               <p className="text-xl font-bold">{auditReport ? "Website audit complete." : "Audit request saved."}</p>
               <p className="mt-2 text-sm font-semibold leading-6">
@@ -2823,15 +2823,15 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                     ? "Your audit is processing. We will email the review if transactional email is configured. You can also save the private link below."
                     : "The website could not be analysed automatically. Your request is saved for manual follow-up."}
               </p>
-              {!auditReport && error && <p className="mt-4 rounded-xl bg-amber-400/10 p-3 text-sm font-bold text-amber-100">{error}</p>}
-              {reportLink && <div className="mt-4 rounded-xl border border-emerald-300/20 bg-white/5 p-4">
-                <p className="text-xs font-semibold text-emerald-100">Your private report link</p>
-                <p className="mt-1 text-xs leading-5 text-emerald-100/80">Save this link. Anyone with it can view the business website review once processing completes.</p>
+              {!auditReport && error && <p className="mt-4 rounded-xl bg-amber-400/10 p-3 text-sm font-bold text-amber-800">{error}</p>}
+              {reportLink && <div className="mt-4 rounded-xl border border-emerald-300/20 bg-white p-4">
+                <p className="text-xs font-semibold text-emerald-800">Your private report link</p>
+                <p className="mt-1 text-xs leading-5 text-emerald-800">Save this link. Anyone with it can view the business website review once processing completes.</p>
                 <div className="mt-3 flex flex-wrap gap-3">
                   <a href={reportLink} rel="noreferrer" className="inline-flex min-h-10 items-center rounded-lg bg-white px-4 text-sm font-semibold text-slate-900 hover:bg-indigo-50">Open report</a>
-                  <button type="button" onClick={() => { void navigator.clipboard.writeText(new URL(reportLink, window.location.origin).href); }} className="min-h-10 rounded-lg border border-white/25 px-4 text-sm font-semibold text-white">Copy private link</button>
+                  <button type="button" onClick={() => { void navigator.clipboard.writeText(new URL(reportLink, window.location.origin).href); }} className="min-h-10 rounded-lg border border-[#E2E8F0] px-4 text-base font-semibold text-blue-700">Copy private link</button>
                 </div>
-                {["not_configured","failed"].includes(deliveryStatus) && <p className="mt-3 text-xs text-amber-200">Email delivery was not confirmed. Save this link or contact the studio.</p>}
+                {["not_configured","failed"].includes(deliveryStatus) && <p className="mt-3 text-xs text-amber-800">Email delivery was not confirmed. Save this link or contact the studio.</p>}
               </div>}
               {!auditReport && <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <Link
@@ -2839,7 +2839,7 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                   onClick={() => {
                     trackPublicEvent({ eventType: "click_audit_thank_you_book_call", label: "Audit Thank You Book Call", target: "/book-demo" });
                   }}
-                  className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-bold text-slate-950 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-100 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
+                  className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#1D4ED8] px-6 py-3 text-base font-bold text-blue-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-100 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
                 >
                   Book a Call
                 </Link>
@@ -2848,7 +2848,7 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                   onClick={() => {
                     trackPublicEvent({ eventType: "click_audit_thank_you_direction", label: "Audit Thank You Website Direction", target: "/generate-preview" });
                   }}
-                  className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/25 bg-white/10 px-6 py-3 text-sm font-bold text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
+                  className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white px-6 py-3 text-base font-bold text-blue-700 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
                 >
                   See recommended website direction
                 </Link>
@@ -2861,27 +2861,27 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                   {error}
                 </div>
               )}
-              <label className="space-y-2 text-sm font-semibold text-white">Your website URL
+              <label className="space-y-2 text-base font-semibold text-[#0F172A]">Your website URL
                 <Input aria-label="Website URL" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" required placeholder="https://yourbusiness.com" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} className="h-13 rounded-xl border-indigo-100 bg-white text-slate-950" />
               </label>
-              <label className="space-y-2 text-sm font-semibold text-white">Business name
+              <label className="space-y-2 text-base font-semibold text-[#0F172A]">Business name
                 <Input aria-label="Business name" required placeholder="Your business or company" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} className="h-12 rounded-xl bg-white text-slate-950" />
               </label>
-              <label className="space-y-2 text-sm font-semibold text-white">Where should we email the review?
+              <label className="space-y-2 text-base font-semibold text-[#0F172A]">Where should we email the review?
                 <Input aria-label="Email" required type="email" placeholder="you@yourbusiness.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-12 rounded-xl bg-white text-slate-950" />
               </label>
-              <details className="rounded-xl border border-white/20 bg-white/[.05] px-4 py-3">
-                <summary className="cursor-pointer text-sm font-semibold text-white">Optional: tell us more about your business</summary>
+              <details className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+                <summary className="cursor-pointer text-base font-semibold text-[#0F172A]">Optional: tell us more about your business</summary>
                 <div className="mt-4 grid gap-3">
                   <Input aria-label="Industry or business type" placeholder="Industry or business type" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} className="h-12 rounded-xl bg-white text-slate-950" />
                   <Input aria-label="WhatsApp or phone" placeholder="WhatsApp / phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-12 rounded-xl bg-white text-slate-950" />
                   <Textarea aria-label="Website improvement notes" placeholder="What would you like to improve?" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-24 rounded-xl bg-white text-slate-950" />
                 </div>
               </details>
-              <Button type="submit" disabled={submitting} className="min-h-13 rounded-xl bg-indigo-600 px-6 font-semibold text-white hover:bg-indigo-500">
+              <Button type="submit" disabled={submitting} className="min-h-13 rounded-xl bg-[#1D4ED8] px-6 font-semibold text-white hover:bg-[#2563EB]">
                 {submitting ? "Starting your review..." : "Get my free website review"} <Search className="ml-2 h-4 w-4" />
               </Button>
-              <p className="text-xs leading-6 text-white/65">No payment card required. Findings are based on accessible site evidence, not a full human usability test. Your email is used to deliver the requested report.</p>
+              <p className="text-xs leading-6 text-[#475569]">No payment card required. Findings are based on accessible site evidence, not a full human usability test. Your email is used to deliver the requested report.</p>
             </div>
           )}
         </form>
