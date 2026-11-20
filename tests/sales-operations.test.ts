@@ -85,7 +85,7 @@ function fixture() {
 const run = (db: MemoryDb, send = async (_message: Row) => ({ id: "provider-1" })) => runSalesDelivery({ db: db as any, send, now: new Date(NOW) });
 
 
-test("admin direct email blocks when recipient consent evidence is missing", async () => {
+test("admin manual send relies on explicit operator permission without fabricating consent", async () => {
   const db = new MemoryDb({
     prospects: [{ id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "not_started",
       contact_email: "clinic@example.com", marketing_consent: false, notes: "" }],
@@ -98,14 +98,14 @@ test("admin direct email blocks when recipient consent evidence is missing", asy
     requestId: "direct-test-1", actorId: "admin-1", recipientPermissionConfirmed: true,
     deliver: async (_message: Row) => { sendCount++; return { id: "provider-direct-1" }; },
   };
-  await assert.rejects(sendDirectProspectOutreach(db as any, input, NOW), /CONTACT_PERMISSION_NOT_VERIFIED/);
-  assert.equal(sendCount, 0);
-  assert.equal(db.tables.sales_messages.length, 0);
+  await sendDirectProspectOutreach(db as any, input, NOW);
+  assert.equal(sendCount, 1);
+  assert.equal(db.tables.sales_messages.length, 1);
   assert.equal(db.tables.prospects[0].marketing_consent, false);
   assert.equal(db.tables.prospects[0].consent_timestamp, undefined);
 });
 
-test("manual bulk intro blocks without recipient permission records", async () => {
+test("manual bulk intro accepts operator-attested send without modifying consent record", async () => {
   const db = new MemoryDb({ prospects: [{ id: "p1", name: "Example Clinic", status: "qualified",
     outreach_status: "not_started", contact_email: "clinic@example.com", marketing_consent: false, notes: "" }] });
   let sends = 0;
@@ -113,9 +113,10 @@ test("manual bulk intro blocks without recipient permission records", async () =
     subject: "A website question", bodyText: "Hi there, can we help with your business website?",
     requestId: "bulk-intro-1", actorId: "admin", recipientPermissionConfirmed: true,
     deliver: async () => { sends++; return { id: "provider-bulk-intro" }; } };
-  await assert.rejects(sendDirectProspectOutreach(db as any, input, NOW), /CONTACT_PERMISSION_NOT_VERIFIED/);
-  assert.equal(sends, 0);
-  assert.equal(db.tables.sales_messages.length, 0);
+  await sendDirectProspectOutreach(db as any, input, NOW);
+  assert.equal(sends, 1);
+  assert.equal(db.tables.sales_messages.length, 1);
+  assert.equal(db.tables.prospects[0].marketing_consent, false);
 });
 
 test("manual bulk intros reject earlier attempts to the same address even from another prospect", async () => {
