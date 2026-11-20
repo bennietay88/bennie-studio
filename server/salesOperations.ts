@@ -5,6 +5,7 @@ import { classifyReply, getOutreachObservation, salesEmailPermissionBlockReason,
 import { PORTFOLIO_URL, renderProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
 import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "../src/lib/prospectOutreachTemplates.js";
 import { chooseProspectFollowUp, FOLLOW_UP_TEMPLATE_STAGES } from "../src/lib/prospectFollowUpComposer.js";
+import { segmentIntroEvidenceError } from "../src/lib/outreachSegmentation.js";
 
 type Db = Pick<SupabaseClient, "from">;
 type Row = Record<string, any>;
@@ -680,6 +681,8 @@ export async function sendDirectProspectOutreach(
     await db.from("prospects").select("*").eq("id", input.prospectId).maybeSingle(),
   );
   if (!prospect) throw new Error("CONTACT_NOT_FOUND");
+  const segmentBlock = segmentIntroEvidenceError(input.templateId, prospect, input.observation, input.bodyText, new Date(now));
+  if (segmentBlock) throw new Error(segmentBlock);
 
   const reviewUrl = safeAuditReviewUrl(input.reviewUrl);
   const followUpStage = FOLLOW_UP_TEMPLATE_STAGES[String(input.templateId || "")] || null;
