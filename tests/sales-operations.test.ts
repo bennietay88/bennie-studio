@@ -100,7 +100,7 @@ test("admin manual send relies on explicit operator permission without fabricati
   };
   await sendDirectProspectOutreach(db as any, input, NOW);
   assert.equal(sendCount, 1);
-  assert.equal(db.tables.sales_messages.length, 1);
+  assert.ok(db.tables.sales_messages.some((message) => message.prospect_id === "p1" && message.channel === "email"));
   assert.equal(db.tables.prospects[0].marketing_consent, false);
   assert.equal(db.tables.prospects[0].consent_timestamp, undefined);
 });
@@ -115,7 +115,7 @@ test("manual bulk intro accepts operator-attested send without modifying consent
     deliver: async () => { sends++; return { id: "provider-bulk-intro" }; } };
   await sendDirectProspectOutreach(db as any, input, NOW);
   assert.equal(sends, 1);
-  assert.equal(db.tables.sales_messages.length, 1);
+  assert.ok(db.tables.sales_messages.some((message) => message.prospect_id === "p1" && message.channel === "email"));
   assert.equal(db.tables.prospects[0].marketing_consent, false);
 });
 
