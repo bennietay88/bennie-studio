@@ -26,3 +26,24 @@ test("Personal Profile is its own focused page with live-priced product instead 
   assert.match(page, /PublicSiteHeader/);
   assert.match(page, /PublicSiteFooter/);
 });
+
+test("homepage FAQs have consistent horizontal inset and visible focus styles", () => {
+  const home = readFileSync("src/components/BrandLedLandingPage.tsx", "utf8");
+  const faqStart = home.indexOf("Common questions");
+  const faqEnd = home.indexOf("c26-close", faqStart);
+  const faq = home.slice(faqStart, faqEnd);
+  assert.match(faq, /px-5 py-5 sm:px-8/);
+  assert.match(faq, /focus-visible:ring-2/);
+  assert.match(faq, /max-w-2xl pb-2 pt-3/);
+});
+
+test("Personal Profile offers a complete buyer journey and labels preview as illustrative", () => {
+  const page = readFileSync("src/components/PersonalProfilePage.tsx", "utf8");
+  for (const section of ["WHO IT'S FOR", "THE WEBSITE", "BUILT & MAINTAINED", "CLEAR SCOPE & PRICING", "GOOD TO KNOW", "YOUR NEXT STEP"]) {
+    assert.ok(page.includes(section), `Missing section: ${section}`);
+  }
+  assert.match(page, /Illustrative concept only/);
+  assert.match(page, /getMinimumTermMonths\(price\)/);
+  assert.match(page, /One consolidated pre-launch revision|delivery.revisions/);
+  assert.doesNotMatch(page, /<Pricing\b/);
+});
