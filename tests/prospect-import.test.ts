@@ -20,7 +20,7 @@ test("imports existing Bennie enriched prospect-list format", () => {
   assert.equal(first.contact_phone, "60105591789");
   assert.equal(first.contact_whatsapp, "60105591789");
   assert.equal(first.domain, null);
-  assert.equal(first.website_status, "no_website");
+  assert.equal(first.website_status, "unknown");
   assert.match(first.notes, /Priority: 1/);
   assert.match(first.notes, /Pitch angle: Appointment-focused website/);
 

@@ -66,9 +66,11 @@ import {
 import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
-import { attestImportedProspectConsent, canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, renderProspectInitialEmail, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
+import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, renderProspectInitialEmail, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { buildProspectFollowUpPlan, bulkManageProspectFollowUps, scheduleProspectFollowUpPlan, syncProspectNextFollowUp } from "../server/prospectFollowUps.js";
+import { registerOutreachCompletionRoutes } from "../server/outreachCompletionRoutes.js";
 import { attachUploaderOutreachDeclaration, parseProspectCsv } from "../src/lib/prospectImport.js";
+import { scoreProspect } from "../src/lib/prospectScoring.js";
 import { PROSPECT_TEMPLATE_KEYS, validateProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
 import type { ProspectEmailTemplateKey, ProspectEmailOverrides } from "../src/lib/prospectOutreachTemplates.js";
 import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_RECURRING_COMMITMENT_MONTHS, getMinimumTermMonths } from "../src/lib/commercialPricing.js";
@@ -3698,13 +3700,15 @@ async function startServer() {
       const unsubscribeUrl = `${publicAppUrl()}/api/public/unsubscribe/${message.unsubscribe_token}`;
       // Approved text is authoritative; a previous HTML draft must not override edits.
       const html = `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
-      const { data, error } = await (await getResendProvider("sales")).client.emails.send({
-        from: (await getResendProvider("sales")).from,
+      const provider = await getResendProvider("sales");
+      const replyTo = process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined;
+      const { data, error } = await provider.client.emails.send({
+        from: provider.from,
         to: message.recipient,
         subject: message.subject || "A note from Bennie Studio",
         html,
         text: `${message.body_text}\n\nStop receiving these emails: ${unsubscribeUrl}`,
-        replyTo: process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined,
+        replyTo,
         headers: {
           "List-Unsubscribe": `<${unsubscribeUrl}>`,
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
@@ -3717,7 +3721,9 @@ async function startServer() {
         throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED" : "EMAIL_DELIVERY_FAILED");
       }
       if (!data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
-      return { id: data.id };
+      return { id: data.id, provider: "resend", mailbox: provider.from, fromAddress: provider.from, replyToAddress: replyTo,
+        templateVersion: crypto.createHash("sha256").update(`${message.subject || ""}\n${message.body_text || ""}`).digest("hex"),
+        campaignId: message.campaign_id || message.provider_payload?.campaignId || null };
     },
   });
 
@@ -3747,16 +3753,15 @@ async function startServer() {
         headers: { "List-Unsubscribe": `<${unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
       }, await loadHostingerSettings(), reserveHostingerEmailQuota);
     }
-    const { data, error } = await (await getResendProvider("sales")).client.emails.send({
-      from: (await getResendProvider("sales")).from,
+    const provider = await getResendProvider("sales");
+    const replyTo = process.env.SALES_REPLY_TO || platformSettings?.supportEmail || undefined;
+    const { data, error } = await provider.client.emails.send({
+      from: provider.from,
       to: message.recipient,
       subject: message.subject || "A note from Bennie Studio",
       html,
       text: `${message.body_text}\n\nStop receiving these emails: ${unsubscribeUrl}`,
-      replyTo:
-        process.env.SALES_REPLY_TO
-        || platformSettings?.supportEmail
-        || undefined,
+      replyTo,
       headers: {
           "List-Unsubscribe": `<${unsubscribeUrl}>`,
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
@@ -3769,7 +3774,9 @@ async function startServer() {
       throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED" : "EMAIL_DELIVERY_FAILED");
     }
     if (!data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
-    return { id: data.id };
+    return { id: data.id, provider: "resend", mailbox: provider.from, fromAddress: provider.from, replyToAddress: replyTo,
+      templateVersion: crypto.createHash("sha256").update(`${message.subject || ""}\n${message.body_text || ""}`).digest("hex"),
+      campaignId: message.campaign_id || message.provider_payload?.campaignId || null };
   };
 
   const isPrivateAddress = (address: string) => {
@@ -7326,7 +7333,7 @@ async function startServer() {
           supabaseAdmin.from("tracking_events").select("event_type,metadata").eq("event_type", "checkout_started").gte("created_at", since).limit(1000),
           supabaseAdmin.from("sales_tasks").select("id,lead_id,prospect_id,status,due_at,task_type").limit(2000),
           supabaseAdmin.from("prospects").select("id,outreach_status,converted_at").limit(2000),
-          supabaseAdmin.from("sales_messages").select("direction,status,channel").gte("created_at", since).limit(2000),
+          supabaseAdmin.from("sales_messages").select("direction,status,channel,delivery_state,provider_accepted_at,classification").gte("created_at", since).limit(2000),
           supabaseAdmin.from("sales_call_bookings").select("id,status,created_at").limit(1000),
           supabaseAdmin.from("proposals").select("id,status,created_at").limit(1000),
           supabaseAdmin.from("customer_services").select("id,status,stripe_subscription_id,product_slug").limit(1000),
@@ -7360,9 +7367,12 @@ async function startServer() {
             overdueFollowUps: Number((overdueTaskCount.data as any)?.overdueFollowUps || 0),
             overdueOpenTasks: Number((overdueTaskCount.data as any)?.overdueOpenTasks || 0),
             openSalesTasks: openTasks.length,
-            deliveredOutreach30d: (messages.data || []).filter((message: any) => message.direction === "outbound" && message.status === "delivered").length,
-            bouncedOutreach30d: (messages.data || []).filter((message: any) => message.direction === "outbound" && message.status === "bounced").length,
-            recordedInboundReplies30d: (messages.data || []).filter((message: any) => message.direction === "inbound").length,
+            providerAcceptedOutreach30d: (messages.data || []).filter((message: any) => message.direction === "outbound" && Boolean(message.provider_accepted_at)).length,
+            deliveryConfirmedOutreach30d: (messages.data || []).filter((message: any) => message.direction === "outbound" && message.delivery_state === "delivery_confirmed").length,
+            deliveryUnconfirmedOutreach30d: (messages.data || []).filter((message: any) => message.direction === "outbound" && ["delivery_unconfirmed", "uncertain"].includes(message.delivery_state)).length,
+            bouncedOutreach30d: (messages.data || []).filter((message: any) => message.direction === "outbound" && message.delivery_state === "bounced").length,
+            recordedInboundReplies30d: (messages.data || []).filter((message: any) => message.direction === "inbound" && !["automatic_reply", "delivery_notification"].includes(message.classification)).length,
+            automaticInboundReplies30d: (messages.data || []).filter((message: any) => message.direction === "inbound" && ["automatic_reply", "delivery_notification"].includes(message.classification)).length,
             bookedCalls: (calls.data || []).filter((call: any) => !["cancelled", "declined"].includes(call.status)).length,
             proposals: (proposals.data || []).length,
             convertedProspects: (prospects.data || []).filter((prospect: any) => Boolean(prospect.converted_at)).length,
@@ -8023,6 +8033,28 @@ async function startServer() {
 
   // Approval-first sales automation. Cron and manual runs share conditional
   // database claims and provider idempotency keys; uncertain sends need review.
+  app.post("/api/admin/prospects/:prospectId/recalculate-score", authenticate, async (req: any, res) => {
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      const { data: prospect, error } = await supabaseAdmin.from("prospects").select("*").eq("id", req.params.prospectId).maybeSingle();
+      if (error) throw error;
+      if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+      const score = scoreProspect(prospect, new Date());
+      const { data, error: updateError } = await supabaseAdmin.from("prospects").update({
+        qualification_score: score.score, qualification_category: score.category,
+        score_factors: score.factors, qualification_component_scores: score.componentScores,
+        recommended_next_action: score.recommendedNextAction, scoring_version: score.version,
+        qualification_score_version: score.version, scored_at: score.calculatedAt,
+        qualification_calculated_at: score.calculatedAt, updated_at: new Date().toISOString(),
+      }).eq("id", prospect.id).select("*").single();
+      if (updateError) throw updateError;
+      return res.json({ prospect: data, score });
+    } catch (error: any) {
+      return res.status(500).json({ error: "Prospect score could not be recalculated" });
+    }
+  });
+
   app.post("/api/admin/prospects/import", authenticate, async (req: any, res) => {
     try {
       const profile = await getProfileForUser(req.user.id);
@@ -8063,7 +8095,13 @@ async function startServer() {
       // Preserve provenance without inventing a recipient opt-in or overriding suppression.
       const importedAt = new Date().toISOString();
       const { data, error } = await supabaseAdmin.from("prospects").insert(
-        rows.map((row) => ({ ...attachUploaderOutreachDeclaration(row, importedAt), created_by: req.user.id })),
+        rows.map((row) => {
+          const imported = { ...attachUploaderOutreachDeclaration(row, importedAt), created_by: req.user.id };
+          const score = scoreProspect(imported as any, new Date(importedAt));
+          return { ...imported, qualification_score: score.score, qualification_category: score.category,
+            qualification_component_scores: score.componentScores, qualification_score_version: score.version,
+            qualification_calculated_at: score.calculatedAt, recommended_next_action: score.recommendedNextAction };
+        }),
       ).select("*");
       if (error) throw error;
       // Importing prospects schedules evidence-based website checks without
@@ -8075,7 +8113,7 @@ async function startServer() {
       for (const prospect of imported) {
         const domain = String(prospect.domain || "").trim();
         if (!domain) {
-          auditSkipped.push({ prospectId: prospect.id, name: prospect.name, domain: "", status: "no_website", reason: "No website URL supplied" });
+          auditSkipped.push({ prospectId: prospect.id, name: prospect.name, domain: "", status: "unknown", reason: "No website URL supplied; research is required" });
           continue;
         }
         const url = /^https?:\/\//i.test(domain) ? domain : `https://${domain}`;
@@ -8878,37 +8916,8 @@ async function startServer() {
     }
   });
 
-  app.post("/api/admin/prospects/attest-imported-consent", authenticate, async (req: any, res) => {
-    try {
-      const profile = await getProfileForUser(req.user.id);
-      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
-      const body = validateBody(z.object({ confirmed: z.literal(true) }).strict(), req, res);
-      if (!body) return;
-      const now = new Date().toISOString();
-      const result = await attestImportedProspectConsent(supabaseAdmin, now);
-      const { error: auditError } = await supabaseAdmin.from("admin_action_audit_logs").insert({
-        actor_user_id: req.user.id,
-        actor_email: req.user.email || null,
-        action_type: "prospect.imported_consent_attested",
-        target_type: "prospect_import_batch",
-        target_id: null,
-        target_label: "CSV uploaded prospects",
-        metadata: {
-          matched: result.matched,
-          updated: result.updated.length,
-          optInDateRule: "prospect.created_at",
-          attestedAt: now,
-          source: "Admin attested consent records are held by Bennie Studio",
-        },
-      });
-      if (auditError) console.error("[Prospect Consent Attestation] Audit event could not be saved:", auditError.message);
-      return res.json({ success: true, matched: result.matched, updated: result.updated.length, prospects: result.updated });
-    } catch (error: any) {
-      if (error?.message === "CONSENT_IMPORT_BATCH_TOO_LARGE") return res.status(409).json({ error: "Imported prospect list exceeds the 20,000 row limit. Narrow the list before attesting consent." });
-      console.error("[Prospect Consent Attestation] Could not update imported prospects:", error?.message || error);
-      return res.status(503).json({ error: "Consent attestation failed. No emails were sent." });
-    }
-  });
+  app.post("/api/admin/prospects/attest-imported-consent", authenticate, (_req: any, res: any) =>
+    res.status(410).json({ error: "Uploader declarations cannot be converted into recipient consent. Add independently recorded consent for the exact address instead." }));
 
   app.get("/api/admin/email-providers/status", authenticate, async (req: any, res) => {
     try {
@@ -9123,6 +9132,7 @@ async function startServer() {
           channel: z.enum(["email", "whatsapp"]),
           observation: z.string().trim().max(1000).optional(),
           templateId: z.string().trim().max(80).regex(/^[a-z][a-z0-9_-]*$/i).optional(),
+          experimentId: UUID_SCHEMA.optional().nullable(),
           subject: z.string().trim().max(160).optional(),
           bodyText: z.string().trim().min(1).max(10000),
           reviewUrl: z.string().trim().url().max(2000).nullable().optional(),
@@ -9187,6 +9197,14 @@ async function startServer() {
           status: 409,
           message: "This contact has opted out or is suppressed.",
         },
+        CONTACT_PERMISSION_NOT_VERIFIED: {
+          status: 409,
+          message: "Email contact is blocked until exact-address consent, jurisdiction, recipient type, and lawful basis are documented in the CRM.",
+        },
+        CONTACT_PERMISSION_CONFIRMATION_REQUIRED: {
+          status: 409,
+          message: "Confirm the independently recorded permission details before sending.",
+        },
         CONTACT_CHANNEL_MISSING: {
           status: 409,
           message: "Add a valid contact for this channel.",
@@ -9239,7 +9257,6 @@ async function startServer() {
         HOSTINGER_AUTH_ERROR: { status: 503, message: "Hostinger SMTP authentication failed. Check configured credentials." },
         HOSTINGER_DELIVERY_UNCERTAIN: { status: 502, message: "Hostinger SMTP delivery is uncertain. Verify the mailbox logs before retrying." },
         HOSTINGER_ACCEPTANCE_UNCERTAIN: { status: 502, message: "Hostinger did not confirm the recipient. Verify delivery before retrying." },
-        CONTACT_PERMISSION_CONFIRMATION_REQUIRED: { status: 409, message: "Confirm that this recipient opted in before sending through Hostinger." },
       };
       const known = errors[error?.message];
       if (known) return res.status(known.status).json({ error: known.message });
@@ -9662,6 +9679,7 @@ async function startServer() {
       const eventId = detail.uid || detail.messageId || detail.message_id || detail.id || payload.id
         || crypto.createHash("sha256").update(JSON.stringify(payload)).digest("hex");
       const event = {
+        provider: "hostinger",
         type: "email.received",
         created_at: detail.date || detail.timestamp || payload.timestamp || new Date().toISOString(),
         data: {
@@ -9669,6 +9687,8 @@ async function startServer() {
           from: sender,
           subject: String(detail.subject || payload.subject || "Email reply").slice(0, 500),
           in_reply_to: detail.inReplyTo || detail.in_reply_to || "",
+          references: detail.references || detail.headers?.references || [],
+          headers: detail.headers || {},
         },
       };
       // Hostinger's webhook provides a preview, not necessarily the complete body.
@@ -9705,6 +9725,7 @@ async function startServer() {
     try {
       const now = new Date().toISOString();
       if (event.type === "email.received") {
+        event.provider = "resend";
         await recordSalesReply(supabaseAdmin, event, async () => {
           // Keep the optional receiving credential server-side. Permission failures
           // are recorded as a manual-review task instead of failing delivery.
@@ -9975,6 +9996,9 @@ async function startServer() {
     res.setHeader("Cache-Control", "no-store");
     return res.json({ market, currency: commercialCurrencyForMarket(market), products });
   });
+
+  // New read-mostly outreach completion APIs; all writes require an authorized operator action.
+  registerOutreachCompletionRoutes({ app, db: supabaseAdmin, authenticate, getProfileForUser, getStripe, rateLimit });
 
   // Unified Sales Funnel Engine commercial entitlements; legacy add-on routes retained for safe migration.
   if (UNIFIED_FUNNEL_TIERS_ENABLED) registerUnifiedFunnelTierRoutes({ app, db: supabaseAdmin, authenticate, superAdminOnly, getStripe, publicAppUrl, rateLimit });
@@ -14271,7 +14295,7 @@ async function startServer() {
     },
   );
 
-  app.get("/api/health-check", async (_req, res) => {
+  app.get(["/api/health-check", "/api/health"], async (_req, res) => {
     res.set("Cache-Control", "no-store");
     const timestamp = new Date().toISOString();
     if (process.env.E2E_TEST === "true") {
@@ -14872,7 +14896,7 @@ async function startServer() {
         return res.status(404).json({ error: "Domain not found.", code: "DOMAIN_NOT_FOUND" });
       }
 
-      const businessSelect = "id, name, subdomain, custom_domain, custom_domain_status, custom_domain_verified_at, custom_domain_suspended, custom_domain_permission_confirmed, ssl_status, status, subscription_status, subscription_grace_until";
+      const businessSelect = "id, name, subdomain, custom_domain, custom_domain_status, custom_domain_verified_at, custom_domain_suspended, custom_domain_permission_confirmed, ssl_status, status, subscription_status, subscription_grace_until, trial_ends_at";
       const query = supabaseAdmin.from("businesses").select(businessSelect);
       const { data: businesses, error: businessError } =
         tenant.kind === "subdomain"

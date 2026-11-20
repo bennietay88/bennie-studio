@@ -11,7 +11,7 @@ test("contacted prospects open follow-up draft, never a generic first email or n
   const route = front.slice(start, end);
   assert.match(route, /await openOutreachComposer\(prospect\)/);
   assert.match(front, /chooseProspectFollowUp\(prospect, history.messages \|\| \[\]\)/);
-  assert.match(front, /chooseProspectFollowUpTemplate\(next.stage, hasExistingWebsite, asset\?\.kind\)/);
+  assert.match(front, /chooseProspectFollowUpTemplate\(next.stage, websiteStatus, asset\?\.kind\)/);
   assert.match(front, /Review Day /);
 });
 

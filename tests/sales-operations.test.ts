@@ -9,6 +9,9 @@ import { parseProspectCsv } from "../src/lib/prospectImport.ts";
 
 type Row = Record<string, any>;
 const NOW = "2026-08-31T10:00:00.000Z";
+const permissioned = { marketing_consent: true, consent_timestamp: "2026-08-25T10:00:00.000Z",
+  consent_source: "Recipient subscribed through a verified email consent form", consent_email: "clinic@example.com",
+  contact_jurisdiction: "MY", contact_recipient_type: "business", contact_lawful_basis: "consent" };
 
 // In-memory adapter exercises the real service queries, including conditional
 // updates and unique upserts. It never loads app env vars or contacts a provider.
@@ -16,7 +19,7 @@ class MemoryDb {
   tables: Record<string, Row[]>;
   fail?: (table: string, op: string, values: Row) => boolean;
   constructor(seed: Record<string, Row[]> = {}) {
-    this.tables = structuredClone({ sales_messages: [], sales_suppressions: [], sales_tasks: [], outreach_enrollments: [], outreach_sequences: [], outreach_sequence_steps: [], leads: [], prospects: [], sales_call_bookings: [], ...seed });
+    this.tables = structuredClone({ sales_messages: [], sales_email_provider_events: [], sales_suppressions: [], sales_tasks: [], outreach_enrollments: [], outreach_sequences: [], outreach_sequence_steps: [], leads: [], prospects: [], sales_call_bookings: [], ...seed });
   }
   from = (table: string): any => new Query(this, table);
 }
@@ -59,7 +62,8 @@ class Query {
     if (this.op === "update") rows.forEach((row) => Object.assign(row, this.values));
     if (this.op === "insert") { const row = structuredClone(this.values); table.push(row); rows = [row]; }
     if (this.op === "upsert") {
-      const existing = table.find((row) => row[this.conflict] === this.values[this.conflict]);
+      const conflictKeys = this.conflict.split(",").map((key) => key.trim());
+      const existing = table.find((row) => conflictKeys.every((key) => row[key] === this.values[key]));
       if (existing) { if (!this.ignore) Object.assign(existing, this.values); rows = [existing]; }
       else { const row = { status: "open", ...structuredClone(this.values) }; table.push(row); rows = [row]; }
     }
@@ -71,17 +75,17 @@ class Query {
 
 function fixture() {
   return new MemoryDb({
-    prospects: [{ id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "queued", contact_email: "clinic@example.com", notes: "Keep this research\nSecond note", marketing_consent: true, consent_timestamp: "2026-08-25T10:00:00.000Z", consent_source: "Newsletter preference form submitted by recipient", consent_email: "clinic@example.com" }],
+    prospects: [{ id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "queued", contact_email: "clinic@example.com", notes: "Keep this research\nSecond note", marketing_consent: true, consent_timestamp: "2026-08-25T10:00:00.000Z", consent_source: "Newsletter preference form submitted by recipient", consent_email: "clinic@example.com", contact_jurisdiction: "MY", contact_recipient_type: "business", contact_lawful_basis: "consent" }],
     outreach_sequences: [{ id: "s1", status: "active", audience_type: "cold" }],
     outreach_enrollments: [{ id: "e1", sequence_id: "s1", prospect_id: "p1", status: "active" }],
     outreach_sequence_steps: [{ id: "step1", sequence_id: "s1", step_order: 1, delay_hours: 0 }, { id: "step2", sequence_id: "s1", step_order: 2, delay_hours: 48 }],
-    sales_messages: [{ id: "m1", enrollment_id: "e1", prospect_id: "p1", recipient: "clinic@example.com", status: "approved", direction: "outbound", channel: "email", scheduled_at: "2026-08-28T10:00:00.000Z", body_text: "Approved message", idempotency_key: "send-1", provider_payload: { stepId: "step1", stepOrder: 1, delayHours: 0 } }],
+    sales_messages: [{ id: "m1", enrollment_id: "e1", prospect_id: "p1", recipient: "clinic@example.com", status: "approved", direction: "outbound", channel: "email", scheduled_at: "2026-08-28T10:00:00.000Z", body_text: "Approved message", idempotency_key: "send-1", provider_message_id: "outbound-provider-1", provider_payload: { stepId: "step1", stepOrder: 1, delayHours: 0 } }],
   });
 }
 const run = (db: MemoryDb, send = async (_message: Row) => ({ id: "provider-1" })) => runSalesDelivery({ db: db as any, send, now: new Date(NOW) });
 
 
-test("admin direct email sends without adding fabricated consent evidence", async () => {
+test("admin direct email blocks when recipient consent evidence is missing", async () => {
   const db = new MemoryDb({
     prospects: [{ id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "not_started",
       contact_email: "clinic@example.com", marketing_consent: false, notes: "" }],
@@ -91,57 +95,40 @@ test("admin direct email sends without adding fabricated consent evidence", asyn
     prospectId: "p1", channel: "email" as const,
     subject: "Your website", bodyText: "Hello, I have a suggestion about your contact page.",
     observation: "Verified the contact page has no clear enquiry button",
-    requestId: "direct-test-1", actorId: "admin-1",
+    requestId: "direct-test-1", actorId: "admin-1", recipientPermissionConfirmed: true,
     deliver: async (_message: Row) => { sendCount++; return { id: "provider-direct-1" }; },
   };
-  const first = await sendDirectProspectOutreach(db as any, input, NOW);
-  assert.equal(first.alreadySent, false);
-  assert.equal(sendCount, 1);
-  assert.equal(first.message.status, "sent");
-  assert.equal(first.prospect.outreach_status, "contacted");
-  assert.equal(first.prospect.marketing_consent, false);
-  assert.equal(first.prospect.consent_timestamp, undefined);
-  const retry = await sendDirectProspectOutreach(db as any, input, NOW);
-  assert.equal(retry.alreadySent, true);
-  assert.equal(sendCount, 1);
-  await assert.rejects(sendDirectProspectOutreach(db as any, { ...input, requestId: "direct-test-2" }, NOW),
-    /OUTREACH_TOO_SOON/);
+  await assert.rejects(sendDirectProspectOutreach(db as any, input, NOW), /CONTACT_PERMISSION_NOT_VERIFIED/);
+  assert.equal(sendCount, 0);
+  assert.equal(db.tables.sales_messages.length, 0);
+  assert.equal(db.tables.prospects[0].marketing_consent, false);
+  assert.equal(db.tables.prospects[0].consent_timestamp, undefined);
 });
 
-test("manual bulk intro uses the existing direct provider safely, without fabricated consent", async () => {
+test("manual bulk intro blocks without recipient permission records", async () => {
   const db = new MemoryDb({ prospects: [{ id: "p1", name: "Example Clinic", status: "qualified",
     outreach_status: "not_started", contact_email: "clinic@example.com", marketing_consent: false, notes: "" }] });
   let sends = 0;
   const input = { prospectId: "p1", channel: "email" as const, templateId: "bulk-introduction",
     subject: "A website question", bodyText: "Hi there, can we help with your business website?",
-    requestId: "bulk-intro-1", actorId: "admin",
+    requestId: "bulk-intro-1", actorId: "admin", recipientPermissionConfirmed: true,
     deliver: async () => { sends++; return { id: "provider-bulk-intro" }; } };
-  const result = await sendDirectProspectOutreach(db as any, input, NOW);
-  assert.equal(result.message.status, "sent");
-  assert.equal(result.message.provider_payload.templateId, "bulk-introduction");
-  assert.equal(result.prospect.outreach_status, "contacted");
-  assert.equal(result.prospect.marketing_consent, false);
-  assert.equal(result.prospect.consent_timestamp, undefined);
-  assert.equal(sends, 1);
-  const retry = await sendDirectProspectOutreach(db as any, input, NOW);
-  assert.equal(retry.alreadySent, true);
-  assert.equal(sends, 1);
-  await assert.rejects(sendDirectProspectOutreach(db as any, { ...input, requestId: "bulk-intro-2" }, NOW),
-    /OUTREACH_INTRO_NOT_NEW/);
-  assert.equal(sends, 1);
+  await assert.rejects(sendDirectProspectOutreach(db as any, input, NOW), /CONTACT_PERMISSION_NOT_VERIFIED/);
+  assert.equal(sends, 0);
+  assert.equal(db.tables.sales_messages.length, 0);
 });
 
 test("manual bulk intros reject earlier attempts to the same address even from another prospect", async () => {
   const db = new MemoryDb({
     prospects: [{ id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "not_started",
-      contact_email: "clinic@example.com", notes: "" }],
+      contact_email: "clinic@example.com", notes: "", ...permissioned }],
     sales_messages: [{ id: "old-intro", prospect_id: "p2", recipient: "clinic@example.com",
       channel: "email", direction: "outbound", status: "delivered", sent_at: "2026-01-01T10:00:00.000Z" }],
   });
   await assert.rejects(sendDirectProspectOutreach(db as any, {
     prospectId: "p1", channel: "email", templateId: "bulk-introduction",
     subject: "Hello", bodyText: "Hello, a new website question",
-    requestId: "duplicate-bulk", actorId: "admin",
+    requestId: "duplicate-bulk", actorId: "admin", recipientPermissionConfirmed: true,
     deliver: async () => { throw new Error("Provider must not be called"); },
   }, NOW), /OUTREACH_INTRO_ALREADY_ATTEMPTED/);
 });
@@ -149,10 +136,10 @@ test("manual bulk intros reject earlier attempts to the same address even from a
 test("manual bulk intros reject replies and active outreach enrollments", async () => {
   const input = { prospectId: "p1", channel: "email" as const, templateId: "bulk-introduction",
     subject: "Hello", bodyText: "Hello, a new website question",
-    requestId: "another-bulk-intro", actorId: "admin",
+    requestId: "another-bulk-intro", actorId: "admin", recipientPermissionConfirmed: true,
     deliver: async () => { throw new Error("Provider must not be called"); } };
   const prospect = { id: "p1", name: "Example Clinic", status: "qualified",
-    outreach_status: "not_started", contact_email: "clinic@example.com", notes: "" };
+    outreach_status: "not_started", contact_email: "clinic@example.com", notes: "", ...permissioned };
   const replyDb = new MemoryDb({ prospects: [prospect],
     sales_messages: [{ id: "inbound", prospect_id: "p1", direction: "inbound", channel: "email", status: "replied" }] });
   await assert.rejects(sendDirectProspectOutreach(replyDb as any, input, NOW), /OUTREACH_INTRO_ALREADY_REPLIED/);
@@ -169,14 +156,14 @@ test("manual prospect follow-ups stay as drafts and require explicit sends at ea
       design_preview_url: "https://app.bennietay.com/preview/prospect/preview_1234567890",
       marketing_consent: true, consent_timestamp: "2026-08-25T10:00:00.000Z",
       consent_source: "Recipient subscribed through a verified email consent form",
-      consent_email: "clinic@example.com", notes: "",
+      consent_email: "clinic@example.com", contact_jurisdiction: "MY", contact_recipient_type: "business", contact_lawful_basis: "consent", notes: "",
     }],
   });
   const intro = await sendDirectProspectOutreach(db as any, {
     prospectId: "p1", channel: "email", subject: "Website idea",
     bodyText: "I noticed a useful improvement",
     observation: "The contact route is not clear enough",
-    requestId: "initial-clinic-1", actorId: "admin",
+    requestId: "initial-clinic-1", actorId: "admin", recipientPermissionConfirmed: true,
     deliver: async () => ({ id: "intro-provider" }),
   }, NOW);
   assert.equal(intro.message.status, "sent");
@@ -200,7 +187,7 @@ test("manual prospect follow-ups stay as drafts and require explicit sends at ea
       prospectId: "p1", channel: "email", templateId,
       subject: "Reviewed follow-up for Example Clinic",
       bodyText: "A carefully reviewed individual follow-up with the prospect.",
-      requestId: "manually-sent-stage-" + stage, actorId: "admin",
+      requestId: "manually-sent-stage-" + stage, actorId: "admin", recipientPermissionConfirmed: true,
       deliver: async () => ({ id: "manual-provider-" + stage }),
     }, time);
   await assert.rejects(manualStage(1, "day3_design", "2026-09-02T10:00:00Z"), /OUTREACH_FOLLOW_UP_STAGE_NOT_DUE/);
@@ -220,14 +207,17 @@ test("no-website prospect receives no automated follow-ups and can be manually c
     prospects: [{
       id: "p1", name: "American Carpentry NC LLC", domain: null, website_status: "no_website",
       status: "qualified", outreach_status: "not_started", contact_email: "carpentry@example.com",
-      marketing_consent: false, notes: "",
+      ...permissioned, consent_email: "carpentry@example.com", notes: "", website_evidence_source_url: "https://business-directory.example/record",
+      website_verified_at: "2026-08-25T10:00:00.000Z", website_verification_method: "manual search",
+      website_finding: "No independent website found after checking company profile and search listings",
+      website_evidence_confidence: "high", website_verified_by: "admin",
     }],
     outreach_sequences: [{ id: "s1", name: "Permissioned website review", settings: { emailTemplateOverrides: {} } }],
   });
   const started = await sendDirectProspectOutreach(db as any, {
     prospectId: "p1", channel: "email", templateId: "general-introduction",
     subject: "A website question", bodyText: "Hello, we build and manage websites.",
-    requestId: "no-site-intro-1", actorId: "admin",
+    requestId: "no-site-intro-1", actorId: "admin", recipientPermissionConfirmed: true,
     deliver: async () => ({ id: "intro-accepted" }),
   }, NOW);
   assert.equal(started.message.status, "sent");
@@ -240,7 +230,7 @@ test("no-website prospect receives no automated follow-ups and can be manually c
     prospectId: "p1", channel: "email", templateId: "day3_portfolio_no_site",
     subject: "Following up on my earlier email — American Carpentry NC LLC",
     bodyText: drafts[0].body_text,
-    requestId: "no-site-manual-stage1", actorId: "admin",
+    requestId: "no-site-manual-stage1", actorId: "admin", recipientPermissionConfirmed: true,
     deliver: async () => ({ id: "manually-accepted-" + ++sent }),
   }, "2026-09-03T10:00:00Z");
   assert.equal(day3.message.status, "sent");
@@ -254,7 +244,7 @@ test("no-website prospect receives no automated follow-ups and can be manually c
 test("managed prospect follow-up sequences never dispatch a queued follow-up automatically", async () => {
   const company = { id: "p1", name: "Example Carpenter", domain: null, website_status: "no_website",
     status: "qualified", outreach_status: "contacted", contact_email: "carpentry@example.com",
-    marketing_consent: true, consent_email: "carpentry@example.com",
+    marketing_consent: true, consent_email: "carpentry@example.com", contact_jurisdiction: "US", contact_recipient_type: "business", contact_lawful_basis: "consent",
     consent_timestamp: "2026-08-25T10:00:00.000Z", consent_source: "Recipient subscribed via verified opt-in form" };
   const db = new MemoryDb({
     prospects: [company],
@@ -287,12 +277,12 @@ test("managed prospect follow-up sequences never dispatch a queued follow-up aut
 test("recipient reply cancels all direct prospect follow-ups before they send", async () => {
   const db = new MemoryDb({
     prospects: [{ id: "p1", name: "Example Clinic", status: "qualified",
-      outreach_status: "not_started", contact_email: "clinic@example.com", notes: "" }],
+      outreach_status: "not_started", contact_email: "clinic@example.com", notes: "", ...permissioned }],
   });
   await sendDirectProspectOutreach(db as any, {
     prospectId: "p1", channel: "email", subject: "Website idea", bodyText: "Hello",
     observation: "The contact button is not prominent on the homepage",
-    requestId: "reply-test-1", actorId: "admin",
+    requestId: "reply-test-1", actorId: "admin", recipientPermissionConfirmed: true,
     deliver: async () => ({ id: "initial-provider-1" }),
   }, NOW);
   const replyEvent = { data: { email_id: "recipient-reply-1", from: "clinic@example.com", in_reply_to: "initial-provider-1" } };
@@ -308,7 +298,7 @@ test("admin direct email respects suppression and unsubscribed status", async ()
     prospectId: "p1", channel: "email" as const, subject: "Website",
     bodyText: "Hello, I have a relevant observation.",
     observation: "Verified the contact page has no clear enquiry button",
-    requestId: "blocked-test", actorId: "admin-1",
+    requestId: "blocked-test", actorId: "admin-1", recipientPermissionConfirmed: true,
     deliver: async (_message: Row) => { throw Error("Should never reach provider"); },
   };
   const suppressed = new MemoryDb({
@@ -330,23 +320,23 @@ test("marketing opt-in requires boolean permission, actual timestamp and meaning
   assert.equal(hasDocumentedMarketingConsent({ ...good, consent_timestamp: "2027-01-01T00:00:00Z" }, new Date(NOW)), false);
 });
 
-test("operator-authorized standalone prospect email is delivered without a CRM consent flag", async () => {
+test("operator checkbox does not bypass a missing recipient permission record", async () => {
   const db = fixture(); let sends = 0;
   db.tables.prospects[0].marketing_consent = false;
   db.tables.sales_messages[0].enrollment_id = null;
   const outcome = await run(db, async () => { sends++; return { id: "receipt" }; });
-  assert.equal(sends, 1);
-  assert.equal(outcome.deliveryBlocked, 0);
-  assert.equal(db.tables.sales_messages[0].status, "sent");
+  assert.equal(sends, 0);
+  assert.equal(outcome.deliveryBlocked, 1);
+  assert.equal(db.tables.sales_messages[0].status, "draft");
 });
 
-test("operator-authorized prospect sequence email does not require a duplicate CRM consent flag", async () => {
+test("cold prospect sequence fails closed without documented recipient permission", async () => {
   const db = fixture(); let sends = 0;
   db.tables.prospects[0].marketing_consent = false;
   const outcome = await run(db, async () => { sends++; return { id: "receipt" }; });
-  assert.equal(sends, 1);
-  assert.equal(outcome.deliveryBlocked, 0);
-  assert.equal(db.tables.sales_messages[0].status, "sent");
+  assert.equal(sends, 0);
+  assert.equal(outcome.deliveryBlocked, 1);
+  assert.equal(db.tables.sales_messages[0].status, "draft");
 });
 
 test("two concurrent workers claim and send the message once", async () => {
@@ -407,16 +397,26 @@ test("suppression is repeatable with the existing partial email index", async ()
   assert.equal(db.tables.outreach_enrollments[0].status, "stopped");
 });
 
-test("delivery callbacks preserve sequence metadata and cannot downgrade clicked to sent", async () => {
+test("delivery callbacks confirm delivery without rewriting engagement status or sequence metadata", async () => {
   const db = fixture(); Object.assign(db.tables.sales_messages[0], { provider_message_id: "r1", status: "clicked" });
   const metadata = structuredClone(db.tables.sales_messages[0].provider_payload);
   await recordSalesDeliveryEvent(db as any, { type: "email.sent", data: { email_id: "r1" } }, NOW);
   assert.equal(db.tables.sales_messages[0].status, "clicked");
+  assert.equal(db.tables.sales_messages[0].delivery_state, "provider_accepted");
   assert.deepEqual(db.tables.sales_messages[0].provider_payload, metadata);
+  await recordSalesDeliveryEvent(db as any, { id: "evt-delivered", type: "email.delivered", created_at: NOW, data: { email_id: "r1" } }, NOW);
+  await recordSalesDeliveryEvent(db as any, { id: "evt-delivered", type: "email.delivered", created_at: NOW, data: { email_id: "r1" } }, NOW);
+  assert.equal(db.tables.sales_messages[0].status, "clicked");
+  assert.equal(db.tables.sales_messages[0].delivery_state, "delivery_confirmed");
+  assert.equal(db.tables.sales_email_provider_events.length, 2);
+  await recordSalesDeliveryEvent(db as any, { id: "evt-bounce", type: "email.bounced", created_at: NOW, data: { email_id: "r1", bounce: { reason: "hard bounce" } } }, NOW);
+  await recordSalesDeliveryEvent(db as any, { id: "evt-late-delivered", type: "email.delivered", created_at: NOW, data: { email_id: "r1" } }, NOW);
+  assert.equal(db.tables.sales_messages[0].delivery_state, "bounced");
+  assert.equal(db.tables.sales_suppressions[0].reason, "bounced");
   assert.equal(deliveryStatus("suppressed", "opened"), "suppressed");
 });
 
-const inbound = { type: "email.received", created_at: NOW, data: { email_id: "inbound-1", from: "Example Clinic <CLINIC@example.com>", subject: "Website review" } };
+const inbound = { type: "email.received", created_at: NOW, data: { email_id: "inbound-1", from: "Example Clinic <CLINIC@example.com>", subject: "Website review", in_reply_to: "outbound-provider-1" } };
 test("duplicate inbound callbacks create one reply and one task without reopening completed work", async () => {
   const db = fixture(); Object.assign(db.tables.sales_messages[0], { status: "sent", sent_at: NOW });
   await recordSalesReply(db as any, inbound, async () => "Yes, send it", NOW);
@@ -427,6 +427,29 @@ test("duplicate inbound callbacks create one reply and one task without reopenin
   assert.equal(db.tables.sales_tasks[0].status, "completed");
   assert.equal(db.tables.outreach_enrollments[0].status, "stopped");
   assert.equal(db.tables.prospects[0].outreach_status, "replied");
+});
+
+test("unmatched inbound mail enters reconciliation instead of sender-recency matching", async () => {
+  const db = fixture();
+  const unrelated = { type: "email.received", data: { email_id: "unmatched-1", from: "clinic@example.com", subject: "Question" } };
+  const result = await recordSalesReply(db as any, unrelated, async () => "Could you send details?", NOW);
+  assert.equal(result?.matched, false);
+  const row = db.tables.sales_messages.find((message) => message.direction === "inbound");
+  assert.equal(row?.prospect_id, null);
+  assert.equal(row?.reply_to_message_id, null);
+  assert.equal(db.tables.sales_tasks[0]?.task_type, "reply_reconciliation");
+  assert.equal(db.tables.prospects[0].outreach_status, "queued");
+});
+
+test("automatic replies are retained for review and excluded from human reply status", async () => {
+  const db = fixture();
+  const event = { ...inbound, data: { ...inbound.data, email_id: "auto-1", subject: "Automatic reply: out of office" } };
+  await recordSalesReply(db as any, event, async () => "I am out of office until next week.", NOW);
+  const row = db.tables.sales_messages.find((message) => message.direction === "inbound");
+  assert.equal(row?.classification, "automatic_reply");
+  assert.equal(db.tables.sales_tasks[0]?.task_type, "reply_review");
+  assert.equal(db.tables.prospects[0].outreach_status, "queued");
+  assert.equal(db.tables.outreach_enrollments[0].status, "stopped");
 });
 
 test("reply retrieval failure still stops follow-ups and retains a manual-review reply", async () => {
@@ -463,6 +486,8 @@ test("classification ignores quoted unsubscribe text and avoids substring matche
   assert.equal(classifyReply("Yes, send it\nOn Monday Bennie wrote:\nUnsubscribe"), "interested");
   assert.equal(classifyReply("Our showroom looks good"), "unknown");
   assert.equal(normalizeSalesEmail("Company <OWNER@example.com>"), "owner@example.com");
+  assert.equal(classifyReply("Automatic reply: out of office until Monday"), "automatic_reply");
+  assert.equal(classifyReply("Delivery status notification: message not delivered"), "delivery_notification");
 });
 
 test("preparing manual outreach preserves notes and does not claim an email was sent", async () => {

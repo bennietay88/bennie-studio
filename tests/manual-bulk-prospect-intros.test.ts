@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { MAX_MANUAL_BULK_INTRO, prepareManualBulkIntro } from "../src/lib/manualBulkProspectIntros.ts";
 
 const CONTACT = { id: "p1", name: "Example Carpentry", contact_email: "info@example.com", outreach_status: "not_started", status: "qualified" };
@@ -52,4 +53,13 @@ test("unresolved placeholders never become send-ready messages", () => {
   });
   assert.equal(outcome.kind, "skip");
   assert.match(String(outcome.reason), /missing information/);
+});
+
+
+test("bulk send uses the Send click for operator confirmation without creating recipient consent", () => {
+  const ui = readFileSync("src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "utf8");
+  assert.doesNotMatch(ui, /<Checkbox|setConfirmed|!confirmed/);
+  assert.match(ui, /recipientPermissionConfirmed: true/);
+  assert.match(ui, /It does not create recipient consent/);
+  assert.match(ui, /The server blocked this before provider delivery/);
 });

@@ -56,7 +56,7 @@ export async function sendHostingerMail(
   input: HostingerMailInput,
   env: NodeJS.ProcessEnv = process.env,
   reserveQuota?: (mailbox: string) => Promise<boolean>,
-): Promise<{ id: string }> {
+): Promise<{ id: string; provider: "hostinger"; mailbox: string; fromAddress: string; replyToAddress?: string }> {
   const config = hostingerConfiguration(env);
   if (!config.configured) throw new Error("HOSTINGER_CONFIG_ERROR");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.to)) throw new Error("INVALID_EMAIL_RECIPIENT");
@@ -91,7 +91,7 @@ export async function sendHostingerMail(
     if (!result.messageId || !result.accepted.some((address) => address.toLowerCase() === input.to.toLowerCase())) {
       throw new Error("HOSTINGER_ACCEPTANCE_UNCERTAIN");
     }
-    return { id: result.messageId };
+    return { id: result.messageId, provider: "hostinger", mailbox: config.user, fromAddress: config.from, replyToAddress: input.replyTo };
   } catch (error: unknown) {
     if (error instanceof Error && error.message === "HOSTINGER_ACCEPTANCE_UNCERTAIN") throw error;
     // Do not expose the SMTP server response; it can contain a recipient or mailbox identifier.

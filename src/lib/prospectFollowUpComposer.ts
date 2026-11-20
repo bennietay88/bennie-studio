@@ -2,8 +2,8 @@
 export const FOLLOW_UP_SENT = new Set(["sent", "delivered", "opened", "clicked"]);
 export const FOLLOW_UP_STOP = new Set(["replied", "call_booked", "won", "lost", "unsubscribed", "converted", "paid"]);
 export const FOLLOW_UP_TEMPLATE_STAGES: Record<string, 1 | 2 | 3> = {
-  day3_design: 1, day3_audit: 1, day3_portfolio_existing: 1, day3_portfolio_no_site: 1,
-  day8_existing: 2, day8_no_site: 2, day15_existing: 3, day15_no_site: 3,
+  day3_design: 1, day3_audit: 1, day3_portfolio_existing: 1, day3_portfolio_no_site: 1, day3_neutral: 1,
+  day8_existing: 2, day8_no_site: 2, day8_neutral: 2, day15_existing: 3, day15_no_site: 3, day15_neutral: 3,
 };
 export function isStagedFollowUpTemplate(id: string): boolean {
   return Object.prototype.hasOwnProperty.call(FOLLOW_UP_TEMPLATE_STAGES, id);
@@ -50,13 +50,13 @@ export function chooseProspectFollowUp(
   return { kind: "follow_up", stage, dueAt };
 }
 export function chooseProspectFollowUpTemplate(
-  stage: 1 | 2 | 3, hasExistingWebsite: boolean, asset?: "design" | "audit" | null,
+  stage: 1 | 2 | 3, websiteStatus: boolean | "unknown", asset?: "design" | "audit" | null,
 ): keyof typeof FOLLOW_UP_TEMPLATE_STAGES {
   if (stage === 1) {
     if (asset === "design") return "day3_design";
     if (asset === "audit") return "day3_audit";
-    return hasExistingWebsite ? "day3_portfolio_existing" : "day3_portfolio_no_site";
+    return websiteStatus === "unknown" ? "day3_neutral" : websiteStatus ? "day3_portfolio_existing" : "day3_portfolio_no_site";
   }
-  if (stage === 2) return hasExistingWebsite ? "day8_existing" : "day8_no_site";
-  return hasExistingWebsite ? "day15_existing" : "day15_no_site";
+  if (stage === 2) return websiteStatus === "unknown" ? "day8_neutral" : websiteStatus ? "day8_existing" : "day8_no_site";
+  return websiteStatus === "unknown" ? "day15_neutral" : websiteStatus ? "day15_existing" : "day15_no_site";
 }

@@ -7,11 +7,17 @@ import {
 } from "../src/lib/prospectOutreachTemplates.ts";
 import { renderProspectFollowUpStage, renderProspectInitialEmail } from "../server/salesOperations.ts";
 
-const noSite = { name: "American Carpentry NC LLC", website_status: "no_website", domain: null };
-const existing = { name: "Example Dental", website_status: "weak", domain: "example.org" };
+const siteEvidence = { website_evidence_source_url: "https://example.org", website_verified_at: "2026-11-05T00:00:00.000Z",
+  website_verification_method: "Manual review", website_finding: "Verified website status", website_verified_by: "admin", website_evidence_confidence: "high" };
+const noSite = { name: "American Carpentry NC LLC", website_status: "no_website", domain: null, ...siteEvidence };
+const existing = { name: "Example Dental", website_status: "weak", domain: "example.org", ...siteEvidence };
 
-test("all nine editable templates have valid, supported variables", () => {
-  assert.equal(PROSPECT_EMAIL_TEMPLATE_DEFINITIONS.length, 9);
+test("all editable templates have valid, supported variables", () => {
+  assert.ok(PROSPECT_EMAIL_TEMPLATE_DEFINITIONS.length >= 17);
+  for (const id of ["verified_no_site_intro", "verified_existing_site_intro", "social_first_intro",
+    "recent_launch_intro", "booking_friction_intro"]) {
+    assert.ok(PROSPECT_EMAIL_TEMPLATE_DEFINITIONS.some((definition) => definition.id === id), id);
+  }
   for (const definition of PROSPECT_EMAIL_TEMPLATE_DEFINITIONS) {
     assert.equal(validateProspectEmailTemplate(definition.id, definition.defaultTemplate), null, definition.id);
   }

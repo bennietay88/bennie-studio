@@ -272,8 +272,8 @@ export default function BookDemo() {
       <main>
         <section className="relative overflow-hidden border-b border-[#dfe3e8] bg-[#f8f8f5] text-[#15191f]">
           <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#1741ed]/10 blur-3xl" />
-          <div className="brand-shell relative grid min-w-0 gap-10 py-16 lg:grid-cols-12 lg:items-start lg:py-24">
-            <div className="min-w-0 lg:col-span-5">
+          <div className="brand-shell relative grid min-w-0 gap-12 py-16 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:py-24">
+            <div className="min-w-0">
               
               <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.03] tracking-tight text-[#15191f] sm:text-5xl">
                 {isGrowthPartner ? "Plan the next stage of your website growth." : "Let’s discuss the website your business needs."}
@@ -295,60 +295,60 @@ export default function BookDemo() {
               </div>
             </div>
 
-            <div className="min-w-0 rounded-sm border border-[#142239] bg-[#142239] p-6 text-white sm:p-8 lg:col-span-7">
+            <div className="min-w-0 rounded-2xl border border-[#E2E8F0] bg-white p-8 text-[#0F172A] shadow-sm sm:p-10">
               {submitted ? (
                 <div className="py-10 text-center">
-                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-emerald-400/15 text-emerald-300"><CheckCircle2 className="h-8 w-8" /></div>
+                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-8 w-8" /></div>
                   <h2 className="mt-6 text-3xl font-bold">{bookingConfirmed ? "Call confirmed" : "Review request received"}</h2>
-                  <p className="mx-auto mt-3 max-w-md font-semibold leading-7 text-slate-300">
+                  <p className="mx-auto mt-3 max-w-md font-semibold leading-7 text-[#475569]">
                     {bookingConfirmed
                       ? "Your time is reserved. We’ll review your website and goals before the call so the conversation starts with useful context."
                       : "Your enquiry has been saved for a personal follow-up. No appointment is reserved yet. We’ll contact you using the details you supplied to arrange next steps."}
                   </p>
-                  <Button onClick={() => navigate("/case-studies")} className="mt-7 min-h-12 rounded-lg bg-white px-6 text-slate-950 hover:bg-indigo-100">
+                  <Button onClick={() => navigate("/case-studies")} className="mt-7 min-h-12 rounded-lg border border-[#E2E8F0] bg-[#1D4ED8] px-6 text-white hover:bg-[#2563EB]">
                     View case studies <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  {bookingConfirmed && manageUrl && <Button variant="ghost" onClick={() => navigate(new URL(manageUrl, window.location.origin).pathname)} className="mt-3 min-h-11 rounded-xl text-indigo-200 hover:bg-white/10 hover:text-white">Reschedule or cancel</Button>}
+                  {bookingConfirmed && manageUrl && <Button variant="ghost" onClick={() => navigate(new URL(manageUrl, window.location.origin).pathname)} className="mt-3 min-h-11 rounded-xl text-blue-700 hover:bg-blue-50">Reschedule or cancel</Button>}
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="min-w-0 space-y-5">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">A quick enquiry · No account required</p>
-                    <h2 className="mt-2 text-2xl font-bold text-white">{isGrowthPartner ? "Tell us how to contact you." : "Tell us where to reach you."}</h2>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">A quick enquiry · No account required</p>
+                    <h2 className="mt-2 text-2xl font-bold text-[#0F172A]">{isGrowthPartner ? "Tell us how to contact you." : "Tell us where to reach you."}</h2>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field icon={User} label="Your name" id="call-name"><Input id="call-name" required value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Your name" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
-                    <Field icon={Mail} label="Email" id="call-email"><Input id="call-email" required type="email" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="you@business.com" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                    <Field icon={User} label="Your name" id="call-name"><Input id="call-name" required value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Your name" className="h-12 rounded-xl border-[#E2E8F0] bg-white text-slate-950" /></Field>
+                    <Field icon={Mail} label="Email" id="call-email"><Input id="call-email" required type="email" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="you@business.com" className="h-12 rounded-xl border-[#E2E8F0] bg-white text-slate-950" /></Field>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field icon={Building2} label="Business" id="call-company"><Input id="call-company" required value={form.company} onChange={(e) => update("company", e.target.value)} placeholder="Business name" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
-                    <Field icon={Phone} label="WhatsApp / phone (optional)" id="call-phone"><Input id="call-phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="Optional" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                    <Field icon={Building2} label="Business" id="call-company"><Input id="call-company" required value={form.company} onChange={(e) => update("company", e.target.value)} placeholder="Business name" className="h-12 rounded-xl border-[#E2E8F0] bg-white text-slate-950" /></Field>
+                    <Field icon={Phone} label="WhatsApp / phone (optional)" id="call-phone"><Input id="call-phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="Optional" className="h-12 rounded-xl border-[#E2E8F0] bg-white text-slate-950" /></Field>
                   </div>
-                  <Field icon={Globe2} label="Business location" id="call-market"><select id="call-market" value={form.market} onChange={(e) => update("market", e.target.value as RevenueMarket)} className="h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-semibold text-slate-950">{Object.entries(REVENUE_MARKETS).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}</select></Field>
-                  <Field icon={MessageSquare} label="What would you like your website to do? (optional)" id="call-message"><Textarea id="call-message" value={form.message} onChange={(e) => update("message", e.target.value)} placeholder="For example: explain our services clearly and help customers ask for a quote" className="min-h-24 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
-                  <details className="group rounded-xl border border-white/15 bg-white/[0.04] px-4 py-4">
-                    <summary className="cursor-pointer list-item text-sm font-semibold text-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300">
+                  <Field icon={Globe2} label="Business location" id="call-market"><select id="call-market" value={form.market} onChange={(e) => update("market", e.target.value as RevenueMarket)} className="h-12 w-full rounded-xl border border-[#E2E8F0] bg-white px-3 text-sm font-semibold text-slate-950">{Object.entries(REVENUE_MARKETS).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}</select></Field>
+                  <Field icon={MessageSquare} label="What would you like your website to do? (optional)" id="call-message"><Textarea id="call-message" value={form.message} onChange={(e) => update("message", e.target.value)} placeholder="For example: explain our services clearly and help customers ask for a quote" className="min-h-24 rounded-xl border-[#E2E8F0] bg-white text-slate-950" /></Field>
+                  <details className="group rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-4">
+                    <summary className="cursor-pointer list-item text-sm font-semibold text-[#475569] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300">
                       Optional: add website details or choose a call time
                     </summary>
                     <div className="mt-5 space-y-4">
                       <div className="grid gap-4 sm:grid-cols-2">
-                        <Field icon={Building2} label="Industry (optional)" id="call-industry"><Input id="call-industry" value={form.industry} onChange={(e) => update("industry", e.target.value)} placeholder="For example: Cleaning or accounting" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                        <Field icon={Building2} label="Industry (optional)" id="call-industry"><Input id="call-industry" value={form.industry} onChange={(e) => update("industry", e.target.value)} placeholder="For example: Cleaning or accounting" className="h-12 rounded-xl border-[#E2E8F0] bg-white text-slate-950" /></Field>
                       </div>
-                      <Field icon={Globe2} label="Current website (optional)" id="call-website"><Input id="call-website" value={form.websiteUrl} onChange={(e) => update("websiteUrl", e.target.value)} placeholder="https://example.com" className="h-12 rounded-xl border-white/15 bg-white text-slate-950" /></Field>
+                      <Field icon={Globe2} label="Current website (optional)" id="call-website"><Input id="call-website" value={form.websiteUrl} onChange={(e) => update("websiteUrl", e.target.value)} placeholder="https://example.com" className="h-12 rounded-xl border-[#E2E8F0] bg-white text-slate-950" /></Field>
                       <Field icon={CalendarDays} label={slots.length ? `Available 30-minute times · ${timezone}` : "Call scheduling"} id="call-slot">
-                        <select id="call-slot" disabled={slots.length === 0} value={form.selectedSlot} onChange={(event) => update("selectedSlot", event.target.value)} className="h-12 w-full rounded-xl border border-white/15 bg-white px-3 text-sm font-semibold text-slate-950">
+                        <select id="call-slot" disabled={slots.length === 0} value={form.selectedSlot} onChange={(event) => update("selectedSlot", event.target.value)} className="h-12 w-full rounded-xl border border-[#E2E8F0] bg-white px-3 text-sm font-semibold text-slate-950">
                           <option value="">{slots.length ? "No booking — just contact me" : "No confirmed slots currently available"}</option>
                           {slots.map((slot) => <option key={slot} value={slot}>{new Date(slot).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</option>)}
                         </select>
-                        {slots.length === 0 && <p className="mt-2 text-xs leading-5 text-indigo-100">You can still ask for a personal follow-up. No call time is reserved.</p>}
-                        {availabilityError && <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold text-amber-200"><span>{availabilityError}</span><button type="button" onClick={loadAvailability} className="rounded-lg border border-white/20 px-3 py-1.5 font-bold text-white hover:bg-white/10">Retry</button></div>}
+                        {slots.length === 0 && <p className="mt-2 text-xs leading-5 text-[#475569]">You can still ask for a personal follow-up. No call time is reserved.</p>}
+                        {availabilityError && <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold text-amber-200"><span>{availabilityError}</span><button type="button" onClick={loadAvailability} className="rounded-lg border border-[#E2E8F0] px-3 py-1.5 font-bold text-blue-700 hover:bg-blue-50">Retry</button></div>}
                       </Field>
                     </div>
                   </details>
-                  <Button type="submit" disabled={loading} className="h-auto min-h-13 w-full whitespace-normal rounded-lg bg-indigo-500 px-6 py-3 text-center font-bold text-white shadow-xl shadow-indigo-950/30 hover:bg-indigo-400">
+                  <Button type="submit" disabled={loading} className="h-auto min-h-13 w-full whitespace-normal rounded-lg bg-[#1D4ED8] px-6 py-3 text-center font-bold text-white shadow-sm hover:bg-[#2563EB]">
                     {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving your request</> : <>{!form.selectedSlot ? "Request a personal follow-up" : isGrowthPartner ? "Confirm Growth Consultation" : "Confirm Website Review"} <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>
-                  <p className="text-center text-xs font-semibold leading-5 text-slate-400">{form.selectedSlot ? "A time is reserved only after the calendar confirms it. If confirmation fails, we keep your enquiry for follow-up." : "No slot is booked. We will contact you about your request."}</p>
+                  <p className="text-center text-xs font-semibold leading-5 text-[#475569]">{form.selectedSlot ? "A time is reserved only after the calendar confirms it. If confirmation fails, we keep your enquiry for follow-up." : "No slot is booked. We will contact you about your request."}</p>
                 </form>
               )}
             </div>
@@ -363,7 +363,7 @@ export default function BookDemo() {
 function Field({ icon: Icon, label, id, children }: { icon: React.ComponentType<{ className?: string }>; label: string; id: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor={id} className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-300"><Icon className="h-3.5 w-3.5" /> {label}</Label>
+      <Label htmlFor={id} className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-[#475569]"><Icon className="h-3.5 w-3.5" /> {label}</Label>
       {children}
     </div>
   );

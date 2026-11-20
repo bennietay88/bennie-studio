@@ -6,7 +6,6 @@ import { MAX_MANUAL_BULK_INTRO, prepareManualBulkIntro } from "../../lib/manualB
 import type { ManualBulkIntroPreview } from "../../lib/manualBulkProspectIntros";
 import type { ProspectEmailOverrides } from "../../lib/prospectOutreachTemplates";
 import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 
 type PreviewRow = ManualBulkIntroPreview & {
@@ -26,7 +25,6 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
   const [rows, setRows] = useState<PreviewRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
 
@@ -35,7 +33,6 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
     let active = true;
     setRows([]);
     setLoadError("");
-    setConfirmed(false);
     setFinished(false);
     if (!selectedIds.length || selectedIds.length > MAX_MANUAL_BULK_INTRO) {
       setLoadError("Select between 1 and " + MAX_MANUAL_BULK_INTRO + " prospects to review at a time.");
@@ -99,7 +96,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
   const failed = rows.filter((row) => row.delivery === "failed");
 
   const sendSelected = async () => {
-    if (!confirmed || sending || finished || loading || !ready.length || loadError) return;
+    if (sending || finished || loading || !ready.length || loadError) return;
     setSending(true);
     const sentIds: string[] = [];
     try {
@@ -118,7 +115,9 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
             body: JSON.stringify({
               action: "send",
               channel: "email",
-              recipientPermissionConfirmed: confirmed,
+              // Clicking Send is operator confirmation, never a recipient opt-in record.
+              // The server still verifies actual CRM permission before provider dispatch.
+              recipientPermissionConfirmed: true,
               subject: row.subject,
               bodyText: row.bodyText,
               templateId: "bulk-introduction",
@@ -203,20 +202,19 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                         </div>
                       </details>
                     ) : <p className="mt-2 text-xs leading-5 text-slate-600">{row.reason}</p>}
-                    {row.error && <p className="mt-2 text-xs font-medium text-rose-800">{row.error} Do not resend until provider delivery is checked.</p>}
+                    {row.error && <p className="mt-2 text-xs font-medium text-rose-800">{row.error} {row.error.includes("Email contact is blocked until") || row.error.includes("Confirm the independently recorded permission details")
+                      ? "The server blocked this before provider delivery. Verify recipient permission records; do not invent an opt-in."
+                      : "Do not resend until provider delivery is checked."}</p>}
                   </div>
                 ))}
               </div>
             </>
           )}
           {!loading && !loadError && !!rows.length && !finished && (
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <Checkbox checked={confirmed} onCheckedChange={(value) => setConfirmed(value === true)} aria-label="Confirm permission to contact each selected prospect" />
-              <span className="text-sm leading-6 text-amber-950">
-                I reviewed the opening emails and confirm I have permission to contact each eligible recipient.
-                This confirmation does not create or change marketing-consent records. Respect opt-outs and applicable email rules.
-              </span>
-            </label>
+            <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+              Clicking Send confirms this operator-initiated request. It does not create recipient consent.
+              The server checks each recipient's recorded permission and suppression status before sending.
+            </p>
           )}
           {finished && <div role="status" className="flex gap-2 rounded-xl bg-indigo-50 p-4 text-sm text-indigo-900">
             <ShieldCheck className="h-5 w-5 shrink-0" /> Processing finished. Submitted means the provider accepted the request, not confirmed inbox delivery.
@@ -225,7 +223,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
         </div>
         <DialogFooter className="!mx-0 !mb-0 shrink-0 gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>{finished ? "Close" : "Cancel"}</Button>
-          {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !confirmed || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
+          {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             {sending ? "Sending individually…" : "Send " + ready.length + " reviewed introduction" + (ready.length === 1 ? "" : "s")}
           </Button>}

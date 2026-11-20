@@ -47,7 +47,8 @@ test("the actual API entrypoint imports under Node 24 with preview-like missing 
     const script = `
       const module = await import(${JSON.stringify(pathToFileURL(entrypoint).href)});
       const routes = module.default._router.stack.flatMap((layer) => layer.route ? [layer.route.path] : []);
-      const ready = routes.includes("/api/health-check") && routes.includes("/api/system/status");
+      const healthRegistered = routes.some((route) => route === "/api/health-check" || (Array.isArray(route) && route.includes("/api/health-check")));
+      const ready = healthRegistered && routes.includes("/api/system/status");
       console.log(JSON.stringify({ moduleLoaded: true, routesRegistered: ready }));
       if (!ready) process.exitCode = 3;
     `;

@@ -163,9 +163,6 @@ export function ProspectExplorer() {
   const [bulkSaving, setBulkSaving] = useState(false);
   const [manualBulkOpen, setManualBulkOpen] = useState(false);
   const [manualBulkIntroOpen, setManualBulkIntroOpen] = useState(false);
-  const [consentAttestationOpen, setConsentAttestationOpen] = useState(false);
-  const [consentAttestationConfirmed, setConsentAttestationConfirmed] = useState(false);
-  const [consentAttestationSaving, setConsentAttestationSaving] = useState(false);
 
 
   const personalizedIntro = (prospect: any, overrides: ProspectEmailOverrides = outreachEmailOverrides) =>
@@ -191,32 +188,6 @@ export function ProspectExplorer() {
       setOutreachBody(bodyLines.join("\n").trim());
     }
     setOutreachDraftTouched(false);
-  };
-
-  const attestImportedConsent = async () => {
-    if (!consentAttestationConfirmed) return;
-    try {
-      setConsentAttestationSaving(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error("Your admin session has expired. Sign in again and retry.");
-      const response = await fetch("/api/admin/prospects/attest-imported-consent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ confirmed: true }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload?.error || "Consent attestation failed.");
-      const updatedById = new Map<string, any>((payload.prospects || []).map((item: any) => [item.id, item] as [string, any]));
-      setProspects((current) => current.map((item) => updatedById.has(item.id) ? { ...item, ...updatedById.get(item.id) } : item));
-      setConsentAttestationOpen(false);
-      setConsentAttestationConfirmed(false);
-      toast.success(`${payload.updated} uploaded prospect${payload.updated === 1 ? "" : "s"} marked as consented. No emails were sent.`);
-      await fetchProspects();
-    } catch (error: any) {
-      toast.error(error?.message || "Consent attestation failed.");
-    } finally {
-      setConsentAttestationSaving(false);
-    }
   };
 
   useEffect(() => {
@@ -525,6 +496,7 @@ export function ProspectExplorer() {
       setSaving(true);
       const payload = {
         ...newProspect,
+        website_status: "unknown",
         domain: newProspect.domain ? cleanDomain(newProspect.domain) : null,
         contact_email: newProspect.contact_email || null,
         contact_phone: newProspect.contact_phone || null,
@@ -989,7 +961,7 @@ export function ProspectExplorer() {
       ...newProspect,
       industry: "Dental Clinic",
       location: "Malaysia",
-      website_status: "weak",
+      website_status: "unknown",
       opportunity_level: "high",
       notes: "Prioritize clinics with no website, outdated mobile UX, missing WhatsApp CTA, weak local SEO, or no online booking path.",
     });
@@ -1238,8 +1210,11 @@ export function ProspectExplorer() {
         }
         if (next.kind === "follow_up" && next.stage) {
           const overrides = (templateSettings.overrides || {}) as ProspectEmailOverrides;
-          const hasExistingWebsite = Boolean(String(prospect.domain || "").trim())
-            && !["no_website", "no website", "none", "not_found"].includes(String(prospect.website_status || "").toLowerCase().trim());
+          const verifiedWebsite = Boolean(prospect.website_evidence_source_url && prospect.website_verified_at
+            && prospect.website_verification_method && prospect.website_finding && prospect.website_verified_by);
+          const websiteStatus: boolean | "unknown" = !verifiedWebsite ? "unknown"
+            : String(prospect.website_status || "").toLowerCase() === "no_website" ? false
+              : ["weak", "average", "strong"].includes(String(prospect.website_status || "").toLowerCase()) ? true : "unknown";
           const assets = [
             { url: prospect.design_preview_url, kind: "design" as const },
             { url: prospect.audit_report_url, kind: "audit" as const },
@@ -1254,7 +1229,7 @@ export function ProspectExplorer() {
                 || (parsed.pathname === "/website-audit" && Boolean(parsed.searchParams.get("report") && parsed.searchParams.get("key")));
             } catch { return false; }
           });
-          const templateId = chooseProspectFollowUpTemplate(next.stage, hasExistingWebsite, asset?.kind) as ProspectEmailTemplateKey;
+          const templateId = chooseProspectFollowUpTemplate(next.stage, websiteStatus, asset?.kind) as ProspectEmailTemplateKey;
           const name = String(prospect.name || "your business");
           const firstName = String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0] || name + " team";
           const draft = renderProspectEmailTemplate(templateId, {
@@ -1507,7 +1482,6 @@ export function ProspectExplorer() {
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" className="rounded-xl border-slate-200" onClick={seedMalaysiaDentalSearch}>Malaysia Dental</Button>
           <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => setIsImportModalOpen(true)}><Upload className="mr-2 h-4 w-4" />Import CSV</Button>
-          <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => { setConsentAttestationConfirmed(false); setConsentAttestationOpen(true); }}><Shield className="mr-2 h-4 w-4" />Record list consent</Button>
           <Button variant="outline" className="rounded-xl border-slate-200" onClick={exportCsv}><Download className="mr-2 h-4 w-4" />Export CSV</Button>
           <Button onClick={() => setIsAddModalOpen(true)} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold">
             <Plus className="h-4 w-4 mr-2" /> Add Prospect
@@ -1984,30 +1958,6 @@ export function ProspectExplorer() {
         </div>
       </div>
 
-      <Dialog open={consentAttestationOpen} onOpenChange={(open) => { if (!consentAttestationSaving) setConsentAttestationOpen(open); }}>
-        <DialogContent className="max-w-xl rounded-3xl">
-          <DialogHeader>
-            <DialogTitle>Record consent for uploaded prospects</DialogTitle>
-            <DialogDescription>This applies to all prospects imported by CSV that have an email address. It records an admin attestation and does not send email.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-              The opt-in date will be set to each prospect’s upload date. The consent source will state that Bennie Studio holds the consent record and that an administrator attested to it. Existing exact-email, suppression and unsubscribe checks remain active.
-            </div>
-            <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm leading-5">
-              <Checkbox checked={consentAttestationConfirmed} onCheckedChange={(checked) => setConsentAttestationConfirmed(checked === true)} />
-              <span>I confirm every CSV-uploaded prospect has opted in to receive Bennie Studio marketing email, the opt-in date matches the upload date, and Bennie Studio holds the consent records.</span>
-            </label>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" disabled={consentAttestationSaving} onClick={() => setConsentAttestationOpen(false)}>Cancel</Button>
-            <Button type="button" disabled={consentAttestationSaving || !consentAttestationConfirmed} onClick={() => void attestImportedConsent()} className="bg-indigo-600 hover:bg-indigo-700">
-              {consentAttestationSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{consentAttestationSaving ? "Recording…" : "Record consent"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <ManualBulkProspectIntros
         open={manualBulkIntroOpen}
         selectedIds={selectedIds}
@@ -2094,7 +2044,7 @@ export function ProspectExplorer() {
             <Field label="Phone"><Input value={newProspect.contact_phone} onChange={(e) => setNewProspect({ ...newProspect, contact_phone: e.target.value })} placeholder="+60..." className="rounded-xl" /></Field>
             <Field label="WhatsApp"><Input value={newProspect.contact_whatsapp} onChange={(e) => setNewProspect({ ...newProspect, contact_whatsapp: e.target.value })} placeholder="6012..." className="rounded-xl" /></Field>
             <Field label="Social URL"><Input value={newProspect.social_url} onChange={(e) => setNewProspect({ ...newProspect, social_url: e.target.value })} placeholder="Instagram/Facebook/LinkedIn URL" className="rounded-xl" /></Field>
-            <Field label="Website Status"><Select value={newProspect.website_status} onValueChange={(value) => setNewProspect({ ...newProspect, website_status: value })}><SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{WEBSITE_STATUSES.map((status) => <SelectItem key={status} value={status}>{toTitle(status)}</SelectItem>)}</SelectContent></Select></Field>
+            <Field label="Website Status"><div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600">Unknown until documented research is saved</div></Field>
             <Field label="Opportunity"><Select value={newProspect.opportunity_level} onValueChange={(value) => setNewProspect({ ...newProspect, opportunity_level: value })}><SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OPPORTUNITY_LEVELS.map((level) => <SelectItem key={level} value={level}>{toTitle(level)}</SelectItem>)}</SelectContent></Select></Field>
             <Field label="Next Follow-Up"><Input type="date" value={newProspect.next_follow_up_at} onChange={(e) => setNewProspect({ ...newProspect, next_follow_up_at: e.target.value })} className="rounded-xl" /></Field>
             <Field label="Source"><Input value={newProspect.source} onChange={(e) => setNewProspect({ ...newProspect, source: e.target.value })} placeholder="manual, OSM, referral..." className="rounded-xl" /></Field>
@@ -2413,7 +2363,7 @@ export function ProspectExplorer() {
                   {!outreachReplyToMessageId && (
                     <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
                       <input type="checkbox" checked={recipientPermissionConfirmed} onChange={(event) => setRecipientPermissionConfirmed(event.target.checked)} className="mt-1" />
-                      I confirm this recipient has opted in to receive this email. No additional CRM consent document is required, and this does not change the recipient\u0027s consent records.
+                      I confirm the documented permission on this prospect is genuine, applies to this exact email address and covers this message. A CSV uploader declaration or this checkbox alone is not recipient consent; missing jurisdiction, recipient type, lawful basis, or consent evidence blocks sending.
                     </label>
                   )}
                 </section>

@@ -4,7 +4,9 @@ import { MAX_MANUAL_BULK_FOLLOW_UP, prepareManualBulkFollowUp, safeProspectFollo
 
 const INTRO = { direction: "outbound", channel: "email", status: "sent", sent_at: "2026-11-01T09:00:00Z" };
 const OUTBOUND = { direction: "outbound", channel: "email", status: "sent" };
-const CONTACT = { id: "p1", name: "Carpentry Service", contact_email: "info@example.com", website_status: "no_website" };
+const CONTACT = { id: "p1", name: "Carpentry Service", contact_email: "info@example.com", website_status: "no_website",
+  website_evidence_source_url: "https://directory.example/company", website_verified_at: "2026-10-30T09:00:00Z",
+  website_verification_method: "Manual research", website_finding: "No independent website found", website_verified_by: "admin", website_evidence_confidence: "high" };
 
 test("manual bulk review only offers confirmed, due follow-up stages", () => {
   assert.equal(MAX_MANUAL_BULK_FOLLOW_UP, 25);

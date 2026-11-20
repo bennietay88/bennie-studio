@@ -1,10 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { classifyReply, getOutreachObservation, saveOutreachObservation } from "../src/lib/salesAutomation.js";
+import { classifyReply, getOutreachObservation, salesEmailPermissionBlockReason, saveOutreachObservation } from "../src/lib/salesAutomation.js";
 import { PORTFOLIO_URL, renderProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
 import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "../src/lib/prospectOutreachTemplates.js";
 import { chooseProspectFollowUp, FOLLOW_UP_TEMPLATE_STAGES } from "../src/lib/prospectFollowUpComposer.js";
+import { segmentIntroEvidenceError } from "../src/lib/outreachSegmentation.js";
+import { prepareExperimentCopy } from "../src/lib/outreachExperiments.js";
 
 type Db = Pick<SupabaseClient, "from">;
 type Row = Record<string, any>;
@@ -25,38 +27,6 @@ export function normalizeSalesEmail(value: unknown): string {
   const text = String(value || "").trim();
   const email = (text.match(/^[^<>]*<([^<>]+)>$/)?.[1] || text).trim().toLowerCase();
   return z.string().email().max(254).safeParse(email).success ? email : "";
-}
-
-export async function attestImportedProspectConsent(db: Db, now: string) {
-  const matches: Row[] = [];
-  for (let offset = 0; ; offset += 1000) {
-    if (offset >= 20000) throw new Error("CONSENT_IMPORT_BATCH_TOO_LARGE");
-    const { data } = checked(await db.from("prospects")
-      .select("id,name,contact_email,created_at,marketing_consent,consent_email,consent_timestamp,consent_source")
-      .ilike("notes", "%Manual outreach authorization declared by CSV uploader%")
-      .order("created_at", { ascending: true }).range(offset, offset + 999));
-    matches.push(...(data || []));
-    if ((data || []).length < 1000) break;
-  }
-  const candidates = matches.filter((row) => normalizeSalesEmail(row.contact_email));
-  const updated: Row[] = [];
-  for (const prospect of candidates) {
-    const email = normalizeSalesEmail(prospect.contact_email);
-    if (prospect.marketing_consent === true && normalizeSalesEmail(prospect.consent_email) === email
-      && prospect.consent_timestamp && String(prospect.consent_source || "").trim().length >= 20) continue;
-    const importedAt = new Date(prospect.created_at || now);
-    const consentTimestamp = Number.isFinite(importedAt.getTime()) ? importedAt.toISOString() : now;
-    const consentSource = `Admin attestation recorded ${now}: recipient opted in; Bennie Studio holds the consent record. Opt-in date recorded as the prospect upload date per administrator instruction.`;
-    const { data } = checked(await db.from("prospects").update({
-      marketing_consent: true,
-      consent_email: email,
-      consent_timestamp: consentTimestamp,
-      consent_source: consentSource,
-      updated_at: now,
-    }).eq("id", prospect.id).eq("contact_email", prospect.contact_email).select("*").single());
-    updated.push(data);
-  }
-  return { matched: candidates.length, updated };
 }
 
 function safeAuditReviewUrl(value: unknown): string {
@@ -98,9 +68,12 @@ export const BENNIE_STUDIO_PORTFOLIO_URL = PORTFOLIO_URL;
 function prospectEmailIdentity(contact: Row) {
   const company = String(contact.name || contact.business_name || "your business").trim();
   const firstName = String(contact.contact_first_name || contact.contact_name || "").trim().split(/\s+/)[0] || company + " team";
-  const hasExistingWebsite = Boolean(String(contact.domain || "").trim())
-    && !["no_website", "no website", "none", "not_found"].includes(String(contact.website_status || "").toLowerCase().trim());
-  return { company, firstName, hasExistingWebsite };
+  const verifiedWebsite = Boolean(contact.website_evidence_source_url && contact.website_verified_at
+    && contact.website_verification_method && contact.website_finding && contact.website_verified_by);
+  const status = String(contact.website_status || "").toLowerCase().trim();
+  const websiteStatus: boolean | "unknown" = !verifiedWebsite ? "unknown"
+    : status === "no_website" ? false : ["weak", "average", "strong"].includes(status) ? true : "unknown";
+  return { company, firstName, websiteStatus };
 }
 
 export type ProspectReviewAsset = { kind: "design" | "audit"; url: string };
@@ -110,13 +83,13 @@ export function renderProspectFollowUpStage(
   contact: Row, stage: 1 | 2 | 3, asset: ProspectReviewAsset | null = null,
   overrides: ProspectEmailOverrides = {},
 ) {
-  const { company, firstName, hasExistingWebsite } = prospectEmailIdentity(contact);
+  const { company, firstName, websiteStatus } = prospectEmailIdentity(contact);
   const specificObservation = getOutreachObservation(contact.notes).replace(/\s+/g, " ").trim().slice(0, 240);
   let id: ProspectEmailTemplateKey;
   if (stage === 1) id = asset?.kind === "design" ? "day3_design" : asset?.kind === "audit" && specificObservation ? "day3_audit"
-    : hasExistingWebsite ? "day3_portfolio_existing" : "day3_portfolio_no_site";
-  else if (stage === 2) id = hasExistingWebsite ? "day8_existing" : "day8_no_site";
-  else id = hasExistingWebsite ? "day15_existing" : "day15_no_site";
+    : websiteStatus === "unknown" ? "day3_neutral" : websiteStatus ? "day3_portfolio_existing" : "day3_portfolio_no_site";
+  else if (stage === 2) id = websiteStatus === "unknown" ? "day8_neutral" : websiteStatus ? "day8_existing" : "day8_no_site";
+  else id = websiteStatus === "unknown" ? "day15_neutral" : websiteStatus ? "day15_existing" : "day15_no_site";
   return renderProspectEmailTemplate(id, {
     first_name: firstName, business_name: company,
     asset_url: asset?.url, portfolio_url: PORTFOLIO_URL, specific_observation: specificObservation,
@@ -212,7 +185,7 @@ export function nextSalesStepAt(message: Row, siblings: Row[], steps: Row[]): nu
 
 export async function runSalesDelivery(input: {
   db: Db;
-  send: (message: Row) => Promise<{ id: string }>;
+  send: (message: Row) => Promise<{ id: string; provider?: string; mailbox?: string; fromAddress?: string; replyToAddress?: string; templateVersion?: string; campaignId?: string }>;
   limit?: number;
   now?: Date;
 }) {
@@ -232,7 +205,7 @@ export async function runSalesDelivery(input: {
   const result = { processed: candidates.length, sent: 0, suppressed: 0, failed: 0, deliveryBlocked: 0, deferred: 0 };
   for (const candidate of candidates) {
     // UPDATE + returned row is the claim. An unsuccessful claim must never send.
-    const { data: message } = checked(await db.from("sales_messages").update({ status: "sending", updated_at: now })
+    const { data: message } = checked(await db.from("sales_messages").update({ status: "sending", attempted_at: now, updated_at: now })
       .eq("id", candidate.id).in("status", ["approved", "queued"]).select("*").maybeSingle());
     if (!message) continue;
     const release = async (updates: Row) => checked(await db.from("sales_messages")
@@ -261,6 +234,12 @@ export async function runSalesDelivery(input: {
           ["won", "lost", "closed", "converted", "paid", "unsubscribed", "replied", "call_booked"].includes(String(state || "").toLowerCase()))) {
           await release({ status: "cancelled", error: "Contact is closed or unavailable" });
           result.deferred++;
+          continue;
+        }
+        if (message.channel === "email" && !message.reply_to_message_id
+          && salesEmailPermissionBlockReason(contact, new Date(now))) {
+          await release({ status: "draft", error: "Recipient permission evidence is incomplete; manual legal review is required before contact." });
+          result.deliveryBlocked++;
           continue;
         }
         if ((message.provider_payload?.directProspectFollowUp || message.provider_payload?.directAuditFollowUp)
@@ -333,6 +312,14 @@ export async function runSalesDelivery(input: {
         const { data: contact } = checked(await db.from(table).select("*")
           .eq("id", enrollment.lead_id || enrollment.prospect_id).maybeSingle());
         const { data: siblings } = checked(await db.from("sales_messages").select("*").eq("enrollment_id", enrollment.id));
+        const sequence = enrollment.outreach_sequences || {};
+        const isColdSales = sequence.audience_type === "cold" || sequence.name === "Permissioned website review";
+        if (isColdSales && message.channel === "email" && !message.reply_to_message_id
+          && contact && salesEmailPermissionBlockReason(contact, new Date(now))) {
+          await release({ status: "draft", error: "Recipient permission evidence is incomplete; manual legal review is required before contact." });
+          result.deliveryBlocked++;
+          continue;
+        }
         const replied = (siblings || []).some((row) => row.direction === "inbound" || row.status === "replied");
         if (!contact || replied || [contact.status, contact.outreach_status].some((status) => STOPPED_CONTACT.includes(String(status).toLowerCase()))) {
           await stopSalesEnrollment(db, enrollment.id, replied ? "Reply received" : "Contact no longer needs automated outreach", now);
@@ -378,20 +365,28 @@ export async function runSalesDelivery(input: {
           }
         }
       }
-      let receipt: { id: string };
+      let receipt: { id: string; provider?: string; mailbox?: string; fromAddress?: string; replyToAddress?: string; templateVersion?: string; campaignId?: string };
       try {
         deliveryAttempted = true;
         receipt = await send({ ...message, recipient: email });
         if (!receipt.id) throw new Error("MISSING_DELIVERY_RECEIPT");
       } catch (error: any) {
         const blocked = error?.message === "RESEND_CONFIG_ERROR";
-        await release({ status: blocked ? candidate.status : "failed", error: blocked ? "Email delivery is not configured yet" : "Delivery failed or is uncertain. Check provider delivery before retrying." });
+        await release({ status: blocked ? candidate.status : "failed", delivery_state: blocked ? "unknown" : "uncertain",
+          delivery_uncertainty_reason: blocked ? null : "The provider outcome could not be confirmed. Check provider logs before any retry.",
+          error: blocked ? "Email delivery is not configured yet" : "Delivery failed or is uncertain. Check provider delivery before retrying." });
         blocked ? result.deliveryBlocked++ : result.failed++;
         continue;
       }
       // A provider success followed by a database failure stays 'sending'. Never
       // automatically retry an uncertain send beyond the provider's 24h window.
-      await release({ status: "sent", sent_at: now, provider_message_id: receipt.id, error: null });
+      await release({ status: "sent", sent_at: now, provider_message_id: receipt.id,
+        provider_name: receipt.provider || "resend", provider_mailbox: receipt.mailbox || null,
+        from_address: receipt.fromAddress || null, reply_to_address: receipt.replyToAddress || null,
+        provider_accepted_at: now, delivery_state: "delivery_unconfirmed",
+        delivery_uncertainty_reason: "Provider accepted the message; no receiving-server confirmation has been recorded.",
+        template_version: receipt.templateVersion || message.template_version || null,
+        campaign_id: receipt.campaignId || message.campaign_id || null, error: null });
       result.sent++;
       if (message.prospect_id && message.provider_payload?.directProspectFollowUp) {
         const stage = Number(message.provider_payload.directStage);
@@ -483,104 +478,138 @@ export function deliveryStatus(current: string, incoming: string): string {
 }
 
 export async function recordSalesDeliveryEvent(db: Db, event: Row, now: string) {
-  const statuses: Record<string, string> = { "email.sent": "sent", "email.delivered": "delivered", "email.opened": "opened", "email.clicked": "clicked", "email.bounced": "bounced", "email.complained": "complained", "email.suppressed": "suppressed", "email.failed": "failed" };
-  const status = statuses[event.type];
-  if (!status || !event.data?.email_id) return;
+  const states: Record<string, string> = { "email.sent": "provider_accepted", "email.delivered": "delivery_confirmed", "email.opened": "engagement_only", "email.clicked": "engagement_only", "email.bounced": "bounced", "email.complained": "complained", "email.suppressed": "rejected", "email.failed": "failed" };
+  const state = states[event.type];
+  if (!state || !event.data?.email_id) return;
   const { data: message } = checked(await db.from("sales_messages").select("*")
     .eq("provider_message_id", event.data.email_id).eq("direction", "outbound").maybeSingle());
-  if (!message) return;
-  // Do not overwrite provider_payload: step, delay, approval and booking metadata live there.
-  const next = deliveryStatus(message.status, status);
-  if (next !== message.status) {
-    const { data: updated } = checked(await db.from("sales_messages").update({ status: next, updated_at: now })
-      .eq("id", message.id).eq("status", message.status).select("id").maybeSingle());
-    if (!updated) throw new Error("DELIVERY_EVENT_CONFLICT"); // provider can retry
-  }
-  if (["bounced", "complained", "suppressed"].includes(status)) {
+  const provider = String(event.type || "").startsWith("email.") ? "resend" : "unknown";
+  const providerEventId = String(event.id || event.event_id || "");
+  const eventKey = providerEventId || `${event.type}:${event.data.email_id}:${event.created_at || now}:${JSON.stringify(event.data).slice(0, 500)}`;
+  checked(await db.from("sales_email_provider_events").upsert({
+    provider, event_key: eventKey, provider_event_id: providerEventId || null,
+    event_type: event.type, provider_message_id: event.data.email_id,
+    message_id: message?.id || null, prospect_id: message?.prospect_id || null,
+    lead_id: message?.lead_id || null, occurred_at: event.created_at || now,
+    match_method: message ? "provider_message_id" : "unmatched",
+    event_payload: event.data || {},
+  }, { onConflict: "provider,event_key", ignoreDuplicates: true }));
+  if (!message || state === "engagement_only") return;
+  // Opens and clicks are engagement signals, never proof of recipient-server acceptance.
+  // Keep engagement status separate from provider delivery evidence.
+  const rank: Record<string, number> = { unknown: 0, provider_accepted: 1, delivery_unconfirmed: 1, delivery_confirmed: 2, bounced: 3, complained: 4, rejected: 3, failed: 3, uncertain: 1 };
+  const current = String(message.delivery_state || "unknown");
+  const terminal = ["bounced", "complained", "rejected", "failed"];
+  const nextState = terminal.includes(current) ? current
+    : terminal.includes(state) ? state : (rank[state] || 0) >= (rank[current] || 0) ? state : current;
+  const eventAt = event.created_at || now;
+  const fields: Row = { delivery_state: nextState, last_provider_event: event.type, updated_at: now };
+  if (state === "provider_accepted") fields.provider_accepted_at = message.provider_accepted_at || eventAt;
+  if (state === "delivery_confirmed") fields.delivery_confirmed_at = message.delivery_confirmed_at || eventAt;
+  if (state === "bounced") fields.bounced_at = eventAt;
+  if (state === "complained") fields.complained_at = eventAt;
+  if (state === "delivery_confirmed") fields.delivery_uncertainty_reason = null;
+  else if (state === "provider_accepted") fields.delivery_uncertainty_reason = "Provider accepted the message; downstream delivery is not confirmed.";
+  checked(await db.from("sales_messages").update(fields).eq("id", message.id));
+  if (["bounced", "complained", "rejected"].includes(state)) {
     // Preserve the provider outcome for support diagnostics without exposing it in an email.
     const reason = String(event.data?.bounce?.message || event.data?.bounce?.reason || event.data?.reason || "").slice(0, 500);
     if (reason) checked(await db.from("sales_messages").update({ error: reason, updated_at: now }).eq("id", message.id));
-    await suppressSalesRecipient(db, message.recipient, status === "suppressed" ? "bounced" : status, "resend_webhook", now);
+    await suppressSalesRecipient(db, message.recipient, state === "complained" ? "complained" : "bounced", "resend_webhook", now);
   }
 }
 
 export async function recordSalesReply(db: Db, event: Row, getBody: () => Promise<string>, now: string) {
   const sender = normalizeSalesEmail(event.data?.from);
   if (!sender || !event.data?.email_id) throw new Error("INVALID_REPLY_EVENT");
-  // Prefer the explicit outbound provider Message-ID when available.
-  // Mailbox heuristics are a fallback, never a substitute for threading evidence.
-  const referenceId = String(event.data?.in_reply_to || event.data?.inReplyTo || event.data?.headers?.["in-reply-to"] || "").replace(/[<>]/g, "").trim();
+  // Match only with provider thread identifiers. Sender recency is not identity evidence.
+  const rawReferences = [event.data?.in_reply_to, event.data?.inReplyTo, event.data?.headers?.["in-reply-to"],
+    ...(Array.isArray(event.data?.references) ? event.data.references : [event.data?.references])];
+  const references = [...new Set(rawReferences.flatMap((value: unknown) => String(value || "").match(/[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+|[^\s<>]+/g) || [])
+    .map((value: string) => value.replace(/[<>]/g, "").trim()).filter(Boolean))];
   let prior: Row | null = null;
-  if (referenceId) {
+  for (const referenceId of references) {
     const { data } = checked(await db.from("sales_messages").select("*")
       .eq("provider_message_id", referenceId).eq("direction", "outbound").maybeSingle());
-    prior = data;
+    if (data && normalizeSalesEmail(data.recipient) === sender) { prior = data; break; }
   }
-  if (prior && normalizeSalesEmail(prior.recipient) !== sender) prior = null;
-  if (!prior) {
-    const { data } = checked(await db.from("sales_messages").select("*")
-      .ilike("recipient", exactEmailPattern(sender)).eq("direction", "outbound").not("sent_at", "is", null)
-      .order("sent_at", { ascending: false }).limit(1).maybeSingle());
-    prior = data;
-  }
-  if (!prior) return; // Unrelated inbound email is not a sales lead.
-  const { data: related } = checked(await db.from("sales_messages").select("enrollment_id")
-    .ilike("recipient", exactEmailPattern(sender)).not("enrollment_id", "is", null));
-  for (const id of new Set((related || []).map((row) => row.enrollment_id))) {
-    await stopSalesEnrollment(db, id, "Reply received", now);
-  }
-  if (prior.prospect_id) {
-    checked(await db.from("sales_messages").update({ status: "cancelled", updated_at: now })
-      .eq("prospect_id", prior.prospect_id).contains("provider_payload", { followUpForMessageId: prior.id })
-      .in("status", PENDING));
-    checked(await db.from("sales_messages").update({ status: "cancelled", updated_at: now })
-      .eq("prospect_id", prior.prospect_id).contains("provider_payload", { directProspectFollowUp: true })
-      .in("status", PENDING));
-    checked(await db.from("sales_tasks").update({ status: "dismissed", updated_at: now })
-      .eq("prospect_id", prior.prospect_id).eq("status", "open").eq("task_type", "follow_up"));
-  }
-  // Stop first even if the restricted sending key cannot retrieve reply content.
-  const key = `resend:inbound:${event.data.email_id}`;
+  const key = `${String(event.provider || "resend")}:inbound:${event.data.email_id}`;
   const { data: existing } = checked(await db.from("sales_messages").select("id,classification,body_text")
     .eq("idempotency_key", key).maybeSingle());
-  // Preserve the inbound reply and create a human-review task even when
-  // Resend receiving content is temporarily unavailable. Otherwise repeated
-  // 503 callbacks can disable the provider webhook and hide all new replies.
   let text = existing?.body_text || "";
   if (!text) {
-    try {
-      text = (await getBody()).slice(0, 50_000);
-    } catch {
-      text = "[Reply received but body retrieval failed. Review this message in the Resend inbox before responding.]";
+    try { text = (await getBody()).slice(0, 50_000); }
+    catch { text = "[Reply received but body retrieval failed. Review this message in the provider inbox before responding.]"; }
+  }
+  const classification = existing?.classification || classifyReply(`${event.data.subject || ""}\n${text}`);
+  const automatic = ["automatic_reply", "delivery_notification"].includes(classification);
+  const attribution = prior ? (references.includes(String(prior.provider_message_id)) ? "provider_thread_reference" : "unmatched") : "unmatched";
+  checked(await db.from("sales_messages").upsert({
+    id: salesRecordId(key), idempotency_key: key, enrollment_id: prior?.enrollment_id || null,
+    prospect_id: prior?.prospect_id || null, lead_id: prior?.lead_id || null,
+    direction: "inbound", channel: "email", recipient: sender,
+    subject: String(event.data.subject || "Inbound email").slice(0, 500), body_text: text,
+    status: "replied", sent_at: event.created_at || now, provider_message_id: event.data.email_id,
+    reply_to_message_id: prior?.id || null, classification,
+    provider_payload: { attribution, references, provider: event.provider || "resend" },
+  }, { onConflict: "idempotency_key", ignoreDuplicates: true }));
+
+  // A clear opt-out is actionable even without thread correlation. Never wait
+  // for an operator to identify which campaign the sender originally received.
+  if (classification === "unsubscribe") {
+    await suppressSalesRecipient(db, sender, "opt_out", "reply_classification", now);
+  }
+
+  if (!prior) {
+    const { data: senderMessages } = checked(await db.from("sales_messages").select("enrollment_id")
+      .ilike("recipient", exactEmailPattern(sender)).not("enrollment_id", "is", null));
+    for (const id of new Set((senderMessages || []).map((row) => row.enrollment_id))) {
+      await stopSalesEnrollment(db, id, automatic ? "Unmatched automated reply requires review" : "Unmatched human reply requires reconciliation", now);
+    }
+    // The inbound address is known even though its thread is not. Cancel pending
+    // sends to that exact address to avoid sending over an unresolved response.
+    checked(await db.from("sales_messages").update({ status: "cancelled", error: "Inbound message requires manual thread reconciliation.", updated_at: now })
+      .ilike("recipient", exactEmailPattern(sender)).eq("direction", "outbound").in("status", PENDING));
+    checked(await db.from("sales_tasks").upsert({
+      id: salesRecordId(`reply-reconcile:${event.data.email_id}`),
+      title: "Reconcile unmatched inbound email", task_type: "reply_reconciliation", priority: "high", due_at: now,
+      metadata: { messageId: event.data.email_id, sender, classification, provider: event.provider || "resend" },
+    }, { onConflict: "id", ignoreDuplicates: true }));
+    return { matched: false, classification };
+  }
+
+  // Any linked inbound message pauses that contact's pending outreach. Automated
+  // provider notifications are retained for review but never count as positive replies.
+  if (prior.enrollment_id) await stopSalesEnrollment(db, prior.enrollment_id, automatic ? "Automated response received" : "Reply received", now);
+  if (!automatic) {
+    const { data: related } = checked(await db.from("sales_messages").select("enrollment_id")
+      .ilike("recipient", exactEmailPattern(sender)).not("enrollment_id", "is", null));
+    for (const id of new Set((related || []).map((row) => row.enrollment_id))) await stopSalesEnrollment(db, id, "Reply received", now);
+  }
+  if (prior.prospect_id) {
+    checked(await db.from("sales_messages").update({ status: "cancelled", updated_at: now })
+      .eq("prospect_id", prior.prospect_id).contains("provider_payload", { followUpForMessageId: prior.id }).in("status", PENDING));
+    checked(await db.from("sales_messages").update({ status: "cancelled", updated_at: now })
+      .eq("prospect_id", prior.prospect_id).contains("provider_payload", { directProspectFollowUp: true }).in("status", PENDING));
+    checked(await db.from("sales_tasks").update({ status: "dismissed", updated_at: now })
+      .eq("prospect_id", prior.prospect_id).eq("status", "open").eq("task_type", "follow_up"));
+    if (!automatic) {
+      const { data: prospect } = checked(await db.from("prospects").select("id,outreach_exhausted_at").eq("id", prior.prospect_id).maybeSingle());
+      checked(await db.from("prospects").update({ outreach_status: "replied", updated_at: now,
+        ...(prospect?.outreach_exhausted_at ? { status: "qualified", outreach_exhausted_at: null } : {}) })
+        .eq("id", prior.prospect_id).in("outreach_status", ["not_started", "queued", "contacted", ...(prospect?.outreach_exhausted_at ? ["lost"] : [])]));
     }
   }
-  const classification = existing?.classification || classifyReply(text);
-  checked(await db.from("sales_messages").upsert({
-    id: salesRecordId(key), idempotency_key: key, enrollment_id: prior.enrollment_id,
-    prospect_id: prior.prospect_id, lead_id: prior.lead_id, direction: "inbound", channel: "email", recipient: sender,
-    subject: String(event.data.subject || "Reply").slice(0, 500), body_text: text, status: "replied",
-    sent_at: event.created_at || now, provider_message_id: event.data.email_id, reply_to_message_id: prior.id, classification,
-    provider_payload: { attribution: referenceId && prior.provider_message_id === referenceId ? "message_id" : "sender_latest_fallback" },
-  }, { onConflict: "idempotency_key", ignoreDuplicates: true }));
-  if (prior.prospect_id) {
-    const { data: prospect } = checked(await db.from("prospects").select("id,outreach_exhausted_at")
-      .eq("id", prior.prospect_id).maybeSingle());
-    checked(await db.from("prospects").update({
-      outreach_status: "replied", updated_at: now,
-      ...(prospect?.outreach_exhausted_at ? { status: "qualified", outreach_exhausted_at: null } : {}),
-    }).eq("id", prior.prospect_id)
-      .in("outreach_status", ["not_started", "queued", "contacted", ...(prospect?.outreach_exhausted_at ? ["lost"] : [])]));
-  }
-  if (["unsubscribe", "not_interested"].includes(classification)) {
-    await suppressSalesRecipient(db, sender, "opt_out", "reply_classification", now);
-    return; // Do not ask the operator to sell again after a refusal.
+  if (classification === "unsubscribe") {
+    return { matched: true, classification };
   }
   checked(await db.from("sales_tasks").upsert({
     id: salesRecordId(`reply-task:${event.data.email_id}`), lead_id: prior.lead_id, prospect_id: prior.prospect_id,
-    title: classification === "not_now" ? "Record the prospect's preferred follow-up timing" : "Respond personally to the prospect's reply",
-    task_type: "reply", priority: classification === "not_now" ? "medium" : "high", due_at: now,
+    title: automatic ? "Review automated reply" : classification === "not_now" ? "Record the prospect's preferred follow-up timing" : "Respond personally to the prospect's reply",
+    task_type: automatic ? "reply_review" : "reply", priority: automatic ? "medium" : classification === "not_now" ? "medium" : "high", due_at: now,
     metadata: { classification, messageId: event.data.email_id },
   }, { onConflict: "id", ignoreDuplicates: true }));
+  return { matched: true, classification };
 }
 
 export async function saveManualOutreach(db: Db, input: {
@@ -640,6 +669,7 @@ export async function sendDirectProspectOutreach(
     bodyText: string;
     observation?: string;
     templateId?: string;
+    experimentId?: string | null;
     reviewUrl?: string | null;
     replyToMessageId?: string | null;
     recipientPermissionConfirmed?: boolean;
@@ -653,11 +683,13 @@ export async function sendDirectProspectOutreach(
     await db.from("prospects").select("*").eq("id", input.prospectId).maybeSingle(),
   );
   if (!prospect) throw new Error("CONTACT_NOT_FOUND");
+  const segmentBlock = segmentIntroEvidenceError(input.templateId, prospect, input.observation, input.bodyText, new Date(now));
+  if (segmentBlock) throw new Error(segmentBlock);
 
   const reviewUrl = safeAuditReviewUrl(input.reviewUrl);
   const followUpStage = FOLLOW_UP_TEMPLATE_STAGES[String(input.templateId || "")] || null;
   const bulkIntro = input.templateId === "bulk-introduction";
-  if (!input.replyToMessageId && input.templateId !== "general-introduction" && !bulkIntro && !followUpStage && String(input.observation || "").trim().length < 10 && !reviewUrl) {
+  if (!input.replyToMessageId && !input.experimentId && input.templateId !== "general-introduction" && !bulkIntro && !followUpStage && String(input.observation || "").trim().length < 10 && !reviewUrl) {
     throw new Error("OUTREACH_OBSERVATION_REQUIRED");
   }
   if (/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(`${input.subject || ""}\n${input.bodyText}`)) {
@@ -684,6 +716,12 @@ export async function sendDirectProspectOutreach(
     if (!email) throw new Error("CONTACT_CHANNEL_MISSING");
     if (await isSalesSuppressed(db, email)) {
       throw new Error("CONTACT_SUPPRESSED");
+    }
+    if (!input.replyToMessageId && salesEmailPermissionBlockReason(prospect, new Date(now))) {
+      throw new Error("CONTACT_PERMISSION_NOT_VERIFIED");
+    }
+    if (!input.replyToMessageId && input.recipientPermissionConfirmed !== true) {
+      throw new Error("CONTACT_PERMISSION_CONFIRMATION_REQUIRED");
     }
   } else {
     if (!/^\d{7,15}$/.test(phone)) throw new Error("CONTACT_CHANNEL_MISSING");
@@ -712,6 +750,26 @@ export async function sendDirectProspectOutreach(
       .eq("prospect_id", prospect.id).in("status", ["pending", "active", "paused"])
       .limit(1).maybeSingle());
     if (enrollment) throw new Error("OUTREACH_ACTIVE_SEQUENCE");
+  }
+
+  // Experiment assignment is resolved server-side; callers cannot choose a variant or forge attribution.
+  let experimentIdentity: {id:string;variant:"A"|"B"} | null = null;
+  if (input.experimentId) {
+    if (input.channel !== "email" || input.replyToMessageId || followUpStage)
+      throw new Error("OUTREACH_EXPERIMENT_FIRST_EMAIL_ONLY");
+    const { data: experiment } = checked(await db.from("outreach_experiments")
+      .select("id,name,status,segment,variant_a,variant_b").eq("id", input.experimentId).maybeSingle());
+    const { data: assignment } = checked(await db.from("outreach_experiment_assignments")
+      .select("variant").eq("experiment_id", input.experimentId).eq("prospect_id", prospect.id).maybeSingle());
+    if (!experiment || !assignment || !["A","B"].includes(String(assignment.variant)))
+      throw new Error("OUTREACH_EXPERIMENT_ASSIGNMENT_MISSING");
+    const variant = assignment.variant as "A"|"B";
+    const copy = prepareExperimentCopy(experiment, variant, prospect);
+    if (String(input.subject || "").trim() !== copy.subject ||
+        String(input.bodyText || "").trim() !== copy.body ||
+        String(input.observation || "").trim() !== copy.observation)
+      throw new Error("OUTREACH_EXPERIMENT_COPY_CHANGED");
+    experimentIdentity = { id: experiment.id, variant };
   }
 
   const recipient = input.channel === "email" ? email : phone;
@@ -824,8 +882,8 @@ export async function sendDirectProspectOutreach(
     replyToMessageId = parent.id;
   }
 
-  // The studio operator is responsible for prospect permission; suppression,
-  // opt-out, reply-thread and cadence checks remain enforced here.
+  // Explicit operator confirmation supplements independently stored recipient
+  // permission evidence; it cannot replace it.
 
   const messageId = prior?.id || salesRecordId(key);
   const messagePayload = {
@@ -838,8 +896,12 @@ export async function sendDirectProspectOutreach(
         ? String(input.subject || `A quick website idea for ${prospect.name}`).slice(0, 500)
         : null,
     body_text: input.bodyText,
+    outreach_experiment_id: experimentIdentity?.id || null,
+    outreach_experiment_variant: experimentIdentity?.variant || null,
+    campaign_id: experimentIdentity ? "experiment:" + experimentIdentity.id : null,
     reply_to_message_id: replyToMessageId,
     status: "sending",
+    attempted_at: now,
     scheduled_at: now,
     error: null,
     updated_at: now,
@@ -851,6 +913,8 @@ export async function sendDirectProspectOutreach(
       permissionConfirmedAt: input.recipientPermissionConfirmed === true ? now : null,
       observation: input.observation || null,
       templateId: input.templateId || null,
+      experimentId: experimentIdentity?.id || null,
+      experimentVariant: experimentIdentity?.variant || null,
       ...(followUpStage ? { directStage: followUpStage, followUpStage: "FOLLOW_UP_" + followUpStage + "_OF_3" } : {}),
       reviewUrl: reviewUrl || null,
       replyToMessageId,
@@ -883,7 +947,7 @@ export async function sendDirectProspectOutreach(
     message = data;
   }
 
-  let receipt: { id: string };
+  let receipt: { id: string; provider?: string; mailbox?: string; fromAddress?: string; replyToAddress?: string; templateVersion?: string; campaignId?: string };
   try {
     receipt = await input.deliver(message);
     if (!receipt?.id) throw new Error("MISSING_DELIVERY_RECEIPT");
@@ -893,6 +957,8 @@ export async function sendDirectProspectOutreach(
         .from("sales_messages")
         .update({
           status: "failed",
+          delivery_state: "uncertain",
+          delivery_uncertainty_reason: "The provider outcome could not be confirmed. Check provider logs before any retry.",
           error: String(error?.message || "Delivery failed").slice(0, 500),
           updated_at: now,
         })
@@ -909,6 +975,16 @@ export async function sendDirectProspectOutreach(
         status: "sent",
         sent_at: now,
         provider_message_id: receipt.id,
+        provider_name: receipt.provider || "resend",
+        provider_mailbox: receipt.mailbox || null,
+        from_address: receipt.fromAddress || null,
+        reply_to_address: receipt.replyToAddress || null,
+        attempted_at: now,
+        provider_accepted_at: now,
+        delivery_state: "delivery_unconfirmed",
+        delivery_uncertainty_reason: "Provider accepted the message; no receiving-server confirmation has been recorded.",
+        template_version: receipt.templateVersion || createHash("sha256").update(`${message.subject || ""}\n${message.body_text || ""}`).digest("hex"),
+        campaign_id: receipt.campaignId || message.campaign_id || null,
         error: null,
         updated_at: now,
       })

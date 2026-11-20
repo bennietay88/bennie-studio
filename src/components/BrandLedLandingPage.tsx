@@ -20,6 +20,7 @@ import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing"
 import { ConversionHomepage } from "./ConversionHomepage";
 import { usePublishedPlatformCms } from "../lib/platformSiteCms";
 import { PlatformCmsSections } from "./PlatformCmsSections";
+import { getPublicSiteConfig } from "../lib/publicSiteConfigCache";
 
 const CONSENT_KEY = "bt_sales_cookie_consent";
 const CONSENT_VERSION = "uk-sales-consent-v1";
@@ -84,17 +85,11 @@ export default function BrandLedLandingPage() {
   }, [platformSettings?.publicProofTestimonialIds]);
 
   React.useEffect(() => {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 5000);
-    fetch("/api/public/site-config", { signal: controller.signal })
-      .then((response) => response.ok ? response.json() : null)
-      .then((payload) => setPlatformSettings(payload?.platform || null))
-      .catch(() => null)
-      .finally(() => window.clearTimeout(timeout));
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeout);
-    };
+    let cancelled = false;
+    getPublicSiteConfig()
+      .then((payload) => { if (!cancelled) setPlatformSettings(payload?.platform || null); })
+      .catch(() => null);
+    return () => { cancelled = true; };
   }, []);
 
   const saveConsent = (analytics: boolean, marketing: boolean) => {
@@ -177,21 +172,21 @@ export default function BrandLedLandingPage() {
         <PlatformCmsSections path="/" />
 
         {verifiedProof.length ? (
-          <section className="brand-on-dark bg-[#0b1020]">
+          <section className="border-y border-[#E2E8F0] bg-[#F8FAFC]">
             <div className="brand-shell brand-section">
               <div className="grid gap-10 lg:grid-cols-12">
                 <div className="lg:col-span-4">
-                  <p className="brand-kicker !text-[#b9b1ff]">Verified customer proof</p>
-                  <h2 className="mt-4 !text-white">Real proof, published with approval.</h2>
-                  <button onClick={() => go("/case-studies", "Homepage verified proof")} className="mt-7 inline-flex items-center font-semibold text-white">See customer proof <ArrowRight className="ml-2 h-4 w-4" /></button>
+                  <p className="brand-kicker !text-[#1D4ED8]">Verified customer proof</p>
+                  <h2 className="mt-4 !text-[#0F172A]">Real proof, published with approval.</h2>
+                  <button onClick={() => go("/case-studies", "Homepage verified proof")} className="mt-7 inline-flex items-center font-semibold text-[#1D4ED8]">See customer proof <ArrowRight className="ml-2 h-4 w-4" /></button>
                 </div>
                 <div className="grid gap-4 lg:col-span-8">
                   {verifiedProof.map((proof) => (
-                    <article key={proof.id} className="border border-white/15 bg-white/[0.035] p-6 sm:p-7">
-                      <p className="text-lg leading-8 !text-white/85">“{proof.testimonial}”</p>
-                      <div className="mt-6 flex flex-wrap items-end justify-between gap-4 border-t border-white/15 pt-5">
-                        <div><p className="font-semibold !text-white">{proof.customer_name || "Customer"}</p><p className="mt-1 text-sm !text-white/70">{proof.company || proof.title || proof.result_summary}</p></div>
-                        {Array.isArray(proof.result_metrics) && proof.result_metrics.length ? <div className="flex flex-wrap gap-2">{proof.result_metrics.slice(0, 3).map((metric: any) => <span key={String(metric.metric) + String(metric.value)} className="border border-white/15 px-3 py-2 text-xs font-semibold !text-[#c7c1ff]">{metric.metric}: {metric.value}</span>)}</div> : null}
+                    <article key={proof.id} className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm sm:p-7">
+                      <p className="text-lg leading-8 !text-[#0F172A]">“{proof.testimonial}”</p>
+                      <div className="mt-6 flex flex-wrap items-end justify-between gap-4 border-t border-[#E2E8F0] pt-5">
+                        <div><p className="font-semibold !text-[#0F172A]">{proof.customer_name || "Customer"}</p><p className="mt-1 text-sm !text-[#475569]">{proof.company || proof.title || proof.result_summary}</p></div>
+                        {Array.isArray(proof.result_metrics) && proof.result_metrics.length ? <div className="flex flex-wrap gap-2">{proof.result_metrics.slice(0, 3).map((metric: any) => <span key={String(metric.metric) + String(metric.value)} className="border border-[#E2E8F0] px-3 py-2 text-xs font-semibold !text-[#1D4ED8]">{metric.metric}: {metric.value}</span>)}</div> : null}
                       </div>
                     </article>
                   ))}
@@ -215,7 +210,7 @@ export default function BrandLedLandingPage() {
                     const isRecommended = product.slug === "website-growth";
                     const priceReady = !pricingLoading && !pricingError && Boolean(price);
                     return (
-                      <article key={product.slug} className={isRecommended ? "border border-[#101827] bg-[#101827] p-6 text-white shadow-[0_24px_70px_-45px_rgba(15,23,42,.6)]" : "border border-[#dfe2ea] bg-white p-6"}>
+                      <article key={product.slug} className={isRecommended ? "flex h-full flex-col rounded-2xl border border-[#0F172A] bg-[#0F172A] p-6 text-white shadow-sm" : "flex h-full flex-col rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm"}>
                         <div>
                           <p className={isRecommended ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{isRecommended ? "Recommended" : planBestFor[index]}</p>
                           <h3 className={isRecommended ? "mt-2 !text-white" : "mt-2"}>{product.name}</h3>
@@ -225,7 +220,7 @@ export default function BrandLedLandingPage() {
                         <p className={isRecommended ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>First payment: {!priceReady || price?.monthlyPrice == null ? "By quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}</p>
                         <p className={isRecommended ? "mt-2 text-sm font-semibold !text-white/75" : "mt-2 text-sm font-semibold text-[#687386]"}>{formatCommitmentLabel(getMinimumTermMonths(price))}, then month-to-month unless the accepted order states otherwise.</p>
                         <p className={isRecommended ? "mt-2 text-sm leading-5 !text-white/75" : "mt-2 text-sm leading-5 text-[#526071]"}>Standard initial term total (including setup, before tax): {priceReady && price?.monthlyPrice != null ? formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice * getMinimumTermMonths(price), price.currency) : "Confirm by quote"}</p>
-                        <div className={isRecommended ? "mt-6 space-y-3 border-t border-white/25 pt-5" : "mt-6 space-y-3 border-t border-[#dfe2ea] pt-5"}>
+                        <div className={isRecommended ? "mt-6 flex-1 space-y-3 border-t border-white/25 pt-5" : "mt-6 flex-1 space-y-3 border-t border-[#E2E8F0] pt-5"}>
                           {planComparisonRows.map(([label, values]) => (
                             <div key={label} className="flex items-start justify-between gap-4 text-sm">
                               <span className={isRecommended ? "font-semibold !text-white/80" : "font-semibold text-[#526071]"}>{label}</span>
@@ -233,7 +228,7 @@ export default function BrandLedLandingPage() {
                             </div>
                           ))}
                         </div>
-                        <button onClick={() => go("/pricing#plan-" + product.slug, "Choose " + product.name)} className={isRecommended ? "mt-6 inline-flex min-h-12 w-full items-center justify-center bg-white px-5 font-semibold text-[#101827]" : "mt-6 inline-flex min-h-12 w-full items-center justify-center bg-[#141821] px-5 font-semibold text-white"}>
+                        <button onClick={() => go("/pricing#plan-" + product.slug, "Choose " + product.name)} className={isRecommended ? "mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#1D4ED8] px-5 font-semibold text-white hover:bg-[#2563EB]" : "mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#1D4ED8] px-5 font-semibold text-white hover:bg-[#2563EB]"}>
                           See scope & choose plan <ArrowRight className="ml-2 h-4 w-4" />
                         </button>
                       </article>
