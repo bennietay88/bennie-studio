@@ -24,7 +24,7 @@
 .brand-public .c27-card-content p{color:#596372;font-size:14px!important}
 .brand-public .c27-card-content a{margin-top:auto;padding-top:20px;display:inline-flex;align-items:center;gap:9px;color:#1741ed;font-size:14px;font-weight:700}
 .brand-public .c27-marketing-hero{background:#f8f8f5;border-bottom:1px solid #e1e4e8}
-.brand-public .c27-marketing-hero h1{color:#15191f!important;font-size:clamp(2.6rem,4.3vw,5.1rem)!important;letter-spacing:-.055em!important;line-height:1.03!important}
+.brand-public .c27-marketing-hero h1{color:#15191f!important;font-size:clamp(2.75rem,3.8vw,3.5rem)!important;letter-spacing:-.045em!important;line-height:1.1!important}
 .brand-public .c27-marketing-hero em{font-family:Georgia,serif;font-weight:400;font-style:italic;color:#1741ed}
 .brand-public .c27-panel{padding:32px;background:#1741ed;color:white}
 .brand-public .c27-panel h2{color:white!important;font-size:clamp(2rem,3vw,3.5rem)!important;line-height:1.04!important}
@@ -40,3 +40,11 @@
 /* Allow intrinsic preview/caption widths to shrink inside cards and hero grids. */
 .brand-public .c27-card,.brand-public .c27-rendered{min-width:0}
 .brand-public .c27-caption{white-space:normal;overflow-wrap:anywhere}
+
+/* Master QA mobile hero type: never exceed 36px in marketing routes. */
+@media (max-width:767px) {
+ .brand-public .c27-marketing-hero h1 {
+   font-size:clamp(2rem,8.8vw,2.25rem)!important;
+   line-height:1.1!important;
+ }
+}
