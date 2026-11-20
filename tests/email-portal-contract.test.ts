@@ -115,7 +115,8 @@ test("Manual outreach confirmation propagates through single and bulk UI without
   assert.match(operations, /permissionConfirmedAt: input\.recipientPermissionConfirmed === true/);
   assert.match(prospectUi, /recipientPermissionConfirmed: recipientPermissionConfirmed/);
   assert.match(labUi, /templateId, recipientPermissionConfirmed, requestId/);
-  assert.match(bulkIntro, /recipientPermissionConfirmed: confirmed/);
+  assert.match(bulkIntro, /recipientPermissionConfirmed: true/);
+  assert.doesNotMatch(bulkIntro, /<Checkbox|setConfirmed|!confirmed/);
   assert.match(bulkFollowUp, /recipientPermissionConfirmed: confirmed/);
   assert.match(operations, /OUTREACH_TOO_SOON/);
   assert.match(operations, /CONTACT_SUPPRESSED/);

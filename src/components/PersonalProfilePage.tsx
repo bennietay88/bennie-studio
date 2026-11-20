@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowRight, Check, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { Pricing } from "./Pricing";
+import "../styles/publicBrand.css";
 const features=["3–5 professional profile pages","Bio, expertise and work highlights","Contact form, WhatsApp and social links","Responsive design and basic SEO","SSL, managed hosting and maintenance","One pre-launch revision","One small content update per month","Customer-owned domain support"];
 export default function PersonalProfilePage(){
  return <main className="min-h-screen bg-[#f7f8fc] text-[#101827]">

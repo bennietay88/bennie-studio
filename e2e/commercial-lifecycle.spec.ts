@@ -385,7 +385,7 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   await expect(page.getByText(/A simple introduction first/i)).toBeVisible();
   await expect(page.locator("textarea").last()).toHaveValue(/I help service businesses make their websites clearer and easier for customers to enquire through/);
   await expect(page.getByText("View or edit saved email templates")).toBeVisible();
-  await page.getByRole("checkbox", { name: /confirm this recipient has opted in/i }).check();
+  await page.getByRole("checkbox", { name: /confirm the documented permission on this prospect is genuine/i }).check();
   await page.getByRole("button", { name: "Send email", exact: true }).click();
   await expect.poll(() => outreachSent).toBe(true);
   await expect.poll(() => prospect.outreach_status).toBe("contacted");

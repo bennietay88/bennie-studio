@@ -272,7 +272,7 @@ function ClinicTrustPreview({ model, name }: { model: PreviewModel; name: string
 
         <div className="relative overflow-hidden bg-emerald-50">
           {model.heroImage ? (
-            <img src={model.heroImage} alt="" className="h-full w-full object-cover" />
+            <img src={model.heroImage} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full items-center justify-center">
               <div className="rounded-xl bg-white p-4 shadow-sm">
@@ -392,7 +392,7 @@ function EducationProgramPreview({ model, name }: { model: PreviewModel; name: s
         </div>
 
         {model.heroImage ? (
-          <img src={model.heroImage} alt="" className="h-full w-full object-cover" />
+          <img src={model.heroImage} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
         ) : (
           <div className="m-4 flex items-center justify-center rounded-2xl bg-white shadow-sm">
             <BookOpen className="h-10 w-10" style={{ color: model.primaryInk }} />
@@ -628,7 +628,7 @@ function MediaStoryPreview({ model, name }: { model: PreviewModel; name: string 
   return (
     <div className="absolute inset-0 overflow-hidden bg-slate-950 text-white" style={{ fontFamily: model.bodyFont }}>
       {model.heroImage ? (
-        <img src={model.heroImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img src={model.heroImage} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <div className="absolute inset-0 overflow-hidden bg-[linear-gradient(135deg,#172554_0%,#1e3a8a_44%,#0f172a_100%)]">
           <div className="absolute -right-8 top-5 h-28 w-28 rounded-full border border-white/15" />

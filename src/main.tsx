@@ -5,7 +5,6 @@ import "./index.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AgencyCopyDirector } from "./components/AgencyCopyDirector";
-import { AgencyMotionDirector } from "./components/AgencyMotionDirector";
 import { AgencyVisualDirector } from "./components/AgencyVisualDirector";
 
 import { initClientObservability } from "./lib/observability";
@@ -34,7 +33,6 @@ createRoot(document.getElementById("root")!).render(
 
           <AgencyVisualDirector />
           <AgencyCopyDirector />
-          <AgencyMotionDirector />
           <App />
         </MotionConfig>
       </AuthProvider>

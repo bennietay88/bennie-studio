@@ -20,11 +20,11 @@ import { Toaster } from "./components/ui/sonner";
 import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingFallback } from "./components/LoadingFallback";
-import "./styles/publicBrand.css";
-import "./styles/studioCaseStudies.css";
+
 import { AgencyMotionDirector } from "./components/AgencyMotionDirector";
 import { classifyTenantHost } from "./lib/tenantDomains";
 import { shouldRetryLazyChunkLoad } from "./lib/lazyChunkRecovery";
+import { getPublicSiteConfig } from "./lib/publicSiteConfigCache";
 
 const CHUNK_RETRY_KEY = "bt_chunk_retry_once";
 let documentNavigationStarted = false;
@@ -528,14 +528,8 @@ export default function App() {
   React.useEffect(() => {
     let cancelled = false;
     const fetchSettings = async () => {
-      const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), 5000);
-
       try {
-        const response = await fetch("/api/public/site-config", { signal: controller.signal });
-        if (!response.ok) throw new Error("Public site settings are unavailable");
-        const data = await response.json();
-
+        const data = await getPublicSiteConfig();
         if (data?.platform) {
           if (!cancelled) setPlatformSettings(data.platform);
           try {
@@ -547,7 +541,6 @@ export default function App() {
       } catch (err) {
         console.error("Error fetching platform settings:", err);
       } finally {
-        window.clearTimeout(timeoutId);
         if (!cancelled) setLoadingSettings(false);
       }
     };

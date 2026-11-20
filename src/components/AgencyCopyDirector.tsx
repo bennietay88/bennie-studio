@@ -80,10 +80,9 @@ export function AgencyCopyDirector() {
 
     const attach = () => {
       const next = document.querySelector<HTMLElement>(".bt-website-renderer");
-      if (next === renderer) {
-        if (next) cleanRendererCopy(next);
-        return;
-      }
+      // Content changes are handled by the renderer-scoped observer below.
+      // The root observer only needs to detect replacement/removal of the renderer.
+      if (next === renderer) return;
 
       stopRendererObserver();
       if (!next) return;

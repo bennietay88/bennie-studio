@@ -1,3 +1,5 @@
+import "../styles/publicBrand.css";
+import "../styles/studioCaseStudies.css";
 import React from "react";
 import { ExternalLink, Menu, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";

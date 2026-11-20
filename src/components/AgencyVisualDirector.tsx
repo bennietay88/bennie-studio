@@ -319,6 +319,7 @@ export function AgencyVisualDirector() {
     ensureVisualSystemStyle();
 
     let lastPath = window.location.pathname;
+    let trackedRenderer: HTMLElement | null = null;
     let cleanupCurrent: (() => void) | undefined;
     let timer = 0;
 
@@ -329,6 +330,7 @@ export function AgencyVisualDirector() {
         : "false";
 
       const renderer = document.querySelector<HTMLElement>(".bt-website-renderer");
+      trackedRenderer = renderer;
       if (!renderer) {
         cleanupCurrent = undefined;
         return;
@@ -407,7 +409,8 @@ export function AgencyVisualDirector() {
     const rootObserver = new MutationObserver(() => {
       const pathChanged = lastPath !== window.location.pathname;
       if (pathChanged) lastPath = window.location.pathname;
-      if (pathChanged || document.querySelector(".bt-website-renderer")) schedule();
+      const currentRenderer = document.querySelector<HTMLElement>(".bt-website-renderer");
+      if (pathChanged || currentRenderer !== trackedRenderer) schedule();
     });
 
     rootObserver.observe(document.getElementById("root") || document.body, {
