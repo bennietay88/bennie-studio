@@ -20,6 +20,7 @@ import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing"
 import { ConversionHomepage } from "./ConversionHomepage";
 import { usePublishedPlatformCms } from "../lib/platformSiteCms";
 import { PlatformCmsSections } from "./PlatformCmsSections";
+import { getPublicSiteConfig } from "../lib/publicSiteConfigCache";
 
 const CONSENT_KEY = "bt_sales_cookie_consent";
 const CONSENT_VERSION = "uk-sales-consent-v1";
@@ -84,17 +85,11 @@ export default function BrandLedLandingPage() {
   }, [platformSettings?.publicProofTestimonialIds]);
 
   React.useEffect(() => {
-    const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 5000);
-    fetch("/api/public/site-config", { signal: controller.signal })
-      .then((response) => response.ok ? response.json() : null)
-      .then((payload) => setPlatformSettings(payload?.platform || null))
-      .catch(() => null)
-      .finally(() => window.clearTimeout(timeout));
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeout);
-    };
+    let cancelled = false;
+    getPublicSiteConfig()
+      .then((payload) => { if (!cancelled) setPlatformSettings(payload?.platform || null); })
+      .catch(() => null);
+    return () => { cancelled = true; };
   }, []);
 
   const saveConsent = (analytics: boolean, marketing: boolean) => {
