@@ -9132,6 +9132,7 @@ async function startServer() {
           channel: z.enum(["email", "whatsapp"]),
           observation: z.string().trim().max(1000).optional(),
           templateId: z.string().trim().max(80).regex(/^[a-z][a-z0-9_-]*$/i).optional(),
+          experimentId: UUID_SCHEMA.optional().nullable(),
           subject: z.string().trim().max(160).optional(),
           bodyText: z.string().trim().min(1).max(10000),
           reviewUrl: z.string().trim().url().max(2000).nullable().optional(),
