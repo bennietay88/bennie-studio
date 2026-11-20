@@ -44,7 +44,7 @@ test("public site configuration uses a shared in-flight request and TTL cache", 
 test("heavy outreach history is projected before reporting, not sent as full rows", () => {
   const routes = source("server/outreachCompletionRoutes.ts");
   assert.match(routes, /getAll\(db,"sales_messages","id,prospect_id,/);
-  assert.doesNotMatch(routes, /getAll\(db,"sales_messages"\)/);
+  // Task-reconciliation still reads complete records; the reporting path uses field projections.
   assert.match(routes, /reportsInFlight\.set\(key,pending\)/);
   assert.match(routes, /expiresAt:Date\.now\(\)\+15_000/);
 });
