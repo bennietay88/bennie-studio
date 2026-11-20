@@ -68,6 +68,7 @@ import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
 import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, renderProspectInitialEmail, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { buildProspectFollowUpPlan, bulkManageProspectFollowUps, scheduleProspectFollowUpPlan, syncProspectNextFollowUp } from "../server/prospectFollowUps.js";
+import { registerOutreachCompletionRoutes } from "../server/outreachCompletionRoutes.js";
 import { attachUploaderOutreachDeclaration, parseProspectCsv } from "../src/lib/prospectImport.js";
 import { scoreProspect } from "../src/lib/prospectScoring.js";
 import { PROSPECT_TEMPLATE_KEYS, validateProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
@@ -9994,6 +9995,9 @@ async function startServer() {
     res.setHeader("Cache-Control", "no-store");
     return res.json({ market, currency: commercialCurrencyForMarket(market), products });
   });
+
+  // New read-mostly outreach completion APIs; all writes require an authorized operator action.
+  registerOutreachCompletionRoutes({ app, db: supabaseAdmin, authenticate, getProfileForUser, getStripe, rateLimit });
 
   // Unified Sales Funnel Engine commercial entitlements; legacy add-on routes retained for safe migration.
   if (UNIFIED_FUNNEL_TIERS_ENABLED) registerUnifiedFunnelTierRoutes({ app, db: supabaseAdmin, authenticate, superAdminOnly, getStripe, publicAppUrl, rateLimit });
