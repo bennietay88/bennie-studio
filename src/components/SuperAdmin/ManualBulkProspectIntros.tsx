@@ -225,8 +225,8 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
           )}
           {!loading && !loadError && !!rows.length && !finished && (
             <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-              Clicking Send confirms this operator-initiated request. It does not create recipient consent.
-              Only eligible contacts are send-ready; permission-review contacts are never submitted to the provider.
+              Clicking Send attests that you have recipient permission to send these specific emails. This action does not create or change a recipient's CRM consent record.
+              Do not use this flow for unsolicited cold email through a provider that requires prior opt-in.
               The server rechecks recipient permission, suppression status and delivery safeguards before sending.
             </p>
           )}
@@ -242,7 +242,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
           )}
           {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            {sending ? "Sending individually…" : "Send " + ready.length + " reviewed introduction" + (ready.length === 1 ? "" : "s")}
+            {sending ? "Sending individually…" : "Confirm recipient permission & send " + ready.length + " introduction" + (ready.length === 1 ? "" : "s")}
           </Button>}
         </DialogFooter>
       </DialogContent>

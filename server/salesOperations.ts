@@ -717,9 +717,11 @@ export async function sendDirectProspectOutreach(
     if (await isSalesSuppressed(db, email)) {
       throw new Error("CONTACT_SUPPRESSED");
     }
-    if (!input.replyToMessageId && salesEmailPermissionBlockReason(prospect, new Date(now))) {
-      throw new Error("CONTACT_PERMISSION_NOT_VERIFIED");
-    }
+    // Manual, administrator-initiated correspondence accepts an affirmative
+    // operator attestation for this exact send. Absence of CRM consent evidence
+    // does not prove an explicit opt-out; however this is NOT a license to use a
+    // consent-only provider for unsolicited outreach. Suppressions and provider
+    // rules remain independently applicable, and no opt-in record is fabricated.
     if (!input.replyToMessageId && input.recipientPermissionConfirmed !== true) {
       throw new Error("CONTACT_PERMISSION_CONFIRMATION_REQUIRED");
     }

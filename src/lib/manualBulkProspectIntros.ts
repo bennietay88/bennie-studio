@@ -1,5 +1,4 @@
 import type { ProspectSentMessage } from "./prospectFollowUpComposer";
-import { salesEmailPermissionBlockReason } from "./salesAutomation";
 import { PORTFOLIO_URL, renderProspectEmailTemplate } from "./prospectOutreachTemplates";
 import type { ProspectEmailOverrides } from "./prospectOutreachTemplates";
 
@@ -81,23 +80,6 @@ export function prepareManualBulkIntro(
   if (!rendered.subject.trim() || !rendered.body_text.trim()
     || /\{\{[^}]+\}\}|\[[^\]\n]{3,}\]/.test(rendered.subject + "\n" + rendered.body_text)) {
     return skip("Email template contains missing information. Fix the saved template before sending.");
-  }
-  // A prepared draft is not permission to deliver. Match the same recipient-specific
-  // check that the authenticated backend enforces before any provider call.
-  const permissionBlock = salesEmailPermissionBlockReason(prospect);
-  if (permissionBlock) {
-    const reasons: Record<string, string> = {
-      recipient_consent_missing_or_not_bound_to_address:
-        "No verified opt-in recorded for this exact email address. Document the recipient's actual permission before using the configured email provider.",
-      jurisdiction_unknown:
-        "Recipient jurisdiction is missing or unsupported. Review the prospect's actual country and applicable requirements.",
-      recipient_type_unknown:
-        "Recipient type is unknown. Review whether the recipient is a business or an individual.",
-      lawful_basis_not_reviewed:
-        "The recorded contact basis has not passed this provider's consent requirement. Review the actual permission evidence.",
-    };
-    return { ...base, kind: "permission_review", subject: rendered.subject,
-      bodyText: rendered.body_text, reason: reasons[permissionBlock] || "Permission review required before sending." };
   }
   return { ...base, kind: "ready", subject: rendered.subject, bodyText: rendered.body_text };
 }
