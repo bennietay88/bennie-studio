@@ -14295,7 +14295,7 @@ async function startServer() {
     },
   );
 
-  app.get("/api/health-check", async (_req, res) => {
+  app.get(["/api/health-check", "/api/health"], async (_req, res) => {
     res.set("Cache-Control", "no-store");
     const timestamp = new Date().toISOString();
     if (process.env.E2E_TEST === "true") {
