@@ -126,23 +126,51 @@ export function registerOutreachCompletionRoutes({app,db,authenticate,getProfile
     console.error("[OutreachCompletion]",context,msg);
     return res.status(503).json({error:"Outreach "+context+" is unavailable. Check the migration and database diagnostics."});
   };
+  // Short-lived, server-only report cache: never exposes underlying rows to the browser.
+  // Bound entries and coalesce concurrent filter-identical requests.
+  const cachedReports = new Map<string,{expiresAt:number;payload:any}>();
+  const reportsInFlight = new Map<string,Promise<any>>();
   app.get("/api/admin/outreach-completion/report",...gate,async (req:any,res:Response)=>{
     const input=requestPayload(filterSchema,req.query,res);
     if(!input)return;
     if(input.from&&input.to&&input.from>input.to)return res.status(400).json({error:"Invalid date range"});
     try{
-      const [prospects,messages,tasks,leads,bookings,proposals,businesses,attribution,experiments,assignments,suppressions,costs]=await Promise.all([
-        getAll(db,"prospects"),getAll(db,"sales_messages"),getAll(db,"sales_tasks"),
-        getAll(db,"leads"),getAll(db,"sales_call_bookings"),getAll(db,"proposals"),
-        getAll(db,"businesses","id,name,created_at,status"),
-        getAll(db,"outreach_attribution_events"),getAll(db,"outreach_experiments"),
-        getAll(db,"outreach_experiment_assignments"),getAll(db,"sales_suppressions"),getAll(db,"outreach_acquisition_costs"),
-      ]);
-      const dataset:OutreachDataset={prospects,messages,tasks,leads,bookings,proposals,businesses,attribution,experiments,assignments,costs};
-      const report=buildOutreachReport(dataset,input);
-      const taskReview=reviewOutreachTasks(tasks,prospects,leads,suppressions,messages);
-      return res.json({report,taskReview:{summary:taskReview.summary,items:taskReview.items.slice(0,300)},datasetTruncated:false});
-    }catch(e){return replyError(res,e,"reporting");}
+      res.set("Cache-Control", "private, no-store");
+      const key=JSON.stringify(input);
+      const cached=cachedReports.get(key);
+      if(cached && cached.expiresAt>Date.now())return res.json(cached.payload);
+      let pending=reportsInFlight.get(key);
+      if(!pending){
+        pending=(async()=>{
+          // Field projection keeps message bodies, private CRM notes and provider headers
+          // out of report reads. Source rows remain in Supabase; only aggregates return.
+          const [prospects,messages,tasks,leads,bookings,proposals,businesses,attribution,experiments,assignments,suppressions,costs]=await Promise.all([
+            getAll(db,"prospects","id,name,industry,contact_email,status,outreach_status,website_status,website_verified_at,qualification_score_version,qualification_category,contact_jurisdiction,tags,marketing_consent,consent_email,consent_timestamp,consent_source,contact_recipient_type,contact_lawful_basis,converted_business_id,created_at"),
+            getAll(db,"sales_messages","id,prospect_id,lead_id,direction,channel,classification,delivery_state,delivery_confirmed_at,provider_accepted_at,status,provider_name,sent_at,attempted_at,created_at,reply_to_message_id,provider_payload,campaign_id,outreach_experiment_id,outreach_experiment_variant"),
+            getAll(db,"sales_tasks","id,prospect_id,lead_id,proposal_id,title,task_type,status,priority,due_at,created_at"),
+            getAll(db,"leads","id,status,created_at"),
+            getAll(db,"sales_call_bookings","id,prospect_id,lead_id,start_at,status,created_at"),
+            getAll(db,"proposals","id,prospect_id,lead_id,created_at"),
+            getAll(db,"businesses","id,name,created_at,status"),
+            getAll(db,"outreach_attribution_events","id,event_type,provider_verified,prospect_id,lead_id,occurred_at,currency,amount,created_at"),
+            getAll(db,"outreach_experiments","id,name,status,segment,created_at"),
+            getAll(db,"outreach_experiment_assignments","id,experiment_id,prospect_id,variant,created_at"),
+            getAll(db,"sales_suppressions","id,email,created_at"),
+            getAll(db,"outreach_acquisition_costs","id,campaign_id,market,period_start,period_end,amount,currency,created_at"),
+          ]);
+          const dataset:OutreachDataset={prospects,messages,tasks,leads,bookings,proposals,businesses,attribution,experiments,assignments,costs};
+          const report=buildOutreachReport(dataset,input);
+          const taskReview=reviewOutreachTasks(tasks,prospects,leads,suppressions,messages);
+          return {report,taskReview:{summary:taskReview.summary,items:taskReview.items.slice(0,300)},datasetTruncated:false};
+        })();
+        reportsInFlight.set(key,pending);
+      }
+      const payload=await pending;
+      reportsInFlight.delete(key);
+      if(cachedReports.size>=32)cachedReports.clear();
+      cachedReports.set(key,{expiresAt:Date.now()+15_000,payload});
+      return res.json(payload);
+    }catch(e){reportsInFlight.delete(JSON.stringify(input));return replyError(res,e,"reporting");}
   });
   app.post("/api/admin/outreach-completion/rescore",...gate,async (req:any,res:Response)=>{
     const input=requestPayload(scoreControl,req.body,res);
