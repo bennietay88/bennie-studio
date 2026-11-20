@@ -85,6 +85,8 @@ grant select,insert,update on public.outreach_experiments to service_role;
 grant select,insert on public.outreach_experiment_assignments to service_role;
 grant select,insert on public.outreach_attribution_events to service_role;
 grant select,insert on public.outreach_evidence_audit to service_role;
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
 create or replace function private.reject_outreach_audit_mutation() returns trigger
 language plpgsql set search_path = '' as $audit$
 begin
