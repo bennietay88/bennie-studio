@@ -21,7 +21,7 @@ test("Personal Profile is its own focused page with live-priced product instead 
   assert.match(page, /usePublicCommercialPricing/);
   assert.match(page, /getCommercialPrice\(product, "INTL"\)/);
   assert.match(page, /PLAN_DELIVERY_STANDARDS\["personal-profile"\]/);
-  assert.match(page, /pricing#plan-personal-profile/);
+  assert.match(page, /product=personal-profile#plan-personal-profile/);
   assert.doesNotMatch(page, /<Pricing\b|\$99 setup|\$29\/month USD|Your Name|Consultant · Coach · Specialist/);
   assert.match(page, /PublicSiteHeader/);
   assert.match(page, /PublicSiteFooter/);
@@ -37,13 +37,23 @@ test("homepage FAQs have consistent horizontal inset and visible focus styles", 
   assert.match(faq, /max-w-2xl pb-2 pt-3/);
 });
 
-test("Personal Profile offers a complete buyer journey and labels preview as illustrative", () => {
+test("Personal Profile landing makes the offer visible, demonstrates profiles and links directly to its order review", () => {
   const page = readFileSync("src/components/PersonalProfilePage.tsx", "utf8");
-  for (const section of ["WHO IT'S FOR", "THE WEBSITE", "BUILT & MAINTAINED", "CLEAR SCOPE & PRICING", "GOOD TO KNOW", "YOUR NEXT STEP"]) {
-    assert.ok(page.includes(section), `Missing section: ${section}`);
-  }
-  assert.match(page, /Illustrative concept only/);
+  const pricing = readFileSync("src/components/Pricing.tsx", "utf8");
+  const stylesheet = readFileSync("src/styles/personalProfileSales.css", "utf8");
+  assert.match(page, /Make your first impression/);
+  assert.match(page, /pp-sales-hero-price/);
+  assert.match(page, /Sample names, content and stock imagery are illustrative/);
+  assert.match(page, /aria-pressed=\{active === example.id\}/);
+  assert.match(page, /product=personal-profile#plan-personal-profile/);
+  assert.match(page, /delivery\.revisions/);
   assert.match(page, /getMinimumTermMonths\(price\)/);
-  assert.match(page, /One consolidated pre-launch revision|delivery.revisions/);
-  assert.doesNotMatch(page, /<Pricing\b/);
+  assert.match(page, /usePublicCommercialPricing/);
+  assert.match(page, /priceReady/);
+  assert.match(pricing, /requestedProduct === "personal-profile"/);
+  assert.match(pricing, /setPendingProduct\(item\)/);
+  assert.match(pricing, /termsAccepted/);
+  assert.match(stylesheet, /@media\(max-width:620px\)/);
+  assert.match(stylesheet, /prefers-reduced-motion/);
+  assert.doesNotMatch(page, /<Pricing\b|\$29\/month USD|Your Name/);
 });
