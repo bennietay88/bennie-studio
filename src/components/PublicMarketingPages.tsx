@@ -538,18 +538,18 @@ function TemplatesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
         </div>
       </section>
 
-      <section className="bg-[#0b1020] text-white">
+      <section className="border-y border-[#E2E8F0] bg-[#F8FAFC] text-[#0F172A]">
         <div className="brand-shell brand-section">
           <div className="grid gap-10 lg:grid-cols-12">
             <div className="lg:col-span-4">
-              <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#aaa0ff]">Industry paths</p>
-              <h2 className="mt-4 text-white">Start with the buyer journey.</h2>
-              <p className="mt-5 text-base leading-7 text-white/60">Each route explains the offer, evidence and enquiry structure that matters for that market.</p>
+              <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#1D4ED8]">Industry paths</p>
+              <h2 className="mt-4 text-[#0F172A]">Start with the buyer journey.</h2>
+              <p className="mt-5 text-base leading-7 text-[#475569]">Each route explains the offer, evidence and enquiry structure that matters for that market.</p>
             </div>
-            <div className="border-t border-white/15 lg:col-span-8">
+            <div className="border-t border-[#E2E8F0] lg:col-span-8">
               {industrySalesStarts.map((item) => (
-                <Link key={item.industry} to={item.path} className="grid gap-3 border-b border-white/15 py-6 transition hover:bg-white/[0.03] sm:grid-cols-[1fr_1.5fr_auto] sm:items-center sm:px-3">
-                  <h3 className="text-white">{item.industry}</h3>
+                <Link key={item.industry} to={item.path} className="grid gap-3 border-b border-[#E2E8F0] py-6 transition hover:bg-white sm:grid-cols-[1fr_1.5fr_auto] sm:items-center sm:px-3">
+                  <h3 className="text-[#0F172A]">{item.industry}</h3>
                   <p className="text-sm leading-6 text-white/60">{item.promise}</p>
                   <ArrowRight className="h-4 w-4 text-[#aaa0ff]" />
                 </Link>
