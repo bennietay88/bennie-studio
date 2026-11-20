@@ -13,7 +13,11 @@ const noSite = { name: "American Carpentry NC LLC", website_status: "no_website"
 const existing = { name: "Example Dental", website_status: "weak", domain: "example.org", ...siteEvidence };
 
 test("all editable templates have valid, supported variables", () => {
-  assert.equal(PROSPECT_EMAIL_TEMPLATE_DEFINITIONS.length, 12);
+  assert.ok(PROSPECT_EMAIL_TEMPLATE_DEFINITIONS.length >= 17);
+  for (const id of ["verified_no_site_intro", "verified_existing_site_intro", "social_first_intro",
+    "recent_launch_intro", "booking_friction_intro"]) {
+    assert.ok(PROSPECT_EMAIL_TEMPLATE_DEFINITIONS.some((definition) => definition.id === id), id);
+  }
   for (const definition of PROSPECT_EMAIL_TEMPLATE_DEFINITIONS) {
     assert.equal(validateProspectEmailTemplate(definition.id, definition.defaultTemplate), null, definition.id);
   }
