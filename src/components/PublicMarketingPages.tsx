@@ -3020,7 +3020,14 @@ export default function PublicMarketingPages() {
         {pageCms?.ogImage && <meta property="og:image" content={pageCms.ogImage} />}
       </Helmet>
       <PublicSiteHeader />
-      {pageContent}
+      {/*
+        Services and pricing already render their own semantic <main>.
+        Other public page bodies render fragments; give them a single
+        main landmark so screen readers and browser QA find the real H1.
+      */}
+      {!pageCms?.replacePageContent && (pageKind === "services" || pageKind === "pricing")
+        ? pageContent
+        : <main id="main-content">{pageContent}</main>}
       {!pageCms?.replacePageContent && <PlatformCmsSections path={cmsPagePath} />}
       {pageKind !== "pricing" && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
