@@ -47,11 +47,11 @@ const footerGroups = [
 export function PublicSiteHeader() {
   const { user } = useAuth();
   const location = useLocation();
-  const cms = usePublishedPlatformCms();
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const primaryHref = user ? "/dashboard" : safePublicHref(cms.header.primaryCtaHref, location.pathname === "/generate-preview" ? "/pricing" : "/generate-preview");
-  const primaryLabel = user ? "Open Studio" : cms.header.primaryCtaLabel || (location.pathname === "/generate-preview" ? "Compare website plans" : "Get a free website preview");
-  const navigation = cms.header.navigation.length ? cms.header.navigation.filter((item) => item.label.trim() && safePublicHref(item.href, "").length).map((item) => ({ ...item, href: safePublicHref(item.href, "") })) : publicNavItems;
+  // The marketing shell is intentionally invariant across routes.
+  const primaryHref = user ? "/dashboard" : "/generate-preview";
+  const primaryLabel = user ? "Open Studio" : "Get a free website preview";
+  const navigation = publicNavItems;
   const primaryExternal = /^https?:\/\//i.test(primaryHref);
   const mobileTriggerRef = React.useRef<HTMLButtonElement>(null);
   const mobileDialogRef = React.useRef<HTMLDivElement>(null);
@@ -183,7 +183,7 @@ export function PublicSiteFooter({ tagline, email, onManageCookies }: { tagline?
   const businessAddress = publicIdentity?.businessAddress || "";
   const supportPhone = publicIdentity?.supportPhone || "";
   const footerTagline = cms.footer.tagline || tagline || "A strategic web studio helping service businesses look more credible, communicate more clearly and convert more visitors into enquiries.";
-  const footerGroupsToRender = cms.footer.groups?.length ? cms.footer.groups : footerGroups.map(([title, links]) => ({ title, links }));
+  const footerGroupsToRender = cms.footer.groups?.length === 4 ? cms.footer.groups : footerGroups.map(([title, links]) => ({ title, links }));
 
   return (
     <footer className="bg-[#0F172A] text-white">
