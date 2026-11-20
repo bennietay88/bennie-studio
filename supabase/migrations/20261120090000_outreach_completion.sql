@@ -75,6 +75,58 @@ create table if not exists public.outreach_evidence_audit (
  created_at timestamptz not null default now()
 );
 create index if not exists outreach_evidence_audit_prospect_idx on public.outreach_evidence_audit(prospect_id,created_at desc);
+
+create table if not exists public.outreach_acquisition_costs (
+ id uuid primary key default gen_random_uuid(),
+ campaign_id text,
+ source_type text not null check (source_type in ('lead_research','verified_data','campaign_production','email_provider','other')),
+ market text,
+ period_start date not null,
+ period_end date not null,
+ amount numeric(18,2) not null check (amount >= 0),
+ currency text not null check (currency ~ '^[A-Z]{3}
+alter table public.outreach_experiments enable row level security;
+alter table public.outreach_experiment_assignments enable row level security;
+alter table public.outreach_attribution_events enable row level security;
+alter table public.outreach_evidence_audit enable row level security;
+revoke all on public.outreach_experiments, public.outreach_experiment_assignments, public.outreach_attribution_events, public.outreach_evidence_audit from anon,authenticated;
+grant select,insert,update on public.outreach_experiments to service_role;
+grant select,insert on public.outreach_experiment_assignments to service_role;
+grant select,insert on public.outreach_attribution_events to service_role;
+grant select,insert on public.outreach_evidence_audit to service_role;
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+create or replace function private.reject_outreach_audit_mutation() returns trigger
+language plpgsql set search_path = '' as $audit$
+begin
+ raise exception 'outreach audit and attribution events are append-only';
+end;
+$audit$;
+drop trigger if exists outreach_evidence_audit_append_only on public.outreach_evidence_audit;
+create trigger outreach_evidence_audit_append_only
+ before update or delete on public.outreach_evidence_audit
+ for each row execute function private.reject_outreach_audit_mutation();
+drop trigger if exists outreach_costs_append_only on public.outreach_acquisition_costs;
+create trigger outreach_costs_append_only before update or delete on public.outreach_acquisition_costs
+ for each row execute function private.reject_outreach_audit_mutation();
+drop trigger if exists outreach_attribution_append_only on public.outreach_attribution_events;
+create trigger outreach_attribution_append_only
+ before update or delete on public.outreach_attribution_events
+ for each row execute function private.reject_outreach_audit_mutation();
+notify pgrst, 'reload schema';
+),
+ evidence_url text not null check (evidence_url ~ '^https?://'),
+ notes text not null default '',
+ created_by uuid not null references auth.users(id),
+ created_at timestamptz not null default now(),
+ check (period_end >= period_start)
+);
+create index if not exists outreach_acquisition_cost_period_idx
+ on public.outreach_acquisition_costs(period_start,period_end,campaign_id);
+alter table public.outreach_acquisition_costs enable row level security;
+revoke all on public.outreach_acquisition_costs from anon,authenticated;
+grant select,insert on public.outreach_acquisition_costs to service_role;
+
 -- Server-only tables: service-role access, no browser access, and RLS defense in depth.
 alter table public.outreach_experiments enable row level security;
 alter table public.outreach_experiment_assignments enable row level security;
