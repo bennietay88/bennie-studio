@@ -37,13 +37,14 @@ test("homepage FAQs have consistent horizontal inset and visible focus styles", 
   assert.match(faq, /max-w-2xl pb-2 pt-3/);
 });
 
-test("Personal Profile landing makes the offer visible, demonstrates profiles and links directly to its order review", () => {
+test("Personal Profile Concept 2 uses real catalogue pricing, a focused offer and interactive examples", () => {
   const page = readFileSync("src/components/PersonalProfilePage.tsx", "utf8");
   const pricing = readFileSync("src/components/Pricing.tsx", "utf8");
   const stylesheet = readFileSync("src/styles/personalProfileSales.css", "utf8");
-  assert.match(page, /Make your first impression/);
-  assert.match(page, /pp-sales-hero-price/);
-  assert.match(page, /Sample names, content and stock imagery are illustrative/);
+  assert.match(page, /A professional website for you/);
+  assert.match(page, /Managed by us/);
+  assert.match(page, /pp2-hero-price/);
+  assert.match(page, /Illustrative concepts with sample names and stock photography/);
   assert.match(page, /aria-pressed=\{active === example.id\}/);
   assert.match(page, /product=personal-profile#plan-personal-profile/);
   assert.match(page, /delivery\.revisions/);
@@ -53,7 +54,24 @@ test("Personal Profile landing makes the offer visible, demonstrates profiles an
   assert.match(pricing, /requestedProduct !== "personal-profile"/);
   assert.match(pricing, /setPendingProduct\(item\)/);
   assert.match(pricing, /termsAccepted/);
-  assert.match(stylesheet, /@media\(max-width:620px\)/);
+  assert.match(stylesheet, /@media\(max-width:560px\)/);
   assert.match(stylesheet, /prefers-reduced-motion/);
+  assert.match(stylesheet, /pp2-laptop/);
+  assert.match(stylesheet, /pp2-phone/);
   assert.doesNotMatch(page, /<Pricing\b|\$29\/month USD|Your Name/);
+});
+
+test("Personal Profile animations respect reduced motion and retain working checkout", () => {
+  const page = readFileSync("src/components/PersonalProfilePage.tsx", "utf8");
+  assert.match(page, /useReducedMotion/);
+  assert.match(page, /whileInView=/);
+  assert.match(page, /viewport=\{\{ once: true/);
+  assert.match(page, /AnimatePresence mode="wait"/);
+  assert.match(page, /initial=\{reduce \? false/);
+  assert.match(page, /OrderLink/);
+  assert.match(page, /trackPublicEvent/);
+  assert.match(page, /aria-label="Switch illustrative personal website example"/);
+  assert.match(page, /aria-labelledby="pp2-faq-title"/);
+  assert.match(page, /pp2-final/);
+  assert.doesNotMatch(page, /\$149|\$249|\$499|Trusted by professionals/);
 });
