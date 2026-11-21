@@ -5,6 +5,7 @@ import { classifyReply, getOutreachObservation, salesEmailPermissionBlockReason,
 import { PORTFOLIO_URL, renderProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
 import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "../src/lib/prospectOutreachTemplates.js";
 import { chooseProspectFollowUp, FOLLOW_UP_TEMPLATE_STAGES } from "../src/lib/prospectFollowUpComposer.js";
+import { archiveNoReplyProspect } from "./prospectLifecycle.js";
 import { segmentIntroEvidenceError } from "../src/lib/outreachSegmentation.js";
 import { prepareExperimentCopy } from "../src/lib/outreachExperiments.js";
 
@@ -230,7 +231,7 @@ export async function runSalesDelivery(input: {
         const table = message.prospect_id ? "prospects" : "leads";
         const id = message.prospect_id || message.lead_id;
         const { data: contact } = checked(await db.from(table).select("*").eq("id", id).maybeSingle());
-        if (!contact || [contact.status, contact.outreach_status].some((state) =>
+        if (!contact || contact.outreach_exhausted_at || [contact.status, contact.outreach_status].some((state) =>
           ["won", "lost", "closed", "converted", "paid", "unsubscribed", "replied", "call_booked"].includes(String(state || "").toLowerCase()))) {
           await release({ status: "cancelled", error: "Contact is closed or unavailable" });
           result.deferred++;
@@ -321,7 +322,7 @@ export async function runSalesDelivery(input: {
           continue;
         }
         const replied = (siblings || []).some((row) => row.direction === "inbound" || row.status === "replied");
-        if (!contact || replied || [contact.status, contact.outreach_status].some((status) => STOPPED_CONTACT.includes(String(status).toLowerCase()))) {
+        if (!contact || contact.outreach_exhausted_at || replied || [contact.status, contact.outreach_status].some((status) => STOPPED_CONTACT.includes(String(status).toLowerCase()))) {
           await stopSalesEnrollment(db, enrollment.id, replied ? "Reply received" : "Contact no longer needs automated outreach", now);
           await release({ status: "cancelled" });
           result.deferred++;
@@ -411,14 +412,7 @@ export async function runSalesDelivery(input: {
         } else {
           const { data: reply } = checked(await db.from("sales_messages").select("id")
             .eq("prospect_id", message.prospect_id).eq("direction", "inbound").limit(1).maybeSingle());
-          if (!reply) {
-            checked(await db.from("prospects").update({
-              outreach_status: "lost", status: "lost", next_follow_up_at: null,
-              outreach_exhausted_at: now, updated_at: now,
-            }).eq("id", message.prospect_id).in("outreach_status", ["not_started", "queued", "contacted"]));
-            checked(await db.from("sales_tasks").update({ status: "dismissed", updated_at: now })
-              .eq("prospect_id", message.prospect_id).eq("status", "open").eq("task_type", "follow_up"));
-          }
+          if (!reply) await archiveNoReplyProspect(db, message.prospect_id, now);
         }
       }
       if (message.enrollment_id) {
@@ -438,13 +432,7 @@ export async function runSalesDelivery(input: {
             const { data: reply } = checked(await db.from("sales_messages").select("id")
               .eq("prospect_id", message.prospect_id).eq("direction", "inbound").limit(1).maybeSingle());
             if (!reply) {
-              // Archive rather than delete, retaining history for dedupe and no-contact.
-              checked(await db.from("prospects").update({
-                outreach_status: "lost", status: "lost", next_follow_up_at: null,
-                outreach_exhausted_at: now, updated_at: now,
-              }).eq("id", message.prospect_id).in("outreach_status", ["not_started", "queued", "contacted"]));
-              checked(await db.from("sales_tasks").update({ status: "dismissed", updated_at: now })
-                .eq("prospect_id", message.prospect_id).eq("status", "open").eq("task_type", "follow_up"));
+              await archiveNoReplyProspect(db, message.prospect_id, now);
               checked(await db.from("sales_messages").update({ status: "cancelled", updated_at: now,
                 error: "Prospect sequence exhausted without reply" })
                 .eq("prospect_id", message.prospect_id).is("enrollment_id", null)
@@ -1011,9 +999,9 @@ export async function sendDirectProspectOutreach(
 
   if (!["replied", "call_booked"].includes(String(prospect.outreach_status || ""))) {
     if (followUpStage === 3) {
-      updates.status = "lost";
-      updates.outreach_status = "lost";
-      updates.outreach_exhausted_at = now;
+      // Terminal no-reply handling is finalized below only after the send
+      // has been recorded, with inbound and in-flight safety checks.
+      updates.outreach_status = "contacted";
       updates.next_follow_up_at = null;
     } else {
       updates.outreach_status = "contacted";
@@ -1029,6 +1017,10 @@ export async function sendDirectProspectOutreach(
       .select("*")
       .single(),
   );
+
+  if (followUpStage === 3) {
+    await archiveNoReplyProspect(db, prospect.id, now);
+  }
 
   if (followUpStage) {
     // A manually sent stage closes the due reminder and pending duplicate
