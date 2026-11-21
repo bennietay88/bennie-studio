@@ -22,7 +22,7 @@ export const SalesHome: React.FC = () => {
     since.setDate(1);
     const [leads, prospects, proposals, events] = await Promise.all([
       supabase.from("leads").select("id,name,email,status,next_follow_up_at,automation_next_action,created_at,raw_fields").order("created_at", { ascending: false }).limit(250),
-      supabase.from("prospects").select("id,name,outreach_status,next_follow_up_at,location,industry").order("created_at", { ascending: false }).limit(500),
+      supabase.from("prospects").select("id,name,outreach_status,next_follow_up_at,location,industry").is("outreach_exhausted_at", null).order("created_at", { ascending: false }).limit(500),
       supabase.from("proposals").select("id,status,value,amount,setup_fee,created_at,accepted_at").order("created_at", { ascending: false }).limit(250),
       supabase.from("tracking_events").select("event_type,created_at,metadata").gte("created_at", since.toISOString()).order("created_at", { ascending: false }).limit(100),
     ]);
