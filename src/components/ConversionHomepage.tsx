@@ -69,7 +69,7 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
       <section className="c26-case brand-shell" aria-labelledby="c26-case-title">
         <div className="c26-section-head"><div><h2 id="c26-case-title">Selected website work<span className="c26-dot">.</span></h2></div><p>Explore studio-built website directions shaped around real service-business buying journeys.</p><Link to="/case-studies" className="c26-quiet-link">Browse all case studies <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
         <article className="c26-case-feature">
-          <div className="c26-case-art" aria-label={featuredStudy.title + " website"}><StudioShowcaseVisual study={featuredStudy} compact /></div>
+          <div className="c26-case-art" aria-label={featuredStudy.title + " website"}><img className="c26-case-feature-image" src="/images/bennie-renovation-regenerated-artwork.webp" width={964} height={820} alt="RenovationCo website concept displayed on a laptop against a cobalt studio backdrop" loading="lazy" decoding="async" /></div>
           <div className="c26-case-copy"><span className="c26-case-meta">01 / {featuredStudy.category} · Studio-built</span><h3>{featuredStudy.headline}</h3><p>{featuredStudy.challenge} {featuredStudy.approach}</p><div className="c26-case-tags">{featuredStudy.sections.slice(0, 3).map((section) => <span key={section}>{section}</span>)}</div><Link to={"/case-studies/showcase/" + featuredStudy.slug} className="c26-text-cta" onClick={()=>trackPublicEvent({eventType:"case_study_clicked",label:featuredStudy.title + " case study",target:"/case-studies/showcase/" + featuredStudy.slug})}>Explore this case study <ArrowUpRight size={18} aria-hidden="true"/></Link></div>
         </article>
       </section>
