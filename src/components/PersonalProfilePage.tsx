@@ -1,11 +1,18 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowRight, ArrowUpRight, Check, ChevronDown, Clock3, Globe2, Menu, MonitorSmartphone, ShieldCheck } from "lucide-react";
-import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import {
+  ArrowRight, ArrowUpRight, Check, CheckCircle2, ChevronDown, ClipboardList,
+  Globe2, Layers3, Monitor, MousePointer2, ShieldCheck, Smartphone, Sparkles,
+} from "lucide-react";
+import { PublicSiteHeader, PublicSiteFooter } from "./PublicSiteChrome";
 import { PLAN_DELIVERY_STANDARDS } from "../constants/deliveryStandards";
-import { COMMERCIAL_FALLBACK_PRODUCTS, formatCommercialMoney, getCommercialPrice, getMinimumTermMonths } from "../lib/commercialPricing";
+import {
+  COMMERCIAL_FALLBACK_PRODUCTS, formatCommercialMoney, getCommercialPrice, getMinimumTermMonths,
+} from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
+import { trackPublicEvent } from "../lib/publicTracking";
 import "../styles/publicBrand.css";
 import "../styles/personalProfileSales.css";
 
@@ -15,137 +22,176 @@ const examples = [
   {
     id: "consultant",
     label: "Consultant",
-    name: "Maya Chen",
-    initials: "MC",
-    role: "INDEPENDENT STRATEGY CONSULTANT",
-    headline: "Thoughtful strategy. Real-world momentum.",
-    description: "Helping teams turn complex decisions into confident next steps.",
-    services: ["About", "Approach", "Experience", "Contact"],
-    image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=950&q=85",
-    imageAlt: "Illustrative portrait of a professional woman",
-    style: "consultant",
+    name: "Alex Morgan",
+    role: "Strategy consultant",
+    headline: "Good ideas deserve a clear direction.",
+    intro: "I help teams turn complex problems into practical next steps.",
+    photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=920&q=85",
+    initials: "AM",
+    accent: "navy",
+    tabs: ["About", "Experience", "Contact"],
   },
   {
     id: "creative",
     label: "Creative",
-    name: "Jordan Lee",
+    name: "Jamie Lee",
+    role: "Independent creative",
+    headline: "Independent by choice. Creative by nature.",
+    intro: "A considered collection of work, ideas and collaborations.",
+    photo: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=920&q=85",
     initials: "JL",
-    role: "INDEPENDENT CREATIVE PROFESSIONAL",
-    headline: "Creative work with a point of view.",
-    description: "A focused home for selected work, ideas and collaborations.",
-    services: ["About", "Work", "Experience", "Contact"],
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=950&q=85",
-    imageAlt: "Illustrative portrait of a professional man",
-    style: "creative",
+    accent: "slate",
+    tabs: ["About", "Selected work", "Contact"],
   },
   {
     id: "specialist",
     label: "Specialist",
-    name: "Alex Rivera",
-    initials: "AR",
-    role: "INDEPENDENT PROFESSIONAL",
-    headline: "Expertise you can understand. People you can reach.",
-    description: "Clear information about specialist services and professional experience.",
-    services: ["About", "Expertise", "Background", "Contact"],
-    image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=950&q=85",
-    imageAlt: "Illustrative portrait of a professional woman",
-    style: "specialist",
+    name: "Taylor Chen",
+    role: "Professional specialist",
+    headline: "Expertise you can get to know.",
+    intro: "Clear information about my approach, background and services.",
+    photo: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=920&q=85",
+    initials: "TC",
+    accent: "steel",
+    tabs: ["Profile", "Expertise", "Contact"],
   },
 ] as const;
 
+type ExampleId = (typeof examples)[number]["id"];
+
 const benefits = [
-  {
-    number: "01",
-    title: "Look credible before the first conversation.",
-    copy: "Give prospective clients a polished place to understand your work, background and professional identity.",
-  },
-  {
-    number: "02",
-    title: "Put everything important in one link.",
-    copy: "Instead of sending people across different profiles, bring your introduction, experience and contact details together.",
-  },
-  {
-    number: "03",
-    title: "Stay visible without maintaining a website.",
-    copy: "We take care of hosting, routine maintenance and your included small monthly content edit.",
-  },
+  { icon: Monitor, title: "Build your credibility", text: "One professional place to show who you are, what you do and why someone should contact you." },
+  { icon: MousePointer2, title: "Make enquiries easier", text: "Bring your story, relevant work and contact details together instead of sending people between profiles." },
+  { icon: Layers3, title: "Leave the technical work to us", text: "Your site is hosted and maintained for you, with a small monthly content-update allowance." },
 ] as const;
 
 const steps = [
-  { number: "01", title: "Tell us about you", copy: "Share your approved biography, experience, photos and preferred way for clients to get in touch." },
-  { number: "02", title: "We make it yours", copy: "We arrange the information into a responsive, fixed-format profile and prepare a first draft for your review." },
-  { number: "03", title: "Approve, launch, stay supported", copy: "Request one consolidated pre-launch revision, approve the site, and leave the hosting and upkeep to us." },
+  { icon: ClipboardList, title: "Tell us about you", text: "Share your approved bio, professional background, images and contact details." },
+  { icon: Monitor, title: "We build your website", text: "We put your content into the agreed fixed-format pages and prepare a draft for review." },
+  { icon: CheckCircle2, title: "Approve, launch and relax", text: "You review the website before launch. We continue managing its hosting and routine upkeep." },
 ] as const;
 
 const faqs = [
-  ["Is this a custom-designed website?", "This is a streamlined, fixed-format Personal Profile service, with 3–5 pages. It is not a fully bespoke website or an advanced web application."],
-  ["What do I need to provide?", "An accurate biography, credentials, services or work examples, any approved images and your contact details. We organise this information; custom copywriting is not included."],
-  ["Can I connect my existing domain?", "Yes. We can help connect a domain you own. Domain registration and renewal charges are separate, and the domain remains yours."],
-  ["What happens after launch?", "Your plan includes managed hosting, maintenance and one small content-edit request each month, up to 15 minutes. Larger changes are separately scoped."],
-  ["How does the commitment work?", "The standard initial term is three months. The service then continues month to month unless your accepted order says otherwise. Review cancellation and handover terms before checkout."],
+  ["Do I need any technical experience?", "No. Bennie Studio handles the website build, hosting, SSL and routine maintenance. You'll provide or approve the information about yourself."],
+  ["Is the design fully custom?", "Personal Profile is a streamlined, fixed-format service with 3–5 professional profile pages. Bespoke features and complex integrations are separately scoped."],
+  ["Can I use a domain I own?", "Yes. We can assist with connecting your existing domain. Registration and renewal fees are not included in the standard plan."],
+  ["What happens after launch?", "Your plan includes hosting, routine maintenance and one small content-edit request per month (up to 15 minutes). Larger changes are separately scoped."],
+  ["What is the billing commitment?", "The standard initial term is three months, then month to month unless your accepted order states otherwise. You review the full terms before payment."],
 ] as const;
 
-function SampleProfile() {
-  const [active, setActive] = React.useState<(typeof examples)[number]["id"]>("consultant");
-  const [imageFailed, setImageFailed] = React.useState(false);
-  const current = examples.find((example) => example.id === active) || examples[0];
+function Reveal({ children, className = "", delay = 0 }: {
+  children: React.ReactNode; className?: string; delay?: number;
+}) {
+  const reduce = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={reduce ? false : { opacity: 0, y: 22 }}
+      whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.14 }}
+      transition={{ duration: 0.58, delay, ease: "easeOut" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
-  const choose = (id: (typeof examples)[number]["id"]) => {
-    setActive(id);
-    setImageFailed(false);
-  };
+function OrderLink({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <Link
+      to={ORDER_URL}
+      className={"pp2-button pp2-button-primary " + className}
+      onClick={() => trackPublicEvent({
+        eventType: "sales_cta_clicked", label: "Personal Profile — Get my website", target: ORDER_URL,
+      })}
+    >{children}<ArrowRight size={17} aria-hidden="true" /></Link>
+  );
+}
+
+function ExampleShowcase() {
+  const [active, setActive] = React.useState<ExampleId>("consultant");
+  const [failedImages, setFailedImages] = React.useState<ExampleId[]>([]);
+  const reduce = useReducedMotion();
+  const current = examples.find((example) => example.id === active) || examples[0];
+  const portraitReady = !failedImages.includes(current.id);
 
   return (
-    <div className="pp-sales-showcase">
-      <div className="pp-sales-showcase-title">
-        <span className="pp-sales-demo-dot" />
-        YOUR WEBSITE, YOUR FIRST IMPRESSION
-        <span className="pp-sales-demo-label">Illustrative concepts</span>
+    <div className="pp2-showcase" id="profile-examples">
+      <div className="pp2-sample-header">
+        <span className="pp2-sample-eyebrow">WHAT YOUR WEBSITE COULD LOOK LIKE</span>
+        <span className="pp2-sample-count">01 / 03</span>
       </div>
-      <div className="pp-sales-browser" aria-label="Interactive illustrative professional website example">
-        <div className="pp-sales-browser-bar">
-          <span className="pp-sales-browser-dots"><i /><i /><i /></span>
-          <span className="pp-sales-browser-url"><Globe2 size={12} aria-hidden="true" /> yourname.com</span>
-          <Menu size={14} aria-hidden="true" />
-        </div>
-        <div key={current.id} className={"pp-sales-demo pp-sales-demo-" + current.style}>
-          <div className="pp-sales-demo-nav">
-            <strong>{current.name}<span className="pp-sales-name-dot">.</span></strong>
-            <span>About <b>·</b> Work <b>·</b> Contact</span>
-          </div>
-          <div className="pp-sales-demo-main">
-            <div className="pp-sales-demo-copy">
-              <p className="pp-sales-demo-kicker">{current.role}</p>
-              <h3>{current.headline}</h3>
-              <p className="pp-sales-demo-description">{current.description}</p>
-              <span className="pp-sales-demo-contact">Let's connect <ArrowUpRight size={14} aria-hidden="true" /></span>
+      <div className="pp2-device-stage" aria-label="Responsive sample personal website, shown on desktop and phone">
+        <div className="pp2-laptop">
+          <div className="pp2-laptop-screen">
+            <div className="pp2-laptop-glass">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={current.id}
+                  className={"pp2-example-site pp2-example-site-" + current.accent}
+                  initial={reduce ? false : { opacity: 0, x: 14 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={reduce ? undefined : { opacity: 0, x: -10 }}
+                  transition={{ duration: reduce ? 0 : 0.27, ease: "easeOut" }}
+                >
+                  <div className="pp2-example-nav">
+                    <strong>{current.name}<i>.</i></strong>
+                    <span>About</span><span>Work</span><span>Contact</span>
+                  </div>
+                  <div className="pp2-example-content">
+                    <div className="pp2-example-copy">
+                      <span className="pp2-example-kicker">HELLO, I'M {current.name.toUpperCase()}</span>
+                      <h3>{current.headline}</h3>
+                      <p className="pp2-example-role">{current.role}</p>
+                      <p className="pp2-example-intro">{current.intro}</p>
+                      <div className="pp2-example-actions">
+                        <span>About me</span><span>Get in touch <ArrowUpRight size={10} /></span>
+                      </div>
+                    </div>
+                    <div className="pp2-example-photo">
+                      {portraitReady ? <img
+                        src={current.photo}
+                        alt={"Illustrative professional portrait for " + current.role + " website example"}
+                        loading="eager"
+                        referrerPolicy="no-referrer"
+                        onError={() => setFailedImages((prev) => prev.includes(current.id) ? prev : [...prev, current.id])}
+                      /> : <span>{current.initials}</span>}
+                    </div>
+                  </div>
+                  <div className="pp2-example-bottom">
+                    {current.tabs.map((tab, index) => <span key={tab}><small>0{index + 1}</small> {tab}</span>)}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
             </div>
-            <div className="pp-sales-demo-photo-wrap">
-              {!imageFailed ? <img
-                key={current.image}
-                src={current.image}
-                alt={current.imageAlt}
-                loading="eager"
-                referrerPolicy="no-referrer"
-                onError={() => setImageFailed(true)}
-              /> : <span className="pp-sales-photo-fallback">{current.initials}</span>}
+          </div>
+          <div className="pp2-laptop-base" aria-hidden="true"><span /></div>
+        </div>
+        <div className="pp2-phone" aria-hidden="true">
+          <div className="pp2-phone-notch" />
+          <div className="pp2-phone-content">
+            <div className="pp2-phone-top"><strong>{current.name}</strong><span>☰</span></div>
+            <div className="pp2-phone-photo">
+              {portraitReady ? <img src={current.photo} alt="" referrerPolicy="no-referrer" /> : <span>{current.initials}</span>}
             </div>
-          </div>
-          <div className="pp-sales-demo-footer">
-            {current.services.map((service, index) => <span key={service}><small>0{index + 1}</small> {service}</span>)}
+            <h4>{current.name}</h4>
+            <p>{current.role}</p>
+            <span className="pp2-phone-action">Get in touch</span>
           </div>
         </div>
+        <div className="pp2-device-shadow" aria-hidden="true" />
       </div>
-      <div className="pp-sales-samples">
-        <p>Picture your profile as a</p>
-        <div role="group" aria-label="View example profile types">
-          {examples.map((example) => (
-            <button key={example.id} type="button" aria-pressed={active === example.id}
-              onClick={() => choose(example.id)}>{example.label}</button>
-          ))}
-        </div>
+      <div className="pp2-example-switcher" role="group" aria-label="Switch illustrative personal website example">
+        {examples.map((example) => (
+          <button
+            key={example.id}
+            type="button"
+            aria-pressed={active === example.id}
+            onClick={() => setActive(example.id)}
+          >{example.label}</button>
+        ))}
       </div>
-      <p className="pp-sales-image-note">Sample names, content and stock imagery are illustrative, not actual customer sites.</p>
+      <p className="pp2-example-disclaimer">Illustrative concepts with sample names and stock photography — not real client projects or testimonials.</p>
     </div>
   );
 }
@@ -162,176 +208,164 @@ export default function PersonalProfilePage() {
   const setupLabel = priceReady ? formatCommercialMoney(price!.setupFee, price!.currency) : null;
   const firstPayment = priceReady ? formatCommercialMoney(price!.monthlyPrice! + price!.setupFee, price!.currency) : null;
   const termTotal = priceReady ? formatCommercialMoney(price!.setupFee + price!.monthlyPrice! * term, price!.currency) : null;
+  const reduceMotion = useReducedMotion();
 
   return (
-    <div className="brand-public pp-sales-root">
+    <div className="brand-public pp2-root">
       <Helmet>
-        <title>Personal Websites for Professionals | Bennie Studio</title>
-        <meta name="description" content="Make a stronger first impression with your own professionally managed personal website. See real plan inclusions, clear prices and how to get started." />
+        <title>Personal Profile Website — Built & Managed for You | Bennie Studio</title>
+        <meta name="description" content="A professional personal website for consultants, creatives and independent professionals. Bennie Studio builds it, hosts it and handles ongoing maintenance. See the verified Personal Profile plan." />
         <link rel="canonical" href="https://app.bennietay.com/personal-profile" />
       </Helmet>
       <PublicSiteHeader />
-      <main className="pp-sales">
-        <div className="pp-sales-offer-nav">
-          <div className="pp-sales-wrap">
-            <span>Personal Profile <span className="pp-sales-offer-sep">/</span> A website of your own</span>
-            <Link to={ORDER_URL}>Get my website <ArrowRight size={15} aria-hidden="true" /></Link>
+      <main className="pp2-page">
+        <div className="pp2-local-nav">
+          <div className="pp2-container pp2-local-nav-inner">
+            <span>Personal Profile <span className="pp2-local-divider">/</span> By Bennie Studio</span>
+            <nav aria-label="Personal Profile sections"><a href="#why-personal">Benefits</a><a href="#how-profile-works">Process</a><a href="#personal-pricing">Pricing</a><a href="#personal-faq">FAQ</a></nav>
+            <Link className="pp2-local-cta" to={ORDER_URL}>Get my website <ArrowRight size={14} aria-hidden="true" /></Link>
           </div>
         </div>
 
-        <section className="pp-sales-hero">
-          <div className="pp-sales-wrap pp-sales-hero-layout">
-            <div className="pp-sales-hero-copy">
-              <p className="pp-sales-eyebrow"><span /> MADE FOR INDEPENDENT PROFESSIONALS</p>
-              <h1>Make your first impression <em>count.</em></h1>
-              <p className="pp-sales-lead">
-                You're more than a job title or a social profile. Give people one beautiful place to discover your expertise, see what you do and get in touch.
-              </p>
-              <p className="pp-sales-lead-secondary">We build your personal website. We host it. We look after it.</p>
-              <div className="pp-sales-hero-actions">
-                <Link to={ORDER_URL} className="pp-sales-button pp-sales-button-primary">
-                  Get my personal website <ArrowRight size={18} aria-hidden="true" />
-                </Link>
-                <a href="#personal-examples" className="pp-sales-button pp-sales-button-outline">See how it could look <ChevronDown size={17} aria-hidden="true" /></a>
+        <section className="pp2-hero" aria-labelledby="pp2-hero-title">
+          <div className="pp2-hero-glow" aria-hidden="true" />
+          <div className="pp2-container pp2-hero-grid">
+            <div className="pp2-hero-copy">
+              <motion.p
+                className="pp2-eyebrow"
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}
+              >PERSONAL PROFILE BY BENNIE STUDIO</motion.p>
+              <motion.h1
+                id="pp2-hero-title"
+                initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.58, delay: 0.08 }}
+              >A professional website for you. <span>Managed by us.</span></motion.h1>
+              <motion.p
+                className="pp2-hero-subtitle"
+                initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.58, delay: 0.17 }}
+              >Show people who you are, what you do and why they should reach out — without the hassle of building and maintaining a website yourself.</motion.p>
+              <motion.div className="pp2-hero-buttons"
+                initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.54, delay: 0.26 }}>
+                <OrderLink>Get my personal website</OrderLink>
+                <a href="#profile-examples" className="pp2-button pp2-button-outline">See website examples <ArrowUpRight size={16} aria-hidden="true" /></a>
+              </motion.div>
+              <div className="pp2-hero-qualities">
+                <span><CheckCircle2 size={16} /> Professionally built</span>
+                <span><ShieldCheck size={16} /> Fully managed</span>
+                <span><Globe2 size={16} /> Your own domain</span>
               </div>
-              <div className="pp-sales-hero-price" aria-live="polite">
-                <span className="pp-sales-hero-price-label">Simple, managed pricing</span>
-                <strong>{monthlyLabel || (loading ? "Checking live price…" : "See current price")}</strong>
-                {monthlyLabel && <span>per month <b>+</b> {setupLabel} one-time setup</span>}
-              </div>
-              <div className="pp-sales-hero-assurances">
-                <span><Check size={15} aria-hidden="true" /> Your domain stays yours</span>
-                <span><Check size={15} aria-hidden="true" /> No technical upkeep</span>
+              <div className="pp2-hero-price" aria-live="polite">
+                <div><strong>{monthlyLabel || (loading ? "Checking current price…" : "Pricing unavailable")}</strong>{monthlyLabel && <span>/ month</span>}</div>
+                <p>{setupLabel ? setupLabel + " one-time setup · Standard " + term + "-month initial term" : "Verified price will be shown in the order review."}</p>
               </div>
             </div>
-            <div className="pp-sales-hero-visual" id="personal-examples">
-              <SampleProfile />
-            </div>
+            <motion.div className="pp2-hero-display" initial={reduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}>
+              <ExampleShowcase />
+            </motion.div>
           </div>
         </section>
 
-        <div className="pp-sales-proof-strip">
-          <div className="pp-sales-wrap">
-            <span>3–5 professional pages</span><span>Mobile-friendly design</span><span>Hosting & maintenance managed</span><span>Monthly content care</span>
-          </div>
-        </div>
-
-        <section className="pp-sales-value pp-sales-wrap" aria-labelledby="pp-value-title">
-          <div className="pp-sales-section-intro">
-            <p className="pp-sales-kicker">WHY HAVE YOUR OWN WEBSITE?</p>
-            <h2 id="pp-value-title">A better place to send people who want to know <em>more about you.</em></h2>
-            <p>Social profiles help people find you. Your own website helps them understand you—without distractions, competing posts or scattered links.</p>
-          </div>
-          <div className="pp-sales-benefit-grid">
-            {benefits.map((benefit) => (
-              <article className="pp-sales-benefit" key={benefit.number}>
-                <span>{benefit.number}</span>
-                <h3>{benefit.title}</h3>
-                <p>{benefit.copy}</p>
-              </article>
-            ))}
+        <section className="pp2-benefits pp2-container" id="why-personal" aria-label="Personal website benefits">
+          <div className="pp2-benefit-grid">
+            {benefits.map((item, i) => {
+              const Icon = item.icon;
+              return <Reveal key={item.title} delay={i * 0.08} className="pp2-benefit">
+                <span className="pp2-benefit-icon"><Icon size={23} strokeWidth={1.8} aria-hidden="true" /></span>
+                <div><h2>{item.title}</h2><p>{item.text}</p></div>
+              </Reveal>;
+            })}
           </div>
         </section>
 
-        <section className="pp-sales-includes" aria-labelledby="pp-includes-title">
-          <div className="pp-sales-wrap pp-sales-includes-grid">
-            <div className="pp-sales-includes-intro">
-              <p className="pp-sales-kicker">THE WEBSITE · WHAT'S INCLUDED</p>
-              <h2 id="pp-includes-title">Not just a page with your name on it.</h2>
-              <p>Your personal website is thoughtfully structured to tell your story and make the next step obvious.</p>
-              <Link to={ORDER_URL} className="pp-sales-text-link">Start with Personal Profile <ArrowUpRight size={17} aria-hidden="true" /></Link>
+        <section className="pp2-section pp2-process-band" id="how-profile-works" aria-labelledby="pp2-process-title">
+          <div className="pp2-container">
+            <Reveal className="pp2-section-heading pp2-process-heading">
+              <p className="pp2-eyebrow">SIMPLE PROCESS</p>
+              <h2 id="pp2-process-title">Your website in three straightforward steps.</h2>
+              <p>From your professional story to a website you can share.</p>
+            </Reveal>
+            <div className="pp2-step-grid">
+              {steps.map((step, i) => {
+                const Icon = step.icon;
+                return <Reveal key={step.title} delay={i * 0.1} className="pp2-step">
+                  <span className="pp2-step-num">0{i + 1}</span>
+                  <span className="pp2-step-icon"><Icon size={24} strokeWidth={1.8} aria-hidden="true" /></span>
+                  <h3>{step.title}</h3><p>{step.text}</p>
+                </Reveal>;
+              })}
             </div>
-            <div className="pp-sales-page-list">
-              {[
-                ["01", "An introduction that sounds like you", "Who you are, what you do and the people you help."],
-                ["02", "Your experience and expertise", "An easy-to-follow story built from the credentials and information you approve."],
-                ["03", "Work worth showing", "Selected projects, experience or professional highlights, where available."],
-                ["04", "One clear way to reach you", "Contact details and links that help the right people start a conversation."],
-              ].map(([number, title, copy]) => (
-                <div className="pp-sales-page-row" key={number}>
-                  <span>{number}</span><div><h3>{title}</h3><p>{copy}</p></div><ArrowUpRight size={17} aria-hidden="true" />
-                </div>
-              ))}
-              <p className="pp-sales-pages-footnote">Pages and sections are arranged within the agreed {delivery.pages.toLowerCase()}.</p>
-            </div>
+            <p className="pp2-process-footnote">{delivery.targetFirstDraft}, subject to receiving your complete brief and assets.</p>
           </div>
         </section>
 
-        <section className="pp-sales-process pp-sales-wrap" aria-labelledby="pp-process-title">
-          <div className="pp-sales-section-intro pp-sales-intro-compact">
-            <p className="pp-sales-kicker">BUILT & MAINTAINED · YOU DON'T HAVE TO DIY</p>
-            <h2 id="pp-process-title">Your story. <em>Our work.</em></h2>
-            <p>You'll always approve how you're presented. We handle the build and the ongoing essentials.</p>
-          </div>
-          <ol className="pp-sales-steps">
-            {steps.map((step) => (
-              <li key={step.number}><span>{step.number}</span><div><h3>{step.title}</h3><p>{step.copy}</p></div></li>
-            ))}
-          </ol>
-          <p className="pp-sales-process-note"><Clock3 size={17} aria-hidden="true" /> {delivery.targetFirstDraft}. Timing begins after the complete brief and assets are received.</p>
-        </section>
-
-        <section className="pp-sales-buy" id="personal-profile-price" aria-labelledby="pp-price-title">
-          <div className="pp-sales-wrap pp-sales-buy-grid">
-            <div className="pp-sales-buy-copy">
-              <p className="pp-sales-kicker">CLEAR SCOPE & PRICING</p>
-              <h2 id="pp-price-title">Your professional presence, <em>taken care of.</em></h2>
-              <p>The essentials of a credible personal website, without the responsibility of building or maintaining it yourself.</p>
-              <div className="pp-sales-included-list">
-                {[delivery.pages, delivery.revisions, delivery.updates, delivery.seo, "Managed hosting and routine maintenance", "Support connecting a customer-owned domain"].map((item) => (
-                  <div key={item}><Check size={18} aria-hidden="true" /><span>{item}</span></div>
-                ))}
+        <section className="pp2-section pp2-pricing" id="personal-pricing" aria-labelledby="pp2-pricing-title">
+          <div className="pp2-container pp2-pricing-layout">
+            <Reveal className="pp2-pricing-intro">
+              <p className="pp2-eyebrow">ONE CLEAR PLAN</p>
+              <h2 id="pp2-pricing-title">Your professional presence, taken care of.</h2>
+              <p>Not a do-it-yourself website builder. A fixed-format professional website that Bennie Studio creates, hosts and supports.</p>
+              <div className="pp2-included">
+                {[delivery.pages, delivery.revisions, delivery.updates, delivery.seo, "Managed hosting, SSL and routine maintenance", "Support connecting a customer-owned domain"].map((item) =>
+                  <div key={item}><Check size={17} aria-hidden="true" /><span>{item}</span></div>
+                )}
               </div>
-              <p className="pp-sales-scope-note">You supply or approve your biography, images and experience. Bespoke copywriting, advanced integrations and domain registration are not included.</p>
-            </div>
-            <div className="pp-sales-price-card">
-              <div className="pp-sales-price-head">
-                <span>YOUR PERSONAL PROFILE PLAN</span><span className="pp-sales-managed-label"><ShieldCheck size={14} aria-hidden="true" /> Fully managed</span>
-                <div className="pp-sales-price-amount" aria-live="polite">
+              <p className="pp2-scope-note">You provide or approve your biography, imagery and credentials. Bespoke copywriting, domain registration and advanced integrations are separately scoped.</p>
+            </Reveal>
+            <Reveal className="pp2-price-card" delay={0.12}>
+              <div className="pp2-card-top">
+                <span className="pp2-card-label">PERSONAL PROFILE PLAN</span>
+                <span className="pp2-card-flag"><Sparkles size={13} aria-hidden="true" /> Built & managed</span>
+                <div className="pp2-card-price" aria-live="polite">
                   <strong>{monthlyLabel || (loading ? "Checking…" : "Unavailable")}</strong>
                   {monthlyLabel && <span>/month</span>}
                 </div>
-                <p>{setupLabel ? setupLabel + " one-time website setup" : "Live pricing must be verified before ordering."}</p>
+                <p>{setupLabel ? "+ " + setupLabel + " one-time setup" : "Live pricing is required before checkout."}</p>
               </div>
-              <div className="pp-sales-price-detail">
-                {priceReady && <dl>
-                  <div><dt>First payment</dt><dd>{firstPayment}</dd></div>
-                  <div><dt>Standard initial commitment</dt><dd>{term} months</dd></div>
-                  <div><dt>Total for initial term, before tax</dt><dd>{termTotal}</dd></div>
-                </dl>}
-                <Link to={ORDER_URL} className="pp-sales-button pp-sales-button-checkout">Get my personal website <ArrowRight size={19} aria-hidden="true" /></Link>
-                <p className="pp-sales-price-reassurance">Review the full order, scope and terms before payment. Afterwards, monthly billing continues unless the accepted order states otherwise.</p>
-                <div className="pp-sales-price-bottom"><MonitorSmartphone size={17} aria-hidden="true" /> Mobile-ready website <span>·</span> <Globe2 size={17} aria-hidden="true" /> Managed hosting</div>
+              <div className="pp2-card-bottom">
+                <div className="pp2-card-row"><span>First payment</span><strong>{firstPayment || "—"}</strong></div>
+                <div className="pp2-card-row"><span>Initial term</span><strong>{term} months</strong></div>
+                <div className="pp2-card-row"><span>Total for initial term, before tax</span><strong>{termTotal || "—"}</strong></div>
+                <OrderLink className="pp2-card-cta">Get my personal website</OrderLink>
+                <p className="pp2-card-disclaimer">Review exact scope and terms before payment. The plan continues month to month after the standard initial term unless your accepted order says otherwise.</p>
               </div>
-            </div>
+            </Reveal>
           </div>
         </section>
 
-        <section className="pp-sales-faq pp-sales-wrap" aria-labelledby="pp-faq-title">
-          <div className="pp-sales-faq-header">
-            <div><p className="pp-sales-kicker">GOOD TO KNOW</p><h2 id="pp-faq-title">Questions before you get started?</h2></div>
-            <Link to="/contact" className="pp-sales-text-link">Ask Bennie Studio <ArrowUpRight size={17} aria-hidden="true" /></Link>
-          </div>
-          <div className="pp-sales-faq-list">
-            {faqs.map(([question, answer]) => (
-              <details key={question}>
-                <summary>{question} <span aria-hidden="true">+</span></summary>
+        <section className="pp2-section pp2-faq" id="personal-faq" aria-labelledby="pp2-faq-title">
+          <div className="pp2-container pp2-faq-layout">
+            <Reveal className="pp2-faq-heading">
+              <p className="pp2-eyebrow">FREQUENTLY ASKED QUESTIONS</p>
+              <h2 id="pp2-faq-title">A few things worth knowing.</h2>
+              <p>Clear answers before you choose.</p>
+            </Reveal>
+            <Reveal className="pp2-faq-list" delay={0.08}>
+              {faqs.map(([question, answer]) => <details key={question}>
+                <summary>{question}<ChevronDown size={18} aria-hidden="true" /></summary>
                 <p>{answer}</p>
-              </details>
-            ))}
+              </details>)}
+            </Reveal>
           </div>
         </section>
 
-        <section className="pp-sales-closing">
-          <div className="pp-sales-wrap">
-            <p className="pp-sales-kicker">YOUR NEXT STEP</p>
-            <h2>It's time your name had a <em>home of its own.</em></h2>
-            <p>One professional website. One place to tell your story. A team to keep it running.</p>
-            <Link to={ORDER_URL} className="pp-sales-button pp-sales-button-primary">Get my personal website <ArrowRight size={18} aria-hidden="true" /></Link>
+        <section className="pp2-final" aria-labelledby="pp2-final-title">
+          <div className="pp2-container pp2-final-layout">
+            <Reveal>
+              <p className="pp2-eyebrow">YOUR NEXT STEP</p>
+              <h2 id="pp2-final-title">Ready for a personal website that works for you?</h2>
+              <p>A clearer introduction. A professional place to be found. Managed by Bennie Studio.</p>
+            </Reveal>
+            <Reveal className="pp2-final-action" delay={0.12}>
+              <OrderLink>Get my personal website</OrderLink>
+              <span><ShieldCheck size={16} aria-hidden="true" /> Review everything before payment</span>
+            </Reveal>
           </div>
         </section>
       </main>
-      <PublicSiteFooter tagline="Bennie Studio builds and manages professional websites that help people understand your work and get in touch." />
+      <PublicSiteFooter tagline="Managed professional websites that make it easy to understand your work and get in touch." />
     </div>
   );
 }
