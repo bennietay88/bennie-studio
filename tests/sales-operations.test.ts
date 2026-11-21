@@ -6,6 +6,7 @@ import {
 } from "../server/salesOperations.ts";
 import { classifyReply, getOutreachObservation, hasDocumentedMarketingConsent, toLocalFollowUpInput } from "../src/lib/salesAutomation.ts";
 import { parseProspectCsv } from "../src/lib/prospectImport.ts";
+import { archiveNoReplyProspect, reactivateArchivedProspect } from "../server/prospectLifecycle.ts";
 
 type Row = Record<string, any>;
 const NOW = "2026-08-31T10:00:00.000Z";
@@ -563,4 +564,73 @@ test("follow-up datetime input preserves local wall-clock time, not UTC", () => 
     assert.equal(toLocalFollowUpInput(null), "");
     assert.equal(toLocalFollowUpInput("invalid"), "");
   } finally { if (before === undefined) delete process.env.TZ; else process.env.TZ = before; }
+});
+
+
+test("completed no-reply outreach archives in place and cancels pending work idempotently", async () => {
+  const db = new MemoryDb({
+    prospects: [{ id: "p1", name: "Example Clinic", contact_email: "clinic@example.com",
+      status: "qualified", outreach_status: "contacted", next_follow_up_at: NOW }],
+    sales_messages: [
+      { id: "sent1", prospect_id: "p1", direction: "outbound", status: "sent", sent_at: NOW },
+      { id: "pending1", prospect_id: "p1", direction: "outbound", status: "queued" },
+    ],
+    sales_tasks: [{ id: "task1", prospect_id: "p1", task_type: "follow_up", status: "open" }],
+    outreach_enrollments: [{ id: "e1", prospect_id: "p1", status: "active" }],
+  });
+  assert.equal(await archiveNoReplyProspect(db as any, "p1", NOW), true);
+  assert.equal(await archiveNoReplyProspect(db as any, "p1", NOW), false);
+  assert.equal(db.tables.prospects[0].outreach_exhausted_at, NOW);
+  assert.equal(db.tables.prospects[0].next_follow_up_at, null);
+  assert.equal(db.tables.prospects[0].outreach_status, "lost");
+  assert.equal(db.tables.sales_messages.find(m => m.id === "sent1")?.status, "sent");
+  assert.equal(db.tables.sales_messages.find(m => m.id === "pending1")?.status, "cancelled");
+  assert.equal(db.tables.sales_tasks[0].status, "dismissed");
+  assert.equal(db.tables.outreach_enrollments[0].status, "stopped");
+});
+
+test("a human reply, a converted customer or an in-flight delivery prevents no-reply archival", async () => {
+  for (const variant of ["reply", "converted", "sending"]) {
+    const db = new MemoryDb({
+      prospects: [{ id: "p1", status: "qualified", outreach_status: "contacted",
+        ...(variant === "converted" ? { converted_business_id: "business-1" } : {}) }],
+      sales_messages: variant === "reply" ? [{ id: "reply", prospect_id: "p1", direction: "inbound" }] :
+        variant === "sending" ? [{ id: "sending", prospect_id: "p1", status: "sending" }] : [],
+    });
+    assert.equal(await archiveNoReplyProspect(db as any, "p1", NOW), false, variant);
+    assert.equal(db.tables.prospects[0].outreach_exhausted_at, undefined);
+  }
+});
+
+test("reactivation requires archived state and never sends or resets previous communications", async () => {
+  const db = new MemoryDb({
+    prospects: [{ id: "p1", name: "Example Clinic", contact_email: "clinic@example.com",
+      status: "lost", outreach_status: "lost", outreach_exhausted_at: NOW,
+      marketing_consent: false, next_follow_up_at: null }],
+    sales_messages: [{ id: "sent1", prospect_id: "p1", direction: "outbound", status: "sent" }],
+    outreach_enrollments: [{ id: "old", prospect_id: "p1", status: "completed" }],
+  });
+  const restored = await reactivateArchivedProspect(db as any, "p1", "2026-09-22T10:00:00Z");
+  assert.equal(restored.outreach_exhausted_at, null);
+  assert.equal(restored.outreach_status, "not_started");
+  assert.equal(restored.next_follow_up_at, null);
+  assert.equal(restored.marketing_consent, false);
+  assert.equal(db.tables.sales_messages[0].status, "sent");
+  assert.equal(db.tables.outreach_enrollments[0].status, "completed");
+  await assert.rejects(reactivateArchivedProspect(db as any, "p1", NOW), /PROSPECT_NOT_ARCHIVED/);
+});
+
+test("reactivation fails closed on suppression, active enrollment, sending and conversions", async () => {
+  for (const variant of ["suppressed", "active", "sending", "converted"]) {
+    const db = new MemoryDb({
+      prospects: [{ id: "p1", contact_email: "clinic@example.com", status: "lost",
+        outreach_status: "lost", outreach_exhausted_at: NOW,
+        ...(variant === "converted" ? { converted_business_id: "b1" } : {}) }],
+      sales_suppressions: variant === "suppressed" ? [{ id: "s1", email: "clinic@example.com" }] : [],
+      outreach_enrollments: variant === "active" ? [{ id: "e1", prospect_id: "p1", status: "active" }] : [],
+      sales_messages: variant === "sending" ? [{ id: "m1", prospect_id: "p1", status: "sending" }] : [],
+    });
+    await assert.rejects(reactivateArchivedProspect(db as any, "p1", NOW));
+    assert.equal(db.tables.prospects[0].outreach_exhausted_at, NOW);
+  }
 });

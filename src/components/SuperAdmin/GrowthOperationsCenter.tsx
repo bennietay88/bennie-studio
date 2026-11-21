@@ -66,7 +66,7 @@ export function GrowthOperationsCenter() {
   const load = useCallback(async () => {
     setLoading(true);
     const sources = [
-      ["prospects", supabase.from("prospects").select("*").order("created_at", { ascending: false }).limit(150)],
+      ["prospects", supabase.from("prospects").select("*").is("outreach_exhausted_at", null).order("created_at", { ascending: false }).limit(150)],
       ["leads", supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(150)],
       ["tasks", supabase.from("sales_tasks").select("*").order("due_at", { ascending: true }).limit(150)],
       ["proposals", supabase.from("proposals").select("*").order("updated_at", { ascending: false }).limit(100)],
@@ -126,6 +126,7 @@ export function GrowthOperationsCenter() {
     let cancelled = false;
     const from = previewPage * PREVIEW_PAGE_SIZE;
     void supabase.from("prospects").select("*", { count: "exact" })
+      .is("outreach_exhausted_at", null)
       .is("preview_url", null)
       .or("status.is.null,status.neq.lost")
       .order("created_at", { ascending: false })
@@ -146,7 +147,7 @@ export function GrowthOperationsCenter() {
 
   useEffect(() => {
     let cancelled = false;
-    const active = (query: any) => query.or("status.is.null,status.neq.lost");
+    const active = (query: any) => query.is("outreach_exhausted_at", null).or("status.is.null,status.neq.lost");
     void Promise.all([
       active(supabase.from("prospects").select("id", { count: "exact", head: true })),
       active(supabase.from("prospects").select("id", { count: "exact", head: true }).not("preview_url", "is", null)),

@@ -68,6 +68,7 @@ import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
 import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, renderProspectInitialEmail, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { buildProspectFollowUpPlan, bulkManageProspectFollowUps, scheduleProspectFollowUpPlan, syncProspectNextFollowUp } from "../server/prospectFollowUps.js";
+import { reactivateArchivedProspect } from "../server/prospectLifecycle.js";
 import { registerOutreachCompletionRoutes } from "../server/outreachCompletionRoutes.js";
 import { attachUploaderOutreachDeclaration, parseProspectCsv } from "../src/lib/prospectImport.js";
 import { scoreProspect } from "../src/lib/prospectScoring.js";
@@ -8351,10 +8352,10 @@ async function startServer() {
       const profile = await getProfileForUser(req.user.id);
       if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
       const { data: prospect, error } = await supabaseAdmin.from("prospects")
-        .select("id,name,contact_email,status,outreach_status,converted_business_id").eq("id", id).maybeSingle();
+        .select("id,name,contact_email,status,outreach_status,outreach_exhausted_at,converted_business_id").eq("id", id).maybeSingle();
       if (error) throw error;
       if (!prospect) return res.status(404).json({ error: "Prospect not found" });
-      if (prospect.converted_business_id || ["won", "lost"].includes(prospect.outreach_status)
+      if (prospect.outreach_exhausted_at || prospect.converted_business_id || ["won", "lost"].includes(prospect.outreach_status)
         || ["lost", "converted"].includes(prospect.status)) {
         return res.status(409).json({ error: "Closed or converted prospects cannot receive a new follow-up plan." });
       }
@@ -8370,6 +8371,26 @@ async function startServer() {
       }
       console.error("[Prospect Follow-up Plan] Failed:", error?.message || error);
       return res.status(503).json({ error: "Follow-up plan could not be saved." });
+    }
+  });
+
+  app.post("/api/admin/prospects/:prospectId/reactivate", authenticate, async (req: any, res: any) => {
+    const id = String(req.params.prospectId || "");
+    if (!UUID_SCHEMA.safeParse(id).success) return res.status(400).json({ error: "Invalid prospect ID" });
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
+      const prospect = await reactivateArchivedProspect(supabaseAdmin, id, new Date().toISOString());
+      return res.json({ prospect, sequenceRestarted: false, emailSent: false });
+    } catch (error: any) {
+      const reason = String(error?.message || "");
+      if (reason === "PROSPECT_NOT_FOUND") return res.status(404).json({ error: "Prospect not found." });
+      if (["PROSPECT_NOT_ARCHIVED", "REACTIVATION_NOT_ALLOWED", "OUTREACH_SEND_IN_PROGRESS",
+        "OUTREACH_SEQUENCE_ACTIVE", "CONTACT_SUPPRESSED"].includes(reason)) {
+        return res.status(409).json({ error: reason.replaceAll("_", " ").toLowerCase() + ". Review the contact before reactivating." });
+      }
+      console.error("[Prospect Reactivation] Failed:", reason);
+      return res.status(503).json({ error: "Could not reactivate this prospect. No email was sent." });
     }
   });
 
@@ -8404,9 +8425,10 @@ async function startServer() {
     try {
       const profile = await getProfileForUser(req.user.id);
       if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
-      const { data: prospect, error: prospectError } = await supabaseAdmin.from("prospects").select("id,name").eq("id", prospectId).maybeSingle();
+      const { data: prospect, error: prospectError } = await supabaseAdmin.from("prospects").select("id,name,outreach_exhausted_at").eq("id", prospectId).maybeSingle();
       if (prospectError) throw prospectError;
       if (!prospect) return res.status(404).json({ error: "Prospect not found" });
+      if (prospect.outreach_exhausted_at) return res.status(409).json({ error: "This prospect is archived. Reactivate before scheduling follow-ups." });
       const now = new Date().toISOString();
       await supabaseAdmin.from("sales_tasks").update({ status: "dismissed", updated_at: now })
         .eq("prospect_id", prospectId).eq("task_type", "follow_up").eq("status", "open");

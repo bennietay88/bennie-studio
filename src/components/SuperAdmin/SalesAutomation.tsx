@@ -69,7 +69,7 @@ export function SalesAutomation() {
       supabase.from("sales_call_bookings").select("*").order("start_at", { ascending: true }).limit(100),
       supabase.from("sales_tasks").select("*").order("due_at", { ascending: true, nullsFirst: false }).limit(100),
       supabase.from("leads").select("id,name,email,raw_fields,message,status").order("created_at", { ascending: false }).limit(150),
-      supabase.from("prospects").select("id,name,contact_email,industry,location,notes,outreach_status").order("created_at", { ascending: false }).limit(150),
+      supabase.from("prospects").select("id,name,contact_email,industry,location,notes,outreach_status,outreach_exhausted_at").is("outreach_exhausted_at", null).order("created_at", { ascending: false }).limit(150),
       supabase.from("proposal_events").select("*").order("created_at", { ascending: false }).limit(200),
     ]);
     const firstError = [sequenceResult, messageResult, bookingResult, taskResult, leadResult, prospectResult, eventResult].find((result) => result.error)?.error;
