@@ -43,7 +43,7 @@ export function RevenueCommand() {
       if (!session?.access_token) throw new Error("Your admin session has expired. Please sign in again.");
       const [leadsResponse, prospectsResult, proposalsResult] = await Promise.all([
         fetch("/api/admin/leads", { headers: { Authorization: `Bearer ${session.access_token}` } }),
-        supabase.from("prospects").select("id,outreach_status,next_follow_up_at"),
+        supabase.from("prospects").select("id,outreach_status,next_follow_up_at").is("outreach_exhausted_at", null),
         supabase.from("proposals").select("id,status"),
       ]);
 
