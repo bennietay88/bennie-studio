@@ -46,7 +46,7 @@ export function OutreachLab() {
   const fetchProspects = React.useCallback(async () => {
     setLoading(true);
     const now = new Date().toISOString();
-    let listQuery = supabase.from("prospects").select("*", { count: "exact" })
+    let listQuery = supabase.from("prospects").select("*", { count: "exact" }).is("outreach_exhausted_at", null)
       .order("next_follow_up_at", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false });
     if (view === "due") listQuery = listQuery.lte("next_follow_up_at", now).not("outreach_status", "in", '("won","lost")');
@@ -59,8 +59,8 @@ export function OutreachLab() {
     const from = page * PAGE_SIZE;
     const [prospectResult, dueResult, engagedResult] = await Promise.all([
       listQuery.range(from, from + PAGE_SIZE - 1),
-      supabase.from("prospects").select("id", { count: "exact", head: true }).lte("next_follow_up_at", now).not("outreach_status", "in", '("won","lost")'),
-      supabase.from("prospects").select("id", { count: "exact", head: true }).in("outreach_status", ["replied", "call_booked"]),
+      supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).lte("next_follow_up_at", now).not("outreach_status", "in", '("won","lost")'),
+      supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).in("outreach_status", ["replied", "call_booked"]),
     ]);
     if (prospectResult.error) {
       toast.error(prospectResult.error.message || "Could not load prospects");
