@@ -161,6 +161,7 @@ export function ProspectExplorer() {
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [bulkAction, setBulkAction] = useState<"stop_follow_up" | "delete" | null>(null);
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [reactivatingId, setReactivatingId] = useState<string | null>(null);
   const [manualBulkOpen, setManualBulkOpen] = useState(false);
   const [manualBulkIntroOpen, setManualBulkIntroOpen] = useState(false);
 
@@ -395,12 +396,12 @@ export function ProspectExplorer() {
 
       const prospectIds = rows.map((prospect) => prospect.id);
       const statsPromise = Promise.all([
-        supabase.from("prospects").select("id", { count: "exact", head: true }),
-        supabase.from("prospects").select("id", { count: "exact", head: true }).eq("opportunity_level", "high"),
-        supabase.from("prospects").select("id", { count: "exact", head: true }).in("outreach_status", CONTACTED_OUTREACH_STATUSES),
-        supabase.from("prospects").select("id", { count: "exact", head: true }).eq("outreach_status", "call_booked"),
-        supabase.from("prospects").select("id", { count: "exact", head: true }).lte("next_follow_up_at", new Date().toISOString()).not("outreach_status", "in", "(\"won\",\"lost\")"),
-        supabase.from("prospects").select("id", { count: "exact", head: true }).in("outreach_status", NOT_CONTACTED_OUTREACH_STATUSES),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).eq("opportunity_level", "high"),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).in("outreach_status", CONTACTED_OUTREACH_STATUSES),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).eq("outreach_status", "call_booked"),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).lte("next_follow_up_at", new Date().toISOString()).not("outreach_status", "in", "(\"won\",\"lost\")"),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).in("outreach_status", NOT_CONTACTED_OUTREACH_STATUSES),
       ]);
       const sessionPromise = supabase.auth.getSession();
       const deliveryPromise = prospectIds.length
@@ -547,6 +548,21 @@ export function ProspectExplorer() {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload?.error || "Operation failed");
     return payload;
+  };
+
+  const reactivateProspect = async (prospect: any) => {
+    if (!prospect?.outreach_exhausted_at || reactivatingId) return;
+    if (!window.confirm("Reactivate " + prospect.name + "? Their email history remains intact. Old sequences will NOT restart and no email will be sent. You must explicitly enroll in a new sequence to contact them.")) return;
+    setReactivatingId(prospect.id);
+    try {
+      await adminProspectRequest("/api/admin/prospects/" + encodeURIComponent(prospect.id) + "/reactivate", {});
+      toast.success("Prospect reactivated. No sequence restarted and no email was sent.");
+      setSelectedProspect(null);
+      setQuickFilter("all");
+      setCurrentPage(1);
+      void fetchProspects();
+    } catch (error: any) { toast.error(error?.message || "Unable to reactivate prospect."); }
+    finally { setReactivatingId(null); }
   };
 
   const deleteProspect = async (id: string) => {
@@ -1752,7 +1768,9 @@ export function ProspectExplorer() {
                     <div className="mt-4 flex flex-wrap gap-2">
                       <Badge variant="outline" className="capitalize">{toTitle(prospect.website_status || "unknown")}</Badge>
                       <Badge variant="outline" className="capitalize">{toTitle(prospect.opportunity_level || "medium")} opportunity</Badge>
-                      <Badge variant="outline" className="capitalize">{toTitle(prospect.outreach_status || "not_started")}</Badge>
+                      {prospect.outreach_exhausted_at
+                        ? <Badge className="bg-amber-100 text-amber-800">Archived · no response</Badge>
+                        : <Badge variant="outline" className="capitalize">{toTitle(prospect.outreach_status || "not_started")}</Badge>}
                       {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
                     </div>
                     {(prospect._latestDelivery || prospect._suppressed) && (
@@ -1780,8 +1798,8 @@ export function ProspectExplorer() {
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
                       <div>
                         <Label className="text-xs font-semibold text-slate-500">Follow-up</Label>
-                        <Input type="date" className="mt-1 h-11 rounded-xl" value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""} onChange={(event) => void setFollowUp(prospect, event.target.value)} />
-                        <Button type="button" size="sm" variant="link" className="mt-1 h-7 px-0 text-indigo-700" onClick={() => openFollowUpPlan(prospect)} disabled={Boolean(prospect.converted_business_id) || ["won","lost"].includes(prospect.outreach_status)}>
+                        <Input type="date" disabled={Boolean(prospect.outreach_exhausted_at)} className="mt-1 h-11 rounded-xl" value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""} onChange={(event) => void setFollowUp(prospect, event.target.value)} />
+                        <Button type="button" size="sm" variant="link" className="mt-1 h-7 px-0 text-indigo-700" onClick={() => openFollowUpPlan(prospect)} disabled={Boolean(prospect.outreach_exhausted_at || prospect.converted_business_id) || ["won","lost"].includes(prospect.outreach_status)}>
                           <CalendarDays className="mr-1 h-3.5 w-3.5" /> Schedule 3 / 8 / 15 days
                         </Button>
                       </div>
@@ -1791,7 +1809,8 @@ export function ProspectExplorer() {
                       <Button variant="outline" className="h-11 rounded-xl" disabled={reviewLoadingId === prospect.id} onClick={() => runQuickAudit(prospect)}><Zap className="mr-2 h-4 w-4" />Audit</Button>
                       <Button variant="outline" className="h-11 rounded-xl" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="mr-2 h-4 w-4" />Copy review link</Button>
                       <Button variant="outline" className="h-11 rounded-xl" onClick={() => prepareDesignConcept(prospect)}><Globe className="mr-2 h-4 w-4" />Design concept</Button>
-                      {prospect.contact_email && !prospect._suppressed && !prospect._contactSafetyUnknown && !prospect.converted_business_id && <Button className="col-span-2 h-11 rounded-xl bg-indigo-600" disabled={reviewLoadingId === prospect.id} onClick={() => preparePreviewAndEmail(prospect)}><Send className="mr-2 h-4 w-4" />Prepare & Email</Button>}
+                      {prospect.contact_email && !prospect.outreach_exhausted_at && !prospect._suppressed && !prospect._contactSafetyUnknown && !prospect.converted_business_id && <Button className="col-span-2 h-11 rounded-xl bg-indigo-600" disabled={reviewLoadingId === prospect.id} onClick={() => preparePreviewAndEmail(prospect)}><Send className="mr-2 h-4 w-4" />Prepare & Email</Button>}
+                      {prospect.outreach_exhausted_at && <Button type="button" variant="outline" className="col-span-2 h-11 rounded-xl border-amber-300 text-amber-800" disabled={reactivatingId === prospect.id} onClick={() => void reactivateProspect(prospect)}><RefreshCw className="mr-2 h-4 w-4" />Reactivate outreach</Button>}
                       {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="outline" className="col-span-2 h-11 rounded-xl border-emerald-200 text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="mr-2 h-4 w-4" />Convert to customer</Button>}
                     </div>
                   </div>
@@ -1895,12 +1914,13 @@ export function ProspectExplorer() {
                       <td className="min-w-0 px-3 py-6">
                         <Input
                           type="date"
+                          disabled={Boolean(prospect.outreach_exhausted_at)}
                           className="h-9 w-full min-w-0 rounded-xl"
                           value={prospect.next_follow_up_at ? prospect.next_follow_up_at.slice(0, 10) : ""}
                           onChange={(e) => void setFollowUp(prospect, e.target.value)}
                         />
                         <Button type="button" size="sm" variant="link" className="mt-1 h-7 px-0 text-xs font-semibold text-indigo-700"
-                          disabled={Boolean(prospect.converted_business_id) || ["won","lost"].includes(prospect.outreach_status)}
+                          disabled={Boolean(prospect.outreach_exhausted_at || prospect.converted_business_id) || ["won","lost"].includes(prospect.outreach_status)}
                           onClick={() => openFollowUpPlan(prospect)}>
                           <CalendarDays className="mr-1 h-3.5 w-3.5" /> 3 / 8 / 15 day plan
                         </Button>
@@ -1911,7 +1931,8 @@ export function ProspectExplorer() {
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => runQuickAudit(prospect)}><Zap className="h-3 w-3 mr-1.5" />Audit</Button>
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => generatePreviewLink(prospect)}><Copy className="h-3 w-3 mr-1.5" />Copy review link</Button>
                           <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold" onClick={() => prepareDesignConcept(prospect)}><Globe className="h-3 w-3 mr-1.5" />Design concept</Button>
-                          {prospect.contact_email && !prospect._suppressed && !prospect._contactSafetyUnknown && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
+                          {prospect.contact_email && !prospect.outreach_exhausted_at && !prospect._suppressed && !prospect._contactSafetyUnknown && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
+                          {prospect.outreach_exhausted_at && <Button type="button" variant="outline" size="sm" className="rounded-xl h-8 text-xs text-amber-800" disabled={reactivatingId === prospect.id} onClick={() => void reactivateProspect(prospect)}><RefreshCw className="h-3.5 w-3.5 mr-1" />Reactivate outreach</Button>}
                           {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="h-3 w-3 mr-1.5" />Convert</Button>}
                           {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
                           <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 hover:bg-rose-50 hover:text-rose-600" onClick={() => deleteProspect(prospect.id)}><Trash2 className="h-4 w-4" /></Button>
