@@ -7090,6 +7090,10 @@ async function startServer() {
         }
       }
 
+      if (leadType === "newsletter_opt_in" && marketingConsent !== true) {
+        return res.status(400).json({ success: false, message: "Explicit marketing consent is required to subscribe." });
+      }
+
       const automationSnapshot = buildInboundLeadSnapshot({ message, leadType, source: sourcePage, phone });
 
       const salesMessage = [
@@ -7205,7 +7209,8 @@ async function startServer() {
         let lead: any = null;
         let lastError: any = null;
 
-        for (const payload of payloads) {
+        // Never fall back to a schema that silently drops opt-in consent.
+        for (const payload of (leadType === "newsletter_opt_in" ? payloads.slice(0, 1) : payloads)) {
           const { data, error } = await supabaseAdmin
             .from("leads")
             .insert(payload)
@@ -7264,7 +7269,7 @@ async function startServer() {
           if (error) console.warn("Platform lead analytics log failed:", error.message);
         });
 
-        await supabaseAdmin.from("sales_tasks").insert({
+        if (leadType !== "newsletter_opt_in") await supabaseAdmin.from("sales_tasks").insert({
           lead_id: lead?.id,
           title: "Respond to new website enquiry",
           task_type: "new_lead_response",
