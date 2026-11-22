@@ -6,6 +6,7 @@ import { StudioConceptCanvas } from "./StudioCreativeShowcase";
 import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
 import type { PlatformCmsPage } from "../lib/platformSiteCms";
 import { Pricing } from "./Pricing";
+import { StudioEmailOptIn } from "./StudioEmailOptIn";
 import { trackPublicEvent } from "../lib/publicTracking";
 import "../styles/studioSales.css";
 import "../styles/studioSalesRefinements.css";
@@ -143,6 +144,7 @@ export function PricingSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
     ["03","Additional work","Special integrations, extensive new content, ad campaigns or work beyond plan allowances need separate scoping."],
    ].map(([n,t,d])=><article key={n}><span>{n}</span><h3>{t}</h3><p>{d}</p></article>)}</div>
   </div></section>
+  <section className="brand-shell py-12 sm:py-16"><div className="mx-auto max-w-3xl"><StudioEmailOptIn sourcePage="/pricing" title="Need more time to choose a plan?" description="Get the free website conversion checklist and a few practical emails about improving your site. No plan selection or payment is required." /></div></section>
   <SalesFaqs questions={pricingFaqs} heading="Understand your plan before committing." />
   <section className="s28-pricing-end"><div className="brand-shell"><h2>{cmsPage?.finalCtaTitle || <>Start by seeing what your <em>business could look like.</em></>}</h2><p>{cmsPage?.finalCtaDescription || "The first direction is free. Review it before choosing whether a managed website makes sense."}</p><div className="flex flex-wrap items-center gap-5"><Link to={cmsPage?.primaryCtaHref || "/generate-preview"} onClick={salesLink("Pricing bottom free preview",cmsPage?.primaryCtaHref || "/generate-preview")} className="s28-button s28-button-white">{cmsPage?.primaryCtaLabel || "Get your free website preview"} <ArrowUpRight size={18}/></Link><Link to="/book-demo" onClick={salesLink("Pricing bottom consult","/book-demo")} className="s28-text-link">Prefer to speak first? <ArrowRight size={17}/></Link></div></div></section>
  </main>
