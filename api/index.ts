@@ -6988,8 +6988,22 @@ async function startServer() {
   );
   app.all("/api/portfolio-leads", portfolioLeadCors, (_req, res) => res.status(405).json({ error: "Method not allowed" }));
 
+  // Newsletter-specific limits protect the public form from unsolicited email
+  // amplification without throttling legitimate business preview enquiries.
+  const newsletterIpLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, max: 5, keyPrefix: "newsletter-ip-v1",
+    key: (req) => getClientIp(req),
+  });
+  const newsletterAddressLimiter = rateLimit({
+    windowMs: 24 * 60 * 60 * 1000, max: 3, keyPrefix: "newsletter-address-v1",
+    key: (req) => crypto.createHash("sha256").update(String(req.body?.email || "").trim().toLowerCase()).digest("hex"),
+  });
   app.post(
     "/api/platform-leads",
+    (req, res, next) => req.body?.leadType === "newsletter_opt_in"
+      ? newsletterIpLimiter(req, res, next) : next(),
+    (req, res, next) => req.body?.leadType === "newsletter_opt_in"
+      ? newsletterAddressLimiter(req, res, next) : next(),
     rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: "platform-leads-burst-v3" }),
     rateLimit({
       windowMs: 60 * 60 * 1000,
