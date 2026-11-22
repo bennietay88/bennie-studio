@@ -37,7 +37,15 @@ test("mobile conversion paths have no horizontal overflow and remain usable", as
 
 test("public site distinguishes studio examples from commissioned client work", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: /Website Examples/i })).toBeVisible();
+  // The desktop navigation collapses into an accessible dialog on mobile.
+  const mobileToggle = page.getByRole("button", { name: "Open navigation menu" });
+  if (await mobileToggle.isVisible()) {
+    await mobileToggle.click();
+    await expect(page.getByRole("dialog", { name: "Navigation menu" }).getByRole("link", { name: /Website Examples/i })).toBeVisible();
+    await page.getByRole("button", { name: "Close navigation menu" }).click();
+  } else {
+    await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: /Website Examples/i })).toBeVisible();
+  }
   await expect(page.getByText(/not client commissions or measured commercial results/i)).toBeVisible();
 });
 
@@ -89,7 +97,8 @@ test("pricing visitors can request the checklist without purchasing a plan", asy
   await form.getByLabel("Subscribing as").selectOption("business");
   await form.getByRole("checkbox").check();
   await form.getByRole("button", { name: /Send me the checklist/i }).click();
-  await expect(form.getByRole("status")).toContainText("Subscription recorded");
+  // On success the form is replaced by its confirmation panel.
+  await expect(page.getByRole("region", { name: "Free website improvement tips" }).getByRole("status")).toContainText("Subscription recorded");
   expect(requestBodies).toHaveLength(1);
   expect(requestBodies[0]).toMatchObject({
     email: "buyer@example.com",
