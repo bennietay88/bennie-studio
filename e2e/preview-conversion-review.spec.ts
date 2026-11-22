@@ -40,3 +40,31 @@ test("public site distinguishes studio examples from commissioned client work", 
   await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: /Website Examples/i })).toBeVisible();
   await expect(page.getByText(/not client commissions or measured commercial results/i)).toBeVisible();
 });
+
+test("homepage newsletter collects explicit consent separately from a free preview", async ({ page }) => {
+  let submitted: Record<string, unknown> | null = null;
+  await page.route("**/api/platform-leads", async (route) => {
+    submitted = route.request().postDataJSON();
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ success: true, leadId: "consent-test" }) });
+  });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const form = page.getByRole("form", { name: /Subscribe to Bennie Studio website tips/i });
+  await expect(form.getByRole("checkbox")).not.toBeChecked();
+  await form.getByLabel("Work email").fill("visitor@example.com");
+  await form.getByRole("checkbox").check();
+  await form.getByRole("button", { name: /Get website tips/i }).click();
+  await expect(form.getByRole("status")).toHaveCount(0);
+  await expect(page.getByRole("status").getByText(/subscription has been recorded/i)).toBeVisible();
+  expect(submitted).toMatchObject({
+    email: "visitor@example.com",
+    leadType: "newsletter_opt_in",
+    marketingConsent: true,
+    sourcePage: "/",
+  });
+});
+
+test("pricing illustration accurately represents four plans and USD billing", async ({ page }) => {
+  await page.goto("/pricing", { waitUntil: "domcontentloaded" });
+  await expect(page.getByLabel("Illustration of four managed website service levels")).toBeVisible();
+  await expect(page.getByText("All plans billed in USD. See verified fees below")).toBeVisible();
+});
