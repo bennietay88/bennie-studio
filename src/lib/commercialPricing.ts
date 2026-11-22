@@ -4,9 +4,9 @@ export type CommercialCurrency = "MYR" | "SGD" | "GBP" | "USD";
 export type CommercialProductSlug = "personal-profile" | "managed-website" | "website-growth" | "growth-partner" | "custom-website";
 export const COMMERCIAL_MARKET_CHANGED_EVENT = "bt-commercial-market-changed";
 /** Launch offer commitment used by public checkout and customer records. */
-export const COMMERCIAL_DEFAULT_COMMITMENT_MONTHS = 3;
+export const COMMERCIAL_DEFAULT_COMMITMENT_MONTHS = 0;
 /** Contract term for the gated recurring OTC + MRC catalogue. */
-export const COMMERCIAL_RECURRING_COMMITMENT_MONTHS = 3;
+export const COMMERCIAL_RECURRING_COMMITMENT_MONTHS = 0;
 
 export type CommercialPrice = {
   market: CommercialMarket;
@@ -77,11 +77,12 @@ export const getMinimumTermMonths = (
   fallback = COMMERCIAL_DEFAULT_COMMITMENT_MONTHS,
 ) => {
   const value = Number(price?.minimumTermMonths);
-  return Number.isFinite(value) && value > 0 ? Math.round(value) : fallback;
+  return Number.isFinite(value) && value >= 0 ? Math.round(value) : fallback;
 };
 
 export const formatCommitmentLabel = (months: number) => {
-  const normalized = Number.isFinite(months) && months > 0 ? Math.round(months) : COMMERCIAL_DEFAULT_COMMITMENT_MONTHS;
+  const normalized = Number.isFinite(months) && months >= 0 ? Math.round(months) : COMMERCIAL_DEFAULT_COMMITMENT_MONTHS;
+  if (normalized === 0) return "Month-to-month";
   return normalized === 1 ? "1-month initial commitment" : `${normalized}-month initial commitment`;
 };
 
@@ -94,7 +95,7 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
     salesMotion: "self_serve",
     prices: [
       ["INTL", 59],
-    ].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 199, SG: 199, GB: 199, INTL: 199 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
+    ].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 199, SG: 199, GB: 199, INTL: 199 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 0, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
   },
   {
     slug: "website-growth",
@@ -103,7 +104,7 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
     productType: "website_growth",
     salesMotion: "self_serve",
     includesProductSlug: "managed-website",
-    prices: [["INTL", 99]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 299, SG: 299, GB: 299, INTL: 299 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
+    prices: [["INTL", 99]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 299, SG: 299, GB: 299, INTL: 299 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 0, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
   },
   {
     slug: "growth-partner",
@@ -111,7 +112,7 @@ export const COMMERCIAL_FALLBACK_PRODUCTS: CommercialProduct[] = [
     description: "An AI-assisted managed website with priority support, expanded page options, performance reporting and consultant-led growth guidance.",
     productType: "growth_partner",
     salesMotion: "self_serve",
-    prices: [["INTL", 199]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 499, SG: 499, GB: 499, INTL: 499 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 3, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
+    prices: [["INTL", 199]].map(([market, monthlyPrice]) => ({ market: market as CommercialMarket, currency: COMMERCIAL_MARKETS[market as CommercialMarket].currency, monthlyPrice: monthlyPrice as number, setupFee: ({ MY: 499, SG: 499, GB: 499, INTL: 499 } as Record<string, number>)[market as string], annualPrice: null, billingInterval: "month" as const, minimumTermMonths: 0, recurringConfigured: false, recurringConfigStatus: "draft" as const })),
   },
   {
     slug: "personal-profile", name: "Personal Profile",

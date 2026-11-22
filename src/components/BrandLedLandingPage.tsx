@@ -238,7 +238,7 @@ export default function BrandLedLandingPage() {
                   })}
             </div>
             <p className="mt-6 text-center text-xs leading-6 text-[#687386]">
-              Managed hosting and maintenance are included. {formatCommitmentLabel(getMinimumTermMonths(priced[0]?.price))}, then month-to-month unless your accepted order states otherwise. Prices before tax.
+              Managed hosting and maintenance are included with {formatCommitmentLabel(getMinimumTermMonths(priced[0]?.price)).toLowerCase()} billing. Prices before tax.
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm font-semibold">
               <Link to="/pricing" className="text-[#1D4ED8] underline underline-offset-4 hover:text-[#1741ed]">Compare full plan scope</Link>

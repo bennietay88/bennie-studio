@@ -16,7 +16,7 @@ export function getIntroductoryQuote(
 ) {
   const monthly = Math.max(0, Number(monthlyPrice) || 0);
   const setup = Math.max(0, Number(setupFee) || 0);
-  const standardTerm = Math.max(1, Math.round(Number(standardTermMonths) || 3));
+  const standardTerm = Math.max(0, Math.round(Number.isFinite(Number(standardTermMonths)) ? Number(standardTermMonths) : 0));
   const discount = offerSelected ? monthly : 0;
   const termMonths = offerSelected ? INTRO_OFFER_TERM_MONTHS : standardTerm;
   return {

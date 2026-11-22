@@ -10224,7 +10224,7 @@ async function startServer() {
       recurringMonthlyPrice: z.number().finite().min(0).nullable().optional(),
       recurringSetupFee: z.number().finite().min(0).nullable().optional(),
       recurringAnnualPrice: z.number().finite().min(0).nullable().optional(),
-      minimumTermMonths: z.number().int().min(1).max(120).optional(),
+      minimumTermMonths: z.number().int().min(0).max(120).optional(),
       recurringStripeMonthlyPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
       recurringStripeAnnualPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
       recurringStripeSetupPriceId: z.string().regex(/^price_[A-Za-z0-9_]+$/).nullable().optional(),
@@ -11617,7 +11617,7 @@ async function startServer() {
         const otcWaiver=await resolveOtcWaiver();
         const originalSetup=Number(price.recurring_setup_fee || 0);
         const setup=otcWaiver ? 0 : originalSetup;
-        const isIntroOffer = body.introOffer === INTRO_OFFER_CODE;
+        const isIntroOffer = false;
         if (isIntroOffer && !body.customerEmail) {
           return res.status(400).json({ error: "Enter your email to check introductory offer eligibility." });
         }
@@ -11865,7 +11865,7 @@ async function startServer() {
         const otcWaiver=await resolveOtcWaiver(lead.business_id || null);
         const originalSetup=Number(price.recurring_setup_fee || 0);
         const setup=otcWaiver ? 0 : originalSetup;
-        const isIntroOffer = body.introOffer === INTRO_OFFER_CODE;
+        const isIntroOffer = false;
         const stripe = await getStripe();
         if (isIntroOffer && !(await isNewIntroOfferCustomer(body.email, stripe, supabaseAdmin))) {
           return res.status(409).json({ error: "This offer is available to new Bennie Studio customers only." });

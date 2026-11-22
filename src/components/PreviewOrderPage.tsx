@@ -92,7 +92,7 @@ export function PreviewOrderPage() {
   );
   const [showAlternatives, setShowAlternatives] = React.useState(false);
   const [termsAccepted, setTermsAccepted] = React.useState(false);
-  const [introOfferEnabled, setIntroOfferEnabled] = React.useState(false);
+  const introOfferEnabled = false;
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -301,7 +301,6 @@ export function PreviewOrderPage() {
               <p className="text-xs font-bold uppercase tracking-[0.13em] !text-[#b9b1ff]">Order summary</p>
               <p className="mt-5 text-xs font-semibold uppercase tracking-[0.08em] !text-white/60">Billing currency</p><div className="mt-2 flex h-11 w-full items-center border border-white/20 bg-white px-3 text-sm font-semibold text-[#141821]">USD ($)</div>
               <h2 className="mt-3 text-3xl font-semibold !text-white">{selected?.name || "Website Growth"}</h2>
-              <label className="mt-5 flex cursor-pointer gap-3 border border-indigo-300/30 bg-indigo-500/15 p-4 text-sm leading-6 text-white"><input type="checkbox" checked={introOfferEnabled} onChange={(event) => { setIntroOfferEnabled(event.target.checked); setTermsAccepted(false); }} className="mt-1 h-4 w-4 shrink-0 accent-indigo-500" /><span><strong>Optional: first month of management free</strong> with a 12-month initial commitment. Setup is payable today; regular monthly billing starts in month 2. Leave unchecked for the standard shorter term.</span></label>
 
               {loading ? <p className="mt-6 !text-white/70">Loading current price…</p> : (
                 <>
@@ -315,8 +314,8 @@ export function PreviewOrderPage() {
                       <span className="font-semibold !text-white">{introOfferEnabled ? <><s className="mr-2 !text-white/50">{formatCommercialMoney(monthly, price?.currency || "USD")}</s> {formatCommercialMoney(0, price?.currency || "USD")}</> : formatCommercialMoney(monthly, price?.currency || "USD")}</span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
-                      <span className="!text-white/70">Initial commitment</span>
-                      <span className="font-semibold !text-white">{commitmentMonths} month{commitmentMonths === 1 ? "" : "s"}</span>
+                      <span className="!text-white/70">Commitment</span>
+                      <span className="font-semibold !text-white">{formatCommitmentLabel(commitmentMonths)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-4 border-t border-white/15 pt-4 text-base">
                       <span className="font-semibold !text-white">Due today</span>
@@ -325,7 +324,7 @@ export function PreviewOrderPage() {
                   </div>
 
                   <p className="mt-5 text-sm leading-6 !text-white/70">
-                    {introOfferEnabled ? "First month of service is discounted in full; website setup is not free. " : ""}Then {formatCommercialMoney(monthly, price?.currency || "USD")}/month from month {introOfferEnabled ? "2" : "1"}. Estimated total across the initial {commitmentMonths}-month term, including setup: {formatCommercialMoney(introQuote.totalInitialTerm, price?.currency || "USD")}, before tax. After that, month-to-month under the accepted terms.
+                    The first payment includes setup and month one. Then {formatCommercialMoney(monthly, price?.currency || "USD")}/month, month-to-month, before tax.
                   </p>
                   {deliveryStandard ? (
                     <div className="mt-5 border-t border-white/15 pt-5">
@@ -337,7 +336,7 @@ export function PreviewOrderPage() {
                   ) : null}
                   <label className="mt-5 flex items-start gap-3 border border-white/15 bg-white/[0.04] p-4 text-xs font-semibold leading-5 !text-white/75">
                     <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 shrink-0" />
-                    <span>I confirm this scope, {commitmentMonths}-month initial commitment and recurring managed service, and agree to the <Link to={`/terms?market=${checkoutMarket}&introOffer=${introOfferEnabled ? INTRO_OFFER_CODE : ""}`} target="_blank" className="!text-[#c7c1ff] underline underline-offset-2">Terms of Service</Link> and <Link to="/privacy" target="_blank" className="!text-[#c7c1ff] underline underline-offset-2">Privacy Policy</Link>.</span>
+                    <span>I confirm this scope, month-to-month recurring managed service, and agree to the <Link to={`/terms?market=${checkoutMarket}&introOffer=${introOfferEnabled ? INTRO_OFFER_CODE : ""}`} target="_blank" className="!text-[#c7c1ff] underline underline-offset-2">Terms of Service</Link> and <Link to="/privacy" target="_blank" className="!text-[#c7c1ff] underline underline-offset-2">Privacy Policy</Link>.</span>
                   </label>
 
                   {error ? <div className="mt-5 border border-rose-300/30 bg-rose-400/10 p-4 text-sm font-semibold text-rose-100">{error}</div> : null}
