@@ -16,7 +16,7 @@ const serviceFaqs=[
   ["Will my website be different from the other examples?","Yes. The built-in designs provide a starting structure, but your final pages depend on your services, content, brand assets, approved evidence and the agreed scope. The showcase websites are studio-built demonstrations, not past client commissions."],
   ["Do you write the content and source images?","We help plan content and guide your messaging within the plan scope. You provide accurate business details, approvals and any essential proof. Additional copywriting, bespoke photography or integrations can require separate scoping."],
   ["What happens after the website launches?","Your plan determines the included updates, turnaround targets and support. Hosting and agreed maintenance remain managed during your subscription."],
-  ["Can I try the website preview without paying?","Yes. The initial website direction is free and requires no payment card. It is a preview, not a finished production website."],
+  ["Can I try the website preview without paying?","Yes. The initial website direction is free and requires no payment card. It is a preview, not a finished production website or a trial of the paid service. Starting a plan charges setup plus the first service month; monthly billing follows."],
 ];
 
 function SalesFaqs({questions=serviceFaqs,heading="Questions before you begin?"}:{questions?:string[][];heading?:string}){
@@ -83,7 +83,7 @@ export function ServicesSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
 
   <section className="s28-service-chapters" aria-labelledby="s28-service-chapters-title">
    <div className="brand-shell">
-    <div className="s28-chapters-top"><h2 id="s28-service-chapters-title">Everything from first brief <em>to after launch.</em></h2><p>Three connected parts of one managed website service. The exact number of pages, revisions and updates depends on the plan you select.</p></div>
+    <div className="s28-chapters-top"><h2 id="s28-service-chapters-title">From first brief <em>to ongoing care.</em></h2><p>Three connected parts of one managed website service. The exact number of pages, revisions and updates depends on the plan you select.</p></div>
     {websiteItems.map(([n,eyebrow,title,copy,result],idx)=><article className="s28-chapter" key={n}><span className="s28-chapter-number">{n} / 03</span><div><p className="s28-kicker">{eyebrow}</p><h3>{title}</h3></div><div className="s28-chapter-body"><p>{copy}</p><div><Check size={17}/> {result}</div></div></article>)}
     <div className="s28-chapter-footer"><Link to="/pricing" onClick={salesLink("Services compare plan scopes","/pricing")} className="s28-button">Compare what's included in each plan <ArrowRight size={18}/></Link><span>Clear setup costs and monthly billing before checkout.</span></div>
    </div>
@@ -96,11 +96,11 @@ export function ServicesSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
   </section>
 
   <section className="s28-steps-section"><div className="brand-shell">
-   <div className="s28-intro-grid"><div><h2>A simple path to <em>your own website.</em></h2></div><p>See an initial direction before committing to a paid service, then move through a transparent design and launch process.</p></div>
+   <div className="s28-intro-grid"><div><h2>A simple path to <em>your own website.</em></h2></div><p>Review a free initial direction first. If you choose a paid plan, we confirm the scope and first payment before the build begins.</p></div>
    <div className="s28-steps">{[
     ["01","Tell us about the business","Share your website URL or a short description of your services and goals."],
     ["02","Explore the free preview","Review a preliminary direction. No credit card and no commitment required."],
-    ["03","Choose a managed plan","Confirm the scope, setup fee, and monthly service fee."],
+    ["03","Choose a managed plan","Confirm the plan scope, one-time setup fee and monthly service. Pay setup + month one to start."],
     ["04","Review, launch & stay supported","Approve the final website, then receive the support included in your plan."],
    ].map(([n,title,description])=><div key={n}><span>{n}</span><h3>{title}</h3><p>{description}</p></div>)}</div>
    <Link to="/generate-preview" onClick={salesLink("Services process preview","/generate-preview")} className="s28-button">Start with a free preview <ArrowUpRight size={18}/></Link>

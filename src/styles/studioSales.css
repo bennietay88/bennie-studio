@@ -41,7 +41,7 @@
 .brand-public .bs-sales .s28-principles h3{font-size:25px!important;margin:30px 0 12px!important}
 .brand-public .bs-sales .s28-principles p{color:#53606f;font-size:15px!important;line-height:1.75}
 .brand-public .bs-sales .s28-service-chapters{background:#eaeef5;padding-block:6.3rem}
-.brand-public .bs-sales .s28-chapters-top{display:grid;grid-template-columns:200px 1fr .65fr;gap:30px;align-items:end;margin-bottom:3rem}
+.brand-public .bs-sales .s28-chapters-top{display:grid;grid-template-columns:1.15fr .85fr;gap:4rem;align-items:end;margin-bottom:3rem}
 .brand-public .bs-sales .s28-chapters-top h2{margin:0!important}
 .brand-public .bs-sales .s28-chapters-top>p:last-child{font-size:15px!important;color:#576273;line-height:1.8}
 .brand-public .bs-sales .s28-chapter{display:grid;grid-template-columns:140px 1fr 1fr;gap:30px;padding:36px 0;border-top:1px solid #c4cddc}
