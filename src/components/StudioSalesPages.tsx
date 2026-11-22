@@ -1,7 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ArrowUpRight, Check, ChevronDown, Globe2, MonitorSmartphone, ShieldCheck, Sparkles } from "lucide-react";
-import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
 import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
 import type { PlatformCmsPage } from "../lib/platformSiteCms";
@@ -48,9 +47,23 @@ export function ServicesSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
      <p className="s28-tiny-note"><Check size={14}/> Free initial direction. No card required. No obligation to proceed.</p>
     </div>
     <div className="s28-services-art">
-     <div className="s28-services-art-top"><span>THE WORK / 001</span><span>DESIGN → ENQUIRY</span></div>
-     <div className="s28-screen-large"><TemplatePreviewThumbnail templateId="renovation-contractor-v1" templateName="Renovation contractor" className="h-[350px] sm:h-[400px]" /></div>
-     <div className="s28-art-caption"><span>Mobile-first / Built for business</span><span>Showcase website · App-rendered, not client work</span></div>
+     <div className="s28-services-art-top"><span>THE OFFER / OTC + MRC</span><span>SETUP → MONTHLY CARE</span></div>
+     <div className="s28-screen-large flex items-center justify-center bg-white p-6 sm:p-10">
+      <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-8">
+       <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
+        <div><p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">WEBSITE GROWTH</p><h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Setup once. Managed monthly.</h2></div>
+        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">Month-to-month</span>
+       </div>
+       <div className="space-y-4 py-5 text-sm font-semibold text-slate-600">
+        <div className="flex justify-between gap-4"><span>One-time website setup</span><strong className="text-slate-950">$149</strong></div>
+        <div className="flex justify-between gap-4"><span>First month of managed service</span><strong className="text-slate-950">$99</strong></div>
+       </div>
+       <div className="flex items-end justify-between gap-4 border-t border-slate-200 pt-5"><span className="font-bold text-slate-700">Due today</span><strong className="text-3xl font-black tracking-tight text-slate-950">$248</strong></div>
+       <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">Then $99/month for ongoing website care. No free trial; service starts with the first payment.</p>
+       <div className="mt-5 rounded-xl bg-indigo-600 px-5 py-3 text-center text-sm font-black text-white">Review scope and totals before checkout</div>
+      </div>
+     </div>
+     <div className="s28-art-caption"><span>One-time setup · Monthly managed service</span><span>First payment = setup + month one</span></div>
     </div>
    </div>
   </section>
