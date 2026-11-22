@@ -206,7 +206,7 @@ export function PreviewOrderPage() {
             </div>
             <div className="lg:col-span-4 lg:text-right">
               <p className="text-sm font-semibold text-[#526071]">All prices in USD · {formatCommitmentLabel(commitmentMonths)}</p>
-              <p className="mt-1 text-sm text-[#707b8a]">Month-to-month after the initial commitment unless your accepted order states otherwise.</p>
+              <p className="mt-1 text-sm text-[#707b8a]">Month-to-month billing. Cancellation follows the Terms of Service.</p>
             </div>
           </div>
         </div>

@@ -35,7 +35,7 @@ type Consent = {
 };
 
 const faqs = [
-  ["What do I pay to get started?", "The first payment is setup plus the first month of service. The pricing step shows your selected plan, market currency, due-today amount and full initial commitment before checkout."],
+  ["What do I pay to get started?", "The first payment is setup plus the first month of service. The pricing step shows your selected plan, market currency, due-today amount and billing terms before checkout."],
   ["What happens after launch?", "Your plan continues to cover managed hosting, maintenance and its stated update allowance. Higher tiers include additional conversion, local SEO and growth work."],
   ["Who approves the website before it goes live?", "Bennie Studio reviews the build, then you review and approve it before publication. Your plan covers hosting, maintenance and the stated update allowance after launch."],
   ["What if I cancel or move my website?", "Your domain and supplied business assets remain yours. Review the plan's initial term, cancellation notice and handover options in the written terms before checkout."],

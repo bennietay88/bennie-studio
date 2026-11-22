@@ -300,11 +300,8 @@ test("sales journey exposes delivery safeguards and defined scope", async ({ pag
   const planDetails = plans.locator('section[aria-label="Plan details"]');
   await expect(planDetails).toBeVisible();
   await expect(planDetails.getByText(/approve the finished site before launch/i)).toBeVisible();
-  await expect(page.getByText(/3-month initial commitment/i).first()).toBeVisible();
-  await page.getByRole("checkbox", { name: /New-customer offer/i }).check();
-  await expect(page.getByText(/12-month initial commitment/i).first()).toBeVisible();
-  await page.getByRole("checkbox", { name: /New-customer offer/i }).uncheck();
-  await expect(page.getByText(/3-month initial commitment/i).first()).toBeVisible();
+  await expect(page.getByText(/Month-to-month/i).first()).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /New-customer offer/i })).toHaveCount(0);
 });
 
 

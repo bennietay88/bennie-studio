@@ -206,9 +206,9 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
         <div className="lg:col-span-8">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#1741ed]">Straightforward managed website pricing</p>
           <h1 className={cn("mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.02em] sm:text-5xl", onDark ? "text-white" : "text-slate-950")}>Clear pricing. A website built to work for your business.</h1>
-          <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Share your business details once. Bennie Studio uses AI-assisted content and automated website creation to prepare your managed site, with human review when needed. Compare hosting, update allowances and growth support alongside setup fees, monthly charges and minimum commitments.</p>
+          <p className={cn("mt-5 max-w-2xl text-base leading-7", onDark ? "text-slate-300" : "text-slate-600")}>Share your business details once. Bennie Studio uses AI-assisted content and automated website creation to prepare your managed site, with human review when needed. Compare hosting, update allowances and growth support alongside setup fees, monthly charges and cancellation terms.</p>
         </div>
-        <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">All new orders are billed in USD · automated website production + managed service · setup, monthly fees and commitments shown clearly</p>
+        <p className="text-sm font-semibold leading-6 text-slate-500 lg:col-span-4 lg:text-right">All new orders are billed in USD · automated website production + managed service · setup, monthly fees and billing terms shown clearly</p>
       </div>
     )}
 
@@ -235,7 +235,7 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
             <p className="s28-price-fee">+ {priceReady?formatCommercialMoney(price?.setupFee,price?.currency||checkoutCurrency):"—"} one-time website setup</p>
             <div className="s28-price-ledger" aria-label={product.name+" upfront and commitment costs"}>
               <div><span>First payment</span><strong>{priceReady?formatCommercialMoney(offer.dueToday,price.currency):"By quote"}</strong></div>
-              <div><span>Minimum commitment</span><strong>{formatCommitmentLabel(offer.termMonths)}</strong></div>
+              <div><span>Billing terms</span><strong>{formatCommitmentLabel(offer.termMonths)}</strong></div>
               <div className="s28-price-total"><span>Monthly after first payment</span><strong>{priceReady?formatCommercialMoney(price.monthlyPrice,price.currency):"By quote"}</strong></div>
             </div>
             <p className="s28-price-explanation">{promoActive?"Optional offer: the first month of service is free, but the 12-month commitment applies. Setup remains payable.":"First payment includes setup and the first service month. Subsequent months billed separately."} All amounts before applicable tax.</p>
@@ -310,9 +310,9 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
               First payment: {!priceReady || price?.monthlyPrice == null ? "Confirm by quote" : formatCommercialMoney(introQuote.dueToday, price.currency)}
             </p>
             <p className={isGrowth ? "mt-1 text-xs !text-white/70" : "mt-1 text-xs text-slate-500"}>{promoActive ? "Setup only; first month of service discounted to zero. Before tax." : "Setup + first month, before any applicable tax. Future months billed separately."}</p>
-            <p className={isGrowth ? "mt-2 text-xs font-semibold !text-white/65" : "mt-2 text-xs font-semibold text-[#687386]"}>{formatCommitmentLabel(introQuote.termMonths)}, then month-to-month unless the agreed order states otherwise.</p>
+            <p className={isGrowth ? "mt-2 text-xs font-semibold !text-white/65" : "mt-2 text-xs font-semibold text-[#687386]"}>{formatCommitmentLabel(introQuote.termMonths)} billing. Cancellation follows the Terms of Service.</p>
             <p className={isGrowth ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>Monthly after first payment: {priceReady ? formatCommercialMoney(price.monthlyPrice, price.currency) : "Confirm by quote"}</p>
-            <p className={isGrowth ? "mt-1 text-xs !text-white/65" : "mt-1 text-xs text-[#687386]"}>Including setup, before any applicable taxes. The optional introductory offer changes the commitment.</p>
+            <p className={isGrowth ? "mt-1 text-xs !text-white/65" : "mt-1 text-xs text-[#687386]"}>Setup and first month due today; monthly billing after that. Before applicable taxes.</p>
             <p className={isGrowth ? "mt-4 text-sm leading-6 !text-white/70" : "mt-4 text-sm leading-6 text-[#526071]"}>{product.description}</p>
             {PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug] && (
               <div className={isGrowth ? "mt-5 border-t border-white/20 pt-4" : "mt-5 border-t border-[#dfe2ea] pt-4"}>

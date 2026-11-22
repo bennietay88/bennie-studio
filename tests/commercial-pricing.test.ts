@@ -29,8 +29,8 @@ test("managed website recurring price book is fixed by market", () => {
   assert.equal(getCommercialPrice(product!, "MY")?.setupFee, 199);
   assert.equal(getCommercialPrice(product!, "MY")?.annualPrice, null);
   assert.equal(getCommercialPrice(product!, "MY")?.billingInterval, "month");
-  assert.equal(getCommercialPrice(product!, "MY")?.minimumTermMonths, 3);
-  assert.equal(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, 3);
+  assert.equal(getCommercialPrice(product!, "MY")?.minimumTermMonths, 0);
+  assert.equal(COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, 0);
 });
 
 test("all four launch markets keep the approved recurring catalogue", () => {
@@ -46,7 +46,7 @@ test("all four launch markets keep the approved recurring catalogue", () => {
     assert.equal(price?.monthlyPrice, monthly);
     assert.equal(price?.setupFee, setup);
     assert.equal(price?.currency, currency);
-    assert.equal(price?.minimumTermMonths, 3);
+    assert.equal(price?.minimumTermMonths, 0);
     assert.equal(price?.billingInterval, "month");
   }
 });
@@ -159,6 +159,7 @@ test("commercial commitment helpers use the configured market term", () => {
   assert.equal(getMinimumTermMonths({ minimumTermMonths: 6 }), 6);
   assert.equal(getMinimumTermMonths({ minimumTermMonths: 12 }), 12);
   assert.equal(getMinimumTermMonths({ minimumTermMonths: undefined }), COMMERCIAL_DEFAULT_COMMITMENT_MONTHS);
+  assert.equal(formatCommitmentLabel(0), "Month-to-month");
   assert.equal(formatCommitmentLabel(1), "1-month initial commitment");
   assert.equal(formatCommitmentLabel(6), "6-month initial commitment");
 });

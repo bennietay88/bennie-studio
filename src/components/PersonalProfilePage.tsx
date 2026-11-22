@@ -76,7 +76,7 @@ const faqs = [
   ["Is the design fully custom?", "Personal Profile is a streamlined, fixed-format service with 3–5 professional profile pages. Bespoke features and complex integrations are separately scoped."],
   ["Can I use a domain I own?", "Yes. We can assist with connecting your existing domain. Registration and renewal fees are not included in the standard plan."],
   ["What happens after launch?", "Your plan includes hosting, routine maintenance and one small content-edit request per month (up to 15 minutes). Larger changes are separately scoped."],
-  ["What is the billing commitment?", "The standard initial term is three months, then month to month unless your accepted order states otherwise. You review the full terms before payment."],
+  ["What is the billing commitment?", "Billing is month-to-month. The first payment includes setup and the first month; cancellation follows the Terms of Service."],
 ] as const;
 
 function Reveal({ children, className = "", delay = 0 }: {
