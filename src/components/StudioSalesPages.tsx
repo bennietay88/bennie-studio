@@ -121,7 +121,7 @@ export function PricingSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
       <div className="c30-pricing-window">
         <div className="c30-pricing-window-top"><span className="c30-pricing-dots">● ● ●</span><span>Managed website plans</span></div>
         <div className="c30-pricing-mini-cards">
-          {[["01","Essential","Website + care"],["02","Business","More pages + support"],["03","Growth","SEO + optimization"],["04","Partner","Strategy + support"]].map(([n,title,desc],i)=>
+          {[["01","Personal Profile","Professional presence"],["02","Managed Website","Website + ongoing care"],["03","Website Growth","Enquiry + SEO foundations"],["04","Growth Partner","Expanded support"]].map(([n,title,desc],i)=>
             <div key={n} className={i===1?"c30-mini-plan c30-mini-featured":"c30-mini-plan"}>
               <span>{n}</span><strong>{title}</strong><small>{desc}</small><div className="c30-mini-rule"/><div className="c30-mini-line"/><div className="c30-mini-line c30-short"/><div className="c30-mini-button"/>
             </div>
