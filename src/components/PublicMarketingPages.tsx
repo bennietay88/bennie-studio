@@ -2406,14 +2406,14 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                 <div className="sticky bottom-4 z-20 mt-5 flex flex-col gap-4 rounded-2xl border border-indigo-300/20 bg-[#08101f]/95 p-4 shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-semibold text-white">Like this direction? Discuss the next step with us.</p>
-                    <p className="mt-1 max-w-xl text-sm leading-6 text-slate-300">Ask for a human review and clear scope before committing, or continue to the secure managed website order.</p>
+                    <p className="mt-1 max-w-xl text-sm leading-6 text-slate-300">{quickConcept ? "Ask for a human review and explore verified plans. Checkout requires a personalized, saved preview." : "Ask for a human review and clear scope before committing, or continue to your preview-linked order."}</p>
                   </div>
                   <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
                     <Button onClick={() => action("preview_consultation_clicked", "Preview website review", "/book-demo")} className="min-h-12 bg-white px-5 font-semibold text-slate-950 hover:bg-indigo-100">
                       Request a website review <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
-                    <Button variant="outline" onClick={() => action("click_launch_after_preview","Continue with website","/preview-order")} className="min-h-12 border-white/30 bg-transparent px-5 font-semibold text-white hover:bg-white/10 hover:text-white">
-                      Review plan & payment
+                    <Button variant="outline" onClick={() => action(quickConcept ? "quick_concept_pricing_clicked" : "click_launch_after_preview",quickConcept ? "Compare verified plans" : "Continue with website",quickConcept ? "/pricing" : "/preview-order")} className="min-h-12 border-white/30 bg-transparent px-5 font-semibold text-white hover:bg-white/10 hover:text-white">
+                      {quickConcept ? "Explore plans & pricing" : "Review plan & payment"}
                     </Button>
                   </div>
                 </div>
