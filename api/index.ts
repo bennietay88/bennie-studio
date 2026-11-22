@@ -17,6 +17,7 @@ import { Resend } from "resend";
 import { classifyResendSendError, emailProviderStatus, selectEmailProvider, sendHostingerMail, verifyHostingerSmtp } from "../server/emailProviders.js";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
+import { SharedAbuseProtection, getRateLimitClientIp, isSensitiveRateLimit } from "../server/sharedAbuseProtection.js";
 import { callDeepSeek, callOpenAI } from "../src/lib/ai-providers.js";
 import { analyzeWebsiteHtml, normalizeWebsiteAuditResult } from "../src/lib/websiteAudit.js";
 import {
@@ -143,6 +144,13 @@ if (!redis) {
     message: "UPSTASH_REDIS_REST_URL/TOKEN not set; using in-memory rate limits.",
   });
 }
+
+const abuseProtection = new SharedAbuseProtection({
+  redis,
+  requireShared: process.env.ABUSE_REQUIRE_SHARED_REDIS === "true",
+  hashSecret: process.env.ABUSE_RATE_LIMIT_HASH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+  warn: (message, context) => structuredLog("warn", message, context),
+});
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Admin client for server-side operations that should bypass RLS
@@ -525,8 +533,7 @@ const PUBLIC_URL_SCHEMA = z
     }
   }, "URL must use http or https");
 
-type RateBucket = { count: number; resetAt: number };
-const rateBuckets = new Map<string, RateBucket>();
+
 const PORTFOLIO_LEAD_ORIGIN = "https://portfolio.bennietay.com";
 
 function portfolioLeadCors(req: any, res: any, next: any) {
@@ -544,11 +551,7 @@ function portfolioLeadCors(req: any, res: any, next: any) {
 }
 
 function getClientIp(req: any) {
-  const forwardedFor = req.headers["x-forwarded-for"];
-  if (typeof forwardedFor === "string" && forwardedFor.length > 0) {
-    return forwardedFor.split(",")[0].trim();
-  }
-  return req.ip || req.socket?.remoteAddress || "unknown";
+  return getRateLimitClientIp(req);
 }
 
 function rateLimit(options: {
@@ -558,43 +561,27 @@ function rateLimit(options: {
   key?: (req: any) => string;
 }) {
   return async (req: any, res: any, next: any) => {
-    if (process.env.E2E_TEST === "true") return next();
-    const now = Date.now();
-    const key = `${options.keyPrefix}:${options.key ? options.key(req) : getClientIp(req)}`;
-    const ttlSeconds = Math.ceil(options.windowMs / 1000);
+    // The test bypass must never run on a hosted deployment.
+    if (process.env.E2E_TEST === "true" && !process.env.VERCEL && process.env.NODE_ENV !== "production") return next();
 
-    if (redis) {
-      try {
-        const redisKey = `rate:${key}`;
-        const count = await redis.incr(redisKey);
-        if (count === 1) {
-          await redis.expire(redisKey, ttlSeconds);
-        }
+    const result = await abuseProtection.consume({
+      keyPrefix: options.keyPrefix,
+      identity: options.key ? String(options.key(req)) : getClientIp(req),
+      windowMs: options.windowMs,
+      max: options.max,
+      sensitive: isSensitiveRateLimit(options.keyPrefix),
+    });
+    res.setHeader("X-RateLimit-Limit", String(options.max));
+    res.setHeader("X-RateLimit-Remaining", String(result.remaining));
+    if (result.status === "allowed") return next();
 
-        if (count > options.max) {
-          res.setHeader("Retry-After", ttlSeconds.toString());
-          return res.status(429).json({ error: "Too many requests. Please try again later." });
-        }
-
-        return next();
-      } catch (err) {
-        console.error("[RateLimit] Redis error, falling back to memory:", err);
-      }
+    res.setHeader("Retry-After", String(Math.max(1, Math.ceil(result.retryAfterMs / 1000))));
+    res.setHeader("Cache-Control", "no-store");
+    if (result.status === "unavailable") {
+      return res.status(503).json({ error: "This action is temporarily unavailable. Please try again shortly." });
     }
-
-    const bucket = rateBuckets.get(key);
-    if (!bucket || bucket.resetAt <= now) {
-      rateBuckets.set(key, { count: 1, resetAt: now + options.windowMs });
-      return next();
-    }
-
-    bucket.count += 1;
-    if (bucket.count > options.max) {
-      res.setHeader("Retry-After", Math.ceil((bucket.resetAt - now) / 1000).toString());
-      return res.status(429).json({ error: "Too many requests. Please try again later." });
-    }
-
-    return next();
+    structuredLog("info", "abuse_rate_limit_exceeded", { scope: options.keyPrefix, source: result.source });
+    return res.status(429).json({ error: "Too many requests. Please try again later." });
   };
 }
 
