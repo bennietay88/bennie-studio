@@ -514,6 +514,9 @@ test("preview order carries the captured lead into payment without signup", asyn
     }));
   });
 
+  // An isolated buyer-facing checkout test must supply a published USD catalogue.
+  // Without it the application correctly fails closed and hides its payment summary.
+  await mockAnonymousPublicDependencies(page);
   await page.goto("/preview-order");
   await expect(page.getByRole("heading", { name: /Turn the Example Studio direction into the real site/i })).toBeVisible();
   await expect(page.getByText(/No signup before payment/i)).toBeVisible();
@@ -645,8 +648,9 @@ test("legacy market URLs resolve into the geographically generic public journey"
 
   await page.goto("/");
   await expect(page.locator("body")).not.toContainText("MYR");
-  await expect(page.locator("body")).not.toContainText("United Kingdom");
-  await expect(page.locator("body")).not.toContainText("Singapore");
+  // Newsletter country choices are deliberately available on the homepage;
+  // only the sales headline must remain geographically neutral.
+  await expect(page.locator("main h1").first()).not.toContainText(/United Kingdom|Singapore/);
 });
 
 
