@@ -7286,7 +7286,7 @@ async function startServer() {
         }
 
         await supabaseAdmin.from("tracking_events").insert({
-          event_type: "platform_lead_submitted",
+          event_type: leadType === "newsletter_opt_in" ? "newsletter_opt_in" : "platform_lead_submitted",
           source_platform: "bennie_studio_public",
           source_page: sourcePage || req.get("referer") || "/",
           metadata: {
@@ -7308,7 +7308,7 @@ async function startServer() {
         });
 
         await supabaseAdmin.from("analytics_events").insert({
-          event_type: "platform_preview_request",
+          event_type: leadType === "newsletter_opt_in" ? "newsletter_opt_in" : "platform_preview_request",
           page_path: sourcePage || req.get("referer") || "/",
           metadata: {
             leadId: lead?.id,
