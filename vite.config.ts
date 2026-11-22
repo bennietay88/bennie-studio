@@ -5,6 +5,13 @@ import { defineConfig, loadEnv } from "vite";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
+  // A Stripe publishable key is safe for the browser; secret keys never are.
+  // Support the existing Vercel variable names without exposing arbitrary envs.
+  const publicStripePublishableKey = [
+    env.VITE_STRIPE_PUBLISHABLE_KEY,
+    env.STRIPE_PUBLISHABLE_KEY,
+    env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+  ].find((value) => typeof value === "string" && /^pk_(?:live|test)_[A-Za-z0-9]+$/.test(value)) || "";
   return {
     plugins: [react(), tailwindcss()],
     // Vercel prebuilt deployments run outside the hosted build environment.
@@ -16,6 +23,9 @@ export default defineConfig(({ mode }) => {
       ),
       "import.meta.env.VITE_SUPABASE_ANON_KEY": JSON.stringify(
         env.VITE_SUPABASE_ANON_KEY || "",
+      ),
+      "import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY": JSON.stringify(
+        publicStripePublishableKey,
       ),
     },
     resolve: {
