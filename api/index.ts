@@ -3713,9 +3713,10 @@ async function startServer() {
   };
 
 
-  const processDueSalesMessages = (limit = 40) => runSalesDelivery({
+  const processDueSalesMessages = (limit = 40, messageIds?: string[]) => runSalesDelivery({
     db: supabaseAdmin,
     limit,
+    messageIds,
     send: async (message) => {
       const unsubscribeUrl = `${publicAppUrl()}/api/public/unsubscribe/${message.unsubscribe_token}`;
       // Approved text is authoritative; a previous HTML draft must not override edits.
@@ -7131,6 +7132,8 @@ async function startServer() {
             const { error: queueError } = await supabaseAdmin.from("sales_messages")
               .upsert(buildInboundNewsletterMessages({ email, leadId: previous.id, sourcePage }), { onConflict: "idempotency_key", ignoreDuplicates: true });
             if (queueError) throw queueError;
+            // An existing subscription is already scheduled; do not resend a
+            // welcome to an address simply because the user submits twice.
             return res.status(200).json({ success: true, leadId: previous.id, reused: true });
           }
         } catch {
@@ -7280,9 +7283,17 @@ async function startServer() {
 
         if (leadType === "newsletter_opt_in") {
           if (!lead?.id) throw new Error("SUBSCRIPTION_NOT_SAVED");
+          const messages = buildInboundNewsletterMessages({ email, leadId: lead.id, sourcePage });
           const { error: queueError } = await supabaseAdmin.from("sales_messages")
-            .upsert(buildInboundNewsletterMessages({ email, leadId: lead.id, sourcePage }), { onConflict: "idempotency_key", ignoreDuplicates: true });
+            .upsert(messages, { onConflict: "idempotency_key", ignoreDuplicates: true });
           if (queueError) throw queueError;
+          // Deliver the requested checklist promptly, without waiting for the
+          // once-daily cron. The existing worker verifies consent, suppression
+          // and provider status, and atomically claims the exact message once.
+          if (process.env.VERCEL_ENV === "production" && messages[0]?.id) {
+            waitUntil(processDueSalesMessages(1, [String(messages[0].id)])
+              .catch((error) => structuredLog("warn", "newsletter_welcome_delivery_deferred", { reason: safeErrorMessage(error) })));
+          }
         }
 
         await supabaseAdmin.from("tracking_events").insert({
