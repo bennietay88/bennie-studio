@@ -117,17 +117,17 @@ export function PricingSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
      <p>{cmsPage?.heroDescription || "Choose the level of support you need. Compare the monthly fee, one-time setup, what's included and the cancellation terms before you buy."}</p>
      <div className="s28-pricing-hero-links"><a href="#plans" className="s28-button" onClick={salesLink("Pricing hero compare","/pricing#plans")}>Compare the plans <ArrowRight size={18}/></a><Link to="/generate-preview" className="s28-text-link" onClick={salesLink("Pricing hero preview","/generate-preview")}>Try a free website preview <ArrowUpRight size={17}/></Link></div>
     </div>
-    <div className="c30-pricing-hero-art" aria-label="Illustration of three managed website plan options">
+    <div className="c30-pricing-hero-art" aria-label="Illustration of four managed website service levels">
       <div className="c30-pricing-window">
         <div className="c30-pricing-window-top"><span className="c30-pricing-dots">● ● ●</span><span>Managed website plans</span></div>
         <div className="c30-pricing-mini-cards">
-          {[["01","Foundation","Website + care"],["02","Growth","Stronger enquiries"],["03","Partner","Strategy + support"]].map(([n,title,desc],i)=>
+          {[["01","Essential","Website + care"],["02","Business","More pages + support"],["03","Growth","SEO + optimization"],["04","Partner","Strategy + support"]].map(([n,title,desc],i)=>
             <div key={n} className={i===1?"c30-mini-plan c30-mini-featured":"c30-mini-plan"}>
               <span>{n}</span><strong>{title}</strong><small>{desc}</small><div className="c30-mini-rule"/><div className="c30-mini-line"/><div className="c30-mini-line c30-short"/><div className="c30-mini-button"/>
             </div>
           )}
         </div>
-        <p className="c30-pricing-art-note">Choose your market to view verified prices</p>
+        <p className="c30-pricing-art-note">All plans billed in USD. See verified fees below</p>
       </div>
     </div></div>
     <div className="s28-pricing-trust"><div><Check size={17}/> Setup + recurring costs visible</div><div><Check size={17}/> Setup + first month shown</div><div><Check size={17}/> Secure checkout after review</div></div>
