@@ -1763,19 +1763,12 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
             <p className="brand-copy mt-4">The brief helps us understand the goal and choose the right structure. If there is already a website, the redesign uses that site as source material instead of replacing the business identity.</p>
           </div>
 
-          <div className="mb-8 grid gap-3 rounded-[1.25rem] border border-[#e3e5ed] bg-white/85 p-4 shadow-[0_22px_60px_-50px_rgba(15,23,42,.45)] sm:grid-cols-4 sm:p-5">
-            {[
-              ["01", "Business", "Tell us about the business"],
-              ["02", "Pages", "Shape the website scope"],
-              ["03", "Style", "Choose the visual direction"],
-              ["04", "Finish", "Review the direction"],
-            ].map(([number, label, copy], index) => (
-              <div key={number} className={index === 0 ? "rounded-xl bg-[#0d1426] p-4 text-white" : "rounded-xl border border-[#eceef3] bg-white p-4"}>
-                <p className={index === 0 ? "text-xs font-bold !text-[#b9b1ff]" : "text-xs font-bold text-[#6252f4]"}>{number}</p>
-                <p className={index === 0 ? "mt-2 font-semibold !text-white" : "mt-2 font-semibold text-[#0d1426]"}>{label}</p>
-                <p className={index === 0 ? "mt-1 text-xs !text-white/55" : "mt-1 text-xs text-[#748095]"}>{copy}</p>
-              </div>
-            ))}
+          <div className="mb-8 flex flex-col gap-3 rounded-xl border border-[#d9e3f6] bg-[#edf4ff] p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#1946c3]">Start with the essentials</p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#2a4569]">Choose your website starting point. For a new business, enter a business name and category to explore an illustrative concept without an email; add scope, style and contact details later for a personalized request.</p>
+            </div>
+            {previewMode === "business" && !salesMode ? <a href="#instant-concept" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-md border border-[#1946c3] bg-white px-4 text-sm font-semibold text-[#1946c3]">Jump to instant concept</a> : null}
           </div>
 
           <form onSubmit={generatePreview} className="grid gap-8 lg:grid-cols-12 lg:items-start">
@@ -1911,7 +1904,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
               )}
 
               {previewMode === "business" && !salesMode ? (
-                <section className="rounded-xl border border-[#b7c6de] bg-[#edf4ff] p-5 sm:p-6" aria-label="Instant local concept without signup">
+                <section id="instant-concept" className="scroll-mt-24 rounded-xl border border-[#b7c6de] bg-[#edf4ff] p-5 sm:p-6" aria-label="Instant local concept without signup">
                   <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#1846a8]">Quick first look · no email needed</p>
                   <h3 className="mt-2 text-xl font-semibold text-[#15263c]">See a preliminary direction now.</h3>
                   <p className="mt-2 text-sm leading-6 text-[#38506c]">Enter a business name and select a business type above. Main service and location can be added later. This illustrative local preview is not saved, sent or based on verified customer data.</p>
