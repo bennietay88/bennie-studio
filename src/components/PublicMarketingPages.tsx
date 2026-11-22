@@ -51,6 +51,7 @@ import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import "../styles/studioCaseStudies.css";
 import { TurnstileWidget } from "./TurnstileWidget";
 import { PreviewOrderPage } from "./PreviewOrderPage";
+import { StudioEmailOptIn } from "./StudioEmailOptIn";
 import { supabase } from "../lib/supabase";
 import { CMS_REPLACEABLE_PATHS, usePublishedPlatformCms, type PlatformCmsPage } from "../lib/platformSiteCms";
 import { PlatformCmsPageBody, PlatformCmsSections } from "./PlatformCmsSections";
@@ -2417,6 +2418,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                     </Button>
                   </div>
                 </div>
+                <div className="mt-6 max-w-3xl"><StudioEmailOptIn sourcePage="/generate-preview" title="Want more ideas for your website?" description="Get the 7-point website conversion checklist and optional follow-up tips. Your unsaved instant design is not emailed or stored by this signup." /></div>
               </>
             ) : null}
           </div>
