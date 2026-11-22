@@ -18,6 +18,9 @@ test("free-preview visitor can explore locally without entering an email or subm
   expect(postRequests).toEqual([]);
   await expect(page.locator("#preview-email")).toHaveValue("");
   await expect(page.locator("#generated-preview")).toContainText("Sample Dental");
+  await expect(page.getByRole("button", { name: /Explore plans & pricing/i })).toBeVisible();
+  await page.getByRole("button", { name: /Explore plans & pricing/i }).click();
+  await expect(page).toHaveURL(/\/pricing$/);
 });
 
 test("mobile conversion paths have no horizontal overflow and remain usable", async ({ page }) => {
