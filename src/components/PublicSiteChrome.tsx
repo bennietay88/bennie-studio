@@ -4,6 +4,7 @@ import "../styles/studioFieldNotes.css";
 import "../styles/studioCreativeDirection.css";
 import "../styles/studioReadability.css";
 import React from "react";
+import { createPortal } from "react-dom";
 import { ExternalLink, Menu, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -109,6 +110,16 @@ export function PublicSiteHeader() {
 
   React.useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
+  // A change to desktop width must not leave an invisible modal locking the page.
+  React.useEffect(() => {
+    if (!mobileOpen) return;
+    const desktop = window.matchMedia("(min-width: 1280px)");
+    const closeOnDesktop = () => { if (desktop.matches) setMobileOpen(false); };
+    desktop.addEventListener("change", closeOnDesktop);
+    closeOnDesktop();
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, [mobileOpen]);
+
   return (
     <header className="sfn-header sticky top-0 z-50 border-b border-[#e8eaf0] bg-white/94 shadow-[0_10px_30px_-28px_rgba(15,23,42,.45)] backdrop-blur-xl">
       <nav className="mx-auto flex h-[74px] w-[calc(100%-3rem)] max-w-[80rem] items-center justify-between gap-3 px-0 lg:w-[calc(100%-6rem)] lg:gap-4" aria-label="Main navigation">
@@ -140,9 +151,9 @@ export function PublicSiteHeader() {
         </Button>
       </nav>
 
-      {mobileOpen ? (
+      {mobileOpen && typeof document !== "undefined" ? createPortal(
         <div className="fixed inset-0 z-[100] bg-[#07101f]/60 backdrop-blur-sm xl:hidden" onClick={() => setMobileOpen(false)}>
-          <div ref={mobileDialogRef} tabIndex={-1} id="public-mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="absolute right-0 top-0 flex h-dvh w-[min(92vw,390px)] flex-col bg-white p-6 shadow-2xl focus:outline-none" onClick={(event) => event.stopPropagation()}>
+          <div ref={mobileDialogRef} tabIndex={-1} id="public-mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="absolute right-0 top-0 flex h-dvh w-[min(92vw,390px)] flex-col overflow-y-auto overscroll-contain bg-white p-6 shadow-2xl focus:outline-none" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-[#e5e7ef] pb-5">
               <span className="text-lg font-semibold tracking-[-0.03em] text-[#0d1426]">Bennie Studio</span>
               <Button ref={mobileCloseRef} type="button" variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Close navigation menu"><X className="h-5 w-5" /></Button>
@@ -160,7 +171,7 @@ export function PublicSiteHeader() {
               {primaryExternal ? <a href={primaryHref} target="_blank" rel="noreferrer" onClick={() => { trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref }); setMobileOpen(false); }} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#1D4ED8] px-5 text-sm font-semibold text-white">{primaryLabel} →</a> : <Link to={primaryHref} onClick={() => { if (!user) trackPublicEvent({ eventType: "sales_cta_clicked", label: `Header ${primaryLabel}`, target: primaryHref }); setMobileOpen(false); }} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-[#1D4ED8] px-5 text-sm font-semibold text-white">{primaryLabel} →</Link>}
             </div>
           </div>
-        </div>
+        </div>, document.body
       ) : null}
     </header>
   );
