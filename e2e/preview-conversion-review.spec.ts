@@ -51,6 +51,8 @@ test("homepage newsletter collects explicit consent separately from a free previ
   const form = page.getByRole("form", { name: /Subscribe to Bennie Studio website tips/i });
   await expect(form.getByRole("checkbox")).not.toBeChecked();
   await form.getByLabel("Work email").fill("visitor@example.com");
+  await form.getByLabel("Country where you receive email").selectOption("MY");
+  await form.getByLabel("Subscribing as").selectOption("business");
   await form.getByRole("checkbox").check();
   await form.getByRole("button", { name: /Get website tips/i }).click();
   await expect(form.getByRole("status")).toHaveCount(0);
@@ -59,6 +61,8 @@ test("homepage newsletter collects explicit consent separately from a free previ
     email: "visitor@example.com",
     leadType: "newsletter_opt_in",
     marketingConsent: true,
+    country: "MY",
+    recipientType: "business",
     sourcePage: "/",
   });
 });
