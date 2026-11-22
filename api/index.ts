@@ -9736,7 +9736,13 @@ async function startServer() {
     try {
       const { data: message, error } = await supabaseAdmin.from("sales_messages").select("recipient").eq("unsubscribe_token", req.params.token).maybeSingle();
       if (error) throw error;
-      if (message?.recipient) await suppressSalesRecipient(supabaseAdmin, message.recipient, "opt_out", "email_unsubscribe", new Date().toISOString());
+      if (message?.recipient) {
+        await suppressSalesRecipient(supabaseAdmin, message.recipient, "opt_out", "email_unsubscribe", new Date().toISOString());
+        const { error: revokeError } = await supabaseAdmin.from("leads")
+          .update({ marketing_consent: false })
+          .ilike("email", message.recipient).eq("marketing_consent", true);
+        if (revokeError) throw revokeError;
+      }
       res.setHeader("Cache-Control", "no-store");
       return res.type("html").send("<!doctype html><html><body style='font-family:system-ui;padding:60px'><main style='max-width:560px;margin:auto'><h1>You have been unsubscribed.</h1><p>Bennie Studio will not send further sales follow-ups to this address.</p></main></body></html>");
     } catch {
