@@ -46,7 +46,14 @@
  .sfn-mobile-cta a:last-child { color:var(--sfn-ink); font-size:.9rem; font-weight:700; white-space:nowrap; }
  body:has(.sfn-mobile-cta) { padding-bottom:4rem; }
 }
+/* P2: honour motion preferences on public marketing pages without silently
+ * disabling animations in the authenticated editor or customer websites. */
 @media(prefers-reduced-motion:reduce) {
- *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; }
+ .brand-public, .brand-public *, .brand-public *::before, .brand-public *::after {
+   scroll-behavior:auto!important;
+   animation-duration:.01ms!important;
+   animation-iteration-count:1!important;
+   transition-duration:.01ms!important;
+ }
 }
 
