@@ -21,13 +21,15 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
   const pageCms = cms.pages["/"];
   const [subscriberEmail, setSubscriberEmail] = React.useState("");
   const [optInConsent, setOptInConsent] = React.useState(false);
+  const [subscriberMarket, setSubscriberMarket] = React.useState("");
+  const [subscriberRecipientType, setSubscriberRecipientType] = React.useState("");
   const [subscriberHoneypot, setSubscriberHoneypot] = React.useState("");
   const [subscriptionStatus, setSubscriptionStatus] = React.useState<"idle" | "loading" | "success" | "error">("idle");
   const [subscriptionError, setSubscriptionError] = React.useState("");
   const subscribe = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!optInConsent || !subscriberEmail.trim()) {
-      setSubscriptionError("Enter a valid email and opt in to receive updates.");
+    if (!optInConsent || !subscriberEmail.trim() || !subscriberMarket || !subscriberRecipientType) {
+      setSubscriptionError("Enter your email, country and recipient type, then opt in.");
       setSubscriptionStatus("error");
       return;
     }
@@ -45,6 +47,8 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
           sourcePage: "/",
           formName: "Homepage website tips opt-in",
           marketingConsent: true,
+          country: subscriberMarket,
+          recipientType: subscriberRecipientType,
           website: subscriberHoneypot,
         }),
       });
@@ -53,6 +57,8 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
       setSubscriptionStatus("success");
       setSubscriberEmail("");
       setOptInConsent(false);
+      setSubscriberMarket("");
+      setSubscriberRecipientType("");
       trackPublicEvent({ eventType: "newsletter_opt_in", label: "Homepage website tips", target: "/" });
     } catch (error: any) {
       setSubscriptionStatus("error");
@@ -115,6 +121,26 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
                 <label htmlFor="studio-subscriber-email" className="text-sm font-semibold text-slate-900">Work email</label>
                 <input id="studio-subscriber-email" type="email" required autoComplete="email" maxLength={254} value={subscriberEmail} onChange={(e) => setSubscriberEmail(e.target.value)} placeholder="you@business.com" className="min-h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
                 <div className="hidden" aria-hidden="true"><label htmlFor="studio-signup-website">Website</label><input id="studio-signup-website" tabIndex={-1} autoComplete="off" value={subscriberHoneypot} onChange={(e) => setSubscriberHoneypot(e.target.value)}/></div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label htmlFor="studio-subscriber-country" className="grid gap-1 text-sm font-semibold text-slate-900">
+                    Country where you receive email
+                    <select id="studio-subscriber-country" value={subscriberMarket} required onChange={(event) => setSubscriberMarket(event.target.value)} className="min-h-12 rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900">
+                      <option value="">Select country</option>
+                      <option value="MY">Malaysia</option>
+                      <option value="SG">Singapore</option>
+                      <option value="GB">United Kingdom</option>
+                      <option value="US">United States</option>
+                    </select>
+                  </label>
+                  <label htmlFor="studio-subscriber-type" className="grid gap-1 text-sm font-semibold text-slate-900">
+                    Subscribing as
+                    <select id="studio-subscriber-type" value={subscriberRecipientType} required onChange={(event) => setSubscriberRecipientType(event.target.value)} className="min-h-12 rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900">
+                      <option value="">Select type</option>
+                      <option value="business">Business contact</option>
+                      <option value="individual">Individual</option>
+                    </select>
+                  </label>
+                </div>
                 <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-slate-700">
                   <input type="checkbox" required checked={optInConsent} onChange={(e) => setOptInConsent(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#1946c3]" />
                   <span>Yes, send me website improvement tips and occasional Bennie Studio offers. I can unsubscribe at any time. <Link to="/privacy-policy" className="font-semibold underline underline-offset-2">Privacy policy</Link>.</span>
