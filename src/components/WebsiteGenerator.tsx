@@ -34,6 +34,7 @@ import {
 } from "../constants/pageBlueprints";
 import { getUpgradeRecommendation } from "../constants/localSeoEngine";
 import { GENERATION_MODE_OPTIONS } from "../constants/designProfiles";
+import { DESIGN_PACK_LIST, applyDesignPack, recommendDesignPack } from "../lib/designPacks";
 import { CUSTOMER_SITE_CAPABILITIES } from "../constants/customerSiteCapabilities";
 import { assessManualReviewInput, buildReviewWebsiteStrategy } from "../constants/reviewPoweredWaas";
 import { evaluateGeneratedDesign } from "../lib/designQa";
@@ -62,6 +63,7 @@ const generatorSchema = z.object({
   tone: z.string().optional(),
   mainGoal: z.string().min(1, "Main goal is required"),
   generationMode: z.enum(["fast", "premium", "brand_led"]),
+  designPackId: z.enum(["auto", "conversion_local", "editorial_authority", "organic_human"]),
   brandPersonality: z.enum(["professional", "premium", "bold", "friendly", "technical", "established", "elegant", "approachable"]),
   businessMaturity: z.enum(["new", "growing", "established", "multi_location"]),
   assetReadiness: z.enum(["professional", "some", "pending"]),
@@ -114,6 +116,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
       tone: "Professional",
       mainGoal: "Get Leads",
       generationMode: "premium",
+      designPackId: "auto",
       brandPersonality: "professional",
       businessMaturity: "growing",
       assetReadiness: "some",
@@ -141,6 +144,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
   const location = watch("location");
   const ctaPreference = watch("ctaPreference");
   const generationMode = watch("generationMode");
+  const designPackId = watch("designPackId");
   const brandPersonality = watch("brandPersonality");
   const businessMaturity = watch("businessMaturity");
   const assetReadiness = watch("assetReadiness");
@@ -370,6 +374,9 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
         assetReadiness: data.assetReadiness,
       });
       const generatedSeo = getBlueprintSeo(blueprintInput);
+      const approvedPackId = data.designPackId === "auto"
+        ? recommendDesignPack({ industry: data.industry || selectedNiche.category, goal: data.mainGoal, personality: data.brandPersonality }).pack.id
+        : data.designPackId;
       const candidateSeeds = data.generationMode === "fast" ? [0] : [0, 1];
 
       const designCandidates = candidateSeeds.map((compositionSeed) => {
@@ -383,14 +390,15 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
           status: "draft",
           updatedAt: Date.now(),
         };
-        const quality = evaluateGeneratedDesign(previewWebsite);
+        const designedWebsite = applyDesignPack(previewWebsite, approvedPackId);
+        const quality = evaluateGeneratedDesign(designedWebsite);
         const rank =
           quality.score +
           quality.metrics.visualVariety * 0.25 +
           quality.metrics.hierarchy * 0.15 +
           quality.metrics.conversionClarity * 0.15 -
           quality.metrics.aiTemplateRisk * 0.4;
-        return { compositionSeed, pages, quality, rank };
+        return { compositionSeed, pages: designedWebsite.pages, theme: designedWebsite.theme, quality, rank };
       });
 
       const selectedDesign = designCandidates.sort((a, b) => b.rank - a.rank)[0];
@@ -405,7 +413,7 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
 
       const websiteData = {
         business_id: businessId,
-        theme: generatedTheme,
+        theme: selectedDesign.theme,
         pages: pagesWithIds,
         seo: {
           ...generatedSeo,
@@ -672,6 +680,18 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
                 ))}
               </div>
 
+              <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-600">Design pack</Label>
+                <p className="text-xs text-slate-500">Choose an approved visual recipe for the generated site, or let Bennie Studio recommend one by industry. You can change it later in Design Studio.</p>
+                <div className="grid gap-2 md:grid-cols-4">
+                  {[{id:"auto",label:"Recommended"},...DESIGN_PACK_LIST.map(pack=>({id:pack.id,label:pack.label}))].map(option => (
+                    <button key={option.id} type="button" aria-pressed={designPackId===option.id} onClick={()=>setValue("designPackId",option.id as GeneratorFormData["designPackId"])}
+                      className={cn("rounded-xl border-2 px-3 py-3 text-left text-xs font-semibold",designPackId===option.id?"border-indigo-600 bg-indigo-50 text-indigo-900":"border-slate-200 text-slate-700")}>
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Brand personality</Label>

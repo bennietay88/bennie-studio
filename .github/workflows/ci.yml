@@ -78,6 +78,9 @@ jobs:
         run: |
           set -o pipefail
           node --import tsx --test tests/*.test.ts 2>&1 | tee /tmp/bennie-ci-tests.log
+      - name: Validate design research intake parser
+        if: steps.scope.outputs.code_changed == 'true'
+        run: npm run test:design-trends
       - name: Dependency vulnerability audit
         if: steps.scope.outputs.code_changed == 'true'
         run: |
@@ -95,7 +98,7 @@ jobs:
 
   browser-e2e:
     # Run browser tests even when verify fails, to identify independent regressions.
-    if: ${{ always() && (needs.verify.outputs.code_changed == 'true' || github.event_name == 'pull_request') }}
+    if: ${{ !cancelled() && (needs.verify.outputs.code_changed == 'true' || github.event_name == 'pull_request') }}
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 30

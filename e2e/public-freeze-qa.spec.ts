@@ -118,7 +118,7 @@ test.describe("Public site freeze QA",()=>{
     for(const card of await cards.all()){
       await expect(card.locator(".s28-price-number")).toBeVisible();
       await expect(card.getByText(/setup/i).first()).toBeVisible();
-      await expect(card.getByText(/initial term/i).first()).toBeVisible();
+      await expect(card.getByText(/Billing terms/i).first()).toBeVisible();
     }
   });
 });

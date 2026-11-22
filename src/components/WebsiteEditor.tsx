@@ -90,6 +90,7 @@ import {
 import { DEFAULT_POLICIES } from "../constants/defaultPolicies";
 import { NICHE_TEMPLATES } from "../constants/nicheTemplates";
 import { APPROVED_VARIANTS, DESIGN_PROFILE_OPTIONS, type DesignProfileId } from "../constants/designProfiles";
+import { BennieDesignStudio } from "./BennieDesignStudio";
 import {
   createPlanLimitUpgradeMessage,
   getPlanPageLimit,
@@ -769,6 +770,7 @@ export function WebsiteEditor({
     | "content"
     | "general"
     | "theme"
+    | "design_studio"
     | "seo"
     | "footer"
     | "template"
@@ -5390,6 +5392,7 @@ export function WebsiteEditor({
                 { id: "advanced", icon: Zap, label: "Growth Automations" },
                 { id: "general", icon: SettingsIcon, label: "Branding" },
                 { id: "theme", icon: Palette, label: "Visual Style" },
+                { id: "design_studio", icon: Wand2, label: "Design Studio" },
                 { id: "footer", icon: PanelBottom, label: "Footer" },
               ].map((tab) => (
                 <button
@@ -9240,6 +9243,14 @@ export function WebsiteEditor({
                   </Button>
                 </CardFooter>
               </Card>
+            )}
+
+            {activeTab === "design_studio" && website && (
+              <BennieDesignStudio
+                website={website}
+                industry={business?.industry || website.seo?.businessType}
+                onChange={(next) => { setWebsite(next); toast.success("Design applied to editor. Save to keep changes."); }}
+              />
             )}
 
             {activeTab === "general" && (

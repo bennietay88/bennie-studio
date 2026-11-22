@@ -1,0 +1,35 @@
+name: Monthly design research intake
+
+on:
+  schedule:
+    - cron: '20 2 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build candidate report from public editorial feeds
+        run: node scripts/design-trend-review.mjs
+      - name: Create non-publishing review issue
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          period="$(date -u +%Y-%m)"
+          title="Design trend review: ${period}"
+          if gh issue list --repo "$GITHUB_REPOSITORY" --state all --search "in:title ${title}" --json title --jq '.[].title' | grep -Fxq "$title"; then
+            echo "This month's issue already exists."
+            exit 0
+          fi
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body-file /tmp/bennie-design-trends.md

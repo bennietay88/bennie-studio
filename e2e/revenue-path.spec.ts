@@ -457,7 +457,7 @@ test("routes homepage plan cards to the intended pricing details", async ({ page
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
 
   await page.goto("/");
-  await page.locator("article").filter({ has: page.getByRole("heading", { name: "Website Growth", exact: true }) }).getByRole("button", { name: /See scope & choose plan/i }).click();
+  await page.locator("article").filter({ has: page.getByRole("heading", { name: "Website Growth", exact: true }) }).getByRole("button", { name: /Explore plan/i }).click();
   await expect(page).toHaveURL(/\/pricing#plan-website-growth$/);
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
 });
@@ -468,7 +468,7 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
     const payload = await route.request().postDataJSON();
     expect(payload.productSlug).toBe("website-growth");
     expect(payload.currency).toBe("USD");
-    expect(payload.introOffer).toBe("FIRST_MONTH_FREE_12M");
+    expect(payload.introOffer).toBeUndefined();
     await json(route, {
       success: true,
       url: "/checkout/success?session_id=cs_e2e_public&public_order=1&preview_id=checkout_e2e_12345678&direct_checkout=1",
@@ -489,14 +489,12 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
   await expect(plansSection).toBeVisible();
   const growthCard = plansSection.locator("article").filter({ hasText: "Website Growth" });
   await expect(growthCard).toBeVisible();
-  await page.getByRole("checkbox", { name: /new-customer offer/i }).check();
   await growthCard.getByRole("button", { name: /Choose this plan/i }).click();
   await expect(page.getByRole("dialog", { name: "Order summary" })).toBeVisible();
   await expect(page.getByText(/No account is required before payment/i)).toBeVisible();
   await expect(page.getByRole("dialog", { name: "Order summary" }).getByText("USD ($)", { exact: true })).toBeVisible();
-  await expect(page.getByRole("dialog", { name: "Order summary" }).getByText("12 months")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Order summary" }).getByText("Month-to-month", { exact: true })).toBeVisible();
   await page.getByRole("dialog", { name: "Order summary" }).getByRole("checkbox").check();
-  await page.getByRole("dialog", { name: "Order summary" }).getByLabel("Email for offer eligibility").fill("buyer@example.test");
   await page.getByRole("button", { name: /Continue to secure checkout/i }).click();
   await expect(page).toHaveURL(/\/checkout\/success\?/);
   await expect(page).not.toHaveURL(/\/signup/);
@@ -519,9 +517,8 @@ test("preview order carries the captured lead into payment without signup", asyn
   await page.goto("/preview-order");
   await expect(page.getByRole("heading", { name: /Turn the Example Studio direction into the real site/i })).toBeVisible();
   await expect(page.getByText(/No signup before payment/i)).toBeVisible();
-  await expect(page.getByText("3 months", { exact: true })).toBeVisible();
-  await page.getByRole("checkbox", { name: /Optional: first month of management free/i }).check();
-  await expect(page.getByText(/12-month initial commitment/i).first()).toBeVisible();
+  await expect(page.getByText(/Month-to-month billing/i)).toBeVisible();
+  await expect(page.getByText("Month-to-month", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: /Continue to secure checkout/i })).toBeVisible();
 });
 

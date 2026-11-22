@@ -402,6 +402,9 @@ export interface Website {
       | "corporate"
       | "prestige"
       | "luxury_dark";
+    /** Versioned visual pack; legacy themes continue to use the design profile fallback. */
+    designPackId?: "conversion_local" | "editorial_authority" | "organic_human";
+    designPackVersion?: string;
     /** Approved visual direction used by the shared renderer. Legacy themes fall back safely. */
     designProfile?:
       | "editorial_luxury"
