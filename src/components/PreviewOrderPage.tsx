@@ -103,7 +103,7 @@ export function PreviewOrderPage() {
     || availableProducts[1]
     || availableProducts[0];
   const price = selected ? getCommercialPrice(selected, checkoutMarket) : null;
-  const priceReady = !loading && !pricingError && Boolean(price && Number.isFinite(price.monthlyPrice) && price.monthlyPrice !== null && Number.isFinite(price.setupFee));
+  const priceReady = !loading && !pricingError && Boolean(price && price.monthlyPrice !== null && Number.isFinite(price.monthlyPrice) && price.setupFee !== null && Number.isFinite(price.setupFee));
   const monthly = Number(price?.monthlyPrice || 0);
   const setup = Number(price?.setupFee || 0);
   const introQuote = getIntroductoryQuote(monthly, setup, getMinimumTermMonths(price), introOfferEnabled);
