@@ -13,7 +13,7 @@ import "../styles/studioSalesRefinements.css";
 const salesLink=(label:string,target:string)=>()=>trackPublicEvent({eventType:"sales_cta_clicked",label,target});
 
 const serviceFaqs=[
-  ["Is this a one-time website project or an ongoing service?","Bennie Studio sells managed website plans. Setup covers the initial build; the recurring plan covers hosting, maintenance and the support specified in your agreement. Compare the setup, recurring fee and minimum term before ordering."],
+  ["Is this a one-time website project or an ongoing service?","Bennie Studio sells managed website plans. Setup covers the initial build; the recurring plan covers hosting, maintenance and the support specified in your agreement. Your first payment includes setup and month one; service bills monthly after that."],
   ["Will my website be different from the other examples?","Yes. The built-in designs provide a starting structure, but your final pages depend on your services, content, brand assets, approved evidence and the agreed scope. The showcase websites are studio-built demonstrations, not past client commissions."],
   ["Do you write the content and source images?","We help plan content and guide your messaging within the plan scope. You provide accurate business details, approvals and any essential proof. Additional copywriting, bespoke photography or integrations can require separate scoping."],
   ["What happens after the website launches?","Your plan determines the included updates, turnaround targets and support. Hosting and agreed maintenance remain managed during your subscription."],
@@ -72,7 +72,7 @@ export function ServicesSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
    <div className="brand-shell">
     <div className="s28-chapters-top"><h2 id="s28-service-chapters-title">Everything from first brief <em>to after launch.</em></h2><p>Three connected parts of one managed website service. The exact number of pages, revisions and updates depends on the plan you select.</p></div>
     {websiteItems.map(([n,eyebrow,title,copy,result],idx)=><article className="s28-chapter" key={n}><span className="s28-chapter-number">{n} / 03</span><div><p className="s28-kicker">{eyebrow}</p><h3>{title}</h3></div><div className="s28-chapter-body"><p>{copy}</p><div><Check size={17}/> {result}</div></div></article>)}
-    <div className="s28-chapter-footer"><Link to="/pricing" onClick={salesLink("Services compare plan scopes","/pricing")} className="s28-button">Compare what's included in each plan <ArrowRight size={18}/></Link><span>Clear setup costs and commitments before checkout.</span></div>
+    <div className="s28-chapter-footer"><Link to="/pricing" onClick={salesLink("Services compare plan scopes","/pricing")} className="s28-button">Compare what's included in each plan <ArrowRight size={18}/></Link><span>Clear setup costs and monthly billing before checkout.</span></div>
    </div>
   </section>
 
@@ -87,7 +87,7 @@ export function ServicesSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
    <div className="s28-steps">{[
     ["01","Tell us about the business","Share your website URL or a short description of your services and goals."],
     ["02","Explore the free preview","Review a preliminary direction. No credit card and no commitment required."],
-    ["03","Choose a managed plan","Confirm the scope, setup cost, ongoing fee and minimum contract term."],
+    ["03","Choose a managed plan","Confirm the scope, setup fee, and monthly service fee."],
     ["04","Review, launch & stay supported","Approve the final website, then receive the support included in your plan."],
    ].map(([n,title,description])=><div key={n}><span>{n}</span><h3>{title}</h3><p>{description}</p></div>)}</div>
    <Link to="/generate-preview" onClick={salesLink("Services process preview","/generate-preview")} className="s28-button">Start with a free preview <ArrowUpRight size={18}/></Link>
@@ -97,12 +97,10 @@ export function ServicesSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
 }
 
 const pricingFaqs=[
- ["Is the setup fee separate from the monthly fee?","Yes. The setup fee covers the initial website build. The monthly charge covers your recurring managed service. Each card shows both charges, what is due initially and the estimated initial-term total, before any applicable taxes."],
- ["What does the initial-term total include?","It combines the one-time setup with the monthly service charges for the minimum commitment shown. It excludes taxes and any separately agreed work or third-party charges. The optional promotional offer changes the initial commitment, and the displayed total updates accordingly."],
- ["Is the first month really free with the optional offer?","For eligible new customers choosing the optional offer, the first month of service is discounted. The one-time setup fee still applies and the initial service commitment becomes 12 months. Read the terms and verify eligibility before checkout."],
+ ["Is the setup fee separate from the monthly fee?","Yes. The one-time setup fee covers the initial website build. The first payment includes setup and the first month of service; the recurring monthly fee is billed after that. Prices are before applicable taxes."],
  ["Can I start without paying?","Yes. You can create a preliminary website preview without a payment card. It does not reserve a paid service or guarantee a finished website."],
  ["Are search rankings or leads guaranteed?","No. The work targets better usability, trust and enquiry structure; traffic, search positions, leads and sales are not guaranteed."],
- ["Can I change or cancel my plan?","Review the minimum commitment, notice period and applicable cancellation or change terms before payment. Any changes are subject to your selected service agreement."],
+ ["Can I change or cancel my plan?","Plans bill month-to-month. Review the cancellation notice period and applicable change terms before payment. Any changes are subject to your selected service agreement."],
 ];
 
 export function PricingSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
@@ -111,7 +109,7 @@ export function PricingSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
    <div className="brand-shell">
     <div className="s28-pricing-hero-grid"><div className="s28-pricing-hero-content">
      <h1>{cmsPage?.heroTitle || <>A website worth investing in. <em>Pricing you can understand.</em></>}</h1>
-     <p>{cmsPage?.heroDescription || "Choose the level of support you need. Compare the real monthly fee, one-time build cost, what's included and the minimum commitment before you buy."}</p>
+     <p>{cmsPage?.heroDescription || "Choose the level of support you need. Compare the monthly fee, one-time setup, what's included and the cancellation terms before you buy."}</p>
      <div className="s28-pricing-hero-links"><a href="#plans" className="s28-button" onClick={salesLink("Pricing hero compare","/pricing#plans")}>Compare the plans <ArrowRight size={18}/></a><Link to="/generate-preview" className="s28-text-link" onClick={salesLink("Pricing hero preview","/generate-preview")}>Try a free website preview <ArrowUpRight size={17}/></Link></div>
     </div>
     <div className="c30-pricing-hero-art" aria-label="Illustration of three managed website plan options">
@@ -127,13 +125,13 @@ export function PricingSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
         <p className="c30-pricing-art-note">Choose your market to view verified prices</p>
       </div>
     </div></div>
-    <div className="s28-pricing-trust"><div><Check size={17}/> Setup + recurring costs visible</div><div><Check size={17}/> Initial-term total shown</div><div><Check size={17}/> Secure checkout after review</div></div>
+    <div className="s28-pricing-trust"><div><Check size={17}/> Setup + recurring costs visible</div><div><Check size={17}/> Setup + first month shown</div><div><Check size={17}/> Secure checkout after review</div></div>
    </div>
   </section>
   <section className="s28-pricing-body">
    <Pricing hideIntro editorial />
   </section>
-  <section className="s28-pricing-explain"><div className="brand-shell"><div className="s28-intro-grid"><div><h2>What's included—and <em>what isn't.</em></h2></div><div><p>We want you to understand the service before making a purchase. Plan scope, delivery targets, ongoing changes and minimum commitments are defined; advertising spend, custom applications and other out-of-scope work aren't automatically included.</p><Link to="/terms" className="s28-text-link">Read service terms <ArrowUpRight size={17}/></Link></div></div>
+  <section className="s28-pricing-explain"><div className="brand-shell"><div className="s28-intro-grid"><div><h2>What's included—and <em>what isn't.</em></h2></div><div><p>We want you to understand the service before making a purchase. Plan scope, delivery targets and ongoing changes are defined; advertising spend, custom applications and other out-of-scope work aren't automatically included.</p><Link to="/terms" className="s28-text-link">Read service terms <ArrowUpRight size={17}/></Link></div></div>
    <div className="s28-explain-grid">{[
     ["01","The initial build","Planning, design, agreed pages, revisions and launch work within your plan's scope."],
     ["02","The monthly service","Managed hosting, routine maintenance and the plan's specific ongoing update/support allowance."],
