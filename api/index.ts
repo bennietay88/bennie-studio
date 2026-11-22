@@ -1,4 +1,5 @@
 import { fetchPublishedPreviewContent, isPreviewPublicRead } from "../server/previewPublicContent.js";
+import { buildInboundNewsletterMessages, INBOUND_NEWSLETTER_CONSENT, isSupportedNewsletterMarket } from "../server/inboundNewsletter.js";
 import express from "express";
 import compression from "compression";
 import cors from "cors";
@@ -7030,6 +7031,7 @@ async function startServer() {
           turnstileToken: z.string().trim().max(4096).optional().nullable(),
           website: z.string().trim().max(200).optional().nullable(),
           marketingConsent: z.boolean().optional().default(false),
+          recipientType: z.enum(["business", "individual"]).optional(),
           firstTouch: z.record(z.string(), z.any()).optional(),
           lastTouch: z.record(z.string(), z.any()).optional(),
         }),
@@ -7066,6 +7068,7 @@ async function startServer() {
         turnstileToken,
         website: honeypot,
         marketingConsent,
+        recipientType,
         firstTouch,
         lastTouch,
       } = leadBody;
@@ -7090,8 +7093,35 @@ async function startServer() {
         }
       }
 
-      if (leadType === "newsletter_opt_in" && marketingConsent !== true) {
-        return res.status(400).json({ success: false, message: "Explicit marketing consent is required to subscribe." });
+      if (leadType === "newsletter_opt_in") {
+        if (marketingConsent !== true) {
+          return res.status(400).json({ success: false, message: "Explicit marketing consent is required to subscribe." });
+        }
+        if (!isSupportedNewsletterMarket(country) || !["business", "individual"].includes(recipientType || "")) {
+          return res.status(422).json({ success: false, message: "Select your country and recipient type before subscribing." });
+        }
+        try {
+          if (await isSalesSuppressed(supabaseAdmin, normalizeSalesEmail(email))) {
+            return res.status(409).json({ success: false, message: "This email has opted out of marketing. Contact support if you wish to change your preferences." });
+          }
+          // Repeated clicks or retries cannot create fresh nurture series.
+          const { data: previous, error: lookupError } = await supabaseAdmin.from("leads")
+            .select("id,marketing_consent").ilike("email", email)
+            .contains("raw_fields", { leadType: "newsletter_opt_in" })
+            .order("created_at", { ascending: false }).limit(1).maybeSingle();
+          if (lookupError) throw lookupError;
+          if (previous?.id) {
+            if (previous.marketing_consent !== true) {
+              return res.status(409).json({ success: false, message: "The previous subscription was withdrawn. Contact support to review your preferences." });
+            }
+            const { error: queueError } = await supabaseAdmin.from("sales_messages")
+              .upsert(buildInboundNewsletterMessages({ email, leadId: previous.id, sourcePage }), { onConflict: "idempotency_key", ignoreDuplicates: true });
+            if (queueError) throw queueError;
+            return res.status(200).json({ success: true, leadId: previous.id, reused: true });
+          }
+        } catch {
+          return res.status(503).json({ success: false, message: "Subscription processing is temporarily unavailable." });
+        }
       }
 
       const automationSnapshot = buildInboundLeadSnapshot({ message, leadType, source: sourcePage, phone });
@@ -7136,13 +7166,18 @@ async function startServer() {
       const explicitConsent = {
         marketing_consent: marketingConsent === true,
         consent_timestamp: optedInAt,
-        consent_text: marketingConsent ? "Optional checkbox: send me occasional website-improvement tips and relevant Bennie Studio offers; unsubscribe at any time." : null,
+        consent_text: marketingConsent ? (leadType === "newsletter_opt_in" ? INBOUND_NEWSLETTER_CONSENT : "Optional checkbox: send me occasional website-improvement tips and relevant Bennie Studio offers; unsubscribe at any time.") : null,
       };
       const payloads: Record<string, any>[] = [
         {
           name,
           email,
           ...explicitConsent,
+          ...(leadType === "newsletter_opt_in" ? {
+            contact_jurisdiction: country,
+            contact_recipient_type: recipientType,
+            contact_lawful_basis: "consent",
+          } : {}),
           phone,
           message: salesMessage || "Free website preview requested from landing page.",
           source_platform: "bennie_studio",
@@ -7172,8 +7207,9 @@ async function startServer() {
             intent: leadType || "free_website_preview",
             marketingConsent: marketingConsent === true,
             marketingConsentEmail: marketingConsent ? email.trim().toLowerCase() : null,
-            marketingConsentSource: marketingConsent ? "Optional unchecked-by-default preview form checkbox" : null,
+            marketingConsentSource: marketingConsent ? (leadType === "newsletter_opt_in" ? "Explicit homepage newsletter checkbox, unchecked by default" : "Optional unchecked-by-default preview form checkbox") : null,
             marketingConsentAt: optedInAt,
+            ...(leadType === "newsletter_opt_in" ? { recipientType, newsletterVersion: "bs-inbound-opt-in-v1" } : {}),
           },
           status: "new",
           ...automationSnapshot,
@@ -7228,6 +7264,13 @@ async function startServer() {
 
         if (lastError) throw lastError;
 
+        if (leadType === "newsletter_opt_in") {
+          if (!lead?.id) throw new Error("SUBSCRIPTION_NOT_SAVED");
+          const { error: queueError } = await supabaseAdmin.from("sales_messages")
+            .upsert(buildInboundNewsletterMessages({ email, leadId: lead.id, sourcePage }), { onConflict: "idempotency_key", ignoreDuplicates: true });
+          if (queueError) throw queueError;
+        }
+
         await supabaseAdmin.from("tracking_events").insert({
           event_type: "platform_lead_submitted",
           source_platform: "bennie_studio_public",
@@ -7280,7 +7323,7 @@ async function startServer() {
           if (error) console.warn("Platform lead sales task skipped:", error.message);
         });
 
-        res.status(201).json({ success: true, leadId: lead?.id });
+        res.status(201).json({ success: true, leadId: lead?.id, ...(leadType === "newsletter_opt_in" ? { subscribed: true } : {}) });
       } catch (err: any) {
         console.error("Platform lead submission error:", err);
         res.status(500).json({ success: false, message: "Failed to submit preview request" });
