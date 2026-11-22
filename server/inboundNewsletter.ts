@@ -111,6 +111,7 @@ export function buildInboundNewsletterMessages(input: {
   ];
 
   return steps.map((step, index) => ({
+    id: (() => { const h = createHash("sha256").update(`bs-inbound-opt-in-v1:${digest}:${index + 1}`).digest("hex"); return `${h.slice(0,8)}-${h.slice(8,12)}-5${h.slice(13,16)}-a${h.slice(17,20)}-${h.slice(20,32)}`; })(),
     lead_id: input.leadId,
     direction: "outbound",
     channel: "email",
