@@ -72,3 +72,31 @@ test("pricing illustration accurately represents four plans and USD billing", as
   await expect(page.getByLabel("Illustration of four managed website service levels")).toBeVisible();
   await expect(page.getByText("All plans billed in USD. See verified fees below")).toBeVisible();
 });
+
+test("pricing visitors can request the checklist without purchasing a plan", async ({ page }) => {
+  const requestBodies: Array<Record<string, unknown>> = [];
+  await page.route("**/api/platform-leads", async (route) => {
+    requestBodies.push(route.request().postDataJSON());
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ success: true, leadId: "test-opt-in" }) });
+  });
+  await page.goto("/pricing", { waitUntil: "domcontentloaded" });
+  const form = page.getByRole("form", { name: "Website tips email signup" });
+  await expect(form.getByRole("checkbox")).not.toBeChecked();
+  await form.getByRole("button", { name: /Send me the checklist/i }).click();
+  expect(requestBodies).toHaveLength(0);
+  await form.getByLabel("Email address").fill("buyer@example.com");
+  await form.getByLabel("Country").selectOption("MY");
+  await form.getByLabel("Subscribing as").selectOption("business");
+  await form.getByRole("checkbox").check();
+  await form.getByRole("button", { name: /Send me the checklist/i }).click();
+  await expect(form.getByRole("status")).toContainText("Subscription recorded");
+  expect(requestBodies).toHaveLength(1);
+  expect(requestBodies[0]).toMatchObject({
+    email: "buyer@example.com",
+    country: "MY",
+    recipientType: "business",
+    leadType: "newsletter_opt_in",
+    marketingConsent: true,
+    sourcePage: "/pricing",
+  });
+});
