@@ -22,6 +22,8 @@ test("newsletter series is unique per normalized address and step", () => {
   assert.equal(a.length, 5);
   assert.equal(new Set(a.map(m => m.idempotency_key)).size, 5);
   assert.deepEqual(a.map(m => m.idempotency_key),b.map(m => m.idempotency_key));
+  assert.deepEqual(a.map(m => m.id),b.map(m => m.id));
+  assert.ok(a.every(m => /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-a[0-9a-f]{3}-[0-9a-f]{12}$/.test(String(m.id))));
   assert.equal(a[0].recipient, "subscriber@example.com");
   assert.ok(a.every(m => m.status === "queued" && m.direction === "outbound" && m.channel === "email"));
   assert.ok(a.every(m => m.lead_id === LEAD_ID && m.provider_payload && (m.provider_payload as any).source === "explicit_inbound_newsletter"));
