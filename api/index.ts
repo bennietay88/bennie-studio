@@ -68,7 +68,7 @@ import {
 import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
-import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, renderProspectInitialEmail, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
+import { canManageSalesOperations, isSalesSuppressed, exactEmailPattern, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, renderProspectInitialEmail, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { buildProspectFollowUpPlan, bulkManageProspectFollowUps, scheduleProspectFollowUpPlan, syncProspectNextFollowUp } from "../server/prospectFollowUps.js";
 import { reactivateArchivedProspect } from "../server/prospectLifecycle.js";
 import { registerOutreachCompletionRoutes } from "../server/outreachCompletionRoutes.js";
@@ -7106,7 +7106,7 @@ async function startServer() {
           }
           // Repeated clicks or retries cannot create fresh nurture series.
           const { data: previous, error: lookupError } = await supabaseAdmin.from("leads")
-            .select("id,marketing_consent").ilike("email", email)
+            .select("id,marketing_consent").ilike("email", exactEmailPattern(email))
             .contains("raw_fields", { leadType: "newsletter_opt_in" })
             .order("created_at", { ascending: false }).limit(1).maybeSingle();
           if (lookupError) throw lookupError;
@@ -9740,7 +9740,7 @@ async function startServer() {
         await suppressSalesRecipient(supabaseAdmin, message.recipient, "opt_out", "email_unsubscribe", new Date().toISOString());
         const { error: revokeError } = await supabaseAdmin.from("leads")
           .update({ marketing_consent: false })
-          .ilike("email", message.recipient).eq("marketing_consent", true);
+          .ilike("email", exactEmailPattern(message.recipient)).eq("marketing_consent", true);
         if (revokeError) throw revokeError;
       }
       res.setHeader("Cache-Control", "no-store");
