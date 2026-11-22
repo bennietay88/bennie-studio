@@ -11,7 +11,7 @@ test("mobile menu is a body-level dialog with trapped focus and restored scrolli
   const dialog = page.getByRole("dialog", { name: "Navigation menu" });
   await expect(dialog).toBeVisible();
   await expect(trigger).toHaveAttribute("aria-expanded", "true");
-  expect(await dialog.evaluate((node) => node.parentElement === document.body)).toBe(true);
+  expect(await dialog.evaluate((node) => node.parentElement?.parentElement === document.body)).toBe(true);
   await expect(dialog.getByRole("button", { name: "Close navigation menu" })).toBeFocused();
   expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
 
@@ -49,7 +49,7 @@ test("short-screen navigation keeps the bottom action reachable and route change
   await action.scrollIntoViewIfNeeded();
   await expect(action).toBeInViewport();
   await action.click();
-  await expect(page).toHaveURL(/\\/generate-preview(?:\\?|$)/);
+  await expect(page).toHaveURL(/\/generate-preview(?:\?|$)/);
   await expect(dialog).toHaveCount(0);
   expect(await page.evaluate(() => document.body.style.overflow)).not.toBe("hidden");
 });
