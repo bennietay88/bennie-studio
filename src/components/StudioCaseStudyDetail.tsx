@@ -28,7 +28,7 @@ export default function StudioCaseStudyDetail() {
   if (!study) return <div className="brand-public min-h-screen bg-[#f8f8f5]"><PublicSiteHeader/><main className="brand-shell py-24"><h1 className="c27-section-title">Design study not found.</h1><p className="mt-4 text-slate-600">This design may be unpublished or no longer available.</p><Link to="/case-studies" className="c27-quiet mt-6">Browse the portfolio →</Link></main><PublicSiteFooter/></div>;
   const activeDemoSlug = portfolioDemoSlug(study.slug,study.livePreviewSlug);
   const previewPath = activeDemoSlug ? "/case-studies/showcase/" + activeDemoSlug + "/preview" : "";
-  return <div className="brand-public c27-public min-h-screen bg-[#f8f8f5]">
+  return <div className="brand-public c27-public sfn-study-page min-h-screen bg-[#f8f8f5]" style={{"--sfn-study-accent":study.category === "Healthcare" ? "#4e877c" : study.category === "Home services" ? "#bd7e4b" : study.category === "Beauty & wellness" ? "#aa788b" : "#7776ab"} as React.CSSProperties}>
     <Helmet>
       <title>{study.title} Website Concept | Bennie Studio Portfolio</title>
       <meta name="description" content={study.challenge || study.headline}/>
@@ -37,12 +37,12 @@ export default function StudioCaseStudyDetail() {
     </Helmet>
     <PublicSiteHeader/>
     <main>
-      <section className="c27-editorial">
+      <section className="c27-editorial sfn-study-intro">
         <div className="brand-shell py-12 sm:py-20">
           <Link to="/case-studies" className="c27-quiet"><ArrowLeft size={16}/> All design studies</Link>
           <div className="mt-10 grid gap-10 lg:grid-cols-12 lg:items-center">
             <div className="lg:col-span-5">
-              <p className="text-xs font-bold uppercase tracking-[.16em] text-[#1741ed]">{study.category} · {study.style}</p>
+              <p className="sfn-study-kicker">{study.category} / {study.style} / STUDIO CONCEPT</p>
               <h1 className="c27-major mt-5">{study.headline || study.title}</h1>
               <p className="mt-6 text-base leading-8 text-[#525b66]">{study.challenge}</p>
               <p className="mt-3 text-sm font-medium text-[#566273]">Illustrative design concept, not a claimed client commission or business result.</p>
@@ -52,7 +52,7 @@ export default function StudioCaseStudyDetail() {
               </div>
             </div>
             <div className="min-w-0 lg:col-span-7">
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_30px_60px_-45px_rgba(0,0,0,.55)]"><PortfolioShowcaseVisual item={study} priority/></div>
+              <div className="sfn-study-art"><div className="sfn-study-art-title"><span>BENNIE / VISUAL STUDIES</span><span>{study.category.toUpperCase()}</span></div><div className="sfn-study-art-window"><PortfolioShowcaseVisual item={study} priority/></div><div className="sfn-study-art-bottom"><span>INDUSTRY-LED CREATIVE DIRECTION</span><span>01 / CONCEPT</span></div></div>
             </div>
           </div>
         </div>
@@ -69,7 +69,7 @@ export default function StudioCaseStudyDetail() {
           </div>
         </div>
       </section>}
-      <section className="brand-shell py-20">
+      <section className="brand-shell py-20 sfn-study-decisions">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-4"><h2 className="c27-section-title">A website built around the customer's next decision.</h2></div>
           <div className="lg:col-span-8">

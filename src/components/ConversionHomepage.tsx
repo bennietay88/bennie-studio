@@ -2,7 +2,9 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ArrowUpRight, Check, Globe2, MonitorSmartphone, ShieldCheck, Sparkles } from "lucide-react";
 import { trackPublicEvent } from "../lib/publicTracking";
-import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
+import { STUDIO_SHOWCASES } from "./StudioCaseStudyDetail";
+import { StudioProcessTimeline } from "./StudioFieldNotes";
+import { StudioSignatureStage, StudioSelectedWork } from "./StudioCreativeShowcase";
 import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
 import { usePublishedPlatformCms } from "../lib/platformSiteCms";
 import "../styles/conversionHomepage.css";
@@ -17,37 +19,25 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
   const showcases = useStudioShowcaseCatalog(STUDIO_SHOWCASES);
   const cms = usePublishedPlatformCms();
   const pageCms = cms.pages["/"];
-  const featuredStudy = showcases[1];
   return (
-    <div className="conversion-home">
-      <section className="c26-hero" aria-labelledby="c26-title">
+    <div className="conversion-home sfn-home">
+      <section className="c26-hero sfn-hero" aria-labelledby="c26-title">
         <div className="c26-hero-grid brand-shell">
           <div className="c26-hero-copy">
-            
-            <h1 id="c26-title">{pageCms?.heroTitle || <>Websites that help service businesses <em>get more enquiries.</em></>}</h1>
-            <p className="c26-intro">{pageCms?.heroDescription || "We design, build, host and manage distinctive websites that make your business easier to trust, your services easier to understand and your next step easier to take."}</p>
+            <p className="sfn-hero-eyebrow"><span className="sfn-hero-dot" aria-hidden="true"/> INDEPENDENT DIGITAL DESIGN STUDIO / EST. 2026</p>
+            <h1 id="c26-title">{pageCms?.heroTitle || <>Websites that <em>earn trust.</em></>}</h1>
+            <p className="c26-intro">{pageCms?.heroDescription || "We design, build, host and manage distinctive websites that make your business easier to trust, your services easier to understand and the next step clearer—so you can get more enquiries."}</p>
             <div className="c26-actions">
               <button type="button" className="c26-button c26-button-blue" onClick={() => onCta(pageCms?.primaryCtaHref || "/generate-preview", pageCms?.primaryCtaLabel || "Homepage editorial primary preview")}>{pageCms?.primaryCtaLabel || "Get your free website preview"} <ArrowUpRight aria-hidden="true" size={19} /></button>
-              <Link className="c26-quiet-link" to="/case-studies" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:"Homepage editorial case studies",target:"/case-studies"})}>See case studies <ArrowUpRight size={16} aria-hidden="true" /></Link>
+              <Link className="c26-quiet-link" to="/case-studies" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:"Homepage editorial case studies",target:"/case-studies"})}>Explore website examples <ArrowUpRight size={16} aria-hidden="true" /></Link>
             </div>
             <ul className="c26-assurances" aria-label="What to expect">
               <li><Check size={14} aria-hidden="true" /> No card required</li>
-              <li><Check size={14} aria-hidden="true" /> Clear plan pricing</li>
+              <li><Check size={14} aria-hidden="true" /> Scope and billing shown up front</li>
               <li><Check size={14} aria-hidden="true" /> Hosting & ongoing care</li>
             </ul>
           </div>
-          <div className="c26-stage" aria-label="Bennie Studio responsive website presentation">
-            <div className="c26-halo" aria-hidden="true" />
-            <div className="c26-browser">
-              <div className="c26-browser-top"><span className="c26-dots" aria-hidden="true"><i/><i/><i/></span><span>app.bennietay.com</span><span className="c26-browser-line" /></div>
-              <div className="c26-web-navbar"><strong>bennie<span>studio</span></strong><small>Services &nbsp;&nbsp; Case Studies &nbsp;&nbsp; Pricing</small><span>Free website preview ↗</span></div>
-              <div className="c26-web-layout"><div><small>DESIGN · BUILD · MANAGE</small><h2>Made to <em>stand out.</em><br/>Built to work.</h2><p>Distinctive websites for businesses that value clarity and customer enquiries.</p><span className="c26-visual-link">Let's work together ↗</span></div><div className="c26-web-art"><div className="c26-art-circle"/><div className="c26-art-panel"><span>STRATEGY</span><strong>Clearer<br/>messages.<br/>Better<br/>decisions.</strong></div></div></div>
-              <div className="c26-web-bottom"><span>01 / Strategy</span><span>02 / Design</span><span>03 / Launch</span><span>04 / Care</span></div>
-            </div>
-            <div className="c26-phone" aria-hidden="true"><div className="c26-phone-camera"/><div className="c26-phone-nav">bennie<span>studio</span> <b>☰</b></div><span className="c26-phone-kicker">WEBSITES FOR BUSINESS</span><strong>Made to<br/><i>stand out.</i><br/>Built to work.</strong><div className="c26-phone-art"/><span className="c26-phone-cta">Get your preview ↗</span></div>
-            <div className="c26-studio-note">DESIGNED TO WORK<br/>ON EVERY DEVICE <ArrowRight size={27} strokeWidth={1.4} aria-hidden="true" /></div>
-            <span className="c26-stage-caption">In-house Bennie Studio website presentation</span>
-          </div>
+          <StudioSignatureStage studies={showcases}/>
         </div>
       </section>
 
@@ -66,25 +56,18 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
         </div>
       </section>
 
-      <section className="c26-case brand-shell" aria-labelledby="c26-case-title">
-        <div className="c26-section-head"><div><h2 id="c26-case-title">Selected website work<span className="c26-dot">.</span></h2></div><p>Explore studio-built website directions shaped around real service-business buying journeys.</p><Link to="/case-studies" className="c26-quiet-link">Browse all case studies <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
-        <article className="c26-case-feature">
-          <div className="c26-case-art" aria-label={featuredStudy.title + " website"}><img className="c26-case-feature-image" src="/images/bennie-renovation-regenerated-artwork.webp" width={964} height={820} alt="RenovationCo website concept displayed on a laptop against a cobalt studio backdrop" loading="lazy" decoding="async" /></div>
-          <div className="c26-case-copy"><span className="c26-case-meta">01 / {featuredStudy.category} · Studio-built</span><h3>{featuredStudy.headline}</h3><p>{featuredStudy.challenge} {featuredStudy.approach}</p><div className="c26-case-tags">{featuredStudy.sections.slice(0, 3).map((section) => <span key={section}>{section}</span>)}</div><Link to={"/case-studies/showcase/" + featuredStudy.slug} className="c26-text-cta" onClick={()=>trackPublicEvent({eventType:"case_study_clicked",label:featuredStudy.title + " case study",target:"/case-studies/showcase/" + featuredStudy.slug})}>Explore this case study <ArrowUpRight size={18} aria-hidden="true"/></Link></div>
-        </article>
-      </section>
+      <StudioSelectedWork studies={showcases}/>
+      <div className="brand-shell py-8 sm:py-12"><div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7"><div><h2 className="!text-2xl !leading-tight text-slate-950">See a website direction before sharing your details.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Explore illustrative industry examples freely. No account, email or credit card needed to browse.</p></div><Link to="/case-studies" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-md bg-[#1946c3] px-5 py-3 text-sm font-bold text-white">Explore interactive examples <ArrowUpRight size={18} aria-hidden="true"/></Link></div></div>
 
       <section className="c26-process" aria-labelledby="c26-process-title">
         <div className="brand-shell">
           <div className="c26-section-head c26-process-head"><div><h2 id="c26-process-title">How it <em>works.</em></h2></div><p>You can explore a website direction before choosing a managed plan. Here is what happens next.</p><Link to="/how-it-works" className="c26-quiet-link">View our process <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
-          <div className="c26-steps">
-            {[
-              ["01","Share your business","Tell us what you offer and who you want to reach, or share your current site."],
-              ["02","Review your free preview","Explore a preliminary website direction and the proposed enquiry path."],
-              ["03","Choose a plan & build","Review scope and pricing, then approve the direction before launch."],
-              ["04","Stay supported","We manage hosting, maintenance and the updates included in your plan."],
-            ].map(([number,title,detail])=><div className="c26-step" key={number}><span className="c26-step-num">{number}</span><h3>{title}</h3><p>{detail}</p></div>)}
-          </div>
+          <StudioProcessTimeline steps={[
+            {number:"01",title:"Share your business",description:"Tell us what you offer and who you want to reach, or share your current site.",detail:"We use your brief to shape an initial website direction."},
+            {number:"02",title:"Review your free preview",description:"Explore a preliminary direction and the proposed enquiry path before choosing a plan.",detail:"No card is required to request the preview."},
+            {number:"03",title:"Approve scope and start",description:"Confirm the pages, deliverables and plan that fit your business before work begins.",detail:"The first payment includes the applicable setup fee and first month. Check each plan for its minimum commitment and cancellation terms."},
+            {number:"04",title:"Launch and stay supported",description:"Review the build, launch with confidence, then receive the hosting and care included in your plan.",detail:"Service is billed monthly. Any initial minimum commitment is shown in the selected plan and order summary."},
+          ]} />
           <button onClick={() => cta("Homepage process free preview")} className="c26-button c26-button-blue c26-process-cta" type="button">Start with a free preview <ArrowUpRight size={18} aria-hidden="true"/></button>
         </div>
       </section>

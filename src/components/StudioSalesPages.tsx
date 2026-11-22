@@ -1,7 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ArrowUpRight, Check, ChevronDown, Globe2, MonitorSmartphone, ShieldCheck, Sparkles } from "lucide-react";
-import { STUDIO_SHOWCASES, StudioShowcaseVisual } from "./StudioCaseStudyDetail";
+import { STUDIO_SHOWCASES } from "./StudioCaseStudyDetail";
+import { StudioConceptCanvas } from "./StudioCreativeShowcase";
 import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
 import type { PlatformCmsPage } from "../lib/platformSiteCms";
 import { Pricing } from "./Pricing";
@@ -33,37 +34,28 @@ const websiteItems=[
 
 export function ServicesSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
  const showcase=useStudioShowcaseCatalog(STUDIO_SHOWCASES).slice(0,3);
+ const heroShowcase=showcase.find(study=>study.slug==="renovation-contractor") || STUDIO_SHOWCASES[1];
  return <main className="bs-sales bs-sales-services">
   <section className="s28-hero s28-services-hero" aria-labelledby="s28-services-title">
    <div className="brand-shell s28-services-layout">
     <div className="s28-services-copy">
      
-     <h1 id="s28-services-title">{cmsPage?.heroTitle || <>A website should do more than <em>look good.</em></>}</h1>
-     <p className="s28-large-copy">{cmsPage?.heroDescription || "We design, build and manage websites that help service businesses explain their value, earn trust and make it easier for customers to enquire."}</p>
+     <h1 id="s28-services-title">{cmsPage?.heroTitle || <>A website that makes <em>choosing you</em> easier.</>}</h1>
+     <p className="s28-large-copy">{cmsPage?.heroDescription || "Strategy, design, build and ongoing care—so the right customers understand your offer and know what to do next."}</p>
      <div className="s28-hero-actions">
       <Link to={cmsPage?.primaryCtaHref || "/generate-preview"} onClick={salesLink("Services hero free preview",cmsPage?.primaryCtaHref || "/generate-preview")} className="s28-button">{cmsPage?.primaryCtaLabel || "Get your free website preview"} <ArrowUpRight size={19}/></Link>
       <Link to="/pricing" onClick={salesLink("Services hero pricing","/pricing")} className="s28-text-link">See plans & pricing <ArrowRight size={17}/></Link>
      </div>
      <p className="s28-tiny-note"><Check size={14}/> Free initial direction. No card required. No obligation to proceed.</p>
     </div>
-    <div className="s28-services-art">
-     <div className="s28-services-art-top"><span>THE OFFER / OTC + MRC</span><span>SETUP → MONTHLY CARE</span></div>
-     <div className="s28-screen-large flex items-center justify-center bg-white p-6 sm:p-10">
-      <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-8">
-       <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
-        <div><p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">WEBSITE GROWTH</p><h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Setup once. Managed monthly.</h2></div>
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">Month-to-month</span>
-       </div>
-       <div className="space-y-4 py-5 text-sm font-semibold text-slate-600">
-        <div className="flex justify-between gap-4"><span>One-time website setup</span><strong className="text-slate-950">$149</strong></div>
-        <div className="flex justify-between gap-4"><span>First month of managed service</span><strong className="text-slate-950">$99</strong></div>
-       </div>
-       <div className="flex items-end justify-between gap-4 border-t border-slate-200 pt-5"><span className="font-bold text-slate-700">Due today</span><strong className="text-3xl font-black tracking-tight text-slate-950">$248</strong></div>
-       <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">Then $99/month for ongoing website care. No free trial; service starts with the first payment.</p>
-       <div className="mt-5 rounded-xl bg-indigo-600 px-5 py-3 text-center text-sm font-black text-white">Review scope and totals before checkout</div>
-      </div>
+    <div className="s28-services-art s28-services-showcase-art">
+     <div className="s28-services-art-top"><span>THE WORK / 001</span><span>DESIGN → ENQUIRY</span></div>
+     <div className="s28-services-preview-frame">
+      <div className="s28-services-preview-browser"><span>app.bennietay.com</span><span>RENOVATION / WEBSITE CONCEPT</span></div>
+      <StudioConceptCanvas slug={heroShowcase.slug} />
+      <div className="s28-services-preview-caption"><span>Service pages · Project gallery</span><span>Quote request</span></div>
      </div>
-     <div className="s28-art-caption"><span>One-time setup · Monthly managed service</span><span>First payment = setup + month one</span></div>
+     <div className="s28-art-caption"><span>Illustrative studio design study</span><span>Built around the enquiry journey</span></div>
     </div>
    </div>
   </section>
@@ -73,7 +65,7 @@ export function ServicesSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
    </div></section>
 
   <section className="s28-approach brand-shell" aria-labelledby="s28-approach-title">
-   <div className="s28-intro-grid"><div><h2 id="s28-approach-title">Built around the business. <em>Not the template.</em></h2></div><div><p>Potential customers arrive with questions. Good websites answer them quickly, back claims with credible information and offer a clear way to contact you.</p><Link to="/case-studies" onClick={salesLink("Services work link","/case-studies")} className="s28-text-link">See website work <ArrowUpRight size={17}/></Link></div></div>
+   <div className="s28-intro-grid"><div><h2 id="s28-approach-title">Built around the business. <em>Not the template.</em></h2></div><div><p>Potential customers arrive with questions. Good websites answer them quickly, back claims with credible information and offer a clear way to contact you.</p><Link to="/case-studies" onClick={salesLink("Services work link","/case-studies")} className="s28-text-link">Explore website examples <ArrowUpRight size={17}/></Link></div></div>
    <div className="s28-principles">{[
     [Sparkles,"Clearer positioning","Say what you do, who you help and why it matters, without unnecessary agency jargon."],
     [MonitorSmartphone,"Stronger first impressions","Confident visual design and considered mobile layouts that fit your business category."],
@@ -90,8 +82,8 @@ export function ServicesSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
   </section>
 
   <section className="s28-work brand-shell" aria-labelledby="s28-work-title">
-   <div className="s28-intro-grid"><div><h2 id="s28-work-title">Different businesses. <em>Different buying journeys.</em></h2></div><div><p>Explore website directions produced from the actual templates inside Bennie Studio. They demonstrate the design system and enquiry paths—not fictitious client success.</p><Link to="/case-studies" className="s28-text-link">All case studies <ArrowUpRight size={17}/></Link></div></div>
-   <div className="s28-website-grid">{showcase.map(study=><article key={study.slug}><StudioShowcaseVisual study={study} compact/><div className="s28-showcase-copy"><span>{study.category} / Studio-built showcase</span><h3>{study.headline}</h3><p>{study.goal}</p><Link to={"/case-studies/showcase/"+study.slug} onClick={salesLink("Services case study "+study.slug,"/case-studies/showcase/"+study.slug)}>See design decisions <ArrowUpRight size={17}/></Link></div></article>)}</div>
+   <div className="s28-intro-grid"><div><h2 id="s28-work-title">Different businesses. <em>Different buying journeys.</em></h2></div><div><p>Explore website directions produced from the actual templates inside Bennie Studio. They demonstrate the design system and enquiry paths—not fictitious client success.</p><Link to="/case-studies" className="s28-text-link">All website examples <ArrowUpRight size={17}/></Link></div></div>
+   <div className="s28-website-grid">{showcase.map(study=><article key={study.slug}><StudioConceptCanvas slug={study.slug} compact /><div className="s28-showcase-copy"><span>{study.category} / Studio-built showcase</span><h3>{study.headline}</h3><p>{study.goal}</p><Link to={"/case-studies/showcase/"+study.slug} onClick={salesLink("Services case study "+study.slug,"/case-studies/showcase/"+study.slug)}>See design decisions <ArrowUpRight size={17}/></Link></div></article>)}</div>
    <p className="s28-showcase-disclaimer">Design studies rendered from existing product templates. Hypothetical business scenarios; not real client projects or measured commercial outcomes.</p>
   </section>
 

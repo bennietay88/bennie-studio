@@ -1,45 +1,66 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Image as ImageIcon } from "lucide-react";
-import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
+import { ArrowUpRight } from "lucide-react";
 import type { PortfolioItem } from "../lib/portfolioCatalog";
 import { portfolioDemoSlug } from "../lib/studioInteractiveDemos";
 
-/** Static image first; the legacy in-app template preview is only a fallback until screenshots are uploaded. */
+/** Real design-study assets already shipped with Bennie Studio. Keep stored CMS
+ * media authoritative; use these curated built-in screenshots when empty. */
+const bundledDesignScreenshots: Record<string,string> = {
+  "dental-clinic":"/images/case-studies/dental-clinic-desktop.png",
+  "renovation-contractor":"/images/case-studies/renovation-contractor-desktop.png",
+  "professional-advisory":"/images/case-studies/consultant-desktop.png",
+  "tuition-centre":"/images/case-studies/tuition-centre-desktop.png",
+  "beauty-wellness":"/images/case-studies/beauty-studio-desktop.png",
+};
+
+/** A deliberately labelled concept composition is safer than an empty,
+ * broken or fabricated client screenshot. Always distinguish it from demos. */
+function PortfolioConceptFallback({item}:{item:PortfolioItem}) {
+  const category=item.category.toLowerCase();
+  const theme=category.includes("health") || category.includes("pet")
+    ? "care" : category.includes("property") || category.includes("creative") || category.includes("event")
+    ? "editorial" : category.includes("home") || category.includes("automotive")
+    ? "service" : category.includes("finance") || category.includes("professional")
+    ? "corporate" : "warm";
+  return <div className={`portfolio-concept-preview portfolio-concept-${theme}`}
+    role="img" aria-label={`Illustrative ${item.category.toLowerCase()} website direction for ${item.title}`}>
+    <div className="portfolio-concept-nav"><span>{item.title}</span><span aria-hidden="true">SERVICES &nbsp; · &nbsp; ABOUT &nbsp; · &nbsp; CONTACT</span></div>
+    <div className="portfolio-concept-content">
+      <div className="portfolio-concept-message">
+        <span className="portfolio-concept-kicker">{item.category.toUpperCase()} / DESIGN CONCEPT</span>
+        <strong>{item.headline}</strong>
+        <span className="portfolio-concept-cta">{item.goal} <ArrowUpRight size={15} aria-hidden="true"/></span>
+      </div>
+      <div className="portfolio-concept-art" aria-hidden="true">
+        <span className="portfolio-concept-orbit"/>
+        <span className="portfolio-concept-illustration">{category.includes("property") ? "01" : category.includes("health") ? "+" : category.includes("home") ? "↗" : "B"}</span>
+        <span className="portfolio-concept-art-caption">{item.style}</span>
+      </div>
+    </div>
+    <div className="portfolio-concept-footer"><span>EXPLORATORY WEBSITE DIRECTION</span><span>NOT A CLIENT SCREENSHOT</span></div>
+  </div>;
+}
+
 export function PortfolioShowcaseVisual({ item, compact = false, priority = false }: {
   item: PortfolioItem;
   compact?: boolean;
   priority?: boolean;
 }) {
-  const image = item.coverImage || item.desktopImage;
-  return <div className="relative min-w-0 overflow-hidden border-b border-slate-200 bg-[#e9edf1]">
-    {image ? <img
+  const image = item.coverImage || item.desktopImage || bundledDesignScreenshots[item.slug] || "";
+  const [failedImage, setFailedImage] = React.useState(false);
+  React.useEffect(() => setFailedImage(false), [image]);
+  return <div className="relative min-w-0 overflow-hidden border-b border-slate-200 bg-[#eef2f7]">
+    {image && !failedImage ? <img
       src={image}
-      alt={item.imageAlt || `${item.title} website design concept`}
+      alt={item.imageAlt || `${item.title} illustrative website design study`}
       loading={priority ? "eager" : "lazy"}
       decoding="async"
       fetchPriority={priority ? "high" : undefined}
+      onError={() => setFailedImage(true)}
       className={`block w-full object-cover object-top ${compact ? "aspect-[8/5]" : "aspect-[8/5]"}`}
-    /> : item.livePreviewSlug ? (
-      <div className="relative aspect-[8/5] overflow-hidden bg-slate-100 p-3 sm:p-5">
-        <div className="h-full overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl">
-          <TemplatePreviewThumbnail templateId={
-            ({
-              "dental-clinic": "dental-clinic-v1",
-              "renovation-contractor": "renovation-contractor-v1",
-              "professional-advisory": "law-firm-v1",
-              "tuition-centre": "tuition-centre-v1",
-              "beauty-wellness": "salon-spa-v1",
-              "accounting-firm": "accounting-firm-v1"
-            } as Record<string, string>)[item.livePreviewSlug] || "dental-clinic-v1"
-          } templateName={item.title} className="h-full"/>
-        </div>
-      </div>
-    ) : <div className="flex aspect-[8/5] flex-col items-center justify-center gap-3 bg-gradient-to-br from-slate-50 to-slate-200 text-slate-500">
-      <ImageIcon size={30} strokeWidth={1.2} />
-      <span className="text-xs font-semibold">Screenshot to be added</span>
-    </div>}
-    {item.featured && <span className="absolute left-3 top-3 rounded-sm bg-white/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-900 shadow-sm">Featured concept</span>}
+    /> : <PortfolioConceptFallback item={item}/>}
+    {item.featured && <span className="absolute left-3 top-3 rounded bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-slate-900 shadow-sm">Featured concept</span>}
   </div>;
 }
 

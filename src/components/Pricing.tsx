@@ -231,20 +231,20 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
             <div className="s28-price-best">{recommended?"Recommended / Most balanced":bestFor}</div>
             <h3 className="s28-price-name">{product.name}</h3>
             <p className="s28-price-desc">{product.description}</p>
-            <div className="s28-price-number" aria-label={priceReady?`${formatCommercialMoney(price?.monthlyPrice,price?.currency||checkoutCurrency)} per month`:"Plan monthly price pending verification"}><span className="s28-price-amount">{priceReady?formatCommercialMoney(price?.monthlyPrice,price?.currency||checkoutCurrency):loading?"Checking…":"Ask for quote"}</span><span className="s28-price-period">/ month</span></div>
-            <p className="s28-price-fee">+ {priceReady?formatCommercialMoney(price?.setupFee,price?.currency||checkoutCurrency):"—"} one-time website setup</p>
+            <div className="s28-price-number" aria-label={priceReady?`${formatCommercialMoney(price?.monthlyPrice,price?.currency||checkoutCurrency)} per month`:"Plan monthly price pending verification"}><span className="s28-price-amount">{priceReady?formatCommercialMoney(price?.monthlyPrice,price?.currency||checkoutCurrency):loading?"Checking rates…":"Price unavailable"}</span>{priceReady && <span className="s28-price-period">/ month</span>}</div>
+            <p className="s28-price-fee">{priceReady?`+ ${formatCommercialMoney(price?.setupFee,price?.currency||checkoutCurrency)} one-time setup`:"Setup price requires confirmation"}</p>
             <div className="s28-price-ledger" aria-label={product.name+" upfront and commitment costs"}>
-              <div><span>First payment</span><strong>{priceReady?formatCommercialMoney(offer.dueToday,price.currency):"By quote"}</strong></div>
+              <div><span>First payment</span><strong>{priceReady?formatCommercialMoney(offer.dueToday,price.currency):"Not available"}</strong></div>
               <div><span>Billing terms</span><strong>{formatCommitmentLabel(offer.termMonths)}</strong></div>
-              <div className="s28-price-total"><span>Monthly after first payment</span><strong>{priceReady?formatCommercialMoney(price.monthlyPrice,price.currency):"By quote"}</strong></div>
+              {priceReady && <div className="s28-price-total"><span>Monthly after first payment</span><strong>{formatCommercialMoney(price.monthlyPrice,price.currency)}</strong></div>}
             </div>
-            <p className="s28-price-explanation">{promoActive?"Optional offer: the first month of service is free, but the 12-month commitment applies. Setup remains payable.":"First payment includes setup and the first service month. Subsequent months billed separately."} All amounts before applicable tax.</p>
+            <p className="s28-price-explanation">{!priceReady ? "Live USD rates and checkout are not currently available. Contact Bennie Studio for a confirmed quotation." : promoActive?"Optional offer: the first month of service is free, but the 12-month commitment applies. Setup remains payable.":"First payment includes setup and the first service month. Subsequent months billed separately."} All amounts before applicable tax.</p>
             <div className="s28-price-plan-includes">
               <p>Scope at a glance</p>
               <ul>{delivery?[delivery.pages,delivery.revisions,delivery.updates].map(x=><li key={x}><Check size={15}/>{x}</li>):<li><Check size={15}/> Scope confirmed before order</li>}</ul>
             </div>
-            <div className="s28-price-action"><Button type="button" disabled={!priceReady} onClick={()=>handleSelect(product)} className="w-full px-5 font-semibold">
-              {!priceReady?loading?"Verifying rates…":"Contact for pricing":product.salesMotion==="self_serve"?"Choose this plan":"Discuss this plan"} <ArrowRight className="ml-2 h-4 w-4"/>
+            <div className="s28-price-action"><Button type="button" disabled={loading} onClick={()=>priceReady?handleSelect(product):navigate(`/book-demo?product=${encodeURIComponent(product.slug)}`)} className="w-full px-5 font-semibold">
+              {!priceReady?loading?"Verifying rates…":"Ask about this plan":product.salesMotion==="self_serve"?"Choose this plan":"Discuss this plan"} <ArrowRight className="ml-2 h-4 w-4"/>
             </Button><p className="s28-price-minor">{recommended?"Recommended for businesses actively acquiring customers.":product.salesMotion==="self_serve"?"Review the order, terms and totals before payment.":"We'll clarify fit, scope and pricing together."}</p></div>
           </article>;
         })}
@@ -304,15 +304,15 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
                 <h3 className={isGrowth ? "mt-2 text-2xl font-semibold !text-white" : "mt-2 text-2xl font-semibold text-[#141821]"}>{product.name}</h3>
               </div>
             </div>
-            <p className={isGrowth ? "mt-5 text-3xl font-semibold !text-white" : "mt-5 text-3xl font-semibold text-[#141821]"}>{priceReady ? formatCommercialMoney(price?.monthlyPrice, price?.currency || checkoutCurrency) : loading ? "Checking…" : "Ask for quote"}<span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#526071]"}>/month</span></p>
-            <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#526071]"}>+ {priceReady ? formatCommercialMoney(price?.setupFee, price?.currency || checkoutCurrency) : "—"} one-time setup</p>
+            <p className={isGrowth ? "mt-5 text-3xl font-semibold !text-white" : "mt-5 text-3xl font-semibold text-[#141821]"}>{priceReady ? formatCommercialMoney(price?.monthlyPrice, price?.currency || checkoutCurrency) : loading ? "Checking rates…" : "Price unavailable"}{priceReady && <span className={isGrowth ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#526071]"}>/month</span>}</p>
+            <p className={isGrowth ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#526071]"}>{priceReady ? `+ ${formatCommercialMoney(price?.setupFee, price?.currency || checkoutCurrency)} one-time setup` : "Setup price requires confirmation"}</p>
             <p className={isGrowth ? "mt-3 border-t border-white/20 pt-3 text-sm font-semibold !text-white" : "mt-3 border-t border-slate-200 pt-3 text-sm font-semibold text-slate-950"}>
-              First payment: {!priceReady || price?.monthlyPrice == null ? "Confirm by quote" : formatCommercialMoney(introQuote.dueToday, price.currency)}
+              First payment: {!priceReady || price?.monthlyPrice == null ? "Not available" : formatCommercialMoney(introQuote.dueToday, price.currency)}
             </p>
             <p className={isGrowth ? "mt-1 text-xs !text-white/70" : "mt-1 text-xs text-slate-500"}>{promoActive ? "Setup only; first month of service discounted to zero. Before tax." : "Setup + first month, before any applicable tax. Future months billed separately."}</p>
             <p className={isGrowth ? "mt-2 text-xs font-semibold !text-white/65" : "mt-2 text-xs font-semibold text-[#687386]"}>{formatCommitmentLabel(introQuote.termMonths)} billing. Cancellation follows the Terms of Service.</p>
-            <p className={isGrowth ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>Monthly after first payment: {priceReady ? formatCommercialMoney(price.monthlyPrice, price.currency) : "Confirm by quote"}</p>
-            <p className={isGrowth ? "mt-1 text-xs !text-white/65" : "mt-1 text-xs text-[#687386]"}>Setup and first month due today; monthly billing after that. Before applicable taxes.</p>
+            <p className={isGrowth ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>{priceReady ? `Monthly after first payment: ${formatCommercialMoney(price.monthlyPrice, price.currency)}` : "Live rates need confirmation"}</p>
+            <p className={isGrowth ? "mt-1 text-xs !text-white/65" : "mt-1 text-xs text-[#687386]"}>{priceReady ? "Setup and first month due today; monthly billing after that. Before applicable taxes." : "No payment is collected until verified prices and terms are confirmed."}</p>
             <p className={isGrowth ? "mt-4 text-sm leading-6 !text-white/70" : "mt-4 text-sm leading-6 text-[#526071]"}>{product.description}</p>
             {PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug] && (
               <div className={isGrowth ? "mt-5 border-t border-white/20 pt-4" : "mt-5 border-t border-[#dfe2ea] pt-4"}>
@@ -341,8 +341,8 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
                 </div>
               ))}
             </div>
-            <Button type="button" disabled={!priceReady} onClick={() => handleSelect(product)} className={cn("mt-6 min-h-12 w-full px-5 font-semibold", isGrowth ? "bg-white text-[#101827] hover:bg-[#eeebff]" : "bg-[#141821] text-white hover:bg-[#5746e8]")}>
-              {!priceReady ? loading ? "Verifying rates…" : "Contact for pricing" : product.salesMotion === "self_serve" ? "Choose plan" : "Discuss plan"} <ArrowRight className="ml-2 h-4 w-4" />
+            <Button type="button" disabled={loading} onClick={() => priceReady ? handleSelect(product) : navigate(`/book-demo?product=${encodeURIComponent(product.slug)}`)} className={cn("mt-6 min-h-12 w-full px-5 font-semibold", isGrowth ? "bg-white text-[#101827] hover:bg-[#eeebff]" : "bg-[#141821] text-white hover:bg-[#5746e8]")}>
+              {!priceReady ? loading ? "Verifying rates…" : "Ask about this plan" : product.salesMotion === "self_serve" ? "Choose plan" : "Discuss plan"} <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </article>
         );

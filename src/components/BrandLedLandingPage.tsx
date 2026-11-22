@@ -207,6 +207,7 @@ export default function BrandLedLandingPage() {
               </div>
               <p className="max-w-lg text-sm leading-6 text-[#526071]">Choose the level of website support that fits your next stage.</p>
             </div>
+            {pricingError && <p role="status" className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">Live USD prices are temporarily unavailable. Explore the plan differences and request confirmed pricing before payment.</p>}
             <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {priced.map(({ product, price }, index) => {
                     const isRecommended = product.slug === "website-growth";
@@ -217,9 +218,9 @@ export default function BrandLedLandingPage() {
                           <p className={isRecommended ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{isRecommended ? "Recommended" : planBestFor[index]}</p>
                           <h3 className={isRecommended ? "mt-2 !text-white" : "mt-2"}>{product.name}</h3>
                         </div>
-                        <p className={isRecommended ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{priceReady ? formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD") : pricingLoading ? "Checking…" : "Ask for quote"}<span className={isRecommended ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
-                        <p className={isRecommended ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {priceReady ? formatCommercialMoney(price?.setupFee, price?.currency || "USD") : "—"} one-time setup</p>
-                        <p className={isRecommended ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>First payment: {!priceReady || price?.monthlyPrice == null ? "By quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}</p>
+                        <p className={isRecommended ? (priceReady ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-lg font-semibold !text-white") : (priceReady ? "mt-7 text-3xl font-semibold" : "mt-7 text-lg font-semibold")}>{priceReady ? formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD") : pricingLoading ? "Checking rates…" : "Price unavailable"}{priceReady && <span className={isRecommended ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span>}</p>
+                        <p className={isRecommended ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>{priceReady ? `+ ${formatCommercialMoney(price?.setupFee, price?.currency || "USD")} one-time setup` : "Setup price needs confirmation"}</p>
+                        <p className={isRecommended ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>First payment: {!priceReady || price?.monthlyPrice == null ? "Not available" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}</p>
                         <div className={isRecommended ? "mt-5 flex-1 border-t border-white/25 pt-5" : "mt-5 flex-1 border-t border-[#E2E8F0] pt-5"}>
                           <ul className="space-y-3">
                             {planHighlights[index].map((highlight) => (

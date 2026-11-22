@@ -1,3 +1,4 @@
+import { fetchPublishedPreviewContent, isPreviewPublicRead } from "../server/previewPublicContent.js";
 import express from "express";
 import compression from "compression";
 import cors from "cors";
@@ -485,6 +486,23 @@ app.use((req, res, next) => {
   next();
 });
 app.use(requestLogger);
+
+// Read-only public content can be inspected in Vercel preview without granting
+// the preview deployment access to production Supabase or Stripe credentials.
+app.use(async (req, res, next) => {
+  if (!isPreviewPublicRead(process.env, req.method, req.path, serverSupabaseEnvironment.configured)) {
+    return next();
+  }
+  try {
+    const payload = await fetchPublishedPreviewContent(req.path);
+    res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+    res.setHeader("X-Bennie-Preview-Source", "published-public-only");
+    return res.status(200).json(payload);
+  } catch {
+    // Never substitute sample amounts or route preview writes into production.
+    return res.status(503).json({ error: "Published public content could not be verified." });
+  }
+});
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "0.0.0.0";
 const STATE_MAX_AGE_MS = 10 * 60 * 1000;

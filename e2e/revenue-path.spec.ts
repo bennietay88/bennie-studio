@@ -436,9 +436,9 @@ test("homepage presents a free preview and the current four-plan catalogue", asy
   await mockAnonymousPublicDependencies(page);
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Websites that help service businesses get more enquiries/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Websites that earn trust/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /Get your free website preview/i }).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: /See case studies/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Explore website examples/i })).toBeVisible();
   const plans = page.locator("#plans");
   await expect(plans).toBeVisible();
   await expect(plans.getByRole("heading", { name: "Personal Profile", exact: true })).toBeVisible();

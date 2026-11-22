@@ -82,7 +82,7 @@ export const DEFAULT_PLATFORM_CMS: PlatformSiteCms = {
   header: {
     navigation: [
       { label: "Services", href: "/services" },
-      { label: "Case Studies", href: "/case-studies" },
+      { label: "Website Examples", href: "/case-studies" },
       { label: "Pricing", href: "/pricing" },
       { label: "How it works", href: "/how-it-works" },
       { label: "About", href: "/about" },
@@ -94,7 +94,7 @@ export const DEFAULT_PLATFORM_CMS: PlatformSiteCms = {
     tagline: "",
     copyrightText: "",
     groups: [
-      { title: "Explore", links: [{ label: "Website Services", href: "/services" }, { label: "Case Studies", href: "/case-studies" }, { label: "Pricing", href: "/pricing" }, { label: "How it works", href: "/how-it-works" }] },
+      { title: "Explore", links: [{ label: "Website Services", href: "/services" }, { label: "Website Examples", href: "/case-studies" }, { label: "Pricing", href: "/pricing" }, { label: "How it works", href: "/how-it-works" }] },
       { title: "Resources", links: [{ label: "Insights", href: "/resources" }, { label: "Website Review", href: "/website-audit" }, { label: "Design Directions", href: "/templates" }, { label: "Try a Website Direction", href: "/generate-preview" }] },
       { title: "Company", links: [{ label: "About Bennie Studio", href: "/about" }, { label: "Contact", href: "/contact" }, { label: "Discuss your website", href: "/book-demo" }, { label: "One-time WordPress builds · SiteFoundry", href: "https://web.bennietay.com/#packages", external: true }, { label: "Bennie Tay Insights", href: "https://bennietay.com", external: true }] },
       { title: "Legal", links: [{ label: "Privacy Policy", href: "/privacy" }, { label: "Cookie Policy", href: "/cookie-policy" }, { label: "Terms of Service", href: "/terms" }] },
