@@ -13,7 +13,7 @@ export function isSupportedNewsletterMarket(input: unknown): input is InboundNew
 }
 
 export const INBOUND_NEWSLETTER_CONSENT =
-  "I request website-improvement emails and occasional Bennie Studio service offers to my own email address. I may unsubscribe at any time.";
+  "Yes, send me website improvement tips and occasional Bennie Studio offers. I can unsubscribe at any time.";
 
 export function newsletterSourceId(email: string): string {
   const normalized = email.trim().toLowerCase();
