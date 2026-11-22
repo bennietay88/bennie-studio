@@ -3,7 +3,6 @@ import { ArrowLeft, ArrowRight, Check, CreditCard, ShieldCheck } from "lucide-re
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
 import {
-  COMMERCIAL_FALLBACK_PRODUCTS,
   formatCommitmentLabel,
   formatCommercialMoney,
   getCommercialPrice,
@@ -84,7 +83,7 @@ export function PreviewOrderPage() {
   const [intent] = React.useState<PreviewIntent>(() => readPreviewIntent());
   const checkoutCurrency: CommercialCurrency = "USD";
   const checkoutMarket = marketForCurrency(checkoutCurrency);
-  const { products, loading } = usePublicCommercialPricing(checkoutMarket);
+  const { products, loading, error: pricingError } = usePublicCommercialPricing(checkoutMarket);
   const [selectedSlug, setSelectedSlug] = React.useState(
     intent.recommendedProduct && productPriority.includes(intent.recommendedProduct as any)
       ? intent.recommendedProduct
@@ -97,14 +96,14 @@ export function PreviewOrderPage() {
   const [error, setError] = React.useState("");
 
   const availableProducts = productPriority
-    .map((slug) => products.find((product) => product.slug === slug)
-      || COMMERCIAL_FALLBACK_PRODUCTS.find((product) => product.slug === slug))
+    .map((slug) => products.find((product) => product.slug === slug))
     .filter(Boolean) as CommercialProduct[];
 
   const selected = availableProducts.find((product) => product.slug === selectedSlug)
     || availableProducts[1]
     || availableProducts[0];
   const price = selected ? getCommercialPrice(selected, checkoutMarket) : null;
+  const priceReady = !loading && !pricingError && Boolean(price && Number.isFinite(price.monthlyPrice) && price.monthlyPrice !== null && Number.isFinite(price.setupFee));
   const monthly = Number(price?.monthlyPrice || 0);
   const setup = Number(price?.setupFee || 0);
   const introQuote = getIntroductoryQuote(monthly, setup, getMinimumTermMonths(price), introOfferEnabled);
@@ -132,6 +131,10 @@ export function PreviewOrderPage() {
   const startCheckout = async () => {
     if (!intent.previewId || !intent.leadId || !intent.email || !selected) {
       setError("Your preview session is incomplete. Return to the preview page and generate it again.");
+      return;
+    }
+    if (!priceReady) {
+      setError("Verified prices are not available. Please request a quote rather than continuing to checkout.");
       return;
     }
     setError("");
@@ -272,7 +275,7 @@ export function PreviewOrderPage() {
                           <span className="mt-1 block text-sm text-[#707b8a]">{product.description}</span>
                         </span>
                         <span className="font-semibold text-[#141821]">
-                          {formatCommercialMoney(productPrice?.monthlyPrice, productPrice?.currency || "USD")}/mo
+                          {priceReady && productPrice?.monthlyPrice != null ? `${formatCommercialMoney(productPrice.monthlyPrice, productPrice.currency)}/mo` : "Quote required"}
                         </span>
                       </button>
                     );
@@ -302,7 +305,7 @@ export function PreviewOrderPage() {
               <p className="mt-5 text-xs font-semibold uppercase tracking-[0.08em] !text-white/60">Billing currency</p><div className="mt-2 flex h-11 w-full items-center border border-white/20 bg-white px-3 text-sm font-semibold text-[#141821]">USD ($)</div>
               <h2 className="mt-3 text-3xl font-semibold !text-white">{selected?.name || "Website Growth"}</h2>
 
-              {loading ? <p className="mt-6 !text-white/70">Loading current price…</p> : (
+              {!priceReady ? <div role="alert" className="mt-6 space-y-3 text-sm !text-white/80"><p>{loading ? "Loading current prices…" : "Verified pricing is unavailable. No payment can be started."}</p><Link to="/book-demo" className="inline-flex min-h-10 items-center font-semibold text-white underline underline-offset-2">Request a confirmed quote</Link></div> : (
                 <>
                   <div className="mt-7 space-y-4 border-y border-white/15 py-6 text-sm">
                     <div className="flex items-center justify-between gap-4">
@@ -343,7 +346,7 @@ export function PreviewOrderPage() {
 
                   <Button
                     onClick={startCheckout}
-                    disabled={submitting || loading || !termsAccepted}
+                    disabled={submitting || !priceReady || !termsAccepted}
                     className="mt-7 min-h-14 w-full rounded-none bg-white px-6 font-semibold text-[#141821] hover:bg-[#eeebff]"
                   >
                     {submitting ? "Opening secure checkout…" : "Continue to secure checkout"} <ArrowRight className="ml-2 h-4 w-4" />
