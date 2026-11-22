@@ -19,6 +19,46 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
   const showcases = useStudioShowcaseCatalog(STUDIO_SHOWCASES);
   const cms = usePublishedPlatformCms();
   const pageCms = cms.pages["/"];
+  const [subscriberEmail, setSubscriberEmail] = React.useState("");
+  const [optInConsent, setOptInConsent] = React.useState(false);
+  const [subscriberHoneypot, setSubscriberHoneypot] = React.useState("");
+  const [subscriptionStatus, setSubscriptionStatus] = React.useState<"idle" | "loading" | "success" | "error">("idle");
+  const [subscriptionError, setSubscriptionError] = React.useState("");
+  const subscribe = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!optInConsent || !subscriberEmail.trim()) {
+      setSubscriptionError("Enter a valid email and opt in to receive updates.");
+      setSubscriptionStatus("error");
+      return;
+    }
+    setSubscriptionStatus("loading");
+    setSubscriptionError("");
+    try {
+      const response = await fetch("/api/public/platform-leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: subscriberEmail.split("@")[0],
+          email: subscriberEmail.trim(),
+          message: "Website improvement email subscription",
+          leadType: "newsletter_opt_in",
+          sourcePage: "/",
+          formName: "Homepage website tips opt-in",
+          marketingConsent: true,
+          website: subscriberHoneypot,
+        }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success || !result?.leadId) throw new Error("We couldn't confirm your subscription. Please try again.");
+      setSubscriptionStatus("success");
+      setSubscriberEmail("");
+      setOptInConsent(false);
+      trackPublicEvent({ eventType: "newsletter_opt_in", label: "Homepage website tips", target: "/" });
+    } catch (error: any) {
+      setSubscriptionStatus("error");
+      setSubscriptionError(error?.message || "Subscription unavailable. Please retry.");
+    }
+  };
   return (
     <div className="conversion-home sfn-home">
       <section className="c26-hero sfn-hero" aria-labelledby="c26-title">
@@ -58,6 +98,35 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
 
       <StudioSelectedWork studies={showcases}/>
       <div className="brand-shell py-8 sm:py-12"><div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7"><div><h2 className="!text-2xl !leading-tight text-slate-950">See a website direction before sharing your details.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Explore illustrative industry examples freely. No account, email or credit card needed to browse.</p></div><Link to="/case-studies" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-md bg-[#1946c3] px-5 py-3 text-sm font-bold text-white">Explore interactive examples <ArrowUpRight size={18} aria-hidden="true"/></Link></div></div>
+
+      <section className="brand-shell py-9 sm:py-16" aria-labelledby="homepage-optin-title">
+        <div className="grid gap-7 rounded-xl border border-[#cfd8e8] bg-[#edf3ff] p-6 sm:p-9 lg:grid-cols-2 lg:items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#1946c3]">Free website growth tips</p>
+            <h2 id="homepage-optin-title" className="mt-3 text-2xl font-semibold leading-tight text-slate-950 sm:text-3xl">Make your website easier to trust and act on.</h2>
+            <p className="mt-3 max-w-lg text-sm leading-7 text-slate-700">Opt in for practical website improvement advice and occasional Bennie Studio service updates. Not ready? You can still explore our free examples and website previews without subscribing.</p>
+            <Link to="/services" className="mt-4 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#1946c3]">See what our managed website service includes <ArrowUpRight size={16} aria-hidden="true" /></Link>
+          </div>
+          <div>
+            {subscriptionStatus === "success" ? (
+              <div role="status" className="rounded-lg border border-emerald-200 bg-white p-5 text-sm font-semibold text-emerald-800">Your subscription has been recorded. You can unsubscribe from future marketing emails.</div>
+            ) : (
+              <form onSubmit={subscribe} className="grid gap-3" aria-label="Subscribe to Bennie Studio website tips">
+                <label htmlFor="studio-subscriber-email" className="text-sm font-semibold text-slate-900">Work email</label>
+                <input id="studio-subscriber-email" type="email" required autoComplete="email" maxLength={254} value={subscriberEmail} onChange={(e) => setSubscriberEmail(e.target.value)} placeholder="you@business.com" className="min-h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
+                <div className="hidden" aria-hidden="true"><label htmlFor="studio-signup-website">Website</label><input id="studio-signup-website" tabIndex={-1} autoComplete="off" value={subscriberHoneypot} onChange={(e) => setSubscriberHoneypot(e.target.value)}/></div>
+                <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-slate-700">
+                  <input type="checkbox" required checked={optInConsent} onChange={(e) => setOptInConsent(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#1946c3]" />
+                  <span>Yes, send me website improvement tips and occasional Bennie Studio offers. I can unsubscribe at any time. <Link to="/privacy-policy" className="font-semibold underline underline-offset-2">Privacy policy</Link>.</span>
+                </label>
+                {subscriptionStatus === "error" ? <p role="alert" className="text-sm font-medium text-rose-800">{subscriptionError}</p> : null}
+                <button type="submit" disabled={subscriptionStatus === "loading"} className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#1946c3] px-6 text-sm font-bold text-white hover:bg-[#10338e] disabled:cursor-wait disabled:opacity-60">{subscriptionStatus === "loading" ? "Subscribing…" : "Get website tips"} <ArrowRight size={17} className="ml-2" aria-hidden="true" /></button>
+                <p className="text-xs leading-5 text-slate-600">No spam or automatic enrollment from a free preview. This signup is optional.</p>
+              </form>
+            )}
+          </div>
+        </div>
+      </section>
 
       <section className="c26-process" aria-labelledby="c26-process-title">
         <div className="brand-shell">
