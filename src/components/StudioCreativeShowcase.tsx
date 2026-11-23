@@ -30,7 +30,7 @@ const conceptImages: Record<string, string> = {
 const conceptContent: Record<string, { category: string; wordmark: string; eyebrow: string; title: string; copy: string; action: string; detail: string }> = {
   "renovation-contractor": {
     category: "Home transformation", wordmark: "FORM / SPACE", eyebrow: "RETHINK YOUR SPACE",
-    title: "A better space starts with a conversation.",
+    title: "A better space starts here.",
     copy: "Considered renovation for the spaces that matter most.",
     action: "Request a quote", detail: "Residential · Commercial",
   },
@@ -87,7 +87,7 @@ export function StudioConceptCanvas({ slug, compact = false }: { slug: string; c
         <div className="sfn-concept-photo">
           {image
             ? <img src={image} alt="" loading="lazy" decoding="async" />
-            : <div className="sfn-concept-finance-art" aria-hidden="true"><span>2026 / OVERVIEW</span><i/><i/><i/><strong>Clarity in every detail.</strong></div>}
+            : <div className="sfn-concept-finance-art" aria-hidden="true"><span>FINANCIAL OVERVIEW</span><i/><i/><i/><strong>Clarity in every detail.</strong></div>}
         </div>
       </div>
       <div className="sfn-concept-footer"><span>{concept.detail}</span><span>DESIGN STUDY / NOT A LIVE CLIENT WEBSITE</span></div>
@@ -118,7 +118,7 @@ export function StudioSignatureStage({studies}: {studies: readonly StudioShowcas
     else if (event.key === "End") {event.preventDefault();change(directions.length-1,true);}
   };
   return <div className="sfn-signature" style={{"--sfn-spot":selected.accent} as React.CSSProperties} aria-label="Three website directions">
-    <div className="sfn-signature-top"><span>BENNIE / DIGITAL DESIGN STUDIO</span><span>SELECTED DIRECTIONS <span aria-hidden="true">✳</span> 2026</span></div>
+    <div className="sfn-signature-top"><span>BENNIE / DIGITAL DESIGN STUDIO</span><span>SELECTED DIRECTIONS <span aria-hidden="true">✳</span></span></div>
     <div className={"sfn-signature-canvas sfn-signature-"+selected.treatment} role="tabpanel" aria-label={selected.eyebrow} id="sfn-signature-panel" aria-labelledby={"sfn-signature-tab-"+selected.slug}>
       <div className="sfn-signature-orbit" aria-hidden="true"/>
       <div className="sfn-signature-backdrop" aria-hidden="true">{selected.number}</div>
@@ -145,29 +145,26 @@ export function StudioSignatureStage({studies}: {studies: readonly StudioShowcas
   </div>;
 }
 
-const workDirection: Record<string,{number:string,kind:string,line:string}> = {
-  "renovation-contractor":{number:"01",kind:"Service-led",line:"Less friction. Better quote requests."},
-  "dental-clinic":{number:"02",kind:"Trust-first",line:"A reassuring path to care."},
-  "professional-advisory":{number:"03",kind:"Editorial",line:"Turn experience into confidence."},
-  "tuition-centre":{number:"04",kind:"Programme-led",line:"Help parents choose with clarity."},
-  "beauty-wellness":{number:"05",kind:"Atmospheric",line:"Let the experience lead."},
-  "accounting-firm":{number:"06",kind:"Practical",line:"Make expertise easy to navigate."},
+const workDirection: Record<string,{kind:string,line:string}> = {
+  "renovation-contractor":{kind:"Service-led",line:"Make quote requests easy to find."},
+  "dental-clinic":{kind:"Trust-first",line:"Make treatments and bookings clearer."},
+  "professional-advisory":{kind:"Editorial",line:"Build confidence before the first call."},
 };
 
 export function StudioSelectedWork({studies}:{studies:readonly StudioShowcase[]}) {
-  const order = ["renovation-contractor","professional-advisory","dental-clinic","beauty-wellness","tuition-centre","accounting-firm"];
+  const order = ["renovation-contractor","dental-clinic","professional-advisory"];
   const curated = order.map(slug=>findStudy(studies,slug)).filter((study):study is StudioShowcase=>Boolean(study));
   return <section className="sfn-work-section" aria-labelledby="sfn-work-title">
     <div className="brand-shell">
       <div className="sfn-work-heading">
-        <div><p className="sfn-kicker">DESIGN IS NOT A TEMPLATE</p><h2 id="sfn-work-title">Different businesses.<br/><em>Different visual worlds.</em></h2></div>
-        <div><p>Every business deserves its own visual story. These six studio concepts demonstrate different design structures, industries and next steps—not fictional client success.</p><Link to="/case-studies">View all design studies <MoveUpRight size={17}/></Link></div>
+        <div><p className="sfn-kicker">DESIGN IS NOT A TEMPLATE</p><h2 id="sfn-work-title">Different businesses. Different design directions.</h2></div>
+        <div><p>Every business deserves its own visual story. Three focused design studies show how different industries need different messages, structures and enquiry paths.</p><Link to="/case-studies">View all design studies <MoveUpRight size={17}/></Link></div>
       </div>
       <div className="sfn-work-grid">
         {curated.map((study,index)=>{
           const dir=workDirection[study.slug];
           return <article className={"sfn-work-card sfn-work-card-"+(index+1)} key={study.slug} style={{"--sfn-card-accent":study.colour} as React.CSSProperties}>
-            <div className="sfn-work-card-top"><span>{dir?.number || String(index+1).padStart(2,"0")} / {study.category}</span><span>STUDIO CONCEPT ↗</span></div>
+            <div className="sfn-work-card-top"><span>{String(index+1).padStart(2,"0")} / {study.category}</span><span>STUDIO CONCEPT ↗</span></div>
             <Link to={"/case-studies/showcase/"+study.slug} className="sfn-work-art" aria-label={"Explore "+study.title+" design concept"} onClick={()=>trackPublicEvent({eventType:"case_study_clicked",label:study.title,target:"/case-studies/showcase/"+study.slug})}>
               <div className="sfn-work-art-inner"><StudioConceptCanvas slug={study.slug} compact /></div>
               <span className="sfn-work-open"><ArrowUpRight size={23}/></span>
@@ -176,7 +173,7 @@ export function StudioSelectedWork({studies}:{studies:readonly StudioShowcase[]}
           </article>;
         })}
       </div>
-      <p className="sfn-work-fineprint">All examples are illustrative Bennie Studio design concepts, not client commissions or measured commercial results.</p>
+      <p className="sfn-work-fineprint">These are illustrative design studies, not commissioned client projects or measured client outcomes.</p>
     </div>
   </section>;
 }
