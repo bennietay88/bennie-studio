@@ -1,7 +1,7 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, Check, Globe, MessageSquare, Rocket, Shield, Sparkles, MapPin, PhoneCall, Search, FileText } from "lucide-react";
+import { ArrowRight, Check, Globe, MessageSquare, MapPin, PhoneCall, Search, FileText } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { findOwnSalesSeoPage } from "../constants/ownSalesSeoPages";
