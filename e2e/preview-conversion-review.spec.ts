@@ -60,7 +60,7 @@ test("homepage does not display the newsletter signup while free preview remains
 test("pricing illustration accurately represents four plans and USD billing", async ({ page }) => {
   await page.goto("/pricing", { waitUntil: "domcontentloaded" });
   await expect(page.getByLabel("Illustration of four managed website service levels")).toBeVisible();
-  await expect(page.getByText("All plans billed in USD. See verified fees below")).toBeVisible();
+  await expect(page.getByText("Two further options for personal profiles or expanded partnerships are compared below.")).toBeVisible();
 });
 
 test("pricing visitors can request the checklist without purchasing a plan", async ({ page }) => {
