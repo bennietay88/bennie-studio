@@ -1723,37 +1723,37 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
 
   return (
     <>
-      <section className="c27-marketing-hero">
-        <div className="brand-shell grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
-          <div className="lg:col-span-7">
-            {salesMode ? <p className="text-xs font-semibold text-[#1741ed]">Internal studio preview</p> : null}
-            {salesMode?<p className="mt-3 text-sm text-[#1741ed]">Internal sales mode · prospect email not required</p>:null}
-            <h1 className="mt-6 !max-w-[16ch]">{cmsPage?.heroTitle || <>See what your business <em className="font-serif italic font-normal text-[#1741ed]">could look like online.</em></>}</h1>
-            <p className="brand-copy mt-6">{cmsPage?.heroDescription || "Already have a website? Paste its URL. Starting from scratch? Tell us a little about your business. Get a preliminary website direction before deciding on any paid plan."}</p>
-            {cmsPage?.primaryCtaHref ? <Link to={cmsPage.primaryCtaHref} className="c27-button mt-8">{cmsPage.primaryCtaLabel || "Start my free website preview"} <ArrowRight className="h-4 w-4"/></Link> : <a href="#preview-brief" className="c27-button mt-8">{cmsPage?.primaryCtaLabel || "Start my free website preview"} <ArrowRight className="h-4 w-4"/></a>}
-            <p className="mt-4 text-sm text-[#5b6775]">No card required · No obligation · Your email connects the preview to your enquiry</p>
+      <section className="s33-preview-hero" aria-labelledby="s33-preview-title">
+        <div className="brand-shell s33-preview-hero-grid">
+          <div className="s33-preview-hero-copy">
+            {salesMode && <p className="s33-preview-internal">Internal studio preview · Staff mode</p>}
+            <p className="s33-eyebrow">Free preliminary website direction</p>
+            <h1 id="s33-preview-title">{cmsPage?.heroTitle || "See a direction for your business before you decide."}</h1>
+            <p className="s33-lead">{cmsPage?.heroDescription || "Already have a website? Start with its URL. Building from scratch? Tell us the basics. Explore an initial design concept without choosing a paid plan."}</p>
+            <div className="s33-actions">
+              {cmsPage?.primaryCtaHref ? <Link className="s33-primary" to={cmsPage.primaryCtaHref}>{cmsPage.primaryCtaLabel || "Start your free website preview"} <ArrowRight size={18} aria-hidden="true" /></Link> : <a className="s33-primary" href="#preview-brief">Start your free website preview <ArrowRight size={18} aria-hidden="true"/></a>}
+              <Link className="s33-secondary" to="/portfolio/sample/dental" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:"Preview sample before lead form",target:"/portfolio/sample/dental"})}>See a sample first <ArrowRight size={17} aria-hidden="true"/></Link>
+            </div>
+            <p className="s33-preview-disclaimer">No card required · No obligation · A submitted preview request uses your email for the enquiry, not an automatic newsletter subscription.</p>
           </div>
-          <div className="lg:col-span-5"><div className="bg-[#1741ed] p-8 text-white sm:p-10">
-            <p className="text-xs font-semibold uppercase tracking-[.16em] !text-white/75">From your details to a direction</p>
-            <h2 className="mt-5 !text-[clamp(2.2rem,3.5vw,3.8rem)] !leading-[1.04] !text-white">Your business. <span className="font-serif italic font-normal">Not a generic page.</span></h2>
-            <div className="mt-8">{[["01","Your business","Industry, service, location and customer goal"],["02","Your direction","A responsive website layout with an enquiry path"],["03","Your next step","Review scope and pricing only when ready"]].map(([n,t,d])=><div key={n} className="grid grid-cols-[2.25rem_1fr] gap-4 border-t border-white/30 py-5"><span className="font-serif text-2xl italic text-white">{n}</span><div><p className="font-semibold !text-white">{t}</p><p className="mt-1 text-sm !text-white/75">{d}</p></div></div>)}</div>
-            <p className="mt-4 text-xs !text-white/65">The preliminary direction is not a completed paid website or guaranteed outcome.</p>
-          </div></div>
+          <aside className="s33-preview-guide" aria-label="What to expect from a free website preview">
+            <div className="s33-preview-guide-top"><span className="s33-preview-guide-dots" aria-hidden="true"><i/><i/><i/></span><span>BENNIE STUDIO / A FIRST DIRECTION</span></div>
+            <div className="s33-preview-guide-body">
+              <p className="s33-eyebrow">A clearer first impression</p>
+              <h2>From the brief to a website you can explore.</h2>
+              <div className="s33-preview-guide-demo">
+                <div><span>YOUR BUSINESS</span><span>Services &nbsp; About &nbsp; Contact</span></div>
+                <strong>A clearer way to show what you do.</strong>
+                <p>Explain your offer, build credibility and guide customers toward the next step.</p>
+                <span className="s33-preview-guide-button">Enquire about our services <ArrowRight size={13} aria-hidden="true"/></span>
+              </div>
+              <p className="s33-preview-guide-foot">Illustrative interface · Not a completed client project or promised result</p>
+            </div>
+          </aside>
         </div>
       </section>
 
-      <section className="border-b border-[#dfe2ea] bg-white" aria-label="See a website preview example before sharing details">
-        <div className="brand-shell flex flex-col gap-6 py-8 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#5746e8]">Preview an example first</p>
-            <h2 className="mt-2 text-2xl font-semibold text-[#141821]">See the format before you share your business details.</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#526071]">Explore an illustrative dental clinic website on desktop or mobile. It is a fictional demonstration, not a commissioned client project. No email is needed to view it.</p>
-          </div>
-          <Link to="/portfolio/sample/dental" onClick={() => trackPublicEvent({ eventType: "sales_cta_clicked", label: "Preview sample before lead form", target: "/portfolio/sample/dental" })} className="inline-flex min-h-12 shrink-0 items-center justify-center bg-[#141821] px-6 text-sm font-semibold text-white hover:bg-[#5746e8]">View sample website <ArrowRight className="ml-2 h-4 w-4" /></Link>
-        </div>
-      </section>
-
-      <section id="preview-brief" className="bt-section-soft">
+      <section id="preview-brief" className="bt-section-soft s33-preview-brief">
         <div className="brand-shell py-14 sm:py-20">
           <div className="mb-10 max-w-3xl">
             <p className="brand-kicker">Business brief</p>
@@ -1761,7 +1761,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
             <p className="brand-copy mt-4">The brief helps us understand the goal and choose the right structure. If there is already a website, the redesign uses that site as source material instead of replacing the business identity.</p>
           </div>
 
-          <div className="mb-8 flex flex-col gap-3 rounded-xl border border-[#d9e3f6] bg-[#edf4ff] p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="s33-preview-notice mb-8 flex flex-col gap-3 rounded-xl border border-[#d9e3f6] bg-[#edf4ff] p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#1946c3]">Start with the essentials</p>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[#2a4569]">Choose your website starting point. For a new business, enter a business name and category to explore an illustrative concept without an email; add scope, style and contact details later for a personalized request.</p>
@@ -1770,7 +1770,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
           </div>
 
           <form onSubmit={generatePreview} className="grid gap-8 lg:grid-cols-12 lg:items-start">
-            <div className="space-y-6 lg:col-span-8">
+            <div className="s33-preview-main-form space-y-6 lg:col-span-8">
               <section className="bt-premium-card p-5 sm:p-7">
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Start with what you already have</p>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -2118,14 +2118,15 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
               </section>
             </div>
 
-            <aside className="lg:sticky lg:top-24 lg:col-span-4">
+            <aside className="s33-preview-summary lg:sticky lg:top-24 lg:col-span-4">
               <div className="bt-premium-card overflow-hidden bg-white p-5 sm:p-6">
                 <div className="flex items-center gap-3">
                   <LayoutTemplate className="h-5 w-5 text-[#5746e8]" />
                   <div><p className="text-sm font-bold text-[#172033]">Your recommended website direction</p><p className="mt-1 text-xs text-[#657186]">Based on your answers, Bennie Studio prepares a tailored direction.</p></div>
                 </div>
-                <div className="mt-5 overflow-hidden rounded-xl border border-[#e5e8ef] bg-[#0b1020] p-2">
-                  <img src="/images/studio-insights-v3.jpg" alt="" className="block aspect-[16/10] w-full min-w-0 max-w-full rounded-lg object-cover" style={{ width: "100%", maxWidth: "100%" }} />
+                <div className="s33-preview-summary-visual" aria-label="Illustrative website preview interface">
+                  <div className="s33-preview-summary-toolbar"><span aria-hidden="true">● ● ●</span><strong>Website direction</strong></div>
+                  <div className="s33-preview-summary-screen"><span>YOUR BUSINESS</span><strong>Made clear.<br/>Made useful.</strong><p>Present what you do and make the next step easy.</p><b>Get in touch ↗</b></div>
                 </div>
                 <div className="mt-5 space-y-4">
                   {[
@@ -2409,7 +2410,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                     </Button>
                   </div>
                 </div>
-                <div className="mt-6 max-w-3xl"><StudioEmailOptIn sourcePage="/generate-preview" title="Want more ideas for your website?" description="Get the 7-point website conversion checklist and optional follow-up tips. Your unsaved instant design is not emailed or stored by this signup." /></div>
+                <div className="s33-preview-optional-newsletter mt-6 max-w-3xl"><StudioEmailOptIn sourcePage="/generate-preview" title="Want more ideas for your website?" description="Get the 7-point website conversion checklist and optional follow-up tips. Your unsaved instant design is not emailed or stored by this signup." /></div>
               </>
             ) : null}
           </div>
