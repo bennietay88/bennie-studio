@@ -28,6 +28,8 @@ import {
 import { Pricing as CommercialPricing } from "./Pricing";
 import { RESOURCE_ARTICLES } from "../content/resources";
 import { WebsiteConceptVisual } from "./WebsiteConceptVisual";
+import { StudioEmailOptIn } from "./StudioEmailOptIn";
+import "../styles/studioEditorialRound4.css";
 import { PortfolioShowcaseCard, PortfolioShowcaseVisual } from "./PortfolioShowcaseVisual";
 import { useStudioPortfolioCatalog } from "../lib/studioShowcaseCms";
 import type { PlatformCmsPage } from "../lib/platformSiteCms";
@@ -271,102 +273,62 @@ export function AboutStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
 export function ResourcesStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   const [query, setQuery] = React.useState("");
   const [activeCategory, setActiveCategory] = React.useState("All");
-  const [subscriberEmail, setSubscriberEmail] = React.useState("");
-  const [subscribed, setSubscribed] = React.useState(false);
-  const [subscriptionPending, setSubscriptionPending] = React.useState(false);
-  const [subscriptionError, setSubscriptionError] = React.useState("");
-  const categories = ["All","Website Strategy","Design & UX","Copy & Messaging","Conversion","Case Studies","Tools & Resources"];
-
-  const subscribe = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (subscribed || subscriptionPending) return;
-    setSubscriptionError("");
-    setSubscriptionPending(true);
-    try {
-      const email = subscriberEmail.trim();
-      await submitPublicLead({
-        name: email.split("@")[0] || "Newsletter subscriber",
-        email,
-        formName: "Resources newsletter",
-        leadType: "newsletter_subscription",
-        message: "Subscribed from the Bennie Studio resources page.",
-      });
-      setSubscribed(true);
-    } catch (error: any) {
-      setSubscriptionError(error?.message || "We could not subscribe you right now. Please try again.");
-    } finally {
-      setSubscriptionPending(false);
-    }
-  };
-  const filteredArticles = RESOURCE_ARTICLES.filter(({ category: cat, title, excerpt: copy }) => {
-    const categoryMatch = activeCategory === "All" || cat.toLowerCase() === activeCategory.toLowerCase() || (activeCategory === "Website Strategy" && cat === "Business growth");
-    const searchMatch = `${title} ${copy} ${cat}`.toLowerCase().includes(query.toLowerCase().trim());
-    return categoryMatch && searchMatch;
+  const categories = ["All", ...Array.from(new Set(RESOURCE_ARTICLES.map(article => article.category)))];
+  const filteredArticles = RESOURCE_ARTICLES.filter(({ category, title, excerpt }) => {
+    const matchesCategory = activeCategory === "All" || category === activeCategory;
+    const matchesSearch = `${title} ${excerpt} ${category}`.toLowerCase().includes(query.trim().toLowerCase());
+    return matchesCategory && matchesSearch;
   });
+  const clear = () => { setQuery(""); setActiveCategory("All"); };
+  const featured = RESOURCE_ARTICLES[0];
 
-  return (
-    <>
-      <section className="c27-marketing-hero">
-        <div className="brand-shell grid gap-12 py-20 lg:grid-cols-12 lg:items-center lg:py-24">
-          <div className="lg:col-span-7">
-            <h1 className="mt-6 !max-w-[15ch]">{cmsPage?.heroTitle || <>Make your next website <em>decision a better one.</em></>}</h1>
-            <p className="brand-copy mt-7">{cmsPage?.heroDescription || "Clear, practical guides on positioning, content, customer trust, enquiry paths and the ongoing management of a business website."}</p>
-            <div className="mt-8 flex flex-wrap gap-5"><Link to={cmsPage?.primaryCtaHref || "/generate-preview"} className="c27-button">{cmsPage?.primaryCtaLabel || "Apply it to my business"} <ArrowRight className="h-4 w-4"/></Link><Link to="/case-studies" className="c27-quiet">See the design work <ArrowRight className="h-4 w-4"/></Link></div>
-          </div>
-          <div className="lg:col-span-5"><div className="border-y border-[#cbd1dc]">
-            {[["01","Positioning","Explain the offer."],["02","Trust","Earn confidence."],["03","Conversion","Make the next step clear."],["04","Aftercare","Keep it working."]].map(([n,t,desc])=><div key={n} className="grid grid-cols-[3rem_1fr] gap-5 border-b border-[#cbd1dc] py-5 last:border-b-0"><span className="font-serif text-3xl italic text-[#1741ed]">{n}</span><div><p className="text-xl font-semibold !text-[#15191f]">{t}</p><p className="mt-1 text-sm text-[#596573]">{desc}</p></div></div>)}
-          </div></div>
-        </div>
-      </section>
-      <section className="bg-white border-y border-[#e6e8ef]">
-        <div className="brand-shell py-6">
-          <div className="relative max-w-2xl">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6252f4]" />
-            <label htmlFor="resource-search" className="sr-only">Search resources</label>
-            <input id="resource-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search articles, guides or topics..." className="w-full rounded-xl border border-[#dfe3ed] bg-[#fbfcff] py-3 pl-11 pr-4 text-sm text-[#172033] outline-none transition placeholder:text-[#9aa3b2] focus:border-[#6252f4] focus:ring-4 focus:ring-[#6252f4]/10" />
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Resource categories">
-            {categories.map((x) => <button type="button" key={x} onClick={() => setActiveCategory(x)} aria-pressed={activeCategory === x} className={activeCategory === x ? "bs3-pill bs3-pill-active" : "bs3-pill"}>{x}</button>)}
+  return <div className="s33-page s33-resources-page" data-testid="editorial-resources-page">
+    <section className="s33-resources-hero">
+      <div className="brand-shell s33-resources-hero-grid">
+        <div>
+          <p className="s33-eyebrow">The Bennie Studio library</p>
+          <h1>{cmsPage?.heroTitle || "Better website decisions start with better questions."}</h1>
+          <p className="s33-lead">{cmsPage?.heroDescription || "Practical guides on clear messaging, credible design, enquiry journeys and what it takes to launch and maintain a useful business website."}</p>
+          <div className="s33-actions">
+            <a href="#resource-library" className="s33-primary">Explore the guides <ArrowRight size={18} aria-hidden="true" /></a>
+            <Link to="/generate-preview" className="s33-secondary">Apply this to my business <ArrowRight size={17} aria-hidden="true" /></Link>
           </div>
         </div>
-      </section>
-      <section className="brand-shell brand-section">
-        <SectionHeader kicker="Latest resources" title="Practical resources for real business growth." copy="Clear guidance to help you improve your website, communicate more clearly and convert more visitors." />
-        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {filteredArticles.map(({ slug, image: img, category: cat, title, excerpt: copy })=>(
-            <Link key={title} to={`/resources/${slug}`} className="bs3-card bs3-card-hover overflow-hidden">
-              <img src={img} alt="" className="aspect-[16/8.8] w-full object-cover" loading="lazy" />
-              <div className="p-5">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#6252f4]">{cat}</p>
-                <h3 className="mt-2">{title}</h3>
-                <p className="mt-3 text-sm leading-6 text-[#657186]">{copy}</p>
-                <span className="mt-5 inline-flex items-center text-xs font-semibold text-[#526071]">Read resource<ArrowRight className="ml-2 h-3.5 w-3.5" /></span>
-              </div>
-            </Link>
-          ))}
+        {featured && <Link to={`/resources/${featured.slug}`} className="s33-featured-article" aria-label={`Read featured resource: ${featured.title}`}>
+          <div className="s33-featured-image"><img src={featured.image} alt="" loading="eager" /></div>
+          <div className="s33-featured-content"><span>Featured guide · {featured.category}</span><h2>{featured.title}</h2><p>{featured.excerpt}</p><strong>Read the guide <ArrowRight size={16} aria-hidden="true" /></strong></div>
+        </Link>}
+      </div>
+    </section>
+    <section id="resource-library" className="s33-resource-library" aria-labelledby="s33-library-title">
+      <div className="brand-shell">
+        <div className="s33-library-heading">
+          <div><p className="s33-eyebrow">Explore by topic</p><h2 id="s33-library-title">Find the answer you need.</h2></div>
+          <p>Use the topic filters or search by a business problem. Every article opens as a full guide.</p>
         </div>
-        {filteredArticles.length === 0 ? <div className="mt-8 rounded-2xl border border-dashed border-[#cfd5e2] bg-[#fbfcff] p-10 text-center"><p className="font-semibold text-[#172033]">No resources match that search.</p><button type="button" onClick={() => { setQuery(""); setActiveCategory("All"); }} className="mt-3 text-sm font-semibold text-[#6252f4]">Clear filters</button></div> : null}
-      </section>
-      <section className="bs3-soft border-y border-[#e6e8ef]">
-        <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12 lg:items-center">
-          <div className="lg:col-span-5"><h2 className="mt-4">The Website Launch Checklist.</h2><p className="brand-copy mt-5">Use the launch process as a checklist for content, responsive behaviour, search basics, forms and final QA.</p><Link to="/resources/website-launch-checklist" className={`${primary} mt-7`}>View the checklist<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
-          <div className="lg:col-span-7"><div className="bs3-resource-art"><BookOpen className="h-16 w-16 text-[#8d7bff]" /><div><p className="text-sm font-semibold text-white/60">Bennie Studio</p><p className="mt-2 text-3xl font-semibold text-white">Website<br/>Launch Checklist</p></div></div></div>
+        <div className="s33-resource-search">
+          <label htmlFor="resource-search">Search resources</label>
+          <div><Search aria-hidden="true" size={19}/><input id="resource-search" type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search guides, topics or questions…" /></div>
         </div>
-      </section>
-      <section className="brand-shell brand-section">
-        <SectionHeader kicker="Popular topics" title="Explore by topic." copy="Start with the area that matters most to your next website decision." />
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-          {["Website Strategy","Design & UX","Copy & Messaging","Conversion","Case Studies","Tools & Resources"].map((topic) => <button type="button" key={topic} onClick={() => { setActiveCategory(topic); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="bs3-card bs3-card-hover p-5 text-left"><span className="bs3-icon"><BookOpen className="h-4 w-4" /></span><h3 className="mt-4 !text-base">{topic}</h3><p className="mt-2 text-xs text-[#657186]">Useful guides and insights</p><ArrowRight className="mt-5 h-4 w-4 text-[#6252f4]" /></button>)}
+        <div className="s33-resource-categories" aria-label="Resource categories">
+          {categories.map(category=><button key={category} type="button" aria-pressed={activeCategory===category} onClick={()=>setActiveCategory(category)} className={activeCategory===category?"s33-resource-pill s33-active":"s33-resource-pill"}>{category}</button>)}
         </div>
-      </section>
-      <section className="bs3-dark">
-        <div className="brand-shell brand-section grid gap-10 lg:grid-cols-12 lg:items-center">
-          <div className="lg:col-span-5"><h2 className="mt-4 !text-white">Get better website thinking in your inbox.</h2><p className="mt-5 text-base leading-8 text-white/62">Join practical updates for service businesses — no hype, just useful advice and launch checklists.</p></div>
-          <form onSubmit={subscribe} className="lg:col-span-7"><div className="flex flex-col gap-3 rounded-2xl border border-white/12 bg-white/[0.06] p-3 sm:flex-row"><label htmlFor="resource-email" className="sr-only">Email address</label><div className="flex min-h-12 flex-1 items-center gap-3 rounded-xl bg-white px-4"><Mail className="h-4 w-4 text-[#6252f4]" /><input id="resource-email" required type="email" value={subscriberEmail} onChange={(event) => setSubscriberEmail(event.target.value)} disabled={subscribed || subscriptionPending} placeholder="Your email address" className="min-w-0 flex-1 bg-transparent text-sm text-[#172033] outline-none placeholder:text-[#8d96a5] disabled:cursor-not-allowed disabled:opacity-65" /></div><button type="submit" disabled={subscribed || subscriptionPending} className={`${primary} disabled:cursor-not-allowed disabled:opacity-65`}>{subscriptionPending ? "Subscribing…" : subscribed ? "You’re subscribed" : "Subscribe"}<ArrowRight className="ml-2 h-4 w-4" /></button></div><p className="mt-3 text-xs text-white/45">No spam. Unsubscribe anytime.</p>{subscriptionError ? <p role="alert" className="mt-2 text-sm font-semibold text-red-200">{subscriptionError}</p> : null}</form>
-        </div>
-      </section>
-    </>
-  );
+        <div className="s33-resource-status"><p aria-live="polite">Showing <strong>{filteredArticles.length}</strong> of {RESOURCE_ARTICLES.length} guides</p>{(query||activeCategory!=="All")&&<button type="button" onClick={clear}>Clear filters</button>}</div>
+        {filteredArticles.length ? <div className="s33-resource-grid">
+          {filteredArticles.map(({ slug, image, category, title, excerpt })=><Link key={slug} to={`/resources/${slug}`} className="s33-resource-card" aria-label={`Read ${title}`}>
+            <img src={image} loading="lazy" alt="" />
+            <div><span>{category}</span><h3>{title}</h3><p>{excerpt}</p><strong>Read guide <ArrowRight size={16} aria-hidden="true" /></strong></div>
+          </Link>)}
+        </div> : <div className="s33-no-resources"><p>No guides match those filters.</p><button type="button" onClick={clear}>Show all guides</button></div>}
+      </div>
+    </section>
+    <section className="s33-resources-bottom">
+      <div className="brand-shell s33-resources-bottom-grid">
+        <div><p className="s33-eyebrow">When you want to go further</p><h2>Turn the reading into a website direction.</h2><p>Explore an initial website concept for your own business, or receive an optional checklist by email. Neither requires purchasing a plan.</p><Link className="s33-primary" to="/generate-preview">Get a free website preview <ArrowRight size={18} aria-hidden="true" /></Link></div>
+        <details className="s33-checklist-details"><summary><span><strong>Want the optional website checklist?</strong><small>Open the signup form. Newsletter consent is separate from requesting a preview.</small></span><span aria-hidden="true">+</span></summary><div><StudioEmailOptIn sourcePage="/resources" title="Get the website checklist" description="Optional website guidance by email. You can unsubscribe; signing up is not required to read the library or request a preview."/></div></details>
+      </div>
+    </section>
+  </div>;
 }
 
 export function ContactStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
@@ -402,48 +364,41 @@ export function ContactStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   };
 
   return (
-    <>
-      <section className="bs3-dark bs3-grid border-b border-white/10">
-        <div className="brand-shell grid gap-12 py-16 sm:py-20 lg:grid-cols-12 lg:items-center lg:py-24">
-          <div className="lg:col-span-6">
-            
-            <h1 className="mt-5 !max-w-[13ch] !text-white">{cmsPage?.heroTitle || <>Let’s talk about <span className="bs3-accent">your website.</span></>}</h1>
-            <p className="brand-copy mt-6 !text-white/65">{cmsPage?.heroDescription || "Have a project in mind? Share a short brief or book a focused call. The goal is to understand what you need and give you a clear next step."}</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link to={cmsPage?.primaryCtaHref || "/book-demo"} className={primary}>{cmsPage?.primaryCtaLabel || "Book a free call"}<ArrowRight className="ml-2 h-4 w-4" /></Link><Link to="/generate-preview" className={secondary}>Start a website preview</Link></div>
-            <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-white/58"><span>No-obligation call</span><span>Focused on real results</span><span>Clear next steps</span></div>
-          </div>
-          <form onSubmit={submit} className="bs3-card-dark p-6 lg:col-span-6">
-            <div className="flex items-center gap-3"><MessageCircle className="h-5 w-5 text-[#9f93ff]" /><h3 className="!text-white">Book a call or send a message</h3></div>
-            <p className="mt-2 text-sm text-white/55">Send your brief to Bennie Studio, then continue to a website preview using the same details.</p>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <label className="text-xs font-semibold text-white/75">Your name<input required value={brief.name} onChange={(e)=>setBrief({...brief,name:e.target.value})} className="bs3-input mt-2" placeholder="Your name" /></label>
-              <label className="text-xs font-semibold text-white/75">Company<input required value={brief.company} onChange={(e)=>setBrief({...brief,company:e.target.value})} className="bs3-input mt-2" placeholder="Company" /></label>
-              <label className="text-xs font-semibold text-white/75 sm:col-span-2">Work email<input required type="email" value={brief.email} onChange={(e)=>setBrief({...brief,email:e.target.value})} className="bs3-input mt-2" placeholder="you@company.com" /></label>
-              <label className="text-xs font-semibold text-white/75 sm:col-span-2">I’m interested in<select value={brief.interest} onChange={(e)=>setBrief({...brief,interest:e.target.value})} className="bs3-input mt-2"><option>New website design</option><option>Website redesign</option><option>Website audit</option><option>Ongoing website support</option></select></label>
-              <label className="text-xs font-semibold text-white/75 sm:col-span-2">Tell us about your project<textarea value={brief.details} onChange={(e)=>setBrief({...brief,details:e.target.value})} className="bs3-input mt-2 min-h-28 resize-y" placeholder="A few details about your goals, timeline or questions..." /></label>
+    <div className="s33-page s33-contact-page" data-testid="editorial-contact-page">
+      <section className="s33-contact-hero">
+        <div className="brand-shell s33-contact-grid">
+          <div className="s33-contact-intro">
+            <p className="s33-eyebrow">Tell us about your project</p>
+            <h1>{cmsPage?.heroTitle || "A useful website starts with a clear conversation."}</h1>
+            <p className="s33-lead">{cmsPage?.heroDescription || "Share what you offer, what you want to improve and how customers should reach you. We will use your brief to establish the next practical step."}</p>
+            <div className="s33-contact-choices">
+              <div><span>01</span><div><strong>Send a project brief</strong><p>Give us the essentials. After submitting, you can continue into a website preview using the same details.</p></div></div>
+              <div><span>02</span><div><strong>Prefer a conversation?</strong><p>Use the live booking page to see actual consultation availability.</p><Link to={cmsPage?.primaryCtaHref || "/book-demo"}>{cmsPage?.primaryCtaLabel || "Book a free consultation"} <ArrowRight size={17} aria-hidden="true"/></Link></div></div>
+              <div><span>03</span><div><strong>Just exploring?</strong><p>Try a free website direction first. No payment card required.</p><Link to="/generate-preview">Start with a free preview <ArrowRight size={17} aria-hidden="true"/></Link></div></div>
             </div>
-            <button type="submit" disabled={submitting} className={`${primary} mt-5 w-full disabled:cursor-not-allowed disabled:opacity-65`}>{submitting ? "Sending brief…" : "Send brief & start preview"}<ArrowRight className="ml-2 h-4 w-4" /></button>
-            {submitError ? <p role="alert" className="mt-3 text-sm font-semibold text-red-200">{submitError}</p> : null}
+          </div>
+          <form onSubmit={submit} className="s33-contact-form" aria-label="Contact project brief">
+            <div className="s33-contact-form-head"><p className="s33-eyebrow">Project enquiry</p><h2>Share the essentials.</h2><p>We use your details to respond to this enquiry and continue your preview. You are not subscribing to marketing emails.</p></div>
+            <div className="s33-contact-fields">
+              <label>Your name<input required autoComplete="name" value={brief.name} onChange={e=>setBrief({...brief,name:e.target.value})} placeholder="Your name"/></label>
+              <label>Business or company<input required autoComplete="organization" value={brief.company} onChange={e=>setBrief({...brief,company:e.target.value})} placeholder="Business name"/></label>
+              <label>Work email<input required type="email" autoComplete="email" value={brief.email} onChange={e=>setBrief({...brief,email:e.target.value})} placeholder="you@business.com"/></label>
+              <label>What can we help with?<select value={brief.interest} onChange={e=>setBrief({...brief,interest:e.target.value})}><option>New website design</option><option>Website redesign</option><option>Website audit</option><option>Ongoing website support</option></select></label>
+              <label className="s33-field-wide">Tell us a little more <span>(optional)</span><textarea value={brief.details} onChange={e=>setBrief({...brief,details:e.target.value})} placeholder="Your goals, current site, audience or timeline…" rows={4}/></label>
+            </div>
+            {submitError ? <p role="alert" className="s33-contact-error">{submitError}</p> : null}
+            <button className="s33-primary s33-contact-submit" type="submit" disabled={submitting}>{submitting?"Sending your brief…":"Send brief & continue to preview"}<ArrowRight size={18} aria-hidden="true"/></button>
+            <p className="s33-form-footnote">No payment required. Submitted briefs are sent to the studio and the preview step opens after a successful submission.</p>
           </form>
         </div>
       </section>
-
-      <section className="bg-white border-b border-[#e6e8ef]"><div className="brand-shell grid gap-6 py-9 sm:grid-cols-2 lg:grid-cols-4">{[
-        [Compass,"Strategy first","Website decisions anchored to the business goal."],
-        [ClipboardCheck,"Clear process","A transparent path from first brief to launch."],
-        [MessageCircle,"Fast response","A direct route to the person responsible for the work."],
-        [ShieldCheck,"No obligation","Explore the fit before committing to a build."],
-      ].map(([Icon,t,c]:any)=><div key={t} className="flex gap-4"><span className="bs3-icon"><Icon className="h-4 w-4"/></span><div><p className="font-semibold text-[#172033]">{t}</p><p className="mt-1 text-sm text-[#657186]">{c}</p></div></div>)}</div></section>
-
-      <section className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center">
-        <div className="lg:col-span-5"><h2 className="mt-4">Speak with Bennie directly.</h2><p className="brand-copy mt-5">A focused call to discuss the business, current site and what a better direction could look like. Bring questions; leave with clarity.</p><div className="mt-6 space-y-3">{["Discuss goals and constraints","Review relevant work","Clarify scope and next steps","No pressure, no hard sell"].map(x=><p key={x} className="flex gap-3 text-sm font-semibold text-[#526071]"><Check className="h-4 w-4 text-[#6252f4]" />{x}</p>)}</div><Link to="/book-demo" className={`${primary} mt-7`}>Book a free 30-min call<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
-        <div className="lg:col-span-7"><div className="bs3-calendar"><div className="bs3-calendar-side"><p className="text-sm font-semibold text-white/60">Bennie Studio</p><h3 className="mt-3 !text-white">30-min discovery call</h3><p className="mt-5 text-sm leading-6 text-white/58">A focused conversation about your project, goals and website direction.</p><Link to="/book-demo" className={`${primary} mt-6 w-full`}>Open live calendar<ArrowRight className="ml-2 h-4 w-4" /></Link></div><div className="bs3-calendar-grid"><p className="font-semibold text-[#172033]">Calendar availability</p><p className="mt-1 text-xs leading-5 text-[#657186]">Dates and times below are illustrative. Open the live calendar to see current availability.</p><div className="mt-5 grid grid-cols-7 gap-2 text-center text-xs text-[#657186]" aria-hidden="true">{Array.from({length:28},(_,i)=><span key={i} className={i===14?"bs3-day bs3-day-active":"bs3-day"}>{i+1}</span>)}</div><div className="mt-5 grid grid-cols-2 gap-2" aria-hidden="true">{["9:00 AM","10:30 AM","1:00 PM","4:00 PM"].map(x=><span key={x} className="bs3-time">{x}</span>)}</div></div></div></div>
+      <section className="s33-contact-next">
+        <div className="brand-shell s33-contact-next-grid">
+          <div><p className="s33-eyebrow">What happens next</p><h2>One clear route, not another sales pitch.</h2></div>
+          <div><p>We review your business information and the direction you want to take. Scope, plan pricing and any commitment are made clear before paid work begins.</p><Link to="/how-it-works">Understand the full process <ArrowRight size={17} aria-hidden="true"/></Link></div>
+        </div>
       </section>
-
-      <section className="bs3-soft border-y border-[#e6e8ef]"><div className="brand-shell brand-section"><SectionHeader kicker="Prefer to write?" title="Send a project brief." copy="Share your goals and useful context. The preview flow gives the conversation a concrete starting point."/><div className="mt-10 grid gap-4 md:grid-cols-3">{[[Target,"Your goals","Tell us what you want the website to achieve."],[Users,"Your business","A little about the company and target audience."],[Globe2,"Inspiration","Share any useful references or existing website links."]].map(([Icon,t,c]:any)=><IconCard key={t} icon={Icon} title={t} copy={c}/>)}</div></div></section>
-
-      <section className="brand-shell brand-section"><SectionHeader kicker="How it works" title="From conversation to a better website." copy="A simple, transparent process designed to move from idea to useful next step without unnecessary complexity."/><div className="mt-10 grid gap-4 md:grid-cols-4">{[["01","Reach out","Book a call or send a project brief."],["02","Discuss & plan","We learn about the business and goals."],["03","Design & build","The website is designed around the brief."],["04","Launch & grow","Go live with managed support available."]].map(([n,t,c])=><article key={n} className="bs3-card p-5"><span className="text-xs font-bold text-[#6252f4]">{n}</span><h3 className="mt-4">{t}</h3><p className="mt-2 text-sm text-[#657186]">{c}</p></article>)}</div></section>
-    </>
+    </div>
   );
 }
 
