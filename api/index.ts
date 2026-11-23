@@ -3865,6 +3865,13 @@ async function startServer() {
   }) => {
     const startedAt = Date.now();
     const { response, finalUrl } = await fetchAuditResource(payload.url);
+    // Classify target-server errors before parsing HTML: a WAF 403 is permanent,
+    // while rate limiting and upstream 5xx may justify bounded retries.
+    if (!response.ok) {
+      const error = new Error(`The website returned HTTP ${response.status} and could not be analysed.`);
+      (error as any).statusCode = response.status === 429 || response.status >= 500 ? 503 : 422;
+      throw error;
+    }
     const contentType = response.headers.get("content-type") || "";
     if (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) {
       const error = new Error("The submitted URL did not return a website page.");
@@ -3883,12 +3890,6 @@ async function startServer() {
       (error as any).statusCode = 422;
       throw error;
     }
-    if (!response.ok) {
-      const error = new Error(`The website returned HTTP ${response.status} and could not be analysed.`);
-      (error as any).statusCode = 422;
-      throw error;
-    }
-
     const origin = new URL(finalUrl).origin;
     const safeStatus = async (resourceUrl: string) => {
       try {
@@ -4968,7 +4969,7 @@ async function startServer() {
           completed_at: willRetry ? null : new Date().toISOString(),
         }).eq("id", job.payload.auditRunId);
       }
-      await failAsyncJob(supabaseAdmin, job, message);
+      await failAsyncJob(supabaseAdmin, job, message, typeof error?.statusCode === "number" ? error.statusCode : undefined);
       return { processed: true, job: { ...job, status: "failed" as const }, error: message };
     }
   };

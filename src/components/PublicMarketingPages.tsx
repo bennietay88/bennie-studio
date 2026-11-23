@@ -446,7 +446,7 @@ async function submitPlatformLead(input: {
 
   const data = await response.json().catch(() => null);
   if (!response.ok || !data?.success) {
-    throw new Error(data?.message || "Unable to submit request right now.");
+    throw new Error(data?.message || data?.error || "Unable to submit request right now.");
   }
 
   trackPinterestLead(input.leadType, {
@@ -512,7 +512,7 @@ function TemplatesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   return (
     <>
       <Hero
-        title={cmsPage?.heroTitle || "A better website starts with a clear direction."}
+        title={cmsPage?.heroTitle || "A clearer direction for your website."}
         copy={cmsPage?.heroDescription || "Explore website concepts built around real buying decisions: what visitors need to understand, what proof they should see and which action they should take next."}
         icon={LayoutTemplate}
         primaryLabel={cmsPage?.primaryCtaLabel || "Create my free website preview"}
