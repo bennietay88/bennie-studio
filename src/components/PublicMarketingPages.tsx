@@ -2410,7 +2410,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                     </Button>
                   </div>
                 </div>
-                <div className="s33-preview-optional-newsletter mt-6 max-w-3xl"><StudioEmailOptIn sourcePage="/generate-preview" title="Want more ideas for your website?" description="Get the 7-point website conversion checklist and optional follow-up tips. Your unsaved instant design is not emailed or stored by this signup." /></div>
+                <details className="s33-preview-optional-newsletter mt-6 max-w-3xl"><summary>Optional: receive website improvement tips and a checklist <span aria-hidden="true">+</span></summary><div><StudioEmailOptIn sourcePage="/generate-preview" title="Want more ideas for your website?" description="Get the 7-point website conversion checklist and optional follow-up tips. Your unsaved instant design is not emailed or stored by this signup." /></div></details>
               </>
             ) : null}
           </div>
@@ -3080,7 +3080,7 @@ export default function PublicMarketingPages() {
         ? pageContent
         : <main id="main-content">{pageContent}</main>}
       {!pageCms?.replacePageContent && <PlatformCmsSections path={cmsPagePath} />}
-      {pageKind !== "pricing" && pageKind !== "services" && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
+      {!["pricing","services","resources","contact","generate-preview"].includes(pageKind) && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="brand-shell relative grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
           <div>
