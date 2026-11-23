@@ -12,7 +12,7 @@ test("homepage pricing displays two primary plans and links to the wider catalog
   assert.match(homepage, /const priced = \[managed, growth\]/);
   assert.doesNotMatch(section, /Standard initial term total|planComparisonRows|Compare SiteFoundry packages/);
   assert.equal((section.match(/<Link\b/g) || []).length, 4);
-  assert.match(section, /Personal Profile/);
+  assert.match(section, /personal-profile/);
   assert.match(section, /Growth Partner/);
   assert.match(section, /Compare full plan scope/);
   assert.match(section, /Get a free website direction/);
