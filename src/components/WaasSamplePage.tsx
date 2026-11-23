@@ -248,7 +248,7 @@ export default function WaasSamplePage() {
   }, [sample.name]);
 
   return (
-    <div className="brand-public min-h-screen bg-white text-slate-950">
+    <div className="brand-public min-h-screen bg-[#f8f8f5] text-[#15191f]">
       <Helmet>
         <title>{sample.name} | Concept Case Study</title>
         <meta
@@ -260,23 +260,23 @@ export default function WaasSamplePage() {
       <PublicSiteHeader />
 
 
-      <main>
-        <div className="mx-auto max-w-7xl px-4 pt-7 sm:px-8"><button type="button" onClick={() => navigate('/case-studies')} className="inline-flex items-center gap-2 text-sm font-semibold text-[#1741ed]"><ArrowLeft className="h-4 w-4"/> All case studies</button></div>
-        <section className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:py-24">
+      <main id="main-content">
+        <div className="brand-shell pt-8"><button type="button" onClick={() => navigate('/case-studies')} className="inline-flex items-center gap-2 text-sm font-semibold text-[#1741ed]"><ArrowLeft className="h-4 w-4"/> All case studies</button></div>
+        <section className="brand-shell grid min-w-0 gap-10 py-14 lg:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] lg:items-center lg:gap-14 lg:py-20">
           <div className="flex flex-col justify-center">
             <Badge className={`mb-6 w-fit rounded-full px-4 py-2 hover:opacity-100 ${sample.soft}`}>
               {sample.eyebrow}
             </Badge>
-            <h1 className="max-w-[28ch] text-4xl font-black leading-none tracking-tight sm:text-6xl lg:text-6xl">
+            <h1 className="max-w-[18ch] text-4xl font-bold leading-[1.08] tracking-tight sm:text-6xl">
               {sample.headline}
             </h1>
-            <p className="mt-8 max-w-2xl text-lg font-medium leading-8 text-slate-600">
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-[#526071]">
               {sample.description}
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <Button
                 onClick={() => navigate("/generate-preview")}
-                className={`h-14 rounded-2xl px-8 font-semibold text-white ${sample.button}`}
+                className="min-h-12 rounded-lg bg-[#1741ed] px-6 py-3 font-bold text-white hover:bg-[#1035c2]"
               >
                 <MessageCircle className="mr-2 h-5 w-5" />
                 See a direction for my business
@@ -284,24 +284,24 @@ export default function WaasSamplePage() {
               <Button
                 variant="outline"
                 onClick={() => document.getElementById("case-study-solution")?.scrollIntoView({ behavior: "smooth" })}
-                className="h-14 rounded-2xl px-8 font-semibold"
+                className="min-h-12 rounded-lg border-[#dbe1ea] bg-white px-6 py-3 font-bold text-[#1741c9]"
               >
                 Explore Case Study
               </Button>
             </div>
           </div>
-          <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 shadow-2xl">
+          <div className="min-w-0 overflow-hidden rounded-2xl border border-[#dbe1ea] bg-[#edf1f7] shadow-[0_20px_60px_-45px_rgba(15,23,42,.4)]">
             <WebsiteConceptVisual title={sample.name} eyebrow={sample.eyebrow} index={Object.keys(samples).indexOf(sampleKey)} className="aspect-[4/3]" />
           </div>
         </section>
 
-        <section className="border-y border-slate-200 bg-white px-4 py-14 sm:px-8">
-          <div className="mx-auto max-w-7xl">
-            <div className="mb-8 max-w-3xl">
+        <section className="border-y border-[#dbe1ea] bg-white py-14 sm:py-20">
+          <div className="brand-shell">
+            <div className="mb-9 max-w-3xl">
               <Badge className="mb-4 rounded-full bg-indigo-50 px-4 py-2 text-indigo-700 hover:bg-indigo-50">
                 Case study overview
               </Badge>
-              <h2 className="text-3xl font-black tracking-tight sm:text-5xl">
+              <h2 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
                 From business problem to website direction
               </h2>
               <p className="mt-4 text-base font-medium leading-7 text-slate-600">
@@ -314,9 +314,9 @@ export default function WaasSamplePage() {
                 ["Website strategy", sample.strategy, "border-indigo-100 bg-indigo-50 text-indigo-700"],
                 ["Intended outcome", sample.intendedOutcome, "border-emerald-100 bg-emerald-50 text-emerald-700"],
               ].map(([title, copy, style]) => (
-                <article key={title} className={`rounded-3xl border p-6 ${style}`}>
-                  <p className="text-xs font-black uppercase tracking-[0.18em]">{title}</p>
-                  <p className="mt-3 text-sm font-bold leading-7 text-slate-800">{copy}</p>
+                <article key={title} className="rounded-xl border border-[#dbe1ea] bg-[#f8f8f5] p-6">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1741ed]">{title}</p>
+                  <p className="mt-3 text-sm leading-7 text-[#526071]">{copy}</p>
                 </article>
               ))}
             </div>
@@ -340,7 +340,7 @@ export default function WaasSamplePage() {
               <Badge className="mb-4 rounded-full bg-slate-100 px-4 py-2 text-slate-700 hover:bg-slate-100">
                 Solution structure
               </Badge>
-              <h2 className="text-3xl font-black tracking-tight sm:text-5xl">
+              <h2 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
                 {sample.serviceHeading}
               </h2>
             </div>
@@ -396,14 +396,14 @@ export default function WaasSamplePage() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-8 lg:py-24">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm sm:p-12">
+        <section className="brand-shell py-14 sm:py-20">
+          <div className="rounded-2xl border border-[#dbe1ea] bg-[#eef3ff] p-6 sm:p-9">
             <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
-                <h2 className="text-3xl font-black tracking-tight sm:text-5xl">
+                <h2 className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
                   {sample.finalHeading}
                 </h2>
-                <p className="mt-5 max-w-2xl text-base font-medium leading-7 text-slate-600">
+                <p className="mt-5 max-w-2xl text-base leading-7 text-[#526071]">
                   {sample.finalDescription}
                 </p>
                 <div className="mt-6 flex flex-wrap gap-4 text-sm font-bold text-slate-600">
@@ -415,7 +415,7 @@ export default function WaasSamplePage() {
               <Button
                 size="lg"
                 onClick={() => navigate("/generate-preview")}
-                className={`h-14 rounded-2xl px-8 font-semibold text-white ${sample.button}`}
+                className="min-h-12 rounded-lg bg-[#1741ed] px-6 py-3 font-bold text-white hover:bg-[#1035c2]"
               >
                 See a direction for my business
               </Button>
