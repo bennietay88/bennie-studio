@@ -17,7 +17,6 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { WAAS_TEMPLATE_PACKS } from "../constants/nicheTemplates";
 import {
   buildReviewWebsiteStrategy,
   assessManualReviewInput,
@@ -492,69 +491,59 @@ function TemplatesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   return (
     <>
       <Hero
-        title={cmsPage?.heroTitle || "Website directions that fit the buyer."}
-        copy={cmsPage?.heroDescription || "Start with the buyer journey, the evidence available, the main enquiry action and the business category. The design direction follows those decisions."}
+        title={cmsPage?.heroTitle || "A better website starts with a clear direction."}
+        copy={cmsPage?.heroDescription || "Explore website concepts built around real buying decisions: what visitors need to understand, what proof they should see and which action they should take next."}
         icon={LayoutTemplate}
-        primaryLabel={cmsPage?.primaryCtaLabel || "Get my free website preview"}
+        primaryLabel={cmsPage?.primaryCtaLabel || "Create my free website preview"}
         primaryHref={cmsPage?.primaryCtaHref || "/generate-preview"}
+        secondaryLabel="See website examples"
+        secondaryHref="/case-studies"
       />
-      <section className="brand-shell brand-section">
-        <div className="grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-4">
-            
-            <h2 className="mt-4">Explore the design families.</h2>
-            <p className="brand-copy mt-5">These examples are for composition and enquiry strategy. They are starting directions, not rigid skins that every customer inherits.</p>
+
+      <section id="design-families" className="brand-shell scroll-mt-24 py-14 sm:py-20">
+        <div className="mb-9 grid min-w-0 gap-6 border-b border-[#dbe1ea] pb-9 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-end">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1741ed]">Design directions · 01—09</p>
+            <h2 className="mt-4 max-w-2xl text-3xl font-bold leading-tight tracking-tight text-[#15191f] sm:text-4xl">Find the structure that fits your business.</h2>
           </div>
-          <div className="lg:col-span-8">
-            <FlagshipTemplateGallery />
+          <p className="max-w-2xl text-base leading-7 text-[#526071]">Select an industry below to see its visual direction, recommended pages and the authentic proof you would need to supply. Every example is a starting point, not a generic design imposed on your business.</p>
+        </div>
+        <FlagshipTemplateGallery />
+      </section>
+
+      <section className="border-y border-[#dbe1ea] bg-white py-14 sm:py-20">
+        <div className="brand-shell grid min-w-0 gap-10 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)]">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1741ed]">Industry pathways</p>
+            <h2 className="mt-4 max-w-md text-3xl font-bold leading-tight tracking-tight text-[#15191f] sm:text-4xl">Different buyers need different answers.</h2>
+            <p className="mt-5 max-w-md text-base leading-7 text-[#526071]">Explore the key questions, proof and enquiry structure for your market before requesting a personalised website direction.</p>
+          </div>
+          <div className="min-w-0 border-t border-[#dbe1ea]">
+            {industrySalesStarts.map((item) => (
+              <Link
+                key={item.industry}
+                to={item.path}
+                className="group grid min-w-0 gap-2 border-b border-[#dbe1ea] px-1 py-5 transition-colors hover:bg-[#f6f8fd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1741ed] sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.4fr)_auto] sm:items-center sm:gap-5 sm:px-4"
+              >
+                <h3 className="min-w-0 text-base font-bold leading-6 text-[#15191f]">{item.industry}</h3>
+                <p className="min-w-0 text-sm leading-6 text-[#526071]">{item.promise}</p>
+                <ArrowRight aria-hidden="true" className="h-5 w-5 text-[#1741ed] transition-transform group-hover:translate-x-1" />
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="border-y border-[#dfe2ea] bg-white">
-        <div className="brand-shell brand-section">
-          <div className="grid gap-10 lg:grid-cols-12">
-            <div className="lg:col-span-4">
-              
-              <h2 className="mt-4">One system, adapted to each buyer.</h2>
-            </div>
-            <div className="lg:col-span-8">
-              <div className="brand-rule-list">
-                {WAAS_TEMPLATE_PACKS.map((pack) => (
-                  <div key={pack.id} className="brand-rule-row">
-                    <div>
-                      <h3>{pack.name}</h3>
-                      <p className="mt-2 text-sm text-[#5f6673]">{pack.description}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-2">
-                      {pack.niches.map((niche) => <span key={niche} className="text-sm font-semibold text-[#5f6673]">{niche}</span>)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+      <section className="brand-shell py-14 sm:py-20">
+        <div className="grid gap-7 rounded-2xl bg-[#eef3ff] p-6 sm:p-9 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1741ed]">Make it your own</p>
+            <h2 className="mt-3 max-w-2xl text-2xl font-bold leading-tight text-[#15191f] sm:text-3xl">See a direction built around your actual business.</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#526071]">Tell us about your offer and preferred enquiry path. You can explore a free illustrative preview without committing to a plan.</p>
           </div>
-        </div>
-      </section>
-
-      <section className="border-y border-[#E2E8F0] bg-[#F8FAFC] text-[#0F172A]">
-        <div className="brand-shell brand-section">
-          <div className="grid gap-10 lg:grid-cols-12">
-            <div className="lg:col-span-4">
-              <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#1D4ED8]">Industry paths</p>
-              <h2 className="mt-4 text-[#0F172A]">Start with the buyer journey.</h2>
-              <p className="mt-5 text-base leading-7 text-[#475569]">Each route explains the offer, evidence and enquiry structure that matters for that market.</p>
-            </div>
-            <div className="border-t border-[#E2E8F0] lg:col-span-8">
-              {industrySalesStarts.map((item) => (
-                <Link key={item.industry} to={item.path} className="grid gap-3 border-b border-[#E2E8F0] py-6 transition hover:bg-white sm:grid-cols-[1fr_1.5fr_auto] sm:items-center sm:px-3">
-                  <h3 className="text-[#0F172A]">{item.industry}</h3>
-                  <p className="text-sm leading-6 text-white/60">{item.promise}</p>
-                  <ArrowRight className="h-4 w-4 text-[#aaa0ff]" />
-                </Link>
-              ))}
-            </div>
-          </div>
+          <Link to="/generate-preview" className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#1741ed] px-6 py-3 text-center text-sm font-bold text-white transition hover:bg-[#1035c2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1741ed] focus-visible:ring-offset-2">
+            Get my free website preview <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
         </div>
       </section>
     </>
