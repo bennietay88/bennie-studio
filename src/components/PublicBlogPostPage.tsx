@@ -1,10 +1,8 @@
 import React from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import ReactMarkdown from "react-markdown";
-import { ArrowLeft, CalendarDays, Home, Loader2 } from "lucide-react";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
+import { ArrowLeft, ArrowRight, CalendarDays, Loader2 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { SafeImage } from "./SafeImage";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
@@ -13,7 +11,6 @@ const getPostDate = (post: any) => post?.created_at || post?.createdAt || post?.
 
 export default function PublicBlogPostPage() {
   const { slug } = useParams();
-  const navigate = useNavigate();
   const [post, setPost] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -81,39 +78,39 @@ export default function PublicBlogPostPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-white text-slate-950">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </main>
+      <div className="brand-public min-h-screen bg-[#f8f8f5] text-[#15191f]">
+        <PublicSiteHeader />
+        <main id="main-content" role="status" aria-label="Loading article" className="brand-shell flex min-h-[60vh] items-center justify-center">
+          <Loader2 aria-hidden="true" className="h-7 w-7 animate-spin text-[#1741ed]" />
+        </main>
+        <PublicSiteFooter />
+      </div>
     );
   }
 
   if (error || !post) {
     return (
-      <main className="min-h-screen bg-white px-6 py-16 text-slate-950">
-        <div className="mx-auto max-w-3xl text-center">
-          <Badge className="mb-6 bg-slate-100 text-slate-700">Article</Badge>
-          <h1 className="text-4xl font-black tracking-tight">Article not found</h1>
-          <p className="mt-4 text-slate-600">{error || "This article is no longer available."}</p>
-          <div className="mt-8 flex justify-center gap-3">
-            <Button onClick={() => navigate(-1)} variant="outline" className="rounded-xl">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Go Back
-            </Button>
-            <Link
-              to="/"
-              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
-            >
-                <Home className="mr-2 h-4 w-4" />
-                Home
-            </Link>
+      <div className="brand-public min-h-screen bg-[#f8f8f5] text-[#15191f]">
+        <Helmet><title>Article unavailable | Bennie Studio</title><meta name="robots" content="noindex" /></Helmet>
+        <PublicSiteHeader />
+        <main id="main-content" className="brand-shell flex min-h-[60vh] items-center py-16">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1741ed]">Bennie Studio · Insights</p>
+            <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-5xl">This article is unavailable.</h1>
+            <p className="mt-4 text-base leading-7 text-[#526071]">{error || "This article may have been moved or unpublished."}</p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link to="/resources" className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#1741ed] px-6 py-3 text-sm font-bold text-white hover:bg-[#1035c2]">Browse resources <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link to="/" className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[#dbe1ea] bg-white px-6 py-3 text-sm font-bold text-[#1741c9] hover:bg-[#eef3ff]">Back to homepage</Link>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+        <PublicSiteFooter />
+      </div>
     );
   }
 
   return (
-    <div className="brand-public min-h-screen bg-[#f6f7fb] text-[#141821]">
+    <div className="brand-public min-h-screen bg-[#f8f8f5] text-[#141821]">
       <Helmet>
         <title>{title} | Bennie Studio</title>
         <meta name="description" content={description} />
@@ -121,7 +118,7 @@ export default function PublicBlogPostPage() {
 
       <PublicSiteHeader />
 
-      <main>
+      <main id="main-content">
         <section className="border-b border-[#dce2e8] bg-[#f8f8f5] text-[#15191f]">
           <div className="brand-shell py-14 sm:py-20">
             <Link to="/#blog" className="inline-flex items-center text-sm font-semibold !text-[#657181] hover:!text-[#1741ed]"><ArrowLeft className="mr-2 h-4 w-4" />Back to insights</Link>
@@ -132,18 +129,18 @@ export default function PublicBlogPostPage() {
           </div>
         </section>
 
-            <article className="mx-auto max-w-5xl px-5 py-12">
+        <article className="brand-shell mx-auto max-w-5xl py-12 sm:py-16">
         {imageUrl && (
           <SafeImage
             src={imageUrl}
             alt={title}
             loading="eager"
             className="h-full w-full object-cover"
-            containerClassName="mt-10 aspect-video overflow-hidden rounded-3xl border border-slate-100 bg-slate-50"
+            containerClassName="aspect-video overflow-hidden rounded-xl border border-[#dbe1ea] bg-[#edf1f7]"
           />
         )}
 
-        <div className="prose prose-slate mt-12 max-w-3xl prose-headings:font-black prose-a:text-indigo-600">
+        <div className="prose prose-slate mt-10 max-w-3xl prose-headings:font-semibold prose-headings:tracking-tight prose-a:text-[#1741ed] prose-a:underline">
           <ReactMarkdown>{post.content || description}</ReactMarkdown>
         </div>
       </article>
