@@ -24,56 +24,58 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+    <div className="brand-public min-h-screen bg-[#f8f8f5] flex items-center justify-center px-5 py-16 sm:py-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl shadow-indigo-100 p-10 space-y-8"
+        className="max-w-lg w-full rounded-2xl border border-[#dbe1ea] bg-white p-6 space-y-8 sm:p-10"
       >
         <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="h-20 w-20 bg-indigo-600 rounded-3xl flex items-center justify-center shadow-xl shadow-indigo-200">
-              <Shield className="h-10 w-10 text-white" />
+            <div className="h-14 w-14 rounded-xl bg-[#1741ed] flex items-center justify-center">
+              <Shield className="h-7 w-7 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-3xl font-bold leading-tight tracking-tight text-[#15191f]">
             New Password
           </h1>
-          <p className="text-slate-500">
+          <p className="text-base leading-7 text-[#526071]">
             Please enter your new password below.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+            <label htmlFor="reset-password" className="text-sm font-semibold text-[#25364b]">
               New Password
             </label>
             <Input
+              id="reset-password"
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="h-14 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white"
+              className="h-12 rounded-lg border-[#dbe1ea] bg-[#f8faff] focus:bg-white"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+            <label htmlFor="confirm-password" className="text-sm font-semibold text-[#25364b]">
               Confirm Password
             </label>
             <Input
+              id="confirm-password"
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="h-14 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white"
+              className="h-12 rounded-lg border-[#dbe1ea] bg-[#f8faff] focus:bg-white"
             />
           </div>
           <Button
             type="submit"
-            className="w-full h-14 text-lg font-bold bg-indigo-600 hover:bg-indigo-700 rounded-2xl shadow-lg shadow-indigo-100"
+            className="min-h-12 w-full rounded-lg bg-[#1741ed] font-bold text-white hover:bg-[#1035c2]"
             isLoading={isSigningIn}
           >
             Update Password
@@ -86,7 +88,7 @@ export default function ResetPasswordPage() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-medium flex items-center justify-between gap-3"
+              role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800"
             >
               <span className="text-left">{error}</span>
               <button

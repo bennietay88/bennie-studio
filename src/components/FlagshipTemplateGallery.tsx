@@ -127,24 +127,27 @@ export function FlagshipTemplateGallery() {
 
   return (
     <div className="space-y-10">
-      <div data-testid="template-family-scroller" className="-mx-1 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Template family selector">
-        <div className="flex w-max min-w-full gap-2">
-        {FLAGSHIP_TEMPLATES.map((template) => (
+      <div data-testid="template-family-scroller" role="group" aria-label="Choose an industry website concept" className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3">
+        {FLAGSHIP_TEMPLATES.map((template, index) => (
           <button
             key={template.id}
             type="button"
             aria-pressed={active.id === template.id}
+            aria-controls="template-detail"
             onClick={() => setActiveId(template.id)}
-            className={`min-h-11 shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+            className={`group min-w-0 rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1741ed] focus-visible:ring-offset-2 sm:p-4 ${
               active.id === template.id
-                ? "border-slate-950 bg-slate-950 text-white shadow-lg"
-                : "border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-700"
+                ? "border-[#1741ed] bg-[#eff4ff] text-slate-950 shadow-[inset_0_0_0_1px_#1741ed]"
+                : "border-[#dbe1ea] bg-white text-slate-800 hover:border-[#1741ed] hover:bg-[#f8faff]"
             }`}
           >
-            {template.family}
+            <span className="flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#52617a]">
+              <span>0{index + 1}</span><span aria-hidden="true" className={active.id === template.id ? "h-2 w-2 rounded-full bg-[#1741ed]" : "h-2 w-2 rounded-full bg-[#d4dbe6]"} />
+            </span>
+            <span className="mt-2 block break-words text-sm font-bold leading-5 sm:text-base">{template.family}</span>
+            <span className="mt-1 block break-words text-xs leading-5 text-[#52617a]">{template.goal}</span>
           </button>
         ))}
-        </div>
       </div>
 
       <motion.article
@@ -152,61 +155,63 @@ export function FlagshipTemplateGallery() {
         initial={reduceMotion ? false : { opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: reduceMotion ? 0 : 0.28, ease: [0.16, 1, 0.3, 1] }}
-        className="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-[0_30px_80px_-45px_rgba(15,23,42,0.45)]"
+        id="template-detail"
+        aria-label={`Selected concept: ${active.name}`}
+        className="overflow-hidden rounded-2xl border border-[#dbe1ea] bg-white shadow-[0_24px_65px_-45px_rgba(15,23,42,0.35)]"
       >
-        <div className="grid lg:grid-cols-[1.25fr_0.75fr]">
-          <div className="relative min-h-[320px] overflow-hidden border-b border-slate-200 bg-slate-100 lg:min-h-[560px] lg:border-b-0 lg:border-r">
+        <div className="grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+          <div className="relative min-h-[280px] overflow-hidden border-b border-[#dbe1ea] bg-[#edf1f7] sm:min-h-[360px] lg:min-h-[530px] lg:border-b-0 lg:border-r">
             <TemplatePreviewThumbnail
               templateId={active.id}
               templateName={active.name}
-              className="h-full min-h-[320px] lg:aspect-auto lg:min-h-[560px]"
+              className="h-full min-h-[280px] sm:min-h-[360px] lg:aspect-auto lg:min-h-[530px]"
             />
-            <div className="absolute right-4 top-4 flex gap-2">
-              <Badge className="border-0 bg-white/90 text-slate-900 shadow-sm backdrop-blur">Live rendered preview</Badge>
-              <Badge className="border-0 bg-emerald-500 text-white">Responsive</Badge>
+            <div className="pointer-events-none absolute left-4 top-4 flex flex-wrap gap-2">
+              <Badge className="border-0 bg-white/95 text-slate-900 shadow-sm backdrop-blur">Illustrative concept</Badge>
+              <Badge className="border-0 bg-slate-950/90 text-white">Responsive design</Badge>
             </div>
           </div>
 
-          <div className="flex flex-col p-6 sm:p-8 lg:p-10">
+          <div className="flex min-w-0 flex-col p-5 sm:p-8 lg:p-9">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-indigo-600">{active.direction}</p>
-              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">{active.name}</h2>
-              <p className="mt-4 text-base font-semibold leading-7 text-slate-600">{active.promise}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1741ed]">{active.direction}</p>
+              <h2 className="mt-3 break-words text-2xl font-bold leading-tight tracking-tight text-slate-950 sm:text-3xl">{active.name}</h2>
+              <p className="mt-4 text-base leading-7 text-slate-600">{active.promise}</p>
             </div>
 
-            <div className="mt-7 grid gap-5">
+            <div className="mt-7 grid gap-5 border-t border-slate-200 pt-6">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Primary action</p>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Primary enquiry goal</p>
                 <p className="mt-2 font-black text-slate-900">{active.goal}</p>
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Recommended pages</p>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Suggested page structure</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {active.pages.map((page) => <span key={page} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700">{page}</span>)}
+                  {active.pages.map((page) => <span key={page} className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">{page}</span>)}
                 </div>
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Proof to prepare</p>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Real evidence to provide</p>
                 <div className="mt-3 space-y-2">
-                  {active.proof.map((item) => <p key={item} className="flex gap-2 text-sm font-bold text-slate-700"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />{item}</p>)}
+                  {active.proof.map((item) => <p key={item} className="flex gap-2 text-sm font-medium leading-6 text-slate-700"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />{item}</p>)}
                 </div>
               </div>
             </div>
 
-            <div className="mt-auto grid gap-3 pt-8">
+            <div className="mt-auto grid gap-3 pt-7">
               <a
                 href={`/preview/template/${active.id}`}
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => trackPublicEvent({ eventType: "template_preview_opened", label: active.name, target: `/preview/template/${active.id}` })}
-                className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-indigo-600"
+                className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#1741ed] px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-[#1035c2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1741ed] focus-visible:ring-offset-2"
               >
                 <Eye className="mr-2 h-4 w-4" /> Preview full website
               </a>
               <Link
                 to={`/generate-preview?template=${encodeURIComponent(active.id)}&industry=${encodeURIComponent(active.previewIndustry)}`}
                 onClick={() => trackPublicEvent({ eventType: "template_personalize_clicked", label: active.name, target: "/generate-preview", metadata: { templateId: active.id } })}
-                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-3 text-sm font-black text-indigo-700 transition hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-indigo-100"
+                className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[#c4d2ef] bg-[#eff4ff] px-5 py-3 text-center text-sm font-bold text-[#1741c9] transition hover:border-[#1741ed] hover:bg-[#e4edff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1741ed] focus-visible:ring-offset-2"
               >
                 <Sparkles className="mr-2 h-4 w-4" /> Personalise this template <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
@@ -215,16 +220,17 @@ export function FlagshipTemplateGallery() {
         </div>
       </motion.article>
 
+      <p className="text-sm leading-6 text-[#52617a]">These are illustrative website directions, not commissioned customer projects. Content, reviews, certifications and results must be supplied and approved for each real business.</p>
       <div className="grid gap-4 md:grid-cols-3">
         {[
           [MonitorSmartphone, "Designed as a system", "Desktop and mobile share one intentional hierarchy instead of shrinking a desktop mockup."],
           [Sparkles, "Motion with restraint", "Entrances and feedback support the enquiry path and respect reduced-motion preferences."],
           [ArrowRight, "Built around the next action", "Each family changes its structure around appointment, quotation, consultation or booking intent."],
         ].map(([Icon, title, copy]: any) => (
-          <div key={title} className="rounded-3xl border border-slate-200 bg-white p-6">
+          <div key={title} className="rounded-xl border border-[#dbe1ea] bg-white p-5 sm:p-6">
             <Icon className="h-5 w-5 text-indigo-600" />
-            <p className="mt-5 font-black text-slate-950">{title}</p>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{copy}</p>
+            <p className="mt-4 font-bold text-slate-950">{title}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{copy}</p>
           </div>
         ))}
       </div>

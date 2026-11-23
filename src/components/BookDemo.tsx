@@ -272,30 +272,31 @@ export default function BookDemo() {
       <main>
         <section className="relative overflow-hidden border-b border-[#dfe3e8] bg-[#f8f8f5] text-[#15191f]">
           <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#1741ed]/10 blur-3xl" />
-          <div className="brand-shell relative grid min-w-0 gap-12 py-16 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:py-24">
+          <div className="brand-shell relative grid min-w-0 gap-10 py-14 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)] lg:items-start lg:gap-14 lg:py-20">
             <div className="min-w-0">
               
-              <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.03] tracking-tight text-[#15191f] sm:text-5xl">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1741ed]">Start with a conversation · Bennie Studio</p>
+               <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.08] tracking-tight text-[#15191f] sm:text-5xl">
                 {isGrowthPartner ? "Plan the next stage of your website growth." : "Let’s discuss the website your business needs."}
               </h1>
               <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-[#526071]">
                 {isGrowthPartner ? "Bring your current website, traffic sources, enquiry baseline and growth priorities. We’ll scope conversion work, landing pages, local SEO expansion, experiments, implementation priorities and commercial fit." : "Tell us a little about your business and website needs. We’ll discuss the scope, what we can manage for you, and the costs before you decide. No payment and no account are required to enquire."}
               </p>
-              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              <div className="mt-8 grid gap-3 sm:grid-cols-2" aria-label="What to expect from the conversation">
                 {[
                   "A practical review of the current enquiry journey",
                   "A recommended website and offer direction",
                   "A clear scope, timeline and commercial fit",
                   "No invented forecasts or pressure tactics",
                 ].map((item) => (
-                  <div key={item} className="flex gap-3 rounded-lg border border-[#d6dce5] bg-white p-4 text-sm font-bold text-[#263344]">
+                  <div key={item} className="flex gap-3 rounded-xl border border-[#d6dce5] bg-white/80 p-4 text-sm font-semibold leading-6 text-[#263344]">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#1741ed]" /> {item}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="min-w-0 rounded-2xl border border-[#E2E8F0] bg-white p-8 text-[#0F172A] shadow-sm sm:p-10">
+            <div className="min-w-0 rounded-2xl border border-[#D8E0EB] bg-white p-6 text-[#0F172A] shadow-[0_20px_65px_-44px_rgba(15,23,42,0.48)] sm:p-9">
               {submitted ? (
                 <div className="py-10 text-center">
                   <div className="mx-auto grid h-16 w-16 place-items-center rounded-lg bg-emerald-50 text-emerald-700"><CheckCircle2 className="h-8 w-8" /></div>
@@ -311,7 +312,7 @@ export default function BookDemo() {
                   {bookingConfirmed && manageUrl && <Button variant="ghost" onClick={() => navigate(new URL(manageUrl, window.location.origin).pathname)} className="mt-3 min-h-11 rounded-xl text-blue-700 hover:bg-blue-50">Reschedule or cancel</Button>}
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="min-w-0 space-y-5">
+                <form onSubmit={handleSubmit} className="min-w-0 space-y-5" aria-label="Website consultation enquiry">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-700">A quick enquiry · No account required</p>
                     <h2 className="mt-2 text-2xl font-bold text-[#0F172A]">{isGrowthPartner ? "Tell us how to contact you." : "Tell us where to reach you."}</h2>
@@ -341,14 +342,14 @@ export default function BookDemo() {
                           {slots.map((slot) => <option key={slot} value={slot}>{new Date(slot).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</option>)}
                         </select>
                         {slots.length === 0 && <p className="mt-2 text-xs leading-5 text-[#475569]">You can still ask for a personal follow-up. No call time is reserved.</p>}
-                        {availabilityError && <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold text-amber-200"><span>{availabilityError}</span><button type="button" onClick={loadAvailability} className="rounded-lg border border-[#E2E8F0] px-3 py-1.5 font-bold text-blue-700 hover:bg-blue-50">Retry</button></div>}
+                        {availabilityError && <div role="status" className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900"><span>{availabilityError}</span><button type="button" onClick={loadAvailability} className="rounded-lg border border-[#E2E8F0] px-3 py-1.5 font-bold text-blue-700 hover:bg-blue-50">Retry</button></div>}
                       </Field>
                     </div>
                   </details>
                   <Button type="submit" disabled={loading} className="h-auto min-h-13 w-full whitespace-normal rounded-lg bg-[#1D4ED8] px-6 py-3 text-center font-bold text-white shadow-sm hover:bg-[#2563EB]">
                     {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving your request</> : <>{!form.selectedSlot ? "Request a personal follow-up" : isGrowthPartner ? "Confirm Growth Consultation" : "Confirm Website Review"} <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>
-                  <p className="text-center text-xs font-semibold leading-5 text-[#475569]">{form.selectedSlot ? "A time is reserved only after the calendar confirms it. If confirmation fails, we keep your enquiry for follow-up." : "No slot is booked. We will contact you about your request."}</p>
+                  <p className="text-center text-xs font-medium leading-5 text-[#475569]">{form.selectedSlot ? "A time is reserved only after the calendar confirms it. If confirmation fails, we keep your enquiry for follow-up." : "No slot is booked. We will contact you about your request."}</p>
                 </form>
               )}
             </div>

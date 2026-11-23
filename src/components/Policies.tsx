@@ -138,7 +138,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
 
   if (loading) {
     return (
-      <div className="brand-public min-h-screen flex items-center justify-center bg-[#f6f7fb]">
+      <div role="status" aria-label="Loading legal document" className="brand-public min-h-screen flex items-center justify-center bg-[#f8f8f5]">
         <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
       </div>
     );
@@ -146,7 +146,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
 
   if (error || !policy) {
     return (
-      <div className="brand-public min-h-screen flex flex-col items-center justify-center bg-[#f6f7fb] p-4 text-center">
+      <div className="brand-public min-h-screen flex flex-col items-center justify-center bg-[#f8f8f5] p-4 text-center">
         <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
         <h2 className="text-2xl font-bold text-slate-900 mb-2">
           Policy Not Found
@@ -160,19 +160,19 @@ export function PolicyPage({ type }: PolicyPageProps) {
   }
 
   return (
-    <div className="brand-public min-h-screen bg-[#f6f7fb] text-[#141821]">
+    <div className="brand-public min-h-screen bg-[#f8f8f5] text-[#141821]">
       <Helmet>
         <title>{policy.title} | Bennie Studio</title>
         <meta name="description" content={`${policy.title} for Bennie Studio managed website customers and visitors.`} />
         <link rel="canonical" href={`${window.location.origin}${window.location.pathname}`} />
       </Helmet>
       <PublicSiteHeader />
-      <main>
-        <section className="brand-grid-bg border-b border-white/10 bg-[#0b1020] text-white">
+      <main id="main-content">
+        <section className="border-b border-[#dbe1ea] bg-[#f8f8f5] text-[#15191f]">
           <div className="brand-shell py-14 sm:py-20">
-            <p className="brand-kicker !text-[#b9b1ff]">Legal & policy</p>
-            <h1 className="mt-4 !text-white">{policy.title}</h1>
-            <p className="brand-copy brand-muted-on-dark mt-5">This document explains the terms, data handling or platform rules that apply to Bennie Studio visitors and managed website customers.</p>
+            <p className="brand-kicker !text-[#1741ed]">Legal & policy</p>
+            <h1 className="mt-4 !text-[#15191f]">{policy.title}</h1>
+            <p className="brand-copy mt-5 !text-[#526071]">This document explains the terms, data handling or platform rules that apply to Bennie Studio visitors and managed website customers.</p>
           </div>
         </section>
         <section className="brand-shell py-12 sm:py-16">
@@ -181,7 +181,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
               <div className="sticky top-28">
                 <p className="text-sm font-semibold">On this page</p>
                 <nav className="mt-4 space-y-2">
-                  {policyHeadings.map((heading) => <a key={heading} href={"#" + headingId(heading)} className="block text-sm text-[#707b8a] hover:text-[#5746e8]">{heading}</a>)}
+                  {policyHeadings.map((heading) => <a key={heading} href={"#" + headingId(heading)} className="block text-sm leading-6 text-[#526071] hover:text-[#1741ed] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1741ed]">{heading}</a>)}
                 </nav>
               </div>
             </aside>
@@ -204,7 +204,7 @@ export function PolicyPage({ type }: PolicyPageProps) {
                   <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">The plan/market term shown on the accepted order or proposal governs that specific order if it differs from the current catalogue.</p>
                 </div>
               ) : null}
-              <div className="legal-document prose prose-slate max-w-none">
+              <div className="legal-document prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-[#1741ed] prose-a:underline">
                 <ReactMarkdown components={{
                   h2: ({children}) => {
                     const text = React.Children.toArray(children).join("");
