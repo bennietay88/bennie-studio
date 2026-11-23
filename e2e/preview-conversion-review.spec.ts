@@ -46,7 +46,7 @@ test("public site distinguishes studio examples from commissioned client work", 
   } else {
     await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: /Website Examples/i })).toBeVisible();
   }
-  await expect(page.getByText(/not client commissions or measured commercial results/i)).toBeVisible();
+  await expect(page.getByText(/not commissioned client projects or measured client outcomes/i)).toBeVisible();
 });
 
 test("homepage newsletter collects explicit consent separately from a free preview", async ({ page }) => {
@@ -56,15 +56,18 @@ test("homepage newsletter collects explicit consent separately from a free previ
     await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ success: true, leadId: "consent-test" }) });
   });
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  const form = page.getByRole("form", { name: /Subscribe to Bennie Studio website tips/i });
+  await expect(page.locator("main").getByRole("form", { name: /website tips/i })).toHaveCount(0);
+  const footer = page.locator("footer").last();
+  await footer.getByText(/Website improvement tips/i).first().click();
+  const form = footer.getByRole("form", { name: "Website tips email signup" });
+  await expect(form).toBeVisible();
   await expect(form.getByRole("checkbox")).not.toBeChecked();
-  await form.getByLabel("Work email").fill("visitor@example.com");
-  await form.getByLabel("Country where you receive email").selectOption("MY");
+  await form.getByLabel("Email address").fill("visitor@example.com");
+  await form.getByLabel("Country").selectOption("MY");
   await form.getByLabel("Subscribing as").selectOption("business");
   await form.getByRole("checkbox").check();
-  await form.getByRole("button", { name: /Get website tips/i }).click();
-  await expect(form.getByRole("status")).toHaveCount(0);
-  await expect(page.getByRole("status").getByText(/subscription has been recorded/i)).toBeVisible();
+  await form.getByRole("button", { name: /Send me the checklist/i }).click();
+  await expect(footer.getByRole("status").getByText(/subscription recorded/i)).toBeVisible();
   expect(submitted).toMatchObject({
     email: "visitor@example.com",
     leadType: "newsletter_opt_in",
