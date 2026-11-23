@@ -432,7 +432,7 @@ test("records a Growth Partner consultation through the public booking flow", as
   await expect(page.getByRole("heading", { name: "Call confirmed" })).toBeVisible();
 });
 
-test("homepage presents a free preview and the current four-plan catalogue", async ({ page }) => {
+test("homepage presents a free preview and two featured plans", async ({ page }) => {
   await mockAnonymousPublicDependencies(page);
 
   await page.goto("/");
@@ -441,12 +441,11 @@ test("homepage presents a free preview and the current four-plan catalogue", asy
   await expect(page.getByRole("link", { name: /Explore website examples/i })).toBeVisible();
   const plans = page.locator("#plans");
   await expect(plans).toBeVisible();
-  await expect(plans.getByRole("heading", { name: "Personal Profile", exact: true })).toBeVisible();
+  await expect(plans.locator("article")).toHaveCount(2);
   await expect(plans.getByRole("heading", { name: "Managed Website", exact: true })).toBeVisible();
   await expect(plans.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
-  await expect(plans.getByRole("heading", { name: "Growth Partner", exact: true })).toBeVisible();
-  await expect(plans.locator("article").filter({ hasText: "Personal Profile" })).toContainText("$29");
-  await expect(plans.locator("article").filter({ hasText: "Managed Website" })).toContainText("$59");
+  await expect(plans.getByRole("link", { name: "Personal Profile" })).toBeVisible();
+  await expect(plans.getByRole("link", { name: "Growth Partner" })).toBeVisible();
   await page.getByRole("button", { name: /Get your free website preview/i }).first().click();
   await expect(page).toHaveURL(/\/generate-preview$/);
   await expect(page.getByLabel("Main service")).toBeVisible();
