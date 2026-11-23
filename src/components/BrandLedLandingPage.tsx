@@ -135,7 +135,7 @@ export default function BrandLedLandingPage() {
   const showCookieBanner = platformSettings?.salesCookieBannerEnabled !== false && (!consent || manageCookies);
 
   return (
-    <div className="brand-public min-h-screen overflow-x-hidden bg-[#f6f7fb] text-[#10131c]">
+    <div className={"brand-public min-h-screen overflow-x-hidden bg-[#f6f7fb] text-[#10131c]" + (showCookieBanner ? " c27-cookie-present" : "")}>
       <Helmet>
         <title>{pageCms?.seoTitle || "Professional Websites for Service Businesses | Bennie Studio"}</title>
         <meta name="description" content={pageCms?.seoDescription || "Professional websites for service businesses, designed for clearer enquiries. Get a free preview before choosing managed design, hosting and website support."} />
@@ -295,15 +295,15 @@ export default function BrandLedLandingPage() {
       />
 
       {showCookieBanner ? (
-        <div className="fixed inset-x-4 bottom-4 z-[120] mx-auto max-w-4xl border border-white/10 bg-[#0c1224] p-5 text-white shadow-2xl">
+        <div className="c27-cookie-notice fixed inset-x-4 bottom-4 z-[120] mx-auto max-w-4xl border border-white/10 bg-[#0c1224] p-5 text-white shadow-2xl">
           <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
             <div>
               <p className="text-sm font-semibold">Cookie preferences</p>
-              <p className="mt-1 max-w-2xl text-xs font-medium leading-5 text-white/75">Necessary cookies keep the site working. Analytics and marketing cookies are optional and only load after consent.</p>
+              <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-white/85">Necessary cookies keep the site working. Analytics and marketing cookies are optional and only load after consent.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button onClick={() => saveConsent(false, false)} className="border border-white/20 px-4 py-2 text-xs font-black">Necessary only</button>
-              <button onClick={() => saveConsent(true, true)} className="bg-white px-4 py-2 text-xs font-black text-[#10131c]">Accept all</button>
+              <button onClick={() => saveConsent(false, false)} className="border border-white/40 px-4 py-2 text-sm font-bold">Necessary only</button>
+              <button onClick={() => saveConsent(true, true)} className="bg-white px-4 py-2 text-sm font-bold text-[#10131c]">Accept all</button>
             </div>
           </div>
         </div>
