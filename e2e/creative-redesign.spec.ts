@@ -13,8 +13,8 @@ test.describe("Bennie Studio expressive public redesign", () => {
     await stage.getByRole("button", { name: "Next design" }).click();
     await expect(stage.getByRole("tabpanel")).toHaveAttribute("aria-label", /PROFESSIONAL/);
     await expect(stage.getByRole("link", { name: /Explore design decisions/i })).toHaveAttribute("href", /professional-advisory/);
-    await expect(page.getByRole("heading", { name: /Different visual worlds/i })).toBeVisible();
-    await expect(page.locator(".sfn-work-card")).toHaveCount(6);
+    await expect(page.getByRole("heading", { name: /Different businesses/i })).toBeVisible();
+    await expect(page.locator(".sfn-work-card")).toHaveCount(3);
   });
 
   for (const width of [390, 1024, 1440]) {
