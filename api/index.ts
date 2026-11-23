@@ -139,19 +139,6 @@ const redis =
       })
     : null;
 
-if (!redis) {
-  structuredLog("warn", "redis_rate_limit_unavailable", {
-    message: "UPSTASH_REDIS_REST_URL/TOKEN not set; using in-memory rate limits.",
-  });
-}
-
-const abuseProtection = new SharedAbuseProtection({
-  redis,
-  requireShared: process.env.ABUSE_REQUIRE_SHARED_REDIS === "true",
-  hashSecret: process.env.ABUSE_RATE_LIMIT_HASH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "",
-  warn: (message, context) => structuredLog("warn", message, context),
-});
-
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Admin client for server-side operations that should bypass RLS
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -159,6 +146,42 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
     autoRefreshToken: false,
     persistSession: false,
   },
+});
+
+/**
+ * Production-safe shared limiter: prefer Upstash when available, otherwise
+ * use the existing Supabase Postgres RPC with an atomic UPSERT.
+ * No additional infrastructure account is required for the PostgreSQL path.
+ */
+const postgresRateLimiter = serverSupabaseEnvironment.configured ? {
+  async eval(_script: string, keys: string[], args: (string | number)[]): Promise<unknown> {
+    const { data, error } = await supabaseAdmin.rpc("bs_consume_abuse_quota", {
+      p_key: keys[0],
+      p_max: Number(args[0]),
+      p_window_ms: Number(args[1]),
+    });
+    if (error) {
+      structuredLog("error", "postgres_abuse_counter_unavailable", { code: String(error.code || "rpc_failure") });
+      throw new Error("Shared rate limiter database RPC unavailable");
+    }
+    return data;
+  },
+} : null;
+const rateLimitStore = redis || postgresRateLimiter;
+if (!rateLimitStore) {
+  structuredLog("warn", "shared_rate_limit_store_unconfigured", {
+    message: "No Redis or PostgreSQL shared abuse counter is configured.",
+  });
+} else {
+  structuredLog("info", "shared_rate_limit_backend_selected", { backend: redis ? "redis" : "postgres" });
+}
+const abuseProtection = new SharedAbuseProtection({
+  redis: rateLimitStore,
+  requireShared: process.env.ABUSE_REQUIRE_SHARED_REDIS === "true" ||
+    process.env.ABUSE_REQUIRE_SHARED_STORE === "true" ||
+    process.env.VERCEL_ENV === "production",
+  hashSecret: process.env.ABUSE_RATE_LIMIT_HASH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+  warn: (message, context) => structuredLog("warn", message, context),
 });
 
 let platformSettings: any = null;
