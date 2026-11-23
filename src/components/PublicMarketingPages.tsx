@@ -191,17 +191,17 @@ const secondaryCtaClass =
 const industrySalesStarts = [
   {
     industry: "Dental and clinics",
-    path: "/templates",
+    path: "/clinic-website-design",
     promise: "Appointment-ready pages with treatment sections, location trust, FAQ, and WhatsApp or booking CTAs.",
   },
   {
     industry: "Local services",
-    path: "/templates",
+    path: "/local-service-website-design",
     promise: "Quote-request websites for cleaning, pest control, contractors, home repair, and emergency services.",
   },
   {
     industry: "Consultants and coaches",
-    path: "/templates",
+    path: "/consultant-website-design",
     promise: "Authority-led pages with services, proof, book-a-call flow, and professional positioning.",
   },
   {
@@ -216,7 +216,7 @@ const industrySalesStarts = [
   },
   {
     industry: "Professional services",
-    path: "/templates",
+    path: "/professional-services-website-design",
     promise: "Trust-first structures for law, accounting, insurance, IT support, recruitment, and B2B services.",
   },
 ];
@@ -244,9 +244,13 @@ const nichePages: Record<
     cta: string;
     leadCapture: string;
     sections: string[];
+    templateId: string;
+    previewIndustry: string;
   }
 > = {
   "dental-clinics": {
+    templateId: "dental-clinic-v1",
+    previewIndustry: "clinic",
     label: "Dental clinic lead websites",
     title: "Dental Websites Built for Patient Enquiries",
     subtitle:
@@ -259,6 +263,8 @@ const nichePages: Record<
     sections: ["Appointment-focused hero", "Treatment pages", "Dentist and clinic trust", "Patient reviews", "Treatment FAQs", "Location and map", "WhatsApp and appointment CTAs"],
   },
   "clinic-website-design": {
+    templateId: "aesthetic-clinic-v1",
+    previewIndustry: "clinic",
     label: "Clinic lead websites",
     title: "Clinic Websites Built for Patient Enquiries",
     subtitle:
@@ -271,6 +277,8 @@ const nichePages: Record<
     sections: ["Hero with appointment CTA", "Treatment categories", "Practitioner trust", "Patient FAQs", "Reviews/proof", "Location/map", "Appointment form"],
   },
   "renovation-contractor-website-design": {
+    templateId: "renovation-contractor-v1",
+    previewIndustry: "contractor",
     label: "Contractor quote websites",
     title: "Renovation Websites Built for Quote Requests",
     subtitle:
@@ -283,6 +291,8 @@ const nichePages: Record<
     sections: ["Hero with quote CTA", "Service categories", "Project gallery", "Before/after proof", "Process", "Service areas", "Quote form"],
   },
   "beauty-salon-website-design": {
+    templateId: "salon-spa-v1",
+    previewIndustry: "beauty",
     label: "Salon booking websites",
     title: "Salon Websites Built for Bookings",
     subtitle:
@@ -295,6 +305,8 @@ const nichePages: Record<
     sections: ["Premium hero", "Treatment menu", "Packages/pricing preview", "Gallery", "Reviews", "FAQ", "Booking CTA"],
   },
   "tuition-centre-website-design": {
+    templateId: "tuition-centre-v1",
+    previewIndustry: "education",
     label: "Tuition enquiry websites",
     title: "Tuition Websites Built for Parent Enquiries",
     subtitle:
@@ -307,6 +319,8 @@ const nichePages: Record<
     sections: ["Hero with trial class CTA", "Programme cards", "Age/level selector", "Teacher trust", "Results/outcomes", "FAQs", "Trial class form"],
   },
   "consultant-website-design": {
+    templateId: "corporate-v1",
+    previewIndustry: "consultant",
     label: "Consultant authority websites",
     title: "Consultant Websites Built to Win Calls",
     subtitle:
@@ -319,6 +333,8 @@ const nichePages: Record<
     sections: ["Authority hero", "Problem/solution", "Services/programmes", "Proof/case studies", "Process", "FAQ", "Book-call CTA"],
   },
   "professional-services-website-design": {
+    templateId: "law-firm-v1",
+    previewIndustry: "consultant",
     label: "Professional services websites",
     title: "Professional Websites Built for Qualified Enquiries",
     subtitle:
@@ -331,6 +347,8 @@ const nichePages: Record<
     sections: ["Positioning-led hero", "Service architecture", "Expertise and credentials", "Who we help", "Case-study proof", "FAQ", "Consultation CTA"],
   },
   "accounting-firm-website-design": {
+    templateId: "accounting-firm-v1",
+    previewIndustry: "accounting",
     label: "Accounting and finance websites",
     title: "Accounting Websites Built for Better Enquiries",
     subtitle:
@@ -343,6 +361,8 @@ const nichePages: Record<
     sections: ["Professional hero", "Who we help", "Service scope", "Credentials", "Process", "FAQ", "Consultation CTA"],
   },
   "local-service-website-design": {
+    templateId: "service-pro-v1",
+    previewIndustry: "local-service",
     label: "Local service lead websites",
     title: "Local Service Websites Built for Quote Requests",
     subtitle:
@@ -442,10 +462,11 @@ function Hero({
   primaryLabel = "Get my free website preview",
   primaryHref = "/generate-preview",
   secondaryLabel, secondaryHref, imageSrc = "",
-  variant = "default",
+  variant = "default", templateIdOverride, templateNameOverride,
 }: {
   title:string;copy:string;icon:React.ElementType;primaryLabel?:string;primaryHref?:string;
   secondaryLabel?:string;secondaryHref?:string;imageSrc?:string;variant?:"default"|"audit";
+  templateIdOverride?:string;templateNameOverride?:string;
 }) {
   const lower = (title+" "+imageSrc).toLowerCase();
   const isAuditPage=variant==="audit";
@@ -455,8 +476,8 @@ function Hero({
   const isBeauty=/beauty|salon|wellness/.test(lower);
   const isAccounting=/account|finance|tax/.test(lower);
   const isTemplate=/direction|template/.test(lower);
-  const templateId=isClinic?"dental-clinic-v1":isHome?"renovation-contractor-v1":isEducation?"tuition-centre-v1":isBeauty?"salon-spa-v1":isAccounting?"accounting-firm-v1":"law-firm-v1";
-  const label=isClinic?"Clinic website":isHome?"Home-service website":isEducation?"Tuition centre":isBeauty?"Beauty studio":isAccounting?"Accounting firm":"Professional services";
+  const templateId=templateIdOverride || (isClinic?"dental-clinic-v1":isHome?"renovation-contractor-v1":isEducation?"tuition-centre-v1":isBeauty?"salon-spa-v1":isAccounting?"accounting-firm-v1":"law-firm-v1");
+  const label=templateNameOverride || (isClinic?"Clinic website":isHome?"Home-service website":isEducation?"Tuition centre":isBeauty?"Beauty studio":isAccounting?"Accounting firm":"Professional services");
   const promise=isClinic?"Appointments":isHome?"Quotes":isEducation?"Trial classes":isBeauty?"Bookings":isAccounting?"Consultations":"Enquiries";
   const track=()=>trackPublicEvent({eventType:isAuditPage?"website_audit_cta_clicked":"public_section_cta_clicked",label:primaryLabel,target:primaryHref});
   const content=<>{primaryLabel} <ArrowRight className="ml-2 h-4 w-4"/></>;
@@ -2924,55 +2945,86 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
 }
 
 function NicheLandingPage({ page, cmsPage }: { page: (typeof nichePages)[keyof typeof nichePages]; cmsPage?: PlatformCmsPage }) {
+  const previewHref = `/generate-preview?industry=${encodeURIComponent(page.previewIndustry)}&template=${encodeURIComponent(page.templateId)}`;
+
   return (
     <>
-      <Hero title={cmsPage?.heroTitle || page.title} copy={cmsPage?.heroDescription || page.subtitle} icon={FileSearch} primaryLabel={cmsPage?.primaryCtaLabel || "Get my free website preview"} primaryHref={cmsPage?.primaryCtaHref || "/generate-preview"} />
-      <section className="brand-shell brand-section">
-        <div className="grid gap-12 lg:grid-cols-12">
-          <div className="lg:col-span-5">
-            
-            <h2 className="mt-4">{page.positioning}</h2>
-            <p className="brand-copy mt-6">{page.promise}</p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link to="/generate-preview" className={primaryCtaClass}>Get a free website preview <ArrowRight className="ml-2 h-4 w-4" /></Link>
-              <Link to="/case-studies" className={secondaryCtaClass}>View examples</Link>
+      <Hero
+        title={cmsPage?.heroTitle || page.title}
+        copy={cmsPage?.heroDescription || page.subtitle}
+        icon={FileSearch}
+        primaryLabel={cmsPage?.primaryCtaLabel || "See a free website direction"}
+        primaryHref={cmsPage?.primaryCtaHref || previewHref}
+        secondaryLabel="Browse website examples"
+        secondaryHref="/case-studies"
+        templateIdOverride={page.templateId}
+        templateNameOverride={page.label}
+      />
+      <section className="brand-shell py-14 sm:py-20" aria-labelledby="niche-buyer-title">
+        <div className="grid min-w-0 gap-8 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] lg:gap-14">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1741ed]">01 · Understand the buyer</p>
+            <h2 id="niche-buyer-title" className="mt-4 max-w-lg text-3xl font-bold leading-tight tracking-tight text-[#15191f] sm:text-4xl">
+              What visitors need to know before they enquire.
+            </h2>
+          </div>
+          <div className="min-w-0">
+            <p className="text-lg leading-8 text-[#25364b]">{page.pain}</p>
+            <p className="mt-5 text-base leading-8 text-[#526071]">{page.promise}</p>
+            <div className="mt-8 grid gap-3 border-t border-[#dbe1ea] pt-6 sm:grid-cols-3">
+              {[
+                ["Clarity", "Explain the offer and the fit."],
+                ["Evidence", "Show genuine work and credentials."],
+                ["Next step", "Make the enquiry route obvious."],
+              ].map(([label, detail], index) => (
+                <div key={label} className="border-l-2 border-[#1741ed] pl-4">
+                  <span className="text-xs font-bold text-[#1741ed]">0{index + 1}</span>
+                  <h3 className="mt-2 text-base font-bold text-[#15191f]">{label}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[#526071]">{detail}</p>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="lg:col-span-7">
-            <div className="mb-6 overflow-hidden rounded-[1rem] border border-[#dfe2ea] bg-[#0b1020] p-5 sm:p-6">
-              <div className="grid gap-4 sm:grid-cols-[1.1fr_.9fr]">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#b9b1ff]">Buyer journey</p>
-                  <h3 className="mt-3 !text-white">The structure follows the buying decision, not a fixed page recipe.</h3>
-                  <p className="mt-3 text-sm leading-6 !text-white/60">{page.pain}</p>
-                </div>
-                <div className="grid gap-2">
-                  {["Offer clarity", "Relevant proof", "Clear next action"].map((item, index) => (
-                    <div key={item} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3">
-                      <span className="text-xs font-semibold !text-white/70">0{index + 1}</span>
-                      <span className="text-sm font-semibold !text-white">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="brand-rule-list">
-              <div className="brand-rule-row">
-                <strong>Main buyer concern</strong>
-                <span className="text-[#5f6673]">{page.pain}</span>
-              </div>
-              <div className="brand-rule-row">
-                <strong>Lead capture</strong>
-                <span className="text-[#5f6673]">{page.leadCapture}</span>
-              </div>
-              <div className="brand-rule-row">
-                <strong>Recommended sections</strong>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {page.sections.map((section) => <span key={section} className="flex items-start gap-2 text-sm text-[#5f6673]"><Check className="mt-1 h-4 w-4 shrink-0 text-[#5b4bff]" />{section}</span>)}
-                </div>
-              </div>
-            </div>
+        </div>
+      </section>
+      <section className="border-y border-[#dbe1ea] bg-white py-14 sm:py-20" aria-labelledby="niche-structure-title">
+        <div className="brand-shell grid min-w-0 gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:gap-14">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1741ed]">02 · Plan the structure</p>
+            <h2 id="niche-structure-title" className="mt-4 text-3xl font-bold leading-tight tracking-tight text-[#15191f] sm:text-4xl">
+              A site built for the decision, not a generic template.
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[#526071]">{page.positioning} These are suggested sections to tailor to your actual services and content.</p>
+            <ol className="mt-7 grid min-w-0 gap-0 border-t border-[#dbe1ea] sm:grid-cols-2 sm:gap-x-8">
+              {page.sections.map((section, index) => (
+                <li key={section} className="flex min-w-0 items-start gap-4 border-b border-[#dbe1ea] py-4">
+                  <span className="shrink-0 text-sm font-bold text-[#1741ed]">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="text-sm font-semibold leading-6 text-[#25364b]">{section}</span>
+                </li>
+              ))}
+            </ol>
           </div>
+          <aside className="min-w-0 self-start rounded-2xl border border-[#dbe1ea] bg-[#f4f7fc] p-6 sm:p-8">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1741ed]">03 · Make contacting easy</p>
+            <h3 className="mt-4 text-2xl font-bold leading-tight text-[#15191f]">The enquiry path</h3>
+            <p className="mt-4 text-base leading-7 text-[#526071]">{page.leadCapture}</p>
+            <div className="mt-6 border-t border-[#dbe1ea] pt-6">
+              <h4 className="text-sm font-bold text-[#15191f]">Real proof, not placeholders</h4>
+              <p className="mt-2 text-sm leading-7 text-[#526071]">Photos, testimonials, credentials and results appear only when the business can provide and approve the evidence. This design is an illustrative starting point.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+      <section className="brand-shell py-14 sm:py-20" aria-labelledby="niche-next-step-title">
+        <div className="grid min-w-0 gap-7 rounded-2xl bg-[#eef3ff] p-6 sm:p-9 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#1741ed]">See it for your business</p>
+            <h2 id="niche-next-step-title" className="mt-3 max-w-2xl text-2xl font-bold leading-tight text-[#15191f] sm:text-3xl">Review a tailored direction before you commit.</h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#526071]">Start with a short business brief. The preview is illustrative; plans and delivery scope are explained separately.</p>
+          </div>
+          <Link to={previewHref} onClick={() => trackPublicEvent({ eventType: "niche_preview_clicked", label: page.label, target: previewHref })} className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#1741ed] px-6 py-3 text-center text-sm font-bold text-white transition hover:bg-[#1035c2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1741ed] focus-visible:ring-offset-2">
+            See my free website preview <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
         </div>
       </section>
     </>
@@ -3056,7 +3108,7 @@ export default function PublicMarketingPages() {
         ? pageContent
         : <main id="main-content">{pageContent}</main>}
       {!pageCms?.replacePageContent && <PlatformCmsSections path={cmsPagePath} />}
-      {!["pricing","services","resources","contact","generate-preview","templates","website-audit"].includes(pageKind) && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
+      {!nichePage && !["pricing","services","resources","contact","generate-preview","templates","website-audit"].includes(pageKind) && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="brand-shell relative grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
           <div>
