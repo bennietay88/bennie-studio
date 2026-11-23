@@ -79,7 +79,7 @@ test("allowlisted sensitive prefixes separate newsletter, checkout and ordinary 
     "preview-intake-lead-v3", "public-plan-checkout", "preview-checkout-email",
     "public-funnel-submit", "call-bookings", "seo-audit", "public-proposal-accept",
   ]) assert.equal(isSensitiveRateLimit(prefix), true, prefix);
-  for (const prefix of ["public-pricing", "public-studio-showcases", "admin-leads"]) {
+  for (const prefix of ["public-pricing", "public-studio-showcases", "admin-leads", "preview-checkout-status", "public-funnel-checkout-status"]) {
     assert.equal(isSensitiveRateLimit(prefix), false, prefix);
   }
 });
