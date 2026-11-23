@@ -50,33 +50,11 @@ test("public site distinguishes studio examples from commissioned client work", 
   await expect(page.getByText(/not commissioned client projects or measured client outcomes/i)).toBeVisible();
 });
 
-test("homepage newsletter collects explicit consent separately from a free preview", async ({ page }) => {
-  let submitted: Record<string, unknown> | null = null;
-  await page.route("**/api/platform-leads", async (route) => {
-    submitted = route.request().postDataJSON();
-    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ success: true, leadId: "consent-test" }) });
-  });
+test("homepage does not display the newsletter signup while free preview remains available", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.locator("main").getByRole("form", { name: /website tips/i })).toHaveCount(0);
-  const footer = page.locator("footer").last();
-  await footer.getByText(/Website improvement tips/i).first().click();
-  const form = footer.getByRole("form", { name: "Website tips email signup" });
-  await expect(form).toBeVisible();
-  await expect(form.getByRole("checkbox")).not.toBeChecked();
-  await form.getByLabel("Email address").fill("visitor@example.com");
-  await form.getByLabel("Country").selectOption("MY");
-  await form.getByLabel("Subscribing as").selectOption("business");
-  await form.getByRole("checkbox").check();
-  await form.getByRole("button", { name: /Send me the checklist/i }).click();
-  await expect(footer.getByRole("status").getByText(/subscription recorded/i)).toBeVisible();
-  expect(submitted).toMatchObject({
-    email: "visitor@example.com",
-    leadType: "newsletter_opt_in",
-    marketingConsent: true,
-    country: "MY",
-    recipientType: "business",
-    sourcePage: "/",
-  });
+  await expect(page.locator(".c26-footer-newsletter")).toHaveCount(0);
+  await expect(page.getByRole("form", { name: "Website tips email signup" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Get your free website preview/i }).first()).toBeVisible();
 });
 
 test("pricing illustration accurately represents four plans and USD billing", async ({ page }) => {
