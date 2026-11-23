@@ -155,21 +155,21 @@ export default function AffiliateJoinPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-slate-50 px-6 py-16">
+    <div className="brand-public flex min-h-screen flex-col items-center bg-[#f8f8f5] px-5 py-14 text-[#15191f] sm:py-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="grid w-full max-w-5xl grid-cols-1 items-center gap-10 lg:grid-cols-2"
+        className="grid w-full max-w-6xl min-w-0 grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)] lg:gap-14"
       >
         <div className="space-y-8">
           <div className="space-y-4">
-            <Badge className="rounded-full bg-indigo-50 px-4 py-1 text-indigo-700 hover:bg-indigo-50">
+            <Badge className="rounded-lg bg-[#eef3ff] px-3 py-1.5 text-[#1741c9] hover:bg-[#eef3ff]">
               Bennie Studio Affiliate Program
             </Badge>
-            <h1 className="text-4xl font-black leading-tight tracking-tight text-slate-950 md:text-5xl">
+            <h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-[#15191f] md:text-5xl">
               Promote Our Website Subscription Platform and Earn Commission
             </h1>
-            <p className="text-base leading-relaxed text-slate-600 md:text-xl">
+            <p className="text-base leading-8 text-[#526071] md:text-lg">
               Join the affiliate program, share your referral link, and earn commission
               when businesses subscribe to our managed website plans.
             </p>
@@ -182,7 +182,7 @@ export default function AffiliateJoinPage() {
               [ShieldCheck, "Tracked journey", "Clicks, signups, paying customers, commissions, and payouts are tracked."],
             ].map(([Icon, title, description]: any) => (
               <div key={title} className="flex items-start gap-4">
-                <div className="rounded-xl bg-white p-3 shadow-sm">
+                <div className="rounded-lg border border-[#dbe1ea] bg-white p-3">
                   <Icon className="h-5 w-5 text-indigo-600" />
                 </div>
                 <div>
@@ -194,16 +194,16 @@ export default function AffiliateJoinPage() {
           </div>
         </div>
 
-        <Card className="overflow-hidden rounded-3xl border-none bg-white/90 shadow-2xl">
-          <CardHeader className="bg-slate-950 p-8 text-white">
+        <Card className="min-w-0 overflow-hidden rounded-2xl border border-[#dbe1ea] bg-white shadow-[0_22px_60px_-45px_rgba(15,23,42,.32)]">
+          <CardHeader className="bg-[#101c36] p-6 text-white sm:p-8">
             <CardTitle className="text-2xl">Apply to Become an Affiliate</CardTitle>
             <CardDescription className="text-slate-300">
               Applications are reviewed before commissions become active.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 p-8">
+          <CardContent className="space-y-6 p-6 sm:p-8">
             {!user ? (
-              <div className="flex flex-col items-center space-y-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-6 text-center">
+              <div className="flex flex-col items-center space-y-4 rounded-xl border border-[#dbe1ea] bg-[#eef3ff] p-6 text-center">
                 <UserPlus className="h-10 w-10 text-indigo-600" />
                 <div>
                   <h4 className="font-bold text-slate-900">Account Required</h4>
@@ -212,7 +212,7 @@ export default function AffiliateJoinPage() {
                   </p>
                 </div>
                 <Button
-                  className="h-12 w-full rounded-full bg-indigo-600 hover:bg-indigo-700"
+                  className="min-h-12 w-full rounded-lg bg-[#1741ed] px-5 py-3 font-bold text-white hover:bg-[#1035c2]"
                   onClick={() => navigate("/affiliate/signup", { state: { redirectTo: window.location.pathname } })}
                 >
                   Login / Sign Up to Continue
@@ -262,7 +262,7 @@ export default function AffiliateJoinPage() {
 
                 <Button
                   type="submit"
-                  className="h-14 w-full rounded-2xl bg-indigo-600 text-base font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700"
+                  className="min-h-12 w-full rounded-lg bg-[#1741ed] px-6 py-3 text-base font-bold text-white hover:bg-[#1035c2]"
                   disabled={joining}
                 >
                   {joining ? "Submitting..." : "Apply to Join"}
@@ -271,7 +271,7 @@ export default function AffiliateJoinPage() {
               </form>
             )}
           </CardContent>
-          <CardFooter className="flex items-center justify-center border-t border-slate-100 bg-slate-50 p-6">
+          <CardFooter className="flex items-center justify-center border-t border-[#dbe1ea] bg-[#f8f8f5] p-6">
             <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
               <Globe className="h-3 w-3" />
               <span>Promote Bennie Studio managed website subscriptions</span>
