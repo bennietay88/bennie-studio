@@ -276,7 +276,7 @@ test("template selector remains usable on mobile", async ({ page }) => {
   const scroller = page.getByTestId("template-family-scroller");
   await expect(scroller).toBeVisible();
   const concepts = scroller.getByRole("button");
-  await expect(concepts).toHaveCount(6);
+  await expect(concepts).toHaveCount(9);
   await expect(concepts.first()).toBeInViewport();
   await expect(scroller.getByRole("button", { pressed: true })).toHaveCount(1);
   await concepts.nth(1).click();
