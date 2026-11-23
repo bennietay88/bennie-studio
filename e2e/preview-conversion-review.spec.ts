@@ -70,6 +70,10 @@ test("pricing visitors can request the checklist without purchasing a plan", asy
     await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ success: true, leadId: "test-opt-in" }) });
   });
   await page.goto("/pricing", { waitUntil: "domcontentloaded" });
+  const details = page.locator(".s31-pricing-optin-details");
+  await expect(details).toHaveCount(1);
+  await expect(details).not.toHaveAttribute("open");
+  await details.locator("summary").click();
   const form = page.getByRole("form", { name: "Website tips email signup" });
   await expect(form.getByRole("checkbox")).not.toBeChecked();
   await form.getByRole("button", { name: /Send me the checklist/i }).click();
