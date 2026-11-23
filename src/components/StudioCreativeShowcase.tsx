@@ -166,7 +166,7 @@ export function StudioSelectedWork({studies}:{studies:readonly StudioShowcase[]}
           return <article className={"sfn-work-card sfn-work-card-"+(index+1)} key={study.slug} style={{"--sfn-card-accent":study.colour} as React.CSSProperties}>
             <div className="sfn-work-card-top"><span>{String(index+1).padStart(2,"0")} / {study.category}</span><span>STUDIO CONCEPT ↗</span></div>
             <Link to={"/case-studies/showcase/"+study.slug} className="sfn-work-art" aria-label={"Explore "+study.title+" design concept"} onClick={()=>trackPublicEvent({eventType:"case_study_clicked",label:study.title,target:"/case-studies/showcase/"+study.slug})}>
-              <div className="sfn-work-art-inner"><StudioConceptCanvas slug={study.slug} compact /></div>
+              <div className="sfn-work-art-inner"><img className="sfn-work-thumb" src={conceptImages[study.slug]} alt="" loading="lazy" decoding="async" /></div>
               <span className="sfn-work-open"><ArrowUpRight size={23}/></span>
             </Link>
             <div className="sfn-work-card-foot"><div><span>{dir?.kind || "Industry design"}</span><h3>{study.title}</h3><p>{dir?.line || study.goal}</p></div><Link to={"/case-studies/showcase/"+study.slug} aria-label={"View "+study.title+" case study"}><ArrowRight size={24}/></Link></div>
