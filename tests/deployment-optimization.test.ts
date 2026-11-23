@@ -21,6 +21,7 @@ test("Vercel only builds authorized main and release-candidate branches", () => 
 });
 
 test("GitHub CI runs required checks for release, design, and Codex branches", () => {
+  assert.match(ci, /workflow_dispatch:/);
   assert.match(ci, /push:[\s\S]*?branches:[\s\S]*?- main[\s\S]*?- 'release-candidate\/\*\*'[\s\S]*?- 'design\/\*\*'[\s\S]*?- 'codex\/\*\*'/);
   assert.match(ci, /pull_request:/);
   assert.match(ci, /concurrency:[\s\S]*?cancel-in-progress:\s*true/);
