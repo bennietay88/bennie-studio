@@ -256,7 +256,7 @@ export default function OwnSalesSeoPage() {
   ];
 
   return (
-    <div className="brand-public min-h-screen overflow-x-hidden bg-[#f6f7fb] text-[#141821]">
+    <div className="brand-public min-h-screen overflow-x-hidden bg-[#f8f8f5] text-[#141821]">
       <Helmet>
         <title>{pageCms?.seoTitle || page.seoTitle}</title>
         <meta name="description" content={pageCms?.seoDescription || page.metaDescription} />
@@ -274,31 +274,31 @@ export default function OwnSalesSeoPage() {
 
       <PublicSiteHeader />
 
-      <main>
+      <main id="main-content">
         <section className="relative overflow-hidden border-b border-[#dfe3e8] bg-[#f8f8f5] text-[#15191f]">
-          <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#1741ed]/10 blur-3xl" />
-          <div className="brand-shell relative grid gap-12 py-16 lg:grid-cols-12 lg:items-center lg:py-24">
+          
+          <div className="brand-shell relative grid min-w-0 gap-10 py-14 sm:py-20 lg:grid-cols-12 lg:items-center lg:gap-14">
             <div className="lg:col-span-5">
               <nav className="mb-5 flex flex-wrap items-center gap-2 text-xs font-semibold !text-[#5e6b79]">
                 <Link to="/" className="hover:!text-[#1741ed]">Home</Link><span>/</span><span>{cmsHeading}</span>
               </nav>
               
-              <h1 className="mt-5 !max-w-[13ch] !text-[#15191f]">{cmsHeading}</h1>
+              <h1 className="mt-5 max-w-[16ch] !text-[#15191f]">{cmsHeading}</h1>
               <p className="brand-copy !text-[#526071] mt-6">{pageCms?.heroDescription || page.heroCopy}</p>
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Button onClick={() => navigate(pageCms?.primaryCtaHref || "/generate-preview")} className="min-h-12 bg-[#1741ed] px-6 font-semibold text-white hover:bg-[#0d2aaa]">
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button onClick={() => navigate(pageCms?.primaryCtaHref || "/generate-preview")} className="min-h-12 rounded-lg bg-[#1741ed] px-6 py-3 font-bold text-white hover:bg-[#1035c2]">
                   {pageCms?.primaryCtaLabel || page.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button variant="outline" onClick={() => navigate("/book-demo")} className="min-h-12 border-[#bfc7d3] bg-white px-6 font-semibold text-[#15191f] hover:bg-[#e6ebff] hover:text-[#1741ed]">
+                <Button variant="outline" onClick={() => navigate("/book-demo")} className="min-h-12 rounded-lg border-[#bfc7d3] bg-white px-6 py-3 font-bold text-[#1741c9] hover:bg-[#e6ebff] hover:text-[#1741ed]">
                   <MessageSquare className="mr-2 h-4 w-4" /> {page.whatsappCta}
                 </Button>
               </div>
-              <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold !text-[#15191f]/60">
+              <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-[#526071]">
                 {heroProofPoints.slice(0,3).map((point) => <span key={point} className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#b9b1ff]" />{point}</span>)}
               </div>
             </div>
 
-            <div className="lg:col-span-7"><div className="bg-[#1741ed] p-7 sm:p-10"><div className="rotate-[-2deg] bg-white p-2 shadow-[16px_19px_0_#0e2c95]"><TemplatePreviewThumbnail templateId="managed-website-agency-v1" templateName="Managed website service" className="h-[340px] sm:h-[390px]" /></div><p className="mt-8 text-xs font-semibold !text-white/85">Live template-based website presentation · Studio-built, not client work</p></div></div>
+            <div className="min-w-0 lg:col-span-7"><div className="rounded-2xl border border-[#dbe1ea] bg-[#1741ed] p-4 sm:p-6"><div className="overflow-hidden rounded-lg bg-white p-2 shadow-[0_24px_55px_-24px_rgba(4,18,66,.5)]"><TemplatePreviewThumbnail templateId="managed-website-agency-v1" templateName="Managed website service" className="min-h-[280px] sm:h-[390px]" /></div><p className="mt-5 text-xs font-medium leading-5 !text-white/90">Illustrative studio-built concept · Not commissioned client work</p></div></div>
           </div>
           <div className="border-t border-[#dfe3e8] bg-white">
             <div className="brand-shell grid gap-px md:grid-cols-3">
@@ -359,66 +359,30 @@ export default function OwnSalesSeoPage() {
           </section>
         )}
 
-        <section className="px-5 py-10">
-          <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-              <Shield className="mb-6 h-8 w-8 text-indigo-600" />
-              <h2 className="text-2xl font-bold">{isCityPage ? `${cityName} Website Setup` : "The Offer"}</h2>
-              <p className="mt-4 text-base font-medium leading-relaxed text-slate-600">{page.offer}</p>
+        <section className="brand-shell py-14 sm:py-20" aria-labelledby="seo-offer-heading">
+          <div className="grid min-w-0 gap-10 lg:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)] lg:gap-14">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1741ed]">01 · The managed approach</p>
+              <h2 id="seo-offer-heading" className="mt-4 max-w-xl text-3xl font-bold leading-tight tracking-tight text-[#15191f] sm:text-4xl">{isCityPage ? `${cityName} website setup, made manageable.` : "A website with the important details taken care of."}</h2>
+              <p className="mt-5 max-w-xl text-base leading-8 text-[#526071]">{page.offer}</p>
+              <div className="mt-6 border-t border-[#dbe1ea] pt-5">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1741ed]">Pricing context</p>
+                <p className="mt-3 text-sm leading-7 text-[#526071]">{page.pricingNote}</p>
+                <Link to="/pricing" className="mt-4 inline-flex items-center text-sm font-bold text-[#1741c9] underline underline-offset-4 hover:text-[#1035a2]">Review current plans <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </div>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-              <Sparkles className="mb-6 h-8 w-8 text-indigo-600" />
-              <h2 className="text-2xl font-bold">{isCityPage ? `Best Fit in ${cityName}` : "Who It Is For"}</h2>
-              <ul className="mt-4 space-y-3">
-                {page.whoFor.map((item) => (
-                  <li key={item} className="flex gap-3 text-sm font-bold text-slate-700">
-                    <Check className="h-4 w-4 shrink-0 text-emerald-500" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-xl bg-slate-950 p-8 text-white shadow-xl shadow-slate-200">
-              <Globe className="mb-6 h-8 w-8 text-white" />
-              <h2 className="text-2xl font-bold text-white">Pricing Reference</h2>
-              <p className="mt-4 text-base font-semibold leading-relaxed text-slate-200">{page.pricingNote}</p>
+            <div className="min-w-0 border-t border-[#dbe1ea]">
+              <p className="py-4 text-xs font-bold uppercase tracking-[0.14em] text-[#526071]">Who this service is suited to</p>
+              {page.whoFor.map((item,index)=>(
+                <div key={item} className="flex min-w-0 items-start gap-5 border-t border-[#dbe1ea] py-5">
+                  <span className="shrink-0 text-sm font-bold text-[#1741ed]">{String(index+1).padStart(2,"0")}</span>
+                  <p className="text-base leading-7 text-[#25364b]">{item}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        <section className="bg-white px-5 py-10">
-          <div className="mx-auto max-w-7xl">
-            <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-              <div>
-                <Badge className="mb-4 bg-indigo-50 text-indigo-700">SEO landing page structure</Badge>
-                <h2 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-                  {isCityPage ? `Built as a focused ${cityName} service page` : "Built as a focused search landing page"}
-                </h2>
-                <p className="mt-5 text-base font-semibold leading-relaxed text-slate-600">
-                  {isCityPage
-                    ? `This page is structured around ${cityName} buyer intent, relevant service sections, nearby area wording, local FAQs, package options, and a direct enquiry path.`
-                    : "Each page has a clear H1, local or market-specific copy, package options, FAQs, internal links, demo examples, and a direct start CTA. The goal is useful search content, not thin city-name swapping."}
-                </p>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {[
-                  { title: "Search intent", copy: "Targets pay-monthly websites, website subscription, and city website design terms.", icon: Search },
-                  { title: "Buyer clarity", copy: "Explains who the package is for, pricing context, and what happens after preview.", icon: FileText },
-                  { title: "Local relevance", copy: "Includes service-area expectations, nearby market language, and local enquiry behaviour.", icon: MapPin },
-                  { title: "Sales path", copy: "Moves visitors towards preview generation, package selection, or a book-call path.", icon: Rocket },
-                ].map((item) => (
-                  <div key={item.title} className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-                    <item.icon className="mb-5 h-7 w-7 text-indigo-600" />
-                    <h3 className="text-xl font-bold text-slate-950">{item.title}</h3>
-                    <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-600">{item.copy}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        
         <section className="border-y border-[#dfe2ea] bg-white">
           <div className="brand-shell brand-section">
             <div className="grid gap-8 lg:grid-cols-12 lg:items-end">
@@ -473,7 +437,7 @@ export default function OwnSalesSeoPage() {
                 
                 <h2 className="mt-4">Website directions for this market.</h2>
               </div>
-              <Button onClick={()=>navigate("/portfolio")} variant="outline" className="min-h-11 lg:col-span-5 lg:justify-self-end">View example library</Button>
+              <Button onClick={()=>navigate("/case-studies")} variant="outline" className="min-h-11 lg:col-span-5 lg:justify-self-end">View example library</Button>
             </div>
             <div className="mt-8 border-t border-[#d8d9dc]">
               {page.examples.map((example)=>(
@@ -531,20 +495,20 @@ export default function OwnSalesSeoPage() {
           </section>
         )}
 
-        <section className="bg-slate-950 px-5 py-14 text-white">
+        <section className="bg-[#1741ed] px-5 py-14 text-white">
             <div className="mx-auto max-w-4xl text-center">
-            <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600">
+            <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-lg border border-white/30 bg-white/10">
               <PhoneCall className="h-6 w-6 text-white" />
             </div>
             <h2 className="text-4xl font-bold tracking-tight text-white sm:text-4xl">Ready to launch a clearer business website?</h2>
-            <p className="mx-auto mt-6 max-w-2xl text-lg font-semibold leading-relaxed text-indigo-50">
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-white/85">
               Start with a monthly website plan, then add pages, locations, and support as your business grows.
             </p>
             <div className="mt-9 flex flex-col justify-center gap-4 sm:flex-row">
-              <Button onClick={() => navigate("/generate-preview")} className="h-14 rounded-2xl bg-white px-8 text-sm font-bold uppercase tracking-wide text-indigo-600 hover:bg-slate-950 hover:text-white">
+              <Button onClick={() => navigate("/generate-preview")} className="min-h-12 rounded-lg bg-white px-7 py-3 text-sm font-bold text-[#1741c9] hover:bg-[#eef3ff]">
                 {page.primaryCta}
               </Button>
-              <Button onClick={() => navigate("/book-demo")} variant="outline" className="h-14 rounded-2xl border-white/30 bg-white/10 px-8 text-sm font-bold uppercase tracking-wide text-white hover:bg-white hover:text-indigo-600">
+              <Button onClick={() => navigate("/book-demo")} variant="outline" className="min-h-12 rounded-lg border-white/30 bg-white/10 px-7 py-3 text-sm font-bold text-white hover:bg-white hover:text-[#1741c9]">
                 Book a Call
               </Button>
             </div>
