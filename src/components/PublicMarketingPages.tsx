@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 47620)
-Total output lines: 3128
-
 import { recommendCommercialProduct } from "../lib/recommendCommercialProduct";
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -1033,7 +1030,1194 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
     const selected = previewBusinessTypes.find((item) => item.id === id) || null;
     setBusinessTypeId(id);
     if (selected) setIndustryId(selected.industryId);
-    setGenerated(fal…17620 tokens truncated…lg:items-start">
+    setGenerated(false);
+    setGeneratedWebsite(null);
+    setShareablePreviewUrl("");
+    setPreviewExpanded(false);
+    trackPublicEvent({
+      eventType: "select_business_type",
+      label: selected?.label || id,
+      target: "/generate-preview",
+      metadata: {
+        businessTypeId: id,
+        industryId: selected?.industryId || null,
+        templateId: selected?.templateId || null,
+      },
+    });
+  };
+
+  const selectGoal = (value: string) => {
+    setGoal(value);
+    setGenerated(false);
+    setGeneratedWebsite(null);
+    trackPublicEvent({ eventType: "select_website_goal", label: value, target: "/generate-preview" });
+  };
+
+  // Zero-contact concept browsing: creates a local illustration only. No lead,
+  // account, analytics payload containing business details, or saved URL.
+  const createQuickConcept = () => {
+    if (!selectedBusinessType || !form.businessName.trim()) {
+      setError("Select a business type and enter your business name to explore a direction.");
+      return;
+    }
+    const mainService = form.mainService.trim() || selectedBusinessType.label;
+    const location = form.location.trim() || "Service area to be confirmed";
+    const input: BlueprintBusinessInput = {
+      businessName: form.businessName.trim(),
+      nicheId: selectedTemplateId,
+      nicheName: selectedBusinessType.label,
+      plan: "business",
+      maxPages: 3,
+      mainService,
+      targetCustomer: selectedBusinessType.targetCustomer || "local customers",
+      location,
+      ctaPreference: resolvePreviewCta(goal),
+      generationMode: "brand_led",
+      brandPersonality: "professional",
+      assetReadiness: "pending",
+    };
+    const website: Website = {
+      id: "illustrative-local-concept",
+      businessId: "illustrative-local-concept",
+      theme: {
+        ...getBlueprintTheme(selectedTemplateId, "brand_led", { brandPersonality: "professional", assetReadiness: "pending" }),
+        previewPurpose: "generated_preview",
+      },
+      pages: buildPagesFromBlueprint(input),
+      seo: getBlueprintSeo(input),
+      status: "draft",
+      updatedAt: Date.now(),
+    };
+    setError("");
+    setQuickConcept(true);
+    setGeneratedWebsite(website);
+    setGenerated(true);
+    setShareablePreviewUrl("");
+    window.setTimeout(() => document.getElementById("generated-preview")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  };
+
+  const generatePreview = async (event: React.FormEvent) => {
+    event.preventDefault();
+    trackPublicEvent({eventType:"preview_started",label:"Website preview form",target:"/generate-preview",metadata:{mode:previewMode,industry:selectedBusinessType||"unspecified"}});
+    setError("");
+    setQuickConcept(false);
+
+    if (!salesMode && !form.email.trim()) {
+      setError("Enter an email so we can connect the preview to your enquiry.");
+      return;
+    }
+    if (!selectedBusinessType) {
+      setError("Select your business type so we can use the right website structure.");
+      return;
+    }
+    if (previewMode === "website" && !form.websiteUrl.trim()) {
+      setError("Paste your existing website URL first.");
+      return;
+    }
+    if (previewMode === "business" && (!form.businessName.trim() || !form.mainService.trim() || !form.location.trim())) {
+      setError("Add your business name, main service and location.");
+      return;
+    }
+
+    setGenerating(true);
+    trackPublicEvent({
+      eventType: "submit_business_details",
+      label: form.businessName || form.websiteUrl || "Website preview",
+      target: "/generate-preview",
+      metadata: {
+        previewMode,
+        industry: businessTypeLabel,
+        businessTypeId: selectedBusinessType.id,
+        templateId: selectedTemplateId,
+        goal,
+        location: form.location,
+        hasWebsite: Boolean(form.websiteUrl),
+      },
+    });
+
+    try {
+      let existingPreview: Record<string, unknown> = {};
+      try { existingPreview = JSON.parse(sessionStorage.getItem("bt_preview_intent") || "{}"); } catch { /* start a fresh preview */ }
+      const previewId = !(salesMode && initialParams.get("prospectId"))
+        && typeof existingPreview.previewId === "string" && existingPreview.previewId
+        ? existingPreview.previewId
+        : `preview_${globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
+
+      // Public previews attach to the prospect's verified enquiry. Authenticated
+      // sales previews create an internal prospect record without asking the prospect
+      // for an email address first.
+      let leadResult: { leadId: string; reused?: boolean; leadEmail?: string };
+      let intake: any;
+      if (salesMode) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Sign in as Bennie Studio staff to use sales preview mode.");
+        const response = await fetch("/api/admin/sales-preview-intake", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            mode: previewMode,
+            previewId,
+            prospectId: initialParams.get("prospectId") || undefined,
+            websiteUrl: previewMode === "website" ? form.websiteUrl : null,
+            businessName: form.businessName || null,
+            industry: selectedBusinessType.label,
+            businessTypeId: selectedBusinessType.id,
+            templateId: selectedTemplateId,
+            location: form.location || null,
+            mainService: form.mainService || null,
+          }),
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.profile || !payload?.leadId || !payload?.leadEmail) {
+          throw new Error(payload?.error || "Sales preview could not be prepared.");
+        }
+        leadResult = { leadId: payload.leadId, leadEmail: payload.leadEmail };
+        intake = payload;
+      } else {
+        // A session-scoped leadId can become stale after admin cleanup or data reset.
+        // Revalidate the preview through the lead-intake endpoint every time.
+        // The endpoint deduplicates by previewId + email when the lead still exists.
+        leadResult = await submitPlatformLead({
+          name: form.contactName || form.businessName || form.email.split("@")[0] || "Website preview lead",
+          email: form.email,
+          phone: form.phone,
+          businessName: form.businessName,
+          industry: selectedBusinessType.label,
+          websiteUrl: form.websiteUrl,
+          service: form.mainService,
+          message: previewMode === "website"
+            ? `URL-first website preview requested for ${form.websiteUrl}.`
+            : `Business-info preview: ${form.mainService} in ${form.location}. Goal: ${goal}.`,
+          formName: "Personalized website preview",
+          leadType: previewMode === "website" ? "free_website_rebuild_preview" : "free_website_preview",
+          previewId,
+          market: "INTL",
+          turnstileToken,
+          website: honeypot,
+          marketingConsent: marketingOptIn,
+        });
+        if (!leadResult?.leadId) throw new Error("We could not connect this preview to your enquiry. Please retry.");
+        leadResult.leadEmail = form.email;
+
+        const intakeResponse = await fetch("/api/public/preview-intake", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: previewMode,
+            previewId,
+            leadId: leadResult.leadId,
+            leadEmail: form.email,
+            websiteUrl: previewMode === "website" ? form.websiteUrl : null,
+            businessName: form.businessName || null,
+            industry: selectedBusinessType.label,
+            businessTypeId: selectedBusinessType.id,
+            templateId: selectedTemplateId,
+            location: form.location || null,
+            mainService: form.mainService || null,
+          }),
+        });
+        intake = await intakeResponse.json().catch(() => null);
+        if (!intakeResponse.ok || !intake?.profile) {
+          const canContinueWithBusinessDetails =
+            previewMode === "website"
+            && intakeResponse.status === 422
+            && intake?.fallbackMode === "business";
+          if (canContinueWithBusinessDetails) {
+            setPreviewMode("business");
+            setForm((current) => ({ ...current, websiteStatus: "no" }));
+            setError("We could not read that website. Continue with the business details below to build the preview.");
+            return;
+          }
+          throw new Error(intake?.error || "We could not prepare that preview. Try business information instead.");
+        }
+      }
+      const effectiveLeadEmail = leadResult.leadEmail || form.email;
+
+      const profile = intake.profile as {
+        sourceUrl?: string;
+        businessName?: string;
+        description?: string;
+        location?: string;
+        contactEmail?: string;
+        contactPhone?: string;
+        services?: string[];
+        serviceDetails?: Array<{ title: string; description: string }>;
+        serviceAreas?: string[];
+        heroImage?: string;
+        secondaryImage?: string;
+        logoUrl?: string;
+        brandColor?: string;
+        accentColor?: string;
+        heroHeadline?: string;
+        heroSubheadline?: string;
+        testimonials?: string[];
+        faqs?: string[];
+        faqItems?: Array<{ question: string; answer: string }>;
+        aboutText?: string;
+        credentials?: string[];
+        yearsInBusiness?: string;
+        guarantees?: string[];
+        primaryCta?: string;
+        people?: Array<{ name: string; role?: string; bio?: string; imageUrl?: string }>;
+        historyItems?: string[];
+        pressItems?: string[];
+        imageCandidates?: string[];
+        businessDNA?: {
+          humanLed?: boolean;
+          heritageRich?: boolean;
+          proofRich?: boolean;
+          imageRich?: boolean;
+          identityScore?: number;
+          typographyStyle?: "heritage" | "humanist" | "modern";
+        };
+      };
+
+      const resolvedBusinessName = String(profile.businessName || form.businessName || "Your Business").trim();
+      const resolvedLocation = String(
+        profile.location
+        || form.location
+        || (previewMode === "website" ? "" : "Local area"),
+      ).trim();
+      const sourceServiceValues = Array.isArray(profile.services) ? profile.services : [];
+      const resolvedServices = previewMode === "website"
+        ? resolveSourceServices(
+            sourceServiceValues,
+            selectedBusinessType.id,
+          )
+        : form.mainService.split(/[,/\n]+/).map((service) => service.trim()).filter(Boolean).slice(0, 8);
+      const resolvedMainService = String(resolvedServices[0] || form.mainService.trim() || selectedBusinessType.label || "Professional services")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 96);
+      const detectedIndustryId = inferPreviewIndustryId(resolvedMainService);
+      const resolvedBusinessType = selectedBusinessType;
+      const resolvedIndustryId = resolvedBusinessType.industryId;
+      const resolvedIndustry = previewIndustries.find((item) => item.id === resolvedIndustryId)
+        || previewIndustries.find((item) => item.id === "local-service")
+        || previewIndustries[0];
+      const resolvedTemplateId = resolvedBusinessType.templateId;
+      const resolvedGenerationMode = resolvePreviewGenerationMode(
+        resolvedIndustryId,
+        form.brandStyle,
+        previewMode === "website" ? "yes" : form.websiteStatus,
+      );
+      const resolvedBrandPersonality = resolvePreviewBrandPersonality(form.brandStyle);
+      const resolvedBusinessMaturity: BusinessMaturity = previewMode === "website" ? "established" : "growing";
+      const resolvedGoal = previewMode === "website"
+        ? resolvedBusinessType.websiteGoal
+        : goal;
+      const resolvedCta = previewMode === "website" && profile.primaryCta
+        ? String(profile.primaryCta).trim().slice(0, 48)
+        : resolvePreviewCta(resolvedGoal);
+      const resolvedReviewStrategy = buildReviewWebsiteStrategy({
+        businessName: resolvedBusinessName,
+        industry: resolvedBusinessType.label,
+        city: resolvedLocation,
+        mainServices: resolvedMainService,
+        preferredCta: resolvedGoal.toLowerCase().includes("whatsapp")
+          ? "WhatsApp"
+          : resolvedGoal.toLowerCase().includes("booking")
+            ? "booking"
+            : resolvedGoal.toLowerCase().includes("phone")
+              ? "call"
+              : "form",
+        googleBusinessUrl: form.socialUrl,
+        reviews: form.reviews,
+      });
+      const previewTestimonials = [
+        ...(Array.isArray(profile.testimonials) ? profile.testimonials : []),
+        ...form.reviews.split(/\n+/).map((review) => review.trim()).filter(Boolean),
+      ].filter((review, index, values) => values.indexOf(review) === index).slice(0, 4);
+      const sourceProofItems = previewMode === "website"
+        ? [
+            String(profile.yearsInBusiness || "").trim(),
+            ...(Array.isArray(profile.credentials) ? profile.credentials : []),
+            ...(Array.isArray(profile.guarantees) ? profile.guarantees : []),
+            ...(Array.isArray(profile.serviceAreas) && profile.serviceAreas.length
+              ? [`Serves ${profile.serviceAreas.slice(0, 3).join(", ")}`]
+              : []),
+          ].filter(Boolean).slice(0, 6)
+        : [];
+      const previewStockImage = resolvePreviewStockAsset({
+        businessTypeId: resolvedBusinessType.id,
+        industryId: resolvedIndustryId,
+        service: resolvedMainService,
+      });
+      const sourcePeople = previewMode === "website" && Array.isArray(profile.people)
+        ? profile.people.filter((person) => person?.name).slice(0, 6)
+        : [];
+      const sourceImages = previewMode === "website" && Array.isArray(profile.imageCandidates)
+        ? profile.imageCandidates.filter(Boolean)
+        : [];
+      const sourceHeroImage = previewMode === "website"
+        ? (profile.heroImage || sourceImages[0] || "")
+        : previewStockImage;
+      const personImageUrls = new Set(sourcePeople.map((person) => person.imageUrl).filter(Boolean));
+      const sourceSupportingImages = sourceImages.filter((url) =>
+        url !== sourceHeroImage
+        && url !== profile.logoUrl
+        && !personImageUrls.has(url)
+        && !/(?:logo|icon|avatar|badge|sprite|favicon|illustration|vector|drawing|placeholder|symbol|clipart|process|step|diagram|graphic)/i.test(url),
+      ).slice(0, 6);
+      const sourceStoryImage = previewMode === "website"
+        ? (
+            (profile.secondaryImage && sourceSupportingImages.includes(profile.secondaryImage) ? profile.secondaryImage : "")
+            || sourceSupportingImages[0]
+            || ""
+          )
+        : previewStockImage;
+
+      const blueprintInput: BlueprintBusinessInput = {
+        businessName: resolvedBusinessName,
+        nicheId: resolvedTemplateId,
+        nicheName: resolvedBusinessType.id === "other-local-service"
+          ? `${resolvedBusinessType.label} ${resolvedMainService}`
+          : resolvedBusinessType.label,
+        plan: "business",
+        maxPages: 5,
+        mainService: resolvedMainService,
+        targetCustomer: resolvedBusinessType.targetCustomer || previewTargetCustomers[resolvedIndustryId] || "customers",
+        location: resolvedLocation,
+        ctaPreference: resolvedCta,
+        tone: form.brandStyle,
+        services: resolvedServices.length ? resolvedServices : [resolvedMainService],
+        serviceDetails: previewMode === "website" && Array.isArray(profile.serviceDetails)
+          ? profile.serviceDetails
+          : undefined,
+        serviceImageUrls: previewMode === "website" ? sourceSupportingImages : undefined,
+        localProof: sourceProofItems.length ? sourceProofItems.join(" • ") : undefined,
+        description: previewMode === "website"
+          ? String(profile.description || "").trim()
+          : profile.description || resolvedReviewStrategy.subheadline,
+        aboutText: previewMode === "website" ? String(profile.aboutText || "").trim() : undefined,
+        sourceDriven: previewMode === "website",
+        contactEmail: previewMode === "website"
+          ? String(profile.contactEmail || "").trim()
+          : String(profile.contactEmail || form.email || "").trim(),
+        contactPhone: previewMode === "website"
+          ? String(profile.contactPhone || "").trim()
+          : String(profile.contactPhone || form.phone || "").trim(),
+        whatsappNumber: resolvedGoal.toLowerCase().includes("whatsapp")
+          ? String(previewMode === "website" ? profile.contactPhone || "" : profile.contactPhone || form.phone || "").trim()
+          : undefined,
+        faqs: previewMode === "website"
+          ? (Array.isArray(profile.faqs) ? profile.faqs : [])
+          : resolvedReviewStrategy.intelligence.faqs,
+        faqItems: previewMode === "website" && Array.isArray(profile.faqItems)
+          ? profile.faqItems
+          : undefined,
+        testimonials: previewTestimonials,
+        teamMembers: sourcePeople,
+        historyItems: previewMode === "website" && Array.isArray(profile.historyItems) ? profile.historyItems : undefined,
+        pressItems: previewMode === "website" && Array.isArray(profile.pressItems) ? profile.pressItems : undefined,
+        businessDNA: previewMode === "website" ? profile.businessDNA : undefined,
+        generationMode: resolvedGenerationMode,
+        brandPersonality: resolvedBrandPersonality,
+        businessMaturity: resolvedBusinessMaturity,
+        assetReadiness: previewMode === "website" && profile.businessDNA?.imageRich ? "professional" : "some",
+        heroImageUrl: sourceHeroImage,
+        heroFallbackImageUrl: previewMode === "website" ? undefined : previewStockImage,
+        storyImageUrl: sourceStoryImage || undefined,
+        storyFallbackImageUrl: previewMode === "website" ? undefined : previewStockImage,
+        heroHeadline: previewMode === "website" ? profile.heroHeadline || undefined : undefined,
+        heroSubheadline: previewMode === "website" ? profile.heroSubheadline || undefined : undefined,
+        heroTrustItems: previewMode === "website"
+          ? [
+              ...sourceProofItems,
+              ...(previewTestimonials.length ? ["Customer reviews"] : []),
+            ].filter(Boolean).slice(0, 3)
+          : [],
+        preferredHeroVariant: previewMode === "website" ? "source_brand_hero" : undefined,
+        compactSubpageHeroes: previewMode === "website",
+      };
+
+      const basePreviewTheme = getBlueprintTheme(resolvedTemplateId, resolvedGenerationMode, {
+        brandPersonality: resolvedBrandPersonality,
+        businessMaturity: resolvedBusinessMaturity,
+        assetReadiness: "some",
+      });
+      const customBrandColours = form.brandColorMode === "custom";
+      const sourceTypographyStyle = previewMode === "website" ? profile.businessDNA?.typographyStyle : undefined;
+      const sourceTypography =
+        sourceTypographyStyle === "heritage"
+          ? { displayFont: "'Source Serif 4', serif", bodyFont: "'Source Sans 3', sans-serif", fontFamily: "'Source Sans 3', sans-serif" }
+          : sourceTypographyStyle === "humanist"
+            ? { displayFont: "Fraunces, serif", bodyFont: "'Source Sans 3', sans-serif", fontFamily: "'Source Sans 3', sans-serif" }
+            : {};
+      const previewTheme: Website["theme"] = {
+        ...basePreviewTheme,
+        ...sourceTypography,
+        previewPurpose: salesMode ? "sales_preview" : "generated_preview",
+        sourceDriven: previewMode === "website",
+        ...(previewMode === "website" ? {
+          sourceIdentity: {
+            peopleCount: sourcePeople.length,
+            historyCount: Array.isArray(profile.historyItems) ? profile.historyItems.length : 0,
+            pressCount: Array.isArray(profile.pressItems) ? profile.pressItems.length : 0,
+            testimonialCount: previewTestimonials.length,
+            serviceCount: resolvedServices.length,
+            faqCount: Array.isArray(profile.faqItems) ? profile.faqItems.length : 0,
+            realImageCount: sourceImages.length,
+            hasLogo: Boolean(profile.logoUrl),
+            identityScore: Number(profile.businessDNA?.identityScore || 0),
+            typographyStyle: profile.businessDNA?.typographyStyle || "modern",
+          },
+        } : {}),
+        ...(customBrandColours
+          ? {
+              primaryColor: form.brandPrimaryColor,
+              secondaryColor: form.brandAccentColor,
+            }
+          : {
+              ...(previewMode === "website" && profile.brandColor ? { primaryColor: profile.brandColor } : {}),
+              ...(previewMode === "website" && profile.accentColor ? { secondaryColor: profile.accentColor } : {}),
+            }),
+        ...(previewMode === "website" && profile.logoUrl ? { logoUrl: profile.logoUrl } : {}),
+      };
+      const previewSeo = getBlueprintSeo(blueprintInput);
+      const previewCandidates = [0, 1, 2, 3].map((compositionSeed) => {
+        const pages = buildPagesFromBlueprint({ ...blueprintInput, compositionSeed });
+        if (profile.heroImage) {
+          const home = pages.find((page) => page.slug === "" || page.slug === "home") || pages[0];
+          const hero = home?.sections?.find((section) => section.type === "hero");
+          if (hero) {
+            hero.content = {
+              ...hero.content,
+              imageUrl: hero.content?.imageUrl || profile.heroImage,
+              imageAlt: hero.content?.imageAlt || resolvedBusinessName,
+            };
+          }
+        }
+        const website: Website = {
+          id: "preview",
+          businessId: "preview",
+          theme: previewTheme,
+          pages,
+          seo: previewSeo,
+          status: "draft",
+          updatedAt: Date.now(),
+        };
+        const quality = evaluateGeneratedDesign(website);
+        const sourceDirectionBonus = previewMode === "website"
+          ? (
+              (profile.businessDNA?.humanLed && compositionSeed === 2 ? 16 : 0)
+              + (profile.businessDNA?.heritageRich && compositionSeed === 3 ? 10 : 0)
+              + (profile.businessDNA?.proofRich && compositionSeed === 1 ? 7 : 0)
+            )
+          : 0;
+        const rank =
+          quality.score +
+          quality.metrics.visualVariety * 0.2 +
+          quality.metrics.hierarchy * 0.15 +
+          quality.metrics.conversionClarity * 0.15 +
+          quality.metrics.identityPreservation * 0.3 +
+          quality.metrics.redesignAdvantage * 0.25 +
+          sourceDirectionBonus -
+          quality.metrics.aiTemplateRisk * 0.45;
+        return { website, quality, rank, compositionSeed, sourceDirectionBonus };
+      });
+      const selectedPreview = previewCandidates.sort((a, b) => b.rank - a.rank)[0];
+      if (previewMode === "website") {
+        const salesBlockingChecks = new Set([
+          "source_preview_language",
+          "source_preview_availability",
+          "source_preview_contact",
+          "source_preview_hero",
+          "source_identity_people",
+          "source_identity_testimonials",
+          "source_identity_heritage",
+          "source_identity_logo",
+          "source_redesign_advantage",
+          "placeholders",
+          "proof_integrity",
+        ]);
+        const blockingFailures = selectedPreview.quality.checks.filter(
+          (check) => salesBlockingChecks.has(check.key) && !check.pass,
+        );
+        if (blockingFailures.length) {
+          const issueSummary = blockingFailures
+            .map((check) => check.label)
+            .slice(0, 3)
+            .join(", ");
+          console.warn("[Preview QA] Blocking checks failed", blockingFailures);
+          throw new Error(
+            issueSummary
+              ? `The preview needs one more automatic quality pass (${issueSummary}). Please rebuild it.`
+              : "The preview needs one more automatic quality pass. Please rebuild it.",
+          );
+        }
+      }
+
+      const resolvedRecommendation = recommendCommercialProduct({
+        goal: resolvedGoal,
+        notes: `${resolvedMainService} ${form.biggestProblem}`,
+        industry: resolvedBusinessType.label,
+        requestedPages: 5,
+        serviceCount: resolvedServices.length,
+        locationCount: Array.isArray(profile.serviceAreas) ? profile.serviceAreas.length : 0,
+        seoIntent: /seo|search|google|organic/i.test(`${resolvedGoal} ${form.biggestProblem}`),
+        landingPageNeeds: /landing|campaign|service page|location page/i.test(form.biggestProblem),
+        customFunctionality: /portal|membership|e-?commerce|custom function|booking engine/i.test(`${form.biggestProblem} ${resolvedMainService}`),
+        integrations: /integration|crm|api|hubspot|salesforce|shopify|woocommerce/i.test(`${form.biggestProblem} ${resolvedMainService}`),
+        ongoingGrowth: /growth|scale|ongoing|monthly|continuous/i.test(`${resolvedGoal} ${form.biggestProblem}`),
+      });
+
+      const resolvedForm = {
+        ...form,
+        businessName: resolvedBusinessName,
+        location: resolvedLocation,
+        mainService: resolvedMainService,
+        websiteStatus: previewMode === "website" ? "yes" : form.websiteStatus,
+        websiteUrl: profile.sourceUrl || form.websiteUrl,
+      };
+      const hydratedFormChanged =
+        resolvedForm.businessName !== form.businessName ||
+        resolvedForm.location !== form.location ||
+        resolvedForm.mainService !== form.mainService ||
+        resolvedForm.websiteStatus !== form.websiteStatus ||
+        resolvedForm.websiteUrl !== form.websiteUrl;
+      if (hydratedFormChanged) skipNextPreviewInvalidation.current = true;
+      setForm(resolvedForm);
+      setGoal(resolvedGoal);
+      setIndustryId(resolvedIndustryId);
+      setBusinessTypeId(resolvedBusinessType.id);
+
+      let persistedPreview: { shareUrl?: string; businessId?: string; websiteId?: string } = {};
+      try {
+        const salesProofSignals = [
+          String(profile.yearsInBusiness || "").trim(),
+          ...(Array.isArray(profile.credentials) ? profile.credentials : []),
+          ...(Array.isArray(profile.guarantees) ? profile.guarantees : []),
+          ...(Array.isArray(profile.serviceAreas) && profile.serviceAreas.length ? [`Serves ${profile.serviceAreas.slice(0, 3).join(", ")}`] : []),
+          ...(previewTestimonials.length ? ["Customer review evidence found"] : []),
+        ].filter(Boolean).slice(0, 6);
+        const persistHeaders: Record<string, string> = { "Content-Type": "application/json" };
+        if (salesMode) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.access_token) throw new Error("Sign in as Bennie Studio staff to save a prospect preview.");
+          persistHeaders.Authorization = `Bearer ${session.access_token}`;
+        }
+        const persistResponse = await fetch(salesMode ? "/api/admin/sales-preview-site" : "/api/public/preview-site", {
+          method: "POST",
+          headers: persistHeaders,
+          body: JSON.stringify({
+            previewId,
+            leadId: leadResult.leadId,
+            ...(salesMode ? {
+              summary: {
+                headline: `${resolvedBusinessName}, presented with a clearer website direction`,
+                opportunitySummary: previewMode === "website"
+                  ? "Your business is stronger than the current website communicates. This direction makes the services, proof and next action easier for a prospective customer to understand."
+                  : "This direction turns the business brief into a clearer service story, trust path and next action for prospective customers.",
+                proposedStructure: selectedPreview.website.pages.map((page) => page.title).slice(0, 5),
+                proofSignals: salesProofSignals,
+                primaryConversionPath: profile.primaryCta || resolvedCta,
+                recommendedProduct: {
+                  slug: resolvedRecommendation.slug,
+                  label: resolvedRecommendation.label,
+                  reason: resolvedRecommendation.reason,
+                  salesMotion: resolvedRecommendation.salesMotion,
+                },
+              },
+            } : { email: effectiveLeadEmail }),
+            website: {
+              theme: selectedPreview.website.theme,
+              pages: selectedPreview.website.pages,
+              seo: selectedPreview.website.seo,
+            },
+          }),
+        });
+        const persistPayload = await persistResponse.json().catch(() => null);
+        if (persistResponse.ok && persistPayload?.success) {
+          persistedPreview = {
+            shareUrl: persistPayload.shareUrl,
+            businessId: persistPayload.businessId,
+            websiteId: persistPayload.websiteId,
+          };
+          setShareablePreviewUrl(String(persistPayload.shareUrl || ""));
+        }
+      } catch {
+        // The in-browser preview remains usable if share-link persistence is unavailable.
+      }
+
+      sessionStorage.setItem("bt_preview_intent", JSON.stringify({
+        ...resolvedForm,
+        previewMode,
+        previewId,
+        leadId: leadResult.leadId,
+        email: effectiveLeadEmail,
+        salesMode,
+        industryId: resolvedIndustryId,
+        industry: resolvedIndustry.label,
+        businessTypeId: resolvedBusinessType.id,
+        businessType: resolvedBusinessType.label,
+        goal: resolvedGoal,
+        recommendedProduct: resolvedRecommendation.slug,
+        attribution: getTrackingContext(),
+        market: "INTL",
+        source: initialParams.get("source") || "",
+        campaign: initialParams.get("campaign") || initialParams.get("utm_campaign") || "",
+        templateId: resolvedTemplateId,
+        generationMode: resolvedGenerationMode,
+        brandPersonality: resolvedBrandPersonality,
+        businessMaturity: resolvedBusinessMaturity,
+        designScore: selectedPreview.quality.score,
+        designMetrics: selectedPreview.quality.metrics,
+        previewProfile: profile,
+        generatedWebsite: selectedPreview.website,
+        previewGenerationVersion: PREVIEW_GENERATION_VERSION,
+        previewGenerationMethod: "deterministic",
+        previewAiCostUsd: 0,
+        shareablePreviewUrl: persistedPreview.shareUrl || "",
+        previewBusinessId: persistedPreview.businessId || "",
+        previewWebsiteId: persistedPreview.websiteId || "",
+        reviewSuggestions: assessManualReviewInput(form.reviews).suggestions,
+        reviewStrategy: {
+          heroHeadline: resolvedReviewStrategy.heroHeadline,
+          subheadline: resolvedReviewStrategy.subheadline,
+          primaryCta: resolvedReviewStrategy.primaryCta,
+          secondaryCta: resolvedReviewStrategy.secondaryCta,
+          trustSignals: resolvedReviewStrategy.trustSignals,
+          intelligence: {
+            localKeywords: resolvedReviewStrategy.intelligence.localKeywords,
+            faqs: resolvedReviewStrategy.intelligence.faqs,
+          },
+        },
+        createdAt: new Date().toISOString(),
+      }));
+
+      trackPublicEvent({
+        eventType: "preview_lead_captured",
+        label: resolvedBusinessName,
+        target: "/generate-preview",
+        metadata: { previewId, leadId: leadResult.leadId, previewMode, aiCostUsd: 0 },
+      });
+      setGeneratedWebsite(selectedPreview.website);
+      setPreviewExpanded(false);
+      setGenerated(true);
+      window.setTimeout(() => {
+        document.getElementById("generated-preview")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+      trackPublicEvent({
+        eventType: "preview_complete",
+        label: resolvedBusinessName,
+        target: "/generate-preview",
+        metadata: {
+          industry: resolvedIndustry.label,
+          businessType: resolvedBusinessType.label,
+          detectedIndustryId,
+          recommendedProduct: resolvedRecommendation.slug,
+          goal: resolvedGoal,
+          previewMode,
+          generationMethod: "deterministic",
+          aiCostUsd: 0,
+        },
+      });
+    } catch (submissionError: any) {
+      setError(submissionError?.message || "The preview could not be prepared. Please retry.");
+      trackPublicEvent({ eventType: "preview_failed", label: form.businessName || form.websiteUrl, target: "/generate-preview" });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const action = (eventType: string, label: string, target: string) => {
+    trackPublicEvent({
+      eventType,
+      label,
+      target,
+      metadata: { industry: industry.label, businessType: businessTypeLabel, goal, businessName: form.businessName, generated },
+    });
+    navigate(target);
+  };
+
+  return (
+    <>
+      <section className="s33-preview-hero" aria-labelledby="s33-preview-title">
+        <div className="brand-shell s33-preview-hero-grid">
+          <div className="s33-preview-hero-copy">
+            {salesMode && <p className="s33-preview-internal">Internal studio preview · Staff mode</p>}
+            <p className="s33-eyebrow">Free preliminary website direction</p>
+            <h1 id="s33-preview-title">{cmsPage?.heroTitle || "See a direction for your business before you decide."}</h1>
+            <p className="s33-lead">{cmsPage?.heroDescription || "Already have a website? Start with its URL. Building from scratch? Tell us the basics. Explore an initial design concept without choosing a paid plan."}</p>
+            <div className="s33-actions">
+              {cmsPage?.primaryCtaHref ? <Link className="s33-primary" to={cmsPage.primaryCtaHref}>{cmsPage.primaryCtaLabel || "Start your free website preview"} <ArrowRight size={18} aria-hidden="true" /></Link> : <a className="s33-primary" href="#preview-brief">Start your free website preview <ArrowRight size={18} aria-hidden="true"/></a>}
+              <Link className="s33-secondary" to="/portfolio/sample/dental" onClick={() => trackPublicEvent({eventType:"sales_cta_clicked",label:"Preview sample before lead form",target:"/portfolio/sample/dental"})}>See a sample first <ArrowRight size={17} aria-hidden="true"/></Link>
+            </div>
+            <p className="s33-preview-disclaimer">No card required · No obligation · A submitted preview request uses your email for the enquiry, not an automatic newsletter subscription.</p>
+          </div>
+          <aside className="s33-preview-guide" aria-label="What to expect from a free website preview">
+            <div className="s33-preview-guide-top"><span className="s33-preview-guide-dots" aria-hidden="true"><i/><i/><i/></span><span>BENNIE STUDIO / A FIRST DIRECTION</span></div>
+            <div className="s33-preview-guide-body">
+              <p className="s33-eyebrow">A clearer first impression</p>
+              <h2>From the brief to a website you can explore.</h2>
+              <div className="s33-preview-guide-demo">
+                <div><span>YOUR BUSINESS</span><span>Services &nbsp; About &nbsp; Contact</span></div>
+                <strong>A clearer way to show what you do.</strong>
+                <p>Explain your offer, build credibility and guide customers toward the next step.</p>
+                <span className="s33-preview-guide-button">Enquire about our services <ArrowRight size={13} aria-hidden="true"/></span>
+              </div>
+              <p className="s33-preview-guide-foot">Illustrative interface · Not a completed client project or promised result</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="preview-brief" className="bt-section-soft s33-preview-brief">
+        <div className="brand-shell py-14 sm:py-20">
+          <div className="mb-10 max-w-3xl">
+            <p className="brand-kicker">Business brief</p>
+            <h2 className="mt-4">Just the essentials to get your direction started.</h2>
+            <p className="brand-copy mt-4">The brief helps us understand the goal and choose the right structure. If there is already a website, the redesign uses that site as source material instead of replacing the business identity.</p>
+          </div>
+
+          <div className="s33-preview-notice mb-8 flex flex-col gap-3 rounded-xl border border-[#d9e3f6] bg-[#edf4ff] p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#1946c3]">Start with the essentials</p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#2a4569]">Choose your website starting point. For a new business, enter a business name and category to explore an illustrative concept without an email; add scope, style and contact details later for a personalized request.</p>
+            </div>
+            {previewMode === "business" && !salesMode ? <a href="#instant-concept" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-md border border-[#1946c3] bg-white px-4 text-sm font-semibold text-[#1946c3]">Jump to instant concept</a> : null}
+          </div>
+
+          <form onSubmit={generatePreview} className="grid gap-8 lg:grid-cols-12 lg:items-start">
+            <div className="s33-preview-main-form space-y-6 lg:col-span-8">
+              <section className="bt-premium-card p-5 sm:p-7">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Start with what you already have</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewMode("website");
+                      setError("");
+                      setForm((current) => ({ ...current, websiteStatus: "yes" }));
+                      setGenerated(false);
+                      setGeneratedWebsite(null);
+                    }}
+                    className={previewMode === "website"
+                      ? "border-2 border-[#5746e8] bg-[#eeebff] p-5 text-left"
+                      : "border border-[#dfe2ea] bg-[#f9f8f4] p-5 text-left hover:border-[#aaa4dc]"}
+                  >
+                    <p className="font-semibold text-[#141821]">I already have a website</p>
+                    <p className="mt-2 text-sm leading-5 text-[#5f6673]">Paste one URL. We use the current website as source material and rebuild the presentation around a stronger buyer journey.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewMode("business");
+                      setError("");
+                      setForm((current) => ({ ...current, websiteStatus: "no" }));
+                      setGenerated(false);
+                      setGeneratedWebsite(null);
+                    }}
+                    className={previewMode === "business"
+                      ? "border-2 border-[#5746e8] bg-[#eeebff] p-5 text-left"
+                      : "border border-[#dfe2ea] bg-[#f9f8f4] p-5 text-left hover:border-[#aaa4dc]"}
+                  >
+                    <p className="font-semibold text-[#141821]">I need a website from scratch</p>
+                    <p className="mt-2 text-sm leading-5 text-[#5f6673]">Tell us the business, service and location. No existing site required.</p>
+                  </button>
+                </div>
+              </section>
+
+              <section className="bt-premium-card p-5 sm:p-7">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Preview scope</p>
+                <h3 className="mt-1 text-xl font-semibold text-[#141821]">A focused direction for up to 5 core pages.</h3>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-[#5f6673]">The free preview demonstrates structure, messaging and conversion direction. The Managed Website plan includes up to five core pages. Additional service, location or campaign pages belong in a broader growth scope.</p>
+              </section>
+
+              {previewMode === "website" ? (
+                <section className="bt-premium-card bg-[#fbfbfe] p-5 sm:p-7">
+                  <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">1</span>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Existing website</p>
+                      <h3 className="mt-1 text-2xl font-semibold text-[#141821]">Paste your website URL.</h3>
+                    </div>
+                  </div>
+                  {salesMode ? (
+                    <div className="mb-5">
+                      <label htmlFor="preview-sales-business" className="mb-2 block text-sm font-semibold text-[#374151]">Company name</label>
+                      <Input id="preview-sales-business" required value={form.businessName} onChange={(e) => setForm({...form, businessName:e.target.value})} placeholder="Prospect company name" className="h-12 rounded-xl border-[#dfe2ea] bg-white" />
+                    </div>
+                  ) : null}
+                  <label htmlFor="preview-url-first" className="mb-2 block text-sm font-semibold text-[#374151]">Website URL</label>
+                  <Input id="preview-url-first" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://yourbusiness.com" className="h-14 rounded-xl border-[#dfe2ea] bg-white text-base" />
+                  <div className="mt-5">
+                    <label htmlFor="preview-url-business-type" className="mb-2 block text-sm font-semibold text-[#374151]">Business type</label>
+                    <select
+                      id="preview-url-business-type"
+                      required
+                      value={businessTypeId}
+                      onChange={(e) => selectBusinessType(e.target.value)}
+                      className="h-14 w-full border border-[#dfe2ea] bg-white px-4 text-[#141821] outline-none transition focus:border-[#5746e8] focus:ring-4 focus:ring-[#5746e8]/10"
+                    >
+                      <option value="" disabled>Select the closest business type</option>
+                      {Array.from(new Set(previewBusinessTypes.map((item) => item.group))).map((group) => (
+                        <optgroup key={group} label={group}>
+                          {previewBusinessTypes.filter((item) => item.group === group).map((item) => (
+                            <option key={item.id} value={item.id}>{item.label}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                    <p className="mt-2 text-xs leading-5 text-[#5f6673]">Your business type chooses the website structure and template family. The URL supplies the real services, proof and contact details.</p>
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-[#5f6673]">We keep useful business facts, brand assets and proof from the current site, then improve the hierarchy, page structure and path to enquiry.</p>
+                </section>
+              ) : (
+              <section className="bt-premium-card bg-[#fbfbfe] p-5 sm:p-7">
+                <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">1</span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Business essentials</p>
+                    <h3 className="mt-1 text-2xl font-semibold text-[#141821]">What are we building around?</h3>
+                  </div>
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="preview-business-type" className="mb-2 block text-sm font-semibold text-[#374151]">Business type</label>
+                    <select
+                      id="preview-business-type"
+                      required
+                      value={businessTypeId}
+                      onChange={(e) => selectBusinessType(e.target.value)}
+                      className="h-12 w-full border border-[#dfe2ea] bg-white px-4 text-[#141821] outline-none transition focus:border-[#5746e8] focus:ring-4 focus:ring-[#5746e8]/10"
+                    >
+                      <option value="" disabled>Select the closest business type</option>
+                      {Array.from(new Set(previewBusinessTypes.map((item) => item.group))).map((group) => (
+                        <optgroup key={group} label={group}>
+                          {previewBusinessTypes.filter((item) => item.group === group).map((item) => (
+                            <option key={item.id} value={item.id}>{item.label}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="preview-service" className="mb-2 block text-sm font-semibold text-[#374151]">Main service</label>
+                    <Input id="preview-service" required value={form.mainService} onChange={(e) => setForm({...form, mainService:e.target.value})} placeholder="e.g. Invisalign, bookkeeping, renovation" className="h-12 rounded-xl border-[#dfe2ea] bg-white" />
+                    {inferredIndustryId && selectedBusinessType && inferredIndustryId !== selectedBusinessType.industryId ? <p className="mt-2 text-xs font-semibold text-[#5746e8]">The service wording looks like {previewIndustries.find((item) => item.id === inferredIndustryId)?.label}, but your selected business type stays authoritative.</p> : null}
+                  </div>
+                  <div>
+                    <label htmlFor="preview-business" className="mb-2 block text-sm font-semibold text-[#374151]">Business name</label>
+                    <Input id="preview-business" required value={form.businessName} onChange={(e) => setForm({...form, businessName:e.target.value})} placeholder="Business name" className="h-12 rounded-xl border-[#dfe2ea] bg-white" />
+                  </div>
+                  <div>
+                    <label htmlFor="preview-location" className="mb-2 block text-sm font-semibold text-[#374151]">Location / service area</label>
+                    <Input id="preview-location" required value={form.location} onChange={(e) => setForm({...form, location:e.target.value})} placeholder="City or area served" className="h-12 rounded-xl border-[#dfe2ea] bg-white" />
+                  </div>
+                </div>
+              </section>
+              )}
+
+              {previewMode === "business" && !salesMode ? (
+                <section id="instant-concept" className="scroll-mt-24 rounded-xl border border-[#b7c6de] bg-[#edf4ff] p-5 sm:p-6" aria-label="Instant local concept without signup">
+                  <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#1846a8]">Quick first look · no email needed</p>
+                  <h3 className="mt-2 text-xl font-semibold text-[#15263c]">See a preliminary direction now.</h3>
+                  <p className="mt-2 text-sm leading-6 text-[#38506c]">Enter a business name and select a business type above. Main service and location can be added later. This illustrative local preview is not saved, sent or based on verified customer data.</p>
+                  <button type="button" onClick={createQuickConcept} className="mt-4 inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#1946c3] px-5 py-3 text-sm font-bold text-white hover:bg-[#10338e]">Show instant concept <ArrowRight size={17} aria-hidden="true"/></button>
+                </section>
+              ) : null}
+
+              <section className="bt-premium-card p-5 sm:p-7">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="max-w-xl">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Brand colours</p>
+                    <h3 className="mt-1 text-xl font-semibold text-[#141821]">Match the customer brand.</h3>
+                    <p className="mt-2 text-sm leading-6 text-[#5f6673]">
+                      Auto mode uses colours detected from the current website when available. Choose custom to override them for the preview.
+                    </p>
+                  </div>
+                  <select
+                    aria-label="Brand colour mode"
+                    value={form.brandColorMode}
+                    onChange={(event) => setForm({ ...form, brandColorMode: event.target.value })}
+                    className="h-11 min-w-44 border border-[#dfe2ea] bg-white px-3 text-sm font-semibold text-[#141821] outline-none focus:border-[#5746e8]"
+                  >
+                    <option value="auto">Auto-detect</option>
+                    <option value="custom">Custom colours</option>
+                  </select>
+                </div>
+
+                {form.brandColorMode === "custom" ? (
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <label className="flex items-center gap-3 border border-[#dfe2ea] bg-[#f9f8f4] p-3">
+                      <input
+                        type="color"
+                        value={form.brandPrimaryColor}
+                        onChange={(event) => setForm({ ...form, brandPrimaryColor: event.target.value })}
+                        className="h-11 w-14 cursor-pointer border-0 bg-transparent p-0"
+                        aria-label="Primary brand colour"
+                      />
+                      <span>
+                        <span className="block text-xs font-bold uppercase tracking-[0.12em] text-[#687083]">Primary</span>
+                        <span className="mt-1 block font-mono text-sm font-semibold text-[#141821]">{form.brandPrimaryColor.toUpperCase()}</span>
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-3 border border-[#dfe2ea] bg-[#f9f8f4] p-3">
+                      <input
+                        type="color"
+                        value={form.brandAccentColor}
+                        onChange={(event) => setForm({ ...form, brandAccentColor: event.target.value })}
+                        className="h-11 w-14 cursor-pointer border-0 bg-transparent p-0"
+                        aria-label="Accent brand colour"
+                      />
+                      <span>
+                        <span className="block text-xs font-bold uppercase tracking-[0.12em] text-[#687083]">Accent</span>
+                        <span className="mt-1 block font-mono text-sm font-semibold text-[#141821]">{form.brandAccentColor.toUpperCase()}</span>
+                      </span>
+                    </label>
+                  </div>
+                ) : null}
+              </section>
+
+              <section className={previewMode === "website" ? "hidden" : "border border-[#dfe2ea] bg-white p-5 sm:p-7"}>
+                <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">2</span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Customer action</p>
+                    <h3 className="mt-1 text-2xl font-semibold text-[#141821]">Choose the next action.</h3>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {previewGoals.map((item) => {
+                    const selected = goal === item;
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => selectGoal(item)}
+                        className={selected
+                          ? "flex min-h-20 items-center justify-between border-2 border-[#5746e8] bg-[#eeebff] px-4 py-4 text-left text-sm font-semibold text-[#141821]"
+                          : "flex min-h-20 items-center justify-between border border-[#dfe2ea] bg-[#f9f8f4] px-4 py-4 text-left text-sm font-semibold text-[#374151] transition hover:border-[#aaa4dc] hover:bg-white"}
+                      >
+                        <span>{item}</span>
+                        <span className={selected ? "grid h-6 w-6 place-items-center rounded-full bg-[#5746e8] text-white" : "grid h-6 w-6 place-items-center rounded-full border border-[#c8cad0] bg-white text-transparent"}>
+                          <Check className="h-3.5 w-3.5" />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6 grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="preview-site-status" className="mb-2 block text-sm font-semibold text-[#374151]">Current website</label>
+                    <select id="preview-site-status" value={form.websiteStatus} onChange={(e) => setForm({...form, websiteStatus:e.target.value, websiteUrl:e.target.value==="no"?"":form.websiteUrl})} className="h-12 w-full border border-[#dfe2ea] bg-white px-4 text-[#141821] outline-none transition focus:border-[#5746e8] focus:ring-4 focus:ring-[#5746e8]/10">
+                      <option value="yes">I have a website</option>
+                      <option value="no">No website yet</option>
+                    </select>
+                  </div>
+                  {form.websiteStatus === "yes" ? (
+                    <div>
+                      <label htmlFor="preview-url" className="mb-2 block text-sm font-semibold text-[#374151]">Current website URL</label>
+                      <Input id="preview-url" required type="url" value={form.websiteUrl} onChange={(e) => setForm({...form, websiteUrl:e.target.value})} placeholder="https://..." className="h-12 rounded-xl border-[#dfe2ea]" />
+                    </div>
+                  ) : (
+                    <div className="flex items-end">
+                      <div className="w-full border border-[#dfe2ea] bg-[#f9f8f4] px-4 py-3 text-sm font-semibold text-[#5f6673]">We will start from your business brief instead.</div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className={previewMode === "website" ? "hidden" : "border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7"}>
+                <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">3</span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Design direction</p>
+                    <h3 className="mt-1 text-2xl font-semibold text-[#141821]">Choose the brand personality.</h3>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-3">
+                  {[
+                    ["Modern professional", "Clear, credible, balanced", "Structured service businesses"],
+                    ["Premium corporate", "Sharper authority and hierarchy", "Higher-trust or B2B offers"],
+                    ["Friendly local business", "Warm, accessible and direct", "Local service enquiries"],
+                  ].map(([style, description, fit]) => {
+                    const selected = form.brandStyle === style;
+                    return (
+                      <button
+                        key={style}
+                        type="button"
+                        onClick={() => setForm({...form, brandStyle: style})}
+                        className={selected
+                          ? "border-2 border-[#5746e8] bg-white p-5 text-left shadow-[0_16px_36px_-28px_rgba(87,70,232,0.8)]"
+                          : "border border-[#dfe2ea] bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#aaa4dc]"}
+                      >
+                        <div className="mb-5 flex gap-1">
+                          <span className={style === "Premium corporate" ? "h-7 w-7 bg-[#141821]" : style === "Friendly local business" ? "h-7 w-7 rounded-full bg-[#d4f5e7]" : "h-7 w-7 bg-[#5746e8]"} />
+                          <span className={style === "Premium corporate" ? "h-7 w-10 bg-[#dfe2ea]" : style === "Friendly local business" ? "h-7 w-10 rounded-full bg-[#fde7c7]" : "h-7 w-10 bg-[#eeebff]"} />
+                        </div>
+                        <p className="font-semibold text-[#141821]">{style}</p>
+                        <p className="mt-2 text-sm leading-5 text-[#5f6673]">{description}</p>
+                        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.08em] text-[#526071]">{fit}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <details className="mt-5 border-t border-[#dfe2ea] pt-5">
+                  <summary className="cursor-pointer text-sm font-semibold text-[#5746e8]">Add proof or extra brand context (optional)</summary>
+                  <div className="mt-5 grid gap-4">
+                    <Input value={form.socialUrl} onChange={(e)=>setForm({...form,socialUrl:e.target.value})} placeholder="Google Business / social URL" className="h-12 rounded-xl border-[#dfe2ea] bg-white" />
+                    <Textarea value={form.reviews} onChange={(e)=>setForm({...form,reviews:e.target.value})} placeholder="Paste real customer reviews, one per line." className="min-h-28 rounded-xl border-[#dfe2ea] bg-white" />
+                    <select value={form.biggestProblem} onChange={(e)=>setForm({...form,biggestProblem:e.target.value})} className="h-12 border border-[#dfe2ea] bg-white px-4 text-[#141821]">
+                      <option value="">Biggest website problem (optional)</option>
+                      {previewProblems.map((problem)=><option key={problem}>{problem}</option>)}
+                    </select>
+                  </div>
+                </details>
+              </section>
+
+              <section className="border border-[#dfe2ea] bg-[#141821] p-5 text-white sm:p-7">
+                <div className="mb-6 flex items-start gap-4 border-b border-white/15 pb-5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-sm font-bold text-[#141821]">{previewMode === "website" ? "2" : "4"}</span>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#b9b1ff]">{salesMode ? "Build prospect preview" : "Send the preview"}</p>
+                    <h3 className="mt-1 text-2xl font-semibold text-white">{salesMode ? "Generate a shareable direction." : "Where should we connect your preview?"}</h3>
+                  </div>
+                </div>
+
+                <div className={salesMode ? "hidden" : "grid gap-5 sm:grid-cols-2"}>
+                  <div>
+                    <label htmlFor="preview-name" className="mb-2 block text-sm font-semibold text-slate-200">Your name <span className="font-normal text-slate-400">optional</span></label>
+                    <Input id="preview-name" autoComplete="name" value={form.contactName} onChange={(e) => setForm({...form, contactName:e.target.value})} placeholder="Your name" className="h-12 rounded-xl border-white/15 bg-white text-[#141821]" />
+                  </div>
+                  <div>
+                    <label htmlFor="preview-email" className="mb-2 block text-sm font-semibold text-slate-200">Email <span className="font-normal text-slate-400">(required to connect this request)</span></label>
+                    <Input id="preview-email" required={!salesMode} autoComplete="email" type="email" value={form.email} onChange={(e) => setForm({...form, email:e.target.value})} placeholder="you@business.com" className="h-12 rounded-xl border-white/15 bg-white text-[#141821]" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="preview-phone" className="mb-2 block text-sm font-semibold text-slate-200">
+                      WhatsApp / phone {goal.toLowerCase().includes("whatsapp") ? null : <span className="font-normal text-slate-400">optional</span>}
+                    </label>
+                    <Input id="preview-phone" required={!salesMode && goal.toLowerCase().includes("whatsapp")} autoComplete="tel" value={form.phone} onChange={(e) => setForm({...form, phone:e.target.value})} placeholder="Phone or WhatsApp number" className="h-12 rounded-xl border-white/15 bg-white text-[#141821]" />
+                  </div>
+                </div>
+
+                {!salesMode && <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm leading-6 text-slate-200">
+                  <input type="checkbox" checked={marketingOptIn} onChange={(event) => setMarketingOptIn(event.target.checked)} className="mt-1.5 h-4 w-4 accent-[#b9b1ff]" />
+                  <span>Optional: email me occasional website-improvement tips and relevant Bennie Studio offers. I can unsubscribe at any time. This is not required for my free preview.</span>
+                </label>}
+
+                <div className="hidden" aria-hidden="true">
+                  <label htmlFor="preview-company-website">Company website</label>
+                  <input id="preview-company-website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(event) => setHoneypot(event.target.value)} />
+                </div>
+
+                <div className={salesMode ? "hidden" : "mt-5"}>
+                  <TurnstileWidget
+                    siteKey={String(import.meta.env.VITE_TURNSTILE_SITE_KEY || "")}
+                    onToken={setTurnstileToken}
+                    onExpire={() => setTurnstileToken("")}
+                  />
+                </div>
+
+                {error ? <div role="alert" className="mt-5 border border-rose-300/40 bg-rose-400/10 p-4 text-sm font-semibold text-rose-100">{error}</div> : null}
+
+                <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+                  <Button type="submit" disabled={generating} className="min-h-14 rounded-xl bg-[#6758ff] px-7 text-base font-bold text-white shadow-[0_18px_35px_-22px_rgba(103,88,255,.85)] hover:bg-[#7a6cff]">
+                    {generating ? "Building your website preview..." : previewMode === "website" ? "Build preview from my URL" : "Build preview from business details"} <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                  <p className="max-w-md text-xs leading-5 text-slate-400">Free to explore—no card required. We use this email to connect your preview request; marketing updates are optional below. See our privacy policy.</p>
+                </div>
+              </section>
+            </div>
+
+            <aside className="s33-preview-summary lg:sticky lg:top-24 lg:col-span-4">
+              <div className="bt-premium-card overflow-hidden bg-white p-5 sm:p-6">
+                <div className="flex items-center gap-3">
+                  <LayoutTemplate className="h-5 w-5 text-[#5746e8]" />
+                  <div><p className="text-sm font-bold text-[#172033]">Your recommended website direction</p><p className="mt-1 text-xs text-[#657186]">Based on your answers, Bennie Studio prepares a tailored direction.</p></div>
+                </div>
+                <div className="s33-preview-summary-visual" aria-label="Illustrative website preview interface">
+                  <div className="s33-preview-summary-toolbar"><span aria-hidden="true">● ● ●</span><strong>Website direction</strong></div>
+                  <div className="s33-preview-summary-screen"><span>YOUR BUSINESS</span><strong>Made clear.<br/>Made useful.</strong><p>Present what you do and make the next step easy.</p><b>Get in touch ↗</b></div>
+                </div>
+                <div className="mt-5 space-y-4">
+                  {[
+                    ["1","Strategy & recommendations","The brief shapes the structure, pages and features."],
+                    ["2","Custom design direction","The direction adapts to the business instead of a generic template."],
+                    ["3","Live website preview","You get something concrete to review and respond to."],
+                    ["4","Human review & next steps","A real person reviews the direction before the next step."],
+                  ].map(([number,title,copy])=>(
+                    <div key={number} className="grid grid-cols-[30px_1fr] gap-3">
+                      <span className="grid h-7 w-7 place-items-center rounded-full bg-[#eeebff] text-xs font-bold text-[#6252f4]">{number}</span>
+                      <div><p className="text-sm font-semibold text-[#172033]">{title}</p><p className="mt-1 text-xs leading-5 text-[#657186]">{copy}</p></div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 border-t border-[#e5e8ef] pt-5">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.11em] text-[#6252f4]">Live brief</p>
+                  <h3 className="mt-2 text-xl font-semibold text-[#141821]">{businessLabel === "your business" ? "Your preview adapts live." : businessLabel}</h3>
+                <div className="mt-6 divide-y divide-[#dfe2ea] border-y border-[#dfe2ea]">
+                  {[
+                    ["Business", businessTypeLabel],
+                    ["Service", serviceLabel],
+                    ["Location", locationLabel],
+                    ["Scope", "Up to 5 core pages"],
+                    ["Goal", goal],
+                    ["Style", form.brandStyle],
+                  ].map(([label, value]) => (
+                    <div key={label} className="grid grid-cols-[82px_1fr] gap-3 py-3 text-sm">
+                      <span className="font-semibold text-[#526071]">{label}</span>
+                      <span className="font-semibold text-[#141821]">{value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#526071]">Likely homepage structure</p>
+                  <div className="mt-3 space-y-2">
+                    {industry.sections.slice(0, 5).map((sectionName, index) => (
+                      <div key={sectionName} className="flex items-center gap-3 bg-white px-3 py-3 text-sm font-semibold text-[#374151]">
+                        <span className="text-xs font-bold text-[#5746e8]">0{index + 1}</span>
+                        {sectionName}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-6 border-t border-[#dfe2ea] pt-5">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#526071]">Recommended after preview</p>
+                  <p className="mt-2 font-semibold text-[#141821]">{commercialRecommendation.label}</p>
+                  <p className="mt-1 text-sm leading-5 text-[#5f6673]">The recommendation is based on the website goal and business brief, not a forced upsell.</p>
+                </div>
+                </div>
+              </div>
+            </aside>
+          </form>
+        </div>
+      </section>
+
+      <section className="bg-white border-y border-[#e6e8ef]">
+        <div className="brand-shell py-14 sm:py-16">
+          <div className="grid gap-7 lg:grid-cols-12 lg:items-end">
+            <div className="lg:col-span-6"><h2 className="mt-4">From your answers to a practical website direction.</h2></div>
+            <p className="brand-copy lg:col-span-6">The brief becomes a practical plan and an interactive website direction, so you can see the decision before committing to a build.</p>
+          </div>
+          <div className="mt-9 grid gap-4 md:grid-cols-4">
+            {[
+              ["1","We analyse your brief","The business, offer and goals determine the right structure."],
+              ["2","We design your preview","A tailored visual direction and key page layouts are created."],
+              ["3","You review and provide feedback","Tell us what feels right and what you would change."],
+              ["4","We share next steps","If the direction fits, the build scope becomes clear."],
+            ].map(([n,t,c])=><article key={n} className="bs3-card p-5"><span className="text-xs font-bold text-[#6252f4]">{n}</span><h3 className="mt-4">{t}</h3><p className="mt-3 text-sm leading-6 text-[#657186]">{c}</p></article>)}
+          </div>
+        </div>
+      </section>
+
+      <section className="bs3-dark">
+        <div className="brand-shell brand-section grid gap-12 lg:grid-cols-12 lg:items-center">
+          <div className="lg:col-span-5"><h2 className="mt-4 !text-white">A human-guided process, from start to finish.</h2><p className="mt-5 text-base leading-8 text-white/62">Modern tools speed up preparation, but Bennie Studio reviews the business context, design quality and next-step logic before launch.</p><Link to="/how-it-works" className={`${primaryCtaClass} mt-7`}>See how it works<ArrowRight className="ml-2 h-4 w-4" /></Link></div>
+          <div className="lg:col-span-7"><div className="rounded-[1.2rem] border border-white/12 bg-white/[0.04] p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#9f93ff]">Studio review before launch</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{["Business context","Message clarity","Responsive design","Forms and primary actions","Customer approval","Launch QA"].map((item)=><div key={item} className="border border-white/10 bg-white/[0.035] p-4 text-sm font-semibold text-white/72"><Check className="mb-3 h-4 w-4 text-[#9f93ff]" />{item}</div>)}</div></div></div>
+        </div>
+      </section>
+
+      <section className="brand-shell brand-section">
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-start">
           <div className="lg:col-span-4"><h2 className="mt-4">Questions before you get started?</h2><p className="brand-copy mt-5">A few quick answers before you review the direction.</p></div>
           <div className="lg:col-span-8 divide-y divide-[#e5e8ef] overflow-hidden rounded-2xl border border-[#e5e8ef] bg-white">
             {[
