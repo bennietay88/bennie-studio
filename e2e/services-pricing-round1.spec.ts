@@ -23,6 +23,7 @@ test("services conveys clear outcomes and a single service-delivery narrative",a
  await expect(page.locator(".s28-chapter")).toHaveCount(3);
  await expect(page.locator(".s28-steps-section")).toHaveCount(0);
  await expect(page.locator(".s31-services-close")).toHaveCount(1);
+ await expect(page.locator(".c27-footer-cta")).toHaveCount(0);
  await expect(page.locator(".s28-website-grid article")).toHaveCount(3);
 });
 test("pricing highlights two plans while keeping all 4, rates, and order buttons",async({page})=>{
