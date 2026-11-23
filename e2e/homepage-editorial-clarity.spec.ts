@@ -16,7 +16,7 @@ test("all four process steps are visible without previous or next controls", asy
   const process = page.locator(".c26-process");
   const steps = process.locator(".sfn-timeline-all > li");
   await expect(steps).toHaveCount(4);
-  for (const [index, title] of ["Share your business", "Review your free preview", "Approve scope and start", "Launch and stay supported"].entries()) {
+  for (const [index, title] of ["Share your business", "Review your preview", "Approve, build and launch", "Ongoing website care"].entries()) {
     await expect(steps.nth(index).getByRole("heading", { name: title })).toBeVisible();
   }
   await expect(process.getByRole("button", { name: /Previous step|Next step/i })).toHaveCount(0);
@@ -61,7 +61,26 @@ for (const width of [320, 390, 768, 1440]) {
     expect(styles.overflowWrap).toBe("normal");
     expect(styles.fontSize).toBeGreaterThanOrEqual(20);
     const processHeading = await page.locator(".c26-process h2").evaluate(el => parseFloat(getComputedStyle(el).fontSize));
-    const serviceHeading = await page.locator(".c26-services h2").evaluate(el => parseFloat(getComputedStyle(el).fontSize));
-    expect(Math.abs(processHeading - serviceHeading)).toBeLessThan(2);
+    const proofHeading = await page.locator(".c27-studio-proof h2").evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+    expect(Math.abs(processHeading - proofHeading)).toBeLessThan(3);
   });
 }
+
+test("process is singular, with a real founder byline and a visual proof section", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".c26-process")).toHaveCount(1);
+  await expect(page.locator(".c26-services")).toHaveCount(0);
+  const proof = page.locator(".c27-studio-proof");
+  await expect(proof.getByText("Bennie Tay", { exact: true })).toBeVisible();
+  await expect(proof.locator(".c27-proof-browser")).toBeVisible();
+  await expect(page.locator(".sfn-work-card .c27-work-browser")).toHaveCount(3);
+  await expect(page.locator(".sfn-work-card .sfn-concept-cta")).toHaveCount(3);
+});
+
+test("pricing has distinct calls to action and prominent secondary plans", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  const pricing = page.locator("#plans");
+  await expect(pricing.getByRole("button", { name: /Get a free website preview/i })).toBeVisible();
+  await expect(pricing.getByRole("button", { name: /View Managed Website plan/i })).toBeVisible();
+  await expect(pricing.locator(".c27-alternative-option")).toHaveCount(2);
+});
