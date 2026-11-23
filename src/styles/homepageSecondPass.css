@@ -140,3 +140,13 @@
  .brand-public .sfn-home .c27-work-browser .sfn-concept-footer {display:none}
  .brand-public .sfn-home .c27-browser-brand small {display:none}
 }
+
+/* The cookie panel may overlay the viewport, but it must never obscure the
+ * last footer links or consent controls when the user scrolls to the end. */
+.brand-public.c27-cookie-present {padding-bottom:clamp(9rem,15vw,12rem)}
+.brand-public .c27-cookie-notice {max-height:min(70vh,360px);overflow:auto;border-radius:12px;border:1px solid #6c88a5;background:#0f2944!important;box-shadow:0 22px 44px #06152755}
+.brand-public .c27-cookie-notice p {color:#f1f7ff!important}
+@media(max-width:600px) {
+ .brand-public.c27-cookie-present {padding-bottom:15rem}
+ .brand-public .c27-cookie-notice {bottom:9px;left:9px;right:9px;padding:1rem;max-height:56vh}
+}
