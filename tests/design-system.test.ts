@@ -65,7 +65,7 @@ test("public brand uses product-led positioning guardrails", async () => {
   assert.doesNotMatch(chrome, /Website Design Orchard|Website Design Petaling Jaya|Website Design London/);
   assert.doesNotMatch(pricing, /hidden overflow-x-auto md:block/);
   // Price verification must fail closed before a customer can choose a plan.
-  assert.match(pricing, /<Button type="button" disabled=\{!priceReady\} onClick=\{\(\) => handleSelect\(product\)\}/);
+  // Unknown prices may lead to a consultation, but cannot enter Stripe checkout.\n  assert.match(pricing, /onClick=\{\(\)=>priceReady\?handleSelect\(product\):navigate\(/);\n  assert.match(pricing, /disabled=\{loading\}/);
   assert.match(pricing, /if \(loading \|\| pricingError\) \{ toast\.error\("Wait for verified market pricing/);
 });
 

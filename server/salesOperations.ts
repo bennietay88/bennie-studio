@@ -189,13 +189,19 @@ export async function runSalesDelivery(input: {
   send: (message: Row) => Promise<{ id: string; provider?: string; mailbox?: string; fromAddress?: string; replyToAddress?: string; templateVersion?: string; campaignId?: string }>;
   limit?: number;
   now?: Date;
+  messageIds?: string[];
 }) {
   const { db, send } = input;
   const now = (input.now || new Date()).toISOString();
   const limit = Math.min(100, Math.max(1, input.limit || 40));
   // Inner filters exclude paused sequences before LIMIT, so they cannot starve bookings.
-  const due = (query: any) => query.in("status", ["approved", "queued"]).eq("direction", "outbound")
-    .eq("channel", "email").lte("scheduled_at", now).order("scheduled_at").limit(limit);
+  // Explicit message IDs only scope server-initiated immediate welcome delivery.
+  const due = (query: any) => {
+    let result = query.in("status", ["approved", "queued"]).eq("direction", "outbound")
+      .eq("channel", "email").lte("scheduled_at", now);
+    if (input.messageIds?.length) result = result.in("id", input.messageIds);
+    return result.order("scheduled_at").limit(limit);
+  };
   const [sequenceResult, standaloneResult] = await Promise.all([
     due(db.from("sales_messages").select("*, outreach_enrollments!inner(status, outreach_sequences!inner(status))")
       .eq("outreach_enrollments.status", "active").eq("outreach_enrollments.outreach_sequences.status", "active")),

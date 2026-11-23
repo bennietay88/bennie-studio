@@ -51,6 +51,7 @@ import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
 import "../styles/studioCaseStudies.css";
 import { TurnstileWidget } from "./TurnstileWidget";
 import { PreviewOrderPage } from "./PreviewOrderPage";
+import { StudioEmailOptIn } from "./StudioEmailOptIn";
 import { supabase } from "../lib/supabase";
 import { CMS_REPLACEABLE_PATHS, usePublishedPlatformCms, type PlatformCmsPage } from "../lib/platformSiteCms";
 import { PlatformCmsPageBody, PlatformCmsSections } from "./PlatformCmsSections";
@@ -111,7 +112,7 @@ const pageMeta: Record<PublicPageKind, { title: string; description: string }> =
   pricing: {
     title: "Managed Website Pricing, Setup & Monthly Plans | Bennie Studio",
     description:
-      "Compare transparent monthly website plans, one-time setup fees, minimum commitments and delivery scope. Free website preview before you buy.",
+      "Compare transparent monthly website plans, one-time setup fees, month-to-month billing and delivery scope. Free website preview before you buy.",
   },
   "how-it-works": {
     title: "How It Works | Bennie Studio",
@@ -897,6 +898,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   const initialGoal = initialParams.get("goal") || savedPreviewIntent.goal || previewGoals[0];
   const [goal, setGoal] = React.useState(previewGoals.includes(initialGoal) ? initialGoal : previewGoals[0]);
   const [generated, setGenerated] = React.useState(savedPreviewIsCurrent && Boolean(savedPreviewIntent.generatedWebsite));
+  const [quickConcept, setQuickConcept] = React.useState(false);
   const [generatedWebsite, setGeneratedWebsite] = React.useState<Website | null>(
     savedPreviewIsCurrent ? savedPreviewIntent.generatedWebsite || null : null,
   );
@@ -967,6 +969,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
       return;
     }
     setGenerated(false);
+    setQuickConcept(false);
     setGeneratedWebsite(null);
     setShareablePreviewUrl("");
     setPreviewExpanded(false);
@@ -1042,10 +1045,54 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
     trackPublicEvent({ eventType: "select_website_goal", label: value, target: "/generate-preview" });
   };
 
+  // Zero-contact concept browsing: creates a local illustration only. No lead,
+  // account, analytics payload containing business details, or saved URL.
+  const createQuickConcept = () => {
+    if (!selectedBusinessType || !form.businessName.trim()) {
+      setError("Select a business type and enter your business name to explore a direction.");
+      return;
+    }
+    const mainService = form.mainService.trim() || selectedBusinessType.label;
+    const location = form.location.trim() || "Service area to be confirmed";
+    const input: BlueprintBusinessInput = {
+      businessName: form.businessName.trim(),
+      nicheId: selectedTemplateId,
+      nicheName: selectedBusinessType.label,
+      plan: "business",
+      maxPages: 3,
+      mainService,
+      targetCustomer: selectedBusinessType.targetCustomer || "local customers",
+      location,
+      ctaPreference: resolvePreviewCta(goal),
+      generationMode: "brand_led",
+      brandPersonality: "professional",
+      assetReadiness: "pending",
+    };
+    const website: Website = {
+      id: "illustrative-local-concept",
+      businessId: "illustrative-local-concept",
+      theme: {
+        ...getBlueprintTheme(selectedTemplateId, "brand_led", { brandPersonality: "professional", assetReadiness: "pending" }),
+        previewPurpose: "generated_preview",
+      },
+      pages: buildPagesFromBlueprint(input),
+      seo: getBlueprintSeo(input),
+      status: "draft",
+      updatedAt: Date.now(),
+    };
+    setError("");
+    setQuickConcept(true);
+    setGeneratedWebsite(website);
+    setGenerated(true);
+    setShareablePreviewUrl("");
+    window.setTimeout(() => document.getElementById("generated-preview")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  };
+
   const generatePreview = async (event: React.FormEvent) => {
     event.preventDefault();
     trackPublicEvent({eventType:"preview_started",label:"Website preview form",target:"/generate-preview",metadata:{mode:previewMode,industry:selectedBusinessType||"unspecified"}});
     setError("");
+    setQuickConcept(false);
 
     if (!salesMode && !form.email.trim()) {
       setError("Enter an email so we can connect the preview to your enquiry.");
@@ -1716,19 +1763,12 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
             <p className="brand-copy mt-4">The brief helps us understand the goal and choose the right structure. If there is already a website, the redesign uses that site as source material instead of replacing the business identity.</p>
           </div>
 
-          <div className="mb-8 grid gap-3 rounded-[1.25rem] border border-[#e3e5ed] bg-white/85 p-4 shadow-[0_22px_60px_-50px_rgba(15,23,42,.45)] sm:grid-cols-4 sm:p-5">
-            {[
-              ["01", "Business", "Tell us about the business"],
-              ["02", "Pages", "Shape the website scope"],
-              ["03", "Style", "Choose the visual direction"],
-              ["04", "Finish", "Review the direction"],
-            ].map(([number, label, copy], index) => (
-              <div key={number} className={index === 0 ? "rounded-xl bg-[#0d1426] p-4 text-white" : "rounded-xl border border-[#eceef3] bg-white p-4"}>
-                <p className={index === 0 ? "text-xs font-bold !text-[#b9b1ff]" : "text-xs font-bold text-[#6252f4]"}>{number}</p>
-                <p className={index === 0 ? "mt-2 font-semibold !text-white" : "mt-2 font-semibold text-[#0d1426]"}>{label}</p>
-                <p className={index === 0 ? "mt-1 text-xs !text-white/55" : "mt-1 text-xs text-[#748095]"}>{copy}</p>
-              </div>
-            ))}
+          <div className="mb-8 flex flex-col gap-3 rounded-xl border border-[#d9e3f6] bg-[#edf4ff] p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#1946c3]">Start with the essentials</p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#2a4569]">Choose your website starting point. For a new business, enter a business name and category to explore an illustrative concept without an email; add scope, style and contact details later for a personalized request.</p>
+            </div>
+            {previewMode === "business" && !salesMode ? <a href="#instant-concept" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-md border border-[#1946c3] bg-white px-4 text-sm font-semibold text-[#1946c3]">Jump to instant concept</a> : null}
           </div>
 
           <form onSubmit={generatePreview} className="grid gap-8 lg:grid-cols-12 lg:items-start">
@@ -1862,6 +1902,15 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                 </div>
               </section>
               )}
+
+              {previewMode === "business" && !salesMode ? (
+                <section id="instant-concept" className="scroll-mt-24 rounded-xl border border-[#b7c6de] bg-[#edf4ff] p-5 sm:p-6" aria-label="Instant local concept without signup">
+                  <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#1846a8]">Quick first look · no email needed</p>
+                  <h3 className="mt-2 text-xl font-semibold text-[#15263c]">See a preliminary direction now.</h3>
+                  <p className="mt-2 text-sm leading-6 text-[#38506c]">Enter a business name and select a business type above. Main service and location can be added later. This illustrative local preview is not saved, sent or based on verified customer data.</p>
+                  <button type="button" onClick={createQuickConcept} className="mt-4 inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#1946c3] px-5 py-3 text-sm font-bold text-white hover:bg-[#10338e]">Show instant concept <ArrowRight size={17} aria-hidden="true"/></button>
+                </section>
+              ) : null}
 
               <section className="bt-premium-card p-5 sm:p-7">
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
@@ -2216,7 +2265,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                   <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#c9c4ff]">
                     <Sparkles className="h-3.5 w-3.5" /> Website direction ready
                   </span>
-                  {previewMode === "website" ? (
+                  {quickConcept ? <span className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-slate-300">Unsaved illustrative concept · no email collected</span> : previewMode === "website" ? (
                     <span className="rounded-full border border-white/10 px-3 py-1.5 text-[11px] font-semibold text-slate-300">
                       Built from the current website
                     </span>
@@ -2232,7 +2281,9 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                   {businessLabel}, redesigned to make the next step clearer.
                 </h2>
                 <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
-                  {previewMode === "website"
+                  {quickConcept
+                    ? "This browser-only illustration uses your selected business type and details. It does not verify claims or replace a tailored studio review. Complete the full brief below if you want a saved, personalized preview."
+                    : previewMode === "website"
                     ? "The preview keeps useful brand assets and verified business content, then applies a stronger page hierarchy and enquiry path for the selected business type."
                     : "The preview turns the business brief into a focused page structure, clear offer and conversion path."}
                 </p>
@@ -2349,17 +2400,18 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                 <div className="sticky bottom-4 z-20 mt-5 flex flex-col gap-4 rounded-2xl border border-indigo-300/20 bg-[#08101f]/95 p-4 shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-semibold text-white">Like this direction? Discuss the next step with us.</p>
-                    <p className="mt-1 max-w-xl text-sm leading-6 text-slate-300">Ask for a human review and clear scope before committing, or continue to the secure managed website order.</p>
+                    <p className="mt-1 max-w-xl text-sm leading-6 text-slate-300">{quickConcept ? "Ask for a human review and explore verified plans. Checkout requires a personalized, saved preview." : "Ask for a human review and clear scope before committing, or continue to your preview-linked order."}</p>
                   </div>
                   <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
                     <Button onClick={() => action("preview_consultation_clicked", "Preview website review", "/book-demo")} className="min-h-12 bg-white px-5 font-semibold text-slate-950 hover:bg-indigo-100">
                       Request a website review <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
-                    <Button variant="outline" onClick={() => action("click_launch_after_preview","Continue with website","/preview-order")} className="min-h-12 border-white/30 bg-transparent px-5 font-semibold text-white hover:bg-white/10 hover:text-white">
-                      Review plan & payment
+                    <Button variant="outline" onClick={() => action(quickConcept ? "quick_concept_pricing_clicked" : "click_launch_after_preview",quickConcept ? "Compare verified plans" : "Continue with website",quickConcept ? "/pricing" : "/preview-order")} className="min-h-12 border-white/30 bg-transparent px-5 font-semibold text-white hover:bg-white/10 hover:text-white">
+                      {quickConcept ? "Explore plans & pricing" : "Review plan & payment"}
                     </Button>
                   </div>
                 </div>
+                <div className="mt-6 max-w-3xl"><StudioEmailOptIn sourcePage="/generate-preview" title="Want more ideas for your website?" description="Get the 7-point website conversion checklist and optional follow-up tips. Your unsaved instant design is not emailed or stored by this signup." /></div>
               </>
             ) : null}
           </div>
@@ -3043,7 +3095,7 @@ export default function PublicMarketingPages() {
           </div>
         </div>
       </section>}
-      <PublicSiteFooter />
+      <PublicSiteFooter showMobileCta={pageKind !== "generate-preview" && pageKind !== "preview-order"} />
     </div>
   );
 }

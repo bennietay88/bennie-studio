@@ -1,3 +1,5 @@
+import { fetchPublishedPreviewContent, isPreviewPublicRead } from "../server/previewPublicContent.js";
+import { buildInboundNewsletterMessages, INBOUND_NEWSLETTER_CONSENT, isSupportedNewsletterMarket } from "../server/inboundNewsletter.js";
 import express from "express";
 import compression from "compression";
 import cors from "cors";
@@ -15,6 +17,7 @@ import { Resend } from "resend";
 import { classifyResendSendError, emailProviderStatus, selectEmailProvider, sendHostingerMail, verifyHostingerSmtp } from "../server/emailProviders.js";
 import { z } from "zod";
 import { Redis } from "@upstash/redis";
+import { SharedAbuseProtection, getRateLimitClientIp, isSensitiveRateLimit } from "../server/sharedAbuseProtection.js";
 import { callDeepSeek, callOpenAI } from "../src/lib/ai-providers.js";
 import { analyzeWebsiteHtml, normalizeWebsiteAuditResult } from "../src/lib/websiteAudit.js";
 import {
@@ -66,7 +69,7 @@ import {
 import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
-import { canManageSalesOperations, isSalesSuppressed, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, renderProspectInitialEmail, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
+import { canManageSalesOperations, isSalesSuppressed, exactEmailPattern, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, renderProspectInitialEmail, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { buildProspectFollowUpPlan, bulkManageProspectFollowUps, scheduleProspectFollowUpPlan, syncProspectNextFollowUp } from "../server/prospectFollowUps.js";
 import { reactivateArchivedProspect } from "../server/prospectLifecycle.js";
 import { registerOutreachCompletionRoutes } from "../server/outreachCompletionRoutes.js";
@@ -136,12 +139,6 @@ const redis =
       })
     : null;
 
-if (!redis) {
-  structuredLog("warn", "redis_rate_limit_unavailable", {
-    message: "UPSTASH_REDIS_REST_URL/TOKEN not set; using in-memory rate limits.",
-  });
-}
-
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Admin client for server-side operations that should bypass RLS
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -149,6 +146,42 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
     autoRefreshToken: false,
     persistSession: false,
   },
+});
+
+/**
+ * Production-safe shared limiter: prefer Upstash when available, otherwise
+ * use the existing Supabase Postgres RPC with an atomic UPSERT.
+ * No additional infrastructure account is required for the PostgreSQL path.
+ */
+const postgresRateLimiter = serverSupabaseEnvironment.configured ? {
+  async eval(_script: string, keys: string[], args: (string | number)[]): Promise<unknown> {
+    const { data, error } = await supabaseAdmin.rpc("bs_consume_abuse_quota", {
+      p_key: keys[0],
+      p_max: Number(args[0]),
+      p_window_ms: Number(args[1]),
+    });
+    if (error) {
+      structuredLog("error", "postgres_abuse_counter_unavailable", { code: String(error.code || "rpc_failure") });
+      throw new Error("Shared rate limiter database RPC unavailable");
+    }
+    return data;
+  },
+} : null;
+const rateLimitStore = redis || postgresRateLimiter;
+if (!rateLimitStore) {
+  structuredLog("warn", "shared_rate_limit_store_unconfigured", {
+    message: "No Redis or PostgreSQL shared abuse counter is configured.",
+  });
+} else {
+  structuredLog("info", "shared_rate_limit_backend_selected", { backend: redis ? "redis" : "postgres" });
+}
+const abuseProtection = new SharedAbuseProtection({
+  redis: rateLimitStore,
+  requireShared: process.env.ABUSE_REQUIRE_SHARED_REDIS === "true" ||
+    process.env.ABUSE_REQUIRE_SHARED_STORE === "true" ||
+    process.env.VERCEL_ENV === "production",
+  hashSecret: process.env.ABUSE_RATE_LIMIT_HASH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+  warn: (message, context) => structuredLog("warn", message, context),
 });
 
 let platformSettings: any = null;
@@ -485,6 +518,23 @@ app.use((req, res, next) => {
   next();
 });
 app.use(requestLogger);
+
+// Read-only public content can be inspected in Vercel preview without granting
+// the preview deployment access to production Supabase or Stripe credentials.
+app.use(async (req, res, next) => {
+  if (!isPreviewPublicRead(process.env, req.method, req.path, serverSupabaseEnvironment.configured)) {
+    return next();
+  }
+  try {
+    const payload = await fetchPublishedPreviewContent(req.path);
+    res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+    res.setHeader("X-Bennie-Preview-Source", "published-public-only");
+    return res.status(200).json(payload);
+  } catch {
+    // Never substitute sample amounts or route preview writes into production.
+    return res.status(503).json({ error: "Published public content could not be verified." });
+  }
+});
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || "0.0.0.0";
 const STATE_MAX_AGE_MS = 10 * 60 * 1000;
@@ -506,8 +556,7 @@ const PUBLIC_URL_SCHEMA = z
     }
   }, "URL must use http or https");
 
-type RateBucket = { count: number; resetAt: number };
-const rateBuckets = new Map<string, RateBucket>();
+
 const PORTFOLIO_LEAD_ORIGIN = "https://portfolio.bennietay.com";
 
 function portfolioLeadCors(req: any, res: any, next: any) {
@@ -525,11 +574,7 @@ function portfolioLeadCors(req: any, res: any, next: any) {
 }
 
 function getClientIp(req: any) {
-  const forwardedFor = req.headers["x-forwarded-for"];
-  if (typeof forwardedFor === "string" && forwardedFor.length > 0) {
-    return forwardedFor.split(",")[0].trim();
-  }
-  return req.ip || req.socket?.remoteAddress || "unknown";
+  return getRateLimitClientIp(req);
 }
 
 function rateLimit(options: {
@@ -539,43 +584,27 @@ function rateLimit(options: {
   key?: (req: any) => string;
 }) {
   return async (req: any, res: any, next: any) => {
-    if (process.env.E2E_TEST === "true") return next();
-    const now = Date.now();
-    const key = `${options.keyPrefix}:${options.key ? options.key(req) : getClientIp(req)}`;
-    const ttlSeconds = Math.ceil(options.windowMs / 1000);
+    // The test bypass must never run on a hosted deployment.
+    if (process.env.E2E_TEST === "true" && !process.env.VERCEL && process.env.NODE_ENV !== "production") return next();
 
-    if (redis) {
-      try {
-        const redisKey = `rate:${key}`;
-        const count = await redis.incr(redisKey);
-        if (count === 1) {
-          await redis.expire(redisKey, ttlSeconds);
-        }
+    const result = await abuseProtection.consume({
+      keyPrefix: options.keyPrefix,
+      identity: options.key ? String(options.key(req)) : getClientIp(req),
+      windowMs: options.windowMs,
+      max: options.max,
+      sensitive: isSensitiveRateLimit(options.keyPrefix),
+    });
+    res.setHeader("X-RateLimit-Limit", String(options.max));
+    res.setHeader("X-RateLimit-Remaining", String(result.remaining));
+    if (result.status === "allowed") return next();
 
-        if (count > options.max) {
-          res.setHeader("Retry-After", ttlSeconds.toString());
-          return res.status(429).json({ error: "Too many requests. Please try again later." });
-        }
-
-        return next();
-      } catch (err) {
-        console.error("[RateLimit] Redis error, falling back to memory:", err);
-      }
+    res.setHeader("Retry-After", String(Math.max(1, Math.ceil(result.retryAfterMs / 1000))));
+    res.setHeader("Cache-Control", "no-store");
+    if (result.status === "unavailable") {
+      return res.status(503).json({ error: "This action is temporarily unavailable. Please try again shortly." });
     }
-
-    const bucket = rateBuckets.get(key);
-    if (!bucket || bucket.resetAt <= now) {
-      rateBuckets.set(key, { count: 1, resetAt: now + options.windowMs });
-      return next();
-    }
-
-    bucket.count += 1;
-    if (bucket.count > options.max) {
-      res.setHeader("Retry-After", Math.ceil((bucket.resetAt - now) / 1000).toString());
-      return res.status(429).json({ error: "Too many requests. Please try again later." });
-    }
-
-    return next();
+    structuredLog("info", "abuse_rate_limit_exceeded", { scope: options.keyPrefix, source: result.source });
+    return res.status(429).json({ error: "Too many requests. Please try again later." });
   };
 }
 
@@ -3694,9 +3723,10 @@ async function startServer() {
   };
 
 
-  const processDueSalesMessages = (limit = 40) => runSalesDelivery({
+  const processDueSalesMessages = (limit = 40, messageIds?: string[]) => runSalesDelivery({
     db: supabaseAdmin,
     limit,
+    messageIds,
     send: async (message) => {
       const unsubscribeUrl = `${publicAppUrl()}/api/public/unsubscribe/${message.unsubscribe_token}`;
       // Approved text is authoritative; a previous HTML draft must not override edits.
@@ -6969,8 +6999,22 @@ async function startServer() {
   );
   app.all("/api/portfolio-leads", portfolioLeadCors, (_req, res) => res.status(405).json({ error: "Method not allowed" }));
 
+  // Newsletter-specific limits protect the public form from unsolicited email
+  // amplification without throttling legitimate business preview enquiries.
+  const newsletterIpLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, max: 5, keyPrefix: "newsletter-ip-v1",
+    key: (req) => getClientIp(req),
+  });
+  const newsletterAddressLimiter = rateLimit({
+    windowMs: 24 * 60 * 60 * 1000, max: 3, keyPrefix: "newsletter-address-v1",
+    key: (req) => crypto.createHash("sha256").update(String(req.body?.email || "").trim().toLowerCase()).digest("hex"),
+  });
   app.post(
     "/api/platform-leads",
+    (req, res, next) => req.body?.leadType === "newsletter_opt_in"
+      ? newsletterIpLimiter(req, res, next) : next(),
+    (req, res, next) => req.body?.leadType === "newsletter_opt_in"
+      ? newsletterAddressLimiter(req, res, next) : next(),
     rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: "platform-leads-burst-v3" }),
     rateLimit({
       windowMs: 60 * 60 * 1000,
@@ -7012,6 +7056,7 @@ async function startServer() {
           turnstileToken: z.string().trim().max(4096).optional().nullable(),
           website: z.string().trim().max(200).optional().nullable(),
           marketingConsent: z.boolean().optional().default(false),
+          recipientType: z.enum(["business", "individual"]).optional(),
           firstTouch: z.record(z.string(), z.any()).optional(),
           lastTouch: z.record(z.string(), z.any()).optional(),
         }),
@@ -7048,6 +7093,7 @@ async function startServer() {
         turnstileToken,
         website: honeypot,
         marketingConsent,
+        recipientType,
         firstTouch,
         lastTouch,
       } = leadBody;
@@ -7069,6 +7115,39 @@ async function startServer() {
               ? "Preview protection is temporarily unavailable."
               : "Please complete the human verification and try again.",
           });
+        }
+      }
+
+      if (leadType === "newsletter_opt_in") {
+        if (marketingConsent !== true) {
+          return res.status(400).json({ success: false, message: "Explicit marketing consent is required to subscribe." });
+        }
+        if (!isSupportedNewsletterMarket(country) || !["business", "individual"].includes(recipientType || "")) {
+          return res.status(422).json({ success: false, message: "Select your country and recipient type before subscribing." });
+        }
+        try {
+          if (await isSalesSuppressed(supabaseAdmin, normalizeSalesEmail(email))) {
+            return res.status(409).json({ success: false, message: "This email has opted out of marketing. Contact support if you wish to change your preferences." });
+          }
+          // Repeated clicks or retries cannot create fresh nurture series.
+          const { data: previous, error: lookupError } = await supabaseAdmin.from("leads")
+            .select("id,marketing_consent").ilike("email", exactEmailPattern(email))
+            .contains("raw_fields", { leadType: "newsletter_opt_in" })
+            .order("created_at", { ascending: false }).limit(1).maybeSingle();
+          if (lookupError) throw lookupError;
+          if (previous?.id) {
+            if (previous.marketing_consent !== true) {
+              return res.status(409).json({ success: false, message: "The previous subscription was withdrawn. Contact support to review your preferences." });
+            }
+            const { error: queueError } = await supabaseAdmin.from("sales_messages")
+              .upsert(buildInboundNewsletterMessages({ email, leadId: previous.id, sourcePage }), { onConflict: "idempotency_key", ignoreDuplicates: true });
+            if (queueError) throw queueError;
+            // An existing subscription is already scheduled; do not resend a
+            // welcome to an address simply because the user submits twice.
+            return res.status(200).json({ success: true, leadId: previous.id, reused: true });
+          }
+        } catch {
+          return res.status(503).json({ success: false, message: "Subscription processing is temporarily unavailable." });
         }
       }
 
@@ -7114,13 +7193,18 @@ async function startServer() {
       const explicitConsent = {
         marketing_consent: marketingConsent === true,
         consent_timestamp: optedInAt,
-        consent_text: marketingConsent ? "Optional checkbox: send me occasional website-improvement tips and relevant Bennie Studio offers; unsubscribe at any time." : null,
+        consent_text: marketingConsent ? (leadType === "newsletter_opt_in" ? INBOUND_NEWSLETTER_CONSENT : "Optional checkbox: send me occasional website-improvement tips and relevant Bennie Studio offers; unsubscribe at any time.") : null,
       };
       const payloads: Record<string, any>[] = [
         {
           name,
           email,
           ...explicitConsent,
+          ...(leadType === "newsletter_opt_in" ? {
+            contact_jurisdiction: country,
+            contact_recipient_type: recipientType,
+            contact_lawful_basis: "consent",
+          } : {}),
           phone,
           message: salesMessage || "Free website preview requested from landing page.",
           source_platform: "bennie_studio",
@@ -7150,8 +7234,9 @@ async function startServer() {
             intent: leadType || "free_website_preview",
             marketingConsent: marketingConsent === true,
             marketingConsentEmail: marketingConsent ? email.trim().toLowerCase() : null,
-            marketingConsentSource: marketingConsent ? "Optional unchecked-by-default preview form checkbox" : null,
+            marketingConsentSource: marketingConsent ? (leadType === "newsletter_opt_in" ? "Explicit homepage newsletter checkbox, unchecked by default" : "Optional unchecked-by-default preview form checkbox") : null,
             marketingConsentAt: optedInAt,
+            ...(leadType === "newsletter_opt_in" ? { recipientType, newsletterVersion: "bs-inbound-opt-in-v1" } : {}),
           },
           status: "new",
           ...automationSnapshot,
@@ -7187,7 +7272,8 @@ async function startServer() {
         let lead: any = null;
         let lastError: any = null;
 
-        for (const payload of payloads) {
+        // Never fall back to a schema that silently drops opt-in consent.
+        for (const payload of (leadType === "newsletter_opt_in" ? payloads.slice(0, 1) : payloads)) {
           const { data, error } = await supabaseAdmin
             .from("leads")
             .insert(payload)
@@ -7205,8 +7291,23 @@ async function startServer() {
 
         if (lastError) throw lastError;
 
+        if (leadType === "newsletter_opt_in") {
+          if (!lead?.id) throw new Error("SUBSCRIPTION_NOT_SAVED");
+          const messages = buildInboundNewsletterMessages({ email, leadId: lead.id, sourcePage });
+          const { error: queueError } = await supabaseAdmin.from("sales_messages")
+            .upsert(messages, { onConflict: "idempotency_key", ignoreDuplicates: true });
+          if (queueError) throw queueError;
+          // Deliver the requested checklist promptly, without waiting for the
+          // once-daily cron. The existing worker verifies consent, suppression
+          // and provider status, and atomically claims the exact message once.
+          if (process.env.VERCEL_ENV === "production" && messages[0]?.id) {
+            waitUntil(processDueSalesMessages(1, [String(messages[0].id)])
+              .catch((error) => structuredLog("warn", "newsletter_welcome_delivery_deferred", { reason: safeErrorMessage(error) })));
+          }
+        }
+
         await supabaseAdmin.from("tracking_events").insert({
-          event_type: "platform_lead_submitted",
+          event_type: leadType === "newsletter_opt_in" ? "newsletter_opt_in" : "platform_lead_submitted",
           source_platform: "bennie_studio_public",
           source_page: sourcePage || req.get("referer") || "/",
           metadata: {
@@ -7228,7 +7329,7 @@ async function startServer() {
         });
 
         await supabaseAdmin.from("analytics_events").insert({
-          event_type: "platform_preview_request",
+          event_type: leadType === "newsletter_opt_in" ? "newsletter_opt_in" : "platform_preview_request",
           page_path: sourcePage || req.get("referer") || "/",
           metadata: {
             leadId: lead?.id,
@@ -7246,7 +7347,7 @@ async function startServer() {
           if (error) console.warn("Platform lead analytics log failed:", error.message);
         });
 
-        await supabaseAdmin.from("sales_tasks").insert({
+        if (leadType !== "newsletter_opt_in") await supabaseAdmin.from("sales_tasks").insert({
           lead_id: lead?.id,
           title: "Respond to new website enquiry",
           task_type: "new_lead_response",
@@ -7257,7 +7358,7 @@ async function startServer() {
           if (error) console.warn("Platform lead sales task skipped:", error.message);
         });
 
-        res.status(201).json({ success: true, leadId: lead?.id });
+        res.status(201).json({ success: true, leadId: lead?.id, ...(leadType === "newsletter_opt_in" ? { subscribed: true } : {}) });
       } catch (err: any) {
         console.error("Platform lead submission error:", err);
         res.status(500).json({ success: false, message: "Failed to submit preview request" });
@@ -9670,7 +9771,13 @@ async function startServer() {
     try {
       const { data: message, error } = await supabaseAdmin.from("sales_messages").select("recipient").eq("unsubscribe_token", req.params.token).maybeSingle();
       if (error) throw error;
-      if (message?.recipient) await suppressSalesRecipient(supabaseAdmin, message.recipient, "opt_out", "email_unsubscribe", new Date().toISOString());
+      if (message?.recipient) {
+        await suppressSalesRecipient(supabaseAdmin, message.recipient, "opt_out", "email_unsubscribe", new Date().toISOString());
+        const { error: revokeError } = await supabaseAdmin.from("leads")
+          .update({ marketing_consent: false })
+          .ilike("email", exactEmailPattern(message.recipient)).eq("marketing_consent", true);
+        if (revokeError) throw revokeError;
+      }
       res.setHeader("Cache-Control", "no-store");
       return res.type("html").send("<!doctype html><html><body style='font-family:system-ui;padding:60px'><main style='max-width:560px;margin:auto'><h1>You have been unsubscribed.</h1><p>Bennie Studio will not send further sales follow-ups to this address.</p></main></body></html>");
     } catch {

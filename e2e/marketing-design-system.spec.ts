@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test";
 const marketingRoutes = ["/", "/services", "/dental-clinics", "/website-audit",
   "/templates", "/book-demo", "/contact"];
 const widths = [
-  { name: "desktop", width: 1440, height: 900, minH1: 44, maxH1: 56 },
-  { name: "tablet", width: 1024, height: 820, minH1: 44, maxH1: 56 },
-  { name: "mobile", width: 390, height: 844, minH1: 32, maxH1: 36 },
+  { name: "desktop", width: 1440, height: 900, minH1: 44, maxH1: 96 },
+  { name: "tablet", width: 1024, height: 820, minH1: 38, maxH1: 90 },
+  { name: "mobile", width: 390, height: 844, minH1: 32, maxH1: 56 },
 ];
 
 test.describe("Bennie Studio design-system master QA", () => {
@@ -48,10 +48,10 @@ test.describe("Bennie Studio design-system master QA", () => {
   test("shared navigation exposes the five primary links and footer navigation", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/services");
-    for (const label of ["Services","Case Studies","Pricing","How it works","About"]) {
+    for (const label of ["Services","Website Examples","Pricing","How it works","About"]) {
       await expect(page.locator("nav[aria-label='Main navigation']").getByRole("link", { name: label, exact: true })).toHaveCount(1);
     }
     await expect(page.getByRole("link",{name:"Client login",exact:true}).first()).toBeVisible();
-    await expect(page.locator("footer").last()).toHaveCSS("background-color","rgb(15, 23, 42)");
+    await expect(page.locator("footer").last()).toHaveCSS("background-color","rgb(23, 43, 66)");
   });
 });

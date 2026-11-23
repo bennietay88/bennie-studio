@@ -18,6 +18,7 @@ import {
 } from "../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { ConversionHomepage } from "./ConversionHomepage";
+import "../styles/homepageEditorialPolish.css";
 import { usePublishedPlatformCms } from "../lib/platformSiteCms";
 import { PlatformCmsSections } from "./PlatformCmsSections";
 import { getPublicSiteConfig } from "../lib/publicSiteConfigCache";
@@ -110,18 +111,16 @@ export default function BrandLedLandingPage() {
   const managed = products.find((product) => product.slug === "managed-website") || COMMERCIAL_FALLBACK_PRODUCTS[0];
   const growth = products.find((product) => product.slug === "website-growth") || COMMERCIAL_FALLBACK_PRODUCTS[1];
   const partner = products.find((product) => product.slug === "growth-partner") || COMMERCIAL_FALLBACK_PRODUCTS[2];
-  const priced = [profilePlan, managed, growth, partner].map((product) => ({
+  const priced = [managed, growth].map((product) => ({
     product,
     price: getCommercialPrice(product, market),
   }));
-  const planBestFor = ["Professional identity", "First business website", "More business enquiries", "Hands-on growth support"];
+  const planBestFor = ["A clear business presence", "More enquiries and sustained growth"];
   // Three differentiators per plan, rather than repeating the same comparison
   // labels and terms in every card. Full contractual scope stays on /pricing.
   const planHighlights = [
-    ["3–5 professional profile pages", "Contact and social links", "1 small monthly content update"],
     ["Up to 5 core pages", "Clear enquiry paths", "Routine managed updates"],
     ["Conversion improvements", "Local SEO expansion", "Monthly growth support"],
-    ["Priority growth support", "Campaign landing pages", "Ongoing performance guidance"],
   ] as const;
 
   const go = (path: string, label: string) => {
@@ -199,27 +198,28 @@ export default function BrandLedLandingPage() {
         ) : null}
 
         <section id="plans" className="c26-pricing-section scroll-mt-24 border-y border-[#dfe2ea] bg-white">
-          <div className="brand-shell brand-section">
+          <div className="brand-shell brand-section c26-pricing-shell">
             <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-end">
               <div>
                 <p className="brand-kicker">Simple, transparent pricing</p>
-                <h2 className="mt-4">A managed website for every stage.</h2>
+                <h2 className="mt-4">Choose the right level of website care.</h2>
               </div>
-              <p className="max-w-lg text-sm leading-6 text-[#526071]">Choose the level of website support that fits your next stage.</p>
+              <p className="max-w-lg text-sm leading-6 text-[#526071]">Start with a professionally managed website or add ongoing growth support. See all four plans on the pricing page.</p>
             </div>
-            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {pricingError && <p role="status" className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">Live USD prices are temporarily unavailable. Explore the plan differences and request confirmed pricing before payment.</p>}
+            <div className="c26-pricing-featured mt-7 grid gap-5 md:grid-cols-2">
                   {priced.map(({ product, price }, index) => {
                     const isRecommended = product.slug === "website-growth";
                     const priceReady = !pricingLoading && !pricingError && Boolean(price);
                     return (
-                      <article key={product.slug} className={isRecommended ? "flex h-full flex-col rounded-2xl border border-[#0F172A] bg-[#0F172A] p-6 text-white shadow-sm" : "flex h-full flex-col rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm"}>
+                      <article key={product.slug} className={isRecommended ? "flex h-full flex-col rounded-2xl border border-[#0F172A] bg-[#0F172A] p-7 text-white shadow-sm" : "flex h-full flex-col rounded-2xl border border-[#E2E8F0] bg-white p-7 shadow-sm"}>
                         <div>
                           <p className={isRecommended ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{isRecommended ? "Recommended" : planBestFor[index]}</p>
                           <h3 className={isRecommended ? "mt-2 !text-white" : "mt-2"}>{product.name}</h3>
                         </div>
-                        <p className={isRecommended ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-3xl font-semibold"}>{priceReady ? formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD") : pricingLoading ? "Checking…" : "Ask for quote"}<span className={isRecommended ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span></p>
-                        <p className={isRecommended ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>+ {priceReady ? formatCommercialMoney(price?.setupFee, price?.currency || "USD") : "—"} one-time setup</p>
-                        <p className={isRecommended ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>First payment: {!priceReady || price?.monthlyPrice == null ? "By quote" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}</p>
+                        <p className={isRecommended ? (priceReady ? "mt-7 text-3xl font-semibold !text-white" : "mt-7 text-lg font-semibold !text-white") : (priceReady ? "mt-7 text-3xl font-semibold" : "mt-7 text-lg font-semibold")}>{priceReady ? formatCommercialMoney(price?.monthlyPrice, price?.currency || "USD") : pricingLoading ? "Checking rates…" : "Price unavailable"}{priceReady && <span className={isRecommended ? "text-sm font-normal !text-white/75" : "text-sm font-normal text-[#5f6673]"}>/month</span>}</p>
+                        <p className={isRecommended ? "mt-1 text-sm !text-white/75" : "mt-1 text-sm text-[#5f6673]"}>{priceReady ? `+ ${formatCommercialMoney(price?.setupFee, price?.currency || "USD")} one-time setup` : "Setup price needs confirmation"}</p>
+                        <p className={isRecommended ? "mt-2 text-sm font-semibold !text-white" : "mt-2 text-sm font-semibold text-[#141821]"}>First payment: {!priceReady || price?.monthlyPrice == null ? "Not available" : formatCommercialMoney((price.setupFee || 0) + price.monthlyPrice, price.currency)}</p>
                         <div className={isRecommended ? "mt-5 flex-1 border-t border-white/25 pt-5" : "mt-5 flex-1 border-t border-[#E2E8F0] pt-5"}>
                           <ul className="space-y-3">
                             {planHighlights[index].map((highlight) => (
@@ -237,8 +237,15 @@ export default function BrandLedLandingPage() {
                     );
                   })}
             </div>
-            <p className="mt-6 text-center text-xs leading-6 text-[#687386]">
-              Managed hosting and maintenance are included with {formatCommitmentLabel(getMinimumTermMonths(priced[0]?.price)).toLowerCase()} billing. Prices before tax.
+            <div className="c26-pricing-alternatives mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#d5deea] bg-[#f5f8fc] px-5 py-4">
+              <p className="m-0 text-base leading-7 text-[#23384e]">Need a personal profile or dedicated growth partnership? Those options are also available.</p>
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                <Link to="/personal-profile" className="font-semibold text-[#164189] underline underline-offset-4">Personal Profile</Link>
+                <Link to="/pricing#plan-growth-partner" className="font-semibold text-[#164189] underline underline-offset-4">Growth Partner</Link>
+              </div>
+            </div>
+            <p className="mt-5 text-center text-sm leading-6 text-[#475569]">
+              Each plan shows its setup fee, billing terms and initial commitment before payment. Prices before tax.
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm font-semibold">
               <Link to="/pricing" className="text-[#1D4ED8] underline underline-offset-4 hover:text-[#1741ed]">Compare full plan scope</Link>
@@ -248,8 +255,8 @@ export default function BrandLedLandingPage() {
         </section>
 
 
-        <section className="brand-shell brand-section">
-          <div className="grid gap-10 lg:grid-cols-12">
+        <section className="brand-shell brand-section c26-faq-section">
+          <div className="grid gap-8 lg:grid-cols-12">
             <div className="lg:col-span-4">
               <p className="brand-kicker">Common questions</p>
               <h2 className="mt-4">Questions serious buyers ask.</h2>
@@ -267,10 +274,11 @@ export default function BrandLedLandingPage() {
           </div>
         </section>
 
-        <section className="c26-close" aria-labelledby="c26-close-title"><div className="brand-shell"><div><p className="!text-white/75 text-xs font-bold uppercase tracking-[.15em]">Ready when you are</p><h2 id="c26-close-title">{pageCms?.finalCtaTitle || <>Ready for a website that <em>brings more enquiries?</em></>}</h2></div><div><p>{pageCms?.finalCtaDescription || "See a free, preliminary direction for your business. No card required and no obligation to buy."}</p><button type="button" onClick={() => go(pageCms?.primaryCtaHref || "/generate-preview", "Homepage closing free preview")}>{pageCms?.primaryCtaLabel || "Get your free website preview"} <ArrowRight size={18} aria-hidden="true" /></button><Link to="/book-demo" className="mt-3 inline-block text-sm font-semibold text-white underline underline-offset-4">Prefer to talk first? Book a call</Link></div></div></section>
+        <section className="c26-close" aria-labelledby="c26-close-title"><div className="brand-shell"><div><p className="!text-white/75 text-xs font-bold uppercase tracking-[.15em]">Ready when you are</p><h2 id="c26-close-title">{pageCms?.finalCtaTitle || <>Ready for a website that brings more enquiries?</>}</h2></div><div><p>{pageCms?.finalCtaDescription || "See a free, preliminary direction for your business. No card required and no obligation to buy."}</p><button type="button" onClick={() => go(pageCms?.primaryCtaHref || "/generate-preview", "Homepage closing free preview")}>{pageCms?.primaryCtaLabel || "Get your free website preview"} <ArrowRight size={18} aria-hidden="true" /></button><Link to="/book-demo" className="mt-3 inline-block text-sm font-semibold text-white underline underline-offset-4">Prefer to talk first? Book a call</Link></div></div></section>
       </main>
 
       <PublicSiteFooter
+        newsletterInFooter
         tagline="A managed website system for service businesses that need stronger trust, clearer enquiries and ongoing improvement."
         email={platformSettings?.supportEmail}
         onManageCookies={() => setManageCookies(true)}

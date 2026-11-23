@@ -1,0 +1,59 @@
+/* Studio Field Notes: a restrained editorial system shared across public pages. */
+
+/* Only the Field Notes controls use these tokens. Global typography and
+ * surface overrides previously leaked into dark sections and client previews. */
+.brand-public { --sfn-paper:#f8f9fc; --sfn-ink:#162337; --sfn-muted:#3e4d60; --sfn-blue:#2446b4; --sfn-line:#bac4d2; }
+.brand-public :is(a,button,input,select,textarea):focus-visible { outline:3px solid #edac63; outline-offset:3px; }
+.brand-public .sfn-home .c26-hero-grid { gap:clamp(2rem,5vw,5rem); }
+.brand-public .sfn-preview { padding:clamp(1.5rem,4vw,3rem); background:#f0f3f9; color:var(--sfn-ink); }
+.sfn-preview-head { display:flex; align-items:end; justify-content:space-between; gap:1.5rem; margin-bottom:1.25rem; }
+.sfn-preview-head h2 { margin:.35rem 0; font-size:clamp(1.6rem,3vw,2.5rem); line-height:1.04; }
+.sfn-eyebrow { margin:0; color:var(--sfn-blue); font-size:.82rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; }
+.sfn-caption { margin:.25rem 0 0; color:var(--sfn-muted); }
+.sfn-device-toggle,.sfn-tabs { display:flex; flex-wrap:wrap; gap:.45rem; }
+.sfn-device-toggle button,.sfn-tabs button,.sfn-step-controls button { display:inline-flex; align-items:center; gap:.5rem; min-height:2.75rem; padding:.55rem .9rem; border:1px solid var(--sfn-line); background:transparent; color:var(--sfn-ink); font:inherit; cursor:pointer; }
+.sfn-device-toggle button[aria-pressed=true],.sfn-tabs button[aria-selected=true] { border-color:var(--sfn-ink); background:var(--sfn-ink); color:white; }
+.sfn-tabs { margin-bottom:.75rem; }
+.sfn-frame-wrap { width:100%; height:clamp(370px,50vw,650px); margin:auto; overflow:hidden; background:white; border:1px solid var(--sfn-line); transition:width .25s ease; }
+.sfn-frame-mobile { width:min(390px,100%); height:650px; border-radius:24px; padding:10px; box-shadow:0 18px 45px #2222; }
+.sfn-frame-wrap iframe { display:block; width:100%; height:100%; border:0; background:white; }
+.sfn-disclaimer { margin:.75rem 0 0; color:var(--sfn-muted); font-size:.9rem; line-height:1.55; }
+.sfn-timeline { display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr); gap:clamp(1.5rem,5vw,4.5rem); margin-top:2rem; }
+.sfn-timeline-track { display:flex; flex-direction:column; border-top:1px solid var(--sfn-line); }
+.sfn-timeline-track button { display:grid; grid-template-columns:3rem 1fr; align-items:center; gap:1rem; min-height:4.1rem; padding:.8rem .4rem; text-align:left; border:0; border-bottom:1px solid var(--sfn-line); background:transparent; color:var(--sfn-muted); cursor:pointer; font:inherit; }
+.sfn-timeline-track button span { color:var(--sfn-blue); font-family:'Playfair Display',Georgia,serif; font-size:1.5rem; }
+.sfn-timeline-track button[aria-selected=true] { color:var(--sfn-ink); }
+.sfn-timeline-track button[aria-selected=true] b { text-decoration:underline; text-decoration-color:var(--sfn-blue); text-underline-offset:.35em; }
+.sfn-step-panel { min-height:18rem; padding:clamp(1.5rem,4vw,3rem); background:#f0f3f9; }
+.sfn-step-panel h3 { margin:.55rem 0 .75rem; font-size:clamp(1.6rem,3vw,2.5rem); line-height:1.05; }
+.sfn-step-panel>p:not(.sfn-eyebrow) { max-width:40rem; color:#424a47; line-height:1.7; }
+.sfn-step-panel small { display:block; color:var(--sfn-muted); line-height:1.6; }
+.sfn-step-controls { display:flex; justify-content:space-between; align-items:center; margin-top:2rem; padding-top:1rem; border-top:1px solid var(--sfn-line); font-size:.875rem; }
+.sfn-step-controls button { min-height:2.5rem; padding:.4rem .65rem; }
+.sfn-mobile-cta { display:none; }
+
+@media(max-width:767px) {
+ .brand-public .sfn-home .c26-hero-grid { grid-template-columns:1fr; }
+ .sfn-preview-head { align-items:flex-start; flex-direction:column; }
+ .sfn-frame-wrap { height:520px; }
+ .sfn-frame-mobile { height:650px; }
+ .sfn-timeline { grid-template-columns:1fr; }
+ .sfn-timeline-track { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.3rem; border:0; }
+ .sfn-timeline-track button { grid-template-columns:2rem 1fr; min-height:3.6rem; padding:.5rem; border:1px solid var(--sfn-line); font-size:.88rem; }
+ .sfn-step-panel { min-height:0; }
+ .sfn-mobile-cta { position:fixed; z-index:45; right:0; bottom:0; left:0; display:grid; grid-template-columns:1fr auto; align-items:center; gap:.8rem; padding:.7rem max(1rem,env(safe-area-inset-left)) calc(.7rem + env(safe-area-inset-bottom)); border-top:1px solid #d6d7d0; background:#f4f1e9; box-shadow:0 -8px 24px #1111; }
+ .sfn-mobile-cta a:first-child { display:flex; min-height:2.8rem; align-items:center; justify-content:center; padding:.4rem .75rem; background:var(--sfn-blue); color:white; text-decoration:none; font-size:1rem; font-weight:700; }
+ .sfn-mobile-cta a:last-child { color:var(--sfn-ink); font-size:.9rem; font-weight:700; white-space:nowrap; }
+ body:has(.sfn-mobile-cta) { padding-bottom:4rem; }
+}
+/* P2: honour motion preferences on public marketing pages without silently
+ * disabling animations in the authenticated editor or customer websites. */
+@media(prefers-reduced-motion:reduce) {
+ .brand-public, .brand-public *, .brand-public *::before, .brand-public *::after {
+   scroll-behavior:auto!important;
+   animation-duration:.01ms!important;
+   animation-iteration-count:1!important;
+   transition-duration:.01ms!important;
+ }
+}
+

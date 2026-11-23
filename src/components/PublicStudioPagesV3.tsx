@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { StudioProcessTimeline, WebsitePreviewExplorer } from "./StudioFieldNotes";
 import {
   ArrowRight,
   BadgeCheck,
@@ -467,7 +468,7 @@ export function ProcessStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
     {
       number: "03",
       title: "Confirm scope and pricing",
-      description: "Compare the managed plans, review the setup and recurring fees, and agree on pages, content, revisions and the minimum service commitment.",
+      description: "Confirm your pages, content, revisions and monthly plan. Your first payment covers any setup fee and month one; check the plan's minimum commitment before ordering.",
       detail: "You know the agreed deliverables and costs before the paid build begins.",
     },
     {
@@ -494,7 +495,7 @@ export function ProcessStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
               <Link to={cmsPage?.primaryCtaHref || "/generate-preview"} className="inline-flex min-h-12 items-center justify-center gap-2 bg-[#1741ed] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1034c0]">{cmsPage?.primaryCtaLabel || "Get your free website preview"} <ArrowRight className="h-4 w-4" /></Link>
               <Link to="/pricing" className="inline-flex min-h-12 items-center gap-2 text-sm font-semibold text-[#18283c] underline underline-offset-4">Compare plans <ArrowRight className="h-4 w-4" /></Link>
             </div>
-            <p className="mt-5 text-xs leading-6 text-[#566577]">No card required for the initial preview. Delivery scope and commitments are confirmed before ordering.</p>
+            <p className="mt-5 text-xs leading-6 text-[#566577]">No card required for the initial preview. Your website launches after the required review and approval steps; scope and pricing are confirmed before ordering.</p>
           </div>
           <div className="overflow-hidden bg-[#172b89] p-7 text-white sm:p-10">
             <p className="max-w-sm text-[clamp(2rem,3vw,3.4rem)] font-bold leading-[1.08] tracking-[-.06em] !text-white">Clarity at <span className="font-serif italic font-normal">every stage.</span></p>
@@ -507,15 +508,10 @@ export function ProcessStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
       <section className="brand-shell py-16 lg:py-24">
         <div className="grid gap-7 lg:grid-cols-[.8fr_1.2fr] lg:items-end">
           <div><h2 className="!text-[#15191f]">The five steps.</h2></div>
-          <p className="max-w-xl text-base leading-7 text-[#566273]">Each step has a specific decision or deliverable, so you know what happens next without navigating multiple overlapping workflows.</p>
+          <p className="max-w-xl text-base leading-7 text-[#566273]">Follow the project from your first brief to ongoing website care. Select a step to see what happens and when.</p>
         </div>
-        <div className="mt-10 border-t border-[#ced5e1]">
-          {steps.map((step)=><article key={step.number} className="grid gap-4 border-b border-[#ced5e1] py-7 md:grid-cols-[4rem_minmax(0,1fr)_minmax(0,.8fr)] md:gap-8 md:py-9">
-            <span className="font-serif text-4xl italic text-[#1741ed]">{step.number}</span>
-            <div><h3 className="!text-[clamp(1.35rem,2vw,2rem)] !tracking-[-.035em] !text-[#15191f]">{step.title}</h3><p className="mt-3 max-w-xl text-sm leading-7 text-[#546273]">{step.description}</p></div>
-            <p className="border-l-2 border-[#1741ed] pl-4 text-sm leading-7 text-[#455568]">{step.detail}</p>
-          </article>)}
-        </div>
+        <StudioProcessTimeline steps={steps} />
+        <p className="mt-6 max-w-3xl text-sm leading-6 text-[#566273]">When you choose a plan, the first payment is the one-time setup fee plus your first month. Plans are billed monthly, with any minimum commitment and cancellation terms shown before checkout. The free preview requires no payment card.</p>
       </section>
       <section className="border-y border-[#d9dfeb] bg-[#eef1f7]">
         <div className="brand-shell grid gap-6 py-12 lg:grid-cols-[1fr_1.15fr] lg:items-center">
@@ -566,15 +562,17 @@ export function WorkStudioPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
             <Link to="/generate-preview" className="c27-quiet">Preview a site for my business <ArrowRight className="h-4 w-4"/></Link>
           </div>
         </div>
-        <div className="grid min-w-0 grid-cols-[1.25fr_.75fr] items-center gap-3" aria-label="Featured design examples">
+        <div className="sfn-portfolio-hero-art min-w-0" aria-label="Featured design examples">
           {heroItems.map((item, index) => <Link key={item.slug} to={"/case-studies/showcase/" + item.slug}
-            className={`block min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl ${index === 1 ? "translate-y-8" : ""}`}>
+            className={`block min-w-0 overflow-hidden border border-slate-200 bg-white shadow-xl ${index === 1 ? "sfn-portfolio-offset" : ""}`}>
             <PortfolioShowcaseVisual item={item} compact priority={index === 0}/>
-            <div className="p-3"><p className="truncate text-xs font-bold text-slate-900">{item.title}</p><p className="mt-1 truncate text-[11px] text-slate-500">{item.category}</p></div>
+            <div className="sfn-portfolio-hero-label"><p className="truncate text-sm font-bold text-slate-900">{item.title}</p><p className="mt-1 text-xs text-slate-500">{item.category} · Design direction</p></div>
           </Link>)}
         </div>
       </div>
     </section>
+    <section className="sfn-portfolio-intro"><div className="brand-shell grid gap-8 lg:grid-cols-[1.3fr_.7fr] lg:items-end"><div><p className="text-xs font-bold uppercase tracking-widest text-[#e9bc85]">THE COLLECTION / NOT ONE TEMPLATE</p><h2 className="mt-4">Every project has a different personality.</h2></div><div><p>Look beyond the colors. Explore how typography, navigation, imagery, structure and enquiry flow respond to different businesses. All examples are clearly labelled studio concepts.</p><a href="#industry-examples" className="mt-6 inline-flex items-center gap-2 border-b border-current pb-2 text-sm font-bold">Explore the collection <ArrowRight size={16}/></a></div></div></section>
+    <section className="brand-shell py-14 lg:py-20"><WebsitePreviewExplorer /></section>
     <section id="industry-examples" className="border-y border-[#dfe3e8] bg-[#f5f6f8]">
       <div className="brand-shell brand-section">
         <div className="mb-7 grid gap-5 lg:grid-cols-[1fr_.7fr] lg:items-end">

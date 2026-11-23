@@ -1,0 +1,387 @@
+/*
+ * Bennie Studio / public readability system.
+ * This layer intentionally loads after the 2026 creative styles. It makes the
+ * page theme legible without changing the editor, authenticated app or billing.
+ * Reference principles: clear Wix-like product demonstration, high-contrast
+ * Hostinger-like reading hierarchy, and prominent conversion actions.
+ */
+.brand-public {
+  --sfn-readable-ink:#152235;
+  --sfn-readable-muted:#3d4e61;
+  --sfn-readable-subtle:#4b5d70;
+  --sfn-readable-paper:#fafbfd;
+  --sfn-readable-panel:#eff3f9;
+  --sfn-readable-line:#cbd5e2;
+  --sfn-readable-blue:#1946c3;
+  --sfn-readable-night:#14263a;
+}
+.brand-public :is(a,button,summary,[role="tab"]):focus-visible {
+  outline:3px solid #eea34e !important;
+  outline-offset:3px;
+}
+/* Confine contrast fixes to marketing surfaces. Never recolor the miniature
+ * previews' own themes or the private WebsiteRenderer. */
+.brand-public .sfn-home .sfn-hero {
+  background:#f8fafc !important;
+  background-image:none !important;
+  background-color:#f8fafc !important;
+  color:var(--sfn-readable-ink);
+  border-bottom:1px solid var(--sfn-readable-line);
+}
+.brand-public .sfn-home .sfn-hero::before {
+  background:radial-gradient(circle,#d6e8ff 0%,#edf5ff 48%,transparent 72%);
+  opacity:.75;
+}
+.brand-public .sfn-home .sfn-hero .sfn-hero-eyebrow {
+  color:#37526e !important;
+  font-size:12px !important;
+  letter-spacing:.09em;
+}
+.brand-public .sfn-home .sfn-hero .sfn-hero-dot {background:#2563eb;box-shadow:0 0 0 5px #2563eb1f;}
+.brand-public .sfn-home .sfn-hero h1 {
+  color:#112038 !important;
+  max-width:12ch;
+  font-size:clamp(3rem,5vw,6rem) !important;
+  line-height:1.03 !important;
+  letter-spacing:-.06em !important;
+}
+.brand-public .sfn-home .sfn-hero h1 em {color:#224bbb !important;font-family:Georgia,serif;font-weight:400;}
+.brand-public .sfn-home .sfn-hero .c26-intro {
+  color:#384d63 !important;
+  font-size:clamp(1.05rem,1.28vw,1.25rem)!important;
+  line-height:1.65 !important;
+  max-width:36rem;
+}
+.brand-public .sfn-home .sfn-hero .c26-quiet-link { color:#163a78 !important; }
+.brand-public .sfn-home .sfn-hero .c26-assurances {
+  color:#43556a;
+  border-top-color:#cad5e1;
+  font-size:14px;
+}
+.brand-public .sfn-home .sfn-hero .c26-assurances li {font-size:13px!important;}
+.brand-public .sfn-home .sfn-hero .c26-assurances svg {color:#244e80;border-color:#244e80;}
+.brand-public .sfn-home .sfn-hero .c26-button-blue {
+  background:#1946c3 !important;
+  border-color:#1946c3;
+  color:#fff!important;
+  box-shadow:0 12px 26px -18px #1946c388;
+}
+.brand-public .sfn-home .sfn-hero .c26-button-blue:hover { background:#10338e!important; }
+.brand-public .sfn-home .sfn-hero .c26-button-blue:focus-visible {outline-color:#b35c12!important;}
+/* The interactive hero art remains separately art directed, with a crisp
+   white preview on a dark foundation. Its text is never inherited from hero. */
+.brand-public .sfn-signature {border:1px solid #27415a;border-radius:13px;background:#13263c;overflow:hidden;box-shadow:0 30px 60px -42px #14294488;color:#fff;}
+.brand-public .sfn-signature-top {font-size:11px;letter-spacing:.08em;color:#e4eef9;background:#10253a;border-bottom-color:#44627e;}
+.brand-public .sfn-signature-canvas {background:linear-gradient(145deg,#1c3955,#31577a);min-height:460px;}
+.brand-public .sfn-signature-care {background:linear-gradient(145deg,#13524e,#44796a);}
+.brand-public .sfn-signature-advisory {background:linear-gradient(145deg,#2a315d,#4e587c);}
+.brand-public .sfn-signature-window {background:#fff;border-radius:4px;box-shadow:0 25px 55px #07172588;transform:rotate(-1.1deg);}
+.brand-public .sfn-signature-care .sfn-signature-window {transform:rotate(.8deg);}
+.brand-public .sfn-signature-advisory .sfn-signature-window {transform:rotate(-.4deg);}
+.brand-public .sfn-signature-browser {color:#344b60;font-size:11px;letter-spacing:0;padding:.65rem .65rem .8rem;}
+.brand-public .sfn-signature-stamp {background:#102840e3;box-shadow:0 4px 20px #08172866;font-size:11px;}
+.brand-public .sfn-signature-bottom {background:#122a42;border-top-color:#466078;}
+.brand-public .sfn-signature-kicker {font-size:12px;font-weight:750;letter-spacing:.1em;color:var(--sfn-spot);}
+.brand-public .sfn-signature-story strong {color:#fff;font-size:clamp(1.5rem,2vw,2rem);line-height:1.2;}
+.brand-public .sfn-signature-description {font-size:14px;line-height:1.55;color:#dae5f0;max-width:46ch;}
+.brand-public .sfn-signature-story a {font-size:14px;font-weight:750;color:#fff;}
+.brand-public .sfn-signature-controls button {min-width:44px;min-height:44px;font-size:13px;border-color:#91adc3;color:#f1f7ff;}
+.brand-public .sfn-signature-controls button[aria-selected=true] {background:var(--sfn-spot);border-color:var(--sfn-spot);color:#122338;}
+/* Curated examples have a real readable composition, not a tiny 6px
+   thumbnail stretched inside a decorative browser. */
+.brand-public .sfn-concept {
+  --concept-ink:#163047;--concept-bg:#f4f8f9;--concept-tint:#dfebe9;
+  --concept-cta:#153d55;--concept-accent:#266b72;
+  position:relative;overflow:hidden;display:flex;flex-direction:column;
+  width:100%;min-height:350px;background:var(--concept-bg);color:var(--concept-ink);
+  font-family:"Geist Variable",Inter,Arial,sans-serif;text-align:left;
+}
+.brand-public .sfn-concept-renovation-contractor {--concept-ink:#292c28;--concept-bg:#f1eee5;--concept-tint:#b9bdad;--concept-cta:#294533;--concept-accent:#596746;}
+.brand-public .sfn-concept-dental-clinic {--concept-ink:#183e3e;--concept-bg:#f1f9f7;--concept-tint:#d0eae6;--concept-cta:#17615b;--concept-accent:#21635a;}
+.brand-public .sfn-concept-professional-advisory {--concept-ink:#f7f5f0;--concept-bg:#18283b;--concept-tint:#415474;--concept-cta:#efe8d5;--concept-accent:#d8c6a3;}
+.brand-public .sfn-concept-beauty-wellness {--concept-ink:#482f3b;--concept-bg:#f9f0ee;--concept-tint:#e9d1d5;--concept-cta:#6a394f;--concept-accent:#875061;}
+.brand-public .sfn-concept-tuition-centre {--concept-ink:#173754;--concept-bg:#f2f7ff;--concept-tint:#d1e5fc;--concept-cta:#184e8a;--concept-accent:#2469a6;}
+.brand-public .sfn-concept-accounting-firm {--concept-ink:#f6f8fc;--concept-bg:#1a2e45;--concept-tint:#45627e;--concept-cta:#d3e1ef;--concept-accent:#d8e7f6;}
+.brand-public .sfn-concept-nav {display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.15rem 1.35rem;border-bottom:1px solid currentColor;color:var(--concept-ink);border-color:color-mix(in srgb,currentColor 20%,transparent);}
+.brand-public .sfn-concept-brand {font-size:clamp(14px,1.3vw,18px);font-weight:800;line-height:1.3;letter-spacing:-.04em;}
+.brand-public .sfn-concept-menu {font-size:12px;font-weight:700;line-height:1.5;letter-spacing:.015em;}
+.brand-public .sfn-concept-menu-mobile {display:none;font-size:19px;line-height:1;color:var(--concept-ink);}
+.brand-public .sfn-concept-body {display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);min-height:255px;flex:1;}
+.brand-public .sfn-concept-copy {display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:1rem;padding:clamp(1.3rem,3.1vw,2.8rem);min-width:0;}
+.brand-public .sfn-concept-eyebrow {font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--concept-accent);line-height:1.5;}
+.brand-public .sfn-concept-title {font-size:clamp(1.65rem,2.7vw,3.2rem);line-height:1.09;letter-spacing:-.052em;font-weight:750;color:var(--concept-ink);text-wrap:balance;}
+.brand-public .sfn-concept-description {font-size:clamp(13px,1vw,16px);line-height:1.6;color:var(--concept-ink);}
+.brand-public .sfn-concept-cta {display:inline-flex;align-items:center;gap:.65rem;padding:.7rem 1rem;min-height:41px;font-size:13px;font-weight:750;background:var(--concept-cta);color:#fff;}
+.brand-public .sfn-concept-professional-advisory .sfn-concept-cta,
+.brand-public .sfn-concept-accounting-firm .sfn-concept-cta {color:#14263a;}
+.brand-public .sfn-concept-photo {position:relative;display:flex;align-items:stretch;min-height:200px;overflow:hidden;background:var(--concept-tint);}
+.brand-public .sfn-concept-photo img {display:block;width:100%;height:100%;position:absolute;inset:0;object-fit:cover;object-position:center;}
+.brand-public .sfn-concept-finance-art {width:100%;display:flex;flex-direction:column;justify-content:end;padding:1.5rem;background:linear-gradient(130deg,#304f67,#122337);color:#fff;}
+.brand-public .sfn-concept-finance-art span {font-size:11px;font-weight:700;letter-spacing:.1em;color:#e0ebf6;}
+.brand-public .sfn-concept-finance-art i {display:block;height:6px;background:#8ba8c1;margin-top:12px;border-radius:5px;}
+.brand-public .sfn-concept-finance-art i:nth-of-type(2) {width:70%;}
+.brand-public .sfn-concept-finance-art i:nth-of-type(3) {width:48%;}
+.brand-public .sfn-concept-finance-art strong {font-size:23px;line-height:1.12;letter-spacing:-.04em;color:#fff;margin-top:24px;}
+.brand-public .sfn-concept-footer {display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:auto;padding:.8rem 1.35rem;border-top:1px solid currentColor;border-color:color-mix(in srgb,currentColor 20%,transparent);font-size:12px;font-weight:800;letter-spacing:.04em;line-height:1.5;color:var(--concept-ink);}
+.brand-public .sfn-work-section {background:#f8fafc;color:var(--sfn-readable-ink);}
+.brand-public .sfn-work-heading h2 {color:#152235!important;font-size:clamp(2.8rem,5.2vw,5.7rem)!important;line-height:1.04!important;}
+.brand-public .sfn-work-heading h2 em {color:#1d4caf!important;}
+.brand-public .sfn-work-heading p:not(.sfn-kicker) {color:#384b5f;font-size:16px;line-height:1.75;}
+.brand-public .sfn-work-heading a {color:#164189;font-size:15px;}
+.brand-public .sfn-work-card {border-radius:10px;overflow:hidden;}
+.brand-public .sfn-work-card-top {font-size:12px;letter-spacing:.05em;color:#172638;}
+.brand-public .sfn-work-card-2 .sfn-work-card-top {color:#fff;}
+.brand-public .sfn-work-card-2 .sfn-work-card-foot {color:#fff;}
+.brand-public .sfn-work-card-foot h3 {color:inherit!important;font-size:clamp(1.5rem,2vw,2.2rem)!important;}
+.brand-public .sfn-work-card-foot p {color:inherit;font-size:14px;opacity:.88;}
+.brand-public .sfn-work-art {padding:clamp(1rem,2vw,2rem);min-height:320px;}
+.brand-public .sfn-work-art-inner {transform:none!important;border-radius:5px;overflow:hidden;box-shadow:0 12px 32px #111d3033;}
+.brand-public .sfn-work-card:hover .sfn-work-art-inner {transform:translateY(-4px)!important;}
+.brand-public .sfn-work-art-inner .sfn-concept {min-height:275px;}
+.brand-public .sfn-work-art-inner .sfn-concept-title {font-size:clamp(1.4rem,2vw,2.3rem);}
+.brand-public .sfn-work-art-inner .sfn-concept-copy {padding:1.2rem;}
+.brand-public .sfn-work-art-inner .sfn-concept-footer {font-size:12px;}
+.brand-public .sfn-work-fineprint {font-size:13px;color:#42576a;line-height:1.6;}
+/* Business copy, CTAs and headings on dark sections must explicitly be light,
+   including links and emphasized text rather than relying on inheritance. */
+.brand-public .sfn-home .c26-value {background:#14263a!important;color:#f7f9fc;}
+.brand-public .sfn-home .c26-value h2,
+.brand-public .sfn-home .c26-value h3 {color:#fff!important;}
+.brand-public .sfn-home .c26-value h2 em {color:#b9d7ff!important;}
+.brand-public .sfn-home .c26-value .c26-value-description {font-size:16px!important;color:#dce7f5;}
+.brand-public .sfn-home .c26-value .c26-value-item p {font-size:14px!important;color:#d2dff0;line-height:1.6;}
+.brand-public .sfn-home .c26-value .c26-value-item svg {color:#d3e6ff;}
+.brand-public .sfn-home .c26-process {background:#f0f4fa!important;color:#172638;}
+.brand-public .sfn-home .c26-process h2,
+.brand-public .sfn-home .c26-process h3 {color:#172638!important;}
+.brand-public .sfn-home .c26-process h2 em {color:#1c49a0!important;}
+.brand-public .sfn-home .c26-process p {color:#354c63;}
+.brand-public .sfn-home .c26-process .sfn-timeline-track button {color:#374c60;font-size:15px;}
+.brand-public .sfn-home .c26-process .sfn-timeline-track button[aria-selected=true] {color:#14263a;font-weight:750;}
+.brand-public .sfn-home .c26-process .sfn-step-panel {background:#e0eaf5;}
+.brand-public .sfn-home .c26-process .sfn-step-panel h3 {color:#14263a!important;}
+.brand-public .sfn-home .c26-process .sfn-step-panel p {color:#2e455a;font-size:16px;}
+.brand-public .sfn-home .c26-services {background:#fff;color:#172638;}
+.brand-public .sfn-home .c26-services :is(h2,h3) {color:#162638!important;}
+.brand-public .sfn-home .c26-services .c26-section-head>p {color:#43566a;font-size:16px!important;}
+.brand-public .sfn-home .c26-services .c26-service p {color:#344a5f;font-size:15px!important;}
+.brand-public .sfn-home .c26-services .c26-service small {font-size:12px;color:#225478;}
+.brand-public .sfn-home .c26-services .c26-quiet-link {color:#17438e;}
+/* Services page: previously dark text links and blue emphasized text on navy,
+   plus white captions on pale mint, produced contrast ratios of 1.03–2.25. */
+.brand-public .bs-sales-services .s28-services-hero {background:#f0f6fc!important;color:#16273b!important;}
+.brand-public .bs-sales-services .s28-services-copy h1 {color:#15263c!important;line-height:1.04!important;}
+.brand-public .bs-sales-services .s28-services-copy h1 em {color:#1e469b!important;}
+.brand-public .bs-sales-services .s28-services-copy .s28-large-copy {color:#354d64!important;font-size:clamp(17px,1.4vw,19px)!important;}
+.brand-public .bs-sales-services .s28-services-copy .s28-text-link {color:#153f83!important;}
+.brand-public .bs-sales-services .s28-services-copy .s28-tiny-note {color:#3b536b!important;font-size:14px!important;}
+.brand-public .bs-sales-services .s28-services-showcase-art {background:#d8e8e2!important;color:#1c3942!important;border-radius:9px;}
+.brand-public .bs-sales-services .s28-services-showcase-art .s28-art-caption,
+.brand-public .bs-sales-services .s28-services-showcase-art .s28-services-art-top {color:#183b42!important;font-size:14px!important;font-weight:750;opacity:1;}
+.brand-public .bs-sales-services .s28-services-preview-frame {background:#fff;border-radius:5px;transform:rotate(-.8deg);padding:8px;box-shadow:0 15px 32px #14263a3d;}
+.brand-public .bs-sales-services .s28-services-preview-browser {display:flex;justify-content:space-between;gap:.6rem;padding:.6rem .5rem;font-size:11px;font-weight:700;color:#324c5e;}
+.brand-public .bs-sales-services .s28-services-preview-caption {display:flex;justify-content:space-between;gap:.6rem;padding:.8rem .5rem;font-size:12px;color:#243f4e;}
+.brand-public .bs-sales-services .s28-text-link {color:#183e77;}
+.brand-public .bs-sales-services .s28-steps-section .s28-text-link {color:#fff;}
+.brand-public .bs-sales-services .s28-steps-section h2,
+.brand-public .bs-sales-services .s28-steps-section h3 {color:#fff!important;}
+.brand-public .bs-sales-services .s28-steps-section h2 em {color:#cbdcff!important;}
+.brand-public .bs-sales-services .s28-strip {background:#15293f;}
+.brand-public .bs-sales-services .s28-strip span {color:#d4e3f4;font-size:12px;}
+.brand-public .bs-sales-services .s28-strip .brand-shell>div {font-size:14px;}
+.brand-public .bs-sales-services .s28-principles p,
+.brand-public .bs-sales-services .s28-chapter-body p,
+.brand-public .bs-sales-services .s28-showcase-copy p,
+.brand-public .bs-sales-services .s28-faq-questions details>p {color:#364b5f;font-size:15px!important;}
+.brand-public .bs-sales-services .s28-showcase-copy>span,
+.brand-public .bs-sales-services .s28-showcase-disclaimer {font-size:12px!important;color:#3c566e;}
+.brand-public .bs-sales-services .s28-showcase-copy a {font-size:15px;}
+/* Pricing page: a clean plan comparison, dark text on pale surfaces. */
+.brand-public .bs-sales-pricing .s28-pricing-hero {background:#f1f5fc!important;color:#18283c!important;}
+.brand-public .bs-sales-pricing .s28-pricing-hero h1 {color:#14253a!important;line-height:1.06!important;}
+.brand-public .bs-sales-pricing .s28-pricing-hero h1 em {color:#224ca7!important;}
+.brand-public .bs-sales-pricing .s28-pricing-hero-content>p {font-size:17px!important;color:#344e65!important;}
+.brand-public .bs-sales-pricing .s28-pricing-hero-links .s28-text-link {color:#164283!important;}
+.brand-public .bs-sales-pricing .s28-pricing-trust {color:#3c5268!important;font-size:13px;}
+.brand-public .bs-sales-pricing .s28-pricing-body {background:#f6f8fc;}
+.brand-public .bs-sales-pricing .s28-pricing-explain {background:#fff!important;}
+.brand-public .bs-sales-pricing .s28-pricing-explain h2,
+.brand-public .bs-sales-pricing .s28-pricing-explain h3 {color:#15253a!important;}
+.brand-public .bs-sales-pricing .s28-pricing-explain p {color:#3a5065;font-size:15px!important;}
+.brand-public .bs-sales-pricing .s28-faq-questions summary {color:#14253a;font-size:17px;}
+.brand-public .bs-sales-pricing .s28-faq-questions details>p {color:#3b5065;font-size:15px!important;}
+.brand-public .bs-sales-pricing .s28-pricing-end {background:#142f57!important;color:#fff;}
+.brand-public .bs-sales-pricing .s28-pricing-end :is(h2,h3) {color:#fff!important;}
+.brand-public .bs-sales-pricing .s28-pricing-end h2 em {color:#d6e7ff!important;}
+.brand-public .bs-sales-pricing .s28-pricing-end p {color:#d9e6f5!important;}
+.brand-public .bs-sales-pricing .s28-pricing-end .s28-text-link {color:#fff!important;}
+/* Case studies: dark backgrounds require light body text. Previously the
+   utility text-* values overrode inherit, leaving low-contrast grey copy. */
+.brand-public.sfn-study-page .sfn-study-intro {background:#152d48;color:#fff;}
+.brand-public.sfn-study-page .sfn-study-intro .c27-major {color:#fff!important;line-height:1.05!important;}
+.brand-public.sfn-study-page .sfn-study-intro p:not(.sfn-study-kicker) {color:#dfebf8!important;font-size:16px;line-height:1.7;}
+.brand-public.sfn-study-page .sfn-study-intro .c27-quiet {color:#e6f1ff!important;}
+.brand-public.sfn-study-page .sfn-study-kicker {color:#f3d3a5!important;font-size:12px;}
+.brand-public.sfn-study-page .sfn-study-art {background:#284d67;border-radius:8px;}
+.brand-public.sfn-study-page .sfn-study-art-title,
+.brand-public.sfn-study-page .sfn-study-art-bottom {color:#fff!important;font-size:12px;line-height:1.6;}
+.brand-public.sfn-study-page .sfn-study-decisions :is(h2,h3) {color:#152338!important;}
+.brand-public.sfn-study-page .sfn-study-decisions p {color:#3d5165;font-size:16px!important;}
+.brand-public.sfn-study-page .sfn-study-decisions .c27-chip {color:#263c54;}
+.brand-public.sfn-study-page .c27-bottom {background:#142f57;color:#fff;}
+.brand-public.sfn-study-page .c27-bottom h2 {color:#fff!important;}
+/* General reading rules for the public shell, not for preview mini-sites. */
+.brand-public .sfn-portfolio-intro {background:#152d48;}
+.brand-public .sfn-portfolio-intro h2 {color:#fff!important;line-height:1.08!important;}
+.brand-public .sfn-portfolio-intro p {color:#e1edfa;font-size:16px;}
+.brand-public .sfn-portfolio-intro a {color:#fff;}
+.brand-public .sfn-portfolio-hero-label {background:#fff;color:#17283a;}
+.brand-public .sfn-preview {background:#f2f6fc;color:#17283a;}
+.brand-public .sfn-preview-head h2 {color:#16283d!important;}
+.brand-public .sfn-caption,.brand-public .sfn-disclaimer {color:#3d5166;}
+.brand-public .sfn-footer {background:#172b42!important;color:#fff;}
+.brand-public .sfn-footer :is(h2,h3,h4,p,li) {color:#e8f1fc;}
+.brand-public .sfn-footer a {color:#e9f3ff;}
+.brand-public .sfn-mobile-cta {background:#f8fafc;border-top-color:#b8c9dc;}
+.brand-public .sfn-mobile-cta a:first-child {background:#1946c3;color:#fff;font-size:15px;}
+.brand-public .sfn-mobile-cta a:last-child {color:#173c76;font-size:14px;}
+@media(max-width:1160px) {
+  .brand-public .sfn-home .sfn-hero h1 {max-width:16ch;font-size:clamp(2.9rem,6.9vw,5rem)!important;}
+  .brand-public .sfn-signature-canvas {min-height:360px;}
+}
+@media(max-width:680px) {
+  .brand-public .sfn-home .sfn-hero .c26-hero-grid {padding-block:2.5rem;gap:2rem;}
+  .brand-public .sfn-home .sfn-hero h1 {font-size:clamp(2.8rem,10.1vw,4rem)!important;line-height:1.06!important;max-width:13ch;}
+  .brand-public .sfn-signature-canvas {min-height:280px;padding:1.4rem .85rem;}
+  .brand-public .sfn-signature-window {transform:none!important;width:100%;}
+  .brand-public .sfn-signature-top {font-size:10px;}
+  .brand-public .sfn-signature-stamp {display:none;}
+  .brand-public .sfn-concept {min-height:305px;}
+  .brand-public .sfn-concept-nav {padding:.9rem 1rem;}
+  .brand-public .sfn-concept-menu {display:none;}
+  .brand-public .sfn-concept-menu-mobile {display:inline;}
+  .brand-public .sfn-concept-body {grid-template-columns:1fr 42%;}
+  .brand-public .sfn-concept-copy {padding:1.1rem;gap:.65rem;}
+  .brand-public .sfn-concept-title {font-size:clamp(1.4rem,5vw,2rem);}
+  .brand-public .sfn-concept-description {font-size:13px;}
+  .brand-public .sfn-concept-cta {font-size:12px;padding:.55rem .7rem;min-height:37px;}
+  .brand-public .sfn-concept-footer {padding:.65rem 1rem;font-size:12px;flex-wrap:wrap;}
+  .brand-public .sfn-work-art {min-height:265px;padding:1rem;}
+  .brand-public .sfn-work-card-top {font-size:11px;}
+}
+@media(max-width:420px) {
+  .brand-public .sfn-concept-body {grid-template-columns:minmax(0,1fr) 34%;}
+  .brand-public .sfn-concept-photo {display:flex;}
+  .brand-public .sfn-concept-title {font-size:clamp(1.5rem,7vw,2.15rem);}
+  .brand-public .sfn-concept-copy {min-height:210px;}
+  .brand-public .sfn-work-art-inner .sfn-concept-title {font-size:1.65rem;}
+  .brand-public .sfn-signature-bottom {padding:1rem;}
+}
+@media(prefers-reduced-motion:reduce){
+  .brand-public :is(.sfn-signature-window,.sfn-work-art-inner) {animation:none!important;transition:none!important;}
+}
+
+
+/* Footer: the previous theme mixed dark-over-dark muted text and stretched
+   the company block across a whole row on desktop. */
+.brand-public .sfn-footer {background:#172b42!important;color:#f5f9ff!important;}
+.brand-public .sfn-footer p,
+.brand-public .sfn-footer li,
+.brand-public .sfn-footer span,
+.brand-public .sfn-footer a,
+.brand-public .sfn-footer button {color:#e5edf8!important;opacity:1!important;}
+.brand-public .sfn-footer .border-t {border-color:#52657c!important;}
+.brand-public .sfn-footer a:hover,
+.brand-public .sfn-footer button:hover {color:#fff!important;text-decoration:underline;text-underline-offset:4px;}
+.brand-public .sfn-footer .bg-\[\#1D4ED8\] {background:#2057d5;}
+.brand-public .sfn-footer .bg-\[\#1D4ED8\] {color:#fff!important;}
+.brand-public .sfn-footer .brand-shell {max-width:88rem;}
+/* A thoughtful visible concept replaces any unavailable screenshot.
+   This is explicitly labelled design exploration rather than client work. */
+.brand-public .portfolio-concept-preview {
+  --preview-bg:#ecf3f4;--preview-ink:#163f48;--preview-cta:#12515f;
+  width:100%;min-height:260px;aspect-ratio:8/5;display:flex;flex-direction:column;
+  overflow:hidden;background:var(--preview-bg);color:var(--preview-ink);
+  font-family:"Geist Variable",Inter,Arial,sans-serif;
+}
+.brand-public .portfolio-concept-editorial {--preview-bg:#e9dfd5;--preview-ink:#332b30;--preview-cta:#764b49;}
+.brand-public .portfolio-concept-service {--preview-bg:#e5e8e2;--preview-ink:#244136;--preview-cta:#385e49;}
+.brand-public .portfolio-concept-corporate {--preview-bg:#e8edf5;--preview-ink:#1d3253;--preview-cta:#274e87;}
+.brand-public .portfolio-concept-warm {--preview-bg:#f5ecda;--preview-ink:#493719;--preview-cta:#815a23;}
+.brand-public .portfolio-concept-nav {display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.8rem 1.1rem;border-bottom:1px solid #6b7a8655;color:var(--preview-ink);}
+.brand-public .portfolio-concept-nav>span:first-child {font-size:clamp(13px,1.2vw,19px);font-weight:800;letter-spacing:-.035em;}
+.brand-public .portfolio-concept-nav>span:last-child {font-size:10px;letter-spacing:.07em;font-weight:700;}
+.brand-public .portfolio-concept-content {display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);flex:1;min-height:0;}
+.brand-public .portfolio-concept-message {display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:clamp(.4rem,1.1vw,.9rem);padding:clamp(.9rem,2.3vw,2.1rem);min-width:0;}
+.brand-public .portfolio-concept-kicker {font-size:10px;color:var(--preview-ink);font-weight:750;letter-spacing:.075em;line-height:1.5;}
+.brand-public .portfolio-concept-message>strong {font-size:clamp(1.45rem,2.15vw,2.5rem);font-weight:750;line-height:1.13;letter-spacing:-.05em;color:var(--preview-ink);text-wrap:balance;}
+.brand-public .portfolio-concept-cta {display:flex;gap:.5rem;align-items:center;padding:.65rem .85rem;background:var(--preview-cta);color:#fff;font-size:12px;font-weight:700;line-height:1.3;}
+.brand-public .portfolio-concept-art {position:relative;display:grid;place-items:center;min-width:0;overflow:hidden;background:#a9b9bf33;color:var(--preview-ink);}
+.brand-public .portfolio-concept-orbit {position:absolute;width:160%;aspect-ratio:1;border:1px solid currentColor;border-radius:50%;opacity:.25;transform:translate(14%,-2%);box-shadow:0 0 0 38px #ffffff22,0 0 0 82px #ffffff22;}
+.brand-public .portfolio-concept-illustration {position:relative;font:italic clamp(4rem,11vw,12rem) Georgia,serif;line-height:1;color:var(--preview-ink);opacity:.8;}
+.brand-public .portfolio-concept-art-caption {position:absolute;bottom:1rem;right:1rem;left:1rem;font-size:11px;font-weight:700;text-align:right;color:var(--preview-ink);}
+.brand-public .portfolio-concept-footer {display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.6rem 1rem;border-top:1px solid #6b7a8655;color:var(--preview-ink);font-size:10px;letter-spacing:.06em;font-weight:750;}
+@media(max-width:680px){
+ .brand-public .portfolio-concept-preview {min-height:250px;}
+ .brand-public .portfolio-concept-nav>span:last-child {display:none;}
+ .brand-public .portfolio-concept-message>strong {font-size:clamp(1.2rem,4vw,1.8rem);}
+ .brand-public .portfolio-concept-kicker {font-size:9px;}
+ .brand-public .portfolio-concept-footer {font-size:9px;}
+}
+@media(max-width:430px){
+ .brand-public .portfolio-concept-content {grid-template-columns:1fr 28%;}
+ .brand-public .portfolio-concept-cta {font-size:11px;padding:.5rem .65rem;}
+}
+
+/* Unverified rates are an availability state, not a headline-size price.
+   Avoid a multi-line 'Price unavailable' headline on narrow cards. */
+.brand-public .bs-sales .s28-price-number:not(:has(.s28-price-period)) .s28-price-amount {
+  font-size:clamp(1.15rem,1.55vw,1.6rem);
+  font-weight:700;
+  line-height:1.35;
+  letter-spacing:-.02em;
+  overflow-wrap:break-word;
+}
+.brand-public .bs-sales .s28-price-card {
+  border-radius:12px;
+  overflow:hidden;
+}
+.brand-public .bs-sales .s28-price-card .s28-price-fee {font-size:14px!important;line-height:1.6;}
+.brand-public .bs-sales .s28-price-card .s28-price-ledger>div {font-size:13px;line-height:1.55;}
+.brand-public .bs-sales .s28-price-card .s28-price-action button {min-height:48px;}
+
+
+/* P2: preserve readable form controls and prevent horizontal scrolling on
+   narrow customer devices without altering the desktop editorial treatment. */
+.brand-public :is(.sfn-signature,.sfn-signature-window,.sfn-work-card,.sfn-work-art,.sfn-work-art-inner,.sfn-concept,.sfn-timeline,.sfn-step-panel) {
+  min-width:0;
+  max-width:100%;
+}
+.brand-public .sfn-concept :is(.sfn-concept-brand,.sfn-concept-title,.sfn-concept-description,.sfn-concept-footer) {
+  overflow-wrap:anywhere;
+}
+.brand-public #preview-brief :is(input:not([type="checkbox"]):not([type="color"]),textarea,select) {
+  font-size:16px;
+  max-width:100%;
+}
+.brand-public #preview-brief :is(button,[role="button"]) {
+  touch-action:manipulation;
+}
+@media (max-width:560px) {
+  .brand-public .sfn-home .sfn-hero h1 { overflow-wrap:normal; }
+  .brand-public .sfn-work-card { min-width:0; }
+  .brand-public .sfn-signature-bottom { gap:1rem; }
+  .brand-public .sfn-signature-description { font-size:14px; line-height:1.6; }
+  .brand-public .sfn-work-art { padding:1rem; }
+  .brand-public .sfn-work-card-foot { align-items:flex-start; }
+  .brand-public .sfn-mobile-cta { grid-template-columns:minmax(0,1fr) auto; gap:.5rem; }
+  .brand-public .sfn-mobile-cta a { min-width:0; }
+  .brand-public .sfn-mobile-cta a:first-child { white-space:normal; text-align:center; line-height:1.3; }
+  .brand-public .sfn-mobile-cta a:last-child { white-space:normal; text-align:center; line-height:1.3; }
+}
+@media (max-width:360px) {
+  .brand-public .sfn-home .sfn-hero h1 { font-size:clamp(2.5rem,11vw,3.3rem)!important; }
+  .brand-public .sfn-mobile-cta { padding-inline:.65rem; }
+  .brand-public .sfn-mobile-cta a:first-child { font-size:14px; }
+  .brand-public .sfn-mobile-cta a:last-child { font-size:13px; }
+}
