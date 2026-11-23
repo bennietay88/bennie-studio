@@ -148,3 +148,10 @@
  .brand-public .s33-preview-brief>div {padding-block:2.7rem!important}
 }
 @media(prefers-reduced-motion:reduce) {.brand-public .s33-page *,.brand-public .s33-preview-hero *,.brand-public .s33-preview-brief * {animation:none!important;transition:none!important}}
+
+.brand-public .s33-preview-optional-newsletter {border:1px solid #94afca;border-radius:10px;overflow:hidden;background:#1a3852;color:#fff}
+.brand-public .s33-preview-optional-newsletter summary {padding:1rem 1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:1rem;list-style:none;font-size:15px;font-weight:750;color:#f0f7ff}
+.brand-public .s33-preview-optional-newsletter summary::-webkit-details-marker {display:none}
+.brand-public .s33-preview-optional-newsletter summary span {font-size:22px}
+.brand-public .s33-preview-optional-newsletter[open] summary span {transform:rotate(45deg)}
+.brand-public .s33-preview-optional-newsletter>div {padding:0 1rem 1rem}
