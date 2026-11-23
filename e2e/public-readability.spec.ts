@@ -62,7 +62,7 @@ test("home portfolio contains large legible concept copy, not tiny preview thumb
   const stage = page.locator(".sfn-signature-window .sfn-concept");
   await expect(stage).toBeVisible();
   await expect(stage.locator(".bt-template-preview")).toHaveCount(0);
-  await expect(page.locator(".sfn-work-card")).toHaveCount(6);
+  await expect(page.locator(".sfn-work-card")).toHaveCount(3);
   const heading = await stage.locator(".sfn-concept-title").evaluate(el => parseFloat(getComputedStyle(el).fontSize));
   expect(heading).toBeGreaterThanOrEqual(22);
 });
