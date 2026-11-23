@@ -133,7 +133,7 @@ export function PricingSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
       <div className="s31-pricing-path s31-pricing-path-primary"><span>01 / A managed presence</span><strong>Get the essentials live.</strong><p>Professional pages, clearer enquiries and ongoing website care.</p></div>
       <div className="s31-pricing-path"><span>02 / Grow with purpose</span><strong>Build on that foundation.</strong><p>Expand content, conversion work and growth support by plan.</p></div>
       <div className="s31-pricing-decision-footer">Two further options for personal profiles or expanded partnerships are compared below.</div>
-    </div>div></div>
+    </div></div>
     <div className="s28-pricing-trust"><div><Check size={17}/> Setup + recurring costs visible</div><div><Check size={17}/> Setup + first month shown</div><div><Check size={17}/> Secure checkout after review</div></div>
    </div>
   </section>
