@@ -2792,7 +2792,7 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
 
   return (
     <>
-      {linkedJobId && <Helmet><meta name="robots" content="noindex,nofollow" /><meta name="referrer" content="no-referrer" /></Helmet>}
+      {(linkedJobId || shortReviewRoute) && <Helmet><meta name="robots" content="noindex,nofollow" /><meta name="referrer" content="no-referrer" /></Helmet>}
       <Hero
         title={cmsPage?.heroTitle || "Find out what your website could improve."}
         variant="audit"
@@ -2803,9 +2803,10 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
         secondaryLabel="I don't have a website yet"
         secondaryHref="/generate-preview?mode=business"
       />
-      <section className="brand-shell grid min-w-0 gap-8 py-12 sm:py-16 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="order-2 min-w-0 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 lg:order-1">
-          <h2 className="text-3xl font-bold text-slate-950">What we review</h2>
+      <section className="brand-shell grid min-w-0 gap-8 py-14 sm:py-20 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] lg:gap-12">
+        <div className="order-2 min-w-0 rounded-2xl border border-[#dbe1ea] bg-white p-6 sm:p-8 lg:order-1">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1741ed]">Six review dimensions</p>
+          <h2 className="mt-3 text-3xl font-bold leading-tight text-slate-950">What the review covers</h2>
           <div className="mt-6 grid gap-3">
             {[
               ["Design clarity", "Does the page quickly explain what you offer?"],
@@ -2815,52 +2816,38 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
               ["Trust proof", "Are reviews, credentials, case studies, or photos visible?"],
               ["Speed and friction", "Is the page easy to load, scan, and act on?"],
             ].map(([title, copy]) => (
-              <div key={title} className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+              <div key={title} className="flex gap-3 border-b border-[#e3e8ef] py-4 last:border-b-0">
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
                 <div>
                   <p className="font-bold text-slate-950">{title}</p>
-                  <p className="text-sm font-semibold text-slate-600">{copy}</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">{copy}</p>
                 </div>
               </div>
             ))}
           </div>
-          <div className="mt-8 rounded-xl bg-indigo-50 p-6">
-            <h3 className="text-2xl font-bold text-slate-950">Your review includes</h3>
-            <div className="mt-5 grid gap-3">
-              {[
-                "Homepage clarity review",
-                "CTA and WhatsApp flow review",
-                "Mobile experience notes",
-                "Trust signal gaps",
-                "Local SEO structure notes",
-                "Personalized website and enquiry direction",
-              ].map((item) => (
-                <div key={item} className="flex gap-2 text-sm font-bold text-slate-700">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                  {item}
-                </div>
-              ))}
-            </div>
+          <div className="mt-7 rounded-xl border border-[#dbe1ea] bg-[#f2f6fc] p-5">
+            <p className="text-sm font-bold text-[#15191f]">What you receive</p>
+            <p className="mt-2 text-sm leading-6 text-[#526071]">A private, evidence-based report with prioritised observations and suggested improvements. Automated checks can miss issues; this is not a manual accessibility or performance certification.</p>
           </div>
         </div>
-        <form id="review-form" onSubmit={submitAudit} className="order-1 min-w-0 scroll-mt-28 rounded-2xl border border-[#E2E8F0] bg-white p-8 text-[#0F172A] shadow-sm sm:p-10 lg:order-2">
+        <form id="review-form" onSubmit={submitAudit} className="order-1 min-w-0 scroll-mt-28 rounded-2xl border border-[#dbe1ea] bg-white p-6 text-[#0F172A] shadow-[0_20px_65px_-45px_rgba(15,23,42,0.32)] sm:p-9 lg:order-2">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-700">Free website review</p>
           <h2 className="mt-4 text-3xl font-bold text-[#0F172A]">Enter your website. See what to improve.</h2>
           <p className="mt-3 text-sm font-semibold leading-6 text-[#475569]">
             Get a free, automated assessment using publicly accessible page evidence. We need your website, business name and email to send your private report.
           </p>
-          <Link to="/generate-preview?mode=business" className="mt-4 inline-flex text-sm font-semibold text-blue-700 underline decoration-indigo-300/40 underline-offset-4 hover:text-white">
+          <Link to="/generate-preview?mode=business" className="mt-4 inline-flex text-sm font-semibold text-[#1741c9] underline underline-offset-4 transition hover:text-[#1035a2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1741ed]">
             No website yet? Start with a business brief instead.
           </Link>
           {loadingSharedReport ? <p role="status" className="mt-8 text-sm font-semibold text-blue-700">Loading your private website review…</p> : submitted ? (
-            <div className="mt-8 rounded-3xl bg-emerald-50 p-6 text-emerald-800">
-              <Check className="mb-4 h-8 w-8" />
-              <p className="text-xl font-bold">{auditReport ? "Website audit complete." : "Audit request saved."}</p>
+            <div role="status" className={`mt-8 rounded-xl border p-5 sm:p-6 ${error && !auditReport ? "border-amber-200 bg-amber-50 text-amber-950" : "border-emerald-200 bg-emerald-50 text-emerald-950"}`}>
+              {error && !auditReport ? <FileSearch className="mb-4 h-7 w-7" /> : <Check className="mb-4 h-7 w-7" />}
+              <p className="text-xl font-bold">{auditReport ? "Website review complete" : error ? "Automatic review unavailable" : auditQueued ? "Your review is processing" : "Review request received"}</p>
               <p className="mt-2 text-sm font-semibold leading-6">
                 {auditReport
                   ? "Your review is based on observable page evidence and practical recommendations—not a numerical rating."
                   : auditQueued
-                    ? "Your audit is processing. We will email the review if transactional email is configured. You can also save the private link below."
+                    ? "Your audit is processing. Save the private report link if available. Email delivery depends on the configured notification service."
                     : "The website could not be analysed automatically. Your request is saved for manual follow-up."}
               </p>
               {!auditReport && error && <p className="mt-4 rounded-xl bg-amber-400/10 p-3 text-sm font-bold text-amber-800">{error}</p>}
@@ -2868,7 +2855,7 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                 <p className="text-xs font-semibold text-emerald-800">Your private report link</p>
                 <p className="mt-1 text-xs leading-5 text-emerald-800">Save this link. Anyone with it can view the business website review once processing completes.</p>
                 <div className="mt-3 flex flex-wrap gap-3">
-                  <a href={reportLink} rel="noreferrer" className="inline-flex min-h-10 items-center rounded-lg bg-white px-4 text-sm font-semibold text-slate-900 hover:bg-indigo-50">Open report</a>
+                  <a href={reportLink} rel="noreferrer" className="inline-flex min-h-10 items-center rounded-lg border border-[#c7d5eb] bg-white px-4 text-sm font-semibold text-[#1741c9] hover:bg-[#eff4ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1741ed]">Open report</a>
                   <button type="button" onClick={() => { void navigator.clipboard.writeText(new URL(reportLink, window.location.origin).href); }} className="min-h-10 rounded-lg border border-[#E2E8F0] px-4 text-base font-semibold text-blue-700">Copy private link</button>
                 </div>
                 {["not_configured","failed"].includes(deliveryStatus) && <p className="mt-3 text-xs text-amber-800">Email delivery was not confirmed. Save this link or contact the studio.</p>}
@@ -2879,7 +2866,7 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                   onClick={() => {
                     trackPublicEvent({ eventType: "click_audit_thank_you_book_call", label: "Audit Thank You Book Call", target: "/book-demo" });
                   }}
-                  className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#1D4ED8] px-6 py-3 text-base font-bold text-blue-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-100 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
+                  className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#1741ed] px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-[#1035c2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1741ed] focus-visible:ring-offset-2"
                 >
                   Book a Call
                 </Link>
@@ -2888,7 +2875,7 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                   onClick={() => {
                     trackPublicEvent({ eventType: "click_audit_thank_you_direction", label: "Audit Thank You Website Direction", target: "/generate-preview" });
                   }}
-                  className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-[#E2E8F0] bg-white px-6 py-3 text-base font-bold text-blue-700 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
+                  className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[#c7d5eb] bg-white px-5 py-3 text-center text-sm font-bold text-[#1741c9] transition hover:bg-[#eff4ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1741ed] focus-visible:ring-offset-2"
                 >
                   See recommended website direction
                 </Link>
@@ -2926,7 +2913,7 @@ function WebsiteAuditPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
           )}
         </form>
       </section>
-      {error && !submitted && linkedJobId && <p role="alert" className="brand-shell text-sm font-semibold text-rose-700">{error}</p>}
+      {error && !submitted && (linkedJobId || shortReviewRoute) && <p role="alert" className="brand-shell text-sm font-semibold text-rose-700">{error}</p>}
       {auditReport ? (
         <section className="brand-shell pb-20">
           <WebsiteAuditResultView report={auditReport} form={form} />
@@ -3069,7 +3056,7 @@ export default function PublicMarketingPages() {
         ? pageContent
         : <main id="main-content">{pageContent}</main>}
       {!pageCms?.replacePageContent && <PlatformCmsSections path={cmsPagePath} />}
-      {!["pricing","services","resources","contact","generate-preview"].includes(pageKind) && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
+      {!["pricing","services","resources","contact","generate-preview","templates","website-audit"].includes(pageKind) && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="brand-shell relative grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
           <div>
