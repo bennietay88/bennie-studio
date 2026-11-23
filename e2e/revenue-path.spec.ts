@@ -488,7 +488,7 @@ test("pricing checkout reaches Stripe before signup for a new customer", async (
   await expect(plansSection).toBeVisible();
   const growthCard = plansSection.locator("article").filter({ hasText: "Website Growth" });
   await expect(growthCard).toBeVisible();
-  await growthCard.getByRole("button", { name: /Choose this plan/i }).click();
+  await growthCard.getByRole("button", { name: /Review plan & payment/i }).click();
   await expect(page.getByRole("dialog", { name: "Order summary" })).toBeVisible();
   await expect(page.getByText(/No account is required before payment/i)).toBeVisible();
   await expect(page.getByRole("dialog", { name: "Order summary" }).getByText("USD ($)", { exact: true })).toBeVisible();

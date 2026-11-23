@@ -10,6 +10,7 @@ import { StudioEmailOptIn } from "./StudioEmailOptIn";
 import { trackPublicEvent } from "../lib/publicTracking";
 import "../styles/studioSales.css";
 import "../styles/studioSalesRefinements.css";
+import "../styles/studioSalesRound1.css";
 
 const salesLink=(label:string,target:string)=>()=>trackPublicEvent({eventType:"sales_cta_clicked",label,target});
 
@@ -36,10 +37,11 @@ const websiteItems=[
 export function ServicesSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
  const showcase=useStudioShowcaseCatalog(STUDIO_SHOWCASES).slice(0,3);
  const heroShowcase=showcase.find(study=>study.slug==="renovation-contractor") || STUDIO_SHOWCASES[1];
- return <main className="bs-sales bs-sales-services">
-  <section className="s28-hero s28-services-hero" aria-labelledby="s28-services-title">
+ return <main id="main-content" className="bs-sales bs-sales-services s31-sales">
+  <section className="s28-hero s28-services-hero s31-services-hero" aria-labelledby="s28-services-title">
    <div className="brand-shell s28-services-layout">
     <div className="s28-services-copy">
+     <p className="s31-eyebrow">Website design, launch & ongoing care</p>
      
      <h1 id="s28-services-title">{cmsPage?.heroTitle || <>A website that makes <em>choosing you</em> easier.</>}</h1>
      <p className="s28-large-copy">{cmsPage?.heroDescription || "Strategy, design, build and ongoing care—so the right customers understand your offer and know what to do next."}</p>
@@ -65,39 +67,47 @@ export function ServicesSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
     <span>DESIGNED FOR SERVICE BUSINESSES</span><div><MonitorSmartphone size={18}/> Responsive website design</div><div><Globe2 size={18}/> Build & technical launch</div><div><ShieldCheck size={18}/> Managed hosting & support</div>
    </div></section>
 
-  <section className="s28-approach brand-shell" aria-labelledby="s28-approach-title">
-   <div className="s28-intro-grid"><div><h2 id="s28-approach-title">Built around the business. <em>Not the template.</em></h2></div><div><p>Potential customers arrive with questions. Good websites answer them quickly, back claims with credible information and offer a clear way to contact you.</p><Link to="/case-studies" onClick={salesLink("Services work link","/case-studies")} className="s28-text-link">Explore website examples <ArrowUpRight size={17}/></Link></div></div>
-   <div className="s28-principles">{[
-    [Sparkles,"Clearer positioning","Say what you do, who you help and why it matters, without unnecessary agency jargon."],
-    [MonitorSmartphone,"Stronger first impressions","Confident visual design and considered mobile layouts that fit your business category."],
-    [ArrowUpRight,"Easier enquiries","Make calling, booking, requesting a quote or sending a WhatsApp message feel effortless."],
-   ].map(([Icon,title,copy]:any,i)=><article key={title}><span className="s28-principle-number">0{i+1}</span><Icon size={27} strokeWidth={1.45} aria-hidden="true"/><h3>{title}</h3><p>{copy}</p></article>)}</div>
+  <section className="s31-outcomes" aria-labelledby="s31-outcomes-title">
+   <div className="brand-shell s31-outcomes-layout">
+    <div className="s31-outcome-lead">
+     <span className="s31-eyebrow">The outcome we're working toward</span>
+     <h2 id="s31-outcomes-title">Make it easy to understand your business—and easier to enquire.</h2>
+     <p>Good design should do more than look polished. Your customers should know what you offer, why they can trust you, and how to take the next step.</p>
+     <Link to="/case-studies" className="s28-text-link" onClick={salesLink("Services relevant examples","/case-studies")}>See how different businesses are presented <ArrowUpRight size={17}/></Link>
+    </div>
+    <div className="s31-outcome-stack">
+     {[
+      ["01","Clarity","Explain services and who they are for, without burying the message."],
+      ["02","Credibility","Present genuine team details, work, policies and proof you can substantiate."],
+      ["03","Action","Make a call, booking, WhatsApp enquiry or quote request obvious."],
+     ].map(([num,title,copy])=><div className="s31-outcome-row" key={num}><span>{num}</span><div><h3>{title}</h3><p>{copy}</p></div><ArrowUpRight size={21} aria-hidden="true"/></div>)}
+    </div>
+   </div>
   </section>
 
   <section className="s28-service-chapters" aria-labelledby="s28-service-chapters-title">
    <div className="brand-shell">
-    <div className="s28-chapters-top"><h2 id="s28-service-chapters-title">From first brief <em>to ongoing care.</em></h2><p>Three connected parts of one managed website service. The exact number of pages, revisions and updates depends on the plan you select.</p></div>
+    <div className="s28-chapters-top"><h2 id="s28-service-chapters-title">What we deliver, from the first brief to ongoing care.</h2><p>Three connected parts of one managed website service. The exact number of pages, revisions and updates depends on the plan you select.</p></div>
     {websiteItems.map(([n,eyebrow,title,copy,result],idx)=><article className="s28-chapter" key={n}><span className="s28-chapter-number">{n} / 03</span><div><p className="s28-kicker">{eyebrow}</p><h3>{title}</h3></div><div className="s28-chapter-body"><p>{copy}</p><div><Check size={17}/> {result}</div></div></article>)}
     <div className="s28-chapter-footer"><Link to="/pricing" onClick={salesLink("Services compare plan scopes","/pricing")} className="s28-button">Compare what's included in each plan <ArrowRight size={18}/></Link><span>Clear setup costs and monthly billing before checkout.</span></div>
    </div>
   </section>
 
   <section className="s28-work brand-shell" aria-labelledby="s28-work-title">
-   <div className="s28-intro-grid"><div><h2 id="s28-work-title">Different businesses. <em>Different buying journeys.</em></h2></div><div><p>Explore website directions produced from the actual templates inside Bennie Studio. They demonstrate the design system and enquiry paths—not fictitious client success.</p><Link to="/case-studies" className="s28-text-link">All website examples <ArrowUpRight size={17}/></Link></div></div>
+   <div className="s28-intro-grid"><div><h2 id="s28-work-title">Different businesses need different websites.</h2></div><div><p>Explore website directions produced from the actual templates inside Bennie Studio. They demonstrate the design system and enquiry paths—not fictitious client success.</p><Link to="/case-studies" className="s28-text-link">All website examples <ArrowUpRight size={17}/></Link></div></div>
    <div className="s28-website-grid">{showcase.map(study=><article key={study.slug}><StudioConceptCanvas slug={study.slug} compact /><div className="s28-showcase-copy"><span>{study.category} / Studio-built showcase</span><h3>{study.headline}</h3><p>{study.goal}</p><Link to={"/case-studies/showcase/"+study.slug} onClick={salesLink("Services case study "+study.slug,"/case-studies/showcase/"+study.slug)}>See design decisions <ArrowUpRight size={17}/></Link></div></article>)}</div>
    <p className="s28-showcase-disclaimer">Design studies rendered from existing product templates. Hypothetical business scenarios; not real client projects or measured commercial outcomes.</p>
   </section>
 
-  <section className="s28-steps-section"><div className="brand-shell">
-   <div className="s28-intro-grid"><div><h2>A simple path to <em>your own website.</em></h2></div><p>Review a free initial direction first. If you choose a paid plan, we confirm the scope and first payment before the build begins.</p></div>
-   <div className="s28-steps">{[
-    ["01","Tell us about the business","Share your website URL or a short description of your services and goals."],
-    ["02","Explore the free preview","Review a preliminary direction. No credit card and no commitment required."],
-    ["03","Choose a managed plan","Confirm the plan scope, one-time setup fee and monthly service. Pay setup + month one to start."],
-    ["04","Review, launch & stay supported","Approve the final website, then receive the support included in your plan."],
-   ].map(([n,title,description])=><div key={n}><span>{n}</span><h3>{title}</h3><p>{description}</p></div>)}</div>
-   <Link to="/generate-preview" onClick={salesLink("Services process preview","/generate-preview")} className="s28-button">Start with a free preview <ArrowUpRight size={18}/></Link>
-  </div></section>
+  <section className="s31-services-close">
+   <div className="brand-shell s31-services-close-layout">
+    <div><p className="s31-eyebrow">Start without a commitment</p><h2>See a direction for your business before choosing a plan.</h2></div>
+    <div><p>Share what your business does. Explore a preliminary website direction at no cost, then review setup, monthly pricing and the exact delivery scope only if you're ready.</p>
+     <Link to="/generate-preview" onClick={salesLink("Services final preview","/generate-preview")} className="s28-button">Get your free website preview <ArrowUpRight size={18}/></Link>
+     <p className="s31-quiet-note">No card required for the preview. Examples shown are design studies.</p>
+    </div>
+   </div>
+  </section>
   <SalesFaqs/>
  </main>
 }
@@ -110,26 +120,19 @@ const pricingFaqs=[
 ];
 
 export function PricingSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
- return <main className="bs-sales bs-sales-pricing">
+ return <main id="main-content" className="bs-sales bs-sales-pricing s31-sales">
   <section className="s28-pricing-hero">
    <div className="brand-shell">
-    <div className="s28-pricing-hero-grid"><div className="s28-pricing-hero-content">
-     <h1>{cmsPage?.heroTitle || <>A website worth investing in. <em>Pricing you can understand.</em></>}</h1>
+    <div className="s28-pricing-hero-grid"><div className="s28-pricing-hero-content"><p className="s31-eyebrow">Transparent website plans</p>
+     <h1>{cmsPage?.heroTitle || <>Choose a plan with clarity, not guesswork.</>}</h1>
      <p>{cmsPage?.heroDescription || "Choose the level of support you need. Compare the monthly fee, one-time setup, what's included and the cancellation terms before you buy."}</p>
      <div className="s28-pricing-hero-links"><a href="#plans" className="s28-button" onClick={salesLink("Pricing hero compare","/pricing#plans")}>Compare the plans <ArrowRight size={18}/></a><Link to="/generate-preview" className="s28-text-link" onClick={salesLink("Pricing hero preview","/generate-preview")}>Try a free website preview <ArrowUpRight size={17}/></Link></div>
     </div>
-    <div className="c30-pricing-hero-art" aria-label="Illustration of four managed website service levels">
-      <div className="c30-pricing-window">
-        <div className="c30-pricing-window-top"><span className="c30-pricing-dots">● ● ●</span><span>Managed website plans</span></div>
-        <div className="c30-pricing-mini-cards">
-          {[["01","Personal Profile","Professional presence"],["02","Managed Website","Website + ongoing care"],["03","Website Growth","Enquiry + SEO foundations"],["04","Growth Partner","Expanded support"]].map(([n,title,desc],i)=>
-            <div key={n} className={i===1?"c30-mini-plan c30-mini-featured":"c30-mini-plan"}>
-              <span>{n}</span><strong>{title}</strong><small>{desc}</small><div className="c30-mini-rule"/><div className="c30-mini-line"/><div className="c30-mini-line c30-short"/><div className="c30-mini-button"/>
-            </div>
-          )}
-        </div>
-        <p className="c30-pricing-art-note">All plans billed in USD. See verified fees below</p>
-      </div>
+    <div className="s31-pricing-decision" aria-label="Illustration of four managed website service levels">
+      <div className="s31-pricing-decision-label">Two common starting points</div>
+      <div className="s31-pricing-path s31-pricing-path-primary"><span>01 / A managed presence</span><strong>Get the essentials live.</strong><p>Professional pages, clearer enquiries and ongoing website care.</p></div>
+      <div className="s31-pricing-path"><span>02 / Grow with purpose</span><strong>Build on that foundation.</strong><p>Expand content, conversion work and growth support by plan.</p></div>
+      <div className="s31-pricing-decision-footer">Two further options for personal profiles or expanded partnerships are compared below.</div>
     </div></div>
     <div className="s28-pricing-trust"><div><Check size={17}/> Setup + recurring costs visible</div><div><Check size={17}/> Setup + first month shown</div><div><Check size={17}/> Secure checkout after review</div></div>
    </div>
@@ -137,14 +140,19 @@ export function PricingSalesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }){
   <section className="s28-pricing-body">
    <Pricing hideIntro editorial />
   </section>
-  <section className="s28-pricing-explain"><div className="brand-shell"><div className="s28-intro-grid"><div><h2>What's included—and <em>what isn't.</em></h2></div><div><p>We want you to understand the service before making a purchase. Plan scope, delivery targets and ongoing changes are defined; advertising spend, custom applications and other out-of-scope work aren't automatically included.</p><Link to="/terms" className="s28-text-link">Read service terms <ArrowUpRight size={17}/></Link></div></div>
+  <section className="s28-pricing-explain s31-pricing-explain"><div className="brand-shell"><div className="s28-intro-grid"><div><h2>Understand what's included, and what needs separate scoping.</h2></div><div><p>We want you to understand the service before making a purchase. Plan scope, delivery targets and ongoing changes are defined; advertising spend, custom applications and other out-of-scope work aren't automatically included.</p><Link to="/terms" className="s28-text-link">Read service terms <ArrowUpRight size={17}/></Link></div></div>
    <div className="s28-explain-grid">{[
     ["01","The initial build","Planning, design, agreed pages, revisions and launch work within your plan's scope."],
     ["02","The monthly service","Managed hosting, routine maintenance and the plan's specific ongoing update/support allowance."],
     ["03","Additional work","Special integrations, extensive new content, ad campaigns or work beyond plan allowances need separate scoping."],
    ].map(([n,t,d])=><article key={n}><span>{n}</span><h3>{t}</h3><p>{d}</p></article>)}</div>
   </div></section>
-  <section className="brand-shell py-12 sm:py-16"><div className="mx-auto max-w-3xl"><StudioEmailOptIn sourcePage="/pricing" title="Need more time to choose a plan?" description="Get the free website conversion checklist and a few practical emails about improving your site. No plan selection or payment is required." /></div></section>
+  <section className="brand-shell s31-pricing-optin" aria-label="Optional website checklist">
+    <details className="s31-pricing-optin-details">
+     <summary><span><strong>Not ready to choose?</strong><span>Get the optional website checklist by email instead.</span></span><span className="s31-optin-toggle" aria-hidden="true">+</span></summary>
+     <div className="s31-optin-form"><StudioEmailOptIn sourcePage="/pricing" title="Get the free website checklist" description="Occasional practical website advice. Signing up is optional and unrelated to requesting a free preview." /></div>
+    </details>
+  </section>
   <SalesFaqs questions={pricingFaqs} heading="Understand your plan before committing." />
   <section className="s28-pricing-end"><div className="brand-shell"><h2>{cmsPage?.finalCtaTitle || <>Start by seeing what your <em>business could look like.</em></>}</h2><p>{cmsPage?.finalCtaDescription || "The first direction is free. Review it before choosing whether a managed website makes sense."}</p><div className="flex flex-wrap items-center gap-5"><Link to={cmsPage?.primaryCtaHref || "/generate-preview"} onClick={salesLink("Pricing bottom free preview",cmsPage?.primaryCtaHref || "/generate-preview")} className="s28-button s28-button-white">{cmsPage?.primaryCtaLabel || "Get your free website preview"} <ArrowUpRight size={18}/></Link><Link to="/book-demo" onClick={salesLink("Pricing bottom consult","/book-demo")} className="s28-text-link">Prefer to speak first? <ArrowRight size={17}/></Link></div></div></section>
  </main>

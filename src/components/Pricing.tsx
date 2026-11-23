@@ -221,14 +221,15 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
     </div>
     {editorial ? (
       <>
-        <div className="s28-price-plans !grid !grid-cols-1 md:!grid-cols-2 xl:!grid-cols-4" aria-busy={loading}>
+        <div className="s28-price-plans s31-price-plans" aria-busy={loading}>
         {planSet.map(([product,price,bestFor])=>{
           const recommended=product.slug==="website-growth";
+           const primary=product.slug==="managed-website"||recommended;
           const priceReady=!loading&&!pricingError&&Boolean(price);
           const offer=getIntroductoryQuote(price?.monthlyPrice||0,price?.setupFee||0,getMinimumTermMonths(price),promoActive);
           const delivery=PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug];
-          return <article className={"s28-price-card"+(recommended?" s28-price-featured":"")} key={product.slug}>
-            <div className="s28-price-best">{recommended?"Recommended / Most balanced":bestFor}</div>
+          return <article className={"s28-price-card"+(recommended?" s28-price-featured":"")+(primary?" s31-primary-plan":" s31-alternative-plan")} data-plan-slug={product.slug} key={product.slug}>
+            <div className="s28-price-best">{recommended?"Recommended for growing businesses":bestFor}</div>
             <h3 className="s28-price-name">{product.name}</h3>
             <p className="s28-price-desc">{product.description}</p>
             <div className="s28-price-number" aria-label={priceReady?`${formatCommercialMoney(price?.monthlyPrice,price?.currency||checkoutCurrency)} per month`:"Plan monthly price pending verification"}><span className="s28-price-amount">{priceReady?formatCommercialMoney(price?.monthlyPrice,price?.currency||checkoutCurrency):loading?"Checking rates…":"Price unavailable"}</span>{priceReady && <span className="s28-price-period">/ month</span>}</div>
@@ -244,14 +245,14 @@ export const Pricing: React.FC<PricingProps> = ({ currentPlan, onSelectPlan, onD
               <ul>{delivery?[delivery.pages,delivery.revisions,delivery.updates].map(x=><li key={x}><Check size={15}/>{x}</li>):<li><Check size={15}/> Scope confirmed before order</li>}</ul>
             </div>
             <div className="s28-price-action"><Button type="button" disabled={loading} onClick={()=>priceReady?handleSelect(product):navigate(`/book-demo?product=${encodeURIComponent(product.slug)}`)} className="w-full px-5 font-semibold">
-              {!priceReady?loading?"Verifying rates…":"Ask about this plan":product.salesMotion==="self_serve"?"Choose this plan":"Discuss this plan"} <ArrowRight className="ml-2 h-4 w-4"/>
+              {!priceReady?loading?"Verifying rates…":"Ask about this plan":product.salesMotion==="self_serve"?"Review plan & payment":"Discuss plan scope"} <ArrowRight className="ml-2 h-4 w-4"/>
             </Button><p className="s28-price-minor">{recommended?"Recommended for businesses actively acquiring customers.":product.salesMotion==="self_serve"?"Review the order, terms and totals before payment.":"We'll clarify fit, scope and pricing together."}</p></div>
           </article>;
         })}
       </div>
       <div className="s28-compare" id="compare-scope">
         <h2>Compare what's actually included.</h2>
-        <p>The published delivery scope and ongoing growth support vary by plan. On mobile, compare each plan's complete scope without horizontal scrolling.</p>
+        <p>All four plans are shown above. Compare exact included pages, revisions, support and growth services before making a payment. The mobile version shows each plan separately without side-scrolling.</p>
         <div className="mt-5 grid gap-4 md:hidden" aria-label="Mobile managed website plan comparison">
           {planSet.map(([product], index) => {
             const standard = PLAN_DELIVERY_STANDARDS[product.slug as PublicPlanSlug];
