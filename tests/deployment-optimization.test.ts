@@ -20,8 +20,10 @@ test("Vercel only builds authorized main and release-candidate branches", () => 
   assert.ok(vercel.routes.some((route: { src?: string }) => route.src === "^/api(?:/(.*))?$"));
 });
 
-test("GitHub CI retains an always-present required check and cancels superseded runs", () => {
-  assert.match(ci, /push:[\s\S]*?branches:[\s\S]*?- main[\s\S]*?- 'release-candidate\/\*\*'/);
+test("GitHub CI runs required checks for release, design, and Codex branches", () => {
+  assert.match(ci, /workflow_dispatch:/);
+  assert.match(ci, /push:[\s\S]*?branches:[\s\S]*?- main[\s\S]*?- 'release-candidate\/\*\*'[\s\S]*?- 'design\/\*\*'[\s\S]*?- 'codex\/\*\*'/);
+  assert.match(ci, /pull_request:/);
   assert.match(ci, /concurrency:[\s\S]*?cancel-in-progress:\s*true/);
   assert.match(ci, /jobs:\s*\n\s+verify:/);
   assert.match(ci, /outputs:[\s\S]*?code_changed:/);

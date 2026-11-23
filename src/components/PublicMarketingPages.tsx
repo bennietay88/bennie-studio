@@ -446,7 +446,7 @@ async function submitPlatformLead(input: {
 
   const data = await response.json().catch(() => null);
   if (!response.ok || !data?.success) {
-    throw new Error(data?.message || "Unable to submit request right now.");
+    throw new Error(data?.message || data?.error || "Unable to submit request right now.");
   }
 
   trackPinterestLead(input.leadType, {
@@ -512,7 +512,7 @@ function TemplatesPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   return (
     <>
       <Hero
-        title={cmsPage?.heroTitle || "A better website starts with a clear direction."}
+        title={cmsPage?.heroTitle || "A clearer direction for your website."}
         copy={cmsPage?.heroDescription || "Explore website concepts built around real buying decisions: what visitors need to understand, what proof they should see and which action they should take next."}
         icon={LayoutTemplate}
         primaryLabel={cmsPage?.primaryCtaLabel || "Create my free website preview"}
@@ -3104,11 +3104,11 @@ export default function PublicMarketingPages() {
         Other public page bodies render fragments; give them a single
         main landmark so screen readers and browser QA find the real H1.
       */}
-      {!pageCms?.replacePageContent && (pageKind === "services" || pageKind === "pricing")
+      {!pageCms?.replacePageContent && (pageKind === "services" || pageKind === "pricing" || pageKind === "preview-order")
         ? pageContent
         : <main id="main-content">{pageContent}</main>}
       {!pageCms?.replacePageContent && <PlatformCmsSections path={cmsPagePath} />}
-      {!nichePage && !["pricing","services","resources","contact","generate-preview","templates","website-audit"].includes(pageKind) && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
+      {!nichePage && !["pricing","services","resources","contact","generate-preview","preview-order","templates","website-audit"].includes(pageKind) && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="brand-shell relative grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
           <div>

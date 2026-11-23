@@ -199,7 +199,7 @@ test("compact desktop keeps primary navigation accessible", async ({ page }) => 
   const dialog = page.getByRole("dialog", { name: "Navigation menu" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("link", { name: "Services", exact: true })).toBeVisible();
-  await expect(dialog.getByRole("link", { name: "Case Studies", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Website Examples", exact: true })).toBeVisible();
   await expect(dialog.getByRole("link", { name: "Pricing", exact: true })).toBeVisible();
   await expect(dialog.getByRole("link", { name: "How it works", exact: true })).toBeVisible();
 });
@@ -217,13 +217,18 @@ test("resources subscription persists before reporting success", async ({ page }
   });
 
   await page.goto("/resources", { waitUntil: "networkidle" });
+  await page.getByText("Want the optional website checklist?").click();
   await page.getByLabel("Email address").fill("reader@example.com");
-  await page.getByRole("button", { name: "Subscribe", exact: true }).click();
+  await page.getByLabel("Country").selectOption("US");
+  await page.getByLabel("Subscribing as").selectOption("business");
+  await page.getByRole("checkbox", { name: /Yes, send me website improvement tips/i }).check();
+  await page.getByRole("button", { name: "Send me the checklist", exact: true }).click();
 
-  await expect(page.getByRole("button", { name: /You’re subscribed/i })).toBeVisible();
+  await expect(page.getByRole("status")).toContainText(/Subscription recorded/i);
   expect(submittedLead?.email).toBe("reader@example.com");
-  expect(submittedLead?.leadType).toBe("newsletter_subscription");
-  expect(submittedLead?.formName).toBe("Resources newsletter");
+  expect(submittedLead?.leadType).toBe("newsletter_opt_in");
+  expect(submittedLead?.formName).toBe("Bennie Studio website tips opt-in");
+  expect(submittedLead?.marketingConsent).toBe(true);
 });
 
 test("contact project brief is captured and carried into the preview", async ({ page }) => {
@@ -240,14 +245,13 @@ test("contact project brief is captured and carried into the preview", async ({ 
 
   await page.goto("/contact", { waitUntil: "networkidle" });
   await page.locator('input[placeholder="Your name"]').fill("Jane Prospect");
-  await page.locator('input[placeholder="Company"]').fill("Example Advisory");
-  await page.locator('input[placeholder="you@company.com"]').fill("jane@example.com");
+  await page.locator('input[placeholder="Business name"]').fill("Example Advisory");
+  await page.locator('input[placeholder="you@business.com"]').fill("jane@example.com");
   await page.locator("select").selectOption({ label: "Website redesign" });
   await page.locator('textarea[placeholder*="goals"]').fill("We need a clearer enquiry path and stronger credibility.");
-  await expect(page.getByRole("link", { name: /Open live calendar/i })).toBeVisible();
-  await expect(page.getByText("Dates and times below are illustrative.")).toBeVisible();
+  await expect(page.getByText("We use your details to respond to this enquiry and continue your preview.")).toBeVisible();
 
-  await page.getByRole("button", { name: "Send brief & start preview" }).click();
+  await page.getByRole("button", { name: "Send brief & continue to preview" }).click();
 
   await expect(page).toHaveURL(/\/generate-preview\?/);
   const url = new URL(page.url());
@@ -271,9 +275,14 @@ test("template selector remains usable on mobile", async ({ page }) => {
   await page.goto("/templates", { waitUntil: "networkidle" });
   const scroller = page.getByTestId("template-family-scroller");
   await expect(scroller).toBeVisible();
-  const geometry = await scroller.evaluate((node) => ({ clientWidth: node.clientWidth, scrollWidth: node.scrollWidth }));
-  expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+  const concepts = scroller.getByRole("button");
+  await expect(concepts).toHaveCount(9);
+  await concepts.first().scrollIntoViewIfNeeded();
+  await expect(concepts.first()).toBeInViewport();
   await expect(scroller.getByRole("button", { pressed: true })).toHaveCount(1);
+  await concepts.nth(1).click();
+  await expect(concepts.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#template-detail")).toHaveAttribute("aria-label", /Selected concept:/);
 });
 
 test("generated customer site mobile navigation is accessible", async ({ page }) => {
@@ -291,15 +300,15 @@ test("generated customer site mobile navigation is accessible", async ({ page })
 test("sales journey exposes delivery safeguards and defined scope", async ({ page }) => {
   await mockAnonymousPublicDependencies(page);
   await page.goto("/how-it-works", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: /From first idea to launch/i })).toBeVisible();
-  await expect(page.getByText(/required review and approval steps/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Know what happens before you commit." })).toBeVisible();
+  await expect(page.getByText(/Your approval is required to launch/i)).toBeVisible();
 
   await page.goto("/pricing", { waitUntil: "networkidle" });
   const plans = page.locator("#plans");
   await expect(plans).toBeVisible();
   const planDetails = plans.locator('section[aria-label="Plan details"]');
   await expect(planDetails).toBeVisible();
-  await expect(planDetails.getByText(/approve the finished site before launch/i)).toBeVisible();
+  await expect(planDetails.getByText(/You approve the finished site before launch/i)).toBeVisible();
   await expect(page.getByText(/Month-to-month/i).first()).toBeVisible();
   await expect(page.getByRole("checkbox", { name: /New-customer offer/i })).toHaveCount(0);
 });
@@ -523,7 +532,7 @@ test("contact form supports keyboard focus, labeled controls and accessible subm
     route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Temporarily unavailable" }) }));
   await page.goto("/contact", { waitUntil: "networkidle" });
   const name = page.getByPlaceholder("Your name");
-  const company = page.getByPlaceholder("Company", { exact: true });
+  const company = page.getByPlaceholder("Business name", { exact: true });
   await name.focus();
   await page.keyboard.press("Tab");
   await expect(company).toBeFocused();
@@ -534,8 +543,8 @@ test("contact form supports keyboard focus, labeled controls and accessible subm
   expect(focus.outline !== "none" || focus.shadow !== "none").toBeTruthy();
   await name.fill("Demo Visitor");
   await company.fill("Demo Company");
-  await page.getByPlaceholder("you@company.com").fill("demo@example.test");
-  await page.getByRole("button", { name: "Send brief & start preview" }).click();
-  await expect(page.getByRole("alert")).toContainText(/temporarily unavailable|could not submit/i);
+  await page.getByPlaceholder("you@business.com").fill("demo@example.test");
+  await page.getByRole("button", { name: "Send brief & continue to preview" }).click();
+  await expect(page.getByRole("alert")).toContainText(/temporarily unavailable/i);
   await expect(page).toHaveURL(/\/contact/);
 });
