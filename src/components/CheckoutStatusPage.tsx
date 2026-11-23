@@ -1,7 +1,9 @@
 import React from "react";
+import { Helmet } from "react-helmet-async";
 import { CheckCircle2, CircleX, Loader2 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { PublicSiteHeader, PublicSiteFooter } from "./PublicSiteChrome";
 
 type VerificationState = "checking" | "confirmed" | "failed" | "claiming";
 
@@ -143,15 +145,15 @@ export function CheckoutStatusPage({ status }: { status: "success" | "cancel" })
   const signinHref = `/login?redirectTo=${encodeURIComponent(redirectBack)}`;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-5">
-      <section className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl">
+    <div className="brand-public min-h-screen bg-[#f8f8f5] text-[#15191f]"><Helmet><title>Checkout status | Bennie Studio</title><meta name="robots" content="noindex,nofollow" /><meta name="referrer" content="no-referrer" /></Helmet><PublicSiteHeader /><main id="main-content" className="brand-shell flex min-h-[65vh] items-center justify-center py-12 sm:py-20">
+      <section className="w-full max-w-2xl rounded-2xl border border-[#dbe1ea] bg-white p-6 text-center shadow-[0_20px_60px_-45px_rgba(15,23,42,.3)] sm:p-10">
         {verification === "checking" || claiming
-          ? <Loader2 className="mx-auto h-14 w-14 animate-spin text-indigo-500" />
+          ? <Loader2 className="mx-auto h-12 w-12 animate-spin text-[#1741ed]" />
           : confirmed
-            ? <CheckCircle2 className="mx-auto h-14 w-14 text-emerald-500" />
-            : <CircleX className="mx-auto h-14 w-14 text-amber-500" />}
+            ? <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" />
+            : <CircleX className="mx-auto h-12 w-12 text-amber-600" />}
 
-        <h1 className="mt-5 text-3xl font-black text-slate-950">
+        <h1 className="mt-5 text-3xl font-bold leading-tight tracking-tight text-[#15191f] sm:text-4xl">
           {verification === "checking"
             ? "Confirming checkout"
             : claiming
@@ -161,7 +163,7 @@ export function CheckoutStatusPage({ status }: { status: "success" | "cancel" })
                 : successful ? "Confirmation needs attention" : "Checkout cancelled"}
         </h1>
 
-        <p className="mx-auto mt-3 max-w-md font-semibold leading-7 text-slate-600">
+        <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-[#526071]">
           {verification === "checking"
             ? "Please wait while the payment is verified securely."
             : claiming
@@ -176,8 +178,8 @@ export function CheckoutStatusPage({ status }: { status: "success" | "cancel" })
         </p>
 
         {confirmed ? (
-          <div className="mt-7 rounded-2xl bg-slate-50 p-5 text-left">
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-indigo-600">Your managed project starts here</p>
+          <div className="mt-8 rounded-xl border border-[#dbe1ea] bg-[#f4f7fc] p-5 text-left sm:p-6">
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#1741ed]">Your managed project starts here</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {[
                 ["1", "Activate your portal", "Use the checkout email so the paid order connects to the correct account."],
@@ -186,7 +188,7 @@ export function CheckoutStatusPage({ status }: { status: "success" | "cancel" })
                 ["4", "Approve and launch", "You review the finished website, request agreed changes and approve it before publication."],
               ].map(([step, title, copy]) => (
                 <div key={step} className="border-t border-slate-200 pt-3">
-                  <p className="text-xs font-black text-indigo-600">0{step}</p>
+                  <p className="text-xs font-bold text-[#1741ed]">0{step}</p>
                   <p className="mt-1 text-sm font-bold text-slate-900">{title}</p>
                   <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{copy}</p>
                 </div>
@@ -198,34 +200,34 @@ export function CheckoutStatusPage({ status }: { status: "success" | "cancel" })
         <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
           {confirmed && publicOrder && !signedIn ? (
             <>
-              <Link className="inline-flex h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white hover:bg-indigo-500" to={signupHref}>
+              <Link className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#1741ed] px-5 py-3 text-center text-sm font-bold text-white hover:bg-[#1035c2]" to={signupHref}>
                 Activate my account
               </Link>
-              <Link className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-900 hover:bg-slate-50" to={signinHref}>
+              <Link className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[#dbe1ea] bg-white px-5 py-3 text-center text-sm font-bold text-[#1741c9] hover:bg-[#eef3ff]" to={signinHref}>
                 I already have an account
               </Link>
             </>
           ) : confirmed && !publicOrder ? (
-            <Link className="inline-flex h-10 items-center justify-center rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white hover:bg-indigo-500" to="/dashboard/onboarding">
+            <Link className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#1741ed] px-5 py-3 text-center text-sm font-bold text-white hover:bg-[#1035c2]" to="/dashboard/onboarding">
               Continue Setup
             </Link>
           ) : !successful ? (
-            <Link className="inline-flex h-10 items-center justify-center rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white hover:bg-indigo-500" to="/preview-order">
+            <Link className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#1741ed] px-5 py-3 text-center text-sm font-bold text-white hover:bg-[#1035c2]" to="/preview-order">
               Return to order
             </Link>
           ) : verification === "failed" ? (
-            <Link className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-900 hover:bg-slate-50" to={publicOrder && !directCheckout ? "/preview-order" : "/pricing"}>
+            <Link className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[#dbe1ea] bg-white px-5 py-3 text-center text-sm font-bold text-[#1741c9] hover:bg-[#eef3ff]" to={publicOrder && !directCheckout ? "/preview-order" : "/pricing"}>
               Return
             </Link>
           ) : null}
         </div>
 
         {successful && verification === "failed" ? (
-          <p className="mt-5 text-xs font-bold text-amber-700">
+          <p role="alert" className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-xs font-bold leading-6 text-amber-900">
             If Stripe charged you, do not pay again. Your payment can be reconciled from the checkout reference.
           </p>
         ) : null}
       </section>
-    </main>
+    </main><PublicSiteFooter /></div>
   );
 }

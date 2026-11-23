@@ -171,12 +171,24 @@ export async function completeAsyncJob(
   if (workerId && !data) throw new Error("JOB_LEASE_LOST");
 }
 
+export function shouldRetryAsyncJobFailure(
+  job: Pick<AsyncJobRecord, "job_type" | "attempts" | "max_attempts">,
+  errorStatusCode?: number,
+): boolean {
+  // Blocked/invalid target websites are permanent audit failures. Retry only
+  // transient transport, rate-limit, or server problems within the job budget.
+  const terminalAuditCodes = new Set([400, 401, 403, 404, 410, 422]);
+  return job.attempts < job.max_attempts
+    && !(job.job_type === "website_audit" && terminalAuditCodes.has(errorStatusCode || 0));
+}
+
 export async function failAsyncJob(
   supabaseAdmin: SupabaseClient,
   job: AsyncJobRecord,
   errorMessage: string,
+  errorStatusCode?: number,
 ) {
-  const retry = job.attempts < job.max_attempts;
+  const retry = shouldRetryAsyncJobFailure(job, errorStatusCode);
   const delayMs = Math.min(15 * 60 * 1000, 30_000 * Math.max(job.attempts, 1));
   let query = supabaseAdmin
     .from("async_jobs")
@@ -186,6 +198,7 @@ export async function failAsyncJob(
       locked_at: null,
       locked_by: null,
       last_error: errorMessage,
+      completed_at: retry ? null : new Date().toISOString(),
     })
     .eq("id", job.id);
   // Do not requeue or fail an attempt after its lease has been replaced.

@@ -53,7 +53,7 @@ test.describe("Public site freeze QA",()=>{
     const invalid=await request.post(endpoint,{data:{eventType:"",sourcePage:"/"}});
     expect(invalid.status()).toBe(400);
   });
-  test("buyer comparison guides render complete, linked and responsive tables",async({page})=>{
+  test("buyer comparison guides render complete desktop tables and mobile cards",async({page},testInfo)=>{
     for(const [path,heading] of [
       ["/managed-website-vs-diy","Managed website vs a DIY website builder"],
       ["/managed-website-vs-agency","Managed website vs a web design agency"],
@@ -61,7 +61,14 @@ test.describe("Public site freeze QA",()=>{
       const result=await page.goto(path,{waitUntil:"domcontentloaded"});
       expect(result?.status()).toBeLessThan(400);
       await expect(page.getByRole("heading",{level:1,name:heading})).toBeVisible();
-      await expect(page.getByRole("table")).toBeVisible();
+      const comparisonRows=await page.locator("table tbody tr").count();
+      if(testInfo.project.name==="mobile-chromium"){
+        const mobileCards=page.locator('[class~="md:hidden"] article');
+        await expect(page.locator("table")).toBeHidden();
+        await expect(mobileCards).toHaveCount(comparisonRows);
+      }else{
+        await expect(page.getByRole("table")).toBeVisible();
+      }
       await expect(page.getByRole("link",{name:/compare current plans/i})).toBeVisible();
       await expect(page.getByRole("link",{name:/managed website vs/i}).last()).toBeVisible();
       const extra=await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-document.documentElement.clientWidth));
@@ -89,12 +96,12 @@ test.describe("Public site freeze QA",()=>{
   });
   test("case study gallery opens a labelled studio project",async({page})=>{
     await page.goto("/case-studies");
-    await expect(page.getByRole("heading",{name:/websites designed to/i})).toBeVisible();
+    await expect(page.getByRole("heading",{name:/different businesses\. different website directions/i})).toBeVisible();
     const links=page.locator('a[href^="/case-studies/showcase/"]:not([href*="/preview"])');
     expect(await links.count()).toBeGreaterThanOrEqual(6);
     await links.first().click();
     await expect(page).toHaveURL(/\/case-studies\/showcase\//);
-    await expect(page.getByText(/illustrative design concept, not a claimed client commission/i)).toBeVisible();
+    await expect(page.getByText(/Illustrative design concept, not a claimed client commission or business result/i)).toBeVisible();
   });
   test("portfolio category and visual-style filters only show matching published examples",async({page})=>{
     await page.goto("/case-studies");

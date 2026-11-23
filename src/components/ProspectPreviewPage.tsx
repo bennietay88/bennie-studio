@@ -67,8 +67,8 @@ export default function ProspectPreviewPage() {
 
   if (error) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f6f7fb] px-6">
-        <div className="max-w-lg border border-[#dfe2ea] bg-white p-8 text-center">
+      <main className="brand-public grid min-h-screen place-items-center bg-[#f8f8f5] px-6">
+        <div className="max-w-lg rounded-2xl border border-[#dbe1ea] bg-white p-6 text-center sm:p-9">
           <h1 className="text-2xl font-semibold text-[#141821]">Preview unavailable</h1>
           <p className="mt-3 text-[#526071]">{error}</p>
         </div>
@@ -78,7 +78,7 @@ export default function ProspectPreviewPage() {
 
   if (!payload) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f6f7fb] text-[#526071]">
+      <main role="status" className="brand-public grid min-h-screen place-items-center bg-[#f8f8f5] px-5 text-[#526071]">
         Preparing your website preview…
       </main>
     );
@@ -99,17 +99,17 @@ export default function ProspectPreviewPage() {
     : null;
 
   return (
-    <main className="min-h-screen bg-[#f4f5f7] text-[#141821]">
+    <main className="brand-public min-h-screen bg-[#f8f8f5] pb-20 text-[#141821] sm:pb-0">
       <Helmet>
         <title>{preview.businessName} Website Preview | Bennie Studio</title>
         <meta name="robots" content="noindex,nofollow" />
       </Helmet>
 
-      <header className="sticky top-0 z-[120] border-b border-[#dfe2ea] bg-white/95 backdrop-blur-xl">
+      <header className="sticky top-0 z-[120] border-b border-[#dbe1ea] bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex min-h-16 max-w-[100rem] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="text-xs font-black uppercase tracking-[0.18em] text-[#5746e8]">Bennie Studio</span>
+              <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#1741ed]">Bennie Studio</span>
               <span className="hidden h-3 w-px bg-[#dfe2ea] sm:block" />
               <span className="truncate text-sm font-semibold text-[#141821]">Website preview for {preview.businessName}</span>
             </div>
@@ -153,7 +153,7 @@ export default function ProspectPreviewPage() {
 
             <Link
               to={ctaHref}
-              className="inline-flex min-h-10 items-center bg-[#141821] px-4 text-xs font-bold text-white transition hover:bg-[#5746e8] sm:px-5"
+              className="inline-flex min-h-11 items-center rounded-lg bg-[#1741ed] px-4 text-xs font-bold text-white transition hover:bg-[#1035c2] sm:px-5"
             >
               {ctaLabel}<ArrowRight className="ml-2 h-4 w-4" />
             </Link>
@@ -164,12 +164,12 @@ export default function ProspectPreviewPage() {
       <section className="border-b border-[#dfe2ea] bg-white">
         <div className="mx-auto flex max-w-[100rem] flex-col gap-4 px-4 py-5 sm:px-6 md:flex-row md:items-end md:justify-between lg:px-8">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5746e8]">Your redesigned website direction</p>
-            <h1 className="mt-2 max-w-4xl text-2xl font-semibold tracking-[-0.025em] text-[#141821] sm:text-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1741ed]">Your redesigned website direction</p>
+            <h1 className="mt-2 max-w-4xl text-2xl font-bold leading-tight tracking-[-0.025em] text-[#15191f] sm:text-3xl">
               {preview.headline || `${preview.businessName}, made clearer online.`}
             </h1>
           </div>
-          <p className="max-w-xl text-sm leading-6 text-[#687180]">
+          <p className="max-w-xl text-sm leading-6 text-[#526071]">
             This concept preserves the strongest parts of the existing brand while improving hierarchy, trust and the path to {preview.primaryConversionPath || "contact"}.
           </p>
         </div>
@@ -208,7 +208,7 @@ export default function ProspectPreviewPage() {
 
       <section className="border-t border-[#dfe2ea] bg-white">
         <div className="mx-auto max-w-[90rem] px-6 py-12 sm:px-10 sm:py-14 lg:px-16">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5746e8]">Why this preview is relevant</p>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1741ed]">Why this preview is relevant</p>
           <h2 className="mt-3 max-w-3xl text-3xl font-semibold tracking-[-0.03em] text-[#141821]">See the evidence, the change and the managed next step.</h2>
           <div className="mt-8 grid gap-px overflow-hidden border border-[#dfe2ea] bg-[#dfe2ea] md:grid-cols-2 xl:grid-cols-4">
             <article className="bg-white p-5 sm:p-6">
@@ -269,7 +269,7 @@ export default function ProspectPreviewPage() {
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Recommended next step</p>
                   <p className="mt-2 text-xl font-semibold">{product?.label || "Website build"}</p>
                   <p className="mt-2 text-sm leading-6 text-slate-300">{product?.reason || "Review the direction and confirm the final build scope."}</p>
-                  <Link to={ctaHref} className="mt-6 inline-flex min-h-12 items-center bg-white px-5 font-bold text-[#141821] transition hover:bg-[#eeebff]">
+                  <Link to={ctaHref} className="mt-6 inline-flex min-h-12 items-center rounded-lg bg-white px-5 py-3 font-bold text-[#1741c9] transition hover:bg-[#eef3ff]">
                     {ctaLabel}<ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </div>
@@ -282,11 +282,11 @@ export default function ProspectPreviewPage() {
       <div className="fixed inset-x-0 bottom-0 z-[130] border-t border-[#dfe2ea] bg-white/95 p-3 backdrop-blur-xl sm:hidden">
         <div className="flex gap-2">
           {originalUrl ? (
-            <a href={originalUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 flex-1 items-center justify-center border border-[#dfe2ea] px-3 text-xs font-bold text-[#374151]">
+            <a href={originalUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg border border-[#dbe1ea] bg-white px-3 text-xs font-bold text-[#1741c9]">
               Original
             </a>
           ) : null}
-          <Link to={ctaHref} className="inline-flex min-h-11 flex-[1.5] items-center justify-center bg-[#141821] px-3 text-xs font-bold text-white">
+          <Link to={ctaHref} className="inline-flex min-h-11 flex-[1.5] items-center justify-center rounded-lg bg-[#1741ed] px-3 text-center text-xs font-bold text-white">
             {ctaLabel}<ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </div>

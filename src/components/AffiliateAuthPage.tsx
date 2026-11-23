@@ -48,7 +48,8 @@ export default function AffiliateAuthPage() {
   // If already logged in, redirect to wherever they were going or dashboard
   React.useEffect(() => {
     if (user) {
-      const from = (location.state as any)?.redirectTo || "/dashboard";
+      const requested = (location.state as any)?.redirectTo;
+      const from = typeof requested === "string" && requested.startsWith("/") && !requested.startsWith("//") ? requested : "/dashboard";
       navigate(from);
     }
   }, [user, navigate, location]);
@@ -67,9 +68,9 @@ export default function AffiliateAuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
+    <div className="brand-public min-h-screen bg-[#f8f8f5] flex flex-col text-[#15191f] lg:flex-row">
       {/* Left Side: Branding & Info */}
-      <div className="lg:w-5/12 bg-slate-900 p-12 lg:p-20 flex flex-col justify-between text-white relative overflow-hidden">
+      <div className="relative flex flex-col justify-between overflow-hidden bg-[#101c36] p-7 text-white sm:p-10 lg:w-5/12 lg:p-16">
         <div className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none">
           <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-indigo-500 rounded-full blur-[100px]" />
           <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-emerald-500 rounded-full blur-[100px]" />
@@ -77,22 +78,21 @@ export default function AffiliateAuthPage() {
 
         <div className="relative z-10 space-y-12">
           <Link to="/" className="flex items-center gap-3">
-            <div className="h-12 w-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#1741ed]">
               <Gift className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-black tracking-tighter">
+            <span className="text-2xl font-bold tracking-tight">
               Partner Portal
             </span>
           </Link>
 
           <div className="space-y-6">
-            <h2 className="text-4xl lg:text-5xl font-extrabold leading-tight">
-              Grow your audience, <br />
-              <span className="text-indigo-400">Grow your income.</span>
+            <h2 className="text-3xl font-bold leading-tight tracking-tight lg:text-5xl">
+              Introduce helpful websites, <br />
+              <span className="text-[#b9caff]">Build referral relationships.</span>
             </h2>
-            <p className="text-slate-400 text-lg max-w-md">
-              Join the official affiliate program and earn top-tier commissions
-              for every customer you refer.
+            <p className="max-w-md text-base leading-8 text-slate-200">
+              Apply to refer businesses to Bennie Studio. Commission eligibility and rates depend on the approved partner agreement.
             </p>
           </div>
 
@@ -126,7 +126,7 @@ export default function AffiliateAuthPage() {
               <div>
                 <p className="font-bold text-slate-100">Transparent Tracking</p>
                 <p className="text-sm text-slate-400">
-                  Real-time stats and monthly payouts guaranteed.
+                  View recorded referrals and eligible commissions in your partner dashboard.
                 </p>
               </div>
             </div>
@@ -141,23 +141,23 @@ export default function AffiliateAuthPage() {
       </div>
 
       {/* Right Side: Auth Form */}
-      <div className="lg:w-7/12 flex items-center justify-center p-8 lg:p-20 bg-white dark:bg-slate-950">
+      <div className="flex items-center justify-center bg-[#f8f8f5] p-5 sm:p-10 lg:w-7/12 lg:p-16">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="max-w-md w-full space-y-8"
+          className="w-full max-w-lg rounded-2xl border border-[#dbe1ea] bg-white p-6 shadow-[0_20px_60px_-45px_rgba(15,23,42,.3)] sm:p-9"
         >
           <div className="space-y-2">
             <Badge
               variant="outline"
-              className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 border-indigo-100 dark:border-indigo-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+              className="rounded-lg border border-[#dbe1ea] bg-[#eef3ff] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#1741c9]"
             >
               {isSignUp ? "New Partner" : "Existing Partner"}
             </Badge>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white">
+            <h1 className="text-3xl font-bold leading-tight tracking-tight text-[#15191f]">
               {isSignUp ? "Create Partner Account" : "Partner Sign In"}
             </h1>
-            <p className="text-slate-500 dark:text-slate-400">
+            <p className="text-sm leading-7 text-[#526071]">
               {isSignUp
                 ? "Start your journey as an official partner today."
                 : "Manage your referrals and view your latest earnings."}
@@ -178,7 +178,7 @@ export default function AffiliateAuthPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="h-12 pl-10 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 focus:ring-2 focus:ring-indigo-600"
+                    className="h-12 rounded-lg border-[#dbe1ea] bg-[#f8faff] pl-10 text-[#15191f] focus:ring-2 focus:ring-[#1741ed]"
                   />
                 </div>
               </div>
@@ -206,7 +206,7 @@ export default function AffiliateAuthPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="h-12 pl-10 rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 focus:ring-2 focus:ring-indigo-600"
+                    className="h-12 rounded-lg border-[#dbe1ea] bg-[#f8faff] pl-10 text-[#15191f] focus:ring-2 focus:ring-[#1741ed]"
                   />
                 </div>
               </div>
@@ -227,12 +227,8 @@ export default function AffiliateAuthPage() {
                       className="text-xs text-slate-500 leading-relaxed cursor-pointer no-select"
                     >
                       I agree to the{" "}
-                      <span className="text-indigo-600 font-bold underline">
-                        Partner Terms & Conditions
-                      </span>
-                      . I understand commissions are paid monthly after a{" "}
-                      {location.state?.cookieDuration || 30}-day clearance
-                      period.
+                      <Link to="/terms" target="_blank" rel="noreferrer" className="font-bold text-[#1741c9] underline">Partner Terms & Conditions</Link>
+                      . I understand that commissions and payout timing depend on the current partner terms and eligibility checks.
                     </Label>
                   </div>
                 </div>
@@ -241,7 +237,7 @@ export default function AffiliateAuthPage() {
 
             <Button
               type="submit"
-              className="w-full h-14 text-lg font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-xl shadow-indigo-600/20 transition-all hover:-translate-y-1 active:scale-[0.98]"
+              className="min-h-12 w-full rounded-lg bg-[#1741ed] px-5 py-3 text-base font-bold text-white hover:bg-[#1035c2]"
               disabled={isSigningIn}
             >
               {isSigningIn ? (
@@ -272,7 +268,7 @@ export default function AffiliateAuthPage() {
                 : "Want to join our network?"}{" "}
               <button
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="text-indigo-600 font-black hover:underline ml-1"
+                className="ml-1 font-bold text-[#1741c9] hover:underline"
               >
                 {isSignUp ? "Sign In" : "Create Account"}
               </button>
@@ -285,7 +281,7 @@ export default function AffiliateAuthPage() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-2xl text-red-600 dark:text-red-400 text-sm font-medium flex items-center justify-between gap-3"
+                role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800"
               >
                 <div className="flex flex-col gap-1">
                   <span>{error}</span>

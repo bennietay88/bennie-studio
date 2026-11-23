@@ -197,6 +197,7 @@ const BusinessDashboard = lazy(() =>
 const FeatureTour = lazy(() =>
   import("./components/FeatureTour").then((m) => ({ default: m.FeatureTour })),
 );
+const PublicNotFoundPage = lazy(() => import("./components/PublicNotFoundPage"));
 const DemoModePage = lazy(() =>
   import("./components/DemoModePage").then((m) => ({ default: m.DemoModePage })),
 );
@@ -1032,7 +1033,7 @@ export default function App() {
                 }
               />
 
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<PublicNotFoundPage />} />
               </Routes>
             </PublicRouteTransition>
           </Suspense>

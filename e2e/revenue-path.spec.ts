@@ -655,11 +655,10 @@ test("legacy market URLs resolve into the geographically generic public journey"
 
 test("internal sales preview asks for company and URL without requiring prospect contact details", async ({ page }) => {
   await mockSupabaseAndStripe(page);
-  await page.goto("/generate-preview?sales=1");
-  await expect(page.getByText(/Internal sales mode · prospect email not required/i)).toBeVisible();
-  await page.getByRole("button", { name: /I already have a website/i }).click();
+  await page.goto("/generate-preview?mode=website&sales=1");
+  await expect(page.getByText("Internal studio preview · Staff mode")).toBeVisible();
   await expect(page.getByLabel("Company name")).toBeVisible();
-  await expect(page.getByLabel("Website URL").first()).toBeVisible();
+  await expect(page.getByLabel("Website URL")).toBeVisible();
 
   const email = page.getByLabel("Email");
   expect(await email.getAttribute("required")).toBeNull();

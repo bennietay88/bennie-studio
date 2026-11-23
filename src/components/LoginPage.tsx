@@ -70,24 +70,24 @@ export default function LoginPage({
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f6fa] flex items-center justify-center p-4 sm:p-6">
+    <div className="brand-public min-h-screen bg-[#f8f8f5] flex items-center justify-center px-5 py-14 sm:py-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-lg w-full border border-[#e3e6ed] bg-white rounded-[1.75rem] shadow-[0_28px_80px_-42px_rgba(13,20,38,.45)] p-7 sm:p-10 space-y-7"
+        className="max-w-lg w-full rounded-2xl border border-[#dbe1ea] bg-white p-6 space-y-7 sm:p-10"
       >
         <div className="text-center space-y-6">
           <div className="flex justify-center">
-            <div className="grid h-14 w-14 place-items-center rounded-[14px] bg-gradient-to-br from-[#6e5bff] to-[#4d3ef0] text-lg font-black text-white shadow-[0_14px_32px_-18px_rgba(87,70,232,.9)]">
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-[#1741ed] text-lg font-bold text-white">
               B
             </div>
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-3xl font-semibold text-[#0d1426] tracking-[-0.035em]">
+            <h1 className="text-3xl font-bold leading-tight tracking-tight text-[#15191f]">
               {isSignUp ? "Create your Bennie Studio account" : "Welcome back"}
             </h1>
-            <p className="text-slate-500">
+            <p className="text-sm leading-7 text-[#526071]">
               {isSignUp
                 ? "Start with a free website preview, then choose the right managed service."
                 : "Sign in to manage your website, leads, and account."}
@@ -103,8 +103,7 @@ export default function LoginPage({
               </div>
               <p className="text-xs text-amber-700">
                 You are currently signed in as{" "}
-                <span className="font-bold">{user.email}</span>. Resetting the
-                system allows you to log in with a different account.
+                <span className="font-bold">{user.email}</span>. Sign out to use a different account.
               </p>
               <Button
                 type="button"
@@ -118,7 +117,7 @@ export default function LoginPage({
                   }
                 }}
               >
-                Sign Out & Reset System
+                Sign out of this account
               </Button>
             </div>
           )}
@@ -134,7 +133,7 @@ export default function LoginPage({
               onChange={(e) => setEmail(e.target.value)}
               required
               data-testid="auth-email"
-              className="h-14 rounded-xl border-[#dfe3eb] bg-[#f8f9fb] focus:bg-white"
+              className="h-12 rounded-lg border-[#dbe1ea] bg-[#f8faff] focus:bg-white"
             />
           </div>
           <div className="space-y-2">
@@ -146,7 +145,7 @@ export default function LoginPage({
                 <button
                   type="button"
                   onClick={() => navigate("/forgot-password")}
-                  className="text-xs font-bold text-[#5746e8] hover:underline"
+                  className="text-xs font-bold text-[#1741c9] hover:underline"
                 >
                   Forgot Password?
                 </button>
@@ -160,7 +159,7 @@ export default function LoginPage({
               onChange={(e) => setPassword(e.target.value)}
               required
               data-testid="auth-password"
-              className="h-14 rounded-xl border-[#dfe3eb] bg-[#f8f9fb] focus:bg-white"
+              className="h-12 rounded-lg border-[#dbe1ea] bg-[#f8faff] focus:bg-white"
             />
           </div>
 
@@ -182,7 +181,7 @@ export default function LoginPage({
                 <button
                   type="button"
                   onClick={() => navigate("/terms")}
-                  className="text-[#5746e8] font-bold hover:underline"
+                  className="text-[#1741c9] font-bold hover:underline"
                 >
                   Terms of Service
                 </button>{" "}
@@ -190,7 +189,7 @@ export default function LoginPage({
                 <button
                   type="button"
                   onClick={() => navigate("/privacy")}
-                  className="text-[#5746e8] font-bold hover:underline"
+                  className="text-[#1741c9] font-bold hover:underline"
                 >
                   Privacy Policy
                 </button>
@@ -202,7 +201,7 @@ export default function LoginPage({
           <Button
             type="submit"
             data-testid="auth-submit"
-            className="w-full h-14 text-base font-semibold bg-[#0d1426] hover:bg-[#5746e8] rounded-xl shadow-[0_14px_30px_-18px_rgba(13,20,38,.7)]"
+            className="min-h-12 w-full rounded-lg bg-[#1741ed] px-6 py-3 text-base font-bold text-white hover:bg-[#1035c2]"
             isLoading={isSigningIn}
           >
             {isSignUp ? "Create Account" : "Sign In"}
@@ -214,7 +213,7 @@ export default function LoginPage({
             {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
             <button
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-[#5746e8] font-bold hover:underline"
+              className="text-[#1741c9] font-bold hover:underline"
             >
               {isSignUp ? "Sign In" : "Create One"}
             </button>
@@ -225,14 +224,14 @@ export default function LoginPage({
               By signing in, you agree to our{" "}
               <button
                 onClick={() => navigate("/terms")}
-                className="text-[#5746e8] font-bold hover:underline"
+                className="text-[#1741c9] font-bold hover:underline"
               >
                 Terms
               </button>{" "}
               and{" "}
               <button
                 onClick={() => navigate("/privacy")}
-                className="text-[#5746e8] font-bold hover:underline"
+                className="text-[#1741c9] font-bold hover:underline"
               >
                 Privacy Policy
               </button>
@@ -247,7 +246,7 @@ export default function LoginPage({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-medium flex items-center justify-between gap-3"
+              role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-800"
             >
               <div className="flex flex-col gap-1">
                 <span className="text-left">{error}</span>
@@ -278,7 +277,7 @@ export default function LoginPage({
         <div className="pt-4 text-center">
           <button
             onClick={() => navigate("/")}
-            className="text-sm font-bold text-slate-400 hover:text-[#5746e8] transition-colors flex items-center justify-center gap-2 mx-auto"
+            className="mx-auto flex items-center justify-center gap-2 text-sm font-bold text-[#1741c9] transition-colors hover:text-[#1035c2]"
           >
             <ArrowRight className="h-4 w-4 rotate-180" /> Back to Home
           </button>
