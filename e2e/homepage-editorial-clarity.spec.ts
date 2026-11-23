@@ -28,7 +28,7 @@ test("homepage footer is clean with no newsletter or empty signup disclosure", a
   await expect(page.locator("footer").getByRole("form", { name: "Website tips email signup" })).toHaveCount(0);
   await expect(page.locator(".c26-footer-newsletter")).toHaveCount(0);
   await expect(page.locator("footer").getByText(/Website improvement tips/i)).toHaveCount(0);
-  await expect(page.locator("footer").getByRole("link", { name: "Bennie Studio" })).toBeVisible();
+  await expect(page.locator("footer").getByRole("link", { name: /Bennie Studio Websites that/i })).toBeVisible();
 });
 
 test("pricing offers two highlighted plans and preserves the other product links", async ({ page }) => {
