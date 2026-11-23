@@ -19,6 +19,7 @@ import {
 import { usePublicCommercialPricing } from "../hooks/usePublicCommercialPricing";
 import { ConversionHomepage } from "./ConversionHomepage";
 import "../styles/homepageEditorialPolish.css";
+import "../styles/homepageSecondPass.css";
 import { usePublishedPlatformCms } from "../lib/platformSiteCms";
 import { PlatformCmsSections } from "./PlatformCmsSections";
 import { getPublicSiteConfig } from "../lib/publicSiteConfigCache";
@@ -115,6 +116,7 @@ export default function BrandLedLandingPage() {
     product,
     price: getCommercialPrice(product, market),
   }));
+  const secondaryPlans = [profilePlan, partner].map(product => ({ product, price: getCommercialPrice(product, market) }));
   const planBestFor = ["A clear business presence", "More enquiries and sustained growth"];
   // Three differentiators per plan, rather than repeating the same comparison
   // labels and terms in every card. Full contractual scope stays on /pricing.
@@ -199,7 +201,7 @@ export default function BrandLedLandingPage() {
 
         <section id="plans" className="c26-pricing-section scroll-mt-24 border-y border-[#dfe2ea] bg-white">
           <div className="brand-shell brand-section c26-pricing-shell">
-            <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-end">
+            <div className="c27-pricing-header">
               <div>
                 <p className="brand-kicker">Simple, transparent pricing</p>
                 <h2 className="mt-4">Choose the right level of website care.</h2>
@@ -207,12 +209,12 @@ export default function BrandLedLandingPage() {
               <p className="max-w-lg text-sm leading-6 text-[#526071]">Start with a professionally managed website or add ongoing growth support. See all four plans on the pricing page.</p>
             </div>
             {pricingError && <p role="status" className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">Live USD prices are temporarily unavailable. Explore the plan differences and request confirmed pricing before payment.</p>}
-            <div className="c26-pricing-featured mt-7 grid gap-5 md:grid-cols-2">
+            <div className="c26-pricing-featured c27-pricing-featured mt-7 grid gap-5 md:grid-cols-2">
                   {priced.map(({ product, price }, index) => {
                     const isRecommended = product.slug === "website-growth";
                     const priceReady = !pricingLoading && !pricingError && Boolean(price);
                     return (
-                      <article key={product.slug} className={isRecommended ? "flex h-full flex-col rounded-2xl border border-[#0F172A] bg-[#0F172A] p-7 text-white shadow-sm" : "flex h-full flex-col rounded-2xl border border-[#E2E8F0] bg-white p-7 shadow-sm"}>
+                      <article key={product.slug} className={isRecommended ? "c27-plan-card c27-plan-card-featured flex h-full flex-col rounded-2xl border border-[#0F172A] bg-[#0F172A] p-7 text-white shadow-sm" : "c27-plan-card flex h-full flex-col rounded-2xl border border-[#E2E8F0] bg-white p-7 shadow-sm"}>
                         <div>
                           <p className={isRecommended ? "text-xs font-semibold uppercase tracking-[0.08em] !text-[#b9b1ff]" : "text-xs font-semibold uppercase tracking-[0.08em] text-[#5746e8]"}>{isRecommended ? "Recommended" : planBestFor[index]}</p>
                           <h3 className={isRecommended ? "mt-2 !text-white" : "mt-2"}>{product.name}</h3>
@@ -230,21 +232,29 @@ export default function BrandLedLandingPage() {
                             ))}
                           </ul>
                         </div>
-                        <button onClick={() => go("/pricing#plan-" + product.slug, "Choose " + product.name)} className={isRecommended ? "mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#1D4ED8] px-5 font-semibold text-white hover:bg-[#2563EB]" : "mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#1D4ED8] px-5 font-semibold text-white hover:bg-[#2563EB]"}>
-                          Explore plan <ArrowRight className="ml-2 h-4 w-4" />
-                        </button>
+                        <button onClick={() => go(isRecommended ? "/generate-preview" : "/pricing#plan-" + product.slug, isRecommended ? "Recommended plan free preview" : "Explore " + product.name)} className={isRecommended ? "c27-plan-cta c27-plan-cta-featured mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#1D4ED8] px-5 font-semibold text-white hover:bg-[#2563EB]" : "c27-plan-cta mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#1D4ED8] px-5 font-semibold text-white hover:bg-[#2563EB]"}>
+                           {isRecommended ? "Get a free website preview" : "View Managed Website plan"} <ArrowRight className="ml-2 h-4 w-4" />
+                         </button>
+                         {isRecommended ? <Link to={"/pricing#plan-" + product.slug} className="c27-plan-more">Review Website Growth plan details</Link> : null}
                       </article>
                     );
                   })}
             </div>
-            <div className="c26-pricing-alternatives mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#d5deea] bg-[#f5f8fc] px-5 py-4">
-              <p className="m-0 text-base leading-7 text-[#23384e]">Need a personal profile or dedicated growth partnership? Those options are also available.</p>
-              <div className="flex flex-wrap gap-x-6 gap-y-2">
-                <Link to="/personal-profile" className="font-semibold text-[#164189] underline underline-offset-4">Personal Profile</Link>
-                <Link to="/pricing#plan-growth-partner" className="font-semibold text-[#164189] underline underline-offset-4">Growth Partner</Link>
-              </div>
-            </div>
-            <p className="mt-5 text-center text-sm leading-6 text-[#475569]">
+            <div className="c26-pricing-alternatives c27-pricing-alternatives mt-6">
+               <div className="c27-alternative-heading"><strong>Other ways to work with us</strong><span>Different needs, same transparent scope before payment.</span></div>
+               <div className="c27-alternative-grid">
+                 {secondaryPlans.map(({ product, price }) => (
+                   <Link key={product.slug} to={product.slug === "personal-profile" ? "/personal-profile" : "/pricing#plan-growth-partner"} className="c27-alternative-option">
+                     <span>{product.name}</span>
+                     <strong>{!pricingLoading && !pricingError && price ? formatCommercialMoney(price.monthlyPrice, price.currency || "USD") : "See current rate"}{!pricingLoading && !pricingError && price ? <small> /month</small> : null}</strong>
+                     <span>{product.slug === "personal-profile" ? "For individuals and professional identities" : "For businesses needing deeper ongoing support"}</span>
+                     <span className="c27-alternative-action">See details <ArrowRight size={16} aria-hidden="true"/></span>
+                   </Link>
+                 ))}
+               </div>
+               <p className="c27-alternative-disclaimer">Setup fees, current availability and minimum terms are shown on the full pricing page. Prices before tax.</p>
+             </div>
+             <p className="mt-5 text-center text-sm leading-6 text-[#475569]">
               Each plan shows its setup fee, billing terms and initial commitment before payment. Prices before tax.
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm font-semibold">
