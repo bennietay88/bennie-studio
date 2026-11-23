@@ -1,0 +1,143 @@
+/* Round 1: Services and Pricing. Confined to public sales pages; checkout and billing remain unchanged. */
+.brand-public .s31-sales {--s31-navy:#152c45;--s31-blue:#1d4ed8;--s31-text:#273f56;--s31-line:#d4dfe9;background:#f8fafc;color:var(--s31-navy);}
+.brand-public .s31-sales .brand-shell {width:min(calc(100% - 3rem),84rem)!important;max-width:84rem!important;margin-inline:auto}
+.brand-public .s31-sales h1,.brand-public .s31-sales h2,.brand-public .s31-sales h3 {line-height:1.1!important;letter-spacing:-.042em!important;overflow-wrap:normal;text-wrap:balance}
+.brand-public .s31-sales h2 {font-size:clamp(2.25rem,3.45vw,3.65rem)!important;max-width:24ch}
+.brand-public .s31-sales .s31-eyebrow {font-size:12px!important;text-transform:uppercase;font-weight:850;letter-spacing:.13em;line-height:1.5;color:#1a56a8;margin:0 0 1rem}
+.brand-public .s31-sales em {font-family:inherit;font-style:normal;letter-spacing:inherit;font-weight:inherit;color:inherit}
+.brand-public .s31-sales .s28-button {border-radius:8px!important;background:#1d4ed8;color:white;font-size:15px;min-height:52px;gap:12px;line-height:1.4}
+.brand-public .s31-sales .s28-button:hover {background:#1941b2}
+.brand-public .s31-sales .s28-text-link {font-size:15px!important;color:#1a4c91;line-height:1.5}
+.brand-public .s31-sales .s28-services-layout {gap:clamp(2rem,4vw,4.5rem);padding-block:clamp(3.5rem,5vw,5.4rem);min-height:0;grid-template-columns:minmax(0,.96fr) minmax(0,1.04fr)}
+.brand-public .s31-sales .s28-services-hero {background:#f6f9fc}
+.brand-public .s31-sales .s28-services-copy h1 {font-size:clamp(3rem,4.6vw,5rem)!important;max-width:14ch!important}
+.brand-public .s31-sales .s28-services-copy .s28-large-copy {font-size:18px!important;line-height:1.72!important;color:#314960}
+.brand-public .s31-sales .s28-services-copy .s28-tiny-note {font-size:14px!important;color:#435d75;line-height:1.6}
+.brand-public .s31-sales .s28-services-art {border-radius:13px;padding:1.3rem;background:#1a4780}
+.brand-public .s31-sales .s28-services-art-top,.brand-public .s31-sales .s28-art-caption {font-size:12px!important;color:#f2f7ff;line-height:1.55;flex-wrap:wrap}
+.brand-public .s31-sales .s28-strip {background:#162e48}
+.brand-public .s31-sales .s28-strip .brand-shell {padding-block:1.15rem;gap:1.1rem}
+.brand-public .s31-sales .s28-strip span {font-size:12px!important;color:#e6eff9}
+.brand-public .s31-sales .s28-strip .brand-shell>div {font-size:14px!important;color:#f0f7ff;line-height:1.5}
+.brand-public .s31-sales .s31-outcomes {background:#fff;padding-block:clamp(3.3rem,5vw,5.4rem)}
+.brand-public .s31-sales .s31-outcomes-layout {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:clamp(2rem,6vw,6.5rem)}
+.brand-public .s31-sales .s31-outcome-lead h2 {max-width:19ch!important;margin:0 0 1.4rem!important}
+.brand-public .s31-sales .s31-outcome-lead>p {font-size:18px!important;line-height:1.75!important;color:var(--s31-text);max-width:35rem}
+.brand-public .s31-sales .s31-outcome-lead .s28-text-link {margin-top:1.4rem}
+.brand-public .s31-sales .s31-outcome-stack {background:#edf3f9;border:1px solid #d6e2ed;border-radius:14px;padding:1.4rem 2rem}
+.brand-public .s31-sales .s31-outcome-row {display:grid;grid-template-columns:32px minmax(0,1fr) 24px;align-items:start;gap:1rem;padding:1.5rem 0;border-bottom:1px solid #cad7e4}
+.brand-public .s31-sales .s31-outcome-row:last-child {border:0}
+.brand-public .s31-sales .s31-outcome-row>span {font-size:14px;font-weight:850;color:#1d589c}
+.brand-public .s31-sales .s31-outcome-row h3 {font-size:clamp(1.35rem,1.8vw,1.8rem)!important;margin:0 0 .55rem!important;color:#152c45}
+.brand-public .s31-sales .s31-outcome-row p {font-size:16px!important;line-height:1.65!important;color:#35516a;margin:0}
+.brand-public .s31-sales .s31-outcome-row svg {color:#2965a6}
+.brand-public .s31-sales .s28-service-chapters {background:#eaf1f8;padding-block:clamp(3.3rem,5vw,5.4rem)}
+.brand-public .s31-sales .s28-chapters-top {gap:2rem;margin-bottom:1.7rem}
+.brand-public .s31-sales .s28-chapters-top h2 {font-size:clamp(2.25rem,3.45vw,3.65rem)!important;max-width:19ch}
+.brand-public .s31-sales .s28-chapters-top>p {font-size:17px!important;line-height:1.7!important;color:#344d65}
+.brand-public .s31-sales .s28-chapter {grid-template-columns:70px minmax(0,1fr) minmax(0,1fr);gap:1.5rem;padding:1.7rem 0;border-color:#bed0e0}
+.brand-public .s31-sales .s28-chapter-number {font-family:inherit;font-weight:850;font-size:15px;color:#1d589c;letter-spacing:.07em}
+.brand-public .s31-sales .s28-chapter h3 {font-size:clamp(1.45rem,2vw,2rem)!important;margin:.3rem 0!important}
+.brand-public .s31-sales .s28-chapter-body p {font-size:16px!important;line-height:1.7!important;color:#344d65}
+.brand-public .s31-sales .s28-chapter-body>div {font-size:14px!important;color:#263d55}
+.brand-public .s31-sales .s28-work {padding-block:clamp(3.5rem,5vw,5.5rem)}
+.brand-public .s31-sales .s28-work .s28-intro-grid h2 {font-size:clamp(2.25rem,3.45vw,3.65rem)!important}
+.brand-public .s31-sales .s28-work .s28-intro-grid p {font-size:17px!important;line-height:1.7!important;color:#314960}
+.brand-public .s31-sales .s28-website-grid {gap:1.2rem;margin-top:2.2rem}
+.brand-public .s31-sales .s28-website-grid article {border-radius:12px;overflow:hidden;border-color:#d2e0eb;box-shadow:0 9px 24px #10283d12}
+.brand-public .s31-sales .s28-showcase-copy>span {font-size:12px!important;color:#1c5599}
+.brand-public .s31-sales .s28-showcase-copy h3 {font-size:clamp(1.35rem,1.8vw,1.9rem)!important}
+.brand-public .s31-sales .s28-showcase-copy p {font-size:15px!important;line-height:1.65!important;color:#38536c}
+.brand-public .s31-sales .s28-showcase-disclaimer {font-size:14px!important;color:#435b72;line-height:1.6}
+.brand-public .s31-sales .s31-services-close {background:#173b60;color:#fff;padding-block:clamp(3rem,4vw,4.6rem)}
+.brand-public .s31-sales .s31-services-close-layout {display:grid;grid-template-columns:1.15fr .85fr;gap:2rem 4rem;align-items:center}
+.brand-public .s31-sales .s31-services-close h2 {color:#fff;max-width:19ch!important;margin:0!important}
+.brand-public .s31-sales .s31-services-close .s31-eyebrow {color:#bcd8ff}
+.brand-public .s31-sales .s31-services-close p:not(.s31-eyebrow) {font-size:17px!important;line-height:1.7!important;color:#e5f0fa}
+.brand-public .s31-sales .s31-services-close .s31-quiet-note {font-size:13px!important;color:#d0e1f5!important;margin-top:1rem}
+.brand-public .s31-sales .s28-faq {padding-block:clamp(3.5rem,5vw,5rem);gap:2.5rem}
+.brand-public .s31-sales .s28-faq-intro>p:last-child,.brand-public .s31-sales .s28-faq-questions details>p {font-size:16px!important;line-height:1.7!important;color:#334b62}
+.brand-public .s31-sales .s28-faq-questions summary {font-size:17px;color:#1b3046}
+.brand-public .s31-sales .s28-pricing-hero {padding:clamp(3rem,4.7vw,4.8rem) 0 0;background:#f6f9fc}
+.brand-public .s31-sales .s28-pricing-hero-grid {gap:clamp(1.8rem,5vw,5rem);grid-template-columns:1fr 1fr}
+.brand-public .s31-sales .s28-pricing-hero h1 {font-size:clamp(2.8rem,4vw,4.5rem)!important;max-width:18ch!important}
+.brand-public .s31-sales .s28-pricing-hero-content>p:not(.s31-eyebrow) {font-size:18px!important;color:#314a63!important;line-height:1.7!important}
+.brand-public .s31-sales .s31-pricing-decision {background:#e5eff9;border:1px solid #c9daeb;border-radius:14px;padding:1.5rem 1.7rem;box-shadow:0 13px 32px #10315011}
+.brand-public .s31-sales .s31-pricing-decision-label {font-size:12px;text-transform:uppercase;letter-spacing:.12em;font-weight:850;color:#1b5699;margin-bottom:1.1rem}
+.brand-public .s31-sales .s31-pricing-path {background:#fff;border:1px solid #d4e1ec;border-radius:9px;padding:1.15rem 1.25rem;margin-top:.75rem;display:grid;gap:.45rem}
+.brand-public .s31-sales .s31-pricing-path-primary {border-left:4px solid #1d4ed8}
+.brand-public .s31-sales .s31-pricing-path>span {color:#23578b;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.brand-public .s31-sales .s31-pricing-path strong {color:#142d45;font-size:clamp(1.4rem,1.7vw,1.75rem);line-height:1.2;letter-spacing:-.025em}
+.brand-public .s31-sales .s31-pricing-path p {font-size:15px!important;line-height:1.55!important;color:#405a73;margin:0}
+.brand-public .s31-sales .s31-pricing-decision-footer {font-size:13px;line-height:1.55;color:#3a5570;padding-top:1.1rem}
+.brand-public .s31-sales .s28-pricing-trust {gap:1.1rem 2.3rem;margin-top:2.5rem;font-size:14px;color:#324b63;line-height:1.6}
+.brand-public .s31-sales .s28-pricing-body {background:#f8fafc}
+.brand-public .s31-sales .s28-pricing-body #plans {padding-block:2.5rem 3rem}
+.brand-public .s31-sales #plans [aria-label="Billing currency"] {border-radius:11px;line-height:1.65}
+.brand-public .s31-sales #plans [aria-label="Billing currency"] p {font-size:14px!important;color:#38516a!important}
+.brand-public .s31-sales .s31-price-plans {display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:1.45rem!important;align-items:stretch}
+.brand-public .s31-sales .s28-price-card {border-radius:14px;padding:1.85rem 1.9rem;box-shadow:0 8px 24px #19364b12}
+.brand-public .s31-sales .s28-price-card.s31-primary-plan {border-color:#cad8e7}
+.brand-public .s31-sales .s28-price-card.s28-price-featured {background:#162d47;border-color:#162d47;box-shadow:0 16px 36px #16354d30}
+.brand-public .s31-sales .s28-price-card[data-plan-slug="managed-website"] {order:1}
+.brand-public .s31-sales .s28-price-card[data-plan-slug="website-growth"] {order:2}
+.brand-public .s31-sales .s28-price-card[data-plan-slug="personal-profile"] {order:3}
+.brand-public .s31-sales .s28-price-card[data-plan-slug="growth-partner"] {order:4}
+.brand-public .s31-sales .s28-price-card.s31-alternative-plan {background:#fff;border:1px solid #cfdae6;padding:1.5rem 1.9rem}
+.brand-public .s31-sales .s28-price-card h3.s28-price-name {min-height:0!important;font-size:clamp(1.65rem,2.05vw,2.05rem)!important}
+.brand-public .s31-sales .s28-price-card p.s28-price-desc {min-height:0!important;font-size:15px!important;line-height:1.65!important}
+.brand-public .s31-sales .s28-price-card .s28-price-number {min-height:0!important;font-size:clamp(2.5rem,3vw,3.4rem)!important}
+.brand-public .s31-sales .s28-price-card .s28-price-ledger>div {font-size:15px;line-height:1.65}
+.brand-public .s31-sales .s28-price-card .s28-price-ledger>div>strong {font-size:15px!important}
+.brand-public .s31-sales .s28-price-card .s28-price-plan-includes li {font-size:15px!important;line-height:1.65!important}
+.brand-public .s31-sales .s28-price-card .s28-price-explanation,.brand-public .s31-sales .s28-price-card .s28-price-minor {font-size:14px!important;line-height:1.65!important}
+.brand-public .s31-sales .s28-price-card .s28-price-plan-includes>p {font-size:12px!important}
+.brand-public .s31-sales .s28-price-card .s28-price-action button {border-radius:8px!important;min-height:52px;font-size:15px}
+.brand-public .s31-sales .s28-price-card.s28-price-featured .s28-price-action button:not(:disabled) {background:#fff!important;color:#162d47!important}
+.brand-public .s31-sales .s28-compare {margin-top:3.7rem;border-color:#cbd8e5}
+.brand-public .s31-sales .s28-compare h2 {max-width:24ch}
+.brand-public .s31-sales .s28-compare>p {font-size:16px!important;line-height:1.7;color:#3f5870}
+.brand-public .s31-sales .s28-compare table th,.brand-public .s31-sales .s28-compare table td {font-size:14px;padding:1rem}
+.brand-public .s31-sales .s28-pricing-explain {padding-block:clamp(3.4rem,4.4vw,5rem)}
+.brand-public .s31-sales .s28-pricing-explain .s28-intro-grid h2 {font-size:clamp(2.25rem,3.45vw,3.65rem)!important}
+.brand-public .s31-sales .s28-explain-grid {gap:1.4rem;margin-top:2rem}
+.brand-public .s31-sales .s28-explain-grid article {border:1px solid #d5e1eb;border-radius:12px;background:#f9fbfd;padding:1.5rem}
+.brand-public .s31-sales .s28-explain-grid article span {font:800 14px inherit;color:#1d5799}
+.brand-public .s31-sales .s28-explain-grid article h3 {font-size:clamp(1.35rem,1.7vw,1.7rem)!important;margin:.8rem 0!important}
+.brand-public .s31-sales .s28-explain-grid article p {font-size:16px!important;line-height:1.65!important;color:#354f68}
+.brand-public .s31-sales .s31-pricing-optin {padding-block:0 2.5rem}
+.brand-public .s31-sales .s31-pricing-optin-details {background:#edf4fb;border:1px solid #cadceb;border-radius:12px;overflow:hidden}
+.brand-public .s31-sales .s31-pricing-optin-details>summary {display:flex;align-items:center;justify-content:space-between;gap:1.5rem;cursor:pointer;list-style:none;padding:1.3rem 1.55rem;color:#152d45;min-height:76px}
+.brand-public .s31-sales .s31-pricing-optin-details>summary::-webkit-details-marker {display:none}
+.brand-public .s31-sales .s31-pricing-optin-details>summary>span:first-child {display:grid;gap:.35rem;font-size:15px}
+.brand-public .s31-sales .s31-pricing-optin-details>summary strong {font-size:18px}
+.brand-public .s31-sales .s31-optin-toggle {font-size:22px;color:#215ba0}
+.brand-public .s31-sales .s31-pricing-optin-details[open] .s31-optin-toggle {transform:rotate(45deg)}
+.brand-public .s31-sales .s31-optin-form {max-width:44rem;padding:0 1.5rem 1.5rem}
+.brand-public .s31-sales .s31-optin-form .rounded-xl {box-shadow:none}
+.brand-public .s31-sales .s28-pricing-end {padding:3.2rem 0;background:#1c4b7d}
+.brand-public .s31-sales .s28-pricing-end h2 {font-size:clamp(2.2rem,3.5vw,3.65rem)!important;max-width:21ch}
+@media(max-width:900px){
+ .brand-public .s31-sales .s28-services-layout,.brand-public .s31-sales .s31-outcomes-layout,.brand-public .s31-sales .s31-services-close-layout,.brand-public .s31-sales .s28-pricing-hero-grid {grid-template-columns:1fr}
+ .brand-public .s31-sales .s28-services-art,.brand-public .s31-sales .s31-pricing-decision {max-width:740px}
+ .brand-public .s31-sales .s28-chapter {grid-template-columns:62px minmax(0,1fr)}
+ .brand-public .s31-sales .s28-chapter-body {grid-column:2}
+ .brand-public .s31-sales .s28-website-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px){
+ .brand-public .s31-sales .brand-shell {width:min(calc(100% - 2rem),84rem)!important}
+ .brand-public .s31-sales .s28-services-layout {padding-block:2.75rem}
+ .brand-public .s31-sales .s28-services-copy h1 {font-size:clamp(2.5rem,10vw,3.35rem)!important}
+ .brand-public .s31-sales .s28-strip .brand-shell {grid-template-columns:1fr;gap:.7rem}
+ .brand-public .s31-sales .s28-chapters-top,.brand-public .s31-sales .s28-intro-grid {grid-template-columns:1fr;gap:1rem}
+ .brand-public .s31-sales .s28-chapter {grid-template-columns:1fr;gap:.65rem}
+ .brand-public .s31-sales .s28-chapter-body {grid-column:auto}
+ .brand-public .s31-sales .s28-website-grid,.brand-public .s31-sales .s31-price-plans,.brand-public .s31-sales .s28-explain-grid {grid-template-columns:1fr!important}
+ .brand-public .s31-sales .s31-outcome-stack {padding:.5rem 1.2rem}
+ .brand-public .s31-sales .s31-pricing-decision {padding:1rem}
+ .brand-public .s31-sales .s28-pricing-hero {padding-top:2.7rem}
+ .brand-public .s31-sales .s28-pricing-hero h1 {font-size:clamp(2.5rem,10vw,3.3rem)!important}
+ .brand-public .s31-sales .s28-price-card {padding:1.5rem!important}
+ .brand-public .s31-sales .s28-pricing-trust {display:grid;gap:.6rem;margin-top:1.6rem}
+ .brand-public .s31-sales .s28-explain-grid article {padding:1.25rem}
+}
