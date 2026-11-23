@@ -39,12 +39,10 @@ import { trackPinterestLead } from "../lib/pinterestTracking";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
 import {
-  AboutStudioPage,
   ContactStudioPage,
-  ProcessStudioPage,
   ResourcesStudioPage,
-  WorkStudioPage,
 } from "./PublicStudioPagesV3";
+import { AboutStudioPage, ProcessStudioPage, WorkStudioPage } from "./StudioEditorialRound3";
 import { FlagshipTemplateGallery } from "./FlagshipTemplateGallery";
 import { ServicesSalesPage, PricingSalesPage } from "./StudioSalesPages";
 import { TemplatePreviewThumbnail } from "./TemplatePreviewThumbnail";
