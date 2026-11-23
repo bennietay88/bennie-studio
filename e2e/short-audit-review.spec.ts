@@ -37,7 +37,7 @@ test("new short review URL displays the private report without long query string
     });
   });
   await page.goto(`/review/${code}`);
-  await expect(page.getByText("Website audit complete.")).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText("Website review complete")).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole("link", { name: "Open report" })).toHaveAttribute("href", `/review/${code}`);
   await expect(page.locator('meta[name="robots"][content="noindex,nofollow"]').first()).toHaveCount(1);
   expect(shortLookupRequests).toBe(1);
