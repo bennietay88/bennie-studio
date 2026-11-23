@@ -55,8 +55,12 @@ export interface AbuseProtectionOptions {
 
 type MemoryBucket = { count: number; resetAt: number };
 
-export const isSensitiveRateLimit = (prefix: string): boolean =>
-  /^(?:newsletter-|platform-leads-|preview-intake-|preview-checkout|public-plan-checkout|public-funnel-(?:submit|checkout)|call-bookings|website-audit|seo-audit|public-leads|portfolio-leads|public-proposal-accept)/.test(prefix);
+export const isSensitiveRateLimit = (prefix: string): boolean => {
+  // Checkout status reads must remain available during a Redis outage so
+  // customers can confirm payments that have already been submitted.
+  if (prefix === "preview-checkout-status" || prefix === "public-funnel-checkout-status") return false;
+  return /^(?:newsletter-|platform-leads-|preview-intake-|preview-checkout|public-plan-checkout|public-funnel-(?:submit|checkout)|call-bookings|website-audit|seo-audit|public-leads|portfolio-leads|public-proposal-accept)/.test(prefix);
+};
 
 const readHeader = (value: unknown): string => {
   if (typeof value === "string") return value;
