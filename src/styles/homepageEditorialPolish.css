@@ -144,8 +144,6 @@
 .brand-public .c26-close {padding-block:clamp(2.8rem,4vw,4rem);}
 .brand-public .c26-close h2 {font-size:clamp(2.3rem,3.8vw,4rem)!important;line-height:1.1!important;max-width:22ch;letter-spacing:-.04em!important;}
 .brand-public .c26-close p {font-size:16px!important;line-height:1.65;}
-.brand-public .c26-footer-newsletter-details[open] .c26-newsletter-plus {transform:rotate(45deg);}
-.brand-public .c26-footer-newsletter-details summary {font-size:16px;}
 @media(max-width:1100px) {
   .brand-public .sfn-home .sfn-work-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
   .brand-public .sfn-home .sfn-work-card:last-child {grid-column:1/-1!important;max-width:100%;}
