@@ -39,7 +39,8 @@ test("public site distinguishes studio examples from commissioned client work", 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   // The desktop navigation collapses into an accessible dialog on mobile.
   const mobileToggle = page.getByRole("button", { name: "Open navigation menu" });
-  if (await mobileToggle.isVisible()) {
+  if ((page.viewportSize()?.width ?? 1440) < 1280) {
+    await expect(mobileToggle).toBeVisible();
     await mobileToggle.click();
     await expect(page.getByRole("dialog", { name: "Navigation menu" }).getByRole("link", { name: /Website Examples/i })).toBeVisible();
     await page.getByRole("button", { name: "Close navigation menu" }).click();
