@@ -12,6 +12,7 @@ import { BENNIE_ECOSYSTEM_LINKS } from "../constants/businessEcosystem";
 import { trackPublicEvent } from "../lib/publicTracking";
 import { Button } from "./ui/button";
 import { usePublishedPlatformCms } from "../lib/platformSiteCms";
+import { StudioEmailOptIn } from "./StudioEmailOptIn";
 
 const publicNavItems = [
   { label: "Services", href: "/services" },
@@ -182,7 +183,7 @@ function safePublicHref(value: string | undefined, fallback: string) {
   return (href.startsWith("/") && !href.startsWith("//")) || /^https?:\/\//i.test(href) ? href : fallback;
 }
 
-export function PublicSiteFooter({ tagline, email, onManageCookies, showMobileCta = true }: { tagline?: string; email?: string; onManageCookies?: () => void; showMobileCta?: boolean }) {
+export function PublicSiteFooter({ tagline, email, onManageCookies, showMobileCta = true, newsletterInFooter = false }: { tagline?: string; email?: string; onManageCookies?: () => void; showMobileCta?: boolean; newsletterInFooter?: boolean }) {
   const cms = usePublishedPlatformCms();
   const [publicIdentity, setPublicIdentity] = React.useState<any>(null);
   React.useEffect(() => {
@@ -205,6 +206,21 @@ export function PublicSiteFooter({ tagline, email, onManageCookies, showMobileCt
     <>
     {showMobileCta ? <nav className="sfn-mobile-cta" aria-label="Quick links"><Link to="/generate-preview">Explore a free direction</Link><Link to="/pricing">View plans</Link></nav> : null}
     <footer className="sfn-footer bg-[#0F172A] text-white">
+      {newsletterInFooter ? (
+        <div className="c26-footer-newsletter border-b border-white/15">
+          <div className="mx-auto max-w-[80rem] px-6 py-6 sm:px-10 lg:px-12">
+            <details className="c26-footer-newsletter-details">
+              <summary className="flex min-h-12 cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-md text-base font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#facb85]">
+                <span>Website improvement tips <span className="ml-2 text-sm font-normal text-slate-200">Optional newsletter — never required for a preview</span></span>
+                <span aria-hidden="true" className="c26-newsletter-plus">+</span>
+              </summary>
+              <div className="mt-4 max-w-xl pb-5">
+                <StudioEmailOptIn sourcePage="/" title="Get the website checklist" description="Occasional practical advice for improving your website. Sign up only if you want these emails." />
+              </div>
+            </details>
+          </div>
+        </div>
+      ) : null}
       <div className="mx-auto grid max-w-[80rem] gap-x-9 gap-y-10 px-6 py-16 sm:px-10 md:grid-cols-2 lg:grid-cols-6 lg:px-12 lg:py-20">
         <div className="md:col-span-2 lg:col-span-2 lg:pr-10">
           <Link to="/" className="mb-5 inline-flex items-center gap-3">
