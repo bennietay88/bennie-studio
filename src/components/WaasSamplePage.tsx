@@ -313,7 +313,7 @@ export default function WaasSamplePage() {
                 ["Challenge", sample.challenge, "border-rose-100 bg-rose-50 text-rose-700"],
                 ["Website strategy", sample.strategy, "border-indigo-100 bg-indigo-50 text-indigo-700"],
                 ["Intended outcome", sample.intendedOutcome, "border-emerald-100 bg-emerald-50 text-emerald-700"],
-              ].map(([title, copy, style]) => (
+              ].map(([title, copy]) => (
                 <article key={title} className="rounded-xl border border-[#dbe1ea] bg-[#f8f8f5] p-6">
                   <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#1741ed]">{title}</p>
                   <p className="mt-3 text-sm leading-7 text-[#526071]">{copy}</p>
