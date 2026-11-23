@@ -1,0 +1,152 @@
+/* Second editorial pass: intentional varied composition and one coherent CTA system. */
+.brand-public .sfn-home .brand-shell,
+.brand-public .sfn-home .sfn-work-section .brand-shell,
+.brand-public #plans .brand-shell {
+  width:min(calc(100% - 3rem),84rem)!important;
+  max-width:84rem!important;
+  margin-inline:auto;
+}
+.brand-public .sfn-home .sfn-hero .c26-hero-grid {
+  width:min(calc(100% - 3rem),84rem)!important;
+  max-width:84rem!important;
+  grid-template-columns:minmax(0,.97fr) minmax(0,1.03fr)!important;
+  gap:clamp(2rem,3.8vw,4rem)!important;
+  align-items:center!important;
+  min-height:0!important;
+  padding-block:clamp(3.2rem,5vw,5rem)!important;
+}
+.brand-public .sfn-home .sfn-hero .c26-hero-copy {display:flex;flex-direction:column;justify-content:center;align-self:stretch!important;padding:1rem 0!important}
+.brand-public .sfn-home .sfn-hero h1 {max-width:11.8ch!important;margin:1.1rem 0 1.2rem!important}
+.brand-public .sfn-home .sfn-hero .c26-intro {max-width:37rem;font-size:clamp(1.06rem,1.26vw,1.2rem)!important}
+.brand-public .sfn-home .sfn-hero .c26-actions {margin-top:1.4rem!important}
+.brand-public .sfn-home .sfn-hero .c26-assurances {display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem!important;margin-top:1.5rem!important;padding-top:1.1rem!important}
+.brand-public .sfn-home .sfn-hero .c26-assurances li {font-size:14px!important;line-height:1.45!important;align-items:flex-start;white-space:normal!important}
+.brand-public .sfn-home .sfn-hero .c26-assurances li svg {flex-shrink:0;margin-top:2px}
+.brand-public .sfn-home .c26-value h2 {overflow-wrap:normal!important;word-break:keep-all;hyphens:none;max-width:16ch!important}
+.brand-public .sfn-home .c26-value h2::first-line {hyphens:none}
+.brand-public .sfn-home .c26-value-description {font-size:18px!important}
+.brand-public .sfn-home .c26-value-item p {color:#f0f5fc!important;font-size:16px!important;line-height:1.65!important}
+.brand-public .sfn-home .c26-value-item h3 {color:#fff!important;font-size:18px!important}
+.brand-public .sfn-home .sfn-work-grid {gap:1.35rem!important}
+.brand-public .sfn-home .sfn-work-card {box-shadow:0 12px 28px #172f4b17!important}
+.brand-public .sfn-home .sfn-work-art {padding:.9rem!important;aspect-ratio:1.16/1!important;min-height:0!important;overflow:hidden;}
+.brand-public .sfn-home .sfn-work-art-inner.c27-work-browser {height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#fff;box-shadow:0 9px 20px #17334a24!important;border:1px solid #cad5e3;border-radius:7px}
+.brand-public .sfn-home .c27-work-browser-bar {display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid #d7e1ea;background:#eff3f7;font-size:11px;color:#455a70;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand-public .sfn-home .c27-work-dots {display:inline-flex;gap:3px;flex-shrink:0}
+.brand-public .sfn-home .c27-work-dots i {width:6px;height:6px;border-radius:50%;background:#acb8c5}
+.brand-public .sfn-home .c27-work-browser .sfn-concept {height:100%;min-height:0!important;flex:1;display:flex;flex-direction:column;overflow:hidden}
+.brand-public .sfn-home .c27-work-browser .sfn-concept-nav {padding:8px 10px;gap:.2rem;font-size:10px}
+.brand-public .sfn-home .c27-work-browser .sfn-concept-brand {font-size:11px!important}
+.brand-public .sfn-home .c27-work-browser .sfn-concept-body {height:100%;min-height:0;flex:1;grid-template-columns:1.15fr .85fr!important}
+.brand-public .sfn-home .c27-work-browser .sfn-concept-copy {gap:5px!important;padding:clamp(.65rem,1.1vw,1rem)!important;min-width:0}
+.brand-public .sfn-home .c27-work-browser .sfn-concept-eyebrow {font-size:9px!important;letter-spacing:.06em!important}
+.brand-public .sfn-home .c27-work-browser .sfn-concept-title {font-size:clamp(1rem,1.5vw,1.55rem)!important;line-height:1.13!important;letter-spacing:-.03em!important;word-break:normal!important;overflow-wrap:break-word}
+.brand-public .sfn-home .c27-work-browser .sfn-concept-description {font-size:11px!important;line-height:1.45!important}
+.brand-public .sfn-home .c27-work-browser .sfn-concept-cta {font-size:10px!important;padding:6px 8px!important}
+.brand-public .sfn-home .c27-work-browser .sfn-concept-footer {padding:5px 10px;font-size:9px!important}
+.brand-public .sfn-home .c27-work-browser .sfn-concept-footer span:last-child {display:none}
+.brand-public .sfn-home .sfn-work-card-foot h3 {font-size:clamp(1.35rem,1.6vw,1.72rem)!important}
+.brand-public .sfn-home .sfn-work-card-foot p {font-size:15px!important}
+.brand-public .sfn-home .c27-studio-proof {background:#e8f0f8;border-block:1px solid #c7d8e8;padding-block:clamp(3rem,5vw,5.2rem)}
+.brand-public .sfn-home .c27-studio-proof-layout {display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:clamp(2rem,4vw,4.6rem);align-items:center}
+.brand-public .sfn-home .c27-kicker {margin:0 0 .8rem;color:#1e548c;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.12em}
+.brand-public .sfn-home .c27-proof-copy h2,
+.brand-public .sfn-home .c27-process-header h2 {font-size:clamp(2.25rem,3.5vw,3.7rem)!important;line-height:1.1!important;max-width:16ch;letter-spacing:-.05em!important;color:#122a44}
+.brand-public .sfn-home .c27-proof-copy>p:not(.c27-kicker) {font-size:17px!important;line-height:1.75;color:#263e55;margin:1rem 0}
+.brand-public .sfn-home .c27-proof-copy .c27-proof-disclosure {font-size:14px!important;color:#415d78!important}
+.brand-public .sfn-home .c27-founder-byline {display:flex;gap:.8rem;align-items:center;margin:1.45rem 0}
+.brand-public .sfn-home .c27-founder-avatar {height:60px;width:60px;display:grid;place-items:center;border-radius:50%;background:#163e65;color:#fff;font-size:19px;letter-spacing:-.04em;font-weight:800}
+.brand-public .sfn-home .c27-founder-byline strong {display:block;color:#152e48;font-size:18px}
+.brand-public .sfn-home .c27-founder-byline span {display:block;color:#425b73;font-size:14px;margin-top:.1rem}
+.brand-public .sfn-home .c27-proof-actions {display:flex;flex-wrap:wrap;align-items:center;gap:.8rem 1.5rem;margin-top:1.5rem}
+.brand-public .sfn-home .c27-proof-link {display:inline-flex;align-items:center;gap:.35rem;font-size:15px;font-weight:750;color:#174f91;text-decoration:underline;text-underline-offset:5px;line-height:1.5}
+.brand-public .sfn-home .c27-proof-visual {min-width:0;position:relative}
+.brand-public .sfn-home .c27-proof-browser {background:#fff;border:1px solid #c4d3e2;border-radius:13px;overflow:hidden;box-shadow:0 20px 46px #1b456027}
+.brand-public .sfn-home .c27-browser-bar {display:flex;align-items:center;justify-content:space-between;background:#eff4f9;border-bottom:1px solid #cbd9e7;padding:.75rem 1rem;font-size:12px;color:#435e78}
+.brand-public .sfn-home .c27-browser-bar>span {display:flex;gap:5px}
+.brand-public .sfn-home .c27-browser-bar i {display:block;width:9px;height:9px;border-radius:50%;background:#a9bdce}
+.brand-public .sfn-home .c27-browser-content {background:linear-gradient(135deg,#f7fafc,#e4edf6);padding:1.3rem}
+.brand-public .sfn-home .c27-browser-brand {font-size:12px;color:#15395f;font-weight:850;letter-spacing:.06em;padding-bottom:1rem;border-bottom:1px solid #c9d8e7}
+.brand-public .sfn-home .c27-browser-brand span {color:#2b67a5}
+.brand-public .sfn-home .c27-browser-brand small {float:right;font-size:9px;color:#416382;letter-spacing:.07em}
+.brand-public .sfn-home .c27-browser-message {background:#fff;min-height:270px;padding:clamp(1.25rem,3vw,3rem);display:flex;flex-direction:column;justify-content:center;gap:.8rem}
+.brand-public .sfn-home .c27-browser-message>span {font-size:10px;letter-spacing:.12em;color:#315d88;font-weight:800}
+.brand-public .sfn-home .c27-browser-message>strong {font-size:clamp(2rem,3vw,3.3rem);letter-spacing:-.05em;line-height:1.04;color:#152f49;max-width:12ch}
+.brand-public .sfn-home .c27-browser-message>p {color:#395770;font-size:15px;line-height:1.55;max-width:33ch;margin:0}
+.brand-public .sfn-home .c27-browser-message>b {align-self:start;font-size:13px;border-radius:6px;background:#1946c3;color:#fff;padding:.9rem 1.15rem}
+.brand-public .sfn-home .c27-browser-footer {font-size:12px;color:#425e77;border-top:1px solid #cfdae8;padding:.8rem 1rem}
+.brand-public .sfn-home .c27-proof-side-note {margin:1.3rem 0 0 2rem;max-width:25rem;color:#2b4b67}
+.brand-public .sfn-home .c27-proof-side-note strong {display:block;font-size:16px}
+.brand-public .sfn-home .c27-proof-side-note p {font-size:14px;line-height:1.55;margin:.25rem 0}
+.brand-public .sfn-home .c27-unified-process {padding:clamp(3.5rem,5vw,5rem) 0!important;background:#fff}
+.brand-public .sfn-home .c27-process-header {display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:2rem 4rem;align-items:end;margin-bottom:2.1rem}
+.brand-public .sfn-home .c27-process-header h2 {max-width:15ch!important;margin:0!important}
+.brand-public .sfn-home .c27-process-header>p {font-size:18px!important;line-height:1.7;color:#2f475f;max-width:37rem}
+.brand-public .sfn-home .c27-unified-process .sfn-timeline-item {border-top:4px solid #1946c3!important;box-shadow:0 5px 16px #122c4210}
+.brand-public .sfn-home .c27-unified-process .sfn-timeline-item h3 {font-size:clamp(1.25rem,1.6vw,1.6rem)!important}
+.brand-public .sfn-home .c27-unified-process .sfn-timeline-note {font-size:15px!important;color:#2e465e!important;line-height:1.6}
+.brand-public .sfn-home .c27-process-cta {display:flex;flex-wrap:wrap;gap:1.5rem;align-items:center;margin-top:2rem}
+.brand-public #plans .c27-pricing-header {display:grid;grid-template-columns:1.2fr .8fr;align-items:end;gap:2rem 4rem}
+.brand-public #plans .c27-pricing-header p:last-child {font-size:17px!important;line-height:1.65!important;color:#374b62}
+.brand-public #plans .c27-pricing-featured {max-width:none!important;display:grid!important;gap:2rem!important;align-items:stretch}
+.brand-public #plans .c27-plan-card {position:relative;border-radius:16px!important;box-shadow:0 8px 22px #0b284b12!important}
+.brand-public #plans .c27-plan-card-featured {outline:3px solid #3b74c8;outline-offset:1px}
+.brand-public #plans .c27-plan-card li {font-size:16px!important;line-height:1.6!important}
+.brand-public #plans .c27-plan-card-featured li {color:#f2f7ff!important}
+.brand-public #plans .c27-plan-cta {font-size:16px;gap:.4rem;min-height:56px!important}
+.brand-public #plans .c27-plan-cta-featured {background:#2d75e5!important}
+.brand-public #plans .c27-plan-more {display:block;text-align:center;color:#e6edff;text-decoration:underline;text-underline-offset:4px;font-size:14px;margin-top:1rem;font-weight:650}
+.brand-public #plans .c27-pricing-alternatives {max-width:none!important;border:1px solid #cbd9e7;border-radius:14px;background:#f5f8fc;padding:1.25rem;margin-inline:0!important}
+.brand-public #plans .c27-alternative-heading {display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+.brand-public #plans .c27-alternative-heading strong {font-size:17px;color:#152d46}
+.brand-public #plans .c27-alternative-heading span {font-size:14px;color:#445a70}
+.brand-public #plans .c27-alternative-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.brand-public #plans .c27-alternative-option {background:#fff;border:1px solid #d2deea;border-radius:10px;padding:1.1rem;display:grid;gap:.45rem;text-decoration:none}
+.brand-public #plans .c27-alternative-option:hover {border-color:#2e67bd;box-shadow:0 7px 16px #10305012}
+.brand-public #plans .c27-alternative-option>span:first-child {font-size:16px;color:#173858;font-weight:800}
+.brand-public #plans .c27-alternative-option>strong {color:#102840;font-size:clamp(1.4rem,2.2vw,2rem)}
+.brand-public #plans .c27-alternative-option small {font-size:13px;color:#486077;font-weight:500}
+.brand-public #plans .c27-alternative-option>span:nth-child(3) {font-size:14px;color:#3d556d}
+.brand-public #plans .c27-alternative-action {display:flex;align-items:center;gap:.4rem;color:#1c53a3;font-size:14px;font-weight:700}
+.brand-public #plans .c27-alternative-disclaimer {font-size:13px!important;color:#475c70;margin:.9rem 0 0!important}
+.brand-public .c26-close button {background:#2d75e5!important;color:#fff!important;border-radius:7px!important}
+.brand-public .c26-close button:hover {background:#1d5fc5!important}
+.brand-public .sfn-footer .c26-footer-newsletter {border-color:#68819a!important;background:#203750}
+.brand-public .sfn-footer .c26-footer-newsletter summary {color:#fff!important;min-height:64px;gap:1rem}
+.brand-public .sfn-footer .c26-footer-newsletter summary>span:last-child {background:#355b80;border-radius:6px;padding:.2rem .7rem}
+.brand-public .sfn-footer a>span span.block:first-child {color:#fff!important;font-size:20px;font-weight:800}
+.brand-public .sfn-footer .text-slate-300 {color:#e5effb!important}
+@media(max-width:1060px) {
+ .brand-public .sfn-home .sfn-hero .c26-hero-grid {grid-template-columns:1fr!important;gap:1.5rem!important}
+ .brand-public .sfn-home .sfn-hero .c26-hero-copy {padding:0!important}
+ .brand-public .sfn-home .c27-studio-proof-layout {grid-template-columns:1fr;gap:2rem}
+ .brand-public .sfn-home .c27-proof-visual {max-width:46rem}
+ .brand-public .sfn-home .c27-work-browser .sfn-concept-title {font-size:clamp(.92rem,1.8vw,1.4rem)!important}
+}
+@media(max-width:760px) {
+ .brand-public .sfn-home .brand-shell,.brand-public .sfn-home .sfn-work-section .brand-shell,.brand-public #plans .brand-shell {width:min(calc(100% - 2rem),84rem)!important}
+ .brand-public .sfn-home .sfn-hero .c26-hero-grid {width:min(calc(100% - 2rem),84rem)!important;padding-block:2.7rem!important}
+ .brand-public .sfn-home .sfn-hero .c26-assurances {grid-template-columns:1fr 1fr;gap:.6rem!important}
+ .brand-public .sfn-home .c27-process-header,.brand-public #plans .c27-pricing-header {grid-template-columns:1fr;gap:.6rem}
+ .brand-public .sfn-home .c27-studio-proof {padding-block:3rem}
+ .brand-public .sfn-home .c27-browser-message {min-height:225px;padding:1.3rem}
+ .brand-public #plans .c27-pricing-featured,.brand-public #plans .c27-alternative-grid {grid-template-columns:1fr!important;gap:1rem!important}
+ .brand-public .sfn-home .sfn-work-art {aspect-ratio:1.35/1!important}
+}
+@media(max-width:420px) {
+ .brand-public .sfn-home .sfn-hero .c26-assurances {grid-template-columns:1fr}
+ .brand-public .sfn-home .c27-work-browser .sfn-concept-title {font-size:1.1rem!important}
+ .brand-public .sfn-home .c27-work-browser .sfn-concept-description {display:none}
+ .brand-public .sfn-home .c27-work-browser .sfn-concept-footer {display:none}
+ .brand-public .sfn-home .c27-browser-brand small {display:none}
+}
+
+/* The cookie panel may overlay the viewport, but it must never obscure the
+ * last footer links or consent controls when the user scrolls to the end. */
+.brand-public.c27-cookie-present {padding-bottom:clamp(9rem,15vw,12rem)}
+.brand-public .c27-cookie-notice {max-height:min(70vh,360px);overflow:auto;border-radius:12px;border:1px solid #6c88a5;background:#0f2944!important;box-shadow:0 22px 44px #06152755}
+.brand-public .c27-cookie-notice p {color:#f1f7ff!important}
+@media(max-width:600px) {
+ .brand-public.c27-cookie-present {padding-bottom:15rem}
+ .brand-public .c27-cookie-notice {bottom:9px;left:9px;right:9px;padding:1rem;max-height:56vh}
+}

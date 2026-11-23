@@ -456,7 +456,7 @@ test("routes homepage plan cards to the intended pricing details", async ({ page
   await page.route("**/api/platform-events", (route) => json(route, { success: true }));
 
   await page.goto("/");
-  await page.locator("article").filter({ has: page.getByRole("heading", { name: "Website Growth", exact: true }) }).getByRole("button", { name: /Explore plan/i }).click();
+  await page.locator("article").filter({ has: page.getByRole("heading", { name: "Website Growth", exact: true }) }).getByRole("link", { name: /Review Website Growth plan details/i }).click();
   await expect(page).toHaveURL(/\/pricing#plan-website-growth$/);
   await expect(page.getByRole("heading", { name: "Website Growth", exact: true })).toBeVisible();
 });

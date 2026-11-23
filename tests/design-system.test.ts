@@ -59,7 +59,7 @@ test("public brand uses product-led positioning guardrails", async () => {
   assert.match(conversionHomepage, /get more enquiries/);
   assert.match(conversionHomepage, /No card required/);
   assert.match(homepage, /id="plans"/);
-  assert.match(conversionHomepage, /Review your free preview/);
+  assert.match(conversionHomepage, /Review your preview/);
   assert.doesNotMatch(homepage, /Or preview a free website direction/);
   assert.match(homepage, /\/book-demo/);
   assert.doesNotMatch(chrome, /Website Design Orchard|Website Design Petaling Jaya|Website Design London/);
