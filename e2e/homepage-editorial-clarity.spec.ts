@@ -22,15 +22,13 @@ test("all four process steps are visible without previous or next controls", asy
   await expect(process.getByRole("button", { name: /Previous step|Next step/i })).toHaveCount(0);
 });
 
-test("newsletter remains optional and does not interrupt the main content", async ({ page }) => {
+test("homepage footer is clean with no newsletter or empty signup disclosure", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.locator("main").getByRole("form", { name: /website tips/i })).toHaveCount(0);
-  const footer = page.locator("footer").last();
-  const details = footer.locator(".c26-footer-newsletter-details");
-  await expect(details).toHaveCount(1);
-  await expect(details).not.toHaveAttribute("open");
-  await details.locator("summary").click();
-  await expect(footer.getByRole("form", { name: "Website tips email signup" })).toBeVisible();
+  await expect(page.locator("footer")).toBeVisible();
+  await expect(page.locator("footer").getByRole("form", { name: "Website tips email signup" })).toHaveCount(0);
+  await expect(page.locator(".c26-footer-newsletter")).toHaveCount(0);
+  await expect(page.locator("footer").getByText(/Website improvement tips/i)).toHaveCount(0);
+  await expect(page.locator("footer").getByRole("link", { name: /Bennie Studio Websites that/i })).toBeVisible();
 });
 
 test("pricing offers two highlighted plans and preserves the other product links", async ({ page }) => {
