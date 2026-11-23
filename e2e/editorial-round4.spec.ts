@@ -48,6 +48,7 @@ test("contact failure shows error and never navigates away",async({page})=>{
 test("resources search and category controls filter real article routes",async({page})=>{
   await page.goto("/resources",{waitUntil:"domcontentloaded"});
   const cards=page.locator(".s33-resource-card");
+  await expect(cards.first()).toBeVisible();
   const count=await cards.count();expect(count).toBeGreaterThan(0);
   await page.getByRole("button",{name:"All",exact:true}).click();
   await page.getByRole("button",{name:"Conversion",exact:true}).click();
