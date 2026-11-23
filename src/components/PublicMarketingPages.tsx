@@ -206,12 +206,12 @@ const industrySalesStarts = [
   },
   {
     industry: "Real estate",
-    path: "/templates",
+    path: "/generate-preview?industry=consultant&template=real-estate-v1",
     promise: "Property lead capture, buyer/seller enquiry paths, listing sections, and local area positioning.",
   },
   {
     industry: "Restaurants and lifestyle",
-    path: "/templates",
+    path: "/generate-preview?industry=local-service&template=restaurant-v1",
     promise: "Menu, reservations, gallery, location, promotions, and contact-ready mobile layouts.",
   },
   {
