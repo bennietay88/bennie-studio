@@ -111,9 +111,6 @@
 .brand-public #plans .c27-alternative-disclaimer {font-size:13px!important;color:#475c70;margin:.9rem 0 0!important}
 .brand-public .c26-close button {background:#2d75e5!important;color:#fff!important;border-radius:7px!important}
 .brand-public .c26-close button:hover {background:#1d5fc5!important}
-.brand-public .sfn-footer .c26-footer-newsletter {border-color:#68819a!important;background:#203750}
-.brand-public .sfn-footer .c26-footer-newsletter summary {color:#fff!important;min-height:64px;gap:1rem}
-.brand-public .sfn-footer .c26-footer-newsletter summary>span:last-child {background:#355b80;border-radius:6px;padding:.2rem .7rem}
 .brand-public .sfn-footer a>span span.block:first-child {color:#fff!important;font-size:20px;font-weight:800}
 .brand-public .sfn-footer .text-slate-300 {color:#e5effb!important}
 @media(max-width:1060px) {
