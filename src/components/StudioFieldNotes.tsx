@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ArrowRight, Monitor, Smartphone } from "lucide-react";
+import { Monitor, Smartphone } from "lucide-react";
 
 const examples = [
   { id: "dental-clinic", label: "Dental clinic", caption: "A calmer, clearer path to booking care." },
@@ -39,32 +39,19 @@ export function WebsitePreviewExplorer({ compact = false }: { compact?: boolean 
 }
 
 export type StudioProcessStep = { number: string; title: string; description: string; detail: string };
+
+/** The complete process is visible without tabs, clicking or carousel controls. */
 export function StudioProcessTimeline({ steps }: { steps: readonly StudioProcessStep[] }) {
-  const [active, setActive] = React.useState(0);
-  const refs = React.useRef<Array<HTMLButtonElement | null>>([]);
-  const focusStep = (index: number) => {
-    const next = (index + steps.length) % steps.length;
-    setActive(next);
-    refs.current[next]?.focus();
-  };
-  return <div className="sfn-timeline">
-    <div className="sfn-timeline-track" role="tablist" aria-label="Project steps" onKeyDown={(event) => {
-      if (event.key === "ArrowRight" || event.key === "ArrowDown") { event.preventDefault(); focusStep(active + 1); }
-      else if (event.key === "ArrowLeft" || event.key === "ArrowUp") { event.preventDefault(); focusStep(active - 1); }
-      else if (event.key === "Home") { event.preventDefault(); focusStep(0); }
-      else if (event.key === "End") { event.preventDefault(); focusStep(steps.length - 1); }
-    }}>
-      {steps.map((step, index) => <button key={step.number} ref={(el) => {refs.current[index] = el}} type="button" role="tab" id={`sfn-step-tab-${index}`} aria-controls="sfn-step-panel" aria-selected={active === index} tabIndex={active === index ? 0 : -1} onClick={() => setActive(index)}>
-        <span>{step.number}</span><b>{step.title}</b>
-      </button>)}
-    </div>
-    <div className="sfn-step-panel" id="sfn-step-panel" role="tabpanel" aria-labelledby={`sfn-step-tab-${active}`}>
-      <p className="sfn-eyebrow">Step {steps[active].number}</p><h3>{steps[active].title}</h3><p>{steps[active].description}</p><small>{steps[active].detail}</small>
-      <div className="sfn-step-controls">
-        <button type="button" onClick={() => setActive((active + steps.length - 1) % steps.length)} aria-label="Previous step"><ArrowLeft size={17}/> Previous</button>
-        <span>{active + 1} / {steps.length}</span>
-        <button type="button" onClick={() => setActive((active + 1) % steps.length)} aria-label="Next step">Next <ArrowRight size={17}/></button>
-      </div>
-    </div>
-  </div>;
+  return (
+    <ol className="sfn-timeline-all" aria-label="Our four-step website process">
+      {steps.map((step) => (
+        <li className="sfn-timeline-item" key={step.number}>
+          <span className="sfn-timeline-number" aria-hidden="true">{step.number}</span>
+          <h3>{step.title}</h3>
+          <p>{step.description}</p>
+          <p className="sfn-timeline-note">{step.detail}</p>
+        </li>
+      ))}
+    </ol>
+  );
 }
