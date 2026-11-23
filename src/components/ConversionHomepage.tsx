@@ -43,7 +43,7 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
 
       <section className="c26-value" aria-labelledby="c26-value-title">
         <div className="brand-shell c26-value-grid">
-          <div><h2 id="c26-value-title">More than a good-looking website.</h2></div>
+          <div><h2 id="c26-value-title">More than a beautiful website.</h2></div>
           <p className="c26-value-description">Good design attracts attention. Clear messaging, credible information and easy enquiry paths help turn that attention into a business opportunity.</p>
           <div className="c26-value-items">
             {[
@@ -58,47 +58,50 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
 
       <StudioSelectedWork studies={showcases}/>
 
-      <section className="c26-live-proof" aria-labelledby="c26-live-proof-title">
-        <div className="brand-shell c26-live-proof-grid">
-          <div>
-            <p className="c26-proof-kicker">A real site, available to inspect</p>
-            <h2 id="c26-live-proof-title">Our own website is live. See how we build.</h2>
-          </div>
-          <div>
-            <p>You're browsing a Bennie Studio website right now. Check its navigation, mobile experience and enquiry path for yourself. The industry examples above are design studies—not claimed client results.</p>
-            <div className="c26-proof-links">
-              <Link to="/about">Meet the studio <ArrowUpRight size={17} aria-hidden="true"/></Link>
-              <Link to="/case-studies">Explore the design decisions <ArrowUpRight size={17} aria-hidden="true"/></Link>
+      <section className="c27-studio-proof" aria-labelledby="c27-proof-title">
+        <div className="brand-shell c27-studio-proof-layout">
+          <div className="c27-proof-copy">
+            <p className="c27-kicker">Meet the studio</p>
+            <h2 id="c27-proof-title">A real person behind the work.</h2>
+            <div className="c27-founder-byline">
+              <div className="c27-founder-avatar" aria-hidden="true">BT</div>
+              <div><strong>Bennie Tay</strong><span>Founder, Bennie Studio</span></div>
+            </div>
+            <p>Bennie Studio is a hands-on website studio built around a simple belief: your business deserves a clear, credible website and someone accountable for keeping it useful after launch.</p>
+            <p className="c27-proof-disclosure">This website is a live example of our work. The industry previews are design studies, not fabricated client projects or performance results.</p>
+            <div className="c27-proof-actions">
+              <Link to="/about" className="c27-proof-link">Meet Bennie and the studio <ArrowUpRight size={17} aria-hidden="true"/></Link>
+              <Link to="/case-studies" className="c27-proof-link">Explore the interactive examples <ArrowUpRight size={17} aria-hidden="true"/></Link>
             </div>
           </div>
+          <div className="c27-proof-visual">
+            <div className="c27-proof-browser" aria-label="Visual of the Bennie Studio homepage">
+              <div className="c27-browser-bar"><span aria-hidden="true"><i/><i/><i/></span><strong>app.bennietay.com</strong></div>
+              <div className="c27-browser-content">
+                <div className="c27-browser-brand">B<span> / </span>BENNIE STUDIO <small>WEBSITE DESIGN & CARE</small></div>
+                <div className="c27-browser-message"><span>THE STUDIO, IN PRACTICE</span><strong>Websites that earn trust.</strong><p>Design, build, launch and ongoing care for service businesses.</p><b>Explore a free website preview ↗</b></div>
+                <div className="c27-browser-footer">Real studio website · Browse freely</div>
+              </div>
+            </div>
+            <div className="c27-proof-side-note"><span className="c27-proof-line" aria-hidden="true"/><strong>Built for clarity. Maintained with care.</strong><p>See the navigation, language and next steps in the site you are using.</p></div>
+          </div>
         </div>
       </section>
-      <div className="brand-shell py-8 sm:py-12"><div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7"><div><h2 className="!text-2xl !leading-tight text-slate-950">Explore before you enquire.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Browse the examples at your own pace. No account, email or credit card needed.</p></div><Link to="/case-studies" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-md bg-[#1946c3] px-5 py-3 text-sm font-bold text-white">Explore interactive examples <ArrowUpRight size={18} aria-hidden="true"/></Link></div></div>
 
-      <section className="c26-process" aria-labelledby="c26-process-title">
+      <section className="c26-process c27-unified-process" aria-labelledby="c26-process-title">
         <div className="brand-shell">
-          <div className="c26-section-head c26-process-head"><div><h2 id="c26-process-title">How it works.</h2></div><p>You can explore a website direction before choosing a managed plan. Here is what happens next.</p><Link to="/how-it-works" className="c26-quiet-link">View our process <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
+          <div className="c27-process-header">
+            <div><p className="c27-kicker">One process, from first idea to ongoing care</p><h2 id="c26-process-title">From free preview to a managed website.</h2></div>
+            <p>Explore a direction first. When you are ready, we plan the pages, build and launch your website, then keep it supported under your chosen plan.</p>
+          </div>
           <StudioProcessTimeline steps={[
-            {number:"01",title:"Share your business",description:"Tell us what you offer and who you want to reach, or share your current site.",detail:"We use your brief to shape an initial website direction."},
-            {number:"02",title:"Review your free preview",description:"Explore a preliminary direction and the proposed enquiry path before choosing a plan.",detail:"No card is required to request the preview."},
-            {number:"03",title:"Approve scope and start",description:"Confirm the pages, deliverables and plan that fit your business before work begins.",detail:"The first payment includes the applicable setup fee and first month. Check each plan for its minimum commitment and cancellation terms."},
-            {number:"04",title:"Launch and stay supported",description:"Review the build, launch with confidence, then receive the hosting and care included in your plan.",detail:"Service is billed monthly. Any initial minimum commitment is shown in the selected plan and order summary."},
+            {number:"01",title:"Share your business",description:"Tell us what you offer and who you want to reach.",detail:"We plan a direction around your message and enquiry goals."},
+            {number:"02",title:"Review your preview",description:"Explore an initial site direction before paying.",detail:"No card needed for the free preview."},
+            {number:"03",title:"Approve, build and launch",description:"Review scope and pricing, then we design, build and launch.",detail:"Billing and any minimum commitment are shown before checkout."},
+            {number:"04",title:"Ongoing website care",description:"Hosting, maintenance and content support continue after launch.",detail:"The exact services depend on your selected plan."},
           ]} />
-          <button onClick={() => cta("Homepage process free preview")} className="c26-button c26-button-blue c26-process-cta" type="button">Start with a free preview <ArrowUpRight size={18} aria-hidden="true"/></button>
+          <div className="c27-process-cta"><button onClick={() => cta("Homepage unified process free preview")} className="c26-button c26-button-blue" type="button">Start with a free preview <ArrowUpRight size={18} aria-hidden="true"/></button><Link to="/services" className="c27-proof-link">What is included <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
         </div>
-      </section>
-
-      <section className="c26-services brand-shell" aria-labelledby="c26-services-title">
-        <div className="c26-section-head"><div><h2 id="c26-services-title">One studio. Every step of your website.</h2></div><p>A clear plan to get your site live, followed by the hosting, updates and support your plan includes.</p><Link to="/services" className="c26-quiet-link">Explore our services <ArrowUpRight size={17} aria-hidden="true"/></Link></div>
-        <div className="c26-service-grid">{[
-          {number:"01",title:"Plan the right pages",description:"We structure your message around what customers need to know before they enquire.",details:["Clear service positioning","Navigation and enquiry paths","A direction suited to your business"],label:"Discovery & design"},
-          {number:"02",title:"Build and launch",description:"A responsive, reviewed website that helps people understand your work and take the next step.",details:["Mobile-first presentation","Contact and conversion routes","A review before publication"],label:"Build & launch"},
-          {number:"03",title:"Care after launch",description:"We continue hosting and maintaining the site, with the support included in your selected plan.",details:["Managed hosting","Maintenance and security updates","Ongoing content support by plan"],label:"Hosting & care"},
-        ].map((service)=><article key={service.number} className="c26-service">
-          <span>{service.number}</span><h3>{service.title}</h3><p>{service.description}</p>
-          <ul>{service.details.map(detail=><li key={detail}><Check size={15} aria-hidden="true"/>{detail}</li>)}</ul>
-          <small>{service.label}</small>
-        </article>)}</div>
       </section>
     </div>
   );
