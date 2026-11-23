@@ -175,13 +175,13 @@ export function PreviewOrderPage() {
 
   if (!intent.previewId || !intent.leadId || !intent.email) {
     return (
-      <main className="bg-[#f6f7fb]">
+      <main className="bg-[#f8f8f5] text-[#15191f]">
         <section className="brand-shell py-16 sm:py-24">
-          <div className="mx-auto max-w-2xl border border-[#dfe2ea] bg-white p-8 sm:p-10">
+          <div className="mx-auto max-w-2xl rounded-2xl border border-[#dbe1ea] bg-white p-6 sm:p-10">
             <p className="brand-kicker">Preview required</p>
             <h1 className="mt-4 text-4xl font-semibold text-[#141821]">Start with your website direction.</h1>
             <p className="mt-4 leading-7 text-[#526071]">The order is linked to the exact preview and lead information you already supplied, so there is no account form to repeat.</p>
-            <Link to="/generate-preview" className="mt-7 inline-flex min-h-12 items-center bg-[#141821] px-6 font-semibold text-white">
+            <Link to="/generate-preview" className="mt-7 inline-flex min-h-12 items-center rounded-lg bg-[#1741ed] px-6 py-3 font-bold text-white hover:bg-[#1035c2]">
               Prepare website direction <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </div>
@@ -191,8 +191,8 @@ export function PreviewOrderPage() {
   }
 
   return (
-    <main className="bg-[#f6f7fb]">
-      <section className="border-b border-[#dfe2ea] bg-white">
+    <main className="bg-[#f8f8f5] text-[#15191f]">
+      <section className="border-b border-[#dbe1ea] bg-white">
         <div className="brand-shell py-10 sm:py-14">
           <Link to="/generate-preview" className="inline-flex items-center text-sm font-semibold text-[#526071] hover:text-[#141821]">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to website direction
@@ -200,7 +200,7 @@ export function PreviewOrderPage() {
           <div className="mt-7 grid gap-8 lg:grid-cols-12 lg:items-end">
             <div className="lg:col-span-8">
               <p className="brand-kicker">Launch this website</p>
-              <h1 className="mt-4 max-w-4xl text-[clamp(2.8rem,6vw,5.5rem)] font-semibold leading-[0.96] tracking-[-0.055em] text-[#141821]">
+              <h1 className="mt-4 max-w-4xl text-[clamp(2.3rem,5vw,4.8rem)] font-bold leading-[1.08] tracking-tight text-[#15191f]">
                 Turn the {businessName} direction into the real site.
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-[#526071]">
@@ -224,7 +224,7 @@ export function PreviewOrderPage() {
 
         <div className="grid gap-7 lg:grid-cols-12">
           <div className="lg:col-span-7">
-            <article className="border border-[#dfe2ea] bg-white p-6 sm:p-8">
+            <article className="rounded-2xl border border-[#dbe1ea] bg-white p-6 sm:p-8">
               <p className="text-xs font-bold uppercase tracking-[0.13em] text-[#5746e8]">{fit.kicker}</p>
               <div className="mt-3 flex flex-col gap-5 border-b border-[#dfe2ea] pb-7 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -232,7 +232,7 @@ export function PreviewOrderPage() {
                   <p className="mt-3 max-w-xl leading-7 text-[#526071]">{fit.title}</p>
                 </div>
                 {intent.recommendedProduct === selected?.slug ? (
-                  <span className="shrink-0 bg-[#eeebff] px-3 py-2 text-xs font-bold uppercase tracking-[0.1em] text-[#5746e8]">Recommended</span>
+                  <span className="shrink-0 rounded-lg bg-[#eef3ff] px-3 py-2 text-xs font-bold uppercase tracking-[0.1em] text-[#1741c9]">Recommended</span>
                 ) : null}
               </div>
 
@@ -300,7 +300,7 @@ export function PreviewOrderPage() {
           </div>
 
           <aside className="lg:col-span-5">
-            <div className="border border-[#141821] bg-[#141821] p-6 text-white sm:p-8 lg:sticky lg:top-24">
+            <div className="rounded-2xl border border-[#dbe1ea] bg-[#101c36] p-6 text-white sm:p-8 lg:sticky lg:top-24">
               <p className="text-xs font-bold uppercase tracking-[0.13em] !text-[#b9b1ff]">Order summary</p>
               <p className="mt-5 text-xs font-semibold uppercase tracking-[0.08em] !text-white/60">Billing currency</p><div className="mt-2 flex h-11 w-full items-center border border-white/20 bg-white px-3 text-sm font-semibold text-[#141821]">USD ($)</div>
               <h2 className="mt-3 text-3xl font-semibold !text-white">{selected?.name || "Website Growth"}</h2>
@@ -347,7 +347,7 @@ export function PreviewOrderPage() {
                   <Button
                     onClick={startCheckout}
                     disabled={submitting || !priceReady || !termsAccepted}
-                    className="mt-7 min-h-14 w-full rounded-none bg-white px-6 font-semibold text-[#141821] hover:bg-[#eeebff]"
+                    className="mt-7 min-h-14 w-full rounded-lg bg-white px-6 py-3 font-bold text-[#1741c9] hover:bg-[#eef3ff]"
                   >
                     {submitting ? "Opening secure checkout…" : "Continue to secure checkout"} <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
