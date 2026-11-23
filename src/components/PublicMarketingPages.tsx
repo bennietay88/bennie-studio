@@ -3081,7 +3081,7 @@ export default function PublicMarketingPages() {
         ? pageContent
         : <main id="main-content">{pageContent}</main>}
       {!pageCms?.replacePageContent && <PlatformCmsSections path={cmsPagePath} />}
-      {pageKind !== "pricing" && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
+      {pageKind !== "pricing" && pageKind !== "services" && <section className="c27-footer-cta relative overflow-hidden border-t border-white/10 bg-[#1741dd] text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="brand-shell relative grid gap-8 py-14 md:grid-cols-[1fr_auto] md:items-center">
           <div>
