@@ -288,7 +288,6 @@ export default function BrandLedLandingPage() {
       </main>
 
       <PublicSiteFooter
-        newsletterInFooter
         tagline="A managed website system for service businesses that need stronger trust, clearer enquiries and ongoing improvement."
         email={platformSettings?.supportEmail}
         onManageCookies={() => setManageCookies(true)}
