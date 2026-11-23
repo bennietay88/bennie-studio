@@ -2,16 +2,18 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-test("homepage pricing displays concise plan highlights and only two secondary links", () => {
+test("homepage pricing displays two primary plans and links to the wider catalogue", () => {
   const homepage = readFileSync("src/components/BrandLedLandingPage.tsx", "utf8");
   const from = homepage.indexOf('<section id="plans"');
-  const to = homepage.indexOf('<section className="brand-shell brand-section">', from);
+  const to = homepage.indexOf('<section className="brand-shell brand-section c26-faq-section">', from);
   assert.ok(from >= 0 && to > from);
   const section = homepage.slice(from, to);
   assert.match(section, /planHighlights\[index\]/);
-  assert.match(section, /formatCommitmentLabel\(getMinimumTermMonths\(priced\[0\]/);
+  assert.match(homepage, /const priced = \[managed, growth\]/);
   assert.doesNotMatch(section, /Standard initial term total|planComparisonRows|Compare SiteFoundry packages/);
-  assert.equal((section.match(/<Link\b/g) || []).length, 2);
+  assert.equal((section.match(/<Link\b/g) || []).length, 4);
+  assert.match(section, /Personal Profile/);
+  assert.match(section, /Growth Partner/);
   assert.match(section, /Compare full plan scope/);
   assert.match(section, /Get a free website direction/);
 });
