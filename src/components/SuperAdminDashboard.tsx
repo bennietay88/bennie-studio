@@ -945,8 +945,8 @@ export default function SuperAdminDashboard() {
             .select("*")
             .gte("date", new Date().toISOString().split("T")[0])
             .order("date", { ascending: true }).abortSignal(controller.signal),
-          supabase.from("settings").select("*").eq("id", "platform").maybeSingle().abortSignal(controller.signal),
-          supabase.from("settings").select("content").eq("id", "plans").maybeSingle().abortSignal(controller.signal),
+          supabase.from("settings").select("*").eq("id", "platform").abortSignal(controller.signal).maybeSingle(),
+          supabase.from("settings").select("content").eq("id", "plans").abortSignal(controller.signal).maybeSingle(),
           supabase.from("affiliate_programs").select("*, businesses(name)").abortSignal(controller.signal),
           supabase.from("affiliates").select("*").abortSignal(controller.signal),
           supabase.from("affiliate_referrals").select("commission_amount, status").abortSignal(controller.signal),
