@@ -412,7 +412,10 @@ test("delivery callbacks confirm delivery without rewriting engagement status or
   await recordSalesDeliveryEvent(db as any, { id: "evt-delivered", type: "email.delivered", created_at: NOW, data: { email_id: "r1" } }, NOW);
   assert.equal(db.tables.sales_messages[0].status, "clicked");
   assert.equal(db.tables.sales_messages[0].delivery_state, "delivery_confirmed");
-  assert.equal(db.tables.sales_email_provider_events.length, 2);
+  await recordSalesDeliveryEvent(db as any, { id: "evt-late-accepted", type: "email.sent", created_at: NOW, data: { email_id: "r1" } }, NOW);
+  assert.equal(db.tables.sales_messages[0].delivery_state, "delivery_confirmed");
+  assert.equal(db.tables.sales_messages[0].delivery_uncertainty_reason, null);
+  assert.equal(db.tables.sales_email_provider_events.length, 3);
   await recordSalesDeliveryEvent(db as any, { id: "evt-bounce", type: "email.bounced", created_at: NOW, data: { email_id: "r1", bounce: { reason: "hard bounce" } } }, NOW);
   await recordSalesDeliveryEvent(db as any, { id: "evt-late-delivered", type: "email.delivered", created_at: NOW, data: { email_id: "r1" } }, NOW);
   assert.equal(db.tables.sales_messages[0].delivery_state, "bounced");
