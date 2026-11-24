@@ -91,3 +91,15 @@ test("experiment reports do not invent statistically significant winners",()=>{
  assert.equal(report.experiments[0].variants[0].assigned,1);
  assert.match(report.experiments[0].note,/no statistically significant winner/i);
 });
+
+
+test("template breakdown includes legacy follow-up stage, failed, uncertain and linked positive replies",()=>{
+ const report=buildOutreachReport(data({messages:[
+  m("s1",{provider_payload:{followUpStage:"FOLLOW_UP_1_OF_3"}}),
+  m("f1",{provider_payload:{followUpStage:"FOLLOW_UP_1_OF_3"},status:"failed",delivery_state:"uncertain",sent_at:null,provider_accepted_at:null}),
+  m("answer",{direction:"inbound",classification:"interested",reply_to_message_id:"s1",sent_at:when}),
+ ]}),{template:"FOLLOW_UP_1_OF_3"});
+ const row=report.breakdowns.template[0];
+ assert.equal(row.key,"FOLLOW_UP_1_OF_3");
+ assert.equal(row.sent,1); assert.equal(row.failed,1); assert.equal(row.uncertain,1); assert.equal(row.positive,1);
+});
