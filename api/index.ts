@@ -3766,14 +3766,12 @@ async function startServer() {
     const html = `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
     const selectedProvider = selectEmailProvider(platformSettings?.salesEmailProvider);
     if (selectedProvider === "hostinger") {
-      // This path is called only by the authenticated administrator-initiated
-      // prospect send endpoint. Hostinger requires actual recipient opt-in.
-      // Confirm it for this specific send without fabricating or modifying the
-      // CRM's separate consent-source/timestamp records.
+      // This path is called only after the authenticated prospect send endpoint
+      // verifies documented permission. Do not require a second operator checkbox.
       if (!message.reply_to_message_id &&
         (message.provider_payload?.directSend !== true ||
-          message.provider_payload?.recipientPermissionConfirmed !== true)) {
-        throw new Error("CONTACT_PERMISSION_CONFIRMATION_REQUIRED");
+          message.provider_payload?.recipientPermissionVerified !== true)) {
+        throw new Error("CONTACT_PERMISSION_NOT_VERIFIED");
       }
       return sendHostingerMail({
         to: message.recipient,
@@ -9359,7 +9357,7 @@ async function startServer() {
         },
         OUTREACH_SEND_UNCERTAIN: {
           status: 409,
-          message: "The previous delivery attempt is uncertain. Close and reopen the composer before sending again.",
+          message: "The previous delivery attempt is uncertain. Verify the provider delivery record before retrying; do not create a new request to bypass reconciliation.",
         },
         RESEND_CONFIG_ERROR: {
           status: 503,
