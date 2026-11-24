@@ -94,6 +94,7 @@ export function ProspectExplorer() {
   const [prospects, setProspects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const prospectFetchRequest = useRef(0);
+  const prospectFetchController = useRef<AbortController | null>(null);
   const [prospectTotal, setProspectTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -322,6 +323,10 @@ export function ProspectExplorer() {
 
   const fetchProspects = useCallback(async () => {
     const requestId = ++prospectFetchRequest.current;
+    prospectFetchController.current?.abort();
+    const controller = new AbortController();
+    prospectFetchController.current = controller;
+    const signal = controller.signal;
     try {
       setLoading(true);
       let query = supabase.from("prospects").select("*", { count: "exact" });
@@ -373,8 +378,8 @@ export function ProspectExplorer() {
       // counts, delivery history, and the inbox are secondary enrichment and
       // must not hold the prospect rows behind a chain of network requests.
       const [{ data, error, count }, suppressionResult] = await Promise.all([
-        query.order(ordering.column, { ascending: ordering.ascending, nullsFirst: false }).order("id", { ascending: false }).range(offset, offset + PROSPECT_PAGE_SIZE - 1),
-        supabase.from("sales_suppressions").select("email").not("email", "is", null),
+        query.order(ordering.column, { ascending: ordering.ascending, nullsFirst: false }).order("id", { ascending: false }).range(offset, offset + PROSPECT_PAGE_SIZE - 1).abortSignal(signal),
+        supabase.from("sales_suppressions").select("email").not("email", "is", null).abortSignal(signal),
       ]);
       if (requestId !== prospectFetchRequest.current) return;
       if (error) throw error;
@@ -398,18 +403,18 @@ export function ProspectExplorer() {
 
       const prospectIds = rows.map((prospect) => prospect.id);
       const statsPromise = Promise.all([
-        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null),
-        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).eq("opportunity_level", "high"),
-        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).in("outreach_status", CONTACTED_OUTREACH_STATUSES),
-        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).eq("outreach_status", "call_booked"),
-        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).lte("next_follow_up_at", new Date().toISOString()).not("outreach_status", "in", "(\"won\",\"lost\")"),
-        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).in("outreach_status", NOT_CONTACTED_OUTREACH_STATUSES),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).abortSignal(signal),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).eq("opportunity_level", "high").abortSignal(signal),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).in("outreach_status", CONTACTED_OUTREACH_STATUSES).abortSignal(signal),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).eq("outreach_status", "call_booked").abortSignal(signal),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).lte("next_follow_up_at", new Date().toISOString()).not("outreach_status", "in", "(\"won\",\"lost\")").abortSignal(signal),
+        supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).in("outreach_status", NOT_CONTACTED_OUTREACH_STATUSES).abortSignal(signal),
       ]);
       const sessionPromise = supabase.auth.getSession();
       const deliveryPromise = prospectIds.length
           ? supabase.from("sales_messages").select("prospect_id,status,sent_at,created_at,error,provider_message_id")
               .in("prospect_id", prospectIds).eq("direction", "outbound").eq("channel", "email")
-              .order("created_at", { ascending: false }).limit(PROSPECT_PAGE_SIZE * 10)
+              .order("created_at", { ascending: false }).limit(PROSPECT_PAGE_SIZE * 10).abortSignal(signal)
           : Promise.resolve({ data: [], error: null });
       const deliveryResult = await deliveryPromise;
       if (requestId !== prospectFetchRequest.current) return;
@@ -433,7 +438,7 @@ export function ProspectExplorer() {
       const session = sessionResult.data.session;
       if (session?.access_token) {
         try {
-          const inboxResponse = await fetch("/api/admin/sales-inbox", { headers: { Authorization: `Bearer ${session.access_token}` }, cache: "no-store" });
+          const inboxResponse = await fetch("/api/admin/sales-inbox", { headers: { Authorization: `Bearer ${session.access_token}` }, cache: "no-store", signal });
           if (inboxResponse.ok) {
             const inbox = await inboxResponse.json();
             const byProspect = new Map((inbox.conversations || []).map((conversation: any) => [conversation.prospect?.id, conversation]));
@@ -444,18 +449,25 @@ export function ProspectExplorer() {
               }));
             }
           }
-        } catch (inboxError) { console.warn("Sales inbox summary unavailable:", inboxError); }
+        } catch (inboxError) { if (!signal.aborted) console.warn("Sales inbox summary unavailable:", inboxError); }
       }
     } catch (error: any) {
-      if (requestId !== prospectFetchRequest.current) return;
+      if (signal.aborted || requestId !== prospectFetchRequest.current) return;
       console.error("Error fetching prospects:", error);
       toast.error("Could not load the prospect list. Check your Sales permission and retry.");
     } finally {
-      if (requestId === prospectFetchRequest.current) setLoading(false);
+      if (prospectFetchController.current === controller) prospectFetchController.current = null;
+      if (!signal.aborted && requestId === prospectFetchRequest.current) setLoading(false);
     }
   }, [currentPage, debouncedSearchQuery, industryFilter, statusFilter, quickFilter, sortMode]);
 
-  useEffect(() => { void fetchProspects(); }, [fetchProspects]);
+  useEffect(() => {
+    void fetchProspects();
+    return () => {
+      ++prospectFetchRequest.current;
+      prospectFetchController.current?.abort();
+    };
+  }, [fetchProspects]);
   // A CRM-wide task may link to a prospect outside the current paginated list.
   // Fetch that single authorized record instead of dropping the deep link.
   useEffect(() => {
