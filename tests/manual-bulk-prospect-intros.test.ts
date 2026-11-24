@@ -62,13 +62,16 @@ test("unresolved placeholders never become send-ready messages", () => {
 });
 
 
-test("bulk send uses explicit dispatch and platform-verified permissions without a manual checkbox", () => {
-  const ui = readFileSync("src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "utf8");
-  assert.doesNotMatch(ui, /batchReviewed|setBatchReviewed|recipientPermissionConfirmed|type="checkbox"/);
-  assert.match(ui, /Sending access and recipient eligibility are verified by the platform/);
-  assert.match(ui, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError\) return;/);
-  assert.match(ui, /disabled=\{loading \|\| sending \|\| !ready.length \|\| !!loadError\}/);
-  assert.match(ui, /No delivery attempted/);
+test("bulk send requires explicit manual confirmation in addition to platform-verified permissions", () => {
+  for (const path of ["src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "src/components/SuperAdmin/ManualBulkProspectFollowUps.tsx"]) {
+    const ui = readFileSync(path, "utf8");
+    assert.match(ui, /setPermissionConfirmed\(false\)/);
+    assert.match(ui, /recipientPermissionConfirmed: permissionConfirmed/);
+    assert.match(ui, /type="checkbox" checked=\{permissionConfirmed\}/);
+    assert.match(ui, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError \|\| !permissionConfirmed\) return;/);
+    assert.match(ui, /disabled=\{loading \|\| sending \|\| !ready.length \|\| !!loadError \|\| !permissionConfirmed\}/);
+    assert.match(ui, /does not create or alter marketing-consent records/);
+  }
 });
 
 test("manual preview reports missing permission without fabricating opt-in", () => {
@@ -91,5 +94,5 @@ test("bulk preview consolidates permission-ineligible prospects under skipped wi
   assert.match(ui, /Saved recipient consent is incomplete/);
   assert.match(ui, /No delivery attempted/);
   assert.match(ui, /blockedByPermission/);
-  assert.doesNotMatch(ui, /Confirm recipient permission & send/);
+  assert.match(ui, /Confirm recipient permission & send/);
 });

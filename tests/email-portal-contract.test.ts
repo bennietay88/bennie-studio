@@ -105,7 +105,7 @@ test("Hostinger manual sends use server-verified recipient permission instead of
   assert.match(direct, /sendHostingerMail\(/);
 });
 
-test("Single, lab and bulk sends rely on server-verified permission without redundant UI confirmation", () => {
+test("Single, lab and bulk sends rely on server-verified permission with explicit bulk review", () => {
   const operations = readFileSync(new URL("../server/salesOperations.ts", import.meta.url), "utf8");
   const prospectUi = readFileSync(new URL("../src/components/SuperAdmin/ProspectExplorer.tsx", import.meta.url), "utf8");
   const labUi = readFileSync(new URL("../src/components/SuperAdmin/OutreachLab.tsx", import.meta.url), "utf8");
@@ -117,10 +117,12 @@ test("Single, lab and bulk sends rely on server-verified permission without redu
   assert.doesNotMatch(prospectUi, /recipientPermissionConfirmed/);
   assert.doesNotMatch(labUi, /recipientPermissionConfirmed/);
   for (const bulk of [bulkIntro, bulkFollowUp]) {
-    assert.doesNotMatch(bulk, /recipientPermissionConfirmed|batchReviewed|setBatchReviewed|type="checkbox"/);
-    assert.match(bulk, /Sending access and recipient eligibility are verified by the platform/);
+    assert.match(bulk, /recipientPermissionConfirmed: permissionConfirmed/);
+    assert.match(bulk, /type="checkbox" checked=\{permissionConfirmed\}/);
+    assert.match(bulk, /setPermissionConfirmed\(false\)/);
+    assert.match(bulk, /does not create or alter marketing-consent records/);
     assert.match(bulk, /Authorization: "Bearer " \+ session.access_token/);
-    assert.match(bulk, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError\) return;/);
+    assert.match(bulk, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError \|\| !permissionConfirmed\) return;/);
   }
   assert.match(operations, /OUTREACH_TOO_SOON/);
   assert.match(operations, /CONTACT_SUPPRESSED/);
