@@ -2,6 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { defineConfig, loadEnv } from "vite";
+import { normalizeZodDocumentationComments } from "./scripts/normalize-zod-comments";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
@@ -13,7 +14,18 @@ export default defineConfig(({ mode }) => {
     env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   ].find((value) => typeof value === "string" && /^pk_(?:live|test)_[A-Za-z0-9]+$/.test(value)) || "";
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      {
+        name: "normalize-zod-documentation-comments",
+        enforce: "pre",
+        transform(code, id) {
+          const normalized = normalizeZodDocumentationComments(code, id);
+          return normalized === code ? null : { code: normalized, map: null };
+        },
+      },
+      react(),
+      tailwindcss(),
+    ],
     // Vercel prebuilt deployments run outside the hosted build environment.
     // Define public browser configuration explicitly so values loaded from
     // .env.production.local are embedded in the Vite bundle.

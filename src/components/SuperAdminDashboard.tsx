@@ -54,15 +54,7 @@ import {
   Sparkles,
   Download,
 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
+
 import {
   Card,
   CardHeader,
@@ -129,6 +121,7 @@ import { ADMIN_TAB_PERMISSIONS } from "../constants/staffPermissions";
 
 // Keep each infrequently used admin module out of the dashboard entry chunk.
 // App.tsx provides a route-level Suspense fallback for these lazy modules.
+const AdminTrafficChart = React.lazy(() => import("./SuperAdmin/AdminTrafficChart"));
 const AdminSupport = React.lazy(() => import("./AdminSupport").then((module) => ({ default: module.AdminSupport })));
 const MonthlyUpdateQueue = React.lazy(() => import("./SuperAdmin/MonthlyUpdateQueue").then((module) => ({ default: module.MonthlyUpdateQueue })));
 const PoliciesCMS = React.lazy(() => import("./PoliciesCMS").then((module) => ({ default: module.PoliciesCMS })));
@@ -2245,23 +2238,9 @@ export default function SuperAdminDashboard() {
               <Card className="rounded-[2rem] border-slate-100 p-8 min-h-[400px]">
                 <div className="mb-8 flex flex-wrap items-end justify-between gap-2"><div><h2 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white">Daily activity</h2><p className="mt-1 text-xs font-semibold text-slate-400">UTC · {trafficDays} days · tracked visits may include admin and automated traffic</p></div></div>
                 <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                    <AreaChart data={trafficMetrics.trend}>
-                       <defs>
-                         <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                           <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
-                           <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                         </linearGradient>
-                       </defs>
-                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                       <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} stroke="#94a3b8" />
-                       <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} stroke="#94a3b8" />
-                       <Tooltip />
-                       <Area type="linear" dataKey="views" name="Page views" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorViews)" />
-                       <Area type="linear" dataKey="clicks" name="CTA / link clicks" stroke="#8b5cf6" strokeWidth={2} fillOpacity={0} />
-                       <Area type="linear" dataKey="registrations" name="Registrations" stroke="#10b981" strokeWidth={2} fillOpacity={0} />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <React.Suspense fallback={<div role="status" className="flex h-full items-center justify-center text-sm text-slate-500">Loading activity chart…</div>}>
+                    <AdminTrafficChart trend={trafficMetrics.trend} />
+                  </React.Suspense>
                 </div>
               </Card>
 
