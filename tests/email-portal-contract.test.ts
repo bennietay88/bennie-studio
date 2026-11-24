@@ -125,7 +125,9 @@ test("Single, lab and bulk sends rely on server-verified permission with explici
   for (const bulk of [bulkIntro, bulkFollowUp]) {
     assert.match(bulk, /does not create or alter marketing-consent records/);
     assert.match(bulk, /Authorization: "Bearer " \+ session.access_token/);
-    assert.match(bulk, /InlineRecipientPermission/);
+    assert.doesNotMatch(bulk, /InlineRecipientPermission/);
+    assert.match(bulk, /dispatchLock.current = true/);
+    assert.match(bulk, /Recipient Consent Import/);
   }
   assert.match(operations, /OUTREACH_TOO_SOON/);
   assert.match(operations, /CONTACT_SUPPRESSED/);

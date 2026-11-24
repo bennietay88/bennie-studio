@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, Mail, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
@@ -6,7 +6,6 @@ import { MAX_MANUAL_BULK_FOLLOW_UP, prepareManualBulkFollowUp } from "../../lib/
 import type { ManualBulkFollowUpPreview } from "../../lib/manualBulkProspectFollowUps";
 import type { ProspectEmailOverrides } from "../../lib/prospectOutreachTemplates";
 import { Button } from "../ui/button";
-import { InlineRecipientPermission } from "./InlineRecipientPermission";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 
 type PreviewRow = ManualBulkFollowUpPreview & {
@@ -28,7 +27,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
-  const [permissionRevision, setPermissionRevision] = useState(0);
+  const dispatchLock = useRef(false);
   const [permissionConfirmed, setPermissionConfirmed] = useState(false);
 
   useEffect(() => {
@@ -53,6 +52,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
         const templatePayload = await templates.json();
         const overrides: ProspectEmailOverrides = templatePayload.overrides || {};
         const checked: PreviewRow[] = [];
+        const emails = new Set<string>();
         // Small batches avoid overwhelming the engagement endpoint.
         for (let offset = 0; offset < selectedIds.length; offset += 5) {
           const slice = selectedIds.slice(offset, offset + 5);
@@ -69,7 +69,15 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
               return { prospectId: id, name: "Selected prospect", email: "", kind: "skip", reason: error?.message || "Could not verify current prospect history.", requestId, delivery: "skipped" } as PreviewRow;
             }
           }));
-          checked.push(...result);
+          for (const row of result) {
+            const email = row.email.trim().toLowerCase();
+            if (row.kind === "ready" && emails.has(email)) {
+              checked.push({ ...row, kind: "skip", delivery: "skipped", reason: "Duplicate recipient email in this selection." });
+            } else {
+              checked.push(row);
+              if (row.kind === "ready" && email) emails.add(email);
+            }
+          }
           if (!active) return;
         }
         if (active) setRows(checked);
@@ -84,7 +92,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
     // Capture the selection when the dialog opens. The parent does not change the
     // selection until the operation has fully finished.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, permissionRevision]);
+  }, [open]);
 
   const ready = rows.filter((row) => row.delivery === "ready");
   const skipped = rows.filter((row) => row.delivery === "skipped");
@@ -93,6 +101,8 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
 
   const sendSelected = async () => {
     if (sending || finished || loading || !ready.length || loadError || !permissionConfirmed) return;
+    if (dispatchLock.current) return;
+    dispatchLock.current = true;
     setSending(true);
     const sentIds: string[] = [];
     try {
@@ -149,6 +159,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
       setFinished(true);
       if (sentIds.length) onCompleted(sentIds);
     } finally {
+      dispatchLock.current = false;
       setSending(false);
     }
   };
@@ -159,7 +170,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
         <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-5 pr-14 sm:px-7">
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-950"><Mail className="h-5 w-5 text-indigo-600" /> Send selected follow-ups</DialogTitle>
           <DialogDescription className="leading-6">
-            Review each due email before sending. This is a manual action: no emails are sent when you select prospects or open this screen.
+            Review the eligible batch, tick the confirmation and send. Individual previews are available below. Opening this screen never sends emails.
             Prospects without a confirmed earlier email, not yet due, already replied, or closed are skipped.
           </DialogDescription>
         </DialogHeader>
@@ -174,8 +185,11 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
                 {!!submitted.length && <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">{submitted.length} submitted</span>}
                 {!!failed.length && <span className="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">{failed.length} failed / needs review</span>}
               </div>
+              {skipped.some(row => /consent|permission evidence/i.test(row.reason || "")) && !finished && (
+                <p className="text-sm text-slate-600">Recipients without saved authorization are excluded. Existing permission records can be imported together using Recipient Consent Import in Prospect Explorer; no individual forms are required in this batch.</p>
+              )}
               <div className="space-y-3">
-                {rows.map((row, index) => (
+                {[...rows.filter(row => row.delivery !== "skipped"), ...rows.filter(row => row.delivery === "skipped")].map((row, index) => (
                   <div key={row.prospectId} className={"rounded-xl border p-4 " + (row.delivery === "skipped" ? "border-slate-200 bg-slate-50" : row.delivery === "failed" ? "border-rose-200 bg-rose-50" : "border-slate-200 bg-white")}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -187,7 +201,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
                       </span>
                     </div>
                     {row.kind === "ready" ? (
-                      <details className="mt-3" open={index === rows.findIndex((item) => item.kind === "ready") ? true : undefined}>
+                      <details className="mt-3" open={index === 0 ? true : undefined}>
                         <summary className="cursor-pointer text-sm font-semibold text-indigo-700">Review subject and full email</summary>
                         <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
                           <p className="mb-2 text-sm font-semibold text-slate-900">{row.subject}</p>
@@ -195,18 +209,19 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
                         </div>
                       </details>
                     ) : <p className="mt-2 text-xs leading-5 text-slate-600">{row.reason}</p>}
-                    {row.delivery === "skipped" && row.email && /consent|permission evidence/i.test(row.reason || "") && !finished && <InlineRecipientPermission email={row.email} disabled={sending} onSaved={() => setPermissionRevision(value => value + 1)} />}
                     {row.error && <p className="mt-2 text-xs font-medium text-rose-800">{row.error} Do not resend until the provider delivery is checked.</p>}
                   </div>
                 ))}
               </div>
             </>
           )}
-          {!loading && !loadError && ready.length > 0 && !finished && (
-            <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><input type="checkbox" checked={permissionConfirmed} disabled={sending} onChange={(event) => setPermissionConfirmed(event.target.checked)} className="mt-1 h-4 w-4 shrink-0" /><span>I have reviewed these emails and confirm that I have permission to contact the eligible recipients. This confirmation does not create or alter marketing-consent records.</span></label>
-          )}
           {finished && <div role="status" className="flex gap-2 rounded-xl bg-indigo-50 p-4 text-sm text-indigo-900"><ShieldCheck className="h-5 w-5 shrink-0" /> Processing finished. Submitted means the provider accepted the request, not that inbox delivery is confirmed. Review failed or uncertain deliveries before any retry.</div>}
         </div>
+        {!loading && !loadError && ready.length > 0 && !finished && (
+          <div className="shrink-0 border-t border-slate-200 bg-white px-5 pt-3 sm:px-7">
+            <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"><input type="checkbox" checked={permissionConfirmed} disabled={sending} onChange={(event) => setPermissionConfirmed(event.target.checked)} className="mt-1 h-4 w-4 shrink-0" /><span>I have reviewed these emails and confirm that I have permission to contact the eligible recipients. This confirmation does not create or alter marketing-consent records.</span></label>
+          </div>
+        )}
         <DialogFooter className="!mx-0 !mb-0 shrink-0 gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>{finished ? "Close" : "Cancel"}</Button>
           {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError || !permissionConfirmed} className="bg-indigo-600 text-white hover:bg-indigo-700">
