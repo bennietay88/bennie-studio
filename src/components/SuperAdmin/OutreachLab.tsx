@@ -40,7 +40,6 @@ export function OutreachLab() {
   const [suppressedEmails, setSuppressedEmails] = React.useState<Set<string>>(new Set());
   const [suppressionUnavailable, setSuppressionUnavailable] = React.useState(false);
   const [working, setWorking] = React.useState(false);
-  const [recipientPermissionConfirmed, setRecipientPermissionConfirmed] = React.useState(false);
   const confirmationId = React.useRef(crypto.randomUUID());
 
   const fetchProspects = React.useCallback(async () => {
@@ -94,7 +93,6 @@ export function OutreachLab() {
     if (!selected) return;
     setFinding(getOutreachObservation(selected.notes));
     confirmationId.current = crypto.randomUUID();
-    setRecipientPermissionConfirmed(false);
   }, [selectedId]);
 
   React.useEffect(() => {
@@ -149,7 +147,6 @@ export function OutreachLab() {
     if (hasUnresolvedEmailPlaceholders(draft)) return toast.error("Complete every [bracketed detail] before contacting a prospect.");
     if (finding.trim().length < 10) return toast.error("Add one specific, verified website observation before opening outreach.");
     if (channel === "email") {
-      if (!recipientPermissionConfirmed) return toast.error("Confirm this recipient opted in before sending.");
       const [subjectLine, ...bodyLines] = draft.split("\n");
       const subject = subjectLine.replace(/^Subject:\s*/i, "");
       if (!subject.trim()) return toast.error("A subject is required.");
@@ -161,7 +158,7 @@ export function OutreachLab() {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
           body: JSON.stringify({ action: "send", channel: "email", observation: finding.trim(), subject,
-            bodyText: bodyLines.join("\n").trim(), templateId, recipientPermissionConfirmed, requestId: confirmationId.current }),
+            bodyText: bodyLines.join("\n").trim(), templateId, requestId: confirmationId.current }),
         });
         const outcome = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(outcome.error || "Email was not sent.");
@@ -227,7 +224,7 @@ export function OutreachLab() {
             ) : (
               <div className="space-y-5">
                 {selectedSuppressed && <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">{suppressionUnavailable ? "Suppression status cannot be verified. Sending is blocked until data is available." : "This address is suppressed. Further sales outreach is blocked."}</p>}
-                {channel === "email" && <label className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"><input type="checkbox" checked={recipientPermissionConfirmed} onChange={(event) => setRecipientPermissionConfirmed(event.target.checked)} className="mt-1" />I confirm this recipient opted in to receive email. No additional consent-document upload is needed; existing consent records are unchanged.</label>}
+                {channel === "email" && <p className="text-sm text-slate-600">Recipient eligibility is checked against existing CRM records before dispatch.</p>}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div><label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Channel</label><Select value={channel} onValueChange={(value) => setChannel(value as "email" | "whatsapp")}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="email">Email</SelectItem><SelectItem value="whatsapp">WhatsApp</SelectItem></SelectContent></Select></div>
                   <div><label className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Pipeline status</label><Select value={selected.outreach_status || "not_started"} onValueChange={(value) => void updateProspect(selected.id, { outreach_status: value }).catch((error) => toast.error(error.message))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{status.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select></div>
@@ -237,7 +234,7 @@ export function OutreachLab() {
                 <div className="space-y-2"><label htmlFor="outreach-draft" className="text-xs font-bold uppercase tracking-wider text-slate-500">Editable {channel === "email" ? "email" : "WhatsApp"} draft</label><Textarea id="outreach-draft" value={draft} onChange={(event) => setDraft(event.target.value)} className="min-h-[300px] rounded-2xl bg-slate-50 p-5 font-medium leading-7" aria-label="Outreach draft" />{hasUnresolvedEmailPlaceholders(draft) && <p className="text-xs font-semibold text-amber-700">Replace every [bracketed detail] with verified facts before sending.</p>}</div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                   <Button type="button" variant="outline" onClick={() => void copyDraft().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl"><Copy className="mr-2 h-4 w-4" /> Copy</Button>
-                  <Button type="button" disabled={working || selectedSuppressed || (channel === "email" && !recipientPermissionConfirmed)} onClick={() => void openContact().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl bg-slate-950 px-6 text-white hover:bg-indigo-600">{channel === "email" ? <Mail className="mr-2 h-4 w-4" /> : <MessageSquare className="mr-2 h-4 w-4" />} {channel === "email" ? "Send email" : "Open WhatsApp"} <Send className="ml-2 h-4 w-4" /></Button>
+                  <Button type="button" disabled={working || selectedSuppressed} onClick={() => void openContact().catch((error) => toast.error(error.message))} className="min-h-11 rounded-xl bg-slate-950 px-6 text-white hover:bg-indigo-600">{channel === "email" ? <Mail className="mr-2 h-4 w-4" /> : <MessageSquare className="mr-2 h-4 w-4" />} {channel === "email" ? "Send email" : "Open WhatsApp"} <Send className="ml-2 h-4 w-4" /></Button>
                   {channel === "whatsapp" && <Button type="button" variant="outline" disabled={working || selectedSuppressed || finding.trim().length < 10 || hasUnresolvedEmailPlaceholders(draft)} onClick={() => void markContacted()} className="min-h-11 rounded-xl">I sent it — log follow-up</Button>}
                 </div>
               </div>
