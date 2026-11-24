@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, Mail, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
@@ -6,7 +6,6 @@ import { MAX_MANUAL_BULK_FOLLOW_UP, prepareManualBulkFollowUp } from "../../lib/
 import type { ManualBulkFollowUpPreview } from "../../lib/manualBulkProspectFollowUps";
 import type { ProspectEmailOverrides } from "../../lib/prospectOutreachTemplates";
 import { Button } from "../ui/button";
-import { InlineRecipientPermission } from "./InlineRecipientPermission";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 
 type PreviewRow = ManualBulkFollowUpPreview & {
@@ -28,7 +27,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
-  const [permissionRevision, setPermissionRevision] = useState(0);
+  const dispatchLock = useRef(false);
   const [permissionConfirmed, setPermissionConfirmed] = useState(false);
 
   useEffect(() => {
@@ -53,6 +52,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
         const templatePayload = await templates.json();
         const overrides: ProspectEmailOverrides = templatePayload.overrides || {};
         const checked: PreviewRow[] = [];
+        const emails = new Set<string>();
         // Small batches avoid overwhelming the engagement endpoint.
         for (let offset = 0; offset < selectedIds.length; offset += 5) {
           const slice = selectedIds.slice(offset, offset + 5);
@@ -69,7 +69,15 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
               return { prospectId: id, name: "Selected prospect", email: "", kind: "skip", reason: error?.message || "Could not verify current prospect history.", requestId, delivery: "skipped" } as PreviewRow;
             }
           }));
-          checked.push(...result);
+          for (const row of result) {
+            const email = row.email.trim().toLowerCase();
+            if (row.kind === "ready" && emails.has(email)) {
+              checked.push({ ...row, kind: "skip", delivery: "skipped", reason: "Duplicate recipient email in this selection." });
+            } else {
+              checked.push(row);
+              if (row.kind === "ready" && email) emails.add(email);
+            }
+          }
           if (!active) return;
         }
         if (active) setRows(checked);
@@ -84,7 +92,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
     // Capture the selection when the dialog opens. The parent does not change the
     // selection until the operation has fully finished.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, permissionRevision]);
+  }, [open]);
 
   const ready = rows.filter((row) => row.delivery === "ready");
   const skipped = rows.filter((row) => row.delivery === "skipped");
@@ -93,6 +101,8 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
 
   const sendSelected = async () => {
     if (sending || finished || loading || !ready.length || loadError || !permissionConfirmed) return;
+    if (dispatchLock.current) return;
+    dispatchLock.current = true;
     setSending(true);
     const sentIds: string[] = [];
     try {
@@ -149,6 +159,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
       setFinished(true);
       if (sentIds.length) onCompleted(sentIds);
     } finally {
+      dispatchLock.current = false;
       setSending(false);
     }
   };
@@ -174,6 +185,9 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
                 {!!submitted.length && <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">{submitted.length} submitted</span>}
                 {!!failed.length && <span className="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">{failed.length} failed / needs review</span>}
               </div>
+              {skipped.some(row => /consent|permission evidence/i.test(row.reason || "")) && !finished && (
+                <p className="text-sm text-slate-600">Recipients without saved authorization are excluded. Existing permission records can be imported together using Recipient Consent Import in Prospect Explorer; no individual forms are required in this batch.</p>
+              )}
               <div className="space-y-3">
                 {[...rows.filter(row => row.delivery !== "skipped"), ...rows.filter(row => row.delivery === "skipped")].map((row, index) => (
                   <div key={row.prospectId} className={"rounded-xl border p-4 " + (row.delivery === "skipped" ? "border-slate-200 bg-slate-50" : row.delivery === "failed" ? "border-rose-200 bg-rose-50" : "border-slate-200 bg-white")}>
@@ -195,7 +209,6 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
                         </div>
                       </details>
                     ) : <p className="mt-2 text-xs leading-5 text-slate-600">{row.reason}</p>}
-                    {row.delivery === "skipped" && row.email && /consent|permission evidence/i.test(row.reason || "") && !finished && <InlineRecipientPermission email={row.email} disabled={sending} onSaved={() => setPermissionRevision(value => value + 1)} />}
                     {row.error && <p className="mt-2 text-xs font-medium text-rose-800">{row.error} Do not resend until the provider delivery is checked.</p>}
                   </div>
                 ))}
