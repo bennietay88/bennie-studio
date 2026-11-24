@@ -402,7 +402,15 @@ export function ProspectExplorer() {
       }
 
       const prospectIds = rows.map((prospect) => prospect.id);
-      const statsPromise = Promise.all([
+      const statsPromise = (async () => {
+        const { data: summary, error: summaryError } = await supabase.rpc("bs_prospect_summary_v1").abortSignal(signal);
+        if (signal.aborted) return null;
+        if (!summaryError && summary && ["total", "high", "contacted", "booked", "due", "notContacted"].every(key => typeof summary[key] === "number" && Number.isSafeInteger(summary[key]) && summary[key] >= 0)) {
+          return { total: summary.total, high: summary.high, contacted: summary.contacted, booked: summary.booked, due: summary.due, notContacted: summary.notContacted };
+        }
+        // Compatibility during database rollout: only fall back when the RPC is absent.
+        if (summaryError?.code !== "PGRST202" && summaryError?.code !== "42883") return null;
+        const [totalResult, highResult, contactedResult, bookedResult, dueResult, notContactedResult] = await Promise.all([
         supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).abortSignal(signal),
         supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).eq("opportunity_level", "high").abortSignal(signal),
         supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).in("outreach_status", CONTACTED_OUTREACH_STATUSES).abortSignal(signal),
@@ -410,6 +418,9 @@ export function ProspectExplorer() {
         supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).lte("next_follow_up_at", new Date().toISOString()).not("outreach_status", "in", "(\"won\",\"lost\")").abortSignal(signal),
         supabase.from("prospects").select("id", { count: "exact", head: true }).is("outreach_exhausted_at", null).in("outreach_status", NOT_CONTACTED_OUTREACH_STATUSES).abortSignal(signal),
       ]);
+        if (signal.aborted || [totalResult, highResult, contactedResult, bookedResult, dueResult, notContactedResult].some(result => result.error)) return null;
+        return { total: totalResult.count || 0, high: highResult.count || 0, contacted: contactedResult.count || 0, booked: bookedResult.count || 0, due: dueResult.count || 0, notContacted: notContactedResult.count || 0 };
+      })().catch(() => null);
       const sessionPromise = supabase.auth.getSession();
       const deliveryPromise = prospectIds.length
           ? supabase.from("sales_messages").select("prospect_id,status,sent_at,created_at,error,provider_message_id")
@@ -427,12 +438,10 @@ export function ProspectExplorer() {
         ? current.map((prospect) => deliveryByProspectId.get(prospect.id) || prospect)
         : current);
 
-      const [totalResult, highResult, contactedResult, bookedResult, dueResult, notContactedResult] = await statsPromise;
-      if (requestId !== prospectFetchRequest.current) return;
-      setStats({ total: totalResult.count || 0, high: highResult.count || 0, contacted: contactedResult.count || 0, booked: bookedResult.count || 0, due: dueResult.count || 0, notContacted: notContactedResult.count || 0 });
-      if ([totalResult, highResult, contactedResult, bookedResult, dueResult, notContactedResult].some((result) => result.error)) {
-        console.warn("Prospect summary counts are temporarily unavailable.");
-      }
+      const summary = await statsPromise;
+      if (signal.aborted || requestId !== prospectFetchRequest.current) return;
+      if (summary) setStats(summary);
+      else console.warn("Prospect summary counts are temporarily unavailable.");
       const sessionResult = await sessionPromise;
       if (requestId !== prospectFetchRequest.current) return;
       const session = sessionResult.data.session;
