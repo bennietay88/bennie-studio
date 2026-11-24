@@ -1,6 +1,6 @@
 
 import axios from "axios";
-import OpenAI from "openai";
+
 
 /**
  * Interface for AI request
@@ -79,6 +79,8 @@ export async function callOpenAI(
   request: AIRequest,
   model: string = "gpt-5.6-luna"
 ): Promise<AIResponse> {
+  // Load the SDK only for AI generation, not unrelated API requests.
+  const { default: OpenAI } = await import("openai");
   const openai = new OpenAI({ apiKey: apiKey.trim() });
 
   const response = await openai.responses.create({
