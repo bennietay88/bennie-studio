@@ -269,9 +269,6 @@ export default function SuperAdminDashboard() {
   const [users, setUsers] = useState<any[]>([]);
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
   const [appointments, setAppointments] = useState<any[]>([]);
-  const [affiliatePrograms, setAffiliatePrograms] = useState<any[]>([]);
-  const [allPayouts, setAllPayouts] = useState<any[]>([]);
-  const [allPartners, setAllPartners] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [trafficDays, setTrafficDays] = useState(30);
   const [trafficMetrics, setTrafficMetrics] = useState<{
@@ -313,12 +310,7 @@ export default function SuperAdminDashboard() {
     recentEvents: [],
     loading: true,
   });
-  const [globalAffiliateStats, setGlobalAffiliateStats] = useState({
-    totalPrograms: 0,
-    totalAffiliates: 0,
-    totalReferrals: 0,
-    totalEarnings: 0,
-  });
+
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(getTabFromPath());
   const isSuperAdmin = profile?.role === "super_admin";
@@ -947,14 +939,6 @@ export default function SuperAdminDashboard() {
             .order("date", { ascending: true }).abortSignal(controller.signal),
           supabase.from("settings").select("*").eq("id", "platform").abortSignal(controller.signal).maybeSingle(),
           supabase.from("settings").select("content").eq("id", "plans").abortSignal(controller.signal).maybeSingle(),
-          supabase.from("affiliate_programs").select("*, businesses(name)").abortSignal(controller.signal),
-          supabase.from("affiliates").select("*").abortSignal(controller.signal),
-          supabase.from("affiliate_referrals").select("commission_amount, status").abortSignal(controller.signal),
-          supabase
-            .from("affiliate_payouts")
-            .select("*, affiliates(uid, referral_code), businesses(name)")
-            .order("created_at", { ascending: false }).abortSignal(controller.signal),
-          supabase.from("profiles").select("*").eq("role", "affiliate").order("created_at", { ascending: false }).abortSignal(controller.signal),
           supabase.from("projects").select("*").abortSignal(controller.signal),
           supabase
             .from("plans")
@@ -976,13 +960,8 @@ export default function SuperAdminDashboard() {
         const apptRes = readSettled<any>(2, "appointments", { data: [] });
         const settingsRes = readSettled<any>(3, "settings", { data: null });
         const plansRes = readSettled<any>(4, "plans", { data: null });
-        const affiliateProgsRes = readSettled<any>(5, "affiliate programs", { data: [] });
-        const allAffiliatesRes = readSettled<any>(6, "affiliates", { data: [] });
-        const allReferralsRes = readSettled<any>(7, "affiliate referrals", { data: [] });
-        const allPayoutsRes = readSettled<any>(8, "affiliate payouts", { data: [] });
-        const partnersRes = readSettled<any>(9, "affiliate partners", { data: [] });
-        const projectsRes = readSettled<any>(10, "projects", { data: [] });
-        const planTableRes = readSettled<any>(11, "plan table", { data: [] });
+        const projectsRes = readSettled<any>(5, "projects", { data: [] });
+        const planTableRes = readSettled<any>(6, "plan table", { data: [] });
 
         if (bizRes.data) setBusinesses(bizRes.data);
         if (userRes.data) setUsers(userRes.data);
@@ -1031,28 +1010,6 @@ export default function SuperAdminDashboard() {
           );
         } else if (Array.isArray(plansRes.data?.content?.pricing) && plansRes.data.content.pricing.length > 0) {
           setAvailablePlans(normalizePlans(plansRes.data.content.pricing));
-        }
-        if (affiliateProgsRes.data)
-          setAffiliatePrograms(affiliateProgsRes.data);
-        if (allPayoutsRes.data) setAllPayouts(allPayoutsRes.data);
-        if (partnersRes.data) setAllPartners(partnersRes.data);
-
-        // Calculate global stats
-        if (
-          affiliateProgsRes.data &&
-          allAffiliatesRes.data &&
-          allReferralsRes.data
-        ) {
-          const totalEarnings = allReferralsRes.data
-            .filter((r) => r.status === "converted")
-            .reduce((sum, r) => sum + (r.commission_amount || 0), 0);
-
-          setGlobalAffiliateStats({
-            totalPrograms: affiliateProgsRes.data.length,
-            totalAffiliates: allAffiliatesRes.data.length,
-            totalReferrals: allReferralsRes.data.length,
-            totalEarnings,
-          });
         }
       } catch (err) {
         if (!controller.signal.aborted) console.error("Error fetching admin data:", err);
