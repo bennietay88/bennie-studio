@@ -27,6 +27,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
+  const [batchReviewed, setBatchReviewed] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -34,6 +35,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
     setRows([]);
     setLoadError("");
     setFinished(false);
+    setBatchReviewed(false);
     if (!selectedIds.length || selectedIds.length > MAX_MANUAL_BULK_FOLLOW_UP) {
       setLoadError("Select between 1 and " + MAX_MANUAL_BULK_FOLLOW_UP + " prospects to review at a time.");
       return;
@@ -88,7 +90,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
   const failed = rows.filter((row) => row.delivery === "failed");
 
   const sendSelected = async () => {
-    if (sending || finished || loading || !ready.length || loadError) return;
+    if (!batchReviewed || sending || finished || loading || !ready.length || loadError) return;
     setSending(true);
     const sentIds: string[] = [];
     try {
@@ -117,15 +119,18 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) {
-            const failure = new Error(payload.error || "Provider did not confirm the send.") as Error & { status?: number };
+            const failure = new Error(payload.error || "Provider did not confirm the send.") as Error & { status?: number; code?: string };
+            failure.code = payload.code;
             failure.status = response.status;
             throw failure;
           }
           sentIds.push(row.prospectId);
           setRows((current) => current.map((item) => item.prospectId === row.prospectId ? { ...item, delivery: "submitted" } : item));
         } catch (error: any) {
+          const blocked = ["CONTACT_PERMISSION_NOT_VERIFIED", "CONTACT_PERMISSION_CONFIRMATION_REQUIRED", "CONTACT_SUPPRESSED", "CONTACT_CLOSED", "OUTREACH_FOLLOW_UP_STAGE_NOT_DUE"].includes(error?.code);
           setRows((current) => current.map((item) => item.prospectId === row.prospectId
-            ? { ...item, delivery: "failed", error: error?.message || "Delivery failed. Verify with the email provider before trying again." } : item));
+            ? blocked ? { ...item, kind: "skip", delivery: "skipped", reason: (error?.message || "Recipient is not eligible.") + " No email attempted.", error: undefined }
+              : { ...item, delivery: "failed", error: error?.message || "Delivery failed. Verify with the email provider before trying again." } : item));
           if (error?.status === 429 || error?.status === 503) {
             setLoadError("Sending stopped after a shared provider failure or quota restriction. Remaining messages were not attempted.");
             break;
@@ -193,14 +198,17 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
               </div>
             </>
           )}
-          {!loading && !loadError && !!rows.length && !finished && (
-            <p className="text-sm text-slate-600">Recipient eligibility is verified automatically before each dispatch. Ineligible recipients are reported individually.</p>
+          {!loading && !loadError && ready.length > 0 && !finished && (
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+              <input type="checkbox" className="mt-1 h-4 w-4 accent-indigo-600" checked={batchReviewed} onChange={e => setBatchReviewed(e.target.checked)} disabled={sending} />
+              <span>I have reviewed these emails and confirm I have permission to contact the eligible recipients. Recipient eligibility is verified automatically. This confirmation does not create consent.</span>
+            </label>
           )}
           {finished && <div role="status" className="flex gap-2 rounded-xl bg-indigo-50 p-4 text-sm text-indigo-900"><ShieldCheck className="h-5 w-5 shrink-0" /> Processing finished. Submitted means the provider accepted the request, not that inbox delivery is confirmed. Review failed or uncertain deliveries before any retry.</div>}
         </div>
         <DialogFooter className="!mx-0 !mb-0 shrink-0 gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>{finished ? "Close" : "Cancel"}</Button>
-          {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
+          {!finished && <Button onClick={() => void sendSelected()} disabled={!batchReviewed || loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             {sending ? "Sending individually…" : "Send " + ready.length + " reviewed follow-up" + (ready.length === 1 ? "" : "s")}
           </Button>}

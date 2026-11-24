@@ -105,7 +105,7 @@ test("Hostinger manual sends use server-verified recipient permission instead of
   assert.match(direct, /sendHostingerMail\(/);
 });
 
-test("Single, lab and bulk sends rely on documented server-verified permission, not an operator checkbox", () => {
+test("Single, lab and bulk sends rely on server-verified permission; bulk review is not consent", () => {
   const operations = readFileSync(new URL("../server/salesOperations.ts", import.meta.url), "utf8");
   const prospectUi = readFileSync(new URL("../src/components/SuperAdmin/ProspectExplorer.tsx", import.meta.url), "utf8");
   const labUi = readFileSync(new URL("../src/components/SuperAdmin/OutreachLab.tsx", import.meta.url), "utf8");
@@ -116,8 +116,11 @@ test("Single, lab and bulk sends rely on documented server-verified permission, 
   assert.match(operations, /CONTACT_PERMISSION_NOT_VERIFIED/);
   assert.doesNotMatch(prospectUi, /recipientPermissionConfirmed/);
   assert.doesNotMatch(labUi, /recipientPermissionConfirmed/);
-  assert.doesNotMatch(bulkIntro, /recipientPermissionConfirmed|<Checkbox|setConfirmed|!confirmed/);
-  assert.doesNotMatch(bulkFollowUp, /recipientPermissionConfirmed|<Checkbox|setConfirmed|!confirmed/);
+  for (const bulk of [bulkIntro, bulkFollowUp]) {
+    assert.doesNotMatch(bulk, /recipientPermissionConfirmed/);
+    assert.match(bulk, /!batchReviewed \|\|/);
+    assert.match(bulk, /This confirmation does not create consent/);
+  }
   assert.match(operations, /OUTREACH_TOO_SOON/);
   assert.match(operations, /CONTACT_SUPPRESSED/);
 });

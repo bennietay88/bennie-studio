@@ -5,6 +5,8 @@ import { MAX_MANUAL_BULK_FOLLOW_UP, prepareManualBulkFollowUp, safeProspectFollo
 const INTRO = { direction: "outbound", channel: "email", status: "sent", sent_at: "2026-11-01T09:00:00Z" };
 const OUTBOUND = { direction: "outbound", channel: "email", status: "sent" };
 const CONTACT = { id: "p1", name: "Carpentry Service", contact_email: "info@example.com", website_status: "no_website",
+  marketing_consent: true, consent_email: "info@example.com", consent_timestamp: "2026-10-01T09:00:00Z",
+  consent_source: "Recipient requested promotional information through signup", contact_jurisdiction: "US", contact_recipient_type: "business", contact_lawful_basis: "consent",
   website_evidence_source_url: "https://directory.example/company", website_verified_at: "2026-10-30T09:00:00Z",
   website_verification_method: "Manual research", website_finding: "No independent website found", website_verified_by: "admin", website_evidence_confidence: "high" };
 
@@ -58,4 +60,13 @@ test("manual batch previews use validated saved template overrides", () => {
   }, new Date("2026-11-04T09:00:00Z"));
   assert.equal(result.subject, "A note for Carpentry Service");
   assert.match(String(result.bodyText), /Carpentry Service team/);
+});
+
+test("missing or mismatched recipient consent is skipped before sending", () => {
+  const now = new Date("2026-11-04T09:00:00Z");
+  for (const prospect of [{ ...CONTACT, marketing_consent: false }, { ...CONTACT, consent_email: "other@example.com" }]) {
+    const result = prepareManualBulkFollowUp(prospect, [INTRO], {}, now);
+    assert.equal(result.kind, "skip");
+    assert.match(String(result.reason), /No email attempted/);
+  }
 });

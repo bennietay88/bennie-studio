@@ -27,6 +27,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
+  const [batchReviewed, setBatchReviewed] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -34,6 +35,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
     setRows([]);
     setLoadError("");
     setFinished(false);
+    setBatchReviewed(false);
     if (!selectedIds.length || selectedIds.length > MAX_MANUAL_BULK_INTRO) {
       setLoadError("Select between 1 and " + MAX_MANUAL_BULK_INTRO + " prospects to review at a time.");
       return;
@@ -97,7 +99,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
   const failed = rows.filter((row) => row.delivery === "failed");
 
   const sendSelected = async () => {
-    if (sending || finished || loading || !ready.length || loadError) return;
+    if (!batchReviewed || sending || finished || loading || !ready.length || loadError) return;
     setSending(true);
     const sentIds: string[] = [];
     try {
@@ -175,7 +177,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               <div className="flex flex-wrap gap-3 text-sm font-medium">
                 <span className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-800">{ready.length} ready</span>
                 <span className="rounded-lg bg-slate-100 px-3 py-2 text-slate-700">{skipped.length} skipped</span>
-                {!!permissionReview.length && <span className="rounded-lg bg-amber-50 px-3 py-2 text-amber-900">{permissionReview.length} permission review · not sent</span>}
+                {!!permissionReview.length && <span className="rounded-lg bg-slate-100 px-3 py-2 text-slate-700">{permissionReview.length} permission review · not sent</span>}
                 {!!submitted.length && <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">{submitted.length} submitted</span>}
                 {!!failed.length && <span className="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">{failed.length} failed / needs review</span>}
               </div>
@@ -184,7 +186,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                   <div key={row.prospectId} className={"rounded-xl border p-4 " +
                     (row.delivery === "skipped" ? "border-slate-200 bg-slate-50" :
                       row.delivery === "failed" ? "border-rose-200 bg-rose-50" :
-                      row.delivery === "permission_review" ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white")}>
+                      row.delivery === "permission_review" ? "border-slate-200 bg-slate-50" : "border-slate-200 bg-white")}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-900">{row.name}</p>
@@ -194,7 +196,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                         (row.delivery === "ready" ? "bg-indigo-100 text-indigo-800" :
                           row.delivery === "submitted" ? "bg-emerald-100 text-emerald-800" :
                             row.delivery === "failed" ? "bg-rose-100 text-rose-800" :
-                            row.delivery === "permission_review" ? "bg-amber-100 text-amber-900" : "bg-slate-200 text-slate-600")}>
+                            row.delivery === "permission_review" ? "bg-slate-200 text-slate-600" : "bg-slate-200 text-slate-600")}>
                         {row.delivery === "ready" ? "Introduction · Ready" :
                           row.delivery === "sending" ? "Sending…" :
                             row.delivery === "submitted" ? "Submitted" :
@@ -202,7 +204,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                               row.delivery === "permission_review" ? "Permission review · Not sent" : "Skipped"}
                       </span>
                     </div>
-                    {row.kind !== "skip" ? (
+                    {row.kind === "ready" && row.subject && row.bodyText ? (
                       <details className="mt-3" open={index === rows.findIndex((item) => item.kind !== "skip") ? true : undefined}>
                         <summary className="cursor-pointer text-sm font-semibold text-indigo-700">Review subject and full email</summary>
                         <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3">
@@ -210,8 +212,8 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                           <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-6 text-slate-700">{row.bodyText}</pre>
                         </div>
                       </details>
-                    ) : <p className="mt-2 text-xs leading-5 text-slate-600">{row.reason}</p>}
-                    {row.kind === "permission_review" && <p className="mt-3 text-xs font-medium leading-5 text-amber-900">{row.reason} No delivery attempted.</p>}
+                    ) : row.kind === "skip" ? <p className="mt-2 text-xs leading-5 text-slate-600">{row.reason}</p> : null}
+                    {row.kind === "permission_review" && <p className="mt-2 text-xs leading-5 text-slate-600">Recipient permission record incomplete. No delivery attempted.</p>}
                     {row.error && <p className="mt-2 text-xs font-medium text-rose-800">{row.error} {row.error.includes("Email contact is blocked until") || row.error.includes("Confirm the independently recorded permission details")
                       ? "The server blocked this before provider delivery. Verify recipient permission records; do not invent an opt-in."
                       : "Do not resend until provider delivery is checked."}</p>}
@@ -220,12 +222,11 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               </div>
             </>
           )}
-          {!loading && !loadError && !!rows.length && !finished && (
-            <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-              Send submits eligible introductions without an additional confirmation. Recipient permission is verified against existing CRM records.
-              Do not use this flow for unsolicited cold email through a provider that requires prior opt-in.
-              The server rechecks recipient permission, suppression status and delivery safeguards before sending.
-            </p>
+          {!loading && !loadError && ready.length > 0 && !finished && (
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+              <input type="checkbox" className="mt-1 h-4 w-4 accent-indigo-600" checked={batchReviewed} onChange={e => setBatchReviewed(e.target.checked)} disabled={sending} />
+              <span>I have reviewed these emails and confirm I have permission to contact the eligible recipients. Recipient permission is verified against existing CRM records. This confirmation does not create consent.</span>
+            </label>
           )}
           {finished && <div role="status" className="flex gap-2 rounded-xl bg-indigo-50 p-4 text-sm text-indigo-900">
             <ShieldCheck className="h-5 w-5 shrink-0" /> Processing finished. Submitted means the provider accepted the request, not confirmed inbox delivery.
@@ -235,9 +236,9 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
         <DialogFooter className="!mx-0 !mb-0 shrink-0 gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>{finished ? "Close" : "Cancel"}</Button>
           {!finished && !loading && !loadError && !ready.length && !!rows.length && (
-            <p className="text-sm font-medium text-amber-900">No eligible recipients to send. Review permission records or use an outreach channel that permits this contact type.</p>
+            <p className="text-sm text-slate-600">No eligible recipients. {permissionReview.length > 0 ? "Import existing recipient consent records to resolve permission review." : "Review the skipped reasons above."}</p>
           )}
-          {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
+          {!finished && <Button onClick={() => void sendSelected()} disabled={!batchReviewed || loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             {sending ? "Sending individually…" : "Send " + ready.length + " introduction" + (ready.length === 1 ? "" : "s")}
           </Button>}

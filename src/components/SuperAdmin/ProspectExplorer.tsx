@@ -58,6 +58,7 @@ import { MAX_MANUAL_BULK_FOLLOW_UP } from "../../lib/manualBulkProspectFollowUps
 import { ManualBulkProspectFollowUps } from "./ManualBulkProspectFollowUps";
 import { MAX_MANUAL_BULK_INTRO } from "../../lib/manualBulkProspectIntros";
 import { ManualBulkProspectIntros } from "./ManualBulkProspectIntros";
+import { RecipientConsentImport } from "./RecipientConsentImport";
 
 const WEBSITE_STATUSES = ["unknown", "no_website", "weak", "average", "strong"];
 const OPPORTUNITY_LEVELS = ["low", "medium", "high"];
@@ -1492,6 +1493,7 @@ export function ProspectExplorer() {
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" className="rounded-xl border-slate-200" onClick={seedMalaysiaDentalSearch}>Malaysia Dental</Button>
           <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => setIsImportModalOpen(true)}><Upload className="mr-2 h-4 w-4" />Import CSV</Button>
+          <RecipientConsentImport />
           <Button variant="outline" className="rounded-xl border-slate-200" onClick={exportCsv}><Download className="mr-2 h-4 w-4" />Export CSV</Button>
           <Button onClick={() => setIsAddModalOpen(true)} className="rounded-xl bg-indigo-600 hover:bg-indigo-700 font-bold">
             <Plus className="h-4 w-4 mr-2" /> Add Prospect
