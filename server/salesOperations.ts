@@ -378,10 +378,13 @@ export async function runSalesDelivery(input: {
         receipt = await send({ ...message, recipient: email });
         if (!receipt.id) throw new Error("MISSING_DELIVERY_RECEIPT");
       } catch (error: any) {
-        const blocked = error?.message === "RESEND_CONFIG_ERROR";
-        await release({ status: blocked ? candidate.status : "failed", delivery_state: blocked ? "unknown" : "uncertain",
-          delivery_uncertainty_reason: blocked ? null : "The provider outcome could not be confirmed. Check provider logs before any retry.",
-          error: blocked ? "Email delivery is not configured yet" : "Delivery failed or is uncertain. Check provider delivery before retrying." });
+        const code = String(error?.message || "EMAIL_DELIVERY_FAILED");
+        const blocked = code === "RESEND_CONFIG_ERROR";
+        const rejected = ["RESEND_AUTH_REJECTED", "RESEND_SENDER_REJECTED"].includes(code);
+        await release({ status: blocked ? candidate.status : "failed", delivery_state: blocked ? "unknown" : rejected ? "failed" : "uncertain",
+          delivery_uncertainty_reason: blocked || rejected ? null : "The provider outcome could not be confirmed. Check provider logs before any retry.",
+          error: ["RESEND_CONFIG_ERROR", "RESEND_AUTH_REJECTED", "RESEND_SENDER_REJECTED", "EMAIL_RATE_LIMITED", "EMAIL_DELIVERY_FAILED"].includes(code)
+            ? code : "EMAIL_DELIVERY_UNCERTAIN" });
         blocked ? result.deliveryBlocked++ : result.failed++;
         continue;
       }
@@ -502,8 +505,9 @@ export async function recordSalesDeliveryEvent(db: Db, event: Row, now: string) 
   if (state === "delivery_confirmed") fields.delivery_confirmed_at = message.delivery_confirmed_at || eventAt;
   if (state === "bounced") fields.bounced_at = eventAt;
   if (state === "complained") fields.complained_at = eventAt;
-  if (state === "delivery_confirmed") fields.delivery_uncertainty_reason = null;
-  else if (state === "provider_accepted") fields.delivery_uncertainty_reason = "Provider accepted the message; downstream delivery is not confirmed.";
+  // Late acceptance events must never erase established delivery or terminal evidence.
+  if (nextState === "delivery_confirmed" || terminal.includes(nextState)) fields.delivery_uncertainty_reason = null;
+  else if (nextState === "provider_accepted") fields.delivery_uncertainty_reason = "Provider accepted the message; downstream delivery is not confirmed.";
   checked(await db.from("sales_messages").update(fields).eq("id", message.id));
   if (["bounced", "complained", "rejected"].includes(state)) {
     // Preserve the provider outcome for support diagnostics without exposing it in an email.
@@ -948,8 +952,8 @@ export async function sendDirectProspectOutreach(
         .from("sales_messages")
         .update({
           status: "failed",
-          delivery_state: "uncertain",
-          delivery_uncertainty_reason: "The provider outcome could not be confirmed. Check provider logs before any retry.",
+          delivery_state: ["RESEND_AUTH_REJECTED", "RESEND_SENDER_REJECTED", "RESEND_CONFIG_ERROR", "HOSTINGER_CONFIG_ERROR", "HOSTINGER_AUTH_ERROR", "EMAIL_QUOTA_TRACKER_UNAVAILABLE"].includes(String(error?.message)) ? "failed" : "uncertain",
+          delivery_uncertainty_reason: ["RESEND_AUTH_REJECTED", "RESEND_SENDER_REJECTED", "RESEND_CONFIG_ERROR", "HOSTINGER_CONFIG_ERROR", "HOSTINGER_AUTH_ERROR", "EMAIL_QUOTA_TRACKER_UNAVAILABLE"].includes(String(error?.message)) ? null : "The provider outcome could not be confirmed. Check provider logs before any retry.",
           error: String(error?.message || "Delivery failed").slice(0, 500),
           updated_at: now,
         })
