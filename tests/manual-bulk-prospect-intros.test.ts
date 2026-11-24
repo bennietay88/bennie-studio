@@ -62,25 +62,24 @@ test("unresolved placeholders never become send-ready messages", () => {
 });
 
 
-test("bulk send uses the Send click for operator confirmation without creating recipient consent", () => {
+test("bulk send uses one click with server-side recipient permission verification", () => {
   const ui = readFileSync("src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "utf8");
   assert.doesNotMatch(ui, /<Checkbox|setConfirmed|!confirmed/);
-  assert.match(ui, /recipientPermissionConfirmed: true/);
-  assert.match(ui, /does not create or change a recipient/);
+  assert.doesNotMatch(ui, /recipientPermissionConfirmed: true/);
+  assert.match(ui, /verified against existing CRM records/);
   assert.match(ui, /The server blocked this before provider delivery/);
 });
 
-test("manual preview does not fabricate opt-in nor require CRM evidence", () => {
+test("manual preview reports missing permission without fabricating opt-in", () => {
   const prospect = { ...CONTACT, marketing_consent: false, consent_timestamp: null, consent_email: null };
   const preview = prepareManualBulkIntro(prospect, []);
-  assert.equal(preview.kind, "ready");
-  assert.match(String(preview.subject), /Example Carpentry/);
+  assert.equal(preview.kind, "permission_review");
   assert.equal(prospect.marketing_consent, false);
 });
 
 test("manual preview does not assert jurisdiction proof from missing fields", () => {
   const preview = prepareManualBulkIntro({ ...CONTACT, contact_jurisdiction: "" }, []);
-  assert.equal(preview.kind, "ready");
+  assert.equal(preview.kind, "permission_review");
 });
 
 test("bulk preview differentiates permission review from failed provider delivery", () => {
@@ -89,5 +88,5 @@ test("bulk preview differentiates permission review from failed provider deliver
   assert.match(ui, /permission review · not sent/);
   assert.match(ui, /No delivery attempted/);
   assert.match(ui, /blockedByPermission/);
-  assert.match(ui, /Confirm recipient permission & send/);
+  assert.doesNotMatch(ui, /Confirm recipient permission & send/);
 });
