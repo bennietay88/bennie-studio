@@ -26,15 +26,36 @@ export function mergeCmsValue<T>(base: T, override: unknown): T {
   return result as T;
 }
 
+type PublishedShowcasePayload = { showcases?: StudioShowcaseCms; portfolio?: unknown[] };
+let pendingShowcases: Promise<PublishedShowcasePayload | null> | null = null;
+let cachedShowcases: PublishedShowcasePayload | null = null;
+let showcaseExpiresAt = 0;
+
+// Public published content only; never cache draft or authenticated responses.
+function fetchPublishedShowcases(): Promise<PublishedShowcasePayload | null> {
+  if (cachedShowcases && Date.now() < showcaseExpiresAt) return Promise.resolve(cachedShowcases);
+  if (pendingShowcases) return pendingShowcases;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  const request = fetch("/api/public/studio-showcases", { headers: { Accept: "application/json" }, signal: controller.signal })
+    .then(async response => {
+      if (!response.ok) return null;
+      const payload = await response.json();
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+      cachedShowcases = payload as PublishedShowcasePayload;
+      showcaseExpiresAt = Date.now() + 60_000;
+      return cachedShowcases;
+    }).catch(() => null).finally(() => {
+      clearTimeout(timeout);
+      if (pendingShowcases === request) pendingShowcases = null;
+    });
+  pendingShowcases = request;
+  return request;
+}
+
 export async function fetchStudioShowcaseCms(): Promise<StudioShowcaseCms> {
-  try {
-    const response = await fetch("/api/public/studio-showcases", { headers: { Accept: "application/json" } });
-    if (!response.ok) return {};
-    const payload = await response.json();
-    return payload?.showcases && typeof payload.showcases === "object" ? payload.showcases : {};
-  } catch {
-    return {};
-  }
+  const payload = await fetchPublishedShowcases();
+  return payload?.showcases && typeof payload.showcases === "object" ? payload.showcases : {};
 }
 export function useStudioShowcaseCms() {
   const [cms, setCms] = useState<StudioShowcaseCms>({});
@@ -60,8 +81,7 @@ export function useStudioPortfolioCatalog(): PortfolioItem[] {
   const [items, setItems] = useState<PortfolioItem[]>(DEFAULT_PORTFOLIO_ITEMS);
   useEffect(() => {
     let active = true;
-    fetch("/api/public/studio-showcases", { headers: { Accept: "application/json" } })
-      .then((response) => response.ok ? response.json() : null)
+    fetchPublishedShowcases()
       .then((payload) => {
         if (active && payload && Array.isArray(payload.portfolio)) {
           setItems(resolvePortfolioCatalog(payload.portfolio));
