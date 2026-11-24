@@ -35,7 +35,7 @@ export function RecipientConsentImport() {
         <DialogHeader><DialogTitle>Import existing recipient consent</DialogTitle><DialogDescription>Upload actual recipient-specific opt-in records. Match existing prospects by exact email. No emails are sent, no suppression is removed, and no consent is inferred from a prospect list.</DialogDescription></DialogHeader>
         <Button variant="outline" onClick={template}>Download CSV headers</Button>
         <input type="file" accept=".csv,text/csv" disabled={busy} onChange={async e=>{reset();const file=e.target.files?.[0];if(file){if(file.size>100000){setError("File too large.");return;}try{setCsv(await file.text());}catch{setError("File could not be read.");}}}} />
-        <p className="text-xs text-slate-500">Maximum 50 records per file. Each row requires the original timestamp, source/evidence reference, jurisdiction and recipient type.</p>
+        <p className="text-xs text-slate-500">Maximum 50 records per file. Each row requires the original timestamp, source/evidence reference, jurisdiction (US, GB, SG, MY, CA or AU) and recipient type.</p>
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         {!!results.length && <div className="max-h-60 overflow-y-auto rounded-lg border p-3 text-sm">{results.map(r=><div key={r.row}>CSV row {r.row}: {r.status.replaceAll("_"," ")}</div>)}</div>}
         <DialogFooter><Button variant="outline" disabled={busy||!csv} onClick={()=>void submit(true)}>Preview matches</Button><Button disabled={busy||!reviewed||!results.some(r=>r.status==="ready")} onClick={()=>void submit(false)}>Import verified records</Button></DialogFooter>

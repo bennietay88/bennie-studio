@@ -97,8 +97,15 @@ test("bulk preview consolidates permission-ineligible prospects under skipped wi
   assert.doesNotMatch(ui, /permissionReview.length|Permission review · Not sent|permission review · not sent/i);
   assert.match(ui, /preview\.kind === "permission_review"[^\n]*delivery: "skipped"/);
   assert.match(ui, /CONTACT_PERMISSION_NOT_VERIFIED/);
-  assert.match(ui, /Saved recipient consent is incomplete/);
+  assert.match(ui, /reason: preview\.reason/);
   assert.match(ui, /No delivery attempted/);
   assert.match(ui, /blockedByPermission/);
   assert.match(ui, /Confirm recipient permission & send/);
+});
+
+test("intro preview reports specific eligibility failures", () => {
+ assert.match(prepareManualBulkIntro({...CONTACT, contact_jurisdiction:"XX"},[]).reason || "", /jurisdiction is missing or unsupported/);
+ assert.match(prepareManualBulkIntro({...CONTACT, contact_recipient_type:"unknown"},[]).reason || "", /Recipient type is missing/);
+ assert.match(prepareManualBulkIntro({...CONTACT, contact_lawful_basis:null},[]).reason || "", /consent basis is missing/);
+ for (const country of ["CA","AU"]) assert.equal(prepareManualBulkIntro({...CONTACT,contact_jurisdiction:country},[]).kind,"ready");
 });

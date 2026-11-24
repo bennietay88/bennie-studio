@@ -52,7 +52,7 @@ export function InlineRecipientPermission({ email, onSaved, disabled }: {
       </label>
       <label className="grid gap-1">Recipient jurisdiction
         <select value={jurisdiction} onChange={e => setJurisdiction(e.target.value)} className="rounded border bg-white p-2">
-          <option value="">Choose jurisdiction</option><option value="US">United States</option><option value="GB">United Kingdom</option><option value="SG">Singapore</option><option value="MY">Malaysia</option>
+          <option value="">Choose jurisdiction</option><option value="US">United States</option><option value="GB">United Kingdom</option><option value="SG">Singapore</option><option value="MY">Malaysia</option><option value="CA">Canada</option><option value="AU">Australia</option>
         </select>
       </label>
       <label className="grid gap-1">Recipient type

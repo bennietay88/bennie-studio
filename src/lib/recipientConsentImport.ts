@@ -1,4 +1,5 @@
 import { parseCsvRecords } from "./prospectImport.js";
+import { isSupportedSalesEmailJurisdiction } from "./salesAutomation.js";
 
 export const CONSENT_COLUMNS = ["consent_email", "consent_timestamp", "consent_source", "contact_jurisdiction", "contact_recipient_type"] as const;
 
@@ -24,7 +25,7 @@ export function parseRecipientConsentCsv(csv: string, now = new Date()) {
     if (r.consent_source.length < 10 || r.consent_source.length > 1000) fail("Provide the recipient-specific source and evidence reference.");
     const country = r.contact_jurisdiction.toUpperCase();
     const type = r.contact_recipient_type.toLowerCase();
-    if (!["US","GB","SG","MY"].includes(country)) fail("Unsupported or missing jurisdiction.");
+    if (!isSupportedSalesEmailJurisdiction(country)) fail("Unsupported or missing jurisdiction.");
     if (!["business","individual"].includes(type)) fail("Recipient type must be business or individual.");
     return { marketing_consent: true, consent_email: email, consent_timestamp: new Date(time).toISOString(), consent_source: r.consent_source, contact_jurisdiction: country, contact_recipient_type: type, contact_lawful_basis: "consent" };
   });

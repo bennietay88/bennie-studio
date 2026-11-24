@@ -1,5 +1,5 @@
 import type { ProspectSentMessage } from "./prospectFollowUpComposer";
-import { salesEmailPermissionBlockReason } from "./salesAutomation";
+import { describeSalesEmailPermissionBlockReason, salesEmailPermissionBlockReason } from "./salesAutomation";
 import { PORTFOLIO_URL, renderProspectEmailTemplate } from "./prospectOutreachTemplates";
 import type { ProspectEmailOverrides } from "./prospectOutreachTemplates";
 
@@ -72,7 +72,8 @@ export function prepareManualBulkIntro(
     return skip("An email already exists in this prospect's history. Review it individually.");
   }
 
-  if (salesEmailPermissionBlockReason(prospect)) return { ...base, kind: "permission_review", reason: "Existing recipient permission evidence is incomplete." };
+  const permissionReason = salesEmailPermissionBlockReason(prospect);
+  if (permissionReason) return { ...base, kind: "permission_review", reason: describeSalesEmailPermissionBlockReason(permissionReason) };
   const firstName = String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0] || name + " team";
   const rendered = renderProspectEmailTemplate("intro", {
     first_name: firstName,
