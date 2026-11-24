@@ -86,38 +86,40 @@ function fixture() {
 const run = (db: MemoryDb, send = async (_message: Row) => ({ id: "provider-1" })) => runSalesDelivery({ db: db as any, send, now: new Date(NOW) });
 
 
-test("admin manual send relies on explicit operator permission without fabricating consent", async () => {
+test("admin manual send uses verified recipient permission without a checkbox", async () => {
   const db = new MemoryDb({
     prospects: [{ id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "not_started",
-      contact_email: "clinic@example.com", marketing_consent: false, notes: "" }],
+      contact_email: "clinic@example.com", ...permissioned, notes: "" }],
   });
   let sendCount = 0;
   const input = {
     prospectId: "p1", channel: "email" as const,
     subject: "Your website", bodyText: "Hello, I have a suggestion about your contact page.",
     observation: "Verified the contact page has no clear enquiry button",
-    requestId: "direct-test-1", actorId: "admin-1", recipientPermissionConfirmed: true,
+    requestId: "direct-test-1", actorId: "admin-1",
     deliver: async (_message: Row) => { sendCount++; return { id: "provider-direct-1" }; },
   };
   await sendDirectProspectOutreach(db as any, input, NOW);
   assert.equal(sendCount, 1);
   assert.ok(db.tables.sales_messages.some((message) => message.prospect_id === "p1" && message.channel === "email"));
-  assert.equal(db.tables.prospects[0].marketing_consent, false);
-  assert.equal(db.tables.prospects[0].consent_timestamp, undefined);
+  assert.equal(db.tables.prospects[0].marketing_consent, true);
+  assert.equal(db.tables.prospects[0].consent_timestamp, permissioned.consent_timestamp);
+  await assert.rejects(sendDirectProspectOutreach(new MemoryDb({ prospects: [{ ...db.tables.prospects[0], marketing_consent: false, outreach_status: "not_started" }] }) as any, { ...input, recipientPermissionConfirmed: true }, NOW), /CONTACT_PERMISSION_NOT_VERIFIED/);
+  assert.equal(sendCount, 1);
 });
 
-test("manual bulk intro accepts operator-attested send without modifying consent record", async () => {
+test("manual bulk intro sends with verified eligibility without modifying consent record", async () => {
   const db = new MemoryDb({ prospects: [{ id: "p1", name: "Example Clinic", status: "qualified",
-    outreach_status: "not_started", contact_email: "clinic@example.com", marketing_consent: false, notes: "" }] });
+    outreach_status: "not_started", contact_email: "clinic@example.com", ...permissioned, notes: "" }] });
   let sends = 0;
   const input = { prospectId: "p1", channel: "email" as const, templateId: "bulk-introduction",
     subject: "A website question", bodyText: "Hi there, can we help with your business website?",
-    requestId: "bulk-intro-1", actorId: "admin", recipientPermissionConfirmed: true,
+    requestId: "bulk-intro-1", actorId: "admin",
     deliver: async () => { sends++; return { id: "provider-bulk-intro" }; } };
   await sendDirectProspectOutreach(db as any, input, NOW);
   assert.equal(sends, 1);
   assert.ok(db.tables.sales_messages.some((message) => message.prospect_id === "p1" && message.channel === "email"));
-  assert.equal(db.tables.prospects[0].marketing_consent, false);
+  assert.equal(db.tables.prospects[0].marketing_consent, true);
 });
 
 test("manual bulk intros reject earlier attempts to the same address even from another prospect", async () => {
@@ -410,7 +412,10 @@ test("delivery callbacks confirm delivery without rewriting engagement status or
   await recordSalesDeliveryEvent(db as any, { id: "evt-delivered", type: "email.delivered", created_at: NOW, data: { email_id: "r1" } }, NOW);
   assert.equal(db.tables.sales_messages[0].status, "clicked");
   assert.equal(db.tables.sales_messages[0].delivery_state, "delivery_confirmed");
-  assert.equal(db.tables.sales_email_provider_events.length, 2);
+  await recordSalesDeliveryEvent(db as any, { id: "evt-late-accepted", type: "email.sent", created_at: NOW, data: { email_id: "r1" } }, NOW);
+  assert.equal(db.tables.sales_messages[0].delivery_state, "delivery_confirmed");
+  assert.equal(db.tables.sales_messages[0].delivery_uncertainty_reason, null);
+  assert.equal(db.tables.sales_email_provider_events.length, 3);
   await recordSalesDeliveryEvent(db as any, { id: "evt-bounce", type: "email.bounced", created_at: NOW, data: { email_id: "r1", bounce: { reason: "hard bounce" } } }, NOW);
   await recordSalesDeliveryEvent(db as any, { id: "evt-late-delivered", type: "email.delivered", created_at: NOW, data: { email_id: "r1" } }, NOW);
   assert.equal(db.tables.sales_messages[0].delivery_state, "bounced");

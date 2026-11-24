@@ -93,11 +93,11 @@ test("Resend key validation hotfix avoids PostgreSQL excessive regex repetition 
   assert.ok(!resendValidationFix.includes("{12,256}"));
 });
 
-test("Hostinger manual sends use explicit recipient permission confirmation instead of duplicate document fields", () => {
+test("Hostinger manual sends use server-verified recipient permission instead of a duplicate confirmation", () => {
   const direct = api.slice(api.indexOf("const sendDirectSalesEmail = async"), api.indexOf("const isPrivateAddress", api.indexOf("const sendDirectSalesEmail = async")));
   assert.match(direct, /message\.provider_payload\?\.directSend !== true/);
-  assert.match(direct, /message\.provider_payload\?\.recipientPermissionConfirmed !== true/);
-  assert.match(direct, /CONTACT_PERMISSION_CONFIRMATION_REQUIRED/);
+  assert.match(direct, /message\.provider_payload\?\.recipientPermissionVerified !== true/);
+  assert.match(direct, /CONTACT_PERMISSION_NOT_VERIFIED/);
   assert.doesNotMatch(direct, /consent_timestamp|consent_source|marketing_consent/);
   assert.match(api, /recipientPermissionConfirmed: z\.boolean\(\)\.optional\(\)/);
   assert.match(api, /canManageSalesOperations\(profile\)/);
@@ -105,19 +105,19 @@ test("Hostinger manual sends use explicit recipient permission confirmation inst
   assert.match(direct, /sendHostingerMail\(/);
 });
 
-test("Manual outreach confirmation propagates through single and bulk UI without writing consent records", () => {
+test("Single, lab and bulk sends rely on documented server-verified permission, not an operator checkbox", () => {
   const operations = readFileSync(new URL("../server/salesOperations.ts", import.meta.url), "utf8");
   const prospectUi = readFileSync(new URL("../src/components/SuperAdmin/ProspectExplorer.tsx", import.meta.url), "utf8");
   const labUi = readFileSync(new URL("../src/components/SuperAdmin/OutreachLab.tsx", import.meta.url), "utf8");
   const bulkIntro = readFileSync(new URL("../src/components/SuperAdmin/ManualBulkProspectIntros.tsx", import.meta.url), "utf8");
   const bulkFollowUp = readFileSync(new URL("../src/components/SuperAdmin/ManualBulkProspectFollowUps.tsx", import.meta.url), "utf8");
-  assert.match(operations, /recipientPermissionConfirmed: input\.recipientPermissionConfirmed === true/);
-  assert.match(operations, /permissionConfirmedAt: input\.recipientPermissionConfirmed === true/);
-  assert.match(prospectUi, /recipientPermissionConfirmed: recipientPermissionConfirmed/);
-  assert.match(labUi, /templateId, recipientPermissionConfirmed, requestId/);
-  assert.match(bulkIntro, /recipientPermissionConfirmed: true/);
-  assert.doesNotMatch(bulkIntro, /<Checkbox|setConfirmed|!confirmed/);
-  assert.match(bulkFollowUp, /recipientPermissionConfirmed: confirmed/);
+  assert.match(operations, /salesEmailPermissionBlockReason\(prospect, new Date\(now\)\)/);
+  assert.match(operations, /recipientPermissionVerified:/);
+  assert.match(operations, /CONTACT_PERMISSION_NOT_VERIFIED/);
+  assert.doesNotMatch(prospectUi, /recipientPermissionConfirmed/);
+  assert.doesNotMatch(labUi, /recipientPermissionConfirmed/);
+  assert.doesNotMatch(bulkIntro, /recipientPermissionConfirmed|<Checkbox|setConfirmed|!confirmed/);
+  assert.doesNotMatch(bulkFollowUp, /recipientPermissionConfirmed|<Checkbox|setConfirmed|!confirmed/);
   assert.match(operations, /OUTREACH_TOO_SOON/);
   assert.match(operations, /CONTACT_SUPPRESSED/);
 });

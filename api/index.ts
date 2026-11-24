@@ -3749,7 +3749,10 @@ async function startServer() {
       if (error) {
         const kind = classifyResendSendError(error);
         structuredLog("warn", "resend_sales_provider_rejected", kind);
-        throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED" : "EMAIL_DELIVERY_FAILED");
+        throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED"
+        : kind.category === "authentication" ? "RESEND_AUTH_REJECTED"
+        : kind.category === "sender" ? "RESEND_SENDER_REJECTED"
+        : "EMAIL_DELIVERY_FAILED");
       }
       if (!data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
       return { id: data.id, provider: "resend", mailbox: provider.from, fromAddress: provider.from, replyToAddress: replyTo,
@@ -3766,14 +3769,12 @@ async function startServer() {
     const html = `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
     const selectedProvider = selectEmailProvider(platformSettings?.salesEmailProvider);
     if (selectedProvider === "hostinger") {
-      // This path is called only by the authenticated administrator-initiated
-      // prospect send endpoint. Hostinger requires actual recipient opt-in.
-      // Confirm it for this specific send without fabricating or modifying the
-      // CRM's separate consent-source/timestamp records.
+      // This path is called only after the authenticated prospect send endpoint
+      // verifies documented permission. Do not require a second operator checkbox.
       if (!message.reply_to_message_id &&
         (message.provider_payload?.directSend !== true ||
-          message.provider_payload?.recipientPermissionConfirmed !== true)) {
-        throw new Error("CONTACT_PERMISSION_CONFIRMATION_REQUIRED");
+          message.provider_payload?.recipientPermissionVerified !== true)) {
+        throw new Error("CONTACT_PERMISSION_NOT_VERIFIED");
       }
       return sendHostingerMail({
         to: message.recipient,
@@ -3802,7 +3803,10 @@ async function startServer() {
     if (error) {
       const kind = classifyResendSendError(error);
       structuredLog("warn", "resend_direct_provider_rejected", kind);
-      throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED" : "EMAIL_DELIVERY_FAILED");
+      throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED"
+        : kind.category === "authentication" ? "RESEND_AUTH_REJECTED"
+        : kind.category === "sender" ? "RESEND_SENDER_REJECTED"
+        : "EMAIL_DELIVERY_FAILED");
     }
     if (!data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
     return { id: data.id, provider: "resend", mailbox: provider.from, fromAddress: provider.from, replyToAddress: replyTo,
@@ -9359,12 +9363,14 @@ async function startServer() {
         },
         OUTREACH_SEND_UNCERTAIN: {
           status: 409,
-          message: "The previous delivery attempt is uncertain. Close and reopen the composer before sending again.",
+          message: "The previous delivery attempt is uncertain. Verify the provider delivery record before retrying; do not create a new request to bypass reconciliation.",
         },
         RESEND_CONFIG_ERROR: {
           status: 503,
           message: "Direct email is not configured. Set up Resend in Super Admin → Email Providers.",
         },
+        RESEND_AUTH_REJECTED: { status: 503, message: "Resend rejected authentication. Check the configured provider account and API key permissions." },
+        RESEND_SENDER_REJECTED: { status: 503, message: "Resend rejected the sender or sending permission. Check verified sender domain and account status." },
         EMAIL_DELIVERY_FAILED: {
           status: 502,
           message: "The email provider could not accept the message. Check provider logs before retrying.",

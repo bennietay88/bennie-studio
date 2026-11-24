@@ -46,6 +46,8 @@ test("prospect composer avoids extra checkboxes while server rules reject missin
   assert.match(ui, /shrink-0 gap-3 border-t/);
   assert.doesNotMatch(ui, /hasDocumentedMarketingConsent\(outreachProspect\)/);
   assert.doesNotMatch(ui, /Recipient email permission/);
+  assert.doesNotMatch(ui, /recipientPermissionConfirmed/);
+  assert.match(sales, /salesEmailPermissionBlockReason\(prospect, new Date\(now\)\)/);
   assert.doesNotMatch(ui, /Record verified opt-in/);
   assert.match(ui, /Copy email draft/);
   assert.match(sales, /OUTREACH_OBSERVATION_REQUIRED/);

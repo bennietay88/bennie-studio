@@ -291,6 +291,11 @@ export function renderProspectEmailTemplate(
   context: ProspectEmailContext,
   overrides: ProspectEmailOverrides = {},
 ): { subject: string; body_text: string } {
+  // Never render an audit or design claim with missing supporting context.
+  if ((key === "day3_audit" && (!context.asset_url?.trim() || !context.specific_observation?.trim()))
+    || (key === "day3_design" && !context.asset_url?.trim())) {
+    return renderProspectEmailTemplate("day3_neutral", context, overrides);
+  }
   const definition = PROSPECT_EMAIL_TEMPLATE_DEFINITIONS.find((item) => item.id === key);
   if (!definition) throw new Error("UNKNOWN_PROSPECT_TEMPLATE");
   const proposed = overrides?.[key];
@@ -300,7 +305,7 @@ export function renderProspectEmailTemplate(
     business_name: context.business_name,
     asset_url: context.asset_url || "",
     portfolio_url: context.portfolio_url || PORTFOLIO_URL,
-    specific_observation: context.specific_observation || "",
+    specific_observation: context.specific_observation || (key === "intro" ? "I’m writing from Bennie Studio, which provides managed website services." : ""),
   };
   const substitute = (text: string) => text.replace(/\{\{\s*(first_name|business_name|asset_url|portfolio_url|specific_observation)\s*\}\}/g,
     (_match, token: string) => values[token] || "").split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean).join("\n\n");

@@ -127,7 +127,6 @@ export function ProspectExplorer() {
   const [outreachRequestId, setOutreachRequestId] = useState("");
   const [outreachReplyToMessageId, setOutreachReplyToMessageId] = useState<string | null>(null);
   const [outreachSending, setOutreachSending] = useState(false);
-  const [recipientPermissionConfirmed, setRecipientPermissionConfirmed] = useState(false);
   const [reviewLoadingId, setReviewLoadingId] = useState<string | null>(null);
   const reviewCache = useRef<Map<string, { url: string; observation: string; recommendation: string }>>(new Map());
   const [engagement, setEngagement] = useState<{ messages: any[]; tasks: any[]; events: any[] } | null>(null);
@@ -1245,13 +1244,15 @@ export function ProspectExplorer() {
                 || (parsed.pathname === "/website-audit" && Boolean(parsed.searchParams.get("report") && parsed.searchParams.get("key")));
             } catch { return false; }
           });
-          const templateId = chooseProspectFollowUpTemplate(next.stage, websiteStatus, asset?.kind) as ProspectEmailTemplateKey;
+          const observation = getOutreachObservation(prospect.notes).replace(/\s+/g, " ").trim().slice(0, 240);
+          const templateId = chooseProspectFollowUpTemplate(next.stage, websiteStatus, asset?.kind === "audit" && !observation ? null : asset?.kind) as ProspectEmailTemplateKey;
           const name = String(prospect.name || "your business");
           const firstName = String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0] || name + " team";
           const draft = renderProspectEmailTemplate(templateId, {
             first_name: firstName, business_name: name,
             asset_url: asset ? new URL(String(asset.url), window.location.origin).href : "",
             portfolio_url: PORTFOLIO_URL,
+            specific_observation: observation,
           }, overrides);
           setOutreachProspect(prospect);
           setOutreachReplyToMessageId(null);
@@ -1291,7 +1292,6 @@ export function ProspectExplorer() {
         return;
       }
     }
-    setRecipientPermissionConfirmed(false);
     setOutreachProspect(prospect);
     setOutreachReplyToMessageId(replyToMessage?.id || null);
     setOutreachTemplateId(initialTemplateId);
@@ -1317,7 +1317,6 @@ export function ProspectExplorer() {
   const closeOutreachComposer = () => {
     if (outreachSending) return;
     setOutreachProspect(null);
-    setRecipientPermissionConfirmed(false);
     setOutreachSubject("");
     setOutreachBody("");
     setOutreachObservation("");
@@ -1338,10 +1337,6 @@ export function ProspectExplorer() {
 
   const sendOutreach = async () => {
     if (!outreachProspect || !outreachBody.trim()) return;
-    if (!outreachReplyToMessageId && !recipientPermissionConfirmed) {
-      toast.error("Confirm this recipient opted in before sending.");
-      return;
-    }
     if (!outreachSubject.trim()) {
       toast.error("Add an email subject");
       return;
@@ -1375,7 +1370,6 @@ export function ProspectExplorer() {
           body: JSON.stringify({
             action: "send",
             channel: "email",
-            recipientPermissionConfirmed: recipientPermissionConfirmed,
             subject: outreachSubject.trim(),
             bodyText: outreachBody.trim(),
             observation: outreachReplyToMessageId ? "Personal reply sent from Prospect Explorer." : outreachObservation.trim(),
@@ -2381,12 +2375,7 @@ export function ProspectExplorer() {
                   <p className="text-xs font-medium leading-5 text-slate-500">
                     Email is submitted through your configured provider. WhatsApp opens externally through wa.me and is not automatically delivered.
                   </p>
-                  {!outreachReplyToMessageId && (
-                    <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
-                      <input type="checkbox" checked={recipientPermissionConfirmed} onChange={(event) => setRecipientPermissionConfirmed(event.target.checked)} className="mt-1" />
-                      I confirm the documented permission on this prospect is genuine, applies to this exact email address and covers this message. A CSV uploader declaration or this checkbox alone is not recipient consent; missing jurisdiction, recipient type, lawful basis, or consent evidence blocks sending.
-                    </label>
-                  )}
+                  {!outreachReplyToMessageId && <p className="text-xs text-slate-500">Recipient eligibility is verified automatically from the CRM before dispatch.</p>}
                 </section>
               </div>
             )}
@@ -2402,7 +2391,7 @@ export function ProspectExplorer() {
               <Copy className="mr-2 h-4 w-4" />Copy email draft
             </Button>
             <Button type="button" onClick={sendOutreach}
-              disabled={outreachSending || (!outreachReplyToMessageId && !recipientPermissionConfirmed) || !outreachBody.trim() || !outreachSubject.trim() ||
+              disabled={outreachSending || !outreachBody.trim() || !outreachSubject.trim() ||
                 (!outreachReplyToMessageId && !["introduction", "general-introduction"].includes(outreachTemplateId) && !isStagedFollowUpTemplate(outreachTemplateId) && outreachObservation.trim().length < 10 && !outreachProspect?.preview_url) ||
                 hasUnresolvedEmailPlaceholders(outreachSubject + "\n" + outreachBody)}
               className="rounded-xl bg-indigo-600 hover:bg-indigo-700">

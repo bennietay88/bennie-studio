@@ -26,6 +26,7 @@ const HUMAN = new Set(["interested","question","objection","not_interested","not
 const AUTO = new Set(["automatic_reply","delivery_notification"]);
 const asText = (value: unknown) => String(value ?? "").trim();
 const lower = (value: unknown) => asText(value).toLowerCase();
+const templateLabel = (m: OutreachRow) => asText(m.provider_payload?.templateId) || asText(m.provider_payload?.followUpStage) || "Unattributed template";
 const number = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const isoTime = (value: unknown) => value ? new Date(String(value)).getTime() : NaN;
 const inside = (value: unknown, from?: string, to?: string) => {
@@ -74,11 +75,11 @@ export function eligibleProspectForContact(p: OutreachRow) {
   return lower(p.contact_lawful_basis) === "consent";
 }
 function breakdown(messages: OutreachRow[], key: (message: OutreachRow) => string,
-  humanReplyMessageIds: Set<string>, max = 30) {
-  const groups = new Map<string, {key:string; sent:number; accepted:number; delivered:number; unconfirmed:number; bounced:number; replied:number; positive:number}>();
+  humanReplyMessageIds: Set<string>, max = 30, positiveReplyMessageIds = new Set<string>()) {
+  const groups = new Map<string, {key:string; sent:number; accepted:number; delivered:number; unconfirmed:number; bounced:number; replied:number; positive:number; failed:number; uncertain:number}>();
   for (const message of messages) {
     const label = key(message) || "Unknown";
-    const existing = groups.get(label) || {key:label,sent:0,accepted:0,delivered:0,unconfirmed:0,bounced:0,replied:0,positive:0};
+    const existing = groups.get(label) || {key:label,sent:0,accepted:0,delivered:0,unconfirmed:0,bounced:0,replied:0,positive:0,failed:0,uncertain:0};
     const state = deliveryEvidence(message);
     if (message.sent_at) existing.sent++;
     if (state.accepted) existing.accepted++;
@@ -86,6 +87,9 @@ function breakdown(messages: OutreachRow[], key: (message: OutreachRow) => strin
     if (state.unconfirmed) existing.unconfirmed++;
     if (state.bounced) existing.bounced++;
     if (humanReplyMessageIds.has(asText(message.id))) existing.replied++;
+    if (positiveReplyMessageIds.has(asText(message.id))) existing.positive++;
+    if (state.failed) existing.failed++;
+    if (state.uncertain) existing.uncertain++;
     groups.set(label,existing);
   }
   return Array.from(groups.values()).sort((a,b)=>b.sent-a.sent).slice(0,max)
@@ -110,7 +114,7 @@ export function buildOutreachReport(data: OutreachDataset, filters: OutreachFilt
     &&inside(m.sent_at||m.attempted_at||m.created_at,filters.from,filters.to)
     &&(!hasProspectFilter||matchingIds.has(asText(m.prospect_id)))
     &&(!filters.provider||lower(m.provider_name)===filters.provider.toLowerCase())
-    &&(!filters.template||lower(m.provider_payload?.templateId)===filters.template.toLowerCase())
+    &&(!filters.template||lower(templateLabel(m))===filters.template.toLowerCase())
     &&(!filters.campaign||lower(m.campaign_id)===filters.campaign.toLowerCase()));
   const sentIds=new Set(outbound.map(m=>asText(m.id)));
   const human=data.messages.filter(m=>isHumanReply(m)
@@ -165,7 +169,7 @@ export function buildOutreachReport(data: OutreachDataset, filters: OutreachFilt
   const humanProspects=new Set(human.map(m=>asText(m.prospect_id)).filter(Boolean));
   const paidProspects=new Set(verifiedPayments.map(m=>asText(m.prospect_id)).filter(Boolean));
   const provider=(m:OutreachRow)=>asText(m.provider_name)||"Unknown provider";
-  const template=(m:OutreachRow)=>asText(m.provider_payload?.templateId)||"Unattributed template";
+  const template=templateLabel;
   const campaign=(m:OutreachRow)=>asText(m.campaign_id)||"No campaign";
   const segment=(m:OutreachRow)=>{const p=byProspect.get(asText(m.prospect_id));return asText(p?.website_status)||"Unknown";};
   const scope=(m:OutreachRow)=>byProspect.get(asText(m.prospect_id))||{};
@@ -223,7 +227,7 @@ export function buildOutreachReport(data: OutreachDataset, filters: OutreachFilt
       industry:breakdown(outbound,m=>asText(scope(m).industry)||"Unknown",repliedIds),
       tier:breakdown(outbound,m=>asText(scope(m).qualification_category)||"Unscored",repliedIds),
       website:breakdown(outbound,segment,repliedIds),
-      template:breakdown(outbound,template,repliedIds),
+      template:breakdown(outbound,template,repliedIds,30,positiveIds),
       campaign:breakdown(outbound,campaign,repliedIds),
       stage:breakdown(outbound,m=>asText(m.provider_payload?.directStage||m.provider_payload?.followUpStage)||"Intro/unspecified",repliedIds),
     },experiments:byExperiment,campaignCosts:Array.from(costByCampaign.values()).sort((a,b)=>b.spend-a.spend),

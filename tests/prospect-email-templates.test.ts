@@ -75,7 +75,7 @@ test("invalid and incomplete templates cannot override safe defaults", () => {
   const unknown = { subject: "Hello {{unapproved}}", body: "Hi" };
   assert.match(validateProspectEmailTemplate("day8_no_site", unknown) || "", /Unsupported variable/);
   const fallback = renderProspectEmailTemplate("day3_audit", {
-    first_name: "Alex", business_name: "Example", asset_url: "https://app.bennietay.com/website-audit?report=x&key=y",
+    first_name: "Alex", business_name: "Example", asset_url: "https://app.bennietay.com/website-audit?report=x&key=y", specific_observation: "The contact link is hard to find.",
   }, { day3_audit: missingAsset });
   assert.match(fallback.body_text, /https:\/\/app\.bennietay\.com\/website-audit/);
 });
@@ -99,4 +99,18 @@ test("portfolio URL remains available for safe prospect fallbacks", () => {
   const template = getEditableProspectTemplate("day3_portfolio_no_site");
   assert.ok(template.body.includes("{{portfolio_url}}"));
   assert.match(renderProspectFollowUpStage(noSite, 1).body_text, new RegExp(PORTFOLIO_URL.replace(/\./g, "\\.")));
+});
+
+
+test("missing audit observation uses neutral copy without an unsupported audit claim", () => {
+  const rendered = renderProspectEmailTemplate("day3_audit", {
+    first_name: "Alex", business_name: "Example", asset_url: "https://app.bennietay.com/website-audit?report=x&key=y",
+  });
+  assert.doesNotMatch(rendered.body_text, /I reviewed|opportunity stood out|website-audit\?report=/);
+  assert.match(rendered.body_text, /Bennie Studio/);
+});
+test("generic introduction identifies the sender when no observation exists", () => {
+  const rendered = renderProspectEmailTemplate("intro", { first_name: "Alex", business_name: "Example" });
+  assert.match(rendered.body_text, /managed website services/);
+  assert.doesNotMatch(rendered.body_text, /I looked at your website|\{\{/);
 });
