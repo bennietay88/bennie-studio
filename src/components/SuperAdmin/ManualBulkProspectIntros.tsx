@@ -116,9 +116,6 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
             body: JSON.stringify({
               action: "send",
               channel: "email",
-              // Clicking Send is operator confirmation, never a recipient opt-in record.
-              // The server still verifies actual CRM permission before provider dispatch.
-              recipientPermissionConfirmed: true,
               subject: row.subject,
               bodyText: row.bodyText,
               templateId: "bulk-introduction",
@@ -225,7 +222,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
           )}
           {!loading && !loadError && !!rows.length && !finished && (
             <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-              Clicking Send attests that you have recipient permission to send these specific emails. This action does not create or change a recipient's CRM consent record.
+              Send submits eligible introductions without an additional confirmation. Recipient permission is verified against existing CRM records.
               Do not use this flow for unsolicited cold email through a provider that requires prior opt-in.
               The server rechecks recipient permission, suppression status and delivery safeguards before sending.
             </p>
@@ -242,7 +239,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
           )}
           {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            {sending ? "Sending individually…" : "Confirm recipient permission & send " + ready.length + " introduction" + (ready.length === 1 ? "" : "s")}
+            {sending ? "Sending individually…" : "Send " + ready.length + " introduction" + (ready.length === 1 ? "" : "s")}
           </Button>}
         </DialogFooter>
       </DialogContent>
