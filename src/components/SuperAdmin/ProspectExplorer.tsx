@@ -204,7 +204,7 @@ export function ProspectExplorer() {
     let processing = false;
     let poll: ReturnType<typeof setInterval> | undefined;
     const refresh = async () => {
-      if (processing) return;
+      if (!active || processing || document.visibilityState === "hidden") return;
       processing = true;
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -244,7 +244,9 @@ export function ProspectExplorer() {
     setImportAuditLoading(true);
     void refresh();
     poll = setInterval(() => { void refresh(); }, 10000);
-    return () => { active = false; if (poll) clearInterval(poll); };
+    const onVisible = () => { if (document.visibilityState === "visible") void refresh(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { active = false; if (poll) clearInterval(poll); document.removeEventListener("visibilitychange", onVisible); };
   }, [importAuditBatchId]);
 
   const exportImportAudits = () => {
