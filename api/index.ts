@@ -1,6 +1,7 @@
 import { fetchPublishedPreviewContent, isPreviewPublicRead } from "../server/previewPublicContent.js";
 import { buildInboundNewsletterMessages, INBOUND_NEWSLETTER_CONSENT, isSupportedNewsletterMarket } from "../server/inboundNewsletter.js";
 import express from "express";
+import { createCoalescedRefresh } from "../server/coalescedRefresh.js";
 import compression from "compression";
 import cors from "cors";
 import path from "path";
@@ -190,12 +191,16 @@ let platformSettingsLoadedAt = 0;
 const PLATFORM_SETTINGS_TTL_MS = 60_000;
 let launchFlags: LaunchFlags = DEFAULT_LAUNCH_FLAGS;
 let launchFlagsLoadedAt = 0;
+const coalescePlatformSettings = createCoalescedRefresh<void>();
+const coalesceLaunchFlags = createCoalescedRefresh<LaunchFlags>();
 
 async function refreshLaunchFlags(force = false): Promise<LaunchFlags> {
   // E2E runs use deterministic local defaults; never make the test server depend
   // on a real Supabase project or network availability.
   if (process.env.E2E_TEST === "true") return launchFlags;
   if (!serverSupabaseEnvironment.configured) return DEFAULT_LAUNCH_FLAGS;
+  if (!force && Date.now() - launchFlagsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return launchFlags;
+  return coalesceLaunchFlags(force, async () => {
   if (!force && Date.now() - launchFlagsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return launchFlags;
   try {
     const { data, error } = await supabaseAdmin.from("settings").select("content").eq("id", "launch_flags").maybeSingle();
@@ -208,12 +213,15 @@ async function refreshLaunchFlags(force = false): Promise<LaunchFlags> {
     captureServerError(error, { phase: "launch_flags_refresh" });
   }
   return launchFlags;
+  });
 }
 
 async function refreshPlatformSettings(force = false) {
   // Keep browser tests hermetic. Production still loads settings from Supabase.
   if (process.env.E2E_TEST === "true") return;
   if (!serverSupabaseEnvironment.configured) return;
+  if (!force && Date.now() - platformSettingsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return;
+  return coalescePlatformSettings(force, async () => {
   if (!force && Date.now() - platformSettingsLoadedAt < PLATFORM_SETTINGS_TTL_MS) return;
   try {
     const { data, error } = await supabaseAdmin
@@ -233,6 +241,7 @@ async function refreshPlatformSettings(force = false) {
   } catch (err) {
     captureServerError(err, { phase: "platform_settings_refresh" });
   }
+  });
 }
 
 refreshPlatformSettings().catch((error) => captureServerError(error, { phase: "platform_settings_initial_load" }));
