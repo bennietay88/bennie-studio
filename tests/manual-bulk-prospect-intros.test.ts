@@ -62,9 +62,11 @@ test("unresolved placeholders never become send-ready messages", () => {
 });
 
 
-test("bulk send uses one click with server-side recipient permission verification", () => {
+test("bulk send uses one batch review with server-side recipient permission verification", () => {
   const ui = readFileSync("src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "utf8");
-  assert.doesNotMatch(ui, /<Checkbox|setConfirmed|!confirmed/);
+  assert.match(ui, /checked=\{batchReviewed\}/);
+  assert.match(ui, /!batchReviewed \|\|/);
+  assert.match(ui, /This confirmation does not create consent/);
   assert.doesNotMatch(ui, /recipientPermissionConfirmed: true/);
   assert.match(ui, /verified against existing CRM records/);
   assert.match(ui, /The server blocked this before provider delivery/);
