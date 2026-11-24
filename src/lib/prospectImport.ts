@@ -122,7 +122,7 @@ const normalizePublicUrl = (value: string, field: string, fail: (message: string
   }
 };
 
-export function parseProspectCsv(csv: string): { prospects: Record<string, any>[]; duplicates: number } {
+export function parseCsvRecords(csv: string): string[][] {
   if (csv.length > 500_000) throw new Error("Import is too large. Use at most 500 rows per file.");
 
   const records: string[][] = [];
@@ -174,8 +174,12 @@ export function parseProspectCsv(csv: string): { prospects: Record<string, any>[
 
   if (quoted) throw new Error("A quoted CSV field is not closed.");
   finishRow();
-  if (!records.length) throw new Error("No prospect rows found.");
+  if (!records.length) throw new Error("No CSV rows found.");
+  return records;
+}
 
+export function parseProspectCsv(csv: string): { prospects: Record<string, any>[]; duplicates: number } {
+  const records = parseCsvRecords(csv);
   const first = records[0].map(canonicalHeader);
   const hasHeader = first.includes("name");
   const headers: readonly string[] = hasHeader ? first : POSITIONAL_COLUMNS;
