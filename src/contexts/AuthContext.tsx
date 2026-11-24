@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import { UserProfile, UserRole } from "../types";
@@ -41,6 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
+  const activeUid = useRef<string | null>(null);
+  const profileRequest = useRef<AbortController | null>(null);
+
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setUser(null);
@@ -51,94 +54,112 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-        setIsAuthReady(true);
-      }
-    }).catch((err) => {
-      console.error("Supabase session initialization failed:", err);
-      setLoading(false);
-      setIsAuthReady(true);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    let scheduled: ReturnType<typeof setTimeout> | undefined;
+    let active = true;
+    // INITIAL_SESSION is emitted by Supabase after initialization. Avoid a
+    // second getSession request racing the subscription's initial event.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
       const currentUser = session?.user ?? null;
+      const uid = currentUser?.id ?? null;
+      const changed = activeUid.current !== uid;
+      activeUid.current = uid;
       setUser(currentUser);
-
-      if (currentUser) {
-        fetchProfile(currentUser.id);
-      } else {
+      if (scheduled !== undefined) clearTimeout(scheduled);
+      if (changed || !uid) {
+        profileRequest.current?.abort();
+        profileRequest.current = null;
         setProfile(null);
         setBusiness(null);
+      }
+
+      if (uid) {
+        if (changed) {
+          setLoading(true);
+          setIsAuthReady(false);
+        }
+        // Run database and auth queries outside the auth callback's lock.
+        scheduled = setTimeout(() => {
+          scheduled = undefined;
+          if (active && activeUid.current === uid) void fetchProfile(uid);
+        }, 0);
+      } else {
         setLoading(false);
         setIsAuthReady(true);
       }
     });
 
     return () => {
+      active = false;
+      if (scheduled !== undefined) clearTimeout(scheduled);
+      activeUid.current = null;
+      profileRequest.current?.abort();
+      profileRequest.current = null;
       subscription.unsubscribe();
     };
   }, []);
 
   const fetchProfile = async (uid: string) => {
+    if (activeUid.current !== uid) return;
+    profileRequest.current?.abort();
+    const controller = new AbortController();
+    profileRequest.current = controller;
+    const signal = controller.signal;
+    const current = () => !signal.aborted && activeUid.current === uid && profileRequest.current === controller;
     try {
       const { data, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", uid)
+        .abortSignal(signal)
         .single();
 
+      if (!current()) return;
+      let resolvedProfile = data;
       if (profileError && profileError.code === "PGRST116") {
         // Profile provisioning is server-controlled. The browser never calls
         // the SECURITY DEFINER RPC or chooses role/business fields.
         const { data: sessionData } = await supabase.auth.getSession();
+        if (!current()) return;
         const accessToken = sessionData.session?.access_token;
-        if (!accessToken) throw new Error("AUTH_SESSION_REQUIRED");
+        if (!accessToken || sessionData.session?.user.id !== uid) throw new Error("AUTH_SESSION_REQUIRED");
         const response = await fetch("/api/auth/ensure-profile", {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}` },
+          signal,
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload.profile) {
           throw new Error(payload.error || "PROFILE_PROVISIONING_FAILED");
         }
-        setProfile(mapProfile(payload.profile));
-        if (payload.profile.business_id) {
-          const { data: bizData } = await supabase
-            .from("businesses")
-            .select("*")
-            .eq("id", payload.profile.business_id)
-            .maybeSingle();
-          if (bizData) setBusiness(bizData);
-        }
+        resolvedProfile = payload.profile;
       } else if (profileError) {
         throw profileError;
-      } else if (data) {
-        setProfile(mapProfile(data));
-        // Fetch business info
-        if (data.business_id) {
-          const { data: bizData } = await supabase
-            .from("businesses")
-            .select("*")
-            .eq("id", data.business_id)
-            .maybeSingle();
-          if (bizData) setBusiness(bizData);
-        }
+      }
+
+      if (!current() || !resolvedProfile) return;
+      setProfile(mapProfile(resolvedProfile));
+      if (resolvedProfile.business_id) {
+        const { data: bizData } = await supabase
+          .from("businesses")
+          .select("*")
+          .eq("id", resolvedProfile.business_id)
+          .abortSignal(signal)
+          .maybeSingle();
+        if (current()) setBusiness(bizData || null);
+      } else {
+        setBusiness(null);
       }
     } catch (err: any) {
+      if (!current()) return;
       console.error("Error fetching profile:", err);
       setError(err.message);
     } finally {
-      setLoading(false);
-      setIsAuthReady(true);
+      if (current()) {
+        profileRequest.current = null;
+        setLoading(false);
+        setIsAuthReady(true);
+      }
     }
   };
 
