@@ -103,22 +103,41 @@ export const DEFAULT_PLATFORM_CMS: PlatformSiteCms = {
   pages: {},
 };
 
+const PUBLIC_CMS_TTL_MS = 60_000;
 let publicCmsRequest: Promise<PlatformSiteCms | null> | null = null;
-export function fetchPublishedPlatformCms(force = false) {
-  if (!publicCmsRequest || force) {
-    publicCmsRequest = fetch("/api/public/platform-site-cms", { headers: { Accept: "application/json" } })
-      .then(async (response) => {
-        if (!response.ok) return null;
-        const content = (await response.json())?.content;
-        return content && typeof content === "object" ? normalizePlatformCms(content) : null;
-      })
-      .catch(() => null);
-  }
-  return publicCmsRequest;
+let publicCmsCached: PlatformSiteCms | null = null;
+let publicCmsExpiresAt = 0;
+export function fetchPublishedPlatformCms(force = false): Promise<PlatformSiteCms | null> {
+  if (!force && publicCmsCached && Date.now() < publicCmsExpiresAt) return Promise.resolve(publicCmsCached);
+  if (!force && publicCmsRequest) return publicCmsRequest;
+  if (force) { publicCmsCached = null; publicCmsExpiresAt = 0; }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  const request = fetch("/api/public/platform-site-cms", { headers: { Accept: "application/json" }, signal: controller.signal, cache: force ? "no-cache" : "default" })
+    .then(async response => {
+      if (!response.ok) return null;
+      const content = (await response.json())?.content;
+      return content && typeof content === "object" ? normalizePlatformCms(content) : null;
+    })
+    .then(value => {
+      if (publicCmsRequest === request && value) {
+        publicCmsCached = value;
+        publicCmsExpiresAt = Date.now() + PUBLIC_CMS_TTL_MS;
+      }
+      return value;
+    })
+    .catch(() => null)
+    .finally(() => {
+      clearTimeout(timeout);
+      if (publicCmsRequest === request) publicCmsRequest = null;
+    });
+  publicCmsRequest = request;
+  return request;
 }
 
 export function usePublishedPlatformCms() {
-  const [content, setContent] = useState<PlatformSiteCms>(DEFAULT_PLATFORM_CMS);
+  const [content, setContent] = useState<PlatformSiteCms>(() =>
+    publicCmsCached && Date.now() < publicCmsExpiresAt ? publicCmsCached : DEFAULT_PLATFORM_CMS);
   useEffect(() => {
     let active = true;
     void fetchPublishedPlatformCms().then((value) => { if (active && value) setContent(value); });
