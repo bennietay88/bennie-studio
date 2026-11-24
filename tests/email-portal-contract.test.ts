@@ -116,13 +116,16 @@ test("Single, lab and bulk sends rely on server-verified permission with explici
   assert.match(operations, /CONTACT_PERMISSION_NOT_VERIFIED/);
   assert.doesNotMatch(prospectUi, /recipientPermissionConfirmed/);
   assert.doesNotMatch(labUi, /recipientPermissionConfirmed/);
+  assert.match(bulkIntro, /recipientPermissionConfirmed: true/);
+  assert.match(bulkIntro, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError\) return;/);
+  assert.match(bulkFollowUp, /recipientPermissionConfirmed: permissionConfirmed/);
+  assert.match(bulkFollowUp, /type="checkbox" checked=\{permissionConfirmed\}/);
+  assert.match(bulkFollowUp, /setPermissionConfirmed\(false\)/);
+  assert.match(bulkFollowUp, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError \|\| !permissionConfirmed\) return;/);
   for (const bulk of [bulkIntro, bulkFollowUp]) {
-    assert.match(bulk, /recipientPermissionConfirmed: permissionConfirmed/);
-    assert.match(bulk, /type="checkbox" checked=\{permissionConfirmed\}/);
-    assert.match(bulk, /setPermissionConfirmed\(false\)/);
     assert.match(bulk, /does not create or alter marketing-consent records/);
     assert.match(bulk, /Authorization: "Bearer " \+ session.access_token/);
-    assert.match(bulk, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError \|\| !permissionConfirmed\) return;/);
+    assert.match(bulk, /InlineRecipientPermission/);
   }
   assert.match(operations, /OUTREACH_TOO_SOON/);
   assert.match(operations, /CONTACT_SUPPRESSED/);
