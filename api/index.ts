@@ -3749,7 +3749,10 @@ async function startServer() {
       if (error) {
         const kind = classifyResendSendError(error);
         structuredLog("warn", "resend_sales_provider_rejected", kind);
-        throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED" : "EMAIL_DELIVERY_FAILED");
+        throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED"
+        : kind.category === "authentication" ? "RESEND_AUTH_REJECTED"
+        : kind.category === "sender" ? "RESEND_SENDER_REJECTED"
+        : "EMAIL_DELIVERY_FAILED");
       }
       if (!data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
       return { id: data.id, provider: "resend", mailbox: provider.from, fromAddress: provider.from, replyToAddress: replyTo,
@@ -3800,7 +3803,10 @@ async function startServer() {
     if (error) {
       const kind = classifyResendSendError(error);
       structuredLog("warn", "resend_direct_provider_rejected", kind);
-      throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED" : "EMAIL_DELIVERY_FAILED");
+      throw new Error(kind.category === "quota" || kind.category === "throttled" ? "EMAIL_RATE_LIMITED"
+        : kind.category === "authentication" ? "RESEND_AUTH_REJECTED"
+        : kind.category === "sender" ? "RESEND_SENDER_REJECTED"
+        : "EMAIL_DELIVERY_FAILED");
     }
     if (!data?.id) throw new Error("EMAIL_DELIVERY_FAILED");
     return { id: data.id, provider: "resend", mailbox: provider.from, fromAddress: provider.from, replyToAddress: replyTo,
@@ -9363,6 +9369,8 @@ async function startServer() {
           status: 503,
           message: "Direct email is not configured. Set up Resend in Super Admin → Email Providers.",
         },
+        RESEND_AUTH_REJECTED: { status: 503, message: "Resend rejected authentication. Check the configured provider account and API key permissions." },
+        RESEND_SENDER_REJECTED: { status: 503, message: "Resend rejected the sender or sending permission. Check verified sender domain and account status." },
         EMAIL_DELIVERY_FAILED: {
           status: 502,
           message: "The email provider could not accept the message. Check provider logs before retrying.",
