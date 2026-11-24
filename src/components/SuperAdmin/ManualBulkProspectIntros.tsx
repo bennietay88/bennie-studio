@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Loader2, Mail, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
@@ -6,7 +6,6 @@ import { MAX_MANUAL_BULK_INTRO, prepareManualBulkIntro } from "../../lib/manualB
 import type { ManualBulkIntroPreview } from "../../lib/manualBulkProspectIntros";
 import type { ProspectEmailOverrides } from "../../lib/prospectOutreachTemplates";
 import { Button } from "../ui/button";
-import { InlineRecipientPermission } from "./InlineRecipientPermission";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 
 type PreviewRow = ManualBulkIntroPreview & {
@@ -28,7 +27,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
-  const [permissionRevision, setPermissionRevision] = useState(0);
+  const dispatchLock = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -92,7 +91,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
     return () => { active = false; };
     // Freeze the selection for this manual review operation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, permissionRevision]);
+  }, [open]);
 
   const ready = rows.filter((row) => row.delivery === "ready");
   const skipped = rows.filter((row) => row.delivery === "skipped");
@@ -101,6 +100,8 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
 
   const sendSelected = async () => {
     if (sending || finished || loading || !ready.length || loadError) return;
+    if (dispatchLock.current) return;
+    dispatchLock.current = true;
     setSending(true);
     const sentIds: string[] = [];
     try {
@@ -131,8 +132,9 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) {
-            const failure = new Error(payload.error || "Provider did not confirm the send.") as Error & { code?: string };
+            const failure = new Error(payload.error || "Provider did not confirm the send.") as Error & { code?: string; status?: number };
             failure.code = payload.code;
+            failure.status = response.status;
             throw failure;
           }
           sentIds.push(row.prospectId);
@@ -149,6 +151,10 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                   reason: message + " No delivery attempted.", error: undefined }
               : { ...item, delivery: "failed", error: message }
             : item));
+          if (error?.status === 429 || error?.status === 503) {
+            setLoadError("Sending stopped after a shared provider failure or quota restriction. Remaining messages were not attempted.");
+            break;
+          }
         }
       }
       setFinished(true);
@@ -159,6 +165,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
       setFinished(true);
       if (sentIds.length) onCompleted(sentIds);
     } finally {
+      dispatchLock.current = false;
       setSending(false);
     }
   };
@@ -187,6 +194,9 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                 {!!submitted.length && <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">{submitted.length} submitted</span>}
                 {!!failed.length && <span className="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">{failed.length} failed / needs review</span>}
               </div>
+              {skipped.some(row => /consent|permission evidence/i.test(row.reason || "")) && !finished && (
+                <p className="text-sm text-slate-600">Recipients without saved authorization are excluded. Existing permission records can be imported together using Recipient Consent Import in Prospect Explorer; no individual forms are required in this batch.</p>
+              )}
               <div className="space-y-3">
                 {[...rows.filter(row => row.delivery !== "skipped"), ...rows.filter(row => row.delivery === "skipped")].map((row, index) => (
                   <div key={row.prospectId} className={"rounded-xl border p-4 " +
@@ -216,7 +226,6 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                         </div>
                       </details>
                     ) : row.kind === "skip" ? <p className="mt-2 text-xs leading-5 text-slate-600">{row.reason}</p> : null}
-                    {row.delivery === "skipped" && row.email && /consent|permission evidence/i.test(row.reason || "") && !finished && <InlineRecipientPermission email={row.email} disabled={sending} onSaved={() => setPermissionRevision(value => value + 1)} />}
                     {row.error && <p className="mt-2 text-xs font-medium text-rose-800">{row.error} Do not resend until provider delivery is checked.</p>}
                   </div>
                 ))}
