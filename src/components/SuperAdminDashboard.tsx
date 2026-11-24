@@ -132,7 +132,7 @@ const WebsiteEditor = React.lazy(() => import("./WebsiteEditor").then((module) =
 const SuperAdminAffiliates = React.lazy(() => import("./SuperAdminAffiliates").then((module) => ({ default: module.SuperAdminAffiliates })));
 const SuperAdminAffiliatePartners = React.lazy(() => import("./SuperAdminAffiliatePartners").then((module) => ({ default: module.SuperAdminAffiliatePartners })));
 const StyleThemeManager = React.lazy(() => import("./SuperAdmin/StyleThemeManager").then((module) => ({ default: module.StyleThemeManager })));
-import { EmailProviderSettings } from "./SuperAdmin/EmailProviderSettings";
+const EmailProviderSettings = React.lazy(() => import("./SuperAdmin/EmailProviderSettings").then((module) => ({ default: module.EmailProviderSettings })));
 const RevenueCommand = React.lazy(() => import("./SuperAdmin/RevenueCommand").then((module) => ({ default: module.RevenueCommand })));
 const FinanceDashboard = React.lazy(() => import("./SuperAdmin/FinanceDashboard").then((module) => ({ default: module.FinanceDashboard })));
 const SalesHome = React.lazy(() => import("./SuperAdmin/SalesHome").then((module) => ({ default: module.SalesHome })));
