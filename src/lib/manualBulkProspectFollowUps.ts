@@ -1,4 +1,5 @@
 import { chooseProspectFollowUp, chooseProspectFollowUpTemplate } from "./prospectFollowUpComposer";
+import { getOutreachObservation } from "./salesAutomation";
 import type { ProspectSentMessage } from "./prospectFollowUpComposer";
 import { PORTFOLIO_URL, renderProspectEmailTemplate } from "./prospectOutreachTemplates";
 import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "./prospectOutreachTemplates";
@@ -23,6 +24,7 @@ type Prospect = {
   contact_email?: string | null;
   contact_first_name?: string | null;
   contact_name?: string | null;
+  notes?: string | null;
   domain?: string | null;
   website_status?: string | null;
   website_evidence_source_url?: string | null;
@@ -87,7 +89,8 @@ export function prepareManualBulkFollowUp(
   const websiteStatus = !verifiedWebsite ? "unknown" as const
     : status === "no_website" ? false : ["weak", "average", "strong"].includes(status) ? true : "unknown" as const;
   const asset = safeProspectFollowUpAsset(prospect);
-  const templateId = chooseProspectFollowUpTemplate(next.stage, websiteStatus, asset?.kind) as ProspectEmailTemplateKey;
+  const observation = getOutreachObservation(prospect.notes).replace(/\s+/g, " ").trim().slice(0, 240);
+  const templateId = chooseProspectFollowUpTemplate(next.stage, websiteStatus, asset?.kind === "audit" && !observation ? null : asset?.kind) as ProspectEmailTemplateKey;
   const contact = String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0]
     || name + " team";
   const rendered = renderProspectEmailTemplate(templateId, {
@@ -95,6 +98,7 @@ export function prepareManualBulkFollowUp(
     business_name: name,
     asset_url: asset?.url || "",
     portfolio_url: PORTFOLIO_URL,
+    specific_observation: observation,
   }, overrides);
   if (!rendered.subject.trim() || !rendered.body_text.trim()
     || /\{\{[^}]+\}\}|\[[^\]\n]{3,}\]/.test(rendered.subject + "\n" + rendered.body_text)) {
