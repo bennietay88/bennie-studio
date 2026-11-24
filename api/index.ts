@@ -9429,7 +9429,17 @@ async function startServer() {
         HOSTINGER_ACCEPTANCE_UNCERTAIN: { status: 502, message: "Hostinger did not confirm the recipient. Verify delivery before retrying." },
       };
       const known = errors[error?.message];
-      if (known) return res.status(known.status).json({ error: known.message, code: error.message });
+      if (known) {
+        const permissionDetails: Record<string, string> = {
+          recipient_consent_missing_or_not_bound_to_address: "Import the existing recipient-specific consent record for this exact email address using Prospect Explorer → Import consent records.",
+          jurisdiction_unknown: "Review and record the recipient jurisdiction.",
+          recipient_type_unknown: "Record whether the recipient is a business or an individual.",
+          lawful_basis_not_reviewed: "Review the documented lawful basis for this recipient.",
+        };
+        const reason = error.message === "CONTACT_PERMISSION_NOT_VERIFIED" ? String(error.permissionBlockReason || "") : "";
+        const detail = permissionDetails[reason];
+        return res.status(known.status).json({ error: detail || known.message, code: error.message, ...(detail ? { permissionBlockReason: reason } : {}) });
+      }
 
       console.error("[Direct Prospect Outreach] Failed:", error);
       return res.status(503).json({
