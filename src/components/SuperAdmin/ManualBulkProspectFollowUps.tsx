@@ -6,7 +6,6 @@ import { MAX_MANUAL_BULK_FOLLOW_UP, prepareManualBulkFollowUp } from "../../lib/
 import type { ManualBulkFollowUpPreview } from "../../lib/manualBulkProspectFollowUps";
 import type { ProspectEmailOverrides } from "../../lib/prospectOutreachTemplates";
 import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 
 type PreviewRow = ManualBulkFollowUpPreview & {
@@ -26,7 +25,6 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
   const [rows, setRows] = useState<PreviewRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
 
@@ -35,7 +33,6 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
     let active = true;
     setRows([]);
     setLoadError("");
-    setConfirmed(false);
     setFinished(false);
     if (!selectedIds.length || selectedIds.length > MAX_MANUAL_BULK_FOLLOW_UP) {
       setLoadError("Select between 1 and " + MAX_MANUAL_BULK_FOLLOW_UP + " prospects to review at a time.");
@@ -91,7 +88,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
   const failed = rows.filter((row) => row.delivery === "failed");
 
   const sendSelected = async () => {
-    if (!confirmed || sending || finished || loading || !ready.length || loadError) return;
+    if (sending || finished || loading || !ready.length || loadError) return;
     setSending(true);
     const sentIds: string[] = [];
     try {
@@ -109,7 +106,6 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
             body: JSON.stringify({
               action: "send",
               channel: "email",
-              recipientPermissionConfirmed: confirmed,
               subject: row.subject,
               bodyText: row.bodyText,
               templateId: row.templateId,
@@ -198,16 +194,13 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
             </>
           )}
           {!loading && !loadError && !!rows.length && !finished && (
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <Checkbox checked={confirmed} onCheckedChange={(value) => setConfirmed(value === true)} aria-label="Confirm I reviewed the emails and have permission to contact these recipients" />
-              <span className="text-sm leading-6 text-amber-950">I have reviewed these emails and confirm I have permission to contact the eligible recipients. This confirmation does not create or alter marketing-consent records. Respect opt-outs and local email rules.</span>
-            </label>
+            <p className="text-sm text-slate-600">Recipient eligibility is verified automatically before each dispatch. Ineligible recipients are reported individually.</p>
           )}
           {finished && <div role="status" className="flex gap-2 rounded-xl bg-indigo-50 p-4 text-sm text-indigo-900"><ShieldCheck className="h-5 w-5 shrink-0" /> Processing finished. Submitted means the provider accepted the request, not that inbox delivery is confirmed. Review failed or uncertain deliveries before any retry.</div>}
         </div>
         <DialogFooter className="!mx-0 !mb-0 shrink-0 gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>{finished ? "Close" : "Cancel"}</Button>
-          {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !confirmed || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
+          {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             {sending ? "Sending individually…" : "Send " + ready.length + " reviewed follow-up" + (ready.length === 1 ? "" : "s")}
           </Button>}
