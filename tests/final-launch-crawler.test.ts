@@ -129,3 +129,22 @@ test("final launch crawler fails closed when resource verification is truncated"
   assert.equal(result.discoveredResourceCount, 4);
   assert.equal(result.resourceCount, 2);
 });
+
+test("launch crawler caps concurrent external resource checks and retains order", async () => {
+  let active = 0;
+  let peak = 0;
+  const urls = Array.from({length: 24}, (_, i) => `https://example.test/resource-${i}`);
+  const result = await runFinalLaunchCrawler({
+    pages: [{ title: "Home", slug: "home", sections: [{ id: "links", type: "links", isVisible: true, content: { items: urls.map(href => ({href})) } }] }],
+    fetchResource: async (url) => {
+      active++;
+      peak = Math.max(peak, active);
+      await new Promise(resolve => setTimeout(resolve, 5));
+      active--;
+      return { status: 200, contentType: "text/html", finalUrl: url };
+    }
+  });
+  assert.ok(peak <= 8 && peak > 1);
+  assert.deepEqual(result.resources.map(resource => resource.url), urls);
+  assert.equal(result.pass, true);
+});
