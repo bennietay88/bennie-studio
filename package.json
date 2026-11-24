@@ -5,11 +5,11 @@
   "description": "Professionally managed website service for customer enquiry generation.",
   "type": "module",
   "engines": {
-    "node": ">=22 <27"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "tsx api/index.ts",
-    "build": "vite build && esbuild api/index.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build": "vite build && esbuild api/index.ts --bundle --platform=node --format=cjs --packages=external --minify-whitespace --minify-syntax --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "vercel-build": "npm run lint && npm run build && node --import tsx --test tests/*.test.ts && npm audit --audit-level=high",
     "preview": "vite preview",
