@@ -62,7 +62,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               if (!history.prospect || !Array.isArray(history.messages)) throw new Error("Current prospect history is incomplete.");
               const preview = prepareManualBulkIntro(history.prospect, history.messages, overrides);
               // Permission-ineligible prospects are ordinary pre-dispatch skips, not a separate review queue.
-              if (preview.kind === "permission_review") return { ...preview, kind: "skip", requestId, delivery: "skipped", reason: "Saved recipient consent is incomplete. No delivery attempted. Import existing recipient permission in Prospect Explorer." };
+              if (preview.kind === "permission_review") return { ...preview, kind: "skip", requestId, delivery: "skipped", reason: preview.reason || "Recipient permission evidence is incomplete. No email attempted." };
               return { ...preview, requestId, delivery: preview.kind === "ready" ? "ready" : "skipped" };
             } catch (error: any) {
               return { prospectId: id, name: "Selected prospect", email: "", kind: "skip",
@@ -142,7 +142,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
             ? { ...item, delivery: "submitted" } : item));
         } catch (error: any) {
           const message = String(error?.message || "Delivery uncertain. Check provider records before retrying.");
-          const blockedByPermission = ["CONTACT_PERMISSION_NOT_VERIFIED", "CONTACT_PERMISSION_CONFIRMATION_REQUIRED"].includes(error?.code)
+          const blockedByPermission = ["CONTACT_PERMISSION_NOT_VERIFIED", "CONTACT_PERMISSION_CONFIRMATION_REQUIRED", "CONTACT_SUPPRESSED", "CONTACT_CLOSED", "OUTREACH_TOO_SOON"].includes(error?.code)
             || message.includes("Email contact is blocked until")
             || message.includes("Confirm the independently recorded permission details");
           setRows((current) => current.map((item) => item.prospectId === row.prospectId
@@ -152,6 +152,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               : { ...item, delivery: "failed", error: message }
             : item));
           if (error?.status === 429 || error?.status === 503) {
+            setRows(current => current.map(item => item.delivery === "ready" ? { ...item, kind: "skip", delivery: "skipped", reason: "Not attempted: batch stopped after a provider or quota restriction." } : item));
             setLoadError("Sending stopped after a shared provider failure or quota restriction. Remaining messages were not attempted.");
             break;
           }

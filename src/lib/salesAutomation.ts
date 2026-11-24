@@ -111,6 +111,22 @@ export const hasDocumentedMarketingConsent = (contact: {
   return Number.isFinite(recordedAt) && recordedAt <= now.getTime() && source.length >= 10;
 };
 
+export const SALES_EMAIL_JURISDICTIONS = ["US", "GB", "SG", "MY", "CA", "AU"] as const;
+
+export function isSupportedSalesEmailJurisdiction(value: string): boolean {
+  return SALES_EMAIL_JURISDICTIONS.some(country => country === value);
+}
+
+export function describeSalesEmailPermissionBlockReason(reason: string): string {
+  const details: Record<string, string> = {
+    recipient_consent_missing_or_not_bound_to_address: "Saved recipient consent is incomplete, missing or does not match this email address. Import the original consent evidence.",
+    jurisdiction_unknown: "Recipient jurisdiction is missing or unsupported. Record the verified country.",
+    recipient_type_unknown: "Recipient type is missing. Record business or individual.",
+    lawful_basis_not_reviewed: "Documented consent basis is missing. Review the existing recipient consent record.",
+  };
+  return "Recipient permission evidence: " + (details[reason] || "Review the existing recipient consent record.") + " No email attempted.";
+}
+
 export const salesEmailPermissionBlockReason = (contact: {
   marketing_consent?: boolean | null;
   consent_timestamp?: string | null;
@@ -130,7 +146,7 @@ export const salesEmailPermissionBlockReason = (contact: {
   if (!hasDocumentedMarketingConsent(contact, now)) return "recipient_consent_missing_or_not_bound_to_address";
   const jurisdiction = String(contact?.contact_jurisdiction || contact?.country || contact?.market
     || contact?.raw_fields?.country || contact?.raw_fields?.market || "").trim().toUpperCase();
-  if (!["US", "GB", "SG", "MY"].includes(jurisdiction)) return "jurisdiction_unknown";
+  if (!isSupportedSalesEmailJurisdiction(jurisdiction)) return "jurisdiction_unknown";
   const recipientType = String(contact?.contact_recipient_type || contact?.recipient_type || "unknown").trim().toLowerCase();
   if (!["business", "individual"].includes(recipientType)) return "recipient_type_unknown";
   if (String(contact?.contact_lawful_basis || "").trim().toLowerCase() !== "consent") return "lawful_basis_not_reviewed";

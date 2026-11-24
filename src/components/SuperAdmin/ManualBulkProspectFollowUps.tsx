@@ -145,6 +145,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
             ? blocked ? { ...item, kind: "skip", delivery: "skipped", reason: (error?.message || "Recipient is not eligible.") + " No email attempted.", error: undefined }
               : { ...item, delivery: "failed", error: error?.message || "Delivery failed. Verify with the email provider before trying again." } : item));
           if (error?.status === 429 || error?.status === 503) {
+            setRows(current => current.map(item => item.delivery === "ready" ? { ...item, kind: "skip", delivery: "skipped", reason: "Not attempted: batch stopped after a provider or quota restriction." } : item));
             setLoadError("Sending stopped after a shared provider failure or quota restriction. Remaining messages were not attempted.");
             break;
           }
