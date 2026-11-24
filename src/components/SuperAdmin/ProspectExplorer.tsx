@@ -1244,13 +1244,15 @@ export function ProspectExplorer() {
                 || (parsed.pathname === "/website-audit" && Boolean(parsed.searchParams.get("report") && parsed.searchParams.get("key")));
             } catch { return false; }
           });
-          const templateId = chooseProspectFollowUpTemplate(next.stage, websiteStatus, asset?.kind) as ProspectEmailTemplateKey;
+          const observation = getOutreachObservation(prospect.notes).replace(/\s+/g, " ").trim().slice(0, 240);
+          const templateId = chooseProspectFollowUpTemplate(next.stage, websiteStatus, asset?.kind === "audit" && !observation ? null : asset?.kind) as ProspectEmailTemplateKey;
           const name = String(prospect.name || "your business");
           const firstName = String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0] || name + " team";
           const draft = renderProspectEmailTemplate(templateId, {
             first_name: firstName, business_name: name,
             asset_url: asset ? new URL(String(asset.url), window.location.origin).href : "",
             portfolio_url: PORTFOLIO_URL,
+            specific_observation: observation,
           }, overrides);
           setOutreachProspect(prospect);
           setOutreachReplyToMessageId(null);
