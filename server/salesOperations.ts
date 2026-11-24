@@ -683,7 +683,7 @@ export async function sendDirectProspectOutreach(
   const reviewUrl = safeAuditReviewUrl(input.reviewUrl);
   const followUpStage = FOLLOW_UP_TEMPLATE_STAGES[String(input.templateId || "")] || null;
   const bulkIntro = input.templateId === "bulk-introduction";
-  if (!input.replyToMessageId && !input.experimentId && input.templateId !== "general-introduction" && !bulkIntro && !followUpStage && String(input.observation || "").trim().length < 10 && !reviewUrl) {
+  if (!input.replyToMessageId && !input.experimentId && input.templateId !== "general-introduction" && input.templateId !== "introduction" && !bulkIntro && !followUpStage && String(input.observation || "").trim().length < 10 && !reviewUrl) {
     throw new Error("OUTREACH_OBSERVATION_REQUIRED");
   }
   if (/\[[^\]\n]{3,}\]|\{\{[^}]+\}\}/.test(`${input.subject || ""}\n${input.bodyText}`)) {
@@ -711,13 +711,9 @@ export async function sendDirectProspectOutreach(
     if (await isSalesSuppressed(db, email)) {
       throw new Error("CONTACT_SUPPRESSED");
     }
-    // Manual, administrator-initiated correspondence accepts an affirmative
-    // operator attestation for this exact send. Absence of CRM consent evidence
-    // does not prove an explicit opt-out; however this is NOT a license to use a
-    // consent-only provider for unsolicited outreach. Suppressions and provider
-    // rules remain independently applicable, and no opt-in record is fabricated.
-    if (!input.replyToMessageId && input.recipientPermissionConfirmed !== true) {
-      throw new Error("CONTACT_PERMISSION_CONFIRMATION_REQUIRED");
+    // Check existing recipient evidence server-side, not a repeated UI attestation.
+    if (!input.replyToMessageId && salesEmailPermissionBlockReason(prospect, new Date(now))) {
+      throw new Error("CONTACT_PERMISSION_NOT_VERIFIED");
     }
   } else {
     if (!/^\d{7,15}$/.test(phone)) throw new Error("CONTACT_CHANNEL_MISSING");
@@ -878,8 +874,7 @@ export async function sendDirectProspectOutreach(
     replyToMessageId = parent.id;
   }
 
-  // Explicit operator confirmation supplements independently stored recipient
-  // permission evidence; it cannot replace it.
+  // The recipient's documented permission was verified above for non-reply email.
 
   const messageId = prior?.id || salesRecordId(key);
   const messagePayload = {
@@ -904,9 +899,9 @@ export async function sendDirectProspectOutreach(
     provider_payload: {
       directSend: true,
       actorId: input.actorId,
-      // Operator confirmation is not a fabricated opt-in record.
-      recipientPermissionConfirmed: input.recipientPermissionConfirmed === true,
-      permissionConfirmedAt: input.recipientPermissionConfirmed === true ? now : null,
+      // Server verification is separate from the original recipient consent record.
+      recipientPermissionVerified: input.channel === "email" && !replyToMessageId && !salesEmailPermissionBlockReason(prospect, new Date(now)),
+      permissionVerifiedAt: input.channel === "email" && !replyToMessageId ? now : null,
       observation: input.observation || null,
       templateId: input.templateId || null,
       experimentId: experimentIdentity?.id || null,
