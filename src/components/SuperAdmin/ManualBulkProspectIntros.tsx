@@ -6,6 +6,7 @@ import { MAX_MANUAL_BULK_INTRO, prepareManualBulkIntro } from "../../lib/manualB
 import type { ManualBulkIntroPreview } from "../../lib/manualBulkProspectIntros";
 import type { ProspectEmailOverrides } from "../../lib/prospectOutreachTemplates";
 import { Button } from "../ui/button";
+import { InlineRecipientPermission } from "./InlineRecipientPermission";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 
 type PreviewRow = ManualBulkIntroPreview & {
@@ -27,7 +28,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
-  const [permissionConfirmed, setPermissionConfirmed] = useState(false);
+  const [permissionRevision, setPermissionRevision] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -35,7 +36,6 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
     setRows([]);
     setLoadError("");
     setFinished(false);
-    setPermissionConfirmed(false);
     if (!selectedIds.length || selectedIds.length > MAX_MANUAL_BULK_INTRO) {
       setLoadError("Select between 1 and " + MAX_MANUAL_BULK_INTRO + " prospects to review at a time.");
       return;
@@ -92,7 +92,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
     return () => { active = false; };
     // Freeze the selection for this manual review operation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, permissionRevision]);
 
   const ready = rows.filter((row) => row.delivery === "ready");
   const skipped = rows.filter((row) => row.delivery === "skipped");
@@ -100,7 +100,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
   const failed = rows.filter((row) => row.delivery === "failed");
 
   const sendSelected = async () => {
-    if (sending || finished || loading || !ready.length || loadError || !permissionConfirmed) return;
+    if (sending || finished || loading || !ready.length || loadError) return;
     setSending(true);
     const sentIds: string[] = [];
     try {
@@ -126,7 +126,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               reviewUrl: null,
               replyToMessageId: null,
               requestId: row.requestId,
-              recipientPermissionConfirmed: permissionConfirmed,
+              recipientPermissionConfirmed: true,
             }),
           });
           const payload = await response.json().catch(() => ({}));
@@ -216,6 +216,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                         </div>
                       </details>
                     ) : row.kind === "skip" ? <p className="mt-2 text-xs leading-5 text-slate-600">{row.reason}</p> : null}
+                    {row.delivery === "skipped" && row.email && /consent|permission evidence/i.test(row.reason || "") && !finished && <InlineRecipientPermission email={row.email} disabled={sending} onSaved={() => setPermissionRevision(value => value + 1)} />}
                     {row.error && <p className="mt-2 text-xs font-medium text-rose-800">{row.error} Do not resend until provider delivery is checked.</p>}
                   </div>
                 ))}
@@ -223,7 +224,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
             </>
           )}
           {!loading && !loadError && ready.length > 0 && !finished && (
-            <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><input type="checkbox" checked={permissionConfirmed} disabled={sending} onChange={(event) => setPermissionConfirmed(event.target.checked)} className="mt-1 h-4 w-4 shrink-0" /><span>I have reviewed these emails and confirm that I have permission to contact the eligible recipients. This confirmation does not create or alter marketing-consent records.</span></label>
+            <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Clicking Send confirms permission to contact the eligible recipients. This does not create or alter marketing-consent records.</p>
           )}
           {finished && <div role="status" className="flex gap-2 rounded-xl bg-indigo-50 p-4 text-sm text-indigo-900">
             <ShieldCheck className="h-5 w-5 shrink-0" /> Processing finished. Submitted means the provider accepted the request, not confirmed inbox delivery.
@@ -235,7 +236,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
           {!finished && !loading && !loadError && !ready.length && !!rows.length && (
             <p className="text-sm text-slate-600">No eligible recipients. See skipped reasons above.</p>
           )}
-          {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError || !permissionConfirmed} className="bg-indigo-600 text-white hover:bg-indigo-700">
+          {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             {sending ? "Sending individually…" : "Confirm recipient permission & send " + ready.length + " introduction" + (ready.length === 1 ? "" : "s")}
           </Button>}

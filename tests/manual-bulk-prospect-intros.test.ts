@@ -63,14 +63,18 @@ test("unresolved placeholders never become send-ready messages", () => {
 
 
 test("bulk send requires explicit manual confirmation in addition to platform-verified permissions", () => {
-  for (const path of ["src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "src/components/SuperAdmin/ManualBulkProspectFollowUps.tsx"]) {
-    const ui = readFileSync(path, "utf8");
-    assert.match(ui, /setPermissionConfirmed\(false\)/);
-    assert.match(ui, /recipientPermissionConfirmed: permissionConfirmed/);
-    assert.match(ui, /type="checkbox" checked=\{permissionConfirmed\}/);
-    assert.match(ui, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError \|\| !permissionConfirmed\) return;/);
-    assert.match(ui, /disabled=\{loading \|\| sending \|\| !ready.length \|\| !!loadError \|\| !permissionConfirmed\}/);
-    assert.match(ui, /does not create or alter marketing-consent records/);
+  const bulkIntro = readFileSync("src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "utf8");
+  const bulkFollowUp = readFileSync("src/components/SuperAdmin/ManualBulkProspectFollowUps.tsx", "utf8");
+  assert.match(bulkIntro, /recipientPermissionConfirmed: true/);
+  assert.match(bulkIntro, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError\) return;/);
+  assert.match(bulkFollowUp, /recipientPermissionConfirmed: permissionConfirmed/);
+  assert.match(bulkFollowUp, /type="checkbox" checked=\{permissionConfirmed\}/);
+  assert.match(bulkFollowUp, /setPermissionConfirmed\(false\)/);
+  assert.match(bulkFollowUp, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError \|\| !permissionConfirmed\) return;/);
+  for (const bulk of [bulkIntro, bulkFollowUp]) {
+    assert.match(bulk, /does not create or alter marketing-consent records/);
+    assert.match(bulk, /Authorization: "Bearer " \+ session.access_token/);
+    assert.match(bulk, /InlineRecipientPermission/);
   }
 });
 

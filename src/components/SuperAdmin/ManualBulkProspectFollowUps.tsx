@@ -6,6 +6,7 @@ import { MAX_MANUAL_BULK_FOLLOW_UP, prepareManualBulkFollowUp } from "../../lib/
 import type { ManualBulkFollowUpPreview } from "../../lib/manualBulkProspectFollowUps";
 import type { ProspectEmailOverrides } from "../../lib/prospectOutreachTemplates";
 import { Button } from "../ui/button";
+import { InlineRecipientPermission } from "./InlineRecipientPermission";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 
 type PreviewRow = ManualBulkFollowUpPreview & {
@@ -27,6 +28,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
+  const [permissionRevision, setPermissionRevision] = useState(0);
   const [permissionConfirmed, setPermissionConfirmed] = useState(false);
 
   useEffect(() => {
@@ -82,7 +84,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
     // Capture the selection when the dialog opens. The parent does not change the
     // selection until the operation has fully finished.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, permissionRevision]);
 
   const ready = rows.filter((row) => row.delivery === "ready");
   const skipped = rows.filter((row) => row.delivery === "skipped");
@@ -193,6 +195,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
                         </div>
                       </details>
                     ) : <p className="mt-2 text-xs leading-5 text-slate-600">{row.reason}</p>}
+                    {row.delivery === "skipped" && row.email && /consent|permission evidence/i.test(row.reason || "") && !finished && <InlineRecipientPermission email={row.email} disabled={sending} onSaved={() => setPermissionRevision(value => value + 1)} />}
                     {row.error && <p className="mt-2 text-xs font-medium text-rose-800">{row.error} Do not resend until the provider delivery is checked.</p>}
                   </div>
                 ))}
