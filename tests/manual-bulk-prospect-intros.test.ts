@@ -62,14 +62,13 @@ test("unresolved placeholders never become send-ready messages", () => {
 });
 
 
-test("bulk send uses one batch review with server-side recipient permission verification", () => {
+test("bulk send uses explicit dispatch and platform-verified permissions without a manual checkbox", () => {
   const ui = readFileSync("src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "utf8");
-  assert.match(ui, /checked=\{batchReviewed\}/);
-  assert.match(ui, /!batchReviewed \|\|/);
-  assert.match(ui, /This confirmation does not create consent/);
-  assert.doesNotMatch(ui, /recipientPermissionConfirmed: true/);
-  assert.match(ui, /verified against existing CRM records/);
-  assert.match(ui, /The server blocked this before provider delivery/);
+  assert.doesNotMatch(ui, /batchReviewed|setBatchReviewed|recipientPermissionConfirmed|type="checkbox"/);
+  assert.match(ui, /Sending access and recipient eligibility are verified by the platform/);
+  assert.match(ui, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError\) return;/);
+  assert.match(ui, /disabled=\{loading \|\| sending \|\| !ready.length \|\| !!loadError\}/);
+  assert.match(ui, /No delivery attempted/);
 });
 
 test("manual preview reports missing permission without fabricating opt-in", () => {
@@ -84,10 +83,12 @@ test("manual preview does not assert jurisdiction proof from missing fields", ()
   assert.equal(preview.kind, "permission_review");
 });
 
-test("bulk preview differentiates permission review from failed provider delivery", () => {
+test("bulk preview consolidates permission-ineligible prospects under skipped without bypassing eligibility", () => {
   const ui = readFileSync("src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "utf8");
-  assert.match(ui, /permissionReview.length/);
-  assert.match(ui, /permission review · not sent/);
+  assert.doesNotMatch(ui, /permissionReview.length|Permission review · Not sent|permission review · not sent/i);
+  assert.match(ui, /preview\.kind === "permission_review"[^\n]*delivery: "skipped"/);
+  assert.match(ui, /CONTACT_PERMISSION_NOT_VERIFIED/);
+  assert.match(ui, /Saved recipient consent is incomplete/);
   assert.match(ui, /No delivery attempted/);
   assert.match(ui, /blockedByPermission/);
   assert.doesNotMatch(ui, /Confirm recipient permission & send/);
