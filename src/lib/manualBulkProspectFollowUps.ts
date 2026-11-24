@@ -1,5 +1,5 @@
 import { chooseProspectFollowUp, chooseProspectFollowUpTemplate } from "./prospectFollowUpComposer";
-import { getOutreachObservation } from "./salesAutomation";
+import { getOutreachObservation, salesEmailPermissionBlockReason } from "./salesAutomation";
 import type { ProspectSentMessage } from "./prospectFollowUpComposer";
 import { PORTFOLIO_URL, renderProspectEmailTemplate } from "./prospectOutreachTemplates";
 import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "./prospectOutreachTemplates";
@@ -18,7 +18,7 @@ export type ManualBulkFollowUpPreview = {
   reason?: string;
 };
 
-type Prospect = {
+type Prospect = NonNullable<Parameters<typeof salesEmailPermissionBlockReason>[0]> & {
   id: string;
   name?: string | null;
   contact_email?: string | null;
@@ -83,6 +83,7 @@ export function prepareManualBulkFollowUp(
   if (next.kind === "intro") return skip("No confirmed opening email. This action sends follow-ups only.");
   if (next.kind === "wait") return skip("Not due until " + new Date(String(next.dueAt)).toLocaleString() + ".");
   if (next.kind === "stop" || !next.stage) return skip(next.reason || "Follow-up not available.");
+  if (salesEmailPermissionBlockReason(prospect, now)) return skip("Recipient permission evidence is incomplete. No email attempted.");
   const verifiedWebsite = Boolean(prospect.website_evidence_source_url && prospect.website_verified_at
     && prospect.website_verification_method && prospect.website_finding && prospect.website_verified_by);
   const status = String(prospect.website_status || "").toLowerCase().trim();
