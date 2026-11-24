@@ -34,7 +34,9 @@ test("the browser no longer exposes a bulk ecosystem purge operation", () => {
   assert.match(admin, /Bulk deletion of platform, customer, subscription, and billing records is not available/);
 });
 
-test("declared Node engine range includes the current Vercel Node 26 runtime", () => {
+test("declared Node engine is pinned to the supported Vercel Node 22 LTS runtime", () => {
   const pkg = JSON.parse(read("package.json"));
-  assert.equal(pkg.engines.node, ">=22 <27");
+  const lock = JSON.parse(read("package-lock.json"));
+  assert.equal(pkg.engines.node, "22.x");
+  assert.equal(lock.packages[""].engines.node, pkg.engines.node);
 });
