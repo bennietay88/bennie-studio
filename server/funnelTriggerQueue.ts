@@ -87,7 +87,7 @@ export async function processFunnelTriggerQueue(deps: Delivery & { limit?: numbe
     .order("created_at",{ascending:true}).limit(limit);
   if (deps.jobId) queued = queued.eq("id",deps.jobId);
   const fresh = await check(queued);
-  const old = deps.jobId ? [] : await check(deps.db.from("funnel_trigger_jobs")
+  const old = deps.jobId || (fresh || []).length >= limit ? [] : await check(deps.db.from("funnel_trigger_jobs")
     .select("*").eq("status","running").lt("locked_at",stale)
     .order("locked_at",{ascending:true}).limit(Math.max(0,limit - (fresh || []).length)));
   const jobs = [...(fresh || []),...(old || [])].slice(0,limit);
