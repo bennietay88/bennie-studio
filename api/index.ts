@@ -74,6 +74,7 @@ import { buildProspectFollowUpPlan, bulkManageProspectFollowUps, scheduleProspec
 import { reactivateArchivedProspect } from "../server/prospectLifecycle.js";
 import { registerOutreachCompletionRoutes } from "../server/outreachCompletionRoutes.js";
 import { attachUploaderOutreachDeclaration, parseProspectCsv } from "../src/lib/prospectImport.js";
+import { parseRecipientConsentCsv } from "../src/lib/recipientConsentImport.js";
 import { scoreProspect } from "../src/lib/prospectScoring.js";
 import { PROSPECT_TEMPLATE_KEYS, validateProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
 import type { ProspectEmailTemplateKey, ProspectEmailOverrides } from "../src/lib/prospectOutreachTemplates.js";
@@ -8162,6 +8163,45 @@ async function startServer() {
     }
   });
 
+  // Separate from lead-list imports: each row must refer to actual recipient evidence.
+  app.post("/api/admin/prospects/consent-import", authenticate, rateLimit({ windowMs: 60_000, max: 10, keyPrefix: "prospect-consent-import", key: (req: any) => req.user?.id || getClientIp(req) }), async (req: any, res) => {
+    const body = validateBody(z.object({ csv: z.string().min(1).max(100000), dryRun: z.boolean().default(true) }).strict(), req, res);
+    if (!body) return;
+    try {
+      const profile = await getProfileForUser(req.user.id);
+      if (profile?.role !== "super_admin") return res.status(403).json({ error: "Super admin required" });
+      let rows;
+      try { rows = parseRecipientConsentCsv(body.csv); }
+      catch (error: any) { return res.status(400).json({ error: error.message }); }
+      const results: Array<{row: number; status: string}> = [];
+      for (const [i, evidence] of rows.entries()) {
+        const row = i + 2;
+        try {
+          const { data: matches, error: lookupError } = await supabaseAdmin.from("prospects").select("id,contact_email,name,marketing_consent,consent_timestamp,status,outreach_status").ilike("contact_email", exactEmailPattern(evidence.consent_email)).limit(2);
+          if (lookupError) throw lookupError;
+          if (matches?.length !== 1) { results.push({row,status: matches?.length ? "ambiguous" : "not_found"}); continue; }
+          const prospect = matches[0];
+          if (await isSalesSuppressed(supabaseAdmin, evidence.consent_email) || [prospect.status, prospect.outreach_status].some(s => ["unsubscribed","suppressed","closed","lost"].includes(String(s || "").toLowerCase()))) { results.push({row,status:"suppressed_or_closed"}); continue; }
+          if (prospect.consent_timestamp && Date.parse(prospect.consent_timestamp) >= Date.parse(evidence.consent_timestamp)) { results.push({row,status:"existing_or_newer_evidence"}); continue; }
+          if (body.dryRun) { results.push({row,status:"ready"}); continue; }
+          const { error: auditError } = await supabaseAdmin.from("admin_action_audit_logs").insert({
+            actor_user_id: req.user.id, actor_email: req.user.email || null, action_type: "prospect.consent_import_requested", target_type: "prospect", target_id: prospect.id, target_label: prospect.name || null,
+            metadata: { consent_timestamp: evidence.consent_timestamp, evidence_reference: evidence.consent_source, jurisdiction: evidence.contact_jurisdiction, recipient_type: evidence.contact_recipient_type },
+          });
+          if (auditError) throw auditError;
+          // Recheck suppression; never clear a suppression or opt-out in this importer.
+          if (await isSalesSuppressed(supabaseAdmin, evidence.consent_email)) { results.push({row,status:"suppressed_or_closed"}); continue; }
+          let update = supabaseAdmin.from("prospects").update({ ...evidence, updated_at: new Date().toISOString() }).eq("id", prospect.id).eq("contact_email", prospect.contact_email);
+          update = prospect.consent_timestamp ? update.eq("consent_timestamp", prospect.consent_timestamp) : update.is("consent_timestamp", null);
+          const { data: saved, error: writeError } = await update.select("id").maybeSingle();
+          if (writeError) throw writeError;
+          results.push({row,status:saved ? "imported" : "changed_since_lookup"});
+        } catch { results.push({row,status:"error"}); }
+      }
+      return res.json({ dryRun: body.dryRun, results });
+    } catch { return res.status(503).json({error:"Consent import could not be completed."}); }
+  });
+
   app.post("/api/admin/prospects/import", authenticate, async (req: any, res) => {
     try {
       const profile = await getProfileForUser(req.user.id);
@@ -9389,7 +9429,7 @@ async function startServer() {
         HOSTINGER_ACCEPTANCE_UNCERTAIN: { status: 502, message: "Hostinger did not confirm the recipient. Verify delivery before retrying." },
       };
       const known = errors[error?.message];
-      if (known) return res.status(known.status).json({ error: known.message });
+      if (known) return res.status(known.status).json({ error: known.message, code: error.message });
 
       console.error("[Direct Prospect Outreach] Failed:", error);
       return res.status(503).json({
