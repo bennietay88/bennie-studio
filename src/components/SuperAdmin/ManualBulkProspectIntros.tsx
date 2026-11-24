@@ -27,7 +27,6 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
-  const [batchReviewed, setBatchReviewed] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -35,7 +34,6 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
     setRows([]);
     setLoadError("");
     setFinished(false);
-    setBatchReviewed(false);
     if (!selectedIds.length || selectedIds.length > MAX_MANUAL_BULK_INTRO) {
       setLoadError("Select between 1 and " + MAX_MANUAL_BULK_INTRO + " prospects to review at a time.");
       return;
@@ -100,7 +98,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
   const failed = rows.filter((row) => row.delivery === "failed");
 
   const sendSelected = async () => {
-    if (!batchReviewed || sending || finished || loading || !ready.length || loadError) return;
+    if (sending || finished || loading || !ready.length || loadError) return;
     setSending(true);
     const sentIds: string[] = [];
     try {
@@ -222,10 +220,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
             </>
           )}
           {!loading && !loadError && ready.length > 0 && !finished && (
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-              <input type="checkbox" className="mt-1 h-4 w-4 accent-indigo-600" checked={batchReviewed} onChange={e => setBatchReviewed(e.target.checked)} disabled={sending} />
-              <span>I have reviewed these emails and confirm I have permission to contact the eligible recipients. Recipient permission is verified against existing CRM records. This confirmation does not create consent.</span>
-            </label>
+            <p className="text-xs text-slate-500">Sending access and recipient eligibility are verified by the platform.</p>
           )}
           {finished && <div role="status" className="flex gap-2 rounded-xl bg-indigo-50 p-4 text-sm text-indigo-900">
             <ShieldCheck className="h-5 w-5 shrink-0" /> Processing finished. Submitted means the provider accepted the request, not confirmed inbox delivery.
@@ -237,7 +232,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
           {!finished && !loading && !loadError && !ready.length && !!rows.length && (
             <p className="text-sm text-slate-600">No eligible recipients. See skipped reasons above.</p>
           )}
-          {!finished && <Button onClick={() => void sendSelected()} disabled={!batchReviewed || loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
+          {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             {sending ? "Sending individually…" : "Send " + ready.length + " introduction" + (ready.length === 1 ? "" : "s")}
           </Button>}
