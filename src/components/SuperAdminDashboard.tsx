@@ -934,34 +934,36 @@ export default function SuperAdminDashboard() {
   };
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchData = async () => {
       try {
         const settled = await Promise.allSettled([
-          supabase.from("businesses").select("*").order("created_at", { ascending: false }),
-          supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+          supabase.from("businesses").select("*").order("created_at", { ascending: false }).abortSignal(controller.signal),
+          supabase.from("profiles").select("*").order("created_at", { ascending: false }).abortSignal(controller.signal),
           supabase
             .from("appointments")
             .select("*")
             .gte("date", new Date().toISOString().split("T")[0])
-            .order("date", { ascending: true }),
-          supabase.from("settings").select("*").eq("id", "platform").maybeSingle(),
-          supabase.from("settings").select("content").eq("id", "plans").maybeSingle(),
-          supabase.from("affiliate_programs").select("*, businesses(name)"),
-          supabase.from("affiliates").select("*"),
-          supabase.from("affiliate_referrals").select("commission_amount, status"),
+            .order("date", { ascending: true }).abortSignal(controller.signal),
+          supabase.from("settings").select("*").eq("id", "platform").maybeSingle().abortSignal(controller.signal),
+          supabase.from("settings").select("content").eq("id", "plans").maybeSingle().abortSignal(controller.signal),
+          supabase.from("affiliate_programs").select("*, businesses(name)").abortSignal(controller.signal),
+          supabase.from("affiliates").select("*").abortSignal(controller.signal),
+          supabase.from("affiliate_referrals").select("commission_amount, status").abortSignal(controller.signal),
           supabase
             .from("affiliate_payouts")
             .select("*, affiliates(uid, referral_code), businesses(name)")
-            .order("created_at", { ascending: false }),
-          supabase.from("profiles").select("*").eq("role", "affiliate").order("created_at", { ascending: false }),
-          supabase.from("projects").select("*"),
+            .order("created_at", { ascending: false }).abortSignal(controller.signal),
+          supabase.from("profiles").select("*").eq("role", "affiliate").order("created_at", { ascending: false }).abortSignal(controller.signal),
+          supabase.from("projects").select("*").abortSignal(controller.signal),
           supabase
             .from("plans")
             .select("*")
             .eq("is_active", true)
-            .order("sort_order", { ascending: true }),
+            .order("sort_order", { ascending: true }).abortSignal(controller.signal),
         ]);
 
+        if (controller.signal.aborted) return;
         const readSettled = <T,>(index: number, label: string, fallback: T): T => {
           const result = settled[index];
           if (result.status === "fulfilled") return result.value as T;
@@ -1053,13 +1055,14 @@ export default function SuperAdminDashboard() {
           });
         }
       } catch (err) {
-        console.error("Error fetching admin data:", err);
+        if (!controller.signal.aborted) console.error("Error fetching admin data:", err);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     fetchData();
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
