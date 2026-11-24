@@ -249,9 +249,16 @@ export async function runFinalLaunchCrawler(input: LaunchCrawlerInput) {
   const allResources = [...unique.values()];
   const selected = allResources.slice(0, maxResources);
   const truncated = allResources.length > selected.length;
-  const resources = await Promise.all(
-    selected.map((resource) => validateResource(resource, input.fetchResource)),
-  );
+  // Bound concurrent outbound checks to reduce socket and memory pressure.
+  // Keep result order and existing fail-closed verification semantics.
+  const resources: Awaited<ReturnType<typeof validateResource>>[] = new Array(selected.length);
+  let nextResource = 0;
+  await Promise.all(Array.from({ length: Math.min(8, selected.length) }, async () => {
+    while (nextResource < selected.length) {
+      const index = nextResource++;
+      resources[index] = await validateResource(selected[index], input.fetchResource);
+    }
+  }));
 
   const brokenResources = resources.filter((resource) => !resource.pass);
   const uncertainResources = resources.filter(
