@@ -1,4 +1,5 @@
 import { expect, Page, Route, test } from "@playwright/test";
+import { salesEmailPermissionBlockReason } from "../src/lib/salesAutomation";
 
 const appOrigin = `http://127.0.0.1:${process.env.E2E_PORT || 4173}`;
 const businessId = "00000000-0000-4000-8000-000000001101";
@@ -78,6 +79,14 @@ async function installPersona(page: Page, role: "super_admin" | "client") {
     industry: "Dental Clinic",
     location: "London",
     contact_email: "customer@example.test",
+    // Synthetic consent evidence for this mocked recipient; never written to production.
+    marketing_consent: true,
+    consent_email: "customer@example.test",
+    consent_timestamp: "2026-01-01T00:00:00Z",
+    consent_source: "E2E fixture: recipient explicitly opted in to email offers",
+    contact_jurisdiction: "GB",
+    contact_recipient_type: "business",
+    contact_lawful_basis: "consent",
     contact_phone: "+441234567890",
     contact_whatsapp: "441234567890",
     website_status: "weak",
@@ -250,7 +259,7 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   }));
   await page.route("**/api/admin/sales-inbox", (route) => json(route, { conversations: [] }));
   await page.route(`**/api/admin/prospects/${prospectId}/engagement`, (route) =>
-    json(route, { messages: engagementMessages, tasks: [] }),
+    json(route, { prospect, messages: engagementMessages, tasks: [], events: [] }),
   );
   let reviewRequestCount = 0;
   await page.route(`**/api/admin/prospects/${prospectId}/website-review`, (route) => {
@@ -280,6 +289,8 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
     const payload = await route.request().postDataJSON();
     expect(payload.action).toBe("send");
     expect(payload.channel).toBe("email");
+    expect(salesEmailPermissionBlockReason(prospect)).toBeNull();
+    expect(payload.requestId).toMatch(/[0-9a-f-]{36}/i);
     expect(String(payload.bodyText)).toContain("Bennie Studio");
     expect(String(payload.bodyText)).toContain("I help service businesses make their websites clearer and easier for customers to enquire through.");
     expect(String(payload.bodyText)).not.toContain("Primary enquiry action is not prominent");
@@ -385,7 +396,8 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   await expect(page.getByText(/A simple introduction first/i)).toBeVisible();
   await expect(page.locator("textarea").last()).toHaveValue(/I help service businesses make their websites clearer and easier for customers to enquire through/);
   await expect(page.getByText("View or edit saved email templates")).toBeVisible();
-  await page.getByRole("checkbox", { name: /confirm the documented permission on this prospect is genuine/i }).check();
+  await expect(page.getByText("Recipient eligibility is verified automatically from the CRM before dispatch.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send email", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Send email", exact: true }).click();
   await expect.poll(() => outreachSent).toBe(true);
   await expect.poll(() => prospect.outreach_status).toBe("contacted");
