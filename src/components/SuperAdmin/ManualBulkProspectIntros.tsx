@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 type PreviewRow = ManualBulkIntroPreview & {
   requestId: string;
-  delivery: "ready" | "permission_review" | "skipped" | "sending" | "submitted" | "failed";
+  delivery: "ready" | "skipped" | "sending" | "submitted" | "failed";
   error?: string;
 };
 
@@ -62,7 +62,9 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               const history = await response.json();
               if (!history.prospect || !Array.isArray(history.messages)) throw new Error("Current prospect history is incomplete.");
               const preview = prepareManualBulkIntro(history.prospect, history.messages, overrides);
-              return { ...preview, requestId, delivery: preview.kind === "ready" ? "ready" : preview.kind === "permission_review" ? "permission_review" : "skipped" };
+              // Permission-ineligible prospects are ordinary pre-dispatch skips, not a separate review queue.
+              if (preview.kind === "permission_review") return { ...preview, kind: "skip", requestId, delivery: "skipped", reason: "Saved recipient consent is incomplete. No delivery attempted." };
+              return { ...preview, requestId, delivery: preview.kind === "ready" ? "ready" : "skipped" };
             } catch (error: any) {
               return { prospectId: id, name: "Selected prospect", email: "", kind: "skip",
                 reason: error?.message || "Could not verify current prospect history.", requestId, delivery: "skipped" };
@@ -94,7 +96,6 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
 
   const ready = rows.filter((row) => row.delivery === "ready");
   const skipped = rows.filter((row) => row.delivery === "skipped");
-  const permissionReview = rows.filter((row) => row.delivery === "permission_review");
   const submitted = rows.filter((row) => row.delivery === "submitted");
   const failed = rows.filter((row) => row.delivery === "failed");
 
@@ -128,18 +129,23 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
             }),
           });
           const payload = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(payload.error || "Provider did not confirm the send.");
+          if (!response.ok) {
+            const failure = new Error(payload.error || "Provider did not confirm the send.") as Error & { code?: string };
+            failure.code = payload.code;
+            throw failure;
+          }
           sentIds.push(row.prospectId);
           setRows((current) => current.map((item) => item.prospectId === row.prospectId
             ? { ...item, delivery: "submitted" } : item));
         } catch (error: any) {
           const message = String(error?.message || "Delivery uncertain. Check provider records before retrying.");
-          const blockedByPermission = message.includes("Email contact is blocked until")
+          const blockedByPermission = ["CONTACT_PERMISSION_NOT_VERIFIED", "CONTACT_PERMISSION_CONFIRMATION_REQUIRED"].includes(error?.code)
+            || message.includes("Email contact is blocked until")
             || message.includes("Confirm the independently recorded permission details");
           setRows((current) => current.map((item) => item.prospectId === row.prospectId
             ? blockedByPermission
-              ? { ...item, kind: "permission_review", delivery: "permission_review",
-                  reason: "The backend blocked this request before any provider delivery. Verify recipient opt-in and CRM details.", error: undefined }
+              ? { ...item, kind: "skip", delivery: "skipped",
+                  reason: "Saved recipient consent is incomplete. No delivery attempted.", error: undefined }
               : { ...item, delivery: "failed", error: message }
             : item));
         }
@@ -177,7 +183,6 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               <div className="flex flex-wrap gap-3 text-sm font-medium">
                 <span className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-800">{ready.length} ready</span>
                 <span className="rounded-lg bg-slate-100 px-3 py-2 text-slate-700">{skipped.length} skipped</span>
-                {!!permissionReview.length && <span className="rounded-lg bg-slate-100 px-3 py-2 text-slate-700">{permissionReview.length} permission review · not sent</span>}
                 {!!submitted.length && <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">{submitted.length} submitted</span>}
                 {!!failed.length && <span className="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">{failed.length} failed / needs review</span>}
               </div>
@@ -185,8 +190,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                 {rows.map((row, index) => (
                   <div key={row.prospectId} className={"rounded-xl border p-4 " +
                     (row.delivery === "skipped" ? "border-slate-200 bg-slate-50" :
-                      row.delivery === "failed" ? "border-rose-200 bg-rose-50" :
-                      row.delivery === "permission_review" ? "border-slate-200 bg-slate-50" : "border-slate-200 bg-white")}>
+                      row.delivery === "failed" ? "border-rose-200 bg-rose-50" : "border-slate-200 bg-white")}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-900">{row.name}</p>
@@ -195,13 +199,11 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                       <span className={"rounded-full px-2.5 py-1 text-xs font-semibold " +
                         (row.delivery === "ready" ? "bg-indigo-100 text-indigo-800" :
                           row.delivery === "submitted" ? "bg-emerald-100 text-emerald-800" :
-                            row.delivery === "failed" ? "bg-rose-100 text-rose-800" :
-                            row.delivery === "permission_review" ? "bg-slate-200 text-slate-600" : "bg-slate-200 text-slate-600")}>
+                            row.delivery === "failed" ? "bg-rose-100 text-rose-800" : "bg-slate-200 text-slate-600")}>
                         {row.delivery === "ready" ? "Introduction · Ready" :
                           row.delivery === "sending" ? "Sending…" :
                             row.delivery === "submitted" ? "Submitted" :
-                              row.delivery === "failed" ? "Delivery needs review" :
-                              row.delivery === "permission_review" ? "Permission review · Not sent" : "Skipped"}
+                              row.delivery === "failed" ? "Delivery needs review" : "Skipped"}
                       </span>
                     </div>
                     {row.kind === "ready" && row.subject && row.bodyText ? (
@@ -213,10 +215,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                         </div>
                       </details>
                     ) : row.kind === "skip" ? <p className="mt-2 text-xs leading-5 text-slate-600">{row.reason}</p> : null}
-                    {row.kind === "permission_review" && <p className="mt-2 text-xs leading-5 text-slate-600">Recipient permission record incomplete. No delivery attempted.</p>}
-                    {row.error && <p className="mt-2 text-xs font-medium text-rose-800">{row.error} {row.error.includes("Email contact is blocked until") || row.error.includes("Confirm the independently recorded permission details")
-                      ? "The server blocked this before provider delivery. Verify recipient permission records; do not invent an opt-in."
-                      : "Do not resend until provider delivery is checked."}</p>}
+                    {row.error && <p className="mt-2 text-xs font-medium text-rose-800">{row.error} Do not resend until provider delivery is checked.</p>}
                   </div>
                 ))}
               </div>
@@ -236,7 +235,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
         <DialogFooter className="!mx-0 !mb-0 shrink-0 gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>{finished ? "Close" : "Cancel"}</Button>
           {!finished && !loading && !loadError && !ready.length && !!rows.length && (
-            <p className="text-sm text-slate-600">No eligible recipients. {permissionReview.length > 0 ? "Import existing recipient consent records to resolve permission review." : "Review the skipped reasons above."}</p>
+            <p className="text-sm text-slate-600">No eligible recipients. See skipped reasons above.</p>
           )}
           {!finished && <Button onClick={() => void sendSelected()} disabled={!batchReviewed || loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
