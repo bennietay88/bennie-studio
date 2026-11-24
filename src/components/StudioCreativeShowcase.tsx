@@ -66,7 +66,7 @@ const conceptContent: Record<string, { category: string; wordmark: string; eyebr
   },
 };
 
-export function StudioConceptCanvas({ slug, compact = false }: { slug: string; compact?: boolean }) {
+export function StudioConceptCanvas({ slug, compact = false, priority = false }: { slug: string; compact?: boolean; priority?: boolean }) {
   const concept = conceptContent[slug] || conceptContent["professional-advisory"];
   const image = conceptImages[slug];
   return (
@@ -86,7 +86,7 @@ export function StudioConceptCanvas({ slug, compact = false }: { slug: string; c
         </div>
         <div className="sfn-concept-photo">
           {image
-            ? <img src={image} alt="" loading="lazy" decoding="async" />
+            ? <img src={image} alt="" loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : "auto"} decoding="async" />
             : <div className="sfn-concept-finance-art" aria-hidden="true"><span>FINANCIAL OVERVIEW</span><i/><i/><i/><strong>Clarity in every detail.</strong></div>}
         </div>
       </div>
@@ -124,7 +124,7 @@ export function StudioSignatureStage({studies}: {studies: readonly StudioShowcas
       <div className="sfn-signature-backdrop" aria-hidden="true">{selected.number}</div>
       <div className="sfn-signature-window" key={selected.slug}>
         <div className="sfn-signature-browser"><span className="sfn-browser-dots" aria-hidden="true"><i/><i/><i/></span><span>{study?.title ?? "Website concept"} / DESIGN STUDY</span><span>↗</span></div>
-        {study && <StudioConceptCanvas slug={study.slug} />}
+        {study && <StudioConceptCanvas slug={study.slug} priority />}
       </div>
       <div className="sfn-signature-stamp" aria-hidden="true">VISUAL<br/>DIRECTION<br/>STUDY ↗</div>
     </div>
