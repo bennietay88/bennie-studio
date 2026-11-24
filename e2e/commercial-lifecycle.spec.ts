@@ -190,7 +190,9 @@ test("customer dashboard shows only reviewed monthly reports with loading, empty
   }));
   let requestFails = false;
   let includePublished = true;
-  let holdFirstReportRequest = true;
+  // Hold every initial report request, not only the first. Auth initialization
+  // or dashboard refreshes may start overlapping reads before React paints.
+  let holdInitialReportRequests = true;
   let markReportRequestStarted!: () => void;
   let releaseReportResponse!: () => void;
   const reportRequestStarted = new Promise<void>((resolve) => { markReportRequestStarted = resolve; });
@@ -199,8 +201,7 @@ test("customer dashboard shows only reviewed monthly reports with loading, empty
   await page.route("**/rest/v1/monthly_growth_reports*", async (route) => {
     const url = new URL(route.request().url());
     requestedStatus = url.searchParams.get("status");
-    if (holdFirstReportRequest) {
-      holdFirstReportRequest = false;
+    if (holdInitialReportRequests) {
       markReportRequestStarted();
       await reportResponseRelease;
     }
@@ -220,10 +221,16 @@ test("customer dashboard shows only reviewed monthly reports with loading, empty
     await json(route, reports);
   });
 
-  await signIn(page, "client");
-  await reportRequestStarted;
-  await expect(page.getByRole("status").filter({ hasText: "Loading reviewed reports" })).toBeVisible();
-  releaseReportResponse();
+  try {
+    await signIn(page, "client");
+    await reportRequestStarted;
+    await expect(page.getByText("Monthly Website Reports", { exact: true })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Loading reviewed reports" })).toBeVisible();
+  } finally {
+    // Release all intercepted reads even if an assertion fails.
+    holdInitialReportRequests = false;
+    releaseReportResponse();
+  }
   await expect(page.getByText("Monthly Website Reports", { exact: true })).toBeVisible();
   await expect(page.getByText("2026-10", { exact: true })).toBeVisible();
   await expect(page.getByText("This draft must stay private.")).toHaveCount(0);
