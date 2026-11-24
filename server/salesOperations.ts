@@ -243,9 +243,10 @@ export async function runSalesDelivery(input: {
           result.deferred++;
           continue;
         }
-        if (message.channel === "email" && !message.reply_to_message_id
-          && salesEmailPermissionBlockReason(contact, new Date(now))) {
-          await release({ status: "draft", error: "Recipient permission evidence is incomplete; manual legal review is required before contact." });
+        const permissionBlockReason = message.channel === "email" && !message.reply_to_message_id
+          ? salesEmailPermissionBlockReason(contact, new Date(now)) : null;
+        if (permissionBlockReason) {
+          await release({ status: "draft", error: `Recipient permission review required: ${permissionBlockReason}` });
           result.deliveryBlocked++;
           continue;
         }
@@ -321,9 +322,10 @@ export async function runSalesDelivery(input: {
         const { data: siblings } = checked(await db.from("sales_messages").select("*").eq("enrollment_id", enrollment.id));
         const sequence = enrollment.outreach_sequences || {};
         const isColdSales = sequence.audience_type === "cold" || sequence.name === "Permissioned website review";
-        if (isColdSales && message.channel === "email" && !message.reply_to_message_id
-          && contact && salesEmailPermissionBlockReason(contact, new Date(now))) {
-          await release({ status: "draft", error: "Recipient permission evidence is incomplete; manual legal review is required before contact." });
+        const permissionBlockReason = isColdSales && message.channel === "email" && !message.reply_to_message_id && contact
+          ? salesEmailPermissionBlockReason(contact, new Date(now)) : null;
+        if (permissionBlockReason) {
+          await release({ status: "draft", error: `Recipient permission review required: ${permissionBlockReason}` });
           result.deliveryBlocked++;
           continue;
         }
@@ -716,8 +718,9 @@ export async function sendDirectProspectOutreach(
       throw new Error("CONTACT_SUPPRESSED");
     }
     // Check existing recipient evidence server-side, not a repeated UI attestation.
-    if (!input.replyToMessageId && salesEmailPermissionBlockReason(prospect, new Date(now))) {
-      throw new Error("CONTACT_PERMISSION_NOT_VERIFIED");
+    const permissionBlockReason = !input.replyToMessageId ? salesEmailPermissionBlockReason(prospect, new Date(now)) : null;
+    if (permissionBlockReason) {
+      throw Object.assign(new Error("CONTACT_PERMISSION_NOT_VERIFIED"), { permissionBlockReason });
     }
   } else {
     if (!/^\d{7,15}$/.test(phone)) throw new Error("CONTACT_CHANNEL_MISSING");
