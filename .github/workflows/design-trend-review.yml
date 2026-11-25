@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26
       - name: Build candidate report from public editorial feeds
         run: node scripts/design-trend-review.mjs
       - name: Create non-publishing review issue
