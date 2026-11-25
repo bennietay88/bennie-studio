@@ -62,21 +62,16 @@ test("unresolved placeholders never become send-ready messages", () => {
 });
 
 
-test("bulk send requires explicit manual confirmation in addition to platform-verified permissions", () => {
+test("bulk send uses an explicit send action without separate permission management", () => {
   const bulkIntro = readFileSync("src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "utf8");
   const bulkFollowUp = readFileSync("src/components/SuperAdmin/ManualBulkProspectFollowUps.tsx", "utf8");
-  assert.match(bulkIntro, /recipientPermissionConfirmed: true/);
-  assert.match(bulkIntro, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError\) return;/);
-  assert.match(bulkFollowUp, /recipientPermissionConfirmed: permissionConfirmed/);
-  assert.match(bulkFollowUp, /type="checkbox" checked=\{permissionConfirmed\}/);
-  assert.match(bulkFollowUp, /setPermissionConfirmed\(false\)/);
-  assert.match(bulkFollowUp, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError \|\| !permissionConfirmed\) return;/);
   for (const bulk of [bulkIntro, bulkFollowUp]) {
-    assert.match(bulk, /does not create or alter marketing-consent records/);
+    assert.match(bulk, /if \(sending \|\| finished \|\| loading \|\| !ready.length \|\| loadError\) return;/);
     assert.match(bulk, /Authorization: "Bearer " \+ session.access_token/);
-    assert.doesNotMatch(bulk, /InlineRecipientPermission/);
+    assert.doesNotMatch(bulk, /InlineRecipientPermission|Recipient Consent Import|recipientPermissionConfirmed|permissionConfirmed/);
     assert.match(bulk, /dispatchLock.current = true/);
-    assert.match(bulk, /Recipient Consent Import/);
+    assert.match(bulk, /CONTACT_PERMISSION_NOT_VERIFIED/);
+    assert.match(bulk, /onClick=\{\(\) => void sendSelected\(\)\}/);
   }
 });
 
@@ -100,7 +95,7 @@ test("bulk preview consolidates permission-ineligible prospects under skipped wi
   assert.match(ui, /reason: preview\.reason/);
   assert.match(ui, /No delivery attempted/);
   assert.match(ui, /blockedByPermission/);
-  assert.match(ui, /Confirm recipient permission & send/);
+  assert.match(ui, /"Send " \+ ready.length \+ " introduction"/);
 });
 
 test("intro preview reports specific eligibility failures", () => {

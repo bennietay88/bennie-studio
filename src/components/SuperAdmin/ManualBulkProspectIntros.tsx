@@ -127,7 +127,6 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               reviewUrl: null,
               replyToMessageId: null,
               requestId: row.requestId,
-              recipientPermissionConfirmed: true,
             }),
           });
           const payload = await response.json().catch(() => ({}));
@@ -179,7 +178,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
             <Mail className="h-5 w-5 text-indigo-600" /> Send introductions to new prospects
           </DialogTitle>
           <DialogDescription className="leading-6">
-            Review up to 25 selected prospects, then confirm and send the eligible batch. Only new, uncontacted prospects can qualify.
+            Review up to 25 selected prospects, then send the eligible batch. Only new, uncontacted prospects can qualify.
             Existing outbound email history, replies, closed records or duplicate recipients are skipped.
             Opening this screen never sends an email.
           </DialogDescription>
@@ -195,9 +194,6 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                 {!!submitted.length && <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">{submitted.length} submitted</span>}
                 {!!failed.length && <span className="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">{failed.length} failed / needs review</span>}
               </div>
-              {skipped.some(row => /consent|permission evidence/i.test(row.reason || "")) && !finished && (
-                <p className="text-sm text-slate-600">Recipients without saved authorization are excluded. Existing permission records can be imported together using Recipient Consent Import in Prospect Explorer; no individual forms are required in this batch.</p>
-              )}
               <div className="space-y-3">
                 {[...rows.filter(row => row.delivery !== "skipped"), ...rows.filter(row => row.delivery === "skipped")].map((row, index) => (
                   <div key={row.prospectId} className={"rounded-xl border p-4 " +
@@ -238,11 +234,6 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
             Verify failed or uncertain sends before any retry.
           </div>}
         </div>
-        {!loading && !loadError && ready.length > 0 && !finished && (
-          <div className="shrink-0 border-t border-slate-200 bg-white px-5 pt-3 sm:px-7">
-            <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">Clicking Send confirms permission to contact the eligible recipients. This does not create or alter marketing-consent records.</p>
-          </div>
-        )}
         <DialogFooter className="!mx-0 !mb-0 shrink-0 gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>{finished ? "Close" : "Cancel"}</Button>
           {!finished && !loading && !loadError && !ready.length && !!rows.length && (
@@ -250,7 +241,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
           )}
           {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            {sending ? "Sending individually…" : "Confirm recipient permission & send " + ready.length + " introduction" + (ready.length === 1 ? "" : "s")}
+            {sending ? "Sending individually…" : "Send " + ready.length + " introduction" + (ready.length === 1 ? "" : "s")}
           </Button>}
         </DialogFooter>
       </DialogContent>
