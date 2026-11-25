@@ -70,3 +70,16 @@ test("missing or mismatched recipient consent is skipped before sending", () => 
     assert.match(String(result.reason), /No email attempted/);
   }
 });
+
+test("draft-only follow-up preview defers consent verification but respects due dates and replies", () => {
+  const now = new Date("2026-11-04T09:00:00Z");
+  const prospect = { ...CONTACT, marketing_consent: false, consent_email: "other@example.com" };
+  const before = JSON.stringify(prospect);
+  const draft = prepareManualBulkFollowUp(prospect, [INTRO], {}, now, { draftOnly: true });
+  assert.equal(draft.kind, "ready");
+  assert.ok(draft.subject && draft.bodyText);
+  assert.equal(JSON.stringify(prospect), before);
+  assert.equal(prepareManualBulkFollowUp(prospect, [INTRO], {}, new Date("2026-11-02T09:00:00Z"), { draftOnly: true }).kind, "skip");
+  assert.equal(prepareManualBulkFollowUp(prospect, [INTRO, { direction:"inbound", status:"replied" }], {}, now, { draftOnly: true }).kind, "skip");
+  assert.equal(prepareManualBulkFollowUp(prospect, [INTRO], {}, now).kind, "skip");
+});

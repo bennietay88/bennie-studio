@@ -60,8 +60,8 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               if (!response.ok) throw new Error("Current prospect history could not be verified.");
               const history = await response.json();
               if (!history.prospect || !Array.isArray(history.messages)) throw new Error("Current prospect history is incomplete.");
-              const preview = prepareManualBulkIntro(history.prospect, history.messages, overrides);
-              // Permission-ineligible prospects are ordinary pre-dispatch skips, not a separate review queue.
+              const preview = prepareManualBulkIntro(history.prospect, history.messages, overrides, { draftOnly: true });
+              // Defensive fallback for an eligibility-mode result; draft-only previews do not check recipient consent.
               if (preview.kind === "permission_review") return { ...preview, kind: "skip", requestId, delivery: "skipped", reason: preview.reason || "Recipient permission evidence is incomplete. No email attempted." };
               return { ...preview, requestId, delivery: preview.kind === "ready" ? "ready" : "skipped" };
             } catch (error: any) {
@@ -178,7 +178,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
             <Mail className="h-5 w-5 text-indigo-600" /> Send introductions to new prospects
           </DialogTitle>
           <DialogDescription className="leading-6">
-            Review up to 25 selected prospects, then send the eligible batch. Only new, uncontacted prospects can qualify.
+            Review up to 25 selected prospects. Draft preparation does not authorize delivery. Only new, uncontacted prospects can qualify. Recipient eligibility is verified by the server when you click Send.
             Existing outbound email history, replies, closed records or duplicate recipients are skipped.
             Opening this screen never sends an email.
           </DialogDescription>
@@ -189,7 +189,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
           {!!rows.length && (
             <>
               <div className="flex flex-wrap gap-3 text-sm font-medium">
-                <span className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-800">{ready.length} ready</span>
+                <span className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-800">{ready.length} drafts prepared</span>
                 <span className="rounded-lg bg-slate-100 px-3 py-2 text-slate-700">{skipped.length} skipped</span>
                 {!!submitted.length && <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">{submitted.length} submitted</span>}
                 {!!failed.length && <span className="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">{failed.length} failed / needs review</span>}
@@ -208,7 +208,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                         (row.delivery === "ready" ? "bg-indigo-100 text-indigo-800" :
                           row.delivery === "submitted" ? "bg-emerald-100 text-emerald-800" :
                             row.delivery === "failed" ? "bg-rose-100 text-rose-800" : "bg-slate-200 text-slate-600")}>
-                        {row.delivery === "ready" ? "Introduction · Ready" :
+                        {row.delivery === "ready" ? "Introduction · Draft prepared" :
                           row.delivery === "sending" ? "Sending…" :
                             row.delivery === "submitted" ? "Submitted" :
                               row.delivery === "failed" ? "Delivery needs review" : "Skipped"}
@@ -237,7 +237,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
         <DialogFooter className="!mx-0 !mb-0 shrink-0 gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>{finished ? "Close" : "Cancel"}</Button>
           {!finished && !loading && !loadError && !ready.length && !!rows.length && (
-            <p className="text-sm text-slate-600">No eligible recipients. See skipped reasons above.</p>
+            <p className="text-sm text-slate-600">No drafts available. See skipped reasons above.</p>
           )}
           {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}

@@ -47,6 +47,7 @@ export function prepareManualBulkIntro(
   prospect: Prospect,
   messages: ProspectSentMessage[],
   overrides: ProspectEmailOverrides = {},
+  options: { draftOnly?: boolean } = {},
 ): ManualBulkIntroPreview {
   const name = String(prospect.name || "Unknown prospect").trim();
   const email = String(prospect.contact_email || "").trim();
@@ -72,7 +73,8 @@ export function prepareManualBulkIntro(
     return skip("An email already exists in this prospect's history. Review it individually.");
   }
 
-  const permissionReason = salesEmailPermissionBlockReason(prospect);
+  // Draft-only previews are not authorization to dispatch. The send endpoint independently verifies recipient eligibility.
+  const permissionReason = options.draftOnly ? null : salesEmailPermissionBlockReason(prospect);
   if (permissionReason) return { ...base, kind: "permission_review", reason: describeSalesEmailPermissionBlockReason(permissionReason) };
   const firstName = String(prospect.contact_first_name || prospect.contact_name || "").trim().split(/\s+/)[0] || name + " team";
   const rendered = renderProspectEmailTemplate("intro", {

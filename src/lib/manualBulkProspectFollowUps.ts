@@ -72,6 +72,7 @@ export function prepareManualBulkFollowUp(
   messages: ProspectSentMessage[],
   overrides: ProspectEmailOverrides = {},
   now = new Date(),
+  options: { draftOnly?: boolean } = {},
 ): ManualBulkFollowUpPreview {
   const name = String(prospect.name || "Unknown prospect");
   const email = String(prospect.contact_email || "").trim();
@@ -83,7 +84,8 @@ export function prepareManualBulkFollowUp(
   if (next.kind === "intro") return skip("No confirmed opening email. This action sends follow-ups only.");
   if (next.kind === "wait") return skip("Not due until " + new Date(String(next.dueAt)).toLocaleString() + ".");
   if (next.kind === "stop" || !next.stage) return skip(next.reason || "Follow-up not available.");
-  const permissionReason = salesEmailPermissionBlockReason(prospect, now);
+  // Draft-only previews are not authorization to dispatch. The send endpoint independently verifies recipient eligibility.
+  const permissionReason = options.draftOnly ? null : salesEmailPermissionBlockReason(prospect, now);
   if (permissionReason) return skip(describeSalesEmailPermissionBlockReason(permissionReason));
   const verifiedWebsite = Boolean(prospect.website_evidence_source_url && prospect.website_verified_at
     && prospect.website_verification_method && prospect.website_finding && prospect.website_verified_by);

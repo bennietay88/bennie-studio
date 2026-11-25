@@ -61,7 +61,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
               if (!response.ok) throw new Error("Current prospect history could not be verified.");
               const payload = await response.json();
               if (!payload.prospect || !Array.isArray(payload.messages)) throw new Error("Current prospect history is incomplete.");
-              const preview = prepareManualBulkFollowUp(payload.prospect, payload.messages, overrides);
+              const preview = prepareManualBulkFollowUp(payload.prospect, payload.messages, overrides, new Date(), { draftOnly: true });
               return { ...preview, requestId, delivery: preview.kind === "ready" ? "ready" : "skipped" } as PreviewRow;
             } catch (error: any) {
               return { prospectId: id, name: "Selected prospect", email: "", kind: "skip", reason: error?.message || "Could not verify current prospect history.", requestId, delivery: "skipped" } as PreviewRow;
@@ -168,7 +168,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
         <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-5 pr-14 sm:px-7">
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-950"><Mail className="h-5 w-5 text-indigo-600" /> Send selected follow-ups</DialogTitle>
           <DialogDescription className="leading-6">
-            Review the eligible batch and send. Individual previews are available below. Opening this screen never sends emails.
+            Review the prepared drafts, then click Send to authorize the batch. The server verifies recipient eligibility before delivery. Opening this screen never sends emails.
             Prospects without a confirmed earlier email, not yet due, already replied, or closed are skipped.
           </DialogDescription>
         </DialogHeader>
@@ -178,7 +178,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
           {!!rows.length && (
             <>
               <div className="flex flex-wrap gap-3 text-sm font-medium">
-                <span className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-800">{ready.length} ready</span>
+                <span className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-800">{ready.length} drafts prepared</span>
                 <span className="rounded-lg bg-slate-100 px-3 py-2 text-slate-700">{skipped.length} skipped</span>
                 {!!submitted.length && <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">{submitted.length} submitted</span>}
                 {!!failed.length && <span className="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">{failed.length} failed / needs review</span>}
@@ -192,7 +192,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
                         <p className="break-all text-xs text-slate-500">{row.email || row.prospectId}</p>
                       </div>
                       <span className={"rounded-full px-2.5 py-1 text-xs font-semibold " + (row.delivery === "ready" ? "bg-indigo-100 text-indigo-800" : row.delivery === "submitted" ? "bg-emerald-100 text-emerald-800" : row.delivery === "failed" ? "bg-rose-100 text-rose-800" : "bg-slate-200 text-slate-600")}>
-                        {row.delivery === "ready" ? "Day " + ([3, 8, 15][(row.stage || 1) - 1]) + " · Ready" : row.delivery === "sending" ? "Sending…" : row.delivery === "submitted" ? "Submitted" : row.delivery === "failed" ? "Needs review" : "Skipped"}
+                        {row.delivery === "ready" ? "Day " + ([3, 8, 15][(row.stage || 1) - 1]) + " · Draft prepared" : row.delivery === "sending" ? "Sending…" : row.delivery === "submitted" ? "Submitted" : row.delivery === "failed" ? "Needs review" : "Skipped"}
                       </span>
                     </div>
                     {row.kind === "ready" ? (
