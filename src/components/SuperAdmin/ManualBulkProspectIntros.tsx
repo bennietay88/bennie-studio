@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Loader2, Mail, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
+import { ManualRecipientEvidenceFields } from "./ManualRecipientEvidenceFields";
+import type { ManualRecipientEvidence } from "../../lib/manualRecipientEvidence";
 import { MAX_MANUAL_BULK_INTRO, prepareManualBulkIntro } from "../../lib/manualBulkProspectIntros";
 import type { ManualBulkIntroPreview } from "../../lib/manualBulkProspectIntros";
 import type { ProspectEmailOverrides } from "../../lib/prospectOutreachTemplates";
@@ -28,11 +30,13 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
   const dispatchLock = useRef(false);
+  const [externalEvidence, setExternalEvidence] = useState<Record<string, ManualRecipientEvidence | undefined>>({});
 
   useEffect(() => {
     if (!open) return;
     let active = true;
     setRows([]);
+    setExternalEvidence({});
     setLoadError("");
     setFinished(false);
     if (!selectedIds.length || selectedIds.length > MAX_MANUAL_BULK_INTRO) {
@@ -127,6 +131,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               reviewUrl: null,
               replyToMessageId: null,
               requestId: row.requestId,
+              ...(externalEvidence[row.prospectId] ? { recipientEvidence: externalEvidence[row.prospectId] } : {}),
             }),
           });
           const payload = await response.json().catch(() => ({}));
@@ -223,6 +228,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
                         </div>
                       </details>
                     ) : row.kind === "skip" ? <p className="mt-2 text-xs leading-5 text-slate-600">{row.reason}</p> : null}
+                    {row.delivery === "ready" && <ManualRecipientEvidenceFields email={row.email} value={externalEvidence[row.prospectId]} disabled={sending} onChange={value => setExternalEvidence(current => ({ ...current, [row.prospectId]: value }))} />}
                     {row.error && <p className="mt-2 text-xs font-medium text-rose-800">{row.error} Do not resend until provider delivery is checked.</p>}
                   </div>
                 ))}
