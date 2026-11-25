@@ -13,7 +13,7 @@ test("Zod prose annotation workaround leaves real PURE markers and unrelated fil
 test("Node runtime is pinned consistently with the lockfile and server output is compact", () => {
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
   const lock = JSON.parse(readFileSync("package-lock.json", "utf8"));
-  assert.equal(pkg.engines.node, "22.x");
+  assert.equal(pkg.engines.node, "26.x");
   assert.equal(lock.packages[""].engines.node, pkg.engines.node);
   assert.match(pkg.scripts.build, /--minify-whitespace --minify-syntax --sourcemap/);
 });
