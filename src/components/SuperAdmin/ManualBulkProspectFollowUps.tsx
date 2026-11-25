@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, Mail, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
+import { CONSENT_COLUMNS, parseRecipientConsentCsv, recipientConsentCsvRow } from "../../lib/recipientConsentImport";
 import { MAX_MANUAL_BULK_FOLLOW_UP, prepareManualBulkFollowUp } from "../../lib/manualBulkProspectFollowUps";
 import type { ManualBulkFollowUpPreview } from "../../lib/manualBulkProspectFollowUps";
 import type { ProspectEmailOverrides } from "../../lib/prospectOutreachTemplates";
@@ -28,11 +29,26 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
   const dispatchLock = useRef(false);
+  const [externalRows, setExternalRows] = useState<Map<string, string> | null>(null);
+  const [csvError, setCsvError] = useState("");
+  const [csvLoading, setCsvLoading] = useState(false);
+  const loadConsentFile = async (file: File | undefined) => {
+    setExternalRows(null); setCsvError("");
+    if (!file) return;
+    setCsvLoading(true);
+    try {
+      if (file.size > 100000) throw new Error("CSV exceeds 100 KB.");
+      const parsed = parseRecipientConsentCsv(await file.text());
+      setExternalRows(new Map(parsed.map(row => [row.consent_email, recipientConsentCsvRow(row)])));
+    } catch (error: any) { setCsvError(error?.message || "Could not read consent CSV."); }
+    finally { setCsvLoading(false); }
+  };
 
   useEffect(() => {
     if (!open) return;
     let active = true;
     setRows([]);
+    setExternalRows(null); setCsvError(""); setCsvLoading(false);
     setLoadError("");
     setFinished(false);
     if (!selectedIds.length || selectedIds.length > MAX_MANUAL_BULK_FOLLOW_UP) {
@@ -99,7 +115,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
 
   const sendSelected = async () => {
     if (sending || finished || loading || !ready.length || loadError) return;
-    if (dispatchLock.current) return;
+    if (csvError || csvLoading || dispatchLock.current) return;
     dispatchLock.current = true;
     setSending(true);
     const sentIds: string[] = [];
@@ -109,6 +125,11 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
       // Explicit manual delivery: each request uses the existing authenticated,
       // stage-verified single-prospect send endpoint. No timer or bulk cron.
       for (const row of ready) {
+        const recipientConsentCsv = externalRows?.get(row.email.trim().toLowerCase());
+        if (externalRows && !recipientConsentCsv) {
+          setRows(current => current.map(item => item.prospectId === row.prospectId ? { ...item, kind: "skip", delivery: "skipped", reason: "No matching recipient record in the selected consent CSV. No email attempted." } : item));
+          continue;
+        }
         if (!row.templateId || !row.subject || !row.bodyText) continue;
         setRows((current) => current.map((item) => item.prospectId === row.prospectId ? { ...item, delivery: "sending" } : item));
         try {
@@ -125,6 +146,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
               reviewUrl: null,
               replyToMessageId: null,
               requestId: row.requestId,
+              ...(recipientConsentCsv ? { recipientConsentCsv } : {}),
             }),
           });
           const payload = await response.json().catch(() => ({}));
@@ -175,6 +197,16 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-5 sm:px-7">
           {loading && <div className="flex items-center gap-3 rounded-xl bg-indigo-50 p-4 text-sm font-medium text-indigo-900"><Loader2 className="h-5 w-5 animate-spin" /> Verifying sent history and preparing individual previews…</div>}
           {loadError && <div role="alert" className="flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><AlertTriangle className="h-5 w-5 shrink-0" /> {loadError}</div>}
+          {!finished && <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2">
+            <label className="block text-sm font-semibold text-slate-900">External opt-in CSV (optional)
+              <input type="file" accept=".csv,text/csv" disabled={sending || loading || csvLoading} className="mt-2 block w-full text-sm" onChange={e => void loadConsentFile(e.target.files?.[0])} />
+            </label>
+            <p className="text-xs text-slate-600">Use original recipient opt-in records. Only the matching record is verified at send time; no separate CRM import is required. Without a CSV, existing CRM evidence is used. Clicking Send confirms your authorization for this batch.</p>
+            <p className="break-all text-xs text-slate-500">CSV headers: {CONSENT_COLUMNS.join(", ")}</p>
+            {csvLoading && <p className="text-xs">Reading CSV…</p>}
+            {csvError && <p role="alert" className="text-xs text-rose-700">{csvError}</p>}
+            {externalRows && <p className="text-sm text-indigo-800">{ready.filter(row => externalRows.has(row.email.trim().toLowerCase())).length} of {ready.length} prepared drafts match the uploaded CSV. Unmatched recipients will not be sent.</p>}
+          </div>}
           {!!rows.length && (
             <>
               <div className="flex flex-wrap gap-3 text-sm font-medium">
@@ -214,7 +246,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
         </div>
         <DialogFooter className="!mx-0 !mb-0 shrink-0 gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-7">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>{finished ? "Close" : "Cancel"}</Button>
-          {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
+          {!finished && <Button onClick={() => void sendSelected()} disabled={loading || sending || csvLoading || !!csvError || !ready.length || !!loadError} className="bg-indigo-600 text-white hover:bg-indigo-700">
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             {sending ? "Sending individually…" : "Send " + ready.length + " reviewed follow-up" + (ready.length === 1 ? "" : "s")}
           </Button>}

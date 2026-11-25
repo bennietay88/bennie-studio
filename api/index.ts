@@ -9306,6 +9306,7 @@ async function startServer() {
           reviewUrl: z.string().trim().url().max(2000).nullable().optional(),
           replyToMessageId: UUID_SCHEMA.optional().nullable(),
           recipientPermissionConfirmed: z.boolean().optional(),
+          recipientConsentCsv: z.string().min(1).max(5000).optional(),
           requestId: UUID_SCHEMA,
         }),
         req,
@@ -9313,6 +9314,9 @@ async function startServer() {
       );
       if (!body) return;
 
+      if (body.recipientConsentCsv !== undefined && (profile?.role !== "super_admin" || body.action !== "send" || body.channel !== "email" || body.replyToMessageId)) {
+        return res.status(403).json({ error: "External consent CSV is available only for super-admin direct marketing email sends." });
+      }
       if (body.action === "send") {
         if (body.channel !== "email") {
           return res.status(400).json({
@@ -9367,7 +9371,7 @@ async function startServer() {
         },
         CONTACT_PERMISSION_NOT_VERIFIED: {
           status: 409,
-          message: "Email contact is blocked until exact-address consent, jurisdiction, recipient type, and lawful basis are documented in the CRM.",
+          message: "Email contact is blocked until exact-address consent, jurisdiction, recipient type, and lawful basis are verified from CRM or an external consent CSV.",
         },
         CONTACT_PERMISSION_CONFIRMATION_REQUIRED: {
           status: 409,

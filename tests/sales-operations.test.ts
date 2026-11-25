@@ -639,3 +639,20 @@ test("reactivation fails closed on suppression, active enrollment, sending and c
     assert.equal(db.tables.prospects[0].outreach_exhausted_at, NOW);
   }
 });
+
+test("manual bulk email accepts matching external consent CSV without updating CRM consent", async () => {
+ const prospect = {id:"p1",name:"Example Clinic",status:"qualified",outreach_status:"not_started",contact_email:"clinic@example.com",marketing_consent:false,notes:""};
+ const csv = "consent_email,consent_timestamp,consent_source,contact_jurisdiction,contact_recipient_type\nclinic@example.com,2026-08-25T10:00:00Z,Recipient signup form reference 123,MY,business";
+ let sends=0;
+ const input={prospectId:"p1",channel:"email" as const,templateId:"bulk-introduction",subject:"Hello",bodyText:"A website question for you.",requestId:"external-csv-intro",actorId:"admin",
+  recipientConsentCsv:csv,deliver:async(message:Row)=>{sends++;assert.equal(message.provider_payload.recipientPermissionVerified,true);assert.equal(message.provider_payload.permissionSource,"external_csv");assert.match(message.provider_payload.permissionEvidenceHash,/^[a-f0-9]{64}$/);return {id:"fixture-csv-provider"};}};
+ const db = new MemoryDb({prospects:[prospect]});
+ await sendDirectProspectOutreach(db as any,input,NOW);
+ assert.equal(sends,1);
+ assert.equal(db.tables.prospects[0].marketing_consent,false);
+ assert.equal(db.tables.prospects[0].consent_timestamp,undefined);
+ assert.equal(db.tables.sales_messages[0].provider_message_id,"fixture-csv-provider");
+ await assert.rejects(sendDirectProspectOutreach(new MemoryDb({prospects:[prospect]}) as any,{...input,recipientConsentCsv:csv.replace("clinic@example.com","wrong@example.com")},NOW),/CONTACT_PERMISSION_NOT_VERIFIED/);
+ await assert.rejects(sendDirectProspectOutreach(new MemoryDb({prospects:[prospect],sales_suppressions:[{id:"s1",email:"clinic@example.com"}]}) as any,input,NOW),/CONTACT_SUPPRESSED/);
+ assert.equal(sends,1);
+});
