@@ -3771,11 +3771,11 @@ async function startServer() {
     const html = `<div style="font-family:Arial,sans-serif;line-height:1.65;color:#172033">${escapeHtml(message.body_text).replace(/\n/g, "<br>")}<p style="margin-top:24px;font-size:12px;color:#64748b"><a href="${unsubscribeUrl}">Stop receiving these emails</a></p></div>`;
     const selectedProvider = selectEmailProvider(platformSettings?.salesEmailProvider);
     if (selectedProvider === "hostinger") {
-      // This path is called only after the authenticated prospect send endpoint
-      // verifies documented permission. Do not require a second operator checkbox.
+      // Only the authenticated server-created manual outreach message or a verified
+      // permissioned message may use direct dispatch; never fabricate consent.
       if (!message.reply_to_message_id &&
         (message.provider_payload?.directSend !== true ||
-          message.provider_payload?.recipientPermissionVerified !== true)) {
+          (message.provider_payload?.manualProspectEmail !== true && message.provider_payload?.recipientPermissionVerified !== true))) {
         throw new Error("CONTACT_PERMISSION_NOT_VERIFIED");
       }
       return sendHostingerMail({

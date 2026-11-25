@@ -403,7 +403,7 @@ test("commercial lifecycle covers conversion, customer access and fresh launch Q
   await expect(page.getByText(/A simple introduction first/i)).toBeVisible();
   await expect(page.locator("textarea").last()).toHaveValue(/I help service businesses make their websites clearer and easier for customers to enquire through/);
   await expect(page.getByText("View or edit saved email templates")).toBeVisible();
-  await expect(page.getByText("Recipient eligibility is verified automatically from the CRM before dispatch.")).toBeVisible();
+  await expect(page.getByText("Review the recipient and message before sending. Suppressed addresses and duplicate sends remain blocked.", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Send email", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Send email", exact: true }).click();
   await expect.poll(() => outreachSent).toBe(true);

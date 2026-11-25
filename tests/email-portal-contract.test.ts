@@ -96,7 +96,7 @@ test("Resend key validation hotfix avoids PostgreSQL excessive regex repetition 
 test("Hostinger manual sends use server-verified recipient permission instead of a duplicate confirmation", () => {
   const direct = api.slice(api.indexOf("const sendDirectSalesEmail = async"), api.indexOf("const isPrivateAddress", api.indexOf("const sendDirectSalesEmail = async")));
   assert.match(direct, /message\.provider_payload\?\.directSend !== true/);
-  assert.match(direct, /message\.provider_payload\?\.recipientPermissionVerified !== true/);
+  assert.match(direct, /message\.provider_payload\?\.manualProspectEmail !== true && message\.provider_payload\?\.recipientPermissionVerified !== true/);
   assert.match(direct, /CONTACT_PERMISSION_NOT_VERIFIED/);
   assert.doesNotMatch(direct, /consent_timestamp|consent_source|marketing_consent/);
   assert.match(api, /recipientPermissionConfirmed: z\.boolean\(\)\.optional\(\)/);

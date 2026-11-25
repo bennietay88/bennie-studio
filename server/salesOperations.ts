@@ -691,6 +691,8 @@ export async function sendDirectProspectOutreach(
   const reviewUrl = safeAuditReviewUrl(input.reviewUrl);
   const followUpStage = FOLLOW_UP_TEMPLATE_STAGES[String(input.templateId || "")] || null;
   const bulkIntro = input.templateId === "bulk-introduction";
+  // Only authenticated, manually selected introduction and staged follow-up sends.
+  const manualProspectEmail = input.channel === "email" && !input.replyToMessageId && !input.experimentId && (bulkIntro || Boolean(followUpStage) || ["introduction", "general-introduction"].includes(String(input.templateId || "")));
   if (!input.replyToMessageId && !input.experimentId && input.templateId !== "general-introduction" && input.templateId !== "introduction" && !bulkIntro && !followUpStage && String(input.observation || "").trim().length < 10 && !reviewUrl) {
     throw new Error("OUTREACH_OBSERVATION_REQUIRED");
   }
@@ -725,7 +727,7 @@ export async function sendDirectProspectOutreach(
       externalEvidence = resolveManualRecipientEvidence(input.recipientEvidence, prospect, new Date(now));
       if (!externalEvidence) throw new Error("CONTACT_PERMISSION_NOT_VERIFIED");
     }
-    const permissionBlockReason = !input.replyToMessageId ? (externalEvidence
+    const permissionBlockReason = !input.replyToMessageId && (!manualProspectEmail || externalEvidence) ? (externalEvidence
       ? salesEmailPermissionBlockReason({ ...prospect, ...externalEvidence }, new Date(now))
       : salesEmailPermissionBlockReason(prospect, new Date(now))) : null;
     if (permissionBlockReason) {
@@ -744,7 +746,7 @@ export async function sendDirectProspectOutreach(
     if (suppression) throw new Error("CONTACT_SUPPRESSED");
   }
 
-  // Operator authorization never overrides a prospect's marketing-consent status.
+  // Manual outreach is distinct from consent-gated automated outreach.
   // A manual follow-up is allowed only after confirmed prior sends and its
   // 3/5/7-day interval; never accept a guessed CRM status as send authority.
   if (followUpStage) {
@@ -890,7 +892,7 @@ export async function sendDirectProspectOutreach(
     replyToMessageId = parent.id;
   }
 
-  // The recipient's documented permission was verified above for non-reply email.
+  // Keep operator-initiated outreach distinct from documented recipient consent.
 
   const messageId = prior?.id || salesRecordId(key);
   const messagePayload = {
@@ -916,12 +918,13 @@ export async function sendDirectProspectOutreach(
       directSend: true,
       actorId: input.actorId,
       // Server verification is separate from the original recipient consent record.
-      recipientPermissionVerified: input.channel === "email" && !replyToMessageId && (externalEvidence
+      manualProspectEmail,
+      recipientPermissionVerified: input.channel === "email" && !replyToMessageId && (!manualProspectEmail || Boolean(externalEvidence)) && (externalEvidence
         ? !salesEmailPermissionBlockReason({ ...prospect, ...externalEvidence }, new Date(now))
         : !salesEmailPermissionBlockReason(prospect, new Date(now))),
       ...(externalEvidence ? { permissionSource: "external_record", permissionConsentTimestamp: externalEvidence.consent_timestamp,
         permissionEvidenceHash: createHash("sha256").update(JSON.stringify(externalEvidence)).digest("hex") } : {}),
-      permissionVerifiedAt: input.channel === "email" && !replyToMessageId ? now : null,
+      permissionVerifiedAt: input.channel === "email" && !replyToMessageId && (!manualProspectEmail || externalEvidence) ? now : null,
       observation: input.observation || null,
       templateId: input.templateId || null,
       experimentId: experimentIdentity?.id || null,
