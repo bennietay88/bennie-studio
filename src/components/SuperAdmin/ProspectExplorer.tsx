@@ -2377,7 +2377,7 @@ export function ProspectExplorer() {
                   <p className="text-xs font-medium leading-5 text-slate-500">
                     Email is submitted through your configured provider. WhatsApp opens externally through wa.me and is not automatically delivered.
                   </p>
-                  {!outreachReplyToMessageId && <p className="text-xs text-slate-500">Recipient eligibility is verified automatically from the CRM before dispatch.</p>}
+                  {!outreachReplyToMessageId && <p className="text-xs text-slate-500">Review the recipient and message before sending. Suppressed addresses and duplicate sends remain blocked.</p>}
                 </section>
               </div>
             )}
