@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
+import { resolveExternalRecipientConsent, type RecipientConsentEvidence } from "../src/lib/recipientConsentImport.js";
 import { z } from "zod";
 import { classifyReply, getOutreachObservation, salesEmailPermissionBlockReason, saveOutreachObservation } from "../src/lib/salesAutomation.js";
 import { PORTFOLIO_URL, renderProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
@@ -673,6 +674,7 @@ export async function sendDirectProspectOutreach(
     reviewUrl?: string | null;
     replyToMessageId?: string | null;
     recipientPermissionConfirmed?: boolean;
+    recipientConsentCsv?: string;
     requestId: string;
     actorId: string;
     deliver: (message: Row) => Promise<{ id: string }>;
@@ -712,13 +714,20 @@ export async function sendDirectProspectOutreach(
     prospect.contact_whatsapp || prospect.contact_phone || "",
   ).replace(/\D/g, "");
 
+  let externalEvidence: RecipientConsentEvidence | null = null;
   if (input.channel === "email") {
     if (!email) throw new Error("CONTACT_CHANNEL_MISSING");
     if (await isSalesSuppressed(db, email)) {
       throw new Error("CONTACT_SUPPRESSED");
     }
     // Check existing recipient evidence server-side, not a repeated UI attestation.
-    const permissionBlockReason = !input.replyToMessageId ? salesEmailPermissionBlockReason(prospect, new Date(now)) : null;
+    if (!input.replyToMessageId && input.recipientConsentCsv !== undefined) {
+      externalEvidence = resolveExternalRecipientConsent(input.recipientConsentCsv, prospect, new Date(now));
+      if (!externalEvidence) throw new Error("CONTACT_PERMISSION_NOT_VERIFIED");
+    }
+    const permissionBlockReason = !input.replyToMessageId ? (externalEvidence
+      ? salesEmailPermissionBlockReason({ ...prospect, ...externalEvidence }, new Date(now))
+      : salesEmailPermissionBlockReason(prospect, new Date(now))) : null;
     if (permissionBlockReason) {
       throw Object.assign(new Error("CONTACT_PERMISSION_NOT_VERIFIED"), { permissionBlockReason });
     }
@@ -907,7 +916,11 @@ export async function sendDirectProspectOutreach(
       directSend: true,
       actorId: input.actorId,
       // Server verification is separate from the original recipient consent record.
-      recipientPermissionVerified: input.channel === "email" && !replyToMessageId && !salesEmailPermissionBlockReason(prospect, new Date(now)),
+      recipientPermissionVerified: input.channel === "email" && !replyToMessageId && (externalEvidence
+        ? !salesEmailPermissionBlockReason({ ...prospect, ...externalEvidence }, new Date(now))
+        : !salesEmailPermissionBlockReason(prospect, new Date(now))),
+      ...(externalEvidence ? { permissionSource: "external_csv", permissionConsentTimestamp: externalEvidence.consent_timestamp,
+        permissionEvidenceHash: createHash("sha256").update(JSON.stringify(externalEvidence)).digest("hex") } : {}),
       permissionVerifiedAt: input.channel === "email" && !replyToMessageId ? now : null,
       observation: input.observation || null,
       templateId: input.templateId || null,

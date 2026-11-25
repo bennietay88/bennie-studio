@@ -30,3 +30,29 @@ export function parseRecipientConsentCsv(csv: string, now = new Date()) {
     return { marketing_consent: true, consent_email: email, consent_timestamp: new Date(time).toISOString(), consent_source: r.consent_source, contact_jurisdiction: country, contact_recipient_type: type, contact_lawful_basis: "consent" };
   });
 }
+
+export type RecipientConsentEvidence = ReturnType<typeof parseRecipientConsentCsv>[number];
+
+/** Keep the original CSV external and submit only the relevant recipient row. */
+export function recipientConsentCsvRow(evidence: RecipientConsentEvidence): string {
+  return CONSENT_COLUMNS.join(",") + "\n" + CONSENT_COLUMNS.map(key =>
+    '"' + evidence[key].replaceAll('"', '""') + '"').join(",");
+}
+
+export function resolveExternalRecipientConsent(csv: string, contact: {
+  contact_email?: string | null; consent_timestamp?: string | null; marketing_consent?: boolean | null;
+}, now: Date): RecipientConsentEvidence | null {
+  try {
+    const rows = parseRecipientConsentCsv(csv, now);
+    if (rows.length !== 1) return null;
+    const evidence = rows[0];
+    if (evidence.consent_email !== String(contact.contact_email || "").trim().toLowerCase()) return null;
+    if (contact.consent_timestamp) {
+      const existing = Date.parse(contact.consent_timestamp);
+      const supplied = Date.parse(evidence.consent_timestamp);
+      if (!Number.isFinite(existing) || existing > supplied
+        || (contact.marketing_consent !== true && existing >= supplied)) return null;
+    }
+    return evidence;
+  } catch { return null; }
+}

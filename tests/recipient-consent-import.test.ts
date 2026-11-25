@@ -23,3 +23,13 @@ test("Canadian and Australian consent is eligible only with genuine address-boun
  }
  assert.throws(()=>parseRecipientConsentCsv(header+"\n"+valid.replace(",MY,",",XX,"),now));
 });
+
+test("external CSV verifies only one matching record and rejects stale or mismatched evidence", async () => {
+ const {recipientConsentCsvRow, resolveExternalRecipientConsent} = await import("../src/lib/recipientConsentImport.ts");
+ const [row]=parseRecipientConsentCsv(header+"\n"+valid,now);
+ const csv=recipientConsentCsvRow(row);
+ assert.deepEqual(resolveExternalRecipientConsent(csv,{contact_email:"INFO@example.com"},now),row);
+ assert.equal(resolveExternalRecipientConsent(csv,{contact_email:"other@example.com"},now),null);
+ assert.equal(resolveExternalRecipientConsent(csv,{contact_email:"info@example.com",marketing_consent:false,consent_timestamp:"2026-02-01T00:00:00Z"},now),null);
+ assert.equal(resolveExternalRecipientConsent(header+"\n"+valid+"\n"+valid.replace("info@example.com","other@example.com"),{contact_email:"info@example.com"},now),null);
+});
