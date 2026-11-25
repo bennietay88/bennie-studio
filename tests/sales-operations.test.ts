@@ -656,3 +656,24 @@ test("manual bulk send uses original external evidence without CRM mutation or p
  await assert.rejects(sendDirectProspectOutreach(new MemoryDb({prospects:[prospect],sales_suppressions:[{id:"s1",email:"clinic@example.com"}]}) as any,input,NOW),/CONTACT_SUPPRESSED/);
  assert.equal(sends,1);
 });
+
+
+test("manual introductions and due staged follow-ups do not require CRM consent or external evidence", async () => {
+  const db = new MemoryDb({ prospects: [{ id: "p1", name: "Example Clinic", status: "qualified", outreach_status: "not_started", contact_email: "clinic@example.com", marketing_consent: false, notes: "" }] });
+  let sends = 0;
+  const deliver = async (message: Row) => {
+    assert.equal(message.provider_payload.manualProspectEmail, true);
+    assert.equal(message.provider_payload.recipientPermissionVerified, false);
+    assert.equal(message.provider_payload.permissionVerifiedAt, null);
+    return { id: "manual-fixture-" + ++sends };
+  };
+  const intro = { prospectId: "p1", channel: "email" as const, templateId: "bulk-introduction", subject: "Hello", bodyText: "A website question for your business.", requestId: "manual-intro-no-consent", actorId: "admin", deliver };
+  await sendDirectProspectOutreach(db as any, intro, NOW);
+  assert.equal(sends, 1);
+  const followUp = { ...intro, templateId: "day3_neutral", requestId: "manual-stage1-no-consent" };
+  await assert.rejects(sendDirectProspectOutreach(db as any, followUp, NOW), /OUTREACH_FOLLOW_UP_STAGE_NOT_DUE/);
+  await sendDirectProspectOutreach(db as any, followUp, new Date(new Date(NOW).getTime() + 3 * 86400000).toISOString());
+  assert.equal(sends, 2);
+  assert.equal(db.tables.prospects[0].marketing_consent, false);
+  assert.equal(db.tables.prospects[0].consent_timestamp, undefined);
+});
