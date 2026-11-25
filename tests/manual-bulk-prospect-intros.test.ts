@@ -104,3 +104,21 @@ test("intro preview reports specific eligibility failures", () => {
  assert.match(prepareManualBulkIntro({...CONTACT, contact_lawful_basis:null},[]).reason || "", /consent basis is missing/);
  for (const country of ["CA","AU"]) assert.equal(prepareManualBulkIntro({...CONTACT,contact_jurisdiction:country},[]).kind,"ready");
 });
+
+test("draft-only introduction previews defer consent verification to dispatch without modifying recipient data", () => {
+  const prospect = { ...CONTACT, marketing_consent: false, consent_timestamp: null, consent_email: null, contact_jurisdiction: "" };
+  const before = JSON.stringify(prospect);
+  const draft = prepareManualBulkIntro(prospect, [], {}, { draftOnly: true });
+  assert.equal(draft.kind, "ready");
+  assert.ok(draft.subject && draft.bodyText);
+  assert.equal(JSON.stringify(prospect), before);
+  assert.equal(prepareManualBulkIntro(prospect, [SENT], {}, { draftOnly: true }).kind, "skip");
+  assert.equal(prepareManualBulkIntro({...prospect, outreach_status:"replied"}, [], {}, { draftOnly: true }).kind, "skip");
+  assert.equal(prepareManualBulkIntro(prospect, []).kind, "permission_review");
+  const ui = readFileSync("src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "utf8");
+  assert.match(ui, /draftOnly: true/);
+  assert.match(ui, /drafts prepared/);
+  const server = readFileSync("server/salesOperations.ts", "utf8");
+  assert.match(server, /salesEmailPermissionBlockReason\(prospect, new Date\(now\)\)/);
+  assert.match(server, /CONTACT_PERMISSION_NOT_VERIFIED/);
+});
