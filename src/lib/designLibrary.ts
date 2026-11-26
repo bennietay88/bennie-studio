@@ -27,7 +27,7 @@ export function createDesignPreset(sections:WebsiteSection[],kind:"section"|"pag
  return {version:1,kind,sections:sections.slice(0,60).map(section=>makeDesignSection(section,id)).filter((section):section is WebsiteSection=>Boolean(section))};
 }
 export function instantiateDesignPreset(value:unknown,id:()=>string):WebsiteSection[]{
- const p=value as DesignPreset;if(!p||p.version!==1||!["section","page"].includes(p.kind)||!Array.isArray(p.sections))return [];
+ const p=value as DesignPreset;if(!p||p.version!==1||(p.kind!=="section"&&p.kind!=="page")||!Array.isArray(p.sections))return [];
  return createDesignPreset(p.sections,p.kind,id).sections;
 }
 export function canConvertSection(section:WebsiteSection):boolean{
