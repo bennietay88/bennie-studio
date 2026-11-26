@@ -4,6 +4,8 @@
   "regions": [
     "sin1"
   ],
+  "installCommand": "unset npm_config_cache_dir && npm install",
+  "buildCommand": "unset npm_config_cache_dir && npm run vercel-build",
   "functions": {
     "api/index.ts": {
       "maxDuration": 60,
