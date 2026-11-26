@@ -49,7 +49,9 @@ import {
   ExternalLink,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion, MotionConfig } from "motion/react";
+import { ClientSiteMotion } from "./AgencyMotionDirector";
+import { resolveSiteMotionProfile } from "../lib/siteMotionProfiles";
 import { generateChatResponse } from "../lib/gemini";
 import { cn, formatDate, generateId, formatStatValue } from "../lib/utils";
 import { Helmet, HelmetProvider } from "react-helmet-async";
@@ -378,7 +380,8 @@ export function WebsiteRenderer({
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const rendererRootRef = useRef<HTMLDivElement | null>(null);
-  const prefersReducedMotion = useReducedMotion();
+  const systemReducedMotion = useReducedMotion();
+  const prefersReducedMotion = systemReducedMotion || website?.theme?.motionProfile === "none" || isThumbnail;
 
   useEffect(() => {
     if (initialData) {
@@ -1411,7 +1414,8 @@ export function WebsiteRenderer({
   const isPreviewPresentation = Boolean(website.theme?.previewPurpose);
   const isSourceDrivenPresentation = Boolean(website.theme?.sourceDriven);
   const spacingTokens = DESIGN_TOKENS.spacing[theme.spacingProfile || designProfile.spacing];
-  const motionTokens = DESIGN_TOKENS.motion[theme.motionProfile || designProfile.motion];
+  const selectedMotionProfile = resolveSiteMotionProfile(theme.motionProfile || designProfile.motion);
+  const motionTokens = DESIGN_TOKENS.motion[selectedMotionProfile];
   const pages = website?.pages || [];
   const displayBusinessName = String(
     businessInfo?.name ||
@@ -1724,13 +1728,14 @@ export function WebsiteRenderer({
 
   return (
     <HelmetProvider>
+      <MotionConfig reducedMotion={selectedMotionProfile === "none" || isThumbnail ? "always" : "user"}>
       <div
         ref={rendererRootRef}
         style={{ fontFamily: theme.fontFamily || "Inter, sans-serif", containerType: "inline-size", containerName: "customer-site" }}
         data-design-profile={designProfile.id}
         data-generation-mode={generationMode}
         data-source-driven={theme.sourceDriven ? "true" : "false"}
-        data-motion-profile={theme.motionProfile || designProfile.motion}
+        data-motion-profile={selectedMotionProfile}
         data-image-profile={theme.imageProfile || designProfile.imageTreatment}
         className={cn(
           "bt-website-renderer min-h-screen w-full max-w-full overflow-x-hidden flex flex-col transition-colors duration-300",
@@ -1746,6 +1751,7 @@ export function WebsiteRenderer({
           `style-${theme.style}`,
         )}
       >
+        <ClientSiteMotion rootRef={rendererRootRef} profile={isThumbnail ? "none" : selectedMotionProfile} pageKey={activePageSlug || "home"} embedded={Boolean(isEditingPreview || draftPreview || website.theme?.previewPurpose || isTemplatePreview)} />
         <Helmet>
           <title>{displayTitle}</title>
           <meta name="description" content={displayDescription} />
@@ -6516,6 +6522,7 @@ export function WebsiteRenderer({
           {/* Structured analytics IDs are supported; arbitrary footer HTML is intentionally disabled. */}
         </AnimatePresence>
       </div>
+      </MotionConfig>
     </HelmetProvider>
   );
 }

@@ -89,7 +89,8 @@ import {
 } from "../constants/sectionTemplates";
 import { DEFAULT_POLICIES } from "../constants/defaultPolicies";
 import { NICHE_TEMPLATES } from "../constants/nicheTemplates";
-import { APPROVED_VARIANTS, DESIGN_PROFILE_OPTIONS, type DesignProfileId } from "../constants/designProfiles";
+import { APPROVED_VARIANTS, DESIGN_PROFILE_OPTIONS, resolveDesignProfile, type DesignProfileId, type MotionProfileId } from "../constants/designProfiles";
+import { SITE_MOTION_PROFILES, resolveSiteMotionProfile } from "../lib/siteMotionProfiles";
 import { BennieDesignStudio } from "./BennieDesignStudio";
 import {
   createPlanLimitUpgradeMessage,
@@ -5871,6 +5872,16 @@ export function WebsiteEditor({
                         </button>
                       ))}
                     </div>
+                  </div>
+                  <div className="space-y-3 pt-4 border-t border-slate-100">
+                    <Label htmlFor="website-motion-profile" className="text-sm font-bold text-slate-700">Website motion & interaction</Label>
+                    <p className="text-xs leading-5 text-slate-500">Choose animation intensity independently of the visual style. The setting is saved with your website design and respects visitors' reduced-motion preferences.</p>
+                    <Select value={resolveSiteMotionProfile(website.theme.motionProfile || resolveDesignProfile(website.theme.designProfile, business?.industry).motion)}
+                      onValueChange={(value) => setWebsite({ ...website, theme: { ...website.theme, motionProfile: value as MotionProfileId } })}>
+                      <SelectTrigger id="website-motion-profile" className="w-full max-w-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>{SITE_MOTION_PROFILES.map(profile => <SelectItem key={profile.id} value={profile.id}>{profile.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                    <p className="text-xs text-slate-500">{SITE_MOTION_PROFILES.find(profile => profile.id === resolveSiteMotionProfile(website.theme.motionProfile || resolveDesignProfile(website.theme.designProfile, business?.industry).motion))?.description}</p>
                   </div>
                 </CardContent>
               </Card>
