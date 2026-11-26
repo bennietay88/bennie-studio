@@ -192,7 +192,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
                         <p className="break-all text-xs text-slate-500">{row.email || row.prospectId}</p>
                       </div>
                       <span className={"rounded-full px-2.5 py-1 text-xs font-semibold " + (row.delivery === "ready" ? "bg-indigo-100 text-indigo-800" : row.delivery === "submitted" ? "bg-emerald-100 text-emerald-800" : row.delivery === "failed" ? "bg-rose-100 text-rose-800" : "bg-slate-200 text-slate-600")}>
-                        {row.delivery === "ready" ? "Day " + ([3, 8, 15][(row.stage || 1) - 1]) + " · Draft prepared" : row.delivery === "sending" ? "Sending…" : row.delivery === "submitted" ? "Submitted" : row.delivery === "failed" ? "Needs review" : "Skipped"}
+                        {row.delivery === "ready" ? "Day " + ([3, 5, 8][(row.stage || 1) - 1]) + " · Draft prepared" : row.delivery === "sending" ? "Sending…" : row.delivery === "submitted" ? "Submitted" : row.delivery === "failed" ? "Needs review" : "Skipped"}
                       </span>
                     </div>
                     {row.kind === "ready" ? (

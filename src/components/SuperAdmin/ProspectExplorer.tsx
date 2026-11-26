@@ -157,7 +157,7 @@ export function ProspectExplorer() {
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [scheduleProspect, setScheduleProspect] = useState<any | null>(null);
-  const [followUpDays, setFollowUpDays] = useState("3,8,15");
+  const [followUpDays, setFollowUpDays] = useState("3,5,8");
   const [followUpStartDate, setFollowUpStartDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [bulkAction, setBulkAction] = useState<"stop_follow_up" | "delete" | null>(null);
@@ -339,7 +339,7 @@ export function ProspectExplorer() {
         ].join(","));
       }
       if (quickFilter === "archived") query = query.not("outreach_exhausted_at", "is", null);
-      else if (quickFilter !== "day15_completed") query = query.is("outreach_exhausted_at", null);
+      else if (quickFilter !== "day8_completed") query = query.is("outreach_exhausted_at", null);
       if (industryFilter !== "all") query = query.ilike("industry", `%${industryFilter.trim()}%`);
       if (statusFilter !== "all") query = query.eq("outreach_status", statusFilter);
       switch (quickFilter) {
@@ -582,7 +582,7 @@ export function ProspectExplorer() {
 
   const openFollowUpPlan = (prospect: any) => {
     setScheduleProspect(prospect);
-    setFollowUpDays("3,8,15");
+    setFollowUpDays("3,5,8");
     setFollowUpStartDate(format(new Date(), "yyyy-MM-dd"));
   };
 
@@ -590,7 +590,7 @@ export function ProspectExplorer() {
     if (!scheduleProspect || scheduleSaving) return;
     const parts = followUpDays.split(",").map((value) => value.trim()).filter(Boolean);
     if (!parts.length || parts.length > 3 || parts.some((value) => !/^\d+$/.test(value))) {
-      toast.error("Enter up to 3 day offsets (for example: 3,8,15).");
+      toast.error("Enter up to 3 day offsets (for example: 3,5,8).");
       return;
     }
     const days = [...new Set(parts.map(Number))].sort((a, b) => a - b);
@@ -1660,7 +1660,7 @@ export function ProspectExplorer() {
 
       <Card className="rounded-[2rem] border-slate-100 shadow-sm overflow-hidden">
         <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white p-4">
-          {[["all","Active prospects"],["new_prospects","New"],["introduction_sent","Introduction sent"],["day3_completed","Day 3 completed"],["day8_completed","Day 8 completed"],["day15_completed","Day 15 completed"],["follow_up_due","Follow-up due"],["high","High opportunity"],["contacted","Contacted"],["not_contacted","Not contacted"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"],["archived","Completed · no reply"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
+          {[["all","Active prospects"],["new_prospects","New"],["introduction_sent","Introduction sent"],["day3_completed","Day 3 completed"],["day5_completed","Day 5 completed"],["day8_completed","Day 8 completed"],["follow_up_due","Follow-up due"],["high","High opportunity"],["contacted","Contacted"],["not_contacted","Not contacted"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"],["archived","Completed · no reply"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
         </div>
         <div className="grid gap-3 border-b border-slate-100 bg-slate-50 p-4 xl:grid-cols-[1fr_190px_190px_220px_auto]">
           <div className="relative">
@@ -2011,15 +2011,15 @@ export function ProspectExplorer() {
           </DialogHeader>
           <div className="space-y-5 py-2">
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" type="button" variant={followUpDays === "3,8,15" ? "default" : "outline"} onClick={() => setFollowUpDays("3,8,15")} className="rounded-xl">Day 3, 8 & 15 (3, 5 & 7 days apart)</Button>
+              <Button size="sm" type="button" variant={followUpDays === "3,5,8" ? "default" : "outline"} onClick={() => setFollowUpDays("3,5,8")} className="rounded-xl">Day 3, 5 & 8 (3, 2 & 3 days apart)</Button>
             </div>
             <Field label="Start date">
               <Input type="date" className="rounded-xl" value={followUpStartDate} onChange={(event) => setFollowUpStartDate(event.target.value)} />
             </Field>
             <Field label="Days after start date (comma-separated)">
-              <Input inputMode="numeric" className="rounded-xl" value={followUpDays} onChange={(event) => setFollowUpDays(event.target.value)} placeholder="3,8,15" />
+              <Input inputMode="numeric" className="rounded-xl" value={followUpDays} onChange={(event) => setFollowUpDays(event.target.value)} placeholder="3,5,8" />
             </Field>
-            <p className="text-xs leading-5 text-slate-500">Maximum 3 reminders; default days 3, 8, 15 (3/5/7-day intervals). Due at 9:00 AM in your local time. Review each due item in Sales Automation / Today before sending any outreach. Replies and opt-outs must be respected.</p>
+            <p className="text-xs leading-5 text-slate-500">Maximum 3 reminders; default days 3, 5, 8 (3/2/3-day intervals). Due at 9:00 AM in your local time. Review each due item in Sales Automation / Today before sending any outreach. Replies and opt-outs must be respected.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" disabled={scheduleSaving} onClick={() => setScheduleProspect(null)}>Cancel</Button>
@@ -2375,7 +2375,7 @@ export function ProspectExplorer() {
                     {outreachTemplateId === "general-introduction"
                       ? "Review the general introduction before sending."
                       : isStagedFollowUpTemplate(outreachTemplateId)
-                        ? "This follows the 3/5/7-day cadence. The draft is not automatically sent; respect replies and opt-outs."
+                        ? "This follows the 3/2/3-day cadence. The draft is not automatically sent; respect replies and opt-outs."
                       : outreachTemplateId === "introduction"
                         ? "Review the short introduction before sending. The audit details are reserved for the scheduled follow-up."
                         : "Review the prepared website audit email before sending."}
