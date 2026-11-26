@@ -92,3 +92,35 @@ export async function reactivateArchivedProspect(db: Db, prospectId: string, now
   if (!updated) throw new Error("PROSPECT_NOT_ARCHIVED");
   return updated;
 }
+
+export const NO_REPLY_GRACE_MS = 3 * 86_400_000;
+export function noReplyArchiveDeadline(finalSentAt: string): string {
+  return new Date(Date.parse(finalSentAt) + NO_REPLY_GRACE_MS).toISOString();
+}
+/** Keep the prospect visible during the response window; no further email is scheduled. */
+export async function scheduleNoReplyArchive(db: Db, prospectId: string, now: string) {
+  checked(await db.from("prospects").update({ next_follow_up_at: noReplyArchiveDeadline(now), updated_at: now })
+    .eq("id", prospectId).is("outreach_exhausted_at", null).in("outreach_status", ["not_started", "queued", "contacted"]));
+}
+/** The existing authenticated sales cron finalizes due no-reply archives.
+ * Require a recorded final send and matching deadline so deliberately
+ * reactivated historical records are not silently archived again. */
+export async function archiveDueNoReplyProspects(db: Db, now: string): Promise<number> {
+  const candidates = checked(await db.from("prospects")
+    .select("id,next_follow_up_at,final:sales_messages!sales_messages_prospect_id_fkey!inner(sent_at),inbound:sales_messages!sales_messages_prospect_id_fkey(id)")
+    .is("outreach_exhausted_at", null).eq("outreach_status", "contacted")
+    .lte("next_follow_up_at", now).eq("final.direction", "outbound").eq("final.channel", "email")
+    .is("final.reply_to_message_id", null).in("final.status", ["sent", "delivered", "opened", "clicked"])
+    .eq("final.provider_payload->>followUpStage", "FOLLOW_UP_3_OF_3")
+    .not("final.sent_at", "is", null).lte("final.sent_at", new Date(Date.parse(now) - NO_REPLY_GRACE_MS).toISOString())
+    .eq("inbound.direction", "inbound").is("inbound", null)
+    .order("sent_at", { referencedTable: "final", ascending: false }).limit(1, { referencedTable: "final" })
+    .order("next_follow_up_at", { ascending: true }).limit(100)) || [];
+  let archived = 0;
+  for (const prospect of candidates) {
+    const sent = prospect.final?.[0]?.sent_at;
+    if (!sent || Date.parse(prospect.next_follow_up_at) !== Date.parse(noReplyArchiveDeadline(sent))) continue;
+    if (await archiveNoReplyProspect(db, prospect.id, now)) archived++;
+  }
+  return archived;
+}

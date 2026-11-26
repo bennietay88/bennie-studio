@@ -122,7 +122,7 @@ export function ProspectEmailTemplateEditor() {
           </Button>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">Day 0 · Day 3 · Day 8 · Day 15</Badge>
+          <Badge variant="outline">Day 0 · Day 3 · Day 5 · Day 8</Badge>
           <Badge variant="outline">9 editable variants</Badge>
           <Badge variant="outline">Sequence: {sequenceStatus || "Loading"}</Badge>
         </div>

@@ -16,10 +16,10 @@ test("contacted prospects open follow-up draft, never a generic first email or n
   assert.match(front, /Review Day /);
 });
 
-test("backend verifies stage history and does not restart the 3/5/7 sequence", () => {
+test("backend verifies stage history and does not restart the Day 3/5/8 sequence", () => {
   assert.match(server, /OUTREACH_FOLLOW_UP_STAGE_NOT_DUE/);
   assert.match(server, /if \(followUpStage \|\| input.channel !== "email"/);
-  assert.match(server, /followUpStage === 1 \? 5 : followUpStage === 2 \? 7 : 3/);
+  assert.match(server, /followUpStage === 1 \? 2 : followUpStage === 2 \? 3 : 3/);
   assert.match(server, /Superseded by manually sent follow-up/);
   assert.match(api, /templateId: z.string\(\).trim\(\).max\(80\).regex\(\/\^\[a-z\]\[a-z0-9_-\]\*\$\/i\)/);
   assert.match(api, /provider_message_id,provider_payload/);

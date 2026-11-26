@@ -54,6 +54,7 @@ import { getOutreachObservation, getConfirmedReviewObservation, getConfirmedRevi
 import { renderProspectEmailTemplate, PORTFOLIO_URL } from "../../lib/prospectOutreachTemplates";
 import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "../../lib/prospectOutreachTemplates";
 import { chooseProspectFollowUp, chooseProspectFollowUpTemplate, isStagedFollowUpTemplate } from "../../lib/prospectFollowUpComposer";
+import { applyProspectStageEvidence, filterProspectStage, prospectStageLabel, PROSPECT_STAGE_SELECT } from "../../lib/prospectOutreachLifecycle";
 import { MAX_MANUAL_BULK_FOLLOW_UP } from "../../lib/manualBulkProspectFollowUps";
 import { ManualBulkProspectFollowUps } from "./ManualBulkProspectFollowUps";
 import { MAX_MANUAL_BULK_INTRO } from "../../lib/manualBulkProspectIntros";
@@ -156,7 +157,7 @@ export function ProspectExplorer() {
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [scheduleProspect, setScheduleProspect] = useState<any | null>(null);
-  const [followUpDays, setFollowUpDays] = useState("3,8,15");
+  const [followUpDays, setFollowUpDays] = useState("3,5,8");
   const [followUpStartDate, setFollowUpStartDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [scheduleSaving, setScheduleSaving] = useState(false);
   const [bulkAction, setBulkAction] = useState<"stop_follow_up" | "delete" | null>(null);
@@ -322,7 +323,8 @@ export function ProspectExplorer() {
     const requestId = ++prospectFetchRequest.current;
     try {
       setLoading(true);
-      let query = supabase.from("prospects").select("*", { count: "exact" });
+      let query = applyProspectStageEvidence(supabase.from("prospects").select(PROSPECT_STAGE_SELECT, { count: "exact" }));
+      query = filterProspectStage(query, quickFilter);
       const safeSearch = debouncedSearchQuery.replace(/[,%()]/g, " ").trim();
       if (safeSearch) {
         const pattern = `%${safeSearch}%`;
@@ -337,14 +339,14 @@ export function ProspectExplorer() {
         ].join(","));
       }
       if (quickFilter === "archived") query = query.not("outreach_exhausted_at", "is", null);
-      else query = query.is("outreach_exhausted_at", null);
+      else if (quickFilter !== "day8_completed") query = query.is("outreach_exhausted_at", null);
       if (industryFilter !== "all") query = query.ilike("industry", `%${industryFilter.trim()}%`);
       if (statusFilter !== "all") query = query.eq("outreach_status", statusFilter);
       switch (quickFilter) {
         case "follow_up_due":
-          query = query.lte("next_follow_up_at", new Date().toISOString()).not("outreach_status", "in", "(\"won\",\"lost\")");
+          query = query.is("stage3", null).lte("next_follow_up_at", new Date().toISOString()).not("outreach_status", "in", "(\"won\",\"lost\")");
           break;
-        case "new_prospects": query = query.eq("outreach_status", "not_started"); break;
+        case "new_prospects": break; // Filtered by actual send evidence above.
         case "high": query = query.eq("opportunity_level", "high"); break;
         case "contacted": query = query.in("outreach_status", CONTACTED_OUTREACH_STATUSES); break;
         case "not_contacted": query = query.in("outreach_status", NOT_CONTACTED_OUTREACH_STATUSES); break;
@@ -580,7 +582,7 @@ export function ProspectExplorer() {
 
   const openFollowUpPlan = (prospect: any) => {
     setScheduleProspect(prospect);
-    setFollowUpDays("3,8,15");
+    setFollowUpDays("3,5,8");
     setFollowUpStartDate(format(new Date(), "yyyy-MM-dd"));
   };
 
@@ -588,7 +590,7 @@ export function ProspectExplorer() {
     if (!scheduleProspect || scheduleSaving) return;
     const parts = followUpDays.split(",").map((value) => value.trim()).filter(Boolean);
     if (!parts.length || parts.length > 3 || parts.some((value) => !/^\d+$/.test(value))) {
-      toast.error("Enter up to 3 day offsets (for example: 3,8,15).");
+      toast.error("Enter up to 3 day offsets (for example: 3,5,8).");
       return;
     }
     const days = [...new Set(parts.map(Number))].sort((a, b) => a - b);
@@ -1658,7 +1660,7 @@ export function ProspectExplorer() {
 
       <Card className="rounded-[2rem] border-slate-100 shadow-sm overflow-hidden">
         <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white p-4">
-          {[["all","All"],["new_prospects","New prospects"],["follow_up_due","Follow-up due"],["high","High opportunity"],["contacted","Contacted"],["not_contacted","Not contacted"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"],["archived","Archived · no reply"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
+          {[["all","Active prospects"],["new_prospects","New"],["introduction_sent","Introduction sent"],["day3_completed","Day 3 completed"],["day5_completed","Day 5 completed"],["day8_completed","Day 8 completed"],["follow_up_due","Follow-up due"],["high","High opportunity"],["contacted","Contacted"],["not_contacted","Not contacted"],["audit_not_sent","Audit not prepared"],["preview","Preview generated"],["replied","Replied"],["call_booked","Call booked"],["ready","Ready to convert"],["archived","Completed · no reply"]].map(([id,label]) => <Button key={id} size="sm" variant={quickFilter === id ? "default" : "outline"} onClick={() => setQuickFilter(id)} className="rounded-xl text-xs">{label}</Button>)}
         </div>
         <div className="grid gap-3 border-b border-slate-100 bg-slate-50 p-4 xl:grid-cols-[1fr_190px_190px_220px_auto]">
           <div className="relative">
@@ -1765,8 +1767,9 @@ export function ProspectExplorer() {
                       <Badge variant="outline" className="capitalize">{toTitle(prospect.website_status || "unknown")}</Badge>
                       <Badge variant="outline" className="capitalize">{toTitle(prospect.opportunity_level || "medium")} opportunity</Badge>
                       {prospect.outreach_exhausted_at
-                        ? <Badge className="bg-amber-100 text-amber-800">Archived · no response</Badge>
+                        ? <Badge className="bg-amber-100 text-amber-800">Completed · no reply</Badge>
                         : <Badge variant="outline" className="capitalize">{toTitle(prospect.outreach_status || "not_started")}</Badge>}
+                      <Badge variant="outline">{prospectStageLabel(prospect)}</Badge>
                       {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
                     </div>
                     {(prospect._latestDelivery || prospect._suppressed) && (
@@ -1799,7 +1802,8 @@ export function ProspectExplorer() {
                           <CalendarDays className="mr-1 h-3.5 w-3.5" /> Schedule 3 / 8 / 15 days
                         </Button>
                       </div>
-                      <div><Label className="text-xs font-semibold text-slate-500">Outreach status</Label><Select value={prospect.outreach_status || "not_started"} onValueChange={(value) => updateProspect(prospect.id, { outreach_status: value })}><SelectTrigger className="mt-1 h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{toTitle(status)}</SelectItem>)}</SelectContent></Select></div>
+                      <div><Label className="text-xs font-semibold text-slate-500">Outreach status</Label><div className="mb-2 flex flex-wrap gap-1"><Badge variant="outline">{prospectStageLabel(prospect)}</Badge>{prospect.outreach_exhausted_at && <Badge className="bg-amber-100 text-amber-800">Completed · no reply</Badge>}</div>
+                        <Select value={prospect.outreach_status || "not_started"} onValueChange={(value) => updateProspect(prospect.id, { outreach_status: value })}><SelectTrigger className="mt-1 h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{toTitle(status)}</SelectItem>)}</SelectContent></Select></div>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <Button variant="outline" className="h-11 rounded-xl" disabled={reviewLoadingId === prospect.id} onClick={() => runQuickAudit(prospect)}><Zap className="mr-2 h-4 w-4" />Audit</Button>
@@ -1879,6 +1883,7 @@ export function ProspectExplorer() {
                         {(() => { const scored = prospect._score || scoreProspect(prospect); return <><div className="flex items-center gap-2"><span className="text-lg font-black text-slate-900">{prospect.qualification_score ?? scored.score}</span><Badge className="rounded-full border-none bg-indigo-50 text-xs font-black uppercase text-indigo-700">{prospect.qualification_category || scored.category.replace("_", " ")}</Badge></div><p className="mt-1 text-xs font-semibold text-indigo-600">{prospect.recommended_next_action || scored.recommendedNextAction}</p><p className="mt-1 text-xs font-semibold text-slate-400">{scored.factors.slice(0, 2).map((factor) => `+${factor.points} ${factor.label}`).join(" · ") || "Needs more evidence"}</p></>; })()}
                       </td>
                       <td className="min-w-0 px-3 py-6">
+                        <div className="mb-2 flex flex-wrap gap-1"><Badge variant="outline">{prospectStageLabel(prospect)}</Badge>{prospect.outreach_exhausted_at && <Badge className="bg-amber-100 text-amber-800">Completed · no reply</Badge>}</div>
                         <Select value={prospect.outreach_status || "not_started"} onValueChange={(value) => updateProspect(prospect.id, { outreach_status: value })}>
                           <SelectTrigger className="h-9 w-full min-w-0 rounded-xl"><SelectValue /></SelectTrigger>
                           <SelectContent>{OUTREACH_STATUSES.map((status) => <SelectItem key={status} value={status}>{toTitle(status)}</SelectItem>)}</SelectContent>
@@ -1930,7 +1935,8 @@ export function ProspectExplorer() {
                           {prospect.contact_email && !prospect.outreach_exhausted_at && !prospect._suppressed && !prospect._contactSafetyUnknown && !prospect.converted_business_id && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-indigo-600 hover:bg-indigo-50" disabled={reviewLoadingId === prospect.id} onClick={() => preparePreviewAndEmail(prospect)}><Send className="h-3 w-3 mr-1.5" />Prepare & Email</Button>}
                           {prospect.outreach_exhausted_at && <Button type="button" variant="outline" size="sm" className="rounded-xl h-8 text-xs text-amber-800" disabled={reactivatingId === prospect.id} onClick={() => void reactivateProspect(prospect)}><RefreshCw className="h-3.5 w-3.5 mr-1" />Reactivate outreach</Button>}
                           {!prospect.converted_business_id && ["replied", "call_booked"].includes(prospect.outreach_status) && <Button variant="ghost" size="sm" className="rounded-xl h-8 text-xs font-semibold text-emerald-700 hover:bg-emerald-50" onClick={() => openConversion(prospect)}><UserPlus className="h-3 w-3 mr-1.5" />Convert</Button>}
-                          {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
+                          <Badge variant="outline">{prospectStageLabel(prospect)}</Badge>
+                      {prospect.converted_business_id && <Badge className="bg-emerald-100 text-emerald-700">Customer</Badge>}
                           <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 hover:bg-rose-50 hover:text-rose-600" onClick={() => deleteProspect(prospect.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       </td>
@@ -2005,15 +2011,15 @@ export function ProspectExplorer() {
           </DialogHeader>
           <div className="space-y-5 py-2">
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" type="button" variant={followUpDays === "3,8,15" ? "default" : "outline"} onClick={() => setFollowUpDays("3,8,15")} className="rounded-xl">Day 3, 8 & 15 (3, 5 & 7 days apart)</Button>
+              <Button size="sm" type="button" variant={followUpDays === "3,5,8" ? "default" : "outline"} onClick={() => setFollowUpDays("3,5,8")} className="rounded-xl">Day 3, 5 & 8 (3, 2 & 3 days apart)</Button>
             </div>
             <Field label="Start date">
               <Input type="date" className="rounded-xl" value={followUpStartDate} onChange={(event) => setFollowUpStartDate(event.target.value)} />
             </Field>
             <Field label="Days after start date (comma-separated)">
-              <Input inputMode="numeric" className="rounded-xl" value={followUpDays} onChange={(event) => setFollowUpDays(event.target.value)} placeholder="3,8,15" />
+              <Input inputMode="numeric" className="rounded-xl" value={followUpDays} onChange={(event) => setFollowUpDays(event.target.value)} placeholder="3,5,8" />
             </Field>
-            <p className="text-xs leading-5 text-slate-500">Maximum 3 reminders; default days 3, 8, 15 (3/5/7-day intervals). Due at 9:00 AM in your local time. Review each due item in Sales Automation / Today before sending any outreach. Replies and opt-outs must be respected.</p>
+            <p className="text-xs leading-5 text-slate-500">Maximum 3 reminders; default days 3, 5, 8 (3/2/3-day intervals). Due at 9:00 AM in your local time. Review each due item in Sales Automation / Today before sending any outreach. Replies and opt-outs must be respected.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" className="rounded-xl" disabled={scheduleSaving} onClick={() => setScheduleProspect(null)}>Cancel</Button>
@@ -2369,7 +2375,7 @@ export function ProspectExplorer() {
                     {outreachTemplateId === "general-introduction"
                       ? "Review the general introduction before sending."
                       : isStagedFollowUpTemplate(outreachTemplateId)
-                        ? "This follows the 3/5/7-day cadence. The draft is not automatically sent; respect replies and opt-outs."
+                        ? "This follows the Day 3/5/8 cadence. The draft is not automatically sent; respect replies and opt-outs."
                       : outreachTemplateId === "introduction"
                         ? "Review the short introduction before sending. The audit details are reserved for the scheduled follow-up."
                         : "Review the prepared website audit email before sending."}
