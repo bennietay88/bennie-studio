@@ -17,14 +17,14 @@ test("real Nashville prospect history selects a no-site Day 3 follow-up", () => 
   assert.equal(chooseProspectFollowUpTemplate(2, "unknown"), "day8_neutral");
 });
 
-test("3/2/3 intervals and sequence cap use only confirmed sends", () => {
+test("3/5/7 intervals and sequence cap use only confirmed sends", () => {
   assert.equal(chooseProspectFollowUp(prospect, [], new Date("2026-11-08")).kind, "intro");
   assert.equal(chooseProspectFollowUp(prospect, [first], new Date("2026-11-06")).kind, "wait");
   const day3 = { ...first, sent_at: "2026-11-08T00:27:00Z" };
-  assert.equal(chooseProspectFollowUp(prospect, [first, day3], new Date("2026-11-10T00:28:00Z")).stage, 2);
-  const day8 = { ...first, sent_at: "2026-11-10T00:28:00Z" };
-  assert.equal(chooseProspectFollowUp(prospect, [first, day3, day8], new Date("2026-11-13T00:29:00Z")).stage, 3);
-  const day15 = { ...first, sent_at: "2026-11-13T00:29:00Z" };
+  assert.equal(chooseProspectFollowUp(prospect, [first, day3], new Date("2026-11-13T00:28:00Z")).stage, 2);
+  const day8 = { ...first, sent_at: "2026-11-13T00:28:00Z" };
+  assert.equal(chooseProspectFollowUp(prospect, [first, day3, day8], new Date("2026-11-20T00:29:00Z")).stage, 3);
+  const day15 = { ...first, sent_at: "2026-11-20T00:29:00Z" };
   assert.equal(chooseProspectFollowUp(prospect, [first, day3, day8, day15], new Date("2026-11-30")).kind, "stop");
 });
 

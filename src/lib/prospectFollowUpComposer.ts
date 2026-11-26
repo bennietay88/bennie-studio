@@ -39,7 +39,7 @@ export function chooseProspectFollowUp(
   const stage = sent.length as 1 | 2 | 3;
   const lastSentTime = new Date(sent[sent.length - 1].sent_at || sent[sent.length - 1].created_at || "").getTime();
   if (!Number.isFinite(lastSentTime)) return { kind: "stop", reason: "The latest sent email date could not be verified." };
-  const nextTime = lastSentTime + [3, 2, 3][stage - 1] * 86_400_000;
+  const nextTime = lastSentTime + [3, 5, 7][stage - 1] * 86_400_000;
   const dueAt = new Date(nextTime).toISOString();
   if (nextTime > now.getTime()) return { kind: "wait", stage, dueAt, reason: "The next follow-up is not due yet." };
   const pending = messages.some((message) => message.direction === "outbound"

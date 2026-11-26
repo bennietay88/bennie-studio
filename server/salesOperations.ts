@@ -286,7 +286,7 @@ export async function runSalesDelivery(input: {
               result.deliveryBlocked++;
               continue;
             }
-            const nextAt = new Date(preceding.sent_at).getTime() + (stage === 2 ? 2 : 3) * 86_400_000;
+            const nextAt = new Date(preceding.sent_at).getTime() + (stage === 2 ? 5 : 7) * 86_400_000;
             if (nextAt > new Date(now).getTime()) {
               await release({ status: candidate.status, scheduled_at: new Date(nextAt).toISOString() });
               result.deferred++;
@@ -410,7 +410,7 @@ export async function runSalesDelivery(input: {
           const following = (siblings || []).find((row: Row) => row.provider_payload?.directCampaignId === campaign
             && Number(row.provider_payload?.directStage) === stage + 1);
           if (following && following.status === "draft") {
-            const gapDays = stage === 1 ? 2 : 3;
+            const gapDays = stage === 1 ? 5 : 7;
             checked(await db.from("sales_messages").update({
               status: "queued", scheduled_at: new Date(new Date(now).getTime() + gapDays * 86_400_000).toISOString(),
               error: null, updated_at: now,
@@ -418,7 +418,7 @@ export async function runSalesDelivery(input: {
           }
           checked(await db.from("prospects").update({
             outreach_status: "contacted",
-            next_follow_up_at: new Date(new Date(now).getTime() + (stage === 1 ? 2 : 3) * 86_400_000).toISOString(),
+            next_follow_up_at: new Date(new Date(now).getTime() + (stage === 1 ? 5 : 7) * 86_400_000).toISOString(),
             updated_at: now,
           }).eq("id", message.prospect_id).in("outreach_status", ["not_started", "queued", "contacted"]));
         } else {
@@ -748,7 +748,7 @@ export async function sendDirectProspectOutreach(
 
   // Manual outreach is distinct from consent-gated automated outreach.
   // A manual follow-up is allowed only after confirmed prior sends and its
-  // 3/2/3-day interval; never accept a guessed CRM status as send authority.
+  // 3/5/7-day interval; never accept a guessed CRM status as send authority.
   if (followUpStage) {
     if (input.channel !== "email" || input.replyToMessageId) throw new Error("OUTREACH_FOLLOW_UP_INVALID");
     const { data: history } = checked(await db.from("sales_messages")
@@ -795,9 +795,9 @@ export async function sendDirectProspectOutreach(
     const startMs = new Date(firstMessage.sent_at || now).getTime();
     const asset = resolveProspectFollowUpAsset(contact);
     const overrides = await loadProspectEmailOverrides(db);
-    const stages = ([3, 5, 8] as const).map((day, i) => ({
+    const stages = ([3, 8, 15] as const).map((day, i) => ({
       day,
-      delayHours: [72, 48, 72][i],
+      delayHours: [72, 120, 168][i],
       ...renderProspectFollowUpStage(contact, (i + 1) as 1 | 2 | 3, asset, overrides),
     }));
     for (let i = 0; i < stages.length; i++) {
@@ -1008,7 +1008,7 @@ export async function sendDirectProspectOutreach(
       .single(),
   );
 
-  const followUpAt = followUpStage === 3 ? null : new Date(new Date(now).getTime() + (followUpStage === 1 ? 2 : followUpStage === 2 ? 3 : 3) * 86400000).toISOString();
+  const followUpAt = followUpStage === 3 ? null : new Date(new Date(now).getTime() + (followUpStage === 1 ? 5 : followUpStage === 2 ? 7 : 3) * 86400000).toISOString();
   const existingFollowUp =
     !followUpStage && prospect.next_follow_up_at &&
     new Date(prospect.next_follow_up_at).getTime() > new Date(now).getTime()
