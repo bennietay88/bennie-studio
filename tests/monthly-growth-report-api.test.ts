@@ -100,7 +100,7 @@ test("monthly reporting routes are permission-gated and remain off by default", 
     assert.equal(reviewed.status, 200);
     assert.equal(reviewedResult.delivery, "customer dashboard only; no email sent");
     assert.equal(reviewedResult.report.notification_status, "dashboard_only");
-    assert.deepEqual(rpcCalls, ["get_monthly_growth_report_source_data", "create_monthly_growth_report_draft", "get_monthly_growth_report_source_data", "create_monthly_growth_report_draft", "publish_monthly_growth_report"]);
+    assert.deepEqual(rpcCalls, ["get_monthly_growth_report_source_data", "report_owner_evidence", "create_monthly_growth_report_draft", "get_monthly_growth_report_source_data", "report_owner_evidence", "create_monthly_growth_report_draft", "publish_monthly_growth_report"]);
   } finally {
     const closed = once(child, "exit");
     if (child.exitCode === null) { child.kill("SIGTERM"); await closed; }

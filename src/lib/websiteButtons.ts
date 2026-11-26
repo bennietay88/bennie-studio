@@ -1,6 +1,6 @@
 import { ButtonActionType, ButtonHealthIssue, Website, WebsiteButton, WebsitePage, WebsiteSection } from "../types";
-import { SECTION_TEMPLATES } from "../constants/sectionTemplates";
-import { generateId } from "./utils";
+import { SECTION_TEMPLATES } from "../constants/sectionTemplates.js";
+import { generateId } from "./utils.js";
 
 export interface BusinessContactDetails {
   businessName?: string;

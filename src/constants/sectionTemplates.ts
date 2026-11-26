@@ -1,5 +1,5 @@
 import { WebsiteSection, FeatureId } from "../types";
-import { generateId } from "../lib/utils";
+import { generateId } from "../lib/utils.js";
 
 export interface SectionTemplate extends Omit<WebsiteSection, "id"> {
   featureId?: FeatureId;

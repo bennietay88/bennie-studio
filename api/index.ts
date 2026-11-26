@@ -104,6 +104,8 @@ import { isNewIntroOfferCustomer } from "./introOfferEligibility.js";
 import { resolveStripeCommercialPlan } from "../src/lib/stripeCommercialPlanMapping.js";
 import { getClosedReportPeriod, shouldRunMonthlyReportSchedule } from "../src/lib/monthlyGrowthReportWorkflow.js";
 import { summarizePlatformTraffic } from "../src/lib/trafficAnalytics.js";
+import { recordPaidServicePeriod } from "../server/paidServicePeriods.js";
+import { checkMonthlyEnquiryRoutes } from "../server/enquiryRouteChecks.js";
 import { generateMonthlyGrowthReportDrafts } from "../server/monthlyGrowthReports.js";
 import {
   inspectServerSupabaseEnvironment,
@@ -2378,12 +2380,12 @@ async function startServer() {
     if (!filters.length) return null;
     const { data, error } = await supabaseAdmin
       .from("businesses")
-      .select("id, owner_id, stripe_subscription_id")
+      .select("id, owner_id, stripe_subscription_id,plan,commercial_product_slug")
       .or(filters.join(","))
       .limit(1)
       .maybeSingle();
     if (error) throw error;
-    return data as { id: string; owner_id?: string | null; stripe_subscription_id?: string | null } | null;
+    return data as { id: string; plan?: string; commercial_product_slug?: string; owner_id?: string | null; stripe_subscription_id?: string | null } | null;
   };
 
   const syncUserSubscriptionByStripe = async (input: {
@@ -2436,8 +2438,43 @@ async function startServer() {
   };
 
   const insertBillingLifecycleEvent = async (payload: Record<string, any>) => {
-    const { error } = await supabaseAdmin.from("billing_lifecycle_events").insert(payload);
+    const { data: inserted, error } = await supabaseAdmin
+      .from("billing_lifecycle_events")
+      .insert(payload)
+      .select("id,business_id,event_type,status,metadata,due_at")
+      .maybeSingle();
     if (error) console.warn("Billing lifecycle event skipped:", error.message);
+    if (error || !inserted || inserted.status !== "open") return;
+
+    const followUp = inserted.event_type === "cancellation_requested"
+      ? {
+          task_type: "retention_save",
+          action: "Review the customer’s reason, confirm what is working or missing, and offer a suitable pause, plan change, or handover option without delaying their cancellation rights.",
+        }
+      : inserted.event_type === "payment_failed"
+        ? {
+            task_type: "payment_recovery",
+            action: "Contact the customer through the approved billing-support process, explain how to update payment, and monitor the grace period.",
+          }
+        : null;
+    if (!followUp) return;
+
+    const { error: taskError } = await supabaseAdmin.from("delivery_tasks").insert({
+      business_id: inserted.business_id,
+      task_type: followUp.task_type,
+      source: "retention",
+      priority: "high",
+      due_at: inserted.due_at || new Date().toISOString(),
+      metadata: {
+        action: followUp.action,
+        billingEventId: inserted.id,
+        reason: typeof inserted.metadata?.reason === "string" ? inserted.metadata.reason : null,
+      },
+      idempotency_key: `billing-event:${inserted.id}`,
+    });
+    if (taskError && taskError.code !== "23505") {
+      console.warn("Billing retention follow-up task skipped:", taskError.message);
+    }
   };
 
   const insertFinanceTransaction = async (payload: Record<string, any>) => {
@@ -2644,6 +2681,10 @@ async function startServer() {
 
           if (publicOrder) {
             const paidAt = new Date().toISOString();
+            if (publicPreviewId && session.payment_status === "paid") {
+              const { error } = await supabaseAdmin.rpc("observe_preview", { p_preview: publicPreviewId, p_event: "paid", p_time: new Date(event.created * 1000).toISOString() });
+              if (error) throw error;
+            }
             if (publicOrderId && UUID_SCHEMA.safeParse(publicOrderId).success) {
               await supabaseAdmin.from("orders").update({
                 status: "paid",
@@ -3008,6 +3049,7 @@ async function startServer() {
 
                 const subscription = (await stripe.subscriptions.retrieve(
                   session.subscription as string,
+                  { expand: ["latest_invoice"] },
                 )) as any;
 
                 // Keep the commercial funnel observable from the server-side
@@ -3081,6 +3123,10 @@ async function startServer() {
                   console.warn(`Restored missing business ${businessId} from confirmed Stripe checkout`);
                 }
 
+                // An invoice webhook can arrive before checkout has linked the business.
+                await recordPaidServicePeriod(supabaseAdmin, subscription.latest_invoice, businessId,
+                  currentProduct?.slug || requestedProductSlug || legacyPlanToPublicPlanSlug(planSlug));
+
                 if (subscription.status === "trialing") {
                   const { data: trialBusiness } = await supabaseAdmin
                     .from("businesses")
@@ -3130,6 +3176,8 @@ async function startServer() {
                     status: "pending",
                     priority: "high",
                     creation_key: creationKey,
+                    delivery_plan: currentProduct?.slug || requestedProductSlug || legacyPlanToPublicPlanSlug(planSlug),
+                    pilot_intake: session.payment_status === "paid" && subscription.status === "active" && (currentProduct?.slug || requestedProductSlug || legacyPlanToPublicPlanSlug(planSlug)) === "managed-website",
                     admin_notes: "Created automatically after confirmed Stripe checkout. Complete onboarding before build.",
                   });
                   if (projectError && projectError.code !== "23505") throw projectError;
@@ -3521,6 +3569,8 @@ async function startServer() {
           const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
           const business = await resolveBusinessForStripe({ subscriptionId, customerId });
           if (business && subscriptionId && business.stripe_subscription_id === subscriptionId) {
+            await recordPaidServicePeriod(supabaseAdmin, invoice, business.id,
+              business.commercial_product_slug || legacyPlanToPublicPlanSlug(business.plan));
             await supabaseAdmin.from("businesses").update({ subscription_status: "active", status: "active", subscription_grace_until: null }).eq("id", business.id);
             await syncUserSubscriptionByStripe({ subscriptionId, customerId, status: "active", renewalState: "active", lastPaymentStatus: "paid", lastWebhookEventId: event.id });
             await supabaseAdmin.from("billing_lifecycle_events").update({ status: "resolved", resolved_at: new Date().toISOString() }).eq("business_id", business.id).eq("event_type", "payment_failed").eq("status", "open");
@@ -4609,6 +4659,10 @@ async function startServer() {
           },
         }).eq("id", lead.id);
 
+        const { error: observationError } = await supabaseAdmin.rpc("observe_preview", {
+          p_preview: body.previewId, p_event: "completed", p_time: new Date().toISOString(),
+        });
+        if (observationError) throw observationError;
         return res.json({
           success: true,
           businessId,
@@ -5531,6 +5585,14 @@ async function startServer() {
       const failedAttempts = outcomes.filter((result) => result.status === "fulfilled" && result.value.status === "failed").length;
       const unconfirmed = outcomes.filter((result) => result.status === "rejected").length;
 
+      const { error: serviceReviewError } = await supabaseAdmin.rpc("queue_service_reviews");
+      if (serviceReviewError) captureServerError(serviceReviewError, { phase: "service_review_queue" });
+      let checkedEnquiryRoutes = 0;
+      try {
+        checkedEnquiryRoutes = await checkMonthlyEnquiryRoutes(supabaseAdmin);
+      } catch (error) {
+        captureServerError(error, { phase: "enquiry_route_checks" });
+      }
       let monthlyReportDrafts: any = { enabled: false };
       const flags = await refreshLaunchFlags();
       if (flags.monthly_reporting_workflow) {
@@ -5546,7 +5608,7 @@ async function startServer() {
         }
       }
       res.setHeader("Cache-Control", "no-store");
-      return res.json({ recoveredStaleJobs, exhaustedStaleJobs, dispatched: (queued || []).length, completed, failedAttempts, unconfirmed, monthlyReportDrafts });
+      return res.json({ recoveredStaleJobs, exhaustedStaleJobs, dispatched: (queued || []).length, completed, failedAttempts, unconfirmed, monthlyReportDrafts, checkedEnquiryRoutes });
     } catch (err: any) {
       captureServerError(err, { phase: "website_audit_cron" });
       return res.status(503).json({ error: "Website audit recovery temporarily unavailable." });
@@ -6517,7 +6579,7 @@ async function startServer() {
         cancellation_reason: body.reason,
       }).eq("id", subscription.id).select("id,renewal_state,cancellation_requested_at,cancel_at_period_end,minimum_term_end_date").single();
       if (updateError) return res.status(503).json({ error: "Cancellation request could not be saved" });
-      await supabaseAdmin.from("billing_lifecycle_events").insert({ business_id: body.businessId, event_type: "cancellation_requested", status: "open", source: "customer", metadata: { reason: body.reason, beforeMinimumTerm } });
+      await insertBillingLifecycleEvent({ business_id: body.businessId, event_type: "cancellation_requested", status: "open", source: "customer", metadata: { reason: body.reason, beforeMinimumTerm } });
       return res.status(alreadyRequested ? 200 : 202).json({ request: updated, beforeMinimumTerm, message: beforeMinimumTerm ? "Your request is recorded and will be reviewed against the minimum term." : "Your subscription will end at the current billing period." });
     } catch (error: any) {
       return handleAccessError(res, error);
@@ -10276,6 +10338,14 @@ async function startServer() {
     return res.json({ flags: next });
   });
 
+  app.get("/api/admin/delivery-business-metrics", authenticate, superAdminOnly, async (_req, res) => {
+    const [business, pilot] = await Promise.all([
+      supabaseAdmin.rpc("delivery_business_metrics"), supabaseAdmin.rpc("delivery_pilot_metrics"),
+    ]);
+    if (business.error || pilot.error) return res.status(503).json({ error: "Delivery metrics unavailable." });
+    return res.json({ ...business.data, pilot: pilot.data });
+  });
+
   app.post("/api/admin/monthly-growth-reports/generate", authenticate, superAdminOnly, async (req: any, res: any) => {
     const body = validateBody(z.object({ month: z.string().trim().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional() }), req, res);
     if (!body) return;
@@ -10295,7 +10365,11 @@ async function startServer() {
     if (!UUID_SCHEMA.safeParse(req.params.reportId).success) return res.status(400).json({ error: "Invalid report ID." });
     const flags = await refreshLaunchFlags();
     if (!flags.monthly_reporting_workflow) return res.status(409).json({ error: "Monthly report workflow is disabled." });
-    const { data, error } = await supabaseAdmin.rpc("publish_monthly_growth_report", {
+    const parsed = z.object({ action: z.string().trim().max(500).optional() }).safeParse(req.body || {});
+    if (!parsed.success) return res.status(400).json({ error: "Review action must be 500 characters or fewer." });
+    const action = parsed.data.action;
+    const { data, error } = await supabaseAdmin.rpc(action === undefined ? "publish_monthly_growth_report" : "publish_reviewed_action", {
+      ...(action === undefined ? {} : { p_action: action }),
       p_report_id: req.params.reportId,
       p_reviewer: req.user.id,
     });
@@ -13567,7 +13641,7 @@ async function startServer() {
 		        await assertBusinessAdminAccess(req.user.id, body.businessId);
 		        let { data: business } = await supabaseAdmin
 		          .from("businesses")
-		          .select("id,name,plan,subscription_status,stripe_customer_id,stripe_subscription_id")
+		          .select("id,name,plan,commercial_product_slug,subscription_status,stripe_customer_id,stripe_subscription_id")
 		          .eq("id", body.businessId)
 		          .single();
 		        effectivePlanId = String((business as any)?.plan || "").trim();
@@ -13607,7 +13681,7 @@ async function startServer() {
 	              stripe_subscription_id: payment.stripeSubscriptionId,
 	            }).eq("id", body.businessId);
 	            await supabaseAdmin.from("proposals").update({ business_id: body.businessId, updated_at: new Date().toISOString() }).eq("id", proposal.id);
-		            const refreshed = await supabaseAdmin.from("businesses").select("id,name,plan,subscription_status,stripe_customer_id,stripe_subscription_id").eq("id", body.businessId).single();
+		            const refreshed = await supabaseAdmin.from("businesses").select("id,name,plan,commercial_product_slug,subscription_status,stripe_customer_id,stripe_subscription_id").eq("id", body.businessId).single();
 		            business = refreshed.data;
 		          }
 		        }
@@ -13626,15 +13700,7 @@ async function startServer() {
 	            code: "BILLING_CONFIRMATION_REQUIRED",
 	          });
 	        }
-	        const { data: existingProject } = await supabaseAdmin
-          .from("projects")
-          .select("id")
-          .eq("business_id", body.businessId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        const publicPlanSlug = legacyPlanToPublicPlanSlug(effectivePlanId);
+	        const publicPlanSlug = legacyPlanToPublicPlanSlug(business.commercial_product_slug || effectivePlanId);
         const deliveryStandard = PLAN_DELIVERY_STANDARDS[publicPlanSlug];
         const now = new Date();
         const firstDraftTarget = addBusinessDays(now, deliveryStandard.firstDraftBusinessDays);
@@ -13647,25 +13713,20 @@ async function startServer() {
           previewIntent: body.previewIntent || {},
           deliveryContext: body.deliveryContext || {},
         };
-        const projectPayload = {
-          website_id: body.websiteId,
-          title: `${business.name} Managed Website`,
-          package_name: effectivePlanId,
-          status: "ready_for_build",
-          target_launch_date: targetLaunch.toISOString().slice(0, 10),
-          admin_notes: `Delivery handoff ${JSON.stringify(handoffSummary)}`,
-          updated_at: new Date().toISOString(),
-        };
-        if (existingProject) {
-          await supabaseAdmin.from("projects").update(projectPayload).eq("id", existingProject.id);
-        } else {
-          await supabaseAdmin.from("projects").insert({
-            business_id: body.businessId,
-            type: "waas",
-            priority: "medium",
-            ...projectPayload,
-          });
-        }
+        const { data: projectStatus, error: handoffError } = await supabaseAdmin.rpc("accept_generated_handoff", {
+          p_business: body.businessId,
+          p_website: body.websiteId,
+          p_payload: {
+            title: `${business.name} Managed Website`,
+            plan: effectivePlanId,
+            slug: publicPlanSlug,
+            launch: targetLaunch.toISOString().slice(0, 10),
+            notes: `Delivery handoff ${JSON.stringify(handoffSummary)}`,
+          },
+        });
+        if (handoffError) throw handoffError;
+        const nextStep = projectStatus === "internal_review" ? "Draft ready for internal review" :
+          projectStatus === "ready_for_build" ? "Draft requires production work" : "Production handoff recorded";
 
         await supabaseAdmin.from("tracking_events").insert({
           event_type: "sales_delivery_handoff",
@@ -13680,18 +13741,18 @@ async function startServer() {
         });
 
         const { data: onboarding } = await supabaseAdmin.from("onboarding_sessions").select("id").eq("business_id", body.businessId).neq("status", "Completed").order("created_at", { ascending: false }).limit(1).maybeSingle();
-        const onboardingPayload = { current_step: "Ready for build", status: "Completed", progress: 100, notes: "Customer onboarding submitted and website draft generated.", updated_at: new Date().toISOString() };
+        const onboardingPayload = { current_step: nextStep, status: "Completed", progress: 100, notes: "Customer onboarding submitted and website draft generated.", updated_at: new Date().toISOString() };
         if (onboarding) await supabaseAdmin.from("onboarding_sessions").update(onboardingPayload).eq("id", onboarding.id);
         else await supabaseAdmin.from("onboarding_sessions").insert({ business_id: body.businessId, ...onboardingPayload });
 
         const { data: admins } = await supabaseAdmin.from("profiles").select("id").in("role", ["super_admin", "platform_staff"]);
-        if (admins?.length) await supabaseAdmin.from("notifications").insert(admins.map((admin: any) => ({ user_id: admin.id, business_id: body.businessId, title: "Customer onboarding completed", message: `${business.name} submitted onboarding and is ready for production. First reviewed draft target: ${firstDraftTarget.toISOString().slice(0, 10)}.`, type: "onboarding", metadata: { websiteId: body.websiteId, firstDraftTarget: firstDraftTarget.toISOString(), targetLaunch: targetLaunch.toISOString(), deliveryStandardVersion: body.deliveryStandardVersion || DELIVERY_STANDARD_VERSION } })))
+        if (admins?.length) await supabaseAdmin.from("notifications").insert(admins.map((admin: any) => ({ user_id: admin.id, business_id: body.businessId, title: "Customer onboarding completed", message: `${business.name} submitted onboarding. ${nextStep}. First reviewed draft target: ${firstDraftTarget.toISOString().slice(0, 10)}.`, type: "onboarding", metadata: { websiteId: body.websiteId, firstDraftTarget: firstDraftTarget.toISOString(), targetLaunch: targetLaunch.toISOString(), deliveryStandardVersion: body.deliveryStandardVersion || DELIVERY_STANDARD_VERSION } })))
           .then(({ error }) => { if (error) console.warn("Onboarding admin notification skipped:", error.message); });
         await supabaseAdmin.from("tracking_events").insert({ event_type: "onboarding_completed", source_platform: "customer_dashboard", metadata: { businessId: body.businessId, websiteId: body.websiteId, planId: effectivePlanId } })
           .then(({ error }) => { if (error) console.warn("Onboarding tracking skipped:", error.message); });
         return res.json({
           success: true,
-          projectStatus: "ready_for_build",
+          projectStatus,
           deliveryStandardVersion: body.deliveryStandardVersion || DELIVERY_STANDARD_VERSION,
           firstDraftTarget: firstDraftTarget.toISOString(),
           targetLaunch: targetLaunch.toISOString(),

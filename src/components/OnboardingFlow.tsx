@@ -630,6 +630,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       // 3. Create Default Website or Use Selected Template
       const { data: existingWebsite } = await supabase.from("websites").select("id").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle();
       const websiteId = existingWebsite?.id || generateId();
+      const generationStart = performance.now();
       let websiteData: any;
 
       if (selectedTemplate) {
@@ -864,6 +865,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         },
       );
 
+      const qaStart = performance.now();
       const validation = validateWebsiteCreation(websiteData);
       if (!validation.valid) {
         await supabase.from("sync_logs").insert({
@@ -882,6 +884,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       const buttonAudit = auditWebsiteButtons(websiteData);
       websiteData.seo = {
         ...websiteData.seo,
+        buildTiming: { generationMs: Math.round(qaStart - generationStart), qaMs: Math.round(performance.now() - qaStart) },
         buttonHealth: {
           total: buttonAudit.length,
           working: buttonAudit.filter((button) => button.status === "working").length,

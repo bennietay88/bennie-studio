@@ -1,3 +1,4 @@
+import { DeliveryMeasurements, DeliveryScorecard, ProjectMargin, ServiceReviewQueue } from "./DeliveryMeasurements";
 import { useEffect, useMemo, useState } from "react";
 import { Briefcase, CalendarDays, CheckCircle2, Loader2, Plus, Search, Settings } from "lucide-react";
 import { toast } from "sonner";
@@ -95,6 +96,11 @@ export function Projects() {
     setEditing({ ...blankProject });
   };
 
+  const projectWebsite = async (project: any, columns: string): Promise<{data:any;error:any}> => {
+    const query = supabase.from("websites").select(columns).eq("business_id", project.business_id);
+    return (project.website_id ? query.eq("id", project.website_id) : query.order("updated_at", { ascending: false })).limit(1).maybeSingle();
+  };
+
   const openEdit = async (project: any) => {
     setEditing({
       ...blankProject,
@@ -104,13 +110,7 @@ export function Projects() {
     });
     setReviewWebsite(null);
     setReviewChecklist({});
-    const { data: website } = await supabase
-      .from("websites")
-      .select("id,seo,updated_at")
-      .eq("business_id", project.business_id)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data: website } = await projectWebsite(project,"id,seo,updated_at");
     if (website) {
       setReviewWebsite(website);
       setReviewChecklist({
@@ -135,13 +135,7 @@ export function Projects() {
       return false;
     }
     if (status === "customer_review") {
-      const { data: website, error: websiteError } = await supabase
-        .from("websites")
-        .select("id,seo")
-        .eq("business_id", project.business_id)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: website, error: websiteError } = await projectWebsite(project,"id,seo");
       const deliveryQuality = website?.seo?.deliveryQuality || {};
       if (websiteError || !website || !deliveryQuality.internalCreativeReviewApproved || !deliveryQuality.responsiveQaApproved) {
         toast.error("Customer review blocked: complete the creative and responsive internal review checklist first.");
@@ -153,13 +147,7 @@ export function Projects() {
       return false;
     }
     if (status === "live") {
-      const { data: website, error: websiteError } = await supabase
-        .from("websites")
-        .select("id,status,seo,updated_at")
-        .eq("business_id", project.business_id)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: website, error: websiteError } = await projectWebsite(project,"id,status,seo,updated_at");
       if (websiteError) {
         toast.error("Could not verify website launch readiness.");
         return false;
@@ -255,13 +243,7 @@ export function Projects() {
       return;
     }
     if (status === "customer_review") {
-      const { data: website, error: websiteError } = await supabase
-        .from("websites")
-        .select("id,seo")
-        .eq("business_id", project.business_id)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: website, error: websiteError } = await projectWebsite(project,"id,seo");
       const deliveryQuality = website?.seo?.deliveryQuality || {};
       if (websiteError || !website || !deliveryQuality.internalCreativeReviewApproved || !deliveryQuality.responsiveQaApproved) {
         toast.error("Customer review blocked: complete the creative and responsive internal review checklist first.");
@@ -273,13 +255,7 @@ export function Projects() {
       return;
     }
     if (status === "live") {
-      const { data: website, error: websiteError } = await supabase
-        .from("websites")
-        .select("id,status,seo,updated_at")
-        .eq("business_id", project.business_id)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: website, error: websiteError } = await projectWebsite(project,"id,status,seo,updated_at");
       if (websiteError) {
         toast.error("Could not verify website launch readiness.");
         return;
@@ -310,10 +286,12 @@ export function Projects() {
   return (
     <div className="space-y-6 py-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><h1 className="text-4xl font-black tracking-tight text-slate-950">Production Workflow</h1><p className="mt-1 text-sm font-semibold text-slate-500">Move every customer website from brief to launch with clear ownership and deadlines.</p></div><Button onClick={openNew} className="rounded-xl bg-indigo-600"><Plus className="mr-2 h-4 w-4"/>New Project</Button></div>
+      <DeliveryScorecard/>
+      <ServiceReviewQueue/>
       <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"/><Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search customer, project, or stage..." className="h-11 rounded-xl pl-10"/></div>
-      {loading ? <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600"/></div> : <div className="space-y-4">{visibleProjects.map((project) => <Card key={project.id} className="rounded-2xl border-slate-200"><CardContent className="space-y-5 p-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-black text-slate-950">{project.title || project.businesses?.name}</p><Badge variant="outline">{labelFor(project.status)}</Badge><Badge className={project.priority === "high" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600"}>{project.priority || "medium"}</Badge></div><p className="mt-1 text-xs font-semibold text-slate-500">{project.businesses?.name} · Owner: {project.assignee?.full_name || project.assignee?.email || "Unassigned"}</p></div><div className="w-full max-w-sm"><div className="mb-2 flex justify-between text-xs font-bold text-slate-500"><span>{labelFor(project.status)}</span><span>{progressFor(project.status)}%</span></div><Progress value={progressFor(project.status)} className="h-2"/></div><Button variant="outline" onClick={() => openEdit(project)} className="rounded-xl"><Settings className="mr-2 h-4 w-4"/>Configure</Button></div><div className="flex flex-wrap gap-2">{STAGES.map(([id, label]) => <Button key={id} size="sm" variant={project.status === id ? "default" : "outline"} onClick={() => moveProject(project, id)} className="rounded-xl text-xs">{label}</Button>)}</div>{project.target_launch_date && <p className="flex items-center gap-2 text-xs font-semibold text-slate-500"><CalendarDays className="h-4 w-4"/>Target launch: {new Date(`${project.target_launch_date}T00:00:00`).toLocaleDateString()}</p>}</CardContent></Card>)}{!visibleProjects.length && <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center"><Briefcase className="mx-auto h-10 w-10 text-slate-300"/><p className="mt-3 font-bold text-slate-600">No production projects found.</p></div>}</div>}
+      {loading ? <div className="flex min-h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-indigo-600"/></div> : <div className="space-y-4">{visibleProjects.map((project) => <Card key={project.id} className="rounded-2xl border-slate-200"><CardContent className="space-y-5 p-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-center"><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-black text-slate-950">{project.title || project.businesses?.name}</p><Badge variant="outline">{project.brief_ready_at && project.status==="internal_review" ? "Draft ready for review" : labelFor(project.status)}</Badge><Badge className={project.priority === "high" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600"}>{project.priority || "medium"}</Badge></div><p className="mt-1 text-xs font-semibold text-slate-500">{project.businesses?.name} · Owner: {project.assignee?.full_name || project.assignee?.email || "Unassigned"}</p></div><div className="w-full max-w-sm"><div className="mb-2 flex justify-between text-xs font-bold text-slate-500"><span>{labelFor(project.status)}</span><span>{progressFor(project.status)}%</span></div><Progress value={progressFor(project.status)} className="h-2"/></div><Button variant="outline" onClick={() => openEdit(project)} className="rounded-xl"><Settings className="mr-2 h-4 w-4"/>Configure</Button></div><div className="flex flex-wrap gap-2">{STAGES.map(([id, label]) => <Button key={id} size="sm" variant={project.status === id ? "default" : "outline"} onClick={() => moveProject(project, id)} className="rounded-xl text-xs">{label}</Button>)}</div>{project.delivery_exception && <p role="status">{project.delivery_exception}</p>}{project.target_launch_date && <p className="flex items-center gap-2 text-xs font-semibold text-slate-500"><CalendarDays className="h-4 w-4"/>Target launch: {new Date(`${project.target_launch_date}T00:00:00`).toLocaleDateString()}</p>}</CardContent></Card>)}{!visibleProjects.length && <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center"><Briefcase className="mx-auto h-10 w-10 text-slate-300"/><p className="mt-3 font-bold text-slate-600">No production projects found.</p></div>}</div>}
 
-      <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}><DialogContent className="max-w-xl rounded-3xl"><DialogHeader><DialogTitle>{editing?.id ? "Configure Production Project" : "Create Production Project"}</DialogTitle><DialogDescription>Set the customer, owner, delivery stage, launch target, and blockers.</DialogDescription></DialogHeader>{editing && <div className="grid gap-4 py-3 sm:grid-cols-2"><Field label="Customer"><Select value={editing.business_id} onValueChange={(value) => { const business = businesses.find((item) => item.id === value); setEditing({ ...editing, business_id: value, package_name: business?.plan || editing.package_name, title: editing.title || `${business?.name || "Customer"} Managed Website` }); }}><SelectTrigger><SelectValue placeholder="Select customer"/></SelectTrigger><SelectContent>{businesses.map((business) => <SelectItem key={business.id} value={business.id}>{business.name}</SelectItem>)}</SelectContent></Select></Field><Field label="Project owner"><Select value={editing.assigned_to || "unassigned"} onValueChange={(value) => setEditing({ ...editing, assigned_to: value === "unassigned" ? "" : value })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="unassigned">Unassigned</SelectItem>{staff.map((member) => <SelectItem key={member.id} value={member.id}>{member.full_name || member.email}</SelectItem>)}</SelectContent></Select></Field><div className="sm:col-span-2"><Field label="Project title"><Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })}/></Field></div><Field label="Stage"><Select value={editing.status} onValueChange={(value) => setEditing({ ...editing, status: value })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{STAGES.map(([id, label]) => <SelectItem key={id} value={id}>{label}</SelectItem>)}</SelectContent></Select></Field><Field label="Priority"><Select value={editing.priority} onValueChange={(value) => setEditing({ ...editing, priority: value })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select></Field><Field label="Plan / package"><Input value={editing.package_name} onChange={(e) => setEditing({ ...editing, package_name: e.target.value })}/></Field><Field label="Target launch"><Input type="date" value={editing.target_launch_date} onChange={(e) => setEditing({ ...editing, target_launch_date: e.target.value })}/></Field>{editing.id && reviewWebsite && <div className="sm:col-span-2 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+      <Dialog open={Boolean(editing)} onOpenChange={(open) => !open && setEditing(null)}><DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto rounded-3xl"><DialogHeader><DialogTitle>{editing?.id ? "Configure Production Project" : "Create Production Project"}</DialogTitle><DialogDescription>Set the customer, owner, delivery stage, launch target, and blockers.</DialogDescription></DialogHeader>{editing && <div className="grid gap-4 py-3 sm:grid-cols-2"><Field label="Customer"><Select value={editing.business_id} onValueChange={(value) => { const business = businesses.find((item) => item.id === value); setEditing({ ...editing, business_id: value, package_name: business?.plan || editing.package_name, title: editing.title || `${business?.name || "Customer"} Managed Website` }); }}><SelectTrigger><SelectValue placeholder="Select customer"/></SelectTrigger><SelectContent>{businesses.map((business) => <SelectItem key={business.id} value={business.id}>{business.name}</SelectItem>)}</SelectContent></Select></Field><Field label="Project owner"><Select value={editing.assigned_to || "unassigned"} onValueChange={(value) => setEditing({ ...editing, assigned_to: value === "unassigned" ? "" : value })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="unassigned">Unassigned</SelectItem>{staff.map((member) => <SelectItem key={member.id} value={member.id}>{member.full_name || member.email}</SelectItem>)}</SelectContent></Select></Field><div className="sm:col-span-2"><Field label="Project title"><Input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })}/></Field></div><Field label="Stage"><Select value={editing.status} onValueChange={(value) => setEditing({ ...editing, status: value })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{STAGES.map(([id, label]) => <SelectItem key={id} value={id}>{label}</SelectItem>)}</SelectContent></Select></Field><Field label="Priority"><Select value={editing.priority} onValueChange={(value) => setEditing({ ...editing, priority: value })}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select></Field><Field label="Plan / package"><Input value={editing.package_name} onChange={(e) => setEditing({ ...editing, package_name: e.target.value })}/></Field><Field label="Target launch"><Input type="date" value={editing.target_launch_date} onChange={(e) => setEditing({ ...editing, target_launch_date: e.target.value })}/></Field>{editing.id && reviewWebsite && <div className="sm:col-span-2 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
   <div className="flex items-start justify-between gap-3">
     <div>
       <p className="text-sm font-black text-slate-950">Internal review checklist</p>
@@ -331,6 +309,7 @@ export function Projects() {
     })}
   </div>
 </div>}
+{editing.id && <div className="grid gap-2 sm:col-span-2"><p className="text-sm">Observed customer wait: {editing.observed_customer_wait_minutes == null ? "Unmeasured" : Math.round(editing.observed_customer_wait_minutes)+" min"} · Domain wait: {editing.observed_domain_wait_minutes == null ? "Unmeasured" : Math.round(editing.observed_domain_wait_minutes)+" min"}</p><DeliveryMeasurements key={editing.id} projectId={editing.id}/><ProjectMargin projectId={editing.id}/></div>}
 <div className="sm:col-span-2"><Field label="Blockers and internal notes"><Textarea value={editing.admin_notes} onChange={(e) => setEditing({ ...editing, admin_notes: e.target.value })} className="min-h-28"/></Field></div></div>}<DialogFooter><Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button><Button onClick={saveProject} disabled={saving || reviewSaving} className="bg-indigo-600">{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}Save Project</Button></DialogFooter></DialogContent></Dialog>
     </div>
   );

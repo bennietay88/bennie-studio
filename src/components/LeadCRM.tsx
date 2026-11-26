@@ -41,6 +41,7 @@ import {
   Zap,
   Lock,
 } from "lucide-react";
+import { EnquiryOutcome } from "./CustomerOutcomes";
 import { Lead, LeadRemark } from "../types";
 import { format } from "date-fns";
 import { formatDate, generateId, cn } from "@/src/lib/utils";
@@ -866,7 +867,8 @@ export function LeadCRM() {
                 </div>
 
                 <div className="p-8 h-[500px]">
-                  <TabsContent value="details" className="mt-0 h-full">
+                  <TabsContent value="details" className="mt-0 h-full overflow-y-auto">
+                    <EnquiryOutcome key={selectedLead.id} leadId={selectedLead.id}/>
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-6">

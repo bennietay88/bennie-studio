@@ -1,3 +1,4 @@
+import { MonthlyCheckin } from "./CustomerOutcomes";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -165,11 +166,11 @@ export default function DashboardOverview() {
     setPublishedReportsError("");
     try {
       const { data, error } = await supabase.from("monthly_growth_reports")
-        .select("id,report_month,status,summary,payload,published_at,created_at")
+        .select("id,report_month,status,summary,payload,recommendations,published_at,created_at")
         .eq("business_id", profile.businessId)
         .eq("status", "published")
         .order("report_month", { ascending: false })
-        .limit(12);
+        .limit(24);
       if (error) throw error;
       setPublishedMonthlyReports(data || []);
     } catch (error: any) {
@@ -1039,7 +1040,7 @@ export default function DashboardOverview() {
       "",
       report.summary || "Not enough verified data yet.",
       "",
-      "No recommendations are included in this automated report. The activity above is limited to measured platform records for the stated period.",
+      ...(report.recommendations || []).map((item: string) => "Reviewed next action: " + item),
     ].join("\n");
     const url = URL.createObjectURL(new Blob([reportText], { type: "text/plain;charset=utf-8" }));
     const link = document.createElement("a");
@@ -1279,6 +1280,7 @@ export default function DashboardOverview() {
           </Card>
         </section>
 
+        {profile?.businessId && <MonthlyCheckin key={profile.businessId} businessId={profile.businessId}/>}
         <section className="grid gap-6 lg:grid-cols-2">
           <Card className="rounded-[2rem] border-slate-200 bg-white shadow-sm">
             <CardHeader>
@@ -1296,7 +1298,7 @@ export default function DashboardOverview() {
               {!publishedReportsLoading && !publishedReportsError && !publishedMonthlyReports.length && <p className="rounded-xl bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-600">No reviewed monthly reports have been published yet. Unpublished drafts are not shown here.</p>}
               {publishedMonthlyReports.map((report) => <div key={report.id} className="rounded-xl border border-slate-100 p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1"><p className="text-sm font-black text-slate-900">{report.report_month}</p><p className="mt-1 text-xs text-slate-600">{report.summary || "Not enough verified data yet."}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">Reviewed · customer dashboard</p></div>
+                  <div className="min-w-0 flex-1"><p className="text-sm font-black text-slate-900">{report.report_month}</p><p className="mt-1 text-xs text-slate-600">{report.summary || "Not enough verified data yet."}</p>{report.recommendations?.map((action: string)=><p key={action} className="mt-1 text-xs">Next action · {action}</p>)}<p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">Reviewed · customer dashboard</p></div>
                   <Button variant="outline" size="sm" onClick={() => downloadPublishedMonthlyReport(report)} className="rounded-lg">Download</Button>
                 </div>
               </div>)}
@@ -1363,6 +1365,7 @@ export default function DashboardOverview() {
 
   return (
     <Tabs defaultValue="overview" className="flex-col space-y-12 pb-20">
+      {profile?.businessId && <MonthlyCheckin key={profile.businessId} businessId={profile.businessId}/>}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
         <motion.div variants={fadeInUp} className="space-y-2">
           <span className="text-sm font-semibold text-primary">
@@ -2177,7 +2180,7 @@ export default function DashboardOverview() {
                     {publishedReportsError && <p role="alert" className="text-xs font-semibold text-rose-700">{publishedReportsError}</p>}
                     {publishedMonthlyReports.map((report) => <div key={report.id} className="rounded-xl border border-slate-100 p-3">
                       <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1"><p className="text-sm font-black text-slate-900">{report.report_month}</p><p className="mt-1 text-xs text-slate-600">{report.summary || "Not enough verified data yet."}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">Reviewed · customer dashboard</p></div>
+                        <div className="min-w-0 flex-1"><p className="text-sm font-black text-slate-900">{report.report_month}</p><p className="mt-1 text-xs text-slate-600">{report.summary || "Not enough verified data yet."}</p>{report.recommendations?.map((action: string)=><p key={action} className="mt-1 text-xs">Next action · {action}</p>)}<p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">Reviewed · customer dashboard</p></div>
                         <Button variant="outline" size="sm" onClick={() => downloadPublishedMonthlyReport(report)} className="rounded-lg">Download</Button>
                       </div>
                     </div>)}

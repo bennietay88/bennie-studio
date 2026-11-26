@@ -59,7 +59,14 @@ test("monthly draft generator does not overwrite an existing business-month repo
         enquiries: 1, whatsapp_clicks: 2, call_clicks: 0, bookings: 0,
         top_enquiry_page: "/contact", most_used_enquiry_path: "whatsapp_click", completed_work: [],
       }], error: null };
+      if (name === "report_owner_evidence") return { data: [{
+        business_id: "business-1", confirmed: { won: 2 }, checkin: { offline_qualified: 0 }, plan: "website-growth",
+      }], error: null };
       assert.equal(name, "create_monthly_growth_report_draft");
+      assert.match(args.p_report.summary, /2 won/);
+      assert.match(args.p_report.summary, /outside the CRM: 0/);
+      assert.ok(args.p_report.payload.suggestedAction);
+      assert.deepEqual(args.p_report.recommendations, []);
       const row = args.p_report;
       const key = `${row.business_id}:${row.report_month}`;
       if (created.has(key)) return { data: [{ created: false }], error: null };
