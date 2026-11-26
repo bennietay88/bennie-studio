@@ -798,6 +798,12 @@ export function WebsiteEditor({
   const [builderTemplate, setBuilderTemplate] = useState("hero");
   const [builderUndo, setBuilderUndo] = useState<BuilderChange[]>([]);
   const [builderRedo, setBuilderRedo] = useState<BuilderChange[]>([]);
+  const [rememberBuilderHistory,setRememberBuilderHistory]=useState(false);
+  const builderHistoryKey = user?.id && website?.id ? `bt-builder-history-v1:${user.id}:${website.id}` : null;
+  useEffect(()=>{
+    if(!builderHistoryKey || !visualBuilderMode || !rememberBuilderHistory)return;
+    try { const json=JSON.stringify({undo:builderUndo.slice(-50),redo:builderRedo.slice(-50)}); if(json.length<=1000000) localStorage.setItem(builderHistoryKey,json); else localStorage.removeItem(builderHistoryKey); } catch { /* Storage is optional; in-memory history remains available. */ }
+  },[builderHistoryKey,visualBuilderMode,rememberBuilderHistory,builderUndo,builderRedo]);
   const [livePreviewViewport, setLivePreviewViewport] = useState<
     "desktop" | "tablet" | "mobile"
   >("desktop");
@@ -2877,6 +2883,31 @@ export function WebsiteEditor({
   }, [website?.theme?.fontFamily, website?.theme?.displayFont]);
 
   const builderPage = website?.pages.find(page=>page.id===activePageId) || website?.pages[0];
+  const openVisualBuilder=()=>{
+    setBuilderSelected(null);setBuilderUndo([]);setBuilderRedo([]);setRememberBuilderHistory(false);
+    if(builderHistoryKey){
+      try{
+        const raw=localStorage.getItem(builderHistoryKey);
+        if(raw){
+          const value=JSON.parse(raw);
+          const valid=(list:unknown):list is BuilderChange[]=>Array.isArray(list)&&list.length<=50&&list.every(item=>item&&typeof item.pageId==="string"&&Array.isArray(item.before)&&Array.isArray(item.after));
+          if(valid(value.undo)&&valid(value.redo)){
+            setRememberBuilderHistory(true);
+            const top=value.undo[value.undo.length-1]||value.redo[value.redo.length-1];
+            const current=website?.pages.find(page=>page.id===top?.pageId);
+            const expected=value.undo.length?top?.after:top?.before;
+            if(!top || (current&&expected&&matchesBuilderSnapshot(current.sections,expected))){setBuilderUndo(value.undo);setBuilderRedo(value.redo);}
+            else toast.info("Stored undo history did not match the loaded draft and was discarded.");
+          }
+        }
+      }catch{ /* Corrupt or blocked storage is ignored. */ }
+    }
+    setVisualBuilderMode(true);setShowTemplatePreview(true);
+  };
+  const changeBuilderHistoryPreference=(enabled:boolean)=>{
+    setRememberBuilderHistory(enabled);
+    if(!enabled&&builderHistoryKey){try{localStorage.removeItem(builderHistoryKey);}catch{}}
+  };
   const builderAllowed = (key:string) => {
     const template=Object.prototype.hasOwnProperty.call(SECTION_TEMPLATES,key) ? SECTION_TEMPLATES[key] : undefined;
     return Boolean(template && key!=="google_reviews" && (!template.featureId || isFeatureEnabled(template.featureId)));
@@ -4818,7 +4849,7 @@ export function WebsiteEditor({
                 <Eye className="h-4 w-4" />{" "}
                 <span className="hidden sm:inline">Live Preview</span>
               </Button>
-              <Button type="button" variant="outline" disabled={!website} onClick={()=>{setBuilderSelected(null);setBuilderUndo([]);setBuilderRedo([]);setVisualBuilderMode(true);setShowTemplatePreview(true);}} className="gap-2 h-10 rounded-xl whitespace-nowrap"><Layout className="h-4 w-4"/> Visual Builder</Button>
+              <Button type="button" variant="outline" disabled={!website} onClick={openVisualBuilder} className="gap-2 h-10 rounded-xl whitespace-nowrap"><Layout className="h-4 w-4"/> Visual Builder</Button>
               {!isTemplateMode && (
                 <Button
                   type="button"
@@ -5012,7 +5043,7 @@ export function WebsiteEditor({
               </div>
             </DialogHeader>
             <div className={visualBuilderMode ? "bt-builder-layout" : "flex min-h-0 flex-1 overflow-auto bg-slate-100"}>
-              {visualBuilderMode && <VisualBuilderLibrary allowed={builderAllowed} selected={builderTemplate} onChoose={setBuilderTemplate}/>}
+              {visualBuilderMode && <VisualBuilderLibrary allowed={builderAllowed} selected={builderTemplate} onChoose={setBuilderTemplate} onTouchInsert={builderInsert}/>}
               <div className="bt-builder-canvas flex min-w-0 flex-1 overflow-auto p-3 sm:p-6">
               {(isTemplateMode ? template : website) && (
                 <div
@@ -5053,7 +5084,7 @@ export function WebsiteEditor({
                 </div>
               )}
               </div>
-              {visualBuilderMode && builderPage && <VisualBuilderInspector page={builderPage} selectedId={builderSelected} onSelect={setBuilderSelected} onPatch={(id,patch)=>builderApply({kind:"content",id,patch})} onEdit={builderEdit} onUndo={()=>builderHistory(false)} onRedo={()=>builderHistory(true)} canUndo={builderUndo.length>0} canRedo={builderRedo.length>0}/>}
+              {visualBuilderMode && builderPage && <VisualBuilderInspector page={builderPage} selectedId={builderSelected} onSelect={setBuilderSelected} onPatch={(id,patch)=>builderApply({kind:"content",id,patch})} onEdit={builderEdit} onUndo={()=>builderHistory(false)} onRedo={()=>builderHistory(true)} canUndo={builderUndo.length>0} canRedo={builderRedo.length>0} rememberHistory={rememberBuilderHistory} onRememberHistory={changeBuilderHistoryPreference} historyAvailable={Boolean(builderHistoryKey)}/>}
             </div>
           </DialogContent>
         </Dialog>

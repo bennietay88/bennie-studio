@@ -32,7 +32,8 @@ export function insertBlock(blocks:VisualBlock[],target:BlockTarget,block:Visual
   const insert=(items:VisualBlock[])=>{const next=[...items];next.splice(Math.max(0,Math.min(next.length,target.index)),0,block);return next;};
   if(target.parent && findBlock(blocks,target.parent)?.kind!=="columns")return blocks;
   const result=normalizeBlocks(target.parent?mapTree(blocks,target.parent,b=>({...b,[target.side]:insert(b[target.side]||[])})):insert(blocks));
-  return findBlock(result,block.id)?result:blocks;
+  const count=(items:VisualBlock[]):number=>items.reduce((n,item)=>n+1+count(item.left||[])+count(item.right||[]),0);
+  return findBlock(result,block.id)&&count(result)===count(blocks)+count([block])?result:blocks;
 }
 export function moveBlock(blocks:VisualBlock[],id:string,target:BlockTarget):VisualBlock[]{
   const block=findBlock(blocks,id);if(!block||target.parent===id||(target.parent&&findBlock([block],target.parent)))return blocks;

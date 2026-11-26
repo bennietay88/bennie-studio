@@ -63,24 +63,25 @@ export function BuilderCanvasSection({section,index,total,canvas,children}:{sect
     </div>
   </div>;
 }
-export function VisualBuilderLibrary({allowed,selected,onChoose}:{allowed:(key:string)=>boolean;selected:string;onChoose:(key:string)=>void}) {
+export function VisualBuilderLibrary({allowed,selected,onChoose,onTouchInsert}:{allowed:(key:string)=>boolean;selected:string;onChoose:(key:string)=>void;onTouchInsert:(key:string,index:number)=>void}) {
   const [query,setQuery]=useState("");
   return <aside className="bt-builder-library">
     <h3>Section library</h3><p>Drag to an insertion line, or select a section and tap Insert.</p>
     <Input aria-label="Search sections" placeholder="Search sections" value={query} onChange={event=>setQuery(event.target.value)}/>
     <div className="bt-builder-library-list">
       {Object.entries(SECTION_TEMPLATES).filter(([key])=>allowed(key)&&key.replace(/_/g," ").includes(query.toLowerCase())).map(([key])=>
-        <button key={key} type="button" draggable onDragStart={event=>writeBuilderDrag(event,{kind:"template",key})}
+        <button key={key} type="button" className="bt-touch-handle" draggable onPointerDown={event=>{if(event.pointerType!=="mouse")event.currentTarget.setPointerCapture(event.pointerId);}} onPointerUp={event=>{if(event.pointerType==="mouse")return;const zone=document.elementFromPoint(event.clientX,event.clientY)?.closest<HTMLElement>("[data-section-drop]");if(zone)onTouchInsert(key,Number(zone.dataset.sectionDrop));}} onDragStart={event=>writeBuilderDrag(event,{kind:"template",key})}
           aria-pressed={selected===key} onClick={()=>onChoose(key)}><GripVertical size={14}/><span>{key.replace(/_/g," ")}</span></button>)}
     </div>
   </aside>;
 }
-export function VisualBuilderInspector({page,selectedId,onSelect,onPatch,onEdit,onUndo,onRedo,canUndo,canRedo}:{page:WebsitePage;selectedId:string|null;onSelect:(id:string)=>void;onPatch:(id:string,patch:Record<string,unknown>)=>void;onEdit:(id:string)=>void;onUndo:()=>void;onRedo:()=>void;canUndo:boolean;canRedo:boolean}) {
+export function VisualBuilderInspector({page,selectedId,onSelect,onPatch,onEdit,onUndo,onRedo,canUndo,canRedo,rememberHistory,onRememberHistory,historyAvailable}:{page:WebsitePage;selectedId:string|null;onSelect:(id:string)=>void;onPatch:(id:string,patch:Record<string,unknown>)=>void;onEdit:(id:string)=>void;onUndo:()=>void;onRedo:()=>void;canUndo:boolean;canRedo:boolean;rememberHistory:boolean;onRememberHistory:(value:boolean)=>void;historyAvailable:boolean}) {
   const section=page.sections.find(item=>item.id===selectedId);
   const fields=section ? ["headline","title","subheadline","description","text","ctaText","buttonText"].filter(key=>typeof section.content?.[key]==="string") : [];
   return <aside className="bt-builder-inspector">
     <h3>Inspector</h3>
     <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" onClick={onUndo} disabled={!canUndo}><Undo2 size={14}/> Undo</Button><Button type="button" variant="outline" size="sm" onClick={onRedo} disabled={!canRedo}><Redo2 size={14}/> Redo</Button></div>
+    {historyAvailable&&<label className="flex items-start gap-2 text-xs"><input type="checkbox" checked={rememberHistory} onChange={event=>onRememberHistory(event.target.checked)}/> <span>Remember undo history on this device (stores draft section snapshots in this browser; disable on shared devices).</span></label>}
     <label className="text-xs font-semibold" htmlFor="bt-builder-layer">Page sections</label>
     <select id="bt-builder-layer" value={selectedId||""} onChange={event=>onSelect(event.target.value)} className="w-full rounded border border-slate-200 p-2 text-sm">
       <option value="">Select a section</option>{page.sections.map((item,index)=><option key={item.id} value={item.id}>{index+1}. {item.content?.interaction?.replace(/_/g," ") || item.type}</option>)}

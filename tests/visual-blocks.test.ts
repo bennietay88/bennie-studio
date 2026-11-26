@@ -8,6 +8,9 @@ test("nested blocks move across columns without cycles or lost content",()=>{
   assert.equal(moved[0].left?.length,0);assert.equal(moved[0].right?.[0].id,"text");
   assert.deepEqual(moveBlock(moved,"group",{parent:"group",side:"left",index:0}),moved);
   assert.equal(findBlock(moved,"text")?.kind,"text");
+  const deep=createVisualBlock("columns","deep"), deep2=createVisualBlock("columns","deep2"), deep3=createVisualBlock("columns","deep3");
+  const nested=[{...deep,left:[{...deep2,left:[deep3]}]},...first];
+  assert.deepEqual(moveBlock(nested,"group",{parent:"deep3",side:"left",index:0}),nested);
 });
 test("motion timing and column widths are bounded; unsafe URLs rejected",()=>{
   assert.equal(normalizeBlockMotion({effect:"slide",duration:9999,delay:-1}).duration,1600);
