@@ -92,7 +92,7 @@ test("prospect composer keeps the introduction simple and schedules three separa
   assert.doesNotMatch(ui, /outreachRecommendation/);
   const operations = readFileSync("server/salesOperations.ts", "utf8");
   assert.match(operations, /directProspectFollowUp: true/);
-  assert.match(operations, /\[3, 8, 15\] as const/);
-  assert.match(operations, /delayHours: \[72, 120, 168\]\[i\]/);
+  assert.match(operations, /\[3, 5, 8\] as const/);
+  assert.match(operations, /delayHours: \[72, 48, 72\]\[i\]/);
   assert.doesNotMatch(ui, /prospect\.preview_url \? ` I prepared a quick preview here:/);
 });
