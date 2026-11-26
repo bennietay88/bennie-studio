@@ -1,23 +1,49 @@
 import React,{useEffect,useRef,useState} from "react";
 import { ArrowDown,ArrowUp,GripVertical,Trash2,Plus } from "lucide-react";
-import { BLOCK_KINDS, DEFAULT_BLOCK_MOTION, createVisualBlock, normalizeBlocks, normalizeBlockMotion, safeBlockUrl, findBlock, insertBlock, moveBlock, removeBlock, patchBlock, type VisualBlock,type BlockKind,type BlockTarget,type BlockMotion } from "../lib/visualBlocks";
+import { BLOCK_KINDS, DEFAULT_BLOCK_MOTION, MOTION_EFFECTS, MOTION_TRIGGERS, blockMotionFrames, motionScrollProgress, createVisualBlock, normalizeBlocks, normalizeBlockMotion, safeBlockUrl, findBlock, insertBlock, moveBlock, removeBlock, patchBlock, type VisualBlock,type BlockKind,type BlockTarget,type BlockMotion } from "../lib/visualBlocks";
 import { generateId } from "../lib/utils";
 import { ImageUpload } from "./ImageUpload";
 import "../styles/visualBlockLayout.css";
-export function BlockMotionFrame({motion,enabled,children}:{motion?:unknown;enabled:boolean;children:React.ReactNode}){
-  const ref=useRef<HTMLDivElement>(null);
-  const config=normalizeBlockMotion(motion);
-  useEffect(()=>{
-    const el=ref.current;if(!el||!enabled||config.effect==="none"||config.trigger==="hover")return;
-    const reduced=window.matchMedia("(prefers-reduced-motion: reduce)");
-    let animation:Animation|undefined;
-    const run=()=>{if(reduced.matches||!el.animate)return;const frames=config.effect==="slide"?[{translate:"0 18px",opacity:.75},{translate:"0 0",opacity:1}]:config.effect==="scale"?[{scale:".96",opacity:.8},{scale:"1",opacity:1}]:[{opacity:.55},{opacity:1}];animation=el.animate(frames,{duration:config.duration,delay:config.delay,easing:"cubic-bezier(.16,1,.3,1)"});};
-    const observer=config.trigger==="scroll"&&typeof IntersectionObserver!=="undefined"?new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){observer?.disconnect();run();}},{threshold:.12}):undefined;
-    if(observer)observer.observe(el);else run();
-    const stop=()=>{if(reduced.matches)animation?.cancel();};reduced.addEventListener("change",stop);
-    return()=>{observer?.disconnect();animation?.cancel();reduced.removeEventListener("change",stop);};
-  },[enabled,config.effect,config.trigger,config.duration,config.delay]);
-  return <div ref={ref} data-block-effect={enabled&&config.trigger==="hover"?config.effect:"none"} style={{"--block-duration":config.duration+"ms","--block-delay":config.delay+"ms"} as React.CSSProperties} className="bt-block-motion">{children}</div>;
+export function BlockMotionFrame({motion,enabled,allowPin=false,children}:{motion?:unknown;enabled:boolean;allowPin?:boolean;children:React.ReactNode}){
+ const ref=useRef<HTMLDivElement>(null),track=useRef<HTMLDivElement>(null);
+ const config=normalizeBlockMotion(motion);const signature=JSON.stringify(config);
+ useEffect(()=>{
+  const el=ref.current,outer=track.current;if(!el||!outer||!enabled||config.effect==="none"||!el.animate)return;
+  const reduced=window.matchMedia("(prefers-reduced-motion: reduce)");
+  const desktop=window.matchMedia("(min-width: 1024px) and (hover:hover) and (pointer:fine)");
+  let animation:Animation|undefined,observer:IntersectionObserver|undefined,resize:ResizeObserver|undefined,frame=0;
+  let pinned=false;
+  const clear=()=>{animation?.cancel();animation=undefined;outer.removeAttribute("data-motion-pinned");outer.style.removeProperty("min-height");pinned=false;};
+  const fits=()=>allowPin&&config.pin&&desktop.matches&&el.scrollHeight<=window.innerHeight-120&&!el.querySelector("a,button,input,textarea,select,form,[tabindex],video,iframe,details");
+  const play=()=>{if(reduced.matches)return;animation?.cancel();animation=el.animate(blockMotionFrames(config),{duration:config.duration,delay:config.delay,easing:config.easing||"ease-out"});};
+  const update=()=>{frame=0;if(reduced.matches)return;
+   if(config.trigger!=="scrub")return;
+   const rect=outer.getBoundingClientRect();
+   const progress=pinned?Math.max(0,Math.min(1,(80-rect.top)/Math.max(1,outer.offsetHeight-el.offsetHeight))):motionScrollProgress(rect.top,rect.height,window.innerHeight);
+   if(animation)animation.currentTime=progress*config.duration;
+  };
+  const schedule=()=>{if(!frame)frame=requestAnimationFrame(update);};
+  const reset=()=>{observer?.disconnect();clear();if(reduced.matches)return;
+   if(config.trigger==="scrub"){
+    pinned=Boolean(fits());if(pinned){outer.dataset.motionPinned="true";outer.style.minHeight=(el.offsetHeight+window.innerHeight*(config.pinDistance||35)/100)+"px";}
+    animation=el.animate(blockMotionFrames(config),{duration:config.duration,easing:config.easing||"ease-out",fill:"both"});animation.pause();update();
+   }else if(config.trigger==="load")play();
+   else if(config.trigger==="scroll"){
+    if(typeof IntersectionObserver==="undefined")play();else{observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){observer?.disconnect();play();}},{threshold:0.12});observer.observe(el);}
+   }
+  };
+  const hover=()=>{if(config.trigger==="hover"&&desktop.matches)play();};
+  const focus=()=>{if(config.trigger==="scrub"){animation?.cancel();animation=undefined;outer.removeAttribute("data-motion-pinned");outer.style.removeProperty("min-height");pinned=false;}else if(config.trigger==="hover")animation?.cancel();};
+  const onResize=()=>{if(config.trigger==="scrub")reset();};
+  el.addEventListener("pointerenter",hover);el.addEventListener("focusin",focus);
+  window.addEventListener("scroll",schedule,{passive:true});window.addEventListener("resize",onResize,{passive:true});
+  document.addEventListener("scroll",schedule,{passive:true,capture:true});
+  reduced.addEventListener("change",reset);desktop.addEventListener("change",reset);
+  if(config.trigger==="scrub"&&allowPin&&config.pin&&typeof ResizeObserver!=="undefined"){resize=new ResizeObserver(()=>{if(pinned&&(!fits()||Math.abs(outer.offsetHeight-el.offsetHeight-window.innerHeight*(config.pinDistance||35)/100)>2))reset();});resize.observe(el);}
+  reset();
+  return()=>{observer?.disconnect();resize?.disconnect();clear();if(frame)cancelAnimationFrame(frame);el.removeEventListener("pointerenter",hover);el.removeEventListener("focusin",focus);window.removeEventListener("scroll",schedule);window.removeEventListener("resize",onResize);document.removeEventListener("scroll",schedule,true);reduced.removeEventListener("change",reset);desktop.removeEventListener("change",reset);};
+ },[enabled,allowPin,signature]);
+ return <div ref={track} className="bt-motion-track"><div ref={ref} className="bt-block-motion">{children}</div></div>;
 }
 function BlockContent({block}:{block:VisualBlock}){
   const url=safeBlockUrl(block.url);
@@ -35,8 +61,19 @@ export function VisualBlocks({value,animate}:{value:unknown;animate:boolean}){
   function render(items:VisualBlock[]):React.ReactNode{return items.map(block=><BlockMotionFrame key={block.id} motion={block.motion} enabled={animate}><div style={{textAlign:block.align||"left"}}>{block.kind==="columns"?<div className="bt-block-columns" data-stack-tablet={block.stackTablet?"true":"false"} style={{"--block-left":(block.ratio||50)+"fr","--block-right":(100-(block.ratio||50))+"fr",gap:block.gap||24} as React.CSSProperties}><div>{render(block.left||[])}</div><div>{render(block.right||[])}</div></div>:<BlockContent block={block}/>}</div></BlockMotionFrame>);}
   return <div className="bt-block-root">{render(blocks)}</div>;
 }
-export function MotionFields({value,onChange}:{value:unknown;onChange:(value:BlockMotion)=>void}){
-  const m=normalizeBlockMotion(value);return <div className="bt-motion-fields"><label>Animation<select value={m.effect} onChange={e=>onChange({...m,effect:e.target.value as BlockMotion["effect"]})}>{["none","fade","slide","scale"].map(x=><option key={x}>{x}</option>)}</select></label><label>Trigger<select value={m.trigger} onChange={e=>onChange({...m,trigger:e.target.value as BlockMotion["trigger"]})}>{["load","scroll","hover"].map(x=><option key={x}>{x}</option>)}</select></label><label>Duration (ms)<input type="number" min={100} max={1600} step={50} value={m.duration} onChange={e=>onChange(normalizeBlockMotion({...m,duration:Number(e.target.value)}))}/></label><label>Delay (ms)<input type="number" min={0} max={800} step={50} value={m.delay} onChange={e=>onChange(normalizeBlockMotion({...m,delay:Number(e.target.value)}))}/></label></div>;
+export function MotionFields({value,onChange,allowPin=false}:{value:unknown;onChange:(value:BlockMotion)=>void;allowPin?:boolean}){
+ const m=normalizeBlockMotion(value);const [preview,setPreview]=useState(0);
+ const set=(patch:Partial<BlockMotion>)=>onChange(normalizeBlockMotion({...m,...patch}));
+ return <div className="bt-motion-fields">
+ <label>Animation<select value={m.effect} onChange={e=>set({effect:e.target.value as BlockMotion["effect"]})}>{MOTION_EFFECTS.map(x=><option key={x}>{x}</option>)}</select></label>
+ <label>Trigger<select value={m.trigger} onChange={e=>set({trigger:e.target.value as BlockMotion["trigger"]})}>{MOTION_TRIGGERS.map(x=><option key={x} value={x}>{x==="scrub"?"Scroll-linked":x}</option>)}</select></label>
+ <label>Duration (ms)<input type="number" min={100} max={1600} step={50} value={m.duration} onChange={e=>set({duration:Number(e.target.value)})}/></label>
+ <label>Delay (ms)<input type="number" min={0} max={800} step={50} disabled={m.trigger==="scrub"} value={m.delay} onChange={e=>set({delay:Number(e.target.value)})}/></label>
+ <label>Easing<select value={m.easing||"ease-out"} onChange={e=>set({easing:e.target.value as BlockMotion["easing"]})}>{["ease-out","ease-in-out","linear"].map(x=><option key={x}>{x}</option>)}</select></label>
+ {allowPin&&m.trigger==="scrub"&&m.effect!=="none"&&<div className="col-span-2"><label><input type="checkbox" checked={Boolean(m.pin)} onChange={e=>set({pin:e.target.checked})}/> Pin short, non-interactive section on desktop</label>{m.pin&&<label>Pin travel (% viewport)<input type="range" min={15} max={60} value={m.pinDistance||35} onChange={e=>set({pinDistance:Number(e.target.value)})}/>{m.pinDistance}%</label>}<p className="text-xs">Pinning automatically falls back to normal scrolling for mobile, reduced motion, interactive or oversized content.</p></div>}
+ {m.effect==="sequence"&&m.keyframes&&<div className="col-span-2 space-y-2"><strong>Keyframe timeline</strong><div className="bt-motion-timeline" aria-label="Animation timeline"><span>0%</span><span>50%</span><span>100%</span></div>{m.keyframes.slice(0,2).map((stop,index)=><fieldset key={index} className="border rounded p-2"><legend>{index===0?"Start":"Midpoint"}</legend>{(["x","y","scale","rotate","rotateY","opacity"] as const).map(key=><label key={key}>{key}<input type="number" step={key==="scale"||key==="opacity"?0.05:1} value={stop[key]} onChange={event=>set({keyframes:m.keyframes!.map((frame,i)=>i===index?{...frame,[key]:Number(event.target.value)}:frame)})}/></label>)}</fieldset>)}<p className="text-xs">The final keyframe returns to the natural layout.</p></div>}
+ <div className="col-span-2"><button type="button" className="border rounded px-2 py-1" onClick={()=>setPreview(n=>n+1)}>Preview animation</button><div className="overflow-hidden rounded bg-slate-100 p-4 mt-2"><BlockMotionFrame key={preview} motion={{...m,trigger:"load",pin:false}} enabled={preview>0}><div className="rounded bg-indigo-600 text-white p-3 text-center">Animation preview</div></BlockMotionFrame></div></div>
+ </div>;
 }
 function ColumnResize({ratio,onChange}:{ratio:number;onChange:(value:number)=>void}){
   const [draft,setDraft]=useState(ratio);const track=useRef<HTMLDivElement>(null);const start=useRef<number|null>(null);

@@ -94,7 +94,7 @@ export function VisualBuilderInspector({page,selectedId,onSelect,onPatch,onEdit,
     {section ? <><h4 className="text-sm font-bold capitalize">{section.type}</h4>
       {fields.map(key=><div key={section.id+key}><label className="text-xs font-semibold capitalize" htmlFor={"bt-builder-field-"+key}>{key}</label>
       <Textarea id={"bt-builder-field-"+key} key={section.id+key+section.content[key]} defaultValue={section.content[key]} onBlur={event=>{if(event.target.value!==section.content[key])onPatch(section.id,{[key]:event.target.value});}} rows={key==="text"?4:2}/></div>)}
-      <MotionFields value={section.content?.builderMotion} onChange={motion=>onPatch(section.id,{builderMotion:motion})}/>
+      <MotionFields allowPin={section.content?.interaction==="visual_layout"} value={section.content?.builderMotion} onChange={motion=>onPatch(section.id,{builderMotion:motion})}/>
       <Button type="button" variant="outline" onClick={()=>onEdit(section.id)}>Full section settings</Button></>:<p>Select a section on the canvas to edit its content.</p>}
     <p className="text-xs text-slate-500">Text edits apply when you leave a field. Changes are unsaved until you use the existing save workflow.</p>
   </aside>;

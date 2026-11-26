@@ -1520,7 +1520,7 @@ export function WebsiteRenderer({
     pages?.[0];
 
   const canvas = isEditingPreview ? visualCanvas : undefined;
-  const wrapCanvasSection = (section: WebsiteSection, index: number, rendered: React.ReactNode) => canvas ? <BuilderCanvasSection key={section.id} section={section} index={index} total={activePage?.sections.length || 0} canvas={canvas}>{rendered}</BuilderCanvasSection> : section.content?.builderMotion ? <BlockMotionFrame key={section.id} motion={section.content.builderMotion} enabled={!prefersReducedMotion && website?.theme?.motionProfile !== "none"}>{rendered}</BlockMotionFrame> : rendered;
+  const wrapCanvasSection = (section: WebsiteSection, index: number, rendered: React.ReactNode) => canvas ? <BuilderCanvasSection key={section.id} section={section} index={index} total={activePage?.sections.length || 0} canvas={canvas}>{rendered}</BuilderCanvasSection> : section.content?.builderMotion ? <BlockMotionFrame key={section.id} motion={section.content.builderMotion} enabled={!prefersReducedMotion && website?.theme?.motionProfile !== "none"} allowPin={!isEditingPreview && section.content?.interaction==="visual_layout"}>{rendered}</BlockMotionFrame> : rendered;
 
   const homePage =
     pages?.find((p) => p.slug === "home" || p.slug === "") || pages?.[0];
@@ -1748,7 +1748,7 @@ export function WebsiteRenderer({
         data-motion-profile={selectedMotionProfile}
         data-image-profile={theme.imageProfile || designProfile.imageTreatment}
         className={cn(
-          "bt-website-renderer min-h-screen w-full max-w-full overflow-x-hidden flex flex-col transition-colors duration-300",
+          "bt-website-renderer min-h-screen w-full max-w-full overflow-x-clip flex flex-col transition-colors duration-300",
           theme.style === "glassmorphic" || theme.style === "immersive"
             ? "bg-slate-950 text-white"
             : "bg-white text-slate-900",

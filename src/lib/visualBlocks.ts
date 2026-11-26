@@ -1,12 +1,23 @@
 export type BlockKind = "heading"|"text"|"image"|"button"|"spacer"|"columns";
-export type BlockMotion = { effect:"none"|"fade"|"slide"|"scale"; trigger:"load"|"scroll"|"hover"; duration:number; delay:number };
+export type MotionStop = { offset:number; x:number; y:number; scale:number; rotate:number; rotateY:number; opacity:number };
+export type BlockMotion = { effect:"none"|"fade"|"slide"|"scale"|"tilt"|"sequence"; trigger:"load"|"scroll"|"hover"|"scrub"; duration:number; delay:number; easing?:"ease-out"|"ease-in-out"|"linear"; keyframes?:MotionStop[]; pin?:boolean; pinDistance?:number };
+export const MOTION_EFFECTS:BlockMotion["effect"][]=["none","fade","slide","scale","tilt","sequence"];
+export const MOTION_TRIGGERS:BlockMotion["trigger"][]=["load","scroll","hover","scrub"];
+export const DEFAULT_MOTION_STOPS:MotionStop[]=[{offset:0,x:0,y:16,scale:.96,rotate:0,rotateY:-5,opacity:.65},{offset:.5,x:0,y:-4,scale:1.02,rotate:0,rotateY:3,opacity:1},{offset:1,x:0,y:0,scale:1,rotate:0,rotateY:0,opacity:1}];
 export type VisualBlock = { id:string; kind:BlockKind; text?:string; url?:string; alt?:string; height?:number; ratio?:number; gap?:number; stackTablet?:boolean; align?:"left"|"center"|"right"; motion?:BlockMotion; left?:VisualBlock[]; right?:VisualBlock[] };
 export const BLOCK_KINDS:BlockKind[]=["heading","text","image","button","spacer","columns"];
 export const DEFAULT_BLOCK_MOTION:BlockMotion={effect:"none",trigger:"scroll",duration:500,delay:0};
 const clamp=(v:unknown,min:number,max:number,fallback:number)=>typeof v==="number"&&Number.isFinite(v)?Math.max(min,Math.min(max,v)):fallback;
 export function normalizeBlockMotion(value:unknown):BlockMotion {
   const m=(value||{}) as Partial<BlockMotion>;
-  return {effect:["none","fade","slide","scale"].includes(m.effect||"")?m.effect!:"none",trigger:["load","scroll","hover"].includes(m.trigger||"")?m.trigger!:"scroll",duration:clamp(m.duration,100,1600,500),delay:clamp(m.delay,0,800,0)};
+  const effect=MOTION_EFFECTS.includes(m.effect!)?m.effect!:"none";
+  const trigger=MOTION_TRIGGERS.includes(m.trigger!)?m.trigger!:"scroll";
+  const keyframes=effect==="sequence"?DEFAULT_MOTION_STOPS.map((fallback,index)=>{
+    if(index===2)return {...fallback};
+    const stop=Array.isArray(m.keyframes)?m.keyframes[index]:undefined;
+    return {offset:index/2,x:clamp(stop?.x,-32,32,fallback.x),y:clamp(stop?.y,-32,32,fallback.y),scale:clamp(stop?.scale,.85,1.1,fallback.scale),rotate:clamp(stop?.rotate,-15,15,fallback.rotate),rotateY:clamp(stop?.rotateY,-18,18,fallback.rotateY),opacity:clamp(stop?.opacity,.5,1,fallback.opacity)};
+  }):undefined;
+  return {effect,trigger,duration:clamp(m.duration,100,1600,500),delay:clamp(m.delay,0,800,0),easing:["ease-out","ease-in-out","linear"].includes(m.easing||"")?m.easing:"ease-out",keyframes,pin:effect!=="none"&&trigger==="scrub"&&m.pin===true,pinDistance:clamp(m.pinDistance,15,60,35)};
 }
 export function normalizeBlocks(value:unknown,depth=0,seen=new Set<string>()):VisualBlock[] {
   if(!Array.isArray(value)||depth>3)return [];
@@ -50,4 +61,21 @@ export function safeBlockUrl(value?:string):string {
   if(url.startsWith("/")&&!url.startsWith("//"))return url;
   if(/^#[a-zA-Z0-9_-]+$/.test(url))return url;
   try{const parsed=new URL(url);return ["https:","http:"].includes(parsed.protocol)?url:"";}catch{return "";}
+}
+
+/** Returns only bounded numeric transforms. Final pose is always the natural layout. */
+export function blockMotionFrames(value:unknown):Keyframe[]{
+ const m=normalizeBlockMotion(value);
+ if(m.effect==="sequence"&&m.keyframes)return m.keyframes.map(stop=>({offset:stop.offset,transform:"perspective(800px) translate("+stop.x+"px,"+stop.y+"px) rotate("+stop.rotate+"deg) rotateY("+stop.rotateY+"deg) scale("+stop.scale+")",opacity:stop.opacity}));
+ if(m.effect==="tilt")return [{transform:"perspective(800px) rotateY(-10deg) rotateX(4deg)",opacity:.8},{transform:"none",opacity:1}];
+ if(m.effect==="slide")return [{transform:"translateY(18px)",opacity:.75},{transform:"none",opacity:1}];
+ if(m.effect==="scale")return [{transform:"scale(.96)",opacity:.8},{transform:"none",opacity:1}];
+ if(m.effect==="fade")return [{opacity:.55},{opacity:1}];
+ return [{opacity:1},{opacity:1}];
+}
+export function motionScrollProgress(top:number,height:number,viewport:number,pinned=false):number{
+ if(!Number.isFinite(top)||!Number.isFinite(height)||!Number.isFinite(viewport)||viewport<=0)return 1;
+ const start=pinned?80:viewport*.85;
+ const distance=pinned?Math.max(1,height-viewport+80):Math.max(1,Math.min(height,viewport*.75)+viewport*.35);
+ return Math.min(1,Math.max(0,(start-top)/distance));
 }
