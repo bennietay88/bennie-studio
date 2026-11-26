@@ -2765,6 +2765,13 @@ export function WebsiteEditor({
   const addSection = async (pageId: string, type: string) => {
     if (!website) return;
 
+    if (type === "before_after_comparison" || type === "interactive_process") {
+      const section = createSectionFromTemplate(type);
+      setWebsite({ ...website, pages: website.pages.map(page => page.id === pageId ? {...page, sections: [...page.sections, section]} : page) });
+      setShowAddSection(null);
+      toast.success("Interactive section added. Edit and save its content.");
+      return;
+    }
     const toastId = toast.loading(`Generating ${type} section...`);
     setIsGeneratingSection(true);
 
@@ -7161,7 +7168,22 @@ export function WebsiteEditor({
                                         </div>
                                       </div>
                                     )}
-                                    {section.type === "features" && (
+                                    {section.type === "features" && section.content?.interaction === "before_after" && (
+                                      <div className="space-y-4">
+                                        <Label>Comparison title</Label>
+                                        <Input value={section.content.title || ""} onChange={e => updateSectionContent(page.id, section.id, {title:e.target.value})}/>
+                                        <Label>Caption / context</Label>
+                                        <Textarea value={section.content.description || ""} onChange={e => updateSectionContent(page.id, section.id, {description:e.target.value})}/>
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                          <div className="space-y-2"><Label>Before label</Label><Input value={section.content.beforeLabel || ""} onChange={e => updateSectionContent(page.id, section.id, {beforeLabel:e.target.value})}/>
+                                          <ImageUpload label="Before image" bucket="website-assets" value={section.content.beforeImageUrl || ""} onUpload={url => updateSectionContent(page.id, section.id, {beforeImageUrl:url})}/></div>
+                                          <div className="space-y-2"><Label>After label</Label><Input value={section.content.afterLabel || ""} onChange={e => updateSectionContent(page.id, section.id, {afterLabel:e.target.value})}/>
+                                          <ImageUpload label="After image" bucket="website-assets" value={section.content.afterImageUrl || ""} onUpload={url => updateSectionContent(page.id, section.id, {afterImageUrl:url})}/></div>
+                                        </div>
+                                        <p className="text-xs text-slate-500">Use matching, approved images. This section stays hidden on the published website until both images are available.</p>
+                                      </div>
+                                    )}
+                                    {section.type === "features" && section.content?.interaction !== "before_after" && (
                                       <div className="space-y-4">
                                         <div className="space-y-1.5">
                                           <Label>Section Title</Label>
@@ -7178,7 +7200,7 @@ export function WebsiteEditor({
                                         </div>
                                         <div className="space-y-3">
                                           <label className="text-sm font-medium">
-                                            Features List
+                                            {section.content?.interaction === "process_timeline" ? "Process Steps" : "Features List"}
                                           </label>
                                           {(section.content.items || []).map(
                                             (item: string, idx: number) => (
@@ -7231,7 +7253,7 @@ export function WebsiteEditor({
                                               const newItems = [
                                                 ...(section.content.items ||
                                                   []),
-                                                "New Feature",
+                                                section.content?.interaction === "process_timeline" ? "New step" : "New Feature",
                                               ];
                                               updateSectionContent(
                                                 page.id,
@@ -7241,7 +7263,7 @@ export function WebsiteEditor({
                                             }}
                                           >
                                             <Plus className="h-4 w-4" /> Add
-                                            Feature
+                                            {section.content?.interaction === "process_timeline" ? "Step" : "Feature"}
                                           </Button>
                                         </div>
                                       </div>

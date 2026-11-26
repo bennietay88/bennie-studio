@@ -1,0 +1,30 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { readFileSync } from "node:fs";
+import { createSectionFromTemplate } from "../src/constants/sectionTemplates";
+test("interactive client sections use the existing feature section contract without invented images", () => {
+  const comparison = createSectionFromTemplate("before_after_comparison");
+  assert.equal(comparison.type, "features");
+  assert.equal(comparison.content.interaction, "before_after");
+  assert.equal(comparison.content.beforeImageUrl, "");
+  assert.equal(comparison.content.afterImageUrl, "");
+  const timeline = createSectionFromTemplate("interactive_process");
+  assert.equal(timeline.content.interaction, "process_timeline");
+  assert.ok(Array.isArray(timeline.content.items));
+});
+test("shared interactions are accessible, editable, and integrated into both site renderers", () => {
+  const component = readFileSync("src/components/InteractiveSiteSections.tsx","utf8");
+  const editor = readFileSync("src/components/WebsiteEditor.tsx","utf8");
+  const renderer = readFileSync("src/components/WebsiteRenderer.tsx","utf8");
+  const home = readFileSync("src/components/ConversionHomepage.tsx","utf8");
+  const layer = readFileSync("src/lib/siteMotion.ts","utf8");
+  assert.match(component,/type="range"/);
+  assert.match(component,/aria-valuetext/);
+  assert.match(component,/prefers-reduced-motion/);
+  assert.match(editor,/beforeImageUrl:url/);
+  assert.match(editor,/afterImageUrl:url/);
+  assert.match(renderer,/!beforeImageUrl \|\| !afterImageUrl/);
+  assert.match(renderer,/<InteractiveProcessTimeline/);
+  assert.match(home,/<StudioComparisonDemo/);
+  assert.match(layer,/Math.min\(5, Math.max\(-5,value\)\)/);
+});

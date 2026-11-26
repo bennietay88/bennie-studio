@@ -102,6 +102,36 @@ export function attachSiteMotion(root: HTMLElement, value: string, options: { pu
       root.addEventListener("pointerleave", clear);
       cleanups.push(() => { root.removeEventListener("pointermove", move); root.removeEventListener("pointerleave", clear); if (pointerFrame) cancelAnimationFrame(pointerFrame); clear(); });
     }
+    if (settings.spotlight && fine.matches) {
+      let activeButton: HTMLElement | null = null;
+      let magneticFrame = 0;
+      let pointerX = 0, pointerY = 0;
+      const clearMagnet = () => {
+        activeButton?.removeAttribute("data-bt-magnetic");
+        activeButton?.style.removeProperty("--bt-magnet-x");
+        activeButton?.style.removeProperty("--bt-magnet-y");
+        activeButton = null;
+      };
+      const magneticMove = (event: PointerEvent) => {
+        const candidate = event.target instanceof Element ? event.target.closest<HTMLElement>("main a, main button") : null;
+        const button = candidate && !candidate.closest("form, dialog, [role='dialog'], [role='tablist']") && !candidate.matches(":disabled,[aria-disabled='true']") && candidate.querySelector("svg.lucide-arrow-right,svg.lucide-arrow-up-right") ? candidate : null;
+        if (button !== activeButton) { clearMagnet(); if (button && root.contains(button)) activeButton = button; }
+        if (!activeButton) return;
+        pointerX = event.clientX; pointerY = event.clientY;
+        if (!magneticFrame) magneticFrame = requestAnimationFrame(() => {
+          magneticFrame = 0;
+          if (!activeButton) return;
+          const bounds = activeButton.getBoundingClientRect();
+          const limit = (value:number) => Math.min(5, Math.max(-5,value));
+          activeButton.style.setProperty("--bt-magnet-x", limit((pointerX - bounds.left - bounds.width/2)*.08) + "px");
+          activeButton.style.setProperty("--bt-magnet-y", limit((pointerY - bounds.top - bounds.height/2)*.12) + "px");
+          activeButton.setAttribute("data-bt-magnetic","");
+        });
+      };
+      root.addEventListener("pointermove", magneticMove, {passive:true});
+      root.addEventListener("pointerleave", clearMagnet);
+      cleanups.push(() => { root.removeEventListener("pointermove", magneticMove); root.removeEventListener("pointerleave", clearMagnet); if (magneticFrame) cancelAnimationFrame(magneticFrame); clearMagnet(); });
+    }
     stop = () => { cleanups.reverse().forEach(cleanup => cleanup()); delete root.dataset.btMotion; };
   };
   start();

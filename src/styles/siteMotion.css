@@ -19,3 +19,7 @@
   .bt-motion-reading-progress { display: none; }
   [data-bt-motion] main *, [data-bt-motion] main *::before, [data-bt-motion] main *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+@media (hover:hover) and (pointer:fine) {
+  [data-bt-motion] main :is(a,button)[data-bt-magnetic] > :is(svg.lucide-arrow-up-right,svg.lucide-arrow-right) { translate: var(--bt-magnet-x,0px) var(--bt-magnet-y,0px); }
+}
