@@ -6,7 +6,7 @@ import { classifyReply, getOutreachObservation, salesEmailPermissionBlockReason,
 import { PORTFOLIO_URL, renderProspectEmailTemplate } from "../src/lib/prospectOutreachTemplates.js";
 import type { ProspectEmailOverrides, ProspectEmailTemplateKey } from "../src/lib/prospectOutreachTemplates.js";
 import { chooseProspectFollowUp, FOLLOW_UP_TEMPLATE_STAGES } from "../src/lib/prospectFollowUpComposer.js";
-import { archiveNoReplyProspect } from "./prospectLifecycle.js";
+import { scheduleNoReplyArchive } from "./prospectLifecycle.js";
 import { segmentIntroEvidenceError } from "../src/lib/outreachSegmentation.js";
 import { prepareExperimentCopy } from "../src/lib/outreachExperiments.js";
 
@@ -424,7 +424,7 @@ export async function runSalesDelivery(input: {
         } else {
           const { data: reply } = checked(await db.from("sales_messages").select("id")
             .eq("prospect_id", message.prospect_id).eq("direction", "inbound").limit(1).maybeSingle());
-          if (!reply) await archiveNoReplyProspect(db, message.prospect_id, now);
+          if (!reply) await scheduleNoReplyArchive(db, message.prospect_id, now);
         }
       }
       if (message.enrollment_id) {
@@ -444,7 +444,7 @@ export async function runSalesDelivery(input: {
             const { data: reply } = checked(await db.from("sales_messages").select("id")
               .eq("prospect_id", message.prospect_id).eq("direction", "inbound").limit(1).maybeSingle());
             if (!reply) {
-              await archiveNoReplyProspect(db, message.prospect_id, now);
+              await scheduleNoReplyArchive(db, message.prospect_id, now);
               checked(await db.from("sales_messages").update({ status: "cancelled", updated_at: now,
                 error: "Prospect sequence exhausted without reply" })
                 .eq("prospect_id", message.prospect_id).is("enrollment_id", null)
@@ -1043,7 +1043,7 @@ export async function sendDirectProspectOutreach(
   );
 
   if (followUpStage === 3) {
-    await archiveNoReplyProspect(db, prospect.id, now);
+    await scheduleNoReplyArchive(db, prospect.id, now);
   }
 
   if (followUpStage) {

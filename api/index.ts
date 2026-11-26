@@ -69,6 +69,7 @@ import {
 import { resolveOnboardingPlan } from "../server/onboarding.js";
 import { buildInboundLeadSnapshot } from "../server/leadGeneration.js";
 import { buildPublicPreviewProfile, extractPreviewEvidenceUrls } from "../server/publicPreview.js";
+import { archiveDueNoReplyProspects } from "../server/prospectLifecycle.js";
 import { canManageSalesOperations, isSalesSuppressed, exactEmailPattern, normalizeSalesEmail, recordSalesDeliveryEvent, recordSalesReply, runSalesDelivery, renderProspectFollowUpStage, renderProspectInitialEmail, resolveProspectFollowUpAsset, salesRecordId, saveManualOutreach, saveSalesCallOutcome, sendDirectProspectOutreach, suppressSalesRecipient } from "../server/salesOperations.js";
 import { buildProspectFollowUpPlan, bulkManageProspectFollowUps, scheduleProspectFollowUpPlan, syncProspectNextFollowUp } from "../server/prospectFollowUps.js";
 import { reactivateArchivedProspect } from "../server/prospectLifecycle.js";
@@ -9474,6 +9475,7 @@ async function startServer() {
     if (!cronSecret || req.headers.authorization !== `Bearer ${cronSecret}`) return res.status(401).json({ error: "Unauthorized" });
     try {
       const sales = await processDueSalesMessages();
+      await archiveDueNoReplyProspects(supabaseAdmin, new Date().toISOString());
       const funnelRuns = await processDueFunnelWorkflowRuns({ db: supabaseAdmin, sendEmail: sendFunnelEmail, limit: 50 });
       const funnelQueue = UNIFIED_FUNNEL_TIERS_ENABLED
         ? await processFunnelTriggerQueue({ db: supabaseAdmin, sendEmail: sendFunnelEmail, limit: 50 })
