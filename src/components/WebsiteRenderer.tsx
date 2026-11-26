@@ -52,6 +52,7 @@ import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence, useReducedMotion, MotionConfig } from "motion/react";
 import { ClientSiteMotion } from "./AgencyMotionDirector";
 import { BuilderCanvasSection, BuilderDropZone, type VisualCanvasOptions } from "./VisualBuilderControls";
+import { VisualBlocks, BlockMotionFrame } from "./VisualBlockLayout";
 import { BeforeAfterComparison, InteractiveProcessTimeline } from "./InteractiveSiteSections";
 import { resolveSiteMotionProfile } from "../lib/siteMotionProfiles";
 import { generateChatResponse } from "../lib/gemini";
@@ -1519,7 +1520,7 @@ export function WebsiteRenderer({
     pages?.[0];
 
   const canvas = isEditingPreview ? visualCanvas : undefined;
-  const wrapCanvasSection = (section: WebsiteSection, index: number, rendered: React.ReactNode) => canvas ? <BuilderCanvasSection key={section.id} section={section} index={index} total={activePage?.sections.length || 0} canvas={canvas}>{rendered}</BuilderCanvasSection> : rendered;
+  const wrapCanvasSection = (section: WebsiteSection, index: number, rendered: React.ReactNode) => canvas ? <BuilderCanvasSection key={section.id} section={section} index={index} total={activePage?.sections.length || 0} canvas={canvas}>{rendered}</BuilderCanvasSection> : section.content?.builderMotion ? <BlockMotionFrame key={section.id} motion={section.content.builderMotion} enabled={!prefersReducedMotion && website?.theme?.motionProfile !== "none"}>{rendered}</BlockMotionFrame> : rendered;
 
   const homePage =
     pages?.find((p) => p.slug === "home" || p.slug === "") || pages?.[0];
@@ -3888,6 +3889,9 @@ export function WebsiteRenderer({
                     </motion.section>
                   );
                 case "features":
+                  if (section.content?.interaction === "visual_layout") {
+                    return <section id={section.id} key={section.id} className="mx-auto w-full max-w-6xl px-6 py-12 sm:py-20"><VisualBlocks value={section.content.blocks} animate={!prefersReducedMotion && selectedMotionProfile !== "none"}/></section>;
+                  }
                   if (section.content?.interaction === "before_after") {
                     const {beforeImageUrl, afterImageUrl, beforeLabel, afterLabel, title, description} = section.content;
                     if (!beforeImageUrl || !afterImageUrl) return isEditingPreview ? <section key={section.id} className="mx-auto max-w-6xl p-8 text-center"><h2>{title || "Before and after"}</h2><p>Add both client-approved comparison images in the editor.</p></section> : null;

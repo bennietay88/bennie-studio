@@ -6,6 +6,7 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { SECTION_TEMPLATES } from "../constants/sectionTemplates";
 import "../styles/visualBuilder.css";
+import { VisualBlockEditor, MotionFields } from "./VisualBlockLayout";
 export type BuilderDrag = { kind:"template"; key:string } | { kind:"section"; id:string };
 const DRAG_TYPE = "application/x-bennie-section";
 export function writeBuilderDrag(event:React.DragEvent, value:BuilderDrag) {
@@ -30,10 +31,11 @@ export interface VisualCanvasOptions {
   onVisibility:(id:string)=>void;
   onRemove:(id:string)=>void;
   onEdit:(id:string)=>void;
+  onPatch:(id:string,patch:Record<string,unknown>)=>void;
 }
 export function BuilderDropZone({index,canvas}:{index:number;canvas:VisualCanvasOptions}) {
   const [over,setOver]=useState(false);
-  return <div className="bt-builder-drop" data-builder-control data-over={over ? "true":"false"}
+  return <div className="bt-builder-drop" data-builder-control data-section-drop={index} data-over={over ? "true":"false"}
     onDragOver={event=>{if(event.dataTransfer.types.includes(DRAG_TYPE)){event.preventDefault();setOver(true);}}}
     onDragLeave={()=>setOver(false)}
     onDrop={event=>{event.preventDefault();event.stopPropagation();setOver(false);const value=readBuilderDrag(event);if(value)canvas.onDrop(value,index);}}>
@@ -45,7 +47,7 @@ export function BuilderCanvasSection({section,index,total,canvas,children}:{sect
     <BuilderDropZone index={index} canvas={canvas}/>
     <div className="bt-builder-section" data-selected={canvas.selectedId===section.id ? "true":"false"} data-section-id={section.id}>
       <div className="bt-builder-tools" data-builder-control>
-        <button type="button" draggable onDragStart={event=>writeBuilderDrag(event,{kind:"section",id:section.id})} onClick={()=>canvas.onSelect(section.id)} aria-label={"Select or drag "+section.type}><GripVertical size={16}/><span>{section.content?.interaction?.replace(/_/g," ") || section.type}</span></button>
+        <button type="button" className="bt-touch-handle" draggable onPointerDown={event=>{if(event.pointerType!=="mouse")event.currentTarget.setPointerCapture(event.pointerId);}} onPointerUp={event=>{if(event.pointerType==="mouse")return;const zone=document.elementFromPoint(event.clientX,event.clientY)?.closest<HTMLElement>("[data-section-drop]");if(zone)canvas.onMove(section.id,Number(zone.dataset.sectionDrop));}} onDragStart={event=>writeBuilderDrag(event,{kind:"section",id:section.id})} onClick={()=>canvas.onSelect(section.id)} aria-label={"Select or drag "+section.type}><GripVertical size={16}/><span>{section.content?.interaction?.replace(/_/g," ") || section.type}</span></button>
         <div>
           <button type="button" aria-label="Edit section" onClick={()=>canvas.onSelect(section.id)}><Pencil size={15}/></button>
           <button type="button" aria-label="Move section up" disabled={index===0} onClick={()=>canvas.onMove(section.id,index-1)}><ArrowUp size={15}/></button>
@@ -55,9 +57,9 @@ export function BuilderCanvasSection({section,index,total,canvas,children}:{sect
           <button type="button" aria-label="Remove section" onClick={()=>{if(window.confirm("Remove this section from the draft?"))canvas.onRemove(section.id);}}><Trash2 size={15}/></button>
         </div>
       </div>
-      <div className="bt-builder-content" onClick={()=>canvas.onSelect(section.id)} data-builder-control>
+      {section.content?.interaction==="visual_layout" && section.isVisible!==false ? <VisualBlockEditor value={section.content.blocks} onChange={blocks=>canvas.onPatch(section.id,{blocks})}/> : <div className="bt-builder-content" onClick={()=>canvas.onSelect(section.id)} data-builder-control>
         {section.isVisible===false ? <div className="bt-builder-placeholder">Hidden section · Show to preview</div> : children || <div className="bt-builder-placeholder">Section has no visible content yet</div>}
-      </div>
+      </div>}
     </div>
   </div>;
 }
@@ -86,6 +88,7 @@ export function VisualBuilderInspector({page,selectedId,onSelect,onPatch,onEdit,
     {section ? <><h4 className="text-sm font-bold capitalize">{section.type}</h4>
       {fields.map(key=><div key={section.id+key}><label className="text-xs font-semibold capitalize" htmlFor={"bt-builder-field-"+key}>{key}</label>
       <Textarea id={"bt-builder-field-"+key} key={section.id+key+section.content[key]} defaultValue={section.content[key]} onBlur={event=>{if(event.target.value!==section.content[key])onPatch(section.id,{[key]:event.target.value});}} rows={key==="text"?4:2}/></div>)}
+      <MotionFields value={section.content?.builderMotion} onChange={motion=>onPatch(section.id,{builderMotion:motion})}/>
       <Button type="button" variant="outline" onClick={()=>onEdit(section.id)}>Full section settings</Button></>:<p>Select a section on the canvas to edit its content.</p>}
     <p className="text-xs text-slate-500">Text edits apply when you leave a field. Changes are unsaved until you use the existing save workflow.</p>
   </aside>;

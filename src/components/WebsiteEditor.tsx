@@ -2772,7 +2772,7 @@ export function WebsiteEditor({
   const addSection = async (pageId: string, type: string) => {
     if (!website) return;
 
-    if (type === "before_after_comparison" || type === "interactive_process") {
+    if (type === "before_after_comparison" || type === "interactive_process" || type === "visual_layout") {
       const section = createSectionFromTemplate(type);
       setWebsite({ ...website, pages: website.pages.map(page => page.id === pageId ? {...page, sections: [...page.sections, section]} : page) });
       setShowAddSection(null);
@@ -2925,7 +2925,7 @@ export function WebsiteEditor({
   const visualCanvas:VisualCanvasOptions = {
     selectedId:builderSelected,onSelect:setBuilderSelected,onDrop:builderDrop,onInsert:index=>builderInsert(builderTemplate,index),
     onMove:(id,index)=>builderApply({kind:"move",id,index}),onDuplicate:id=>builderApply({kind:"duplicate",id,newId:generateId()}),
-    onVisibility:id=>builderApply({kind:"visibility",id}),onRemove:id=>builderApply({kind:"remove",id}),onEdit:builderEdit,
+    onVisibility:id=>builderApply({kind:"visibility",id}),onRemove:id=>builderApply({kind:"remove",id}),onEdit:builderEdit,onPatch:(id,patch)=>builderApply({kind:"content",id,patch}),
   };
 
   const renderSidebar = () => {
