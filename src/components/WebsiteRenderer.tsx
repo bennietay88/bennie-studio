@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 86811)
-Total output lines: 6521
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -2528,7 +2525,2232 @@ export function WebsiteRenderer({
                         : "scale-x-0 group-hover:scale-x-100",
                     )}
                   />
-     …36811 tokens truncated…<motion.section
+                </button>
+              ))}
+              <Button
+                className="btn-primary rounded-xl px-6 h-11 text-sm font-semibold shadow-xl shadow-primary/20"
+                onClick={() => handleButtonAction("Get Started")}
+              >
+                Get in touch
+              </Button>
+            </div>
+
+            <div className="lg:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-12 w-12 shrink-0 rounded-2xl hover:bg-slate-100"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-expanded={isMobileMenuOpen}
+                aria-controls="customer-mobile-menu"
+              >
+                <span className="sr-only">
+                  {isMobileMenuOpen ? "Close Menu" : "Open Menu"}
+                </span>
+                <div className="space-y-1.5 w-6 flex flex-col items-end">
+                  <motion.div
+                    animate={
+                      isMobileMenuOpen
+                        ? { rotate: 45, y: 7, width: 24 }
+                        : { rotate: 0, y: 0, width: 24 }
+                    }
+                    className={cn(
+                      "h-0.5 rounded-full origin-center",
+                      theme.style === "luxury_dark" ||
+                        theme.style === "immersive" ||
+                        theme.style === "glassmorphic"
+                        ? "bg-white"
+                        : "bg-slate-900",
+                    )}
+                  />
+                  <motion.div
+                    animate={isMobileMenuOpen ? { opacity: 0 } : { opacity: 1 }}
+                    className={cn(
+                      "h-0.5 w-4 rounded-full",
+                      theme.style === "luxury_dark" ||
+                        theme.style === "immersive" ||
+                        theme.style === "glassmorphic"
+                        ? "bg-white"
+                        : "bg-slate-900",
+                    )}
+                  />
+                  <motion.div
+                    animate={
+                      isMobileMenuOpen
+                        ? { rotate: -45, y: -7, width: 24 }
+                        : { rotate: 0, y: 0, width: 16 }
+                    }
+                    className={cn(
+                      "h-0.5 rounded-full origin-center",
+                      theme.style === "luxury_dark" ||
+                        theme.style === "immersive" ||
+                        theme.style === "glassmorphic"
+                        ? "bg-white"
+                        : "bg-slate-900",
+                    )}
+                  />
+                </div>
+              </Button>
+            </div>
+          </div>
+
+          {/* Mobile Menu Overlay */}
+          <AnimatePresence>
+            {isMobileMenuOpen && (
+              <motion.div
+                id="customer-mobile-menu"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className={cn(
+                  "lg:hidden border-t overflow-hidden shadow-2xl",
+                  theme.style === "luxury_dark" ||
+                    theme.style === "immersive" ||
+                    theme.style === "glassmorphic"
+                    ? "bg-slate-900 border-white/10"
+                    : "bg-white border-slate-100",
+                )}
+              >
+                <div className="p-6 space-y-4">
+                  {pages.map((page) => (
+                    <button
+                      key={page.id}
+                      onClick={() => {
+                        trackInteraction("nav_click", page.title, { target: page.slug || "home" });
+                        setActivePageSlug(page.slug);
+                        setSelectedPost(null);
+                        setIsMobileMenuOpen(false);
+                        scrollPreviewToTop();
+                      }}
+                      className={cn(
+                        "w-full text-left p-4 rounded-xl text-base font-semibold flex items-center justify-between group",
+                        activePageSlug === page.slug
+                          ? "bg-primary text-primary-foreground"
+                          : theme.style === "luxury_dark" ||
+                              theme.style === "immersive" ||
+                              theme.style === "glassmorphic"
+                            ? "text-slate-400 hover:bg-white/5"
+                            : "text-slate-500 hover:bg-slate-50",
+                      )}
+                    >
+                      {page.title}
+                      <ArrowRight
+                        className={cn(
+                          "h-5 w-5 transition-transform",
+                          activePageSlug === page.slug
+                            ? "translate-x-0"
+                            : "-translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100",
+                        )}
+                      />
+                    </button>
+                  ))}
+                  <div className="pt-4">
+                    <Button
+                      className="w-full h-14 btn-primary rounded-xl text-sm font-semibold shadow-xl shadow-primary/20"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleButtonAction("Get Started");
+                      }}
+                    >
+                      Get in touch
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </nav>
+        )}
+
+        {/* Main Content */}
+        <main className="flex-1">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={`${activePageSlug || "home"}:${selectedPost?.id || ""}`}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            >
+          {activePage?.sections
+            ?.filter((s: WebsiteSection) => s.isVisible !== false)
+            .map((section: WebsiteSection, idx: number) => {
+              const sectionId = section.type;
+              const renderedSection = (() => {
+                switch (section.type) {
+                case "problem":
+                  return (
+                    <motion.section
+                      id={sectionId}
+                      key={section.id || `problem-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-100px" }}
+                      variants={fadeInUp}
+                      className="py-24 sm:py-32 bg-slate-50 dark:bg-slate-900/50 relative overflow-hidden"
+                    >
+                      <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
+                        <motion.div variants={fadeInUp} className="space-y-8">
+                          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                            The Conflict
+                          </span>
+                          <h2 className="text-4xl sm:text-6xl font-bold tracking-tight leading-tight dark:text-white">
+                            {section.content.title || "Challenges Faced"}
+                          </h2>
+                          <p className="text-xl text-slate-500 leading-relaxed max-w-lg">
+                            {section.content.description}
+                          </p>
+                          <div className="space-y-4">
+                            {(section.content.painPoints || []).map(
+                              (point: string, pIdx: number) => (
+                                <div
+                                  key={pIdx}
+                                  className="flex gap-4 p-4 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 shadow-sm transition-all hover:translate-x-2"
+                                >
+                                  <div className="h-6 w-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
+                                    <X className="h-4 w-4" />
+                                  </div>
+                                  <span className="text-slate-700 dark:text-slate-200 font-bold">
+                                    {point}
+                                  </span>
+                                </div>
+                              ),
+                            )}
+                          </div>
+                        </motion.div>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
+                          <div className="relative aspect-square bg-slate-950 rounded-[3rem] overflow-hidden shadow-2xl p-8 sm:p-10 border border-white/10">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,0.22),transparent_35%),radial-gradient(circle_at_80%_80%,rgba(20,184,166,0.16),transparent_40%)]" />
+                            <div className="relative z-10 flex h-full flex-col justify-between text-white [&_*]:text-inherit [&_.text-primary]:!text-cyan-300 [&_.text-slate-400]:!text-slate-300 [&_.text-slate-500]:!text-slate-400 [&_.text-white]:!text-white">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-cyan-300">
+                                    Conversion Map
+                                  </p>
+                                  <h3 className="mt-3 text-3xl sm:text-4xl font-black tracking-tight text-white">
+                                    Lead Friction Audit
+                                  </h3>
+                                </div>
+                                <div className="h-14 w-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center text-cyan-300">
+                                  <Activity className="h-7 w-7" />
+                                </div>
+                              </div>
+
+                              <div className="space-y-3">
+                                {(section.content.painPoints || [
+                                  "Unclear offer",
+                                  "Missing trust proof",
+                                  "Slow follow-up",
+                                ])
+                                  .slice(0, 3)
+                                  .map((point: string, pointIdx: number) => (
+                                    <motion.div
+                                      key={pointIdx}
+                                      variants={fadeInUp}
+                                      className="rounded-3xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur-sm"
+                                    >
+                                      <div className="mb-3 flex items-center justify-between">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
+                                          Signal 0{pointIdx + 1}
+                                        </span>
+                                        <span className="rounded-full bg-cyan-300/15 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-cyan-200">
+                                          Actionable
+                                        </span>
+                                      </div>
+                                      <p className="text-base sm:text-lg font-bold leading-snug text-white">
+                                        {point}
+                                      </p>
+                                    </motion.div>
+                                  ))}
+                              </div>
+
+                              <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-3">
+                                {[
+                                  ["Offer", "Clarify"],
+                                  ["Proof", "Show"],
+                                  ["Next step", "Guide"],
+                                ].map(([label, value]) => (
+                                  <div key={label} className="rounded-2xl bg-white/[0.06] p-4 text-center border border-white/10">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                      {label}
+                                    </p>
+                                    <p className="mt-1 text-sm font-black text-white">
+                                      {value}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.section>
+                  );
+                case "solution":
+                  return (
+                    <motion.section
+                      id={sectionId}
+                      key={section.id || `solution-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-100px" }}
+                      variants={staggerContainer}
+                      className="py-24 sm:py-32 bg-white dark:bg-slate-950 relative"
+                    >
+                      <div className="max-w-7xl mx-auto px-6 flex flex-col items-center text-center space-y-16">
+                        <motion.div variants={fadeInUp} className="space-y-6 max-w-3xl">
+                          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                            The Resolution
+                          </span>
+                          <h2 className="text-4xl sm:text-7xl font-bold tracking-tight leading-[0.9] dark:text-white">
+                            {section.content.title || "Engineering Success"}
+                          </h2>
+                          <p className="text-xl text-slate-500 leading-relaxed">
+                            {section.content.description}
+                          </p>
+                        </motion.div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 w-full">
+                          {(section.content.features || []).map(
+                            (feature: string, fIdx: number) => (
+                              <div key={fIdx} className="space-y-8 group">
+                                <div className="h-24 w-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-primary mx-auto group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                                  <CheckCircle2 className="h-12 w-12" />
+                                </div>
+                                <h3 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                                  {feature}
+                                </h3>
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    </motion.section>
+                  );
+                case "proof":
+                  if (
+                    section.content.verified !== true &&
+                    section.content.providedByBusiness !== true &&
+                    !section.content.sourceUrl &&
+                    !section.content.sourceLabel
+                  ) {
+                    return null;
+                  }
+                  const proofVariant = section.settings?.variant || "metrics";
+                  const proofItems = section.content.items || [];
+                  const proofLogos = section.content.logos || [];
+
+                  if (proofVariant === "logo_marquee" && proofLogos.length > 0) {
+                    const normalizedLogos = proofLogos
+                      .map((logo: any, logoIndex: number) => ({
+                        url: typeof logo === "string" ? logo : logo?.url || logo?.imageUrl || "",
+                        name:
+                          typeof logo === "string"
+                            ? `Logo ${logoIndex + 1}`
+                            : logo?.name || logo?.label || `Logo ${logoIndex + 1}`,
+                        detail:
+                          typeof logo === "string"
+                            ? ""
+                            : logo?.detail || logo?.description || logo?.relationship || "",
+                      }))
+                      .filter((logo: any) => logo.url || logo.name);
+
+                    if (normalizedLogos.length === 0) return null;
+
+                    const marqueeGroups = prefersReducedMotion ? [0] : [0, 1];
+
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `proof-marquee-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={fadeInUp}
+                        className="overflow-hidden border-y border-slate-200 bg-white py-10 sm:py-12"
+                      >
+                        <div className="mx-auto grid max-w-7xl gap-6 px-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-center">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">
+                              Verified connections
+                            </p>
+                            <h2
+                              className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-3xl"
+                              style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
+                            >
+                              {section.content.title || "Logos connected to the business"}
+                            </h2>
+                            {section.content.description && (
+                              <p className="mt-3 text-sm leading-6 text-slate-600">
+                                {section.content.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <div
+                            className={cn(
+                              "min-w-0",
+                              prefersReducedMotion
+                                ? "overflow-x-auto"
+                                : "overflow-hidden [mask-image:linear-gradient(90deg,transparent_0,#000_7%,#000_93%,transparent_100%)] [-webkit-mask-image:linear-gradient(90deg,transparent_0,#000_7%,#000_93%,transparent_100%)]",
+                            )}
+                          >
+                            <motion.div
+                              className="flex w-max"
+                              animate={prefersReducedMotion ? undefined : { x: ["0%", "-50%"] }}
+                              transition={
+                                prefersReducedMotion
+                                  ? undefined
+                                  : { duration: 26, ease: "linear", repeat: Infinity }
+                              }
+                            >
+                              {marqueeGroups.map((groupIndex) => (
+                                <div
+                                  key={groupIndex}
+                                  className="flex shrink-0 gap-3 pr-3"
+                                  aria-hidden={groupIndex === 1}
+                                >
+                                  {normalizedLogos.map((logo: any, logoIndex: number) => (
+                                    <div
+                                      key={`${groupIndex}-${logo.name}-${logoIndex}`}
+                                      className="flex min-w-[11.5rem] items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 sm:min-w-[13rem]"
+                                    >
+                                      {logo.url ? (
+                                        <img
+                                          src={logo.url}
+                                          alt={logo.name}
+                                          className="h-7 w-7 shrink-0 object-contain grayscale"
+                                          loading="lazy"
+                                          referrerPolicy="no-referrer"
+                                        />
+                                      ) : (
+                                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white text-[10px] font-black text-slate-500">
+                                          {String(logo.name || "?").slice(0, 1).toUpperCase()}
+                                        </span>
+                                      )}
+                                      <span className="min-w-0">
+                                        <span className="block truncate text-sm font-semibold text-slate-900">
+                                          {logo.name}
+                                        </span>
+                                        {logo.detail && (
+                                          <span className="mt-0.5 block truncate text-[10px] font-semibold text-slate-500">
+                                            {logo.detail}
+                                          </span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ))}
+                            </motion.div>
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
+                  if (["logo_wall", "certification_strip", "trust_strip"].includes(proofVariant) && (proofItems.length || proofLogos.length)) {
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `proof-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="border-y border-slate-200 bg-[#f8f7f4] py-16 sm:py-20"
+                      >
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-end">
+                            <div className="lg:col-span-4">
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">{section.content.eyebrow || "Trust"}</p>
+                              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.title || "Proof"}
+                              </h2>
+                              {section.content.description && <p className="mt-5 text-sm leading-7 text-slate-600">{section.content.description}</p>}
+                            </div>
+                            <div className="lg:col-span-8">
+                              {proofLogos.length > 0 && (
+                                <div className="grid grid-cols-2 border-l border-t border-slate-200 sm:grid-cols-3">
+                                  {proofLogos.map((logo: any, logoIndex: number) => {
+                                    const url = typeof logo === "string" ? logo : logo?.url || logo?.imageUrl;
+                                    const name = typeof logo === "string" ? `Logo ${logoIndex + 1}` : logo?.name || logo?.label || `Logo ${logoIndex + 1}`;
+                                    return (
+                                      <div key={logoIndex} className="flex min-h-28 items-center justify-center border-b border-r border-slate-200 bg-white p-6">
+                                        {url ? <img src={url} alt={name} className="max-h-10 max-w-[9rem] object-contain grayscale" loading="lazy" referrerPolicy="no-referrer" /> : <span className="text-sm font-semibold text-slate-700">{name}</span>}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              {proofItems.length > 0 && (
+                                <div className="divide-y divide-slate-200 border-y border-slate-200">
+                                  {proofItems.map((item: any, itemIndex: number) => (
+                                    <div key={itemIndex} className="grid gap-3 py-6 sm:grid-cols-12">
+                                      <p className="text-[10px] font-black tracking-[0.22em] text-primary sm:col-span-1">{String(itemIndex + 1).padStart(2, "0")}</p>
+                                      <p className="text-lg font-semibold text-slate-950 sm:col-span-4">{typeof item === "string" ? item : item.title}</p>
+                                      {typeof item === "object" && item.description && <p className="text-sm leading-7 text-slate-600 sm:col-span-7">{item.description}</p>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+                  return (
+                    <motion.section
+                      id={sectionId}
+                      key={section.id || `proof-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-100px" }}
+                      variants={staggerContainer}
+                      className="py-24 sm:py-32 bg-slate-950 text-white relative overflow-hidden"
+                    >
+                      <div className="absolute inset-0">
+                        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,0.12),transparent)]" />
+                        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_80%_100%,rgba(99,102,241,0.08),transparent)]" />
+                      </div>
+                      <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
+                        {section.content.title && (
+                          <div className="mb-20 space-y-4">
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">
+                              Quantifiable Excellence
+                            </span>
+                            <h2 className="text-4xl sm:text-6xl font-bold tracking-tight">
+                              {section.content.title}
+                            </h2>
+                          </div>
+                        )}
+                        <div
+                          className={cn(
+                            "grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8",
+                            (section.content.stats || []).length === 3
+                              ? "lg:grid-cols-3"
+                              : "lg:grid-cols-4",
+                          )}
+                        >
+                          {(section.content.stats || []).map(
+                            (stat: any, sIdx: number) => (
+                              <div
+                                key={sIdx}
+                                className="relative group p-8 sm:p-10 rounded-[2rem] bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] hover:border-white/10 transition-all duration-500 overflow-hidden"
+                              >
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-700" />
+                                <div className="space-y-4">
+                                  <div className="whitespace-nowrap text-[clamp(2.75rem,7vw,4rem)] font-black text-white tracking-tighter tabular-nums leading-none">
+                                    {formatStatValue(stat.value)}
+                                  </div>
+                                  <div className="flex flex-col items-center gap-3">
+                                    <div className="h-0.5 w-8 bg-primary rounded-full group-hover:w-16 transition-all duration-500" />
+                                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em]">
+                                      {stat.label}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    </motion.section>
+                  );
+                case "hero":
+                  if (["brand_media", "editorial_split", "full_bleed_editorial", "statement_media", "source_brand_hero", "page_masthead"].includes(section.settings?.variant || "")) {
+                    const heroVariant = section.settings?.variant || "editorial_split";
+                    const hasHeroImage = Boolean(section.content.imageUrl);
+                    const heroTrustItems = Array.isArray(section.content.trustItems)
+                      ? section.content.trustItems.map((item: unknown) => String(item || "").trim()).filter(Boolean).slice(0, 3)
+                      : [];
+
+                    if (heroVariant === "page_masthead") {
+                      return (
+                        <motion.section
+                          id={sectionId}
+                          key={section.id || `hero-${idx}`}
+                          initial="initial"
+                          animate="animate"
+                          variants={staggerContainer}
+                          className="relative overflow-hidden border-b border-slate-200 bg-white"
+                        >
+                          <div className="pointer-events-none absolute inset-y-0 right-0 w-[28%] bg-primary/[0.035]" aria-hidden="true" />
+                          <div className="relative mx-auto max-w-[90rem] px-6 py-10 sm:px-10 sm:py-12 lg:px-16 lg:py-14">
+                            <motion.div variants={fadeInUp} className="max-w-5xl">
+                              <div className="flex items-center gap-3">
+                                <span className="h-px w-8" style={{ backgroundColor: accessibleTheme.primaryInk }} />
+                                <p className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: accessibleTheme.primaryInk }}>
+                                  {displayBusinessName}
+                                </p>
+                              </div>
+                              <h1
+                                className="mt-5 max-w-[22ch] break-normal hyphens-none text-[clamp(2.25rem,3.6vw,3.9rem)] font-semibold leading-[1] tracking-[-0.04em] text-slate-950 [overflow-wrap:normal] [text-wrap:balance]"
+                                style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
+                              >
+                                {section.content.headline || displayBusinessName}
+                              </h1>
+                              {section.content.subheadline ? (
+                                <p className="mt-5 max-w-2xl text-base font-medium leading-7 text-slate-600 sm:text-lg">
+                                  {section.content.subheadline}
+                                </p>
+                              ) : null}
+                            </motion.div>
+                          </div>
+                        </motion.section>
+                      );
+                    }
+
+                    if (heroVariant === "source_brand_hero") {
+                      return (
+                        <motion.section
+                          id={sectionId}
+                          key={section.id || `hero-${idx}`}
+                          initial="initial"
+                          animate="animate"
+                          variants={staggerContainer}
+                          className="relative overflow-hidden border-b border-slate-200 bg-[#fbfaf7]"
+                        >
+                          <div className={cn(
+                            "mx-auto max-w-[90rem]",
+                            hasHeroImage ? "grid lg:grid-cols-12 lg:items-stretch" : "relative"
+                          )}>
+                            <motion.div
+                              variants={fadeInUp}
+                              className={cn(
+                                "relative flex flex-col justify-center px-6 py-14 sm:px-10 sm:py-16 lg:px-16 lg:py-20",
+                                hasHeroImage ? "lg:col-span-6" : "max-w-5xl"
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="h-px w-10" style={{ backgroundColor: accessibleTheme.primaryInk }} />
+                                <p className="text-[10px] font-black uppercase tracking-[0.24em]" style={{ color: accessibleTheme.primaryInk }}>
+                                  {displayBusinessDescriptor}
+                                </p>
+                              </div>
+
+                              <h1
+                                className="mt-6 max-w-[15ch] break-normal hyphens-none text-[clamp(2.75rem,4.4vw,4.75rem)] font-semibold leading-[0.98] tracking-[-0.045em] text-slate-950 [overflow-wrap:normal] [text-wrap:balance]"
+                                style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
+                              >
+                                {section.content.headline || displayBusinessName}
+                              </h1>
+
+                              {section.content.subheadline ? (
+                                <p className="mt-6 max-w-[40rem] text-base font-medium leading-7 text-slate-600 sm:text-lg sm:leading-8">
+                                  {section.content.subheadline}
+                                </p>
+                              ) : null}
+
+                              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                                <Button
+                                  size="lg"
+                                  className="min-h-13 rounded-lg px-7 text-sm font-bold shadow-sm"
+                                  style={{ backgroundColor: accessibleTheme.primarySurface, color: accessibleTheme.primaryForeground }}
+                                  onClick={() => handleButtonAction(section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "hero_cta_clicked", sectionId: section.id })}
+                                >
+                                  {section.content.ctaText || "Contact Us"}
+                                  <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                                {contactPhone ? (
+                                  <Button
+                                    variant="outline"
+                                    size="lg"
+                                    className="min-h-13 rounded-lg border-slate-300 bg-white px-6 text-sm font-bold text-slate-900 hover:bg-slate-50"
+                                    onClick={() => handleButtonAction("Call Us", undefined, { eventType: "hero_phone_clicked", sectionId: section.id })}
+                                  >
+                                    <Phone className="mr-2 h-4 w-4" /> Call us
+                                  </Button>
+                                ) : null}
+                              </div>
+
+                              {heroTrustItems.length ? (
+                                <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 border-t border-slate-200 pt-5">
+                                  {heroTrustItems.map((item: string, itemIndex: number) => (
+                                    <div key={`${item}-${itemIndex}`} className="flex items-start gap-2 text-xs font-semibold leading-5 text-slate-600">
+                                      <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: accessibleTheme.primaryInk }} />
+                                      <span>{item}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </motion.div>
+
+                            {hasHeroImage ? (
+                              <motion.div
+                                variants={fadeInUp}
+                                className="relative min-h-[24rem] overflow-hidden bg-slate-100 sm:min-h-[30rem] lg:col-span-6 lg:min-h-[34rem]"
+                              >
+                                <img
+                                  src={section.content.imageUrl}
+                                  alt={section.content.imageAlt || displayBusinessName}
+                                  className="absolute inset-0 h-full w-full object-cover object-[center_38%]"
+                                  loading="eager"
+                                  fetchPriority="high"
+                                  referrerPolicy="no-referrer"
+                                  onError={(event) => applySectionImageFallback(event, section.content.fallbackImageUrl)}
+                                />
+                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/15 via-transparent to-transparent" />
+                              </motion.div>
+                            ) : (
+                              <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[30%] lg:block" aria-hidden="true">
+                                <div className="absolute inset-0 bg-primary/[0.04]" />
+                                <div className="absolute right-[18%] top-[22%] h-48 w-48 rounded-full border border-primary/10" />
+                                <div className="absolute bottom-[18%] right-[8%] h-28 w-28 rounded-full bg-primary/[0.06]" />
+                              </div>
+                            )}
+                          </div>
+                        </motion.section>
+                      );
+                    }
+
+                    if (heroVariant === "statement_media") {
+                      return (
+                        <motion.section
+                          id={sectionId}
+                          key={section.id || `hero-${idx}`}
+                          initial="initial"
+                          animate="animate"
+                          variants={staggerContainer}
+                          className="relative overflow-hidden border-b border-slate-200 bg-[#f4f2ed]"
+                        >
+                          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+                            <div className="absolute -right-[8vw] top-[6%] h-[30vw] w-[30vw] min-h-[17rem] min-w-[17rem] rounded-full border border-primary/15" />
+                            <div className="absolute right-[4vw] top-[18%] h-[18vw] w-[18vw] min-h-[10rem] min-w-[10rem] rounded-full bg-primary/[0.08]" />
+                            <div className="absolute -bottom-[18%] right-[2%] h-[28vw] w-[28vw] min-h-[18rem] min-w-[18rem] rounded-full border-[2rem] border-white/45" />
+                          </div>
+                          <div className="relative mx-auto flex min-h-[52vh] max-w-[90rem] flex-col justify-between px-6 py-12 sm:min-h-[58vh] sm:px-10 sm:py-16 lg:px-16 lg:py-20">
+                            <motion.div variants={fadeInUp} className="flex items-center gap-4">
+                              <span className="h-px w-12 bg-primary" />
+                              <p className="text-[10px] font-black uppercase tracking-[0.32em] text-slate-500">{displayBusinessDescriptor}</p>
+                            </motion.div>
+                            <motion.div variants={fadeInUp} className="max-w-[72rem] py-10 sm:py-12">
+                              <h1
+                                className="max-w-[13ch] break-words text-[clamp(2.8rem,6.2cqw,6.6rem)] font-semibold leading-[0.94] tracking-[-0.05em] text-slate-950 [text-wrap:balance]"
+                                style={{ fontFamily: theme.displayFont || designProfile.displayFont }}
+                              >
+                                {section.content.headline || displayBusinessName}
+                              </h1>
+                              <div className="mt-8 grid gap-7 border-t border-slate-300 pt-7 md:grid-cols-12 md:items-end">
+                                <p className="max-w-2xl text-base font-medium leading-7 text-slate-600 sm:text-lg md:col-span-8">{section.content.subheadline}</p>
+                                <div className="md:col-span-4 md:justify-self-end">
+                                  <Button
+                                    size="lg"
+                                    className="h-14 rounded-none px-8 text-[11px] font-black uppercase tracking-[0.18em]"
+                                    onClick={() => handleButtonAction(section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "hero_cta_clicked", sectionId: section.id })}
+                                  >
+                                    {section.content.ctaText || "Contact Us"} <ArrowRight className="ml-2 h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </motion.div>
+                          </div>
+                        </motion.section>
+                      );
+                    }
+
+                    if (heroVariant === "full_bleed_editorial") {
+                      return (
+                        <motion.section
+                          id={sectionId}
+                          key={section.id || `hero-${idx}`}
+                          initial="initial"
+                          animate="animate"
+                          variants={staggerContainer}
+                          className="relative min-h-[78vh] overflow-hidden bg-slate-950 text-white"
+                        >
+                          {hasHeroImage ? (
+                            <>
+                              <img src={section.content.imageUrl} alt={section.content.imageAlt || displayBusinessName} className="absolute inset-0 h-full w-full object-cover" loading="eager" referrerPolicy="no-referrer" onError={(event) => applySectionImageFallback(event, section.content.fallbackImageUrl)} />
+                              <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/75 to-slate-950/15" />
+                            </>
+                          ) : (
+                            <div className="absolute inset-0">
+                              <div className="absolute -right-24 -top-24 h-[32rem] w-[32rem] rounded-full border border-white/10" />
+                              <div className="absolute bottom-0 right-[15%] h-[22rem] w-[22rem] rounded-full bg-primary/20 blur-3xl" />
+                            </div>
+                          )}
+                          <div className="relative mx-auto flex min-h-[78vh] max-w-[90rem] items-end px-6 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-24">
+                            <motion.div variants={fadeInUp} className="max-w-5xl">
+                              <p className="mb-6 text-[10px] font-black uppercase tracking-[0.34em] text-slate-300">{displayBusinessDescriptor}</p>
+                              <h1 className="max-w-full break-words text-[clamp(2.8rem,6.5cqw,6.8rem)] font-semibold leading-[0.92] tracking-[-0.05em] [text-wrap:balance]" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.headline || displayBusinessName}
+                              </h1>
+                              <div className="mt-9 flex max-w-3xl flex-col gap-8 border-t border-white/20 pt-7 sm:flex-row sm:items-end sm:justify-between">
+                                <p className="max-w-2xl text-lg font-medium leading-8 text-white/70">{section.content.subheadline}</p>
+                                <Button size="lg" className="h-14 shrink-0 rounded-none bg-white px-7 text-[10px] font-black uppercase tracking-[0.18em] text-slate-950 hover:bg-white/90" onClick={() => handleButtonAction(section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "hero_cta_clicked", sectionId: section.id })}>
+                                  {section.content.ctaText || "Contact Us"} <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                              </div>
+                            </motion.div>
+                          </div>
+                        </motion.section>
+                      );
+                    }
+
+                    const brandHero = heroVariant === "brand_media";
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `hero-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true }}
+                        variants={staggerContainer}
+                        className={cn(
+                          "relative overflow-hidden border-b",
+                          brandHero ? "border-white/20" : "bg-[#f8f7f4] text-slate-950 border-slate-200",
+                        )}
+                        style={brandHero ? { backgroundColor: accessibleTheme.primarySurface, color: accessibleTheme.primaryForeground } : undefined}
+                      >
+                        <div className="mx-auto grid min-h-[72vh] max-w-[90rem] grid-cols-1 items-stretch lg:grid-cols-12">
+                          <motion.div variants={fadeInUp} className="flex flex-col justify-center px-6 py-20 sm:px-10 lg:col-span-7 lg:px-16 lg:py-28">
+                            <div className={cn("mb-8 h-px w-16", brandHero ? "bg-white/70" : "bg-primary")} />
+                            <p
+                              className={cn("mb-5 text-xs font-bold uppercase tracking-[0.22em]", brandHero ? "text-current" : "text-primary")}
+                              style={brandHero ? { color: accessibleTheme.primaryForeground } : undefined}
+                            >
+                              {displayBusinessDescriptor}
+                            </p>
+                            <h1
+                              className="max-w-4xl break-words text-[clamp(2.7rem,6cqw,6.4rem)] font-semibold leading-[0.94] tracking-[-0.045em] [text-wrap:balance]"
+                              style={{
+                                fontFamily: theme.displayFont || designProfile.displayFont,
+                                color: brandHero ? accessibleTheme.primaryForeground : undefined,
+                              }}
+                            >
+                              {section.content.headline || displayBusinessName}
+                            </h1>
+                            <p
+                              className={cn("mt-8 max-w-2xl text-lg font-medium leading-8 sm:text-xl", brandHero ? "text-current" : "text-slate-600")}
+                              style={brandHero ? { color: accessibleTheme.primaryForeground } : undefined}
+                            >
+                              {section.content.subheadline}
+                            </p>
+                            <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+                              <Button
+                                size="lg"
+                                className={cn(
+                                  "h-14 rounded-none px-8 text-sm font-black uppercase tracking-widest",
+                                  brandHero ? "bg-white text-slate-950 hover:bg-white/90" : "btn-primary",
+                                )}
+                                onClick={() => handleButtonAction(section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "hero_cta_clicked", sectionId: section.id })}
+                              >
+                                {section.content.ctaText || "Contact Us"}
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                              </Button>
+                            </div>
+                          </motion.div>
+                          <motion.div variants={fadeInUp} className={cn("relative min-h-[22rem] lg:col-span-5 lg:min-h-full", brandHero ? "bg-black/10" : "bg-white")}>
+                            {hasHeroImage ? (
+                              <img
+                                src={section.content.imageUrl}
+                                alt={section.content.imageAlt || displayBusinessName}
+                                className="absolute inset-0 h-full w-full object-cover"
+                                loading="eager"
+                                referrerPolicy="no-referrer"
+                                onError={(event) => applySectionImageFallback(event, section.content.fallbackImageUrl)}
+                              />
+                            ) : (
+                              <div className={cn("absolute inset-6 overflow-hidden border p-8 sm:inset-10", brandHero ? "border-white/25 bg-white/[0.04]" : "border-slate-200 bg-slate-50")}>
+                                <div className={cn("absolute -right-16 -top-16 h-56 w-56 rounded-full blur-3xl", brandHero ? "bg-white/10" : "bg-primary/10")} aria-hidden="true" />
+                                <div className={cn("absolute bottom-8 right-8 h-28 w-28 rounded-full border", brandHero ? "border-white/20" : "border-primary/20")} aria-hidden="true" />
+                                <div className="relative flex h-full flex-col justify-between">
+                                  <div className={cn("h-px w-14", brandHero ? "bg-white/60" : "bg-primary")} />
+                                  <div>
+                                    <p className={cn("text-xs font-bold uppercase tracking-[0.18em]", brandHero ? "text-current" : "text-slate-600")}>{displayBusinessDescriptor}</p>
+                                    <p className={cn("mt-3 max-w-sm text-2xl font-semibold leading-tight", brandHero ? "text-current" : "text-slate-950")} style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{displayBusinessName}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </motion.div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+                  // Premium Default Hero
+                  return (
+                    <motion.section
+                      id={sectionId}
+                      key={section.id || `hero-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true }}
+                      variants={staggerContainer}
+                      className="relative flex min-h-[72vh] items-center overflow-hidden px-0 py-16 sm:min-h-[82vh] sm:py-24 lg:py-32"
+                    >
+                      {/* Decorative Background Elements */}
+                      <div className="gradient-blur bg-primary -top-[10%] -left-[10%]" />
+                      <div className="gradient-blur bg-secondary -bottom-[10%] -right-[10%] opacity-10" />
+
+                      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-10 px-5 sm:px-6 lg:grid-cols-12 lg:gap-16">
+                        <motion.div variants={fadeInUp} className="space-y-7 sm:space-y-10 lg:col-span-12 xl:col-span-7">
+                          <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20"
+                          >
+                            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                            <span className="text-xs font-black uppercase tracking-[0.2em] text-primary">
+                              Business Website Ready
+                            </span>
+                          </motion.div>
+
+                          <motion.h1
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            className="max-w-full break-words text-[clamp(2.35rem,7cqw,5.6rem)] font-bold leading-[1.02] tracking-[-0.02em] [text-wrap:balance]"
+                          >
+                            {(
+                              section.content.headline ||
+                              displayBusinessName
+                            )
+                              .split(" ")
+                              .map((word: string, i: number, arr: string[]) => (
+                                <span
+                                  key={i}
+                                  className={
+                                    i === arr.length - 1 ? "text-gradient" : ""
+                                  }
+                                >
+                                  {word}{" "}
+                                </span>
+                              ))}
+                          </motion.h1>
+
+                          <motion.p
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2, duration: 0.8 }}
+                            className="max-w-2xl text-base font-medium leading-relaxed text-slate-500 sm:text-xl lg:text-2xl"
+                          >
+                            {section.content.subheadline}
+                          </motion.p>
+
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4, duration: 0.8 }}
+                            className="flex flex-col gap-4 pt-4 sm:flex-row sm:gap-6 sm:pt-6"
+                          >
+                            <Button
+                              size="lg"
+                              onClick={() => handleButtonAction(section.content.ctaText || "Contact Us", section.content.buttonAction, {
+                                eventType: "hero_cta_clicked",
+                                sectionId: section.id,
+                              })}
+                              className="btn-primary group h-auto min-h-14 rounded-2xl px-6 py-4 text-sm font-bold shadow-2xl shadow-primary/30 sm:px-10 sm:text-base lg:px-12 lg:text-lg"
+                            >
+                              {section.content.ctaText}
+                              <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-2 transition-transform" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="lg"
+                              className="h-auto min-h-14 rounded-2xl border-slate-200 px-6 py-4 text-sm font-bold hover:bg-slate-50 sm:px-10 sm:text-base lg:text-lg"
+                              onClick={() => handleButtonAction("Learn More", undefined, { sectionId: section.id })}
+                            >
+                              Learn More
+                            </Button>
+                          </motion.div>
+
+                        </motion.div>
+
+                        <div className="lg:col-span-12 xl:col-span-5 relative">
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.9, rotate: 5 }}
+                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                            transition={{ duration: 1.2, ease: "circOut" }}
+                            className="relative z-10 aspect-[4/5] rounded-[3rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border-8 border-white group"
+                          >
+                            {section.content.imageUrl ? (
+                              <img
+                                src={section.content.imageUrl}
+                                alt={section.content.imageAlt || displayBusinessName}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                                referrerPolicy="no-referrer"
+                                onError={(event) => applySectionImageFallback(event, section.content.fallbackImageUrl)}
+                              />
+                            ) : (
+                              <div className="relative flex h-full w-full flex-col justify-between overflow-hidden bg-slate-950 p-8 text-white">
+                                <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full border border-white/10" />
+                                <div className="absolute -bottom-24 -left-10 h-80 w-80 rounded-full border border-primary/40" />
+                                <div className="relative h-12 w-12 border border-white/25" />
+                                <div className="relative">
+                                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">{displayBusinessDescriptor}</p>
+                                  <p className="mt-3 max-w-xs text-2xl font-semibold leading-tight text-white" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{displayBusinessName}</p>
+                                </div>
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                          </motion.div>
+
+                        </div>
+                      </div>
+                    </motion.section>
+                  );
+                case "services":
+                  if (section.settings?.variant === "source_services") {
+                    const sourceItems = (section.content.items || []).filter((item: any) => item?.title);
+                    if (!sourceItems.length) return null;
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `services-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="bg-white py-16 sm:py-20"
+                      >
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="grid gap-6 border-b border-slate-200 pb-8 lg:grid-cols-12 lg:items-end">
+                            <div className="lg:col-span-8">
+                              <p className="text-[10px] font-black uppercase tracking-[0.26em] text-primary">{section.content.eyebrow || displayBusinessName}</p>
+                              <h2 className="mt-3 max-w-4xl text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.title || "Services"}
+                              </h2>
+                            </div>
+                            {section.content.description ? (
+                              <p className="max-w-xl text-sm leading-7 text-slate-600 lg:col-span-4 lg:justify-self-end">
+                                {section.content.description}
+                              </p>
+                            ) : null}
+                          </motion.div>
+                          <div className="divide-y divide-slate-200">
+                            {sourceItems.map((item: any, itemIndex: number) => (
+                              <motion.article key={item.id || itemIndex} variants={fadeInUp} className="grid gap-5 py-7 sm:py-8 lg:grid-cols-12 lg:items-center">
+                                <p className="text-[10px] font-black tracking-[0.22em] text-primary lg:col-span-1">{String(itemIndex + 1).padStart(2, "0")}</p>
+                                <div className={item.imageUrl ? "lg:col-span-4" : "lg:col-span-5"}>
+                                  <h3 className="text-2xl font-semibold tracking-[-0.02em] text-slate-950 sm:text-3xl">{item.title}</h3>
+                                  {item.imageUrl ? (
+                                    <div className="mt-4 aspect-[16/8] max-w-sm overflow-hidden bg-slate-100">
+                                      <img src={item.imageUrl} alt={item.imageAlt || item.title || "Service"} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+                                    </div>
+                                  ) : null}
+                                </div>
+                                {item.description ? (
+                                  <p className={item.imageUrl ? "text-base leading-7 text-slate-600 lg:col-span-7" : "text-base leading-7 text-slate-600 lg:col-span-6"}>{item.description}</p>
+                                ) : (
+                                  <div className={item.imageUrl ? "hidden lg:col-span-7 lg:block" : "hidden lg:col-span-6 lg:block"} aria-hidden="true" />
+                                )}
+                              </motion.article>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
+                  if (section.settings?.variant === "brand_families") {
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `services-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="bg-white py-20 sm:py-28"
+                      >
+                        <div className="mx-auto max-w-[90rem] px-6 sm:px-10">
+                          <motion.div variants={fadeInUp} className="grid gap-8 border-b border-slate-200 pb-12 lg:grid-cols-12 lg:items-end">
+                            <div className="lg:col-span-8">
+                              <p className="text-[10px] font-black uppercase tracking-[0.32em] text-primary">Capabilities</p>
+                              <h2 className="mt-4 max-w-5xl text-5xl font-semibold tracking-[-0.045em] text-slate-950 sm:text-7xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.title || "What we do"}
+                              </h2>
+                            </div>
+                            <p className="max-w-xl text-base leading-7 text-slate-600 lg:col-span-4 lg:justify-self-end">{section.content.description}</p>
+                          </motion.div>
+                          <div className="divide-y divide-slate-200">
+                            {(section.content.items || []).map((item: any, itemIndex: number) => (
+                              <motion.article key={item.id || itemIndex} variants={fadeInUp} className="grid min-h-[18rem] gap-8 py-10 lg:grid-cols-12 lg:items-stretch">
+                                <div className="flex flex-col justify-between lg:col-span-1">
+                                  <p className="text-[10px] font-black tracking-[0.24em] text-primary">{String(itemIndex + 1).padStart(2, "0")}</p>
+                                </div>
+                                <div className="flex flex-col justify-between lg:col-span-5">
+                                  <h3 className="text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl">{item.title}</h3>
+                                  <p className="mt-6 max-w-xl text-base leading-7 text-slate-600">{item.description}</p>
+                                </div>
+                                <div className="lg:col-span-6">
+                                  {item.imageUrl ? (
+                                    <div className="h-full min-h-[16rem] overflow-hidden bg-slate-100">
+                                      <img src={item.imageUrl} alt={item.imageAlt || item.title || "Service"} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+                                    </div>
+                                  ) : (
+                                    <div className="relative flex h-full min-h-[16rem] overflow-hidden border border-slate-200 bg-[#f8f7f4] p-7">
+                                      <div className="absolute -right-14 -top-14 h-44 w-44 rounded-full bg-primary/10 blur-3xl" aria-hidden="true" />
+                                      <div className="relative flex w-full flex-col justify-between">
+                                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-600">Capability {String(itemIndex + 1).padStart(2, "0")}</p>
+                                        <button onClick={() => trackInteraction("service_click", item.title || "Service", { target: section.id || "services" })} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-950">
+                                          Explore capability <ArrowRight className="h-4 w-4 text-primary" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.article>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
+                  if (["editorial_list", "alternating"].includes(section.settings?.variant || "")) {
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `services-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="bg-white py-20 sm:py-28"
+                      >
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="grid gap-8 border-b border-slate-200 pb-12 lg:grid-cols-12 lg:items-end">
+                            <div className="lg:col-span-7">
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Capabilities</p>
+                              <h2 className="mt-4 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.title || "What We Do"}
+                              </h2>
+                            </div>
+                            <p className="max-w-xl text-base font-medium leading-7 text-slate-600 lg:col-span-5 lg:justify-self-end">
+                              {section.content.description}
+                            </p>
+                          </motion.div>
+                          <div className="divide-y divide-slate-200">
+                            {(section.content.items || []).map((item: any, itemIndex: number) => (
+                              <motion.div key={itemIndex} variants={fadeInUp} className="grid gap-5 py-8 sm:py-10 lg:grid-cols-12 lg:items-start">
+                                <div className="text-xs font-black tracking-[0.22em] text-primary lg:col-span-1">{String(itemIndex + 1).padStart(2, "0")}</div>
+                                <h3 className="text-2xl font-semibold tracking-tight text-slate-950 lg:col-span-4 sm:text-3xl">{item.title}</h3>
+                                <p className="text-base leading-7 text-slate-600 lg:col-span-5">{item.description}</p>
+                                <div className="lg:col-span-2 lg:justify-self-end">
+                                  {item.imageUrl ? (
+                                    <div className="aspect-[4/3] w-full max-w-[10rem] overflow-hidden bg-slate-100">
+                                      <img src={item.imageUrl} alt={item.imageAlt || item.title || "Service"} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
+                                    </div>
+                                  ) : (
+                                    <button onClick={() => trackInteraction("service_click", item.title || "Service", { target: section.id || "services" })} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-950">
+                                      Learn more <ArrowRight className="h-4 w-4 text-primary" />
+                                    </button>
+                                  )}
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+                  return (
+                    <motion.section
+                      id={sectionId}
+                      key={section.id || `services-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-100px" }}
+                      variants={staggerContainer}
+                      className="py-24 sm:py-32 relative overflow-hidden section-container dark:bg-slate-950"
+                    >
+                      <div className="max-w-7xl mx-auto px-6 relative z-10">
+                        <motion.div variants={fadeInUp} className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+                          <div className="space-y-4">
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                              Services
+                            </span>
+                            <h2 className="text-4xl sm:text-6xl font-bold tracking-tight leading-tight dark:text-white">
+                              {section.content.title || "Our Services"}
+                            </h2>
+                          </div>
+                          <p className="text-lg text-slate-500 max-w-md">
+                            {section.content.description ||
+                              "Explore the services available and choose the option that fits your needs."}
+                          </p>
+                        </motion.div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {(section.content.items || []).map(
+                            (item: any, sIdx: number) => (
+                              <motion.div
+                                key={sIdx}
+                                variants={fadeInUp}
+                                whileHover={{ y: -10 }}
+                                className="group p-8 rounded-[2.5rem] bg-slate-50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-100 dark:hover:border-white/5 transition-all duration-500 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)]"
+                              >
+                                <div className="h-16 w-16 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center text-primary shadow-sm mb-8 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
+                                  <Zap className="h-8 w-8" />
+                                </div>
+                                <h3 className="text-2xl font-bold mb-4 dark:text-white">
+                                  {item.title}
+                                </h3>
+                                <p className="text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                                  {item.description}
+                                </p>
+                                <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-white/5">
+                                  <span className="text-sm font-black text-primary uppercase tracking-widest">
+                                    {item.price || "Service"}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    aria-label={`Learn more about ${item.title || "this service"}`}
+                                    className="rounded-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                                    onClick={() =>
+                                      trackInteraction("service_click", item.title || "Service", {
+                                        target: section.id || "services",
+                                        serviceTitle: item.title,
+                                      })
+                                    }
+                                  >
+                                    <ArrowRight className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </motion.div>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    </motion.section>
+                  );
+                case "about": {
+                  const reverseStory = section.settings?.variant === "split_media_right";
+                  const storyImage = section.content.imageUrl;
+
+                  if (section.settings?.variant === "source_about") {
+                    if (!String(section.content.text || "").trim()) return null;
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `about-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="border-y border-slate-200 bg-[#f8f7f4] py-16 sm:py-20"
+                      >
+                        <div className={cn(
+                          "mx-auto max-w-7xl px-6",
+                          storyImage ? "grid gap-10 lg:grid-cols-12 lg:items-center" : ""
+                        )}>
+                          {storyImage ? (
+                            <motion.div variants={fadeInUp} className="lg:col-span-6">
+                              <div className="aspect-[5/4] overflow-hidden bg-slate-200">
+                                <img src={storyImage} alt={section.content.imageAlt || displayBusinessName} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" onError={(event) => applySectionImageFallback(event, section.content.fallbackImageUrl)} />
+                              </div>
+                            </motion.div>
+                          ) : null}
+                          <motion.div variants={fadeInUp} className={storyImage ? "lg:col-span-6 lg:px-6" : "max-w-4xl"}>
+                            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-primary">{section.content.eyebrow || "About"}</p>
+                            <h2 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                              {section.content.title || `About ${displayBusinessName}`}
+                            </h2>
+                            <div className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-600 prose-p:mb-5">
+                              <ReactMarkdown>{section.content.text || ""}</ReactMarkdown>
+                            </div>
+                          </motion.div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+                  return (
+                    <motion.section
+                      id={sectionId}
+                      key={section.id || `about-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-80px" }}
+                      variants={staggerContainer}
+                      className="bg-[#f4f2ed] py-20 sm:py-28"
+                    >
+                      <div className={cn("mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-12 lg:items-center", reverseStory && "lg:[&>*:first-child]:order-2")}>
+                        <motion.div variants={fadeInUp} className="lg:col-span-6">
+                          {storyImage ? (
+                            <div className="aspect-[5/4] overflow-hidden bg-slate-200">
+                              <img src={storyImage} alt={section.content.imageAlt || displayBusinessName} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" onError={(event) => applySectionImageFallback(event, section.content.fallbackImageUrl)} />
+                            </div>
+                          ) : (
+                            <div className="relative aspect-[5/4] overflow-hidden border border-slate-800 bg-slate-950 p-8 text-white">
+                              <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-primary/30 blur-3xl" aria-hidden="true" />
+                              <div className="absolute bottom-10 right-10 h-28 w-28 rounded-full border border-white/15" aria-hidden="true" />
+                              <div className="relative flex h-full flex-col justify-between">
+                                <div className="h-px w-14 bg-white/60" />
+                                <div>
+                                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">{displayBusinessDescriptor}</p>
+                                  <p className="mt-3 max-w-sm text-3xl font-semibold leading-tight text-white" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{displayBusinessName}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </motion.div>
+                        <motion.div variants={fadeInUp} className="lg:col-span-6 lg:px-8">
+                          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Our story</p>
+                          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                            {section.content.title || `About ${displayBusinessName}`}
+                          </h2>
+                          <div className="mt-8 max-w-xl text-base font-medium leading-8 text-slate-600 prose-p:mb-5">
+                            <ReactMarkdown>{section.content.text || ""}</ReactMarkdown>
+                          </div>
+                        </motion.div>
+                      </div>
+                    </motion.section>
+                  );
+                }
+                case "benefits":
+                  if (["editorial_values", "numbered_principles"].includes(section.settings?.variant || "")) {
+                    return (
+                      <motion.section key={section.id || `benefits-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true, margin: "-80px" }} variants={staggerContainer} className="bg-white py-20 sm:py-28">
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="max-w-3xl">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Principles</p>
+                            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{section.content.title || "How We Work"}</h2>
+                          </motion.div>
+                          <div className="mt-14 grid border-y border-slate-200 sm:grid-cols-2 lg:grid-cols-4">
+                            {(section.content.items || []).map((item: any, itemIndex: number) => (
+                              <motion.div key={itemIndex} variants={fadeInUp} className="border-b border-slate-200 p-7 sm:border-r lg:border-b-0 lg:p-9 last:border-r-0">
+                                <p className="text-[10px] font-black tracking-[0.25em] text-primary">{String(itemIndex + 1).padStart(2, "0")}</p>
+                                <h3 className="mt-8 text-xl font-semibold tracking-tight text-slate-950">{typeof item === "string" ? item : item.title}</h3>
+                                {typeof item === "object" && item.description && <p className="mt-4 text-sm leading-7 text-slate-600">{item.description}</p>}
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+                  return (
+                    <motion.section
+                      key={section.id || `benefits-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-100px" }}
+                      variants={staggerContainer}
+                      style={getSectionStyles(section)}
+                      className={cn("relative overflow-hidden bg-white px-4 sm:px-6", getPaddingClass(section))}
+                    >
+                      <div className="mx-auto max-w-7xl space-y-12">
+                        <motion.div variants={fadeInUp} className="mx-auto max-w-3xl text-center">
+                          <Badge
+                            variant="outline"
+                            className="mb-5 rounded-full border-primary/20 bg-primary/5 px-4 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary"
+                          >
+                            Why Choose Us
+                          </Badge>
+                          <h2 className="text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-6xl">
+                            {section.content.title || "Built Around What Customers Need"}
+                          </h2>
+                        </motion.div>
+
+                        <div className="grid gap-6 md:grid-cols-3">
+                          {(section.content.items || []).map((item: any, itemIndex: number) => (
+                            <motion.div
+                              key={item.id || `benefit-${itemIndex}`}
+                              variants={fadeInUp}
+                              className="rounded-[2rem] border border-slate-100 bg-slate-50/80 p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-xl"
+                            >
+                              <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+                                <CheckCircle2 className="h-6 w-6" />
+                              </div>
+                              <h3 className="text-xl font-black tracking-tight text-slate-950">
+                                {typeof item === "string" ? item : item.title || `Benefit ${itemIndex + 1}`}
+                              </h3>
+                              {typeof item === "object" && item.description && (
+                                <p className="mt-4 text-sm font-medium leading-7 text-slate-600">
+                                  {item.description}
+                                </p>
+                              )}
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.section>
+                  );
+                case "features":
+                  if (section.settings?.variant === "capability_matrix") {
+                    return (
+                      <motion.section
+                        key={section.id || `features-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="bg-slate-950 py-20 text-white sm:py-28"
+                        style={{ backgroundColor: "#020617", color: "#f8fafc" }}
+                      >
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-end">
+                            <div className="lg:col-span-7">
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Website system</p>
+                              <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{section.content.title || "Built to work together"}</h2>
+                            </div>
+                            <p className="max-w-xl text-sm leading-7 text-slate-400 lg:col-span-5 lg:justify-self-end">{section.content.description}</p>
+                          </motion.div>
+                          <div className="mt-14 grid border-l border-t border-white/10 sm:grid-cols-2">
+                            {(section.content.items || []).slice(0, 6).map((item: any, itemIndex: number) => (
+                              <motion.div key={itemIndex} variants={fadeInUp} className="min-h-[14rem] border-b border-r border-white/10 p-7 sm:p-9">
+                                <p className="text-[9px] font-black tracking-[0.24em] text-primary">{String(itemIndex + 1).padStart(2, "0")}</p>
+                                <h3 className="mt-10 text-2xl font-semibold tracking-[-0.025em] text-white">{typeof item === "string" ? item : item.title}</h3>
+                                {typeof item === "object" && item.description && <p className="mt-4 max-w-md text-sm leading-7 text-slate-400">{item.description}</p>}
+                              </motion.div>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
+                  if (section.settings?.variant === "editorial_strip") {
+                    return (
+                      <motion.section key={section.id || `features-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true, margin: "-80px" }} variants={staggerContainer} className="border-y border-slate-200 bg-[#f8f7f4] py-16 sm:py-20">
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-end">
+                            <div className="lg:col-span-5">
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">At a glance</p>
+                              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{section.content.title || "What Matters"}</h2>
+                            </div>
+                            <div className="grid gap-0 border-l border-slate-200 sm:grid-cols-2 lg:col-span-7">
+                              {(section.content.items || []).slice(0, 4).map((item: any, itemIndex: number) => (
+                                <div key={itemIndex} className="border-b border-r border-slate-200 p-6">
+                                  <p className="text-[9px] font-black uppercase tracking-[0.25em] text-primary">0{itemIndex + 1}</p>
+                                  <h3 className="mt-5 text-lg font-semibold text-slate-950">{typeof item === "string" ? item : item.title}</h3>
+                                  {typeof item === "object" && item.description && <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>}
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+                  return (
+                    <motion.section
+                      key={section.id || `features-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-80px" }}
+                      variants={staggerContainer}
+                      className="border-y border-slate-200 bg-white py-16 sm:py-20"
+                    >
+                      <div className="mx-auto max-w-7xl px-6">
+                        <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-end">
+                          <div className="lg:col-span-5">
+                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">Why choose us</p>
+                            <h2 className="mt-4 text-3xl font-semibold leading-tight tracking-[-0.025em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                              {section.content.title || "What makes this different"}
+                            </h2>
+                            {section.content.description && <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">{section.content.description}</p>}
+                          </div>
+                          <div className="border-t border-slate-200 lg:col-span-7">
+                            {(section.content.items || []).slice(0, 6).map((feature: any, fIdx: number) => (
+                              <motion.div key={fIdx} variants={fadeInUp} className="grid gap-3 border-b border-slate-200 py-5 sm:grid-cols-[3rem_1fr_1.3fr]">
+                                <span className="text-sm font-semibold text-primary">{String(fIdx + 1).padStart(2, "0")}</span>
+                                <h3 className="text-xl font-semibold text-slate-950">{typeof feature === "string" ? feature : feature.title}</h3>
+                                {typeof feature === "object" && feature.description ? <p className="text-sm leading-6 text-slate-600">{feature.description}</p> : <span />}
+                              </motion.div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      </div>
+                    </motion.section>
+                  );
+                case "contact":
+                  if (section.settings?.variant === "source_contact") {
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `contact-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="bg-[#f8f7f4] py-16 sm:py-20"
+                      >
+                        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-12 lg:items-start">
+                          <motion.div variants={fadeInUp} className="lg:col-span-5">
+                            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-primary">Contact</p>
+                            <h2 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                              {section.content.title || "Get in touch"}
+                            </h2>
+                            {section.content.description ? <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">{section.content.description}</p> : null}
+                            <div className="mt-8 space-y-3">
+                              {contactEmail ? (
+                                <a href={`mailto:${contactEmail}`} onClick={() => trackContactAction("email_click", "Preview contact email", contactEmail)} className="flex items-center gap-3 border-t border-slate-200 py-4 text-sm font-semibold text-slate-900">
+                                  <Mail className="h-4 w-4 text-primary" /> {contactEmail}
+                                </a>
+                              ) : null}
+                              {normalizedPhone ? (
+                                <a href={`tel:${normalizedPhone}`} onClick={() => trackContactAction("phone_clicked", "Preview contact phone", normalizedPhone)} className="flex items-center gap-3 border-t border-slate-200 py-4 text-sm font-semibold text-slate-900">
+                                  <Phone className="h-4 w-4 text-primary" /> {contactPhone}
+                                </a>
+                              ) : null}
+                              {whatsappHref ? (
+                                <a href={whatsappHref} target="_blank" rel="noopener noreferrer" onClick={() => trackContactAction("whatsapp_click", "Preview WhatsApp", whatsappHref)} className="flex items-center gap-3 border-y border-slate-200 py-4 text-sm font-semibold text-slate-900">
+                                  <MessageSquare className="h-4 w-4 text-primary" /> WhatsApp
+                                </a>
+                              ) : null}
+                            </div>
+                          </motion.div>
+
+                          <motion.div variants={fadeInUp} className="border border-slate-200 bg-white p-6 shadow-sm sm:p-8 lg:col-span-7">
+                            {formSuccess ? (
+                              <div className="py-8 text-center">
+                                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                                  <CheckCircle2 className="h-6 w-6" />
+                                </div>
+                                <h3 className="mt-5 text-2xl font-semibold text-slate-950">
+                                  {website.theme?.previewPurpose ? "Enquiry flow preview" : "Thank you"}
+                                </h3>
+                                <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-600">
+                                  {website.theme?.previewPurpose
+                                    ? "On the live website, this enquiry would go directly to the business."
+                                    : "Your enquiry has been sent. The team will get back to you soon."}
+                                </p>
+                                <Button variant="outline" className="mt-6" onClick={() => setFormSuccess(false)}>Back to form</Button>
+                              </div>
+                            ) : (
+                              <form onSubmit={handleLeadSubmit} className="space-y-5">
+                                <div className="grid gap-5 sm:grid-cols-2">
+                                  <div>
+                                    <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Name</label>
+                                    <Input required value={leadForm.name} onChange={(e)=>setLeadForm({...leadForm,name:e.target.value})} placeholder="Your name" className="mt-2 h-12 rounded-lg border-slate-200 bg-white" />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Email</label>
+                                    <Input required type="email" value={leadForm.email} onChange={(e)=>setLeadForm({...leadForm,email:e.target.value})} placeholder="you@example.com" className="mt-2 h-12 rounded-lg border-slate-200 bg-white" />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Phone</label>
+                                  <Input value={leadForm.phone} onChange={(e)=>setLeadForm({...leadForm,phone:e.target.value})} placeholder="Phone number" className="mt-2 h-12 rounded-lg border-slate-200 bg-white" />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Message</label>
+                                  <textarea
+                                    required
+                                    value={leadForm.message}
+                                    onChange={(e)=>setLeadForm({...leadForm,message:e.target.value})}
+                                    placeholder="How can we help?"
+                                    className="mt-2 min-h-28 w-full rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-950 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                                  />
+                                </div>
+                                <Button type="submit" isLoading={formLoading} className="min-h-12 w-full rounded-lg font-bold">
+                                  Send enquiry <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                                {website.theme?.previewPurpose ? <p className="text-center text-xs text-slate-500">Preview form. No message will be sent.</p> : null}
+                              </form>
+                            )}
+                          </motion.div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+                  return (
+                    <motion.section
+                      id={sectionId}
+                      key={section.id || `contact-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-100px" }}
+                      variants={staggerContainer}
+                      className="py-24 sm:py-32 relative overflow-hidden section-container"
+                    >
+                      <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
+                        <motion.div variants={fadeInUp} className="space-y-12">
+                          <div className="space-y-6">
+                            <span className="text-xs font-black uppercase tracking-[0.3em] text-primary">
+                              Get In Touch
+                            </span>
+                            <h2 className="text-4xl sm:text-6xl font-bold tracking-tight leading-tight dark:text-white">
+                              {section.content.title || "Let's Connect"}
+                            </h2>
+                            <p className="text-xl text-slate-500 leading-relaxed max-w-lg">
+                              {section.content.description ||
+                                "Have a question or ready to get started? We're here to help you navigate your next steps."}
+                            </p>
+                          </div>
+
+                          <div className="space-y-6">
+                            {contactEmail && (
+                            <motion.a
+                              href={`mailto:${contactEmail}`}
+                              onClick={() => trackContactAction("email_click", "Contact email", contactEmail)}
+                              whileHover={{ x: 10 }}
+                              className="flex gap-4 p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 shadow-sm transition-all"
+                            >
+                              <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                                <Mail className="h-6 w-6" />
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase font-bold text-slate-400 tracking-widest mb-1">
+                                  Email Us
+                                </p>
+                                <p className="text-slate-900 dark:text-white font-bold text-lg">
+                                  {contactEmail}
+                                </p>
+                              </div>
+                            </motion.a>
+                            )}
+                            {normalizedPhone && (
+                            <motion.a
+                              href={`tel:${normalizedPhone}`}
+                              onClick={() => trackContactAction("phone_clicked", "Contact phone", normalizedPhone)}
+                              whileHover={{ x: 10 }}
+                              className="flex gap-4 p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/10 shadow-sm transition-all"
+                            >
+                              <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                                <Phone className="h-6 w-6" />
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase font-bold text-slate-400 tracking-widest mb-1">
+                                  Call Us
+                                </p>
+                                <p className="text-slate-900 dark:text-white font-bold text-lg">
+                                  {contactPhone}
+                                </p>
+                              </div>
+                            </motion.a>
+                            )}
+                            {whatsappHref && (
+                              <motion.a
+                                href={whatsappHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => trackContactAction("whatsapp_click", "Contact WhatsApp", whatsappHref)}
+                                whileHover={{ x: 10 }}
+                                className="flex gap-4 p-6 rounded-3xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 shadow-sm transition-all"
+                              >
+                                <div className="h-12 w-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                                  <MessageSquare className="h-6 w-6" />
+                                </div>
+                                <div>
+                                  <p className="text-xs uppercase font-bold text-emerald-600 tracking-widest mb-1">
+                                    WhatsApp
+                                  </p>
+                                  <p className="text-slate-900 dark:text-white font-bold text-lg">
+                                    Send a quick enquiry
+                                  </p>
+                                </div>
+                              </motion.a>
+                            )}
+                          </div>
+                        </motion.div>
+
+                        <motion.div
+                          variants={fadeInUp}
+                          className="bg-white dark:bg-slate-950 p-8 sm:p-12 rounded-[3rem] shadow-2xl shadow-indigo-900/5 border border-slate-100 dark:border-white/5 relative"
+                        >
+                          <div className="absolute -top-6 -right-6 h-20 w-20 bg-primary/10 rounded-full blur-2xl" />
+                          {formSuccess ? (
+                            <div className="space-y-6 text-center py-10">
+                              <div className="h-20 w-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <CheckCircle2 className="h-10 w-10" />
+                              </div>
+                              <h3 className="text-2xl font-black uppercase tracking-tighter">
+                                Thank you
+                              </h3>
+                              <p className="text-slate-500 font-medium">
+                                Your enquiry has been sent. The team will get back to you soon.
+                              </p>
+                              <Button
+                                variant="outline"
+                                className="rounded-2xl h-14"
+                                onClick={() => setFormSuccess(false)}
+                              >
+                                Send Another Message
+                              </Button>
+                            </div>
+                          ) : (
+                            <form
+                              onSubmit={handleLeadSubmit}
+                              className="space-y-6"
+                            >
+                              <div className="grid sm:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1 dark:text-slate-500">
+                                    Full Name
+                                  </label>
+                                  <Input
+                                    required
+                                    value={leadForm.name}
+                                    onChange={(e) =>
+                                      setLeadForm({
+                                        ...leadForm,
+                                        name: e.target.value,
+                                      })
+                                    }
+                                    placeholder="John Doe"
+                                    className="h-14 rounded-2xl border-slate-200 bg-white text-slate-950 placeholder:text-slate-500 focus:bg-white focus:ring-primary/20 transition-all font-bold"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1 dark:text-slate-500">
+                                    Email Address
+                                  </label>
+                                  <Input
+                                    required
+                                    type="email"
+                                    value={leadForm.email}
+                                    onChange={(e) =>
+                                      setLeadForm({
+                                        ...leadForm,
+                                        email: e.target.value,
+                                      })
+                                    }
+                                    placeholder="john@example.com"
+                                    className="h-14 rounded-2xl border-slate-200 bg-white text-slate-950 placeholder:text-slate-500 focus:bg-white focus:ring-primary/20 transition-all font-bold"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1 dark:text-slate-500">
+                                    Phone Number
+                                  </label>
+                                  <Input
+                                    value={leadForm.phone}
+                                    onChange={(e) =>
+                                      setLeadForm({
+                                        ...leadForm,
+                                        phone: e.target.value,
+                                      })
+                                    }
+                                    placeholder="+60 12 345 6789"
+                                    className="h-14 rounded-2xl border-slate-200 bg-white text-slate-950 placeholder:text-slate-500 focus:bg-white focus:ring-primary/20 transition-all font-bold"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1 dark:text-slate-500">
+                                    Service Interested
+                                  </label>
+                                  <Input
+                                    value={leadForm.service}
+                                    onChange={(e) =>
+                                      setLeadForm({
+                                        ...leadForm,
+                                        service: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Service or package"
+                                    className="h-14 rounded-2xl border-slate-200 bg-white text-slate-950 placeholder:text-slate-500 focus:bg-white focus:ring-primary/20 transition-all font-bold"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1 dark:text-slate-500">
+                                  Project Brief
+                                </label>
+                                <textarea
+                                  required
+                                  value={leadForm.message}
+                                  onChange={(e) =>
+                                    setLeadForm({
+                                      ...leadForm,
+                                      message: e.target.value,
+                                    })
+                                  }
+                                  className="flex min-h-[150px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-base font-medium text-slate-950 placeholder:text-slate-500 focus:bg-white focus-visible:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                  placeholder="Define your requirements..."
+                                ></textarea>
+                              </div>
+                              {secureFormsEnabled && (
+                                <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+                                  <p className="text-xs leading-relaxed text-slate-700">
+                                    By submitting this form, you agree that{" "}
+                                    <strong>{displayBusinessName}</strong>{" "}
+                                    may contact you about your enquiry. See our{" "}
+                                    <button
+                                      type="button"
+                                      className="font-bold text-primary underline underline-offset-4"
+                                      onClick={() => {
+                                        setActivePageSlug("privacy");
+                                        scrollPreviewToTop("smooth");
+                                      }}
+                                    >
+                                      Privacy Policy
+                                    </button>{" "}
+                                    for details.
+                                  </p>
+                                  {marketingConsentEnabled && (
+                                    <label className="flex items-start gap-3 text-xs font-medium text-slate-700">
+                                      <input
+                                        type="checkbox"
+                                        checked={leadForm.marketingConsent}
+                                        onChange={(e) =>
+                                          setLeadForm({
+                                            ...leadForm,
+                                            marketingConsent: e.target.checked,
+                                          })
+                                        }
+                                        className="mt-0.5 h-4 w-4 rounded border-slate-400 bg-white text-primary focus:ring-primary"
+                                      />
+                                      <span>I agree to receive marketing updates and offers.</span>
+                                    </label>
+                                  )}
+                                </div>
+                              )}
+                              <Button
+                                type="submit"
+                                isLoading={formLoading}
+                                className="w-full h-16 btn-primary rounded-2xl text-lg font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30"
+                              >
+                                Send Enquiry
+                              </Button>
+                            </form>
+                          )}
+                        </motion.div>
+                      </div>
+                    </motion.section>
+                  );
+                case "pricing":
+                  return (
+                    <motion.section
+                      id={sectionId}
+                      key={section.id || `pricing-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-100px" }}
+                      variants={staggerContainer}
+                      className="py-24 sm:py-48 bg-white dark:bg-slate-950 relative overflow-hidden"
+                    >
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-primary/5 blur-[120px] rounded-full -z-10" />
+                      
+                      <div className="max-w-7xl mx-auto px-6 relative border-t border-slate-100 dark:border-white/5 pt-24">
+                        <motion.div variants={fadeInUp} className="text-center max-w-3xl mx-auto mb-24 space-y-8">
+                          <span className="text-xs font-black uppercase tracking-[0.5em] text-primary">
+                            Strategic Investment
+                          </span>
+                          <h2 className="text-5xl sm:text-8xl font-black tracking-tighter leading-[0.85] dark:text-white uppercase">
+                            {section.content.title || "Choose Your Path"}
+                          </h2>
+                          <p className="text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed font-medium">
+                            {section.content.description ||
+                              "Transparent tiers designed for elite scalability and long-term institutional success."}
+                          </p>
+                        </motion.div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12 items-stretch">
+                          {(section.content.plans || []).map(
+                            (plan: any, pIdx: number) => (
+                              <motion.div
+                                key={pIdx}
+                                variants={fadeInUp}
+                                whileHover={{ y: -15, scale: 1.02 }}
+                                className={cn(
+                                  "relative flex flex-col p-10 sm:p-14 lg:p-16 rounded-[4rem] transition-all duration-700 group",
+                                  plan.isPopular
+                                    ? "bg-slate-950 text-white shadow-[0_50px_100px_-20px_rgba(15,23,42,0.5)] ring-1 ring-white/10 scale-105 z-10"
+                                    : "bg-slate-50/50 dark:bg-slate-900/50 text-slate-900 dark:text-white border border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-slate-900 hover:shadow-2xl",
+                                  pIdx === 2 && (section.content.plans.length === 3) && "md:col-span-2 lg:col-span-1"
+                                )}
+                              >
+                                {plan.isPopular && (
+                                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-10 py-3 bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-[0.4em] rounded-full shadow-2xl">
+                                    Priority Choice
+                                  </div>
+                                )}
+                                
+                                <div className="mb-12">
+                                  <div className={cn(
+                                    "inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] mb-6",
+                                    plan.isPopular ? "text-primary" : "text-slate-400"
+                                  )}>
+                                    <div className={cn("h-2 w-2 rounded-full", plan.isPopular ? "bg-primary animate-pulse" : "bg-slate-300")} />
+                                    {plan.name}
+                                  </div>
+                                  
+                                  <div className="flex items-baseline gap-2">
+                                    <span className="text-7xl font-black tracking-tighter">
+                                      ${formatStatValue(plan.price)}
+                                    </span>
+                                    <span className="text-xs font-bold uppercase tracking-widest opacity-40">
+                                      / cycle
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <ul className="space-y-6 mb-16 flex-1">
+                                  {(
+                                    plan.features || [
+                                      "Premium Support",
+                                      "High Bandwidth",
+                                      "Expert Consultation",
+                                      "Custom Integration"
+                                    ]
+                                  ).map((f: string, fi: number) => (
+                                    <li
+                                      key={fi}
+                                      className="flex gap-5 text-sm font-bold items-start leading-tight"
+                                    >
+                                      <div className={cn(
+                                        "h-6 w-6 shrink-0 rounded-full flex items-center justify-center transition-transform group-hover:rotate-12",
+                                        plan.isPopular ? "bg-primary/20 text-primary border border-primary/30" : "bg-primary/10 text-primary"
+                                      )}>
+                                        <Check className="h-3 w-3 stroke-[4]" />
+                                      </div>
+                                      <span className={cn(
+                                        plan.isPopular ? "text-slate-300" : "text-slate-600 dark:text-slate-400"
+                                      )}>
+                                        {f}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+
+                                <Button
+                                  className={cn(
+                                    "w-full h-24 rounded-[3rem] text-sm font-black uppercase tracking-[0.3em] transition-all duration-500",
+                                    plan.isPopular 
+                                      ? "bg-primary hover:bg-primary/90 text-white shadow-2xl shadow-primary/30"
+                                      : "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
+                                  )}
+                                  onClick={() =>
+                                    handleButtonAction(plan.buttonText || "Choose Plan", plan.buttonAction, {
+                                      eventType: "pricing_cta_clicked",
+                                      planName: plan.name,
+                                      planPrice: plan.price,
+                                    })
+                                  }
+                                >
+                                  {plan.buttonText || "Choose Plan"}
+                                </Button>
+                              </motion.div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    </motion.section>
+                  );
+                case "google_reviews":
+                  return (
+                    <GoogleReviewsSection
+                      key={section.id || `google-reviews-${idx}`}
+                      section={section}
+                      websiteId={website.id}
+                      isEditingPreview={isEditingPreview || draftPreview || Boolean(website.theme?.previewPurpose)}
+                      primaryColor={accessibleTheme.primary}
+                      displayFont={theme.displayFont || designProfile.displayFont}
+                    />
+                  );
+                case "testimonials": {
+                  const testimonialItems = (section.content.items || []).filter((item: any) => item?.text);
+                  if (testimonialItems.length === 0) return null;
+
+                  if (section.settings?.variant === "source_testimonials") {
+                    const [featured, ...supporting] = testimonialItems;
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `testimonials-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="border-y border-slate-200 bg-slate-950 py-16 text-white sm:py-20"
+                      >
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="grid gap-8 lg:grid-cols-12 lg:items-start">
+                            <div className="lg:col-span-4">
+                              <p className="text-[10px] font-black uppercase tracking-[0.26em] text-slate-300">{section.content.eyebrow || "Customer stories"}</p>
+                              <h2 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-white sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.title || "What customers say"}
+                              </h2>
+                            </div>
+                            <motion.article variants={fadeInUp} className="lg:col-span-8">
+                              <Quote className="h-8 w-8" style={{ color: accessibleTheme.primaryOnDark }} />
+                              <blockquote className="mt-5 max-w-4xl text-2xl font-medium leading-[1.35] tracking-[-0.02em] text-white sm:text-3xl">
+                                “{featured.text}”
+                              </blockquote>
+                              {(featured.name || featured.role) ? (
+                                <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                                  <span className="font-semibold text-white">{featured.name || "Customer review"}</span>
+                                  {featured.role ? <span className="text-slate-400">{featured.role}</span> : null}
+                                </div>
+                              ) : null}
+                            </motion.article>
+                          </motion.div>
+
+                          {supporting.length ? (
+                            <div className="mt-10 grid gap-px border border-white/10 bg-white/10 md:grid-cols-2">
+                              {supporting.slice(0, 2).map((item: any, itemIndex: number) => (
+                                <motion.article key={item.id || itemIndex} variants={fadeInUp} className="bg-slate-950 p-6 sm:p-8">
+                                  <p className="text-base font-medium leading-7 text-white/80">“{item.text}”</p>
+                                  {(item.name || item.role) ? (
+                                    <p className="mt-5 text-xs font-semibold text-slate-300">{item.name || "Customer review"}{item.role ? ` · ${item.role}` : ""}</p>
+                                  ) : null}
+                                </motion.article>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
+                  const editorialTestimonials = ["editorial_quote", "featured", "proof_wall"].includes(section.settings?.variant || "");
+                  if (editorialTestimonials) {
+                    const [featured, ...supporting] = testimonialItems;
+                    return (
+                      <motion.section
+                        id={sectionId}
+                        key={section.id || `testimonials-${idx}`}
+                        initial="initial"
+                        whileInView="whileInView"
+                        viewport={{ once: true, margin: "-80px" }}
+                        variants={staggerContainer}
+                        className="bg-slate-950 py-20 text-white sm:py-28"
+                      >
+                        <div className="mx-auto max-w-7xl px-6">
+                          <motion.div variants={fadeInUp} className="grid gap-8 border-b border-white/10 pb-10 lg:grid-cols-12 lg:items-end">
+                            <div className="lg:col-span-5">
+                              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Customer perspective</p>
+                              <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                                {section.content.title || "What customers say"}
+                              </h2>
+                            </div>
+                            <p className="max-w-xl text-sm leading-7 text-slate-400 lg:col-span-7 lg:justify-self-end">
+                              Only customer-supplied feedback is shown here.
+                            </p>
+                          </motion.div>
+
+                          <motion.article variants={fadeInUp} className="grid gap-8 border-b border-white/10 py-12 lg:grid-cols-12">
+                            <Quote className="h-10 w-10 text-primary lg:col-span-1" />
+                            <div className="lg:col-span-8">
+                              <blockquote className="text-2xl font-medium leading-[1.35] tracking-[-0.02em] text-white sm:text-4xl">
+                                “{featured.text}”
+                              </blockquote>
+                            </div>
+                            <div className="lg:col-span-3 lg:text-right">
+                              <p className="text-sm font-semibold text-white">{featured.name || "Customer review"}</p>
+                              {featured.role && <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{featured.role}</p>}
+                            </div>
+                          </motion.article>
+
+                          {supporting.length > 0 && (
+                            <div className="grid gap-px bg-white/10 md:grid-cols-2">
+                              {supporting.slice(0, 4).map((item: any, itemIndex: number) => (
+                                <motion.article key={item.id || itemIndex} variants={fadeInUp} className="bg-slate-950 p-7 sm:p-9">
+                                  <p className="text-lg font-medium leading-8 text-slate-200">“{item.text}”</p>
+                                  <p className="mt-6 text-xs font-semibold text-white">{item.name || "Customer review"}</p>
+                                  {item.role && <p className="mt-1 text-[9px] font-black uppercase tracking-widest text-slate-500">{item.role}</p>}
+                                </motion.article>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
+                  return (
+                    <motion.section
+                      id={sectionId}
+                      key={section.id || `testimonials-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-80px" }}
+                      variants={staggerContainer}
+                      className="section-container py-20 sm:py-28"
+                    >
+                      <div className="mx-auto max-w-7xl px-6">
+                        <motion.div variants={fadeInUp} className="mb-12 max-w-3xl">
+                          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Customer feedback</p>
+                          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-6xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                            {section.content.title || "What customers say"}
+                          </h2>
+                        </motion.div>
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                          {testimonialItems.map((item: any, itemIndex: number) => (
+                            <motion.article key={item.id || itemIndex} variants={fadeInUp} className="border border-slate-200 bg-white p-7 sm:p-9">
+                              <Quote className="h-7 w-7 text-primary/30" />
+                              <p className="mt-7 text-lg font-medium leading-8 text-slate-800">“{item.text}”</p>
+                              <div className="mt-8 border-t border-slate-100 pt-5">
+                                <p className="text-sm font-semibold text-slate-950">{item.name || "Customer review"}</p>
+                                {item.role && <p className="mt-1 text-[9px] font-black uppercase tracking-widest text-slate-400">{item.role}</p>}
+                              </div>
+                            </motion.article>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.section>
+                  );
+                }
+                case "cta":
+                  if (["brand_band", "consultation", "editorial", "full_bleed"].includes(section.settings?.variant || "")) {
+                    return (
+                      <motion.section key={section.id || `cta-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true }} variants={staggerContainer} style={{ backgroundColor: accessibleTheme.primarySurface, color: accessibleTheme.primaryForeground }}>
+                        <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:py-20 lg:grid-cols-12 lg:items-center">
+                          <motion.div variants={fadeInUp} className="lg:col-span-8">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em]" style={{ color: accessibleTheme.primaryForeground }}>Next step</p>
+                            <h2
+                              className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.04em] sm:text-6xl"
+                              style={{ fontFamily: theme.displayFont || designProfile.displayFont, color: accessibleTheme.primaryForeground }}
+                            >
+                              {section.content.title || "Ready to talk?"}
+                            </h2>
+                            <p className="mt-5 max-w-2xl text-base leading-7" style={{ color: accessibleTheme.primaryForeground }}>{section.content.description}</p>
+                          </motion.div>
+                          <motion.div variants={fadeInUp} className="lg:col-span-4 lg:justify-self-end">
+                            <Button size="lg" className="h-14 rounded-none bg-white px-8 text-sm font-black uppercase tracking-widest text-slate-950 hover:bg-white/90" onClick={() => handleButtonAction(section.content.buttonText || section.content.ctaText || "Contact Us", section.content.buttonAction, { eventType: "website_button_clicked", sectionId: section.id })}>
+                              {section.content.buttonText || section.content.ctaText || "Contact Us"} <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                          </motion.div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+                  return (
+                    <motion.section
+                      id={sectionId}
+                      key={section.id || `cta-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-100px" }}
+                      variants={fadeInUp}
+                      className="py-24 sm:py-32 relative overflow-hidden bg-slate-950"
+                    >
+                      <div className="absolute inset-0">
+                        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(79,70,229,0.15),transparent)]" />
+                      </div>
+
+                      <div className="max-w-5xl mx-auto px-6 relative z-10 text-center space-y-12">
+                        <motion.span variants={fadeInUp} className="text-xs font-black uppercase tracking-[0.5em] text-primary">
+                          Next step
+                        </motion.span>
+                        <motion.h2 variants={fadeInUp} className="text-5xl sm:text-7xl font-bold tracking-tight text-white leading-[0.95]">
+                          {section.content.title || "Ready to get in touch?"}
+                        </motion.h2>
+                        <motion.p variants={fadeInUp} className="text-2xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                          {section.content.description ||
+                            "Secure your position at the forefront of industrial innovation with our elite solutions."}
+                        </motion.p>
+                        <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
+                          <Button
+                            size="lg"
+                            className="h-20 px-12 text-lg font-black uppercase tracking-widest bg-white text-slate-950 hover:bg-primary hover:text-primary-foreground rounded-none transition-all duration-500 shadow-2xl"
+                            onClick={() =>
+                              handleButtonAction(section.content.buttonText || section.content.ctaText || "Contact Us", section.content.buttonAction, {
+                                eventType: "website_button_clicked",
+                                sectionId: section.id,
+                              })
+                            }
+                          >
+                            {section.content.buttonText || "Begin Consultation"}
+                          </Button>
+                        </motion.div>
+                      </div>
+                    </motion.section>
+                  );
+                case "faq":
+                  if (section.settings?.variant === "source_faq") {
+                    const sourceFaqItems = (section.content.items || []).filter((item: any) => item?.question && item?.answer);
+                    if (!sourceFaqItems.length) return null;
+                    return (
+                      <motion.section id={sectionId} key={section.id || `faq-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true, margin: "-80px" }} variants={staggerContainer} className="bg-white py-16 sm:py-20">
+                        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-12">
+                          <motion.div variants={fadeInUp} className="lg:col-span-4">
+                            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-primary">Questions</p>
+                            <h2 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>
+                              {section.content.title || "Common questions"}
+                            </h2>
+                          </motion.div>
+                          <div className="lg:col-span-8">
+                            {sourceFaqItems.map((item: any, itemIndex: number) => (
+                              <motion.details key={itemIndex} variants={fadeInUp} className="group border-t border-slate-200 last:border-b">
+                                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 text-left">
+                                  <h3 className="text-lg font-semibold text-slate-950 sm:text-xl">{item.question}</h3>
+                                  <ChevronRight className="h-5 w-5 shrink-0 text-primary transition-transform group-open:rotate-90" />
+                                </summary>
+                                <p className="max-w-2xl pb-6 text-base leading-7 text-slate-600">{item.answer}</p>
+                              </motion.details>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+
+                  if (["media_accordion", "two_column"].includes(section.settings?.variant || "")) {
+                    return (
+                      <motion.section id={sectionId} key={section.id || `faq-${idx}`} initial="initial" whileInView="whileInView" viewport={{ once: true, margin: "-80px" }} variants={staggerContainer} className="bg-white py-20 sm:py-28">
+                        <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-12">
+                          <motion.div variants={fadeInUp} className="lg:col-span-4">
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Questions</p>
+                            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl" style={{ fontFamily: theme.displayFont || designProfile.displayFont }}>{section.content.title || "Frequently asked"}</h2>
+                            <p className="mt-5 text-sm leading-7 text-slate-600">Clear answers before a customer has to contact you.</p>
+                          </motion.div>
+                          <div className="lg:col-span-8">
+                            {(section.content.items || []).map((item: any, itemIndex: number) => (
+                              <motion.details key={itemIndex} variants={fadeInUp} className="group border-t border-slate-200 py-1 last:border-b">
+                                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-6 text-left">
+                                  <h3 className="text-lg font-semibold text-slate-950 sm:text-xl">{item.question}</h3>
+                                  <ChevronRight className="h-5 w-5 shrink-0 text-primary transition-transform group-open:rotate-90" />
+                                </summary>
+                                <p className="max-w-2xl pb-7 text-base leading-7 text-slate-600">{item.answer}</p>
+                              </motion.details>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.section>
+                    );
+                  }
+                  return (
+                    <motion.section
+                      id={sectionId}
+                      key={section.id || `faq-${idx}`}
+                      initial="initial"
+                      whileInView="whileInView"
+                      viewport={{ once: true, margin: "-100px" }}
+                      variants={staggerContainer}
+                      className="py-24 sm:py-32 relative overflow-hidden section-container dark:bg-slate-950"
+                    >
+                      <div className="max-w-4xl mx-auto px-6">
+                        <motion.div variants={fadeInUp} className="text-center mb-16 space-y-6">
+                          <span className="text-xs font-black uppercase tracking-[0.4em] text-primary">
+                            The Knowledge Base
+                          </span>
+                          <h2 className="text-5xl sm:text-7xl font-bold tracking-tight leading-[0.9] dark:text-white">
+                            Operational Clarity.
+                          </h2>
+                        </motion.div>
+
+                        <div className="space-y-6">
+                          {(section.content.items || []).map(
+                            (item: any, fIdx: number) => (
+                              <motion.div
+                                key={item.id || `renderer-faq-${fIdx}`}
+                                variants={fadeInUp}
+                                className="group bg-slate-50/50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:shadow-2xl hover:border-primary/20"
+                              >
+                                <details className="w-full">
+                                  <summary className="flex items-center justify-between p-10 cursor-pointer list-none outline-none">
+                                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white pr-12 leading-tight">
+                                      {item.question}
+                                    </h3>
+                                    <div className="h-14 w-14 bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/10 text-slate-400 group-hover:border-primary group-hover:text-primary rounded-2xl flex items-center justify-center transition-all shrink-0">
+                                      <ChevronRight className="h-6 w-6 transition-transform duration-500 group-open:rotate-90" />
+                                    </div>
+                                  </summary>
+                                  <div className="px-10 pb-10 text-slate-600 dark:text-slate-400 leading-relaxed text-xl max-w-3xl">
+                                    {item.answer}
+                                  </div>
+                                </details>
+                              </motion.div>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    </motion.section>
+                  );
+                case "team":
+                  if (!Array.isArray(section.content.members) || section.content.members.length === 0) return null;
+                  if (section.settings?.variant === "founder_story" && section.content.members.length === 1) {
+                    const member = section.content.members[0];
+                    return (
+                      <motion.section
                         id={sectionId}
                         key={section.id || `team-${idx}`}
                         initial="initial"
