@@ -21,7 +21,6 @@ import { HelmetProvider, Helmet } from "react-helmet-async";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { LoadingFallback } from "./components/LoadingFallback";
 
-import { AgencyMotionDirector } from "./components/AgencyMotionDirector";
 import { classifyTenantHost } from "./lib/tenantDomains";
 import { shouldRetryLazyChunkLoad } from "./lib/lazyChunkRecovery";
 import { getPublicSiteConfig } from "./lib/publicSiteConfigCache";
@@ -76,6 +75,10 @@ const lazy = <T extends React.ComponentType<any>>(
     throw error;
   }
 });
+
+const AgencyMotionDirector = lazy(() => import("./components/AgencyMotionDirector").then((m) => ({ default: m.AgencyMotionDirector })));
+const AgencyVisualDirector = lazy(() => import("./components/AgencyVisualDirector").then((m) => ({ default: m.AgencyVisualDirector })));
+const AgencyCopyDirector = lazy(() => import("./components/AgencyCopyDirector").then((m) => ({ default: m.AgencyCopyDirector })));
 
 // --- Lazy Loaded Components ---
 const LandingPage = lazy(() => import("./components/BrandLedLandingPage"));
@@ -255,6 +258,29 @@ const PRIVATE_ROUTE_PREFIXES = [
   "/w/",
   "/affiliate",
 ];
+
+function RouteEnhancers() {
+  const { pathname } = useLocation();
+  const privateAppPrefixes = [
+    "/admin", "/dashboard", "/login", "/signup", "/forgot-password",
+    "/reset-password", "/checkout", "/affiliate",
+  ];
+  const isCustomerDomain = isCustomerDomainHost();
+  const isWebsiteRenderer = ["/w/", "/preview/template/", "/preview/prospect/", "/p/"]
+    .some((prefix) => pathname.startsWith(prefix));
+  const isPrivateApp = privateAppPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  const shouldEnhancePage = isCustomerDomain || isWebsiteRenderer || !isPrivateApp;
+  const shouldCleanWebsiteCopy = isCustomerDomain || isWebsiteRenderer;
+
+  if (!shouldEnhancePage) return null;
+  return (
+    <React.Suspense fallback={null}>
+      <AgencyMotionDirector />
+      <AgencyVisualDirector />
+      {shouldCleanWebsiteCopy && <AgencyCopyDirector />}
+    </React.Suspense>
+  );
+}
 
 const SALES_CONSENT_KEY = "bt_sales_cookie_consent";
 const SALES_CONSENT_VERSION = "uk-sales-consent-v1";
@@ -558,7 +584,7 @@ export default function App() {
         <ErrorBoundary>
           <Router>
             <ScrollToTop />
-            <AgencyMotionDirector />
+            <RouteEnhancers />
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 <Route path="*" element={<CustomDomainWebsiteRoute />} />
@@ -601,7 +627,7 @@ export default function App() {
           <RouteRobotsMeta />
           <TrafficTracker />
             <PublicAnalytics settings={platformSettings} />
-          <AgencyMotionDirector />
+          <RouteEnhancers />
           <Helmet>
             <title>{defaultSiteTitle}</title>
             <meta
@@ -903,6 +929,10 @@ export default function App() {
                             <Route
                               path="funnels/plans"
                               element={<ProtectedRoute allowedRoles={["business_admin"]}>{import.meta.env.VITE_UNIFIED_FUNNEL_TIERS_ENABLED === "true" ? <FunnelPlansPortal /> : <Navigate to="/dashboard/funnels" replace />}</ProtectedRoute>}
+                            />
+                            <Route
+                              path="funnel-addon"
+                              element={<Navigate to="/dashboard/funnels/plans" replace />}
                             />
                             <Route
                               path="funnels/advanced"

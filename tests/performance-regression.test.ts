@@ -13,8 +13,7 @@ test("marketing pages do not eagerly preload the full Recharts vendor", () => {
 
 test("global animation controller mounts once, not once per root and router", () => {
   assert.doesNotMatch(source("src/main.tsx"), /<AgencyMotionDirector\s*\/>/);
-  assert.equal((source("src/App.tsx").match(/<AgencyMotionDirector\s*\/>/g) || []).length, 2);
-  // Two code branches (customer-domain and primary router) are mutually exclusive.
+  assert.equal((source("src/App.tsx").match(/<AgencyMotionDirector\s*\/>/g) || []).length, 1);
 });
 
 test("public CSS is loaded by public chrome rather than the universal App bundle", () => {

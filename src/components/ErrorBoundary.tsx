@@ -50,7 +50,7 @@ export class ErrorBoundary extends Component<Props, State> {
         "An unexpected error occurred. Our engineers have been notified.";
 
       try {
-        // Check if it's a Firestore error JSON (kept for backward compatibility with existing pattern)
+        // Preserve structured API error messages when a service returns JSON.
         const errLower = this.state.error?.message?.toLowerCase() || "";
         if (errLower.includes("quota exceeded")) {
           errorMessage = "Daily Processing Limit Reached";

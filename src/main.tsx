@@ -4,8 +4,6 @@ import App from "./App.tsx";
 import "./index.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { AgencyCopyDirector } from "./components/AgencyCopyDirector";
-import { AgencyVisualDirector } from "./components/AgencyVisualDirector";
 
 import { initClientObservability } from "./lib/observability";
 import { MotionConfig } from "motion/react";
@@ -31,8 +29,6 @@ createRoot(document.getElementById("root")!).render(
       <AuthProvider>
         <MotionConfig reducedMotion="user">
 
-          <AgencyVisualDirector />
-          <AgencyCopyDirector />
           <App />
         </MotionConfig>
       </AuthProvider>

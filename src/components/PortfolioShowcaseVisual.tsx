@@ -6,12 +6,12 @@ import { portfolioDemoSlug } from "../lib/studioInteractiveDemos";
 
 /** Real design-study assets already shipped with Bennie Studio. Keep stored CMS
  * media authoritative; use these curated built-in screenshots when empty. */
-const bundledDesignScreenshots: Record<string,string> = {
-  "dental-clinic":"/images/case-studies/dental-clinic-desktop.png",
-  "renovation-contractor":"/images/case-studies/renovation-contractor-desktop.png",
-  "professional-advisory":"/images/case-studies/consultant-desktop.png",
-  "tuition-centre":"/images/case-studies/tuition-centre-desktop.png",
-  "beauty-wellness":"/images/case-studies/beauty-studio-desktop.png",
+const bundledDesignScreenshots: Record<string,{full:string;thumbnail:string}> = {
+  "dental-clinic": { full:"/images/case-studies/optimized/dental-clinic-desktop.jpg", thumbnail:"/images/case-studies/optimized/dental-clinic-desktop-768.jpg" },
+  "renovation-contractor": { full:"/images/case-studies/optimized/renovation-contractor-desktop.jpg", thumbnail:"/images/case-studies/optimized/renovation-contractor-desktop-768.jpg" },
+  "professional-advisory": { full:"/images/case-studies/optimized/consultant-desktop.jpg", thumbnail:"/images/case-studies/optimized/consultant-desktop-768.jpg" },
+  "tuition-centre": { full:"/images/case-studies/optimized/tuition-centre-desktop.jpg", thumbnail:"/images/case-studies/optimized/tuition-centre-desktop-768.jpg" },
+  "beauty-wellness": { full:"/images/case-studies/optimized/beauty-studio-desktop.jpg", thumbnail:"/images/case-studies/optimized/beauty-studio-desktop-768.jpg" },
 };
 
 /** A deliberately labelled concept composition is safer than an empty,
@@ -47,12 +47,20 @@ export function PortfolioShowcaseVisual({ item, compact = false, priority = fals
   compact?: boolean;
   priority?: boolean;
 }) {
-  const image = item.coverImage || item.desktopImage || bundledDesignScreenshots[item.slug] || "";
+  const bundledImage = bundledDesignScreenshots[item.slug];
+  const image = item.coverImage || item.desktopImage || bundledImage?.full || "";
+  const bundledSrcSet = !item.coverImage && !item.desktopImage && bundledImage
+    ? `${bundledImage.thumbnail} 768w, ${bundledImage.full} 1448w`
+    : undefined;
   const [failedImage, setFailedImage] = React.useState(false);
   React.useEffect(() => setFailedImage(false), [image]);
   return <div className="relative min-w-0 overflow-hidden border-b border-slate-200 bg-[#eef2f7]">
     {image && !failedImage ? <img
       src={image}
+      srcSet={bundledSrcSet}
+      sizes={compact ? "(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 560px" : "(max-width: 768px) 100vw, 50vw"}
+      width={1448}
+      height={1086}
       alt={item.imageAlt || `${item.title} illustrative website design study`}
       loading={priority ? "eager" : "lazy"}
       decoding="async"

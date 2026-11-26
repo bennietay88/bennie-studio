@@ -32,15 +32,6 @@ import {
   Shield,
   Download,
 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import {
@@ -55,8 +46,6 @@ import { LegalDisclaimer } from "./LegalDisclaimer";
 import { findPlan } from "../constants/plans";
 import { getLocalSeoLimits } from "../constants/localSeoEngine";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { AIPerformanceAnalytics } from "./AIPerformanceAnalytics";
-import { AIDataAnalyst } from "./AIDataAnalyst";
 import { toast } from "sonner";
 import type { MonthlyWebsiteResult, WebsiteImprovement } from "../types";
 import {
@@ -85,6 +74,41 @@ import {
   WHATSAPP_ENQUIRY_KIT,
   WHATSAPP_FOLLOW_UP_CRM,
 } from "../constants/managedGrowthModules";
+
+const AIPerformanceAnalytics = React.lazy(() => import("./AIPerformanceAnalytics").then((module) => ({ default: module.AIPerformanceAnalytics })));
+const AIDataAnalyst = React.lazy(() => import("./AIDataAnalyst").then((module) => ({ default: module.AIDataAnalyst })));
+const DashboardOverviewAreaChart = React.lazy(() => import("./DashboardOverviewAreaChart").then((module) => ({ default: module.DashboardOverviewAreaChart })));
+
+function DeferredAreaChart({ data }: { data: Array<Record<string, unknown>> }) {
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    if (!("IntersectionObserver" in window)) {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setVisible(true);
+      observer.disconnect();
+    }, { rootMargin: "240px" });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} className="h-[350px] w-full">
+      {visible ? (
+        <React.Suspense fallback={<div className="h-full animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" aria-label="Loading analytics chart" />}>
+          <DashboardOverviewAreaChart data={data} />
+        </React.Suspense>
+      ) : <div className="h-full rounded-xl bg-slate-50 dark:bg-slate-800/40" aria-hidden="true" />}
+    </div>
+  );
+}
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -2615,76 +2639,7 @@ export default function DashboardOverview() {
               </div>
               <div className="h-[350px] w-full">
                 {analyticsData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-                    <AreaChart data={analyticsData}>
-                      <defs>
-                        <linearGradient
-                          id="colorVisits"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="5%"
-                            stopColor="#4f46e5"
-                            stopOpacity={0.15}
-                          />
-                          <stop
-                            offset="95%"
-                            stopColor="#4f46e5"
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        vertical={false}
-                        stroke="#f1f5f9"
-                        className="stroke-slate-200 dark:stroke-slate-800"
-                      />
-                      <XAxis
-                        dataKey="name"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{
-                          fill: "#94a3b8",
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                        dy={15}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{
-                          fill: "#94a3b8",
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                      />
-                      <Tooltip
-                        cursor={{ stroke: "#e2e8f0", strokeWidth: 2 }}
-                        contentStyle={{
-                          backgroundColor: "rgba(255, 255, 255, 0.9)",
-                          backdropFilter: "blur(8px)",
-                          borderRadius: "16px",
-                          border: "1px solid #e2e8f0",
-                          boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                          padding: "12px",
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="visits"
-                        stroke="#4f46e5"
-                        strokeWidth={4}
-                        fillOpacity={1}
-                        fill="url(#colorVisits)"
-                        animationDuration={2000}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <DeferredAreaChart data={analyticsData} />
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center grayscale opacity-50 px-4 group/analytics">
                     <BarChart3 className="h-12 w-12 text-slate-300 mb-4 group-hover/analytics:text-indigo-600 transition-colors" />
@@ -2931,12 +2886,14 @@ export default function DashboardOverview() {
             </div>
 
             <div className="space-y-6">
-              <AIDataAnalyst
-                stats={stats}
-                businessName={business?.name || "Your Business"}
-                industry={business?.industry || "Unknown Industry"}
-                businessId={profile?.businessId}
-              />
+              <React.Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />}>
+                <AIDataAnalyst
+                  stats={stats}
+                  businessName={business?.name || "Your Business"}
+                  industry={business?.industry || "Unknown Industry"}
+                  businessId={profile?.businessId}
+                />
+              </React.Suspense>
             </div>
           </motion.div>
           )}
@@ -3011,7 +2968,9 @@ export default function DashboardOverview() {
             </p>
           </div>
 
-          <AIPerformanceAnalytics businessId={profile?.businessId || ""} />
+          <React.Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />}>
+            <AIPerformanceAnalytics businessId={profile?.businessId || ""} />
+          </React.Suspense>
         </motion.div>
       </TabsContent>
     </Tabs>

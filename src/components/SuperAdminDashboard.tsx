@@ -136,6 +136,7 @@ import { EmailProviderSettings } from "./SuperAdmin/EmailProviderSettings";
 const RevenueCommand = React.lazy(() => import("./SuperAdmin/RevenueCommand").then((module) => ({ default: module.RevenueCommand })));
 const FinanceDashboard = React.lazy(() => import("./SuperAdmin/FinanceDashboard").then((module) => ({ default: module.FinanceDashboard })));
 const SalesHome = React.lazy(() => import("./SuperAdmin/SalesHome").then((module) => ({ default: module.SalesHome })));
+const SalesAutomation = React.lazy(() => import("./SuperAdmin/SalesAutomation").then((module) => ({ default: module.SalesAutomation })));
 const GrowthOperationsCenter = React.lazy(() => import("./SuperAdmin/GrowthOperationsCenter").then((module) => ({ default: module.GrowthOperationsCenter })));
 const OverdueSalesTasks = React.lazy(() => import("./SuperAdmin/OverdueSalesTasks").then((module) => ({ default: module.OverdueSalesTasks })));
 const ProspectExplorer = React.lazy(() => import("./SuperAdmin/ProspectExplorer").then((module) => ({ default: module.ProspectExplorer })));
@@ -146,6 +147,7 @@ const ClientOnboarding = React.lazy(() => import("./SuperAdmin/ClientOnboarding"
 const Projects = React.lazy(() => import("./SuperAdmin/Projects").then((module) => ({ default: module.Projects })));
 const AdminLeadInbox = React.lazy(() => import("./SuperAdmin/AdminLeadInbox").then((module) => ({ default: module.AdminLeadInbox })));
 const DailyOperations = React.lazy(() => import("./SuperAdmin/DailyOperations").then((module) => ({ default: module.DailyOperations })));
+const OperationsControlCenter = React.lazy(() => import("./SuperAdmin/OperationsControlCenter").then((module) => ({ default: module.OperationsControlCenter })));
 const CommercialCatalogue = React.lazy(() => import("./SuperAdmin/CommercialCatalogue"));
 const SystemStatusPage = React.lazy(() => import("./SystemStatusPage").then((module) => ({ default: module.SystemStatusPage })));
 const SeoAdmin = React.lazy(() => import("../modules/seo/components/SeoAdmin"));
@@ -235,7 +237,7 @@ export default function SuperAdminDashboard() {
     if (last === "mass_campaigns") return "sales_home";
     if (last === "webinar_engine") return "sales_home";
     if (last === "proposals_deals") return "proposals_deals";
-    if (last === "sales_automation") return "sales_home";
+    if (last === "sales_automation") return "sales_automation";
     if (last === "projects") return "projects";
     if (last === "launch_audit") return "daily_operations";
     if (last === "client_onboarding") return "client_onboarding";
@@ -1443,11 +1445,12 @@ export default function SuperAdminDashboard() {
       {activeTab === "finance" && <FinanceDashboard />}
 
       {activeTab === "sales_home" && <SalesHome />}
+      {activeTab === "sales_automation" && <SalesAutomation />}
        {activeTab === "overdue_followups" && <OverdueSalesTasks />}
       {activeTab === "growth_operations" && <GrowthOperationsCenter />}
 
       {activeTab === "daily_operations" && <DailyOperations />}
-      {activeTab === "operations_control" && <DailyOperations />}
+      {activeTab === "operations_control" && <OperationsControlCenter />}
 
       {activeTab === "inbound_leads" && <AdminLeadInbox />}
       {activeTab === "prospect_explorer" && <ProspectExplorer />}
@@ -2321,7 +2324,7 @@ export default function SuperAdminDashboard() {
           {activeTab === "update_requests" && <MonthlyUpdateQueue />}
 
           {/* Catch-all for tabs that might not have specialized rendering yet or are in development */}
-          {!['overview', 'revenue_command', 'sales_home', 'growth_operations', 'daily_operations', 'operations_control', 'inbound_leads', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'proposals_deals', 'projects', 'client_onboarding', 'seo_management', 'local_seo', 'blog', 'studio_showcases', 'platform_site_cms', 'funnels', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'templates', 'plans', 'status', 'ecosystem_architect', 'traffic', 'settings', 'support', 'update_requests', 'policies', 'admin'].includes(activeTab) && (
+          {!['overview', 'revenue_command', 'sales_home', 'sales_automation', 'growth_operations', 'daily_operations', 'operations_control', 'inbound_leads', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'proposals_deals', 'projects', 'client_onboarding', 'seo_management', 'local_seo', 'blog', 'studio_showcases', 'platform_site_cms', 'funnels', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'templates', 'plans', 'status', 'ecosystem_architect', 'traffic', 'settings', 'support', 'update_requests', 'policies', 'admin'].includes(activeTab) && (
             <div className="h-full flex items-center justify-center p-12">
                <Card className="p-24 flex flex-col items-center justify-center text-center rounded-[3rem] border-slate-100 bg-slate-50/50 max-w-2xl">
                   <div className="h-20 w-20 rounded-[2rem] bg-white shadow-xl shadow-slate-200 flex items-center justify-center text-indigo-600 mb-6">

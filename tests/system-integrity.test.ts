@@ -6,7 +6,6 @@ const app = readFileSync("src/App.tsx", "utf8");
 const api = readFileSync("api/index.ts", "utf8");
 const indexHtml = readFileSync("index.html", "utf8");
 const homepage = readFileSync("src/components/BrandLedLandingPage.tsx", "utf8");
-const warmup = readFileSync("src/components/RouteWarmup.tsx", "utf8");
 const sitemap = readFileSync("public/sitemap.xml", "utf8");
 const renderer = readFileSync("src/components/WebsiteRenderer.tsx", "utf8");
 const envExample = readFileSync(".env.example", "utf8");
@@ -27,10 +26,9 @@ test("public website reviews dispatch asynchronously in production and retain a 
   assert.doesNotMatch(api, /\/api\/marketing/);
 });
 
-test("route warmup points at current public implementations", () => {
-  assert.match(warmup, /import\("\.\/BrandLedLandingPage"\)/);
-  assert.doesNotMatch(warmup, /import\("\.\/LandingPage"\)/);
-  assert.doesNotMatch(warmup, /PortfolioPage/);
+test("unused route warmup module stays retired", () => {
+  assert.equal(existsSync("src/components/RouteWarmup.tsx"), false);
+  assert.doesNotMatch(app, /RouteWarmup/);
 });
 
 test("homepage keeps buyer guidance concise and focused on choosing a plan", () => {

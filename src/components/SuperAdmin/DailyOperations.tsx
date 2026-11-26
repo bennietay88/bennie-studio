@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { durationMinutes, fulfilmentSlaStatus } from "../../lib/fulfilmentTiming";
 
 type OperatorLead = {
   id: string;
@@ -34,6 +35,7 @@ type DeliveryProject = {
   status?: string;
   priority?: string;
   assigned_to?: string | null;
+  created_at?: string | null;
   target_launch_date?: string | null;
   updated_at?: string;
   businesses?: { name?: string } | null;
@@ -71,7 +73,7 @@ export function DailyOperations() {
         fetch(`/api/admin/appointments?from=${today}&to=${format(new Date(Date.now() + 14 * 86400000), "yyyy-MM-dd")}`, { headers: { Authorization: `Bearer ${session.access_token}` } }),
         supabase
           .from("projects")
-          .select("id,title,status,priority,assigned_to,target_launch_date,updated_at,businesses(name),assignee:profiles!projects_assigned_to_fkey(full_name,email)")
+          .select("id,title,status,priority,assigned_to,created_at,target_launch_date,updated_at,businesses(name),assignee:profiles!projects_assigned_to_fkey(full_name,email)")
           .order("updated_at", { ascending: false }),
       ]);
       const leadPayload = await leadResponse.json().catch(() => ({}));
@@ -113,10 +115,20 @@ export function DailyOperations() {
     () => projects.filter((project) => !["live", "maintenance", "cancelled"].includes(String(project.status || ""))),
     [projects],
   );
+  const getDeliverySla = (project: DeliveryProject) => {
+    if (!project.created_at || !project.target_launch_date) return "unknown" as const;
+    const now = new Date().toISOString();
+    const elapsedMinutes = durationMinutes(project.created_at, now);
+    const targetAt = new Date(`${project.target_launch_date}T23:59:59`);
+    const targetMinutes = Math.max(1, durationMinutes(project.created_at, targetAt.toISOString()) ?? 0);
+    if (elapsedMinutes === null) return "unknown" as const;
+    return fulfilmentSlaStatus({ targetMinutes, elapsedMinutes });
+  };
   const overdueProjects = useMemo(
-    () => activeProjects.filter((project) => project.target_launch_date && project.target_launch_date < today),
+    () => activeProjects.filter((project) => getDeliverySla(project) === "breached"),
     [activeProjects],
   );
+  const atRiskProjects = activeProjects.filter((project) => getDeliverySla(project) === "at_risk").length;
   const unassignedProjects = useMemo(
     () => activeProjects.filter((project) => !project.assigned_to),
     [activeProjects],
@@ -144,7 +156,7 @@ export function DailyOperations() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card className="rounded-2xl"><CardContent className="p-6"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-widest text-slate-400">New enquiries</p><Inbox className="h-5 w-5 text-indigo-600" /></div><p className="mt-3 text-4xl font-black text-slate-950">{newLeads.length}</p><p className="mt-2 text-sm text-slate-500">Uncontacted customer CRM records</p></CardContent></Card>
         <Card className="rounded-2xl"><CardContent className="p-6"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-widest text-slate-400">Delivery active</p><Briefcase className="h-5 w-5 text-indigo-600" /></div><p className="mt-3 text-4xl font-black text-slate-950">{activeProjects.length}</p><p className="mt-2 text-sm text-slate-500">{reviewProjects.length} currently in review/approval</p></CardContent></Card>
-        <Card className={`rounded-2xl ${overdueProjects.length ? "border-rose-200 bg-rose-50/40" : ""}`}><CardContent className="p-6"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-widest text-slate-400">Overdue delivery</p><AlertTriangle className={`h-5 w-5 ${overdueProjects.length ? "text-rose-600" : "text-emerald-600"}`} /></div><p className="mt-3 text-4xl font-black text-slate-950">{overdueProjects.length}</p><p className="mt-2 text-sm text-slate-500">{unassignedProjects.length} active project(s) unassigned</p></CardContent></Card>
+        <Card className={`rounded-2xl ${overdueProjects.length ? "border-rose-200 bg-rose-50/40" : ""}`}><CardContent className="p-6"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-widest text-slate-400">Delivery SLA</p><AlertTriangle className={`h-5 w-5 ${overdueProjects.length ? "text-rose-600" : "text-emerald-600"}`} /></div><p className="mt-3 text-4xl font-black text-slate-950">{overdueProjects.length}</p><p className="mt-2 text-sm text-slate-500">Overdue · {atRiskProjects} approaching target · {unassignedProjects.length} unassigned</p></CardContent></Card>
         <Card className="rounded-2xl"><CardContent className="p-6"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-widest text-slate-400">Today&apos;s appointments</p><CalendarDays className="h-5 w-5 text-emerald-600" /></div><p className="mt-3 text-4xl font-black text-slate-950">{todayAppointments.length}</p><p className="mt-2 text-sm text-slate-500">{dueFollowUps.length} lead follow-up(s) due</p></CardContent></Card>
       </div>
 
@@ -157,8 +169,8 @@ export function DailyOperations() {
           {!loading && activeProjects.length === 0 && <p className="py-6 text-sm text-slate-500">No active delivery projects.</p>}
           {activeProjects
             .sort((a, b) => {
-              const aOverdue = a.target_launch_date && a.target_launch_date < today ? 1 : 0;
-              const bOverdue = b.target_launch_date && b.target_launch_date < today ? 1 : 0;
+              const aOverdue = getDeliverySla(a) === "breached" ? 1 : 0;
+              const bOverdue = getDeliverySla(b) === "breached" ? 1 : 0;
               if (aOverdue !== bOverdue) return bOverdue - aOverdue;
               if (!a.assigned_to && b.assigned_to) return -1;
               if (a.assigned_to && !b.assigned_to) return 1;
@@ -166,7 +178,8 @@ export function DailyOperations() {
             })
             .slice(0, 8)
             .map((project) => {
-              const overdue = Boolean(project.target_launch_date && project.target_launch_date < today);
+              const deliverySla = getDeliverySla(project);
+              const overdue = deliverySla === "breached";
               return (
                 <div key={project.id} className={`flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between ${overdue ? "border-rose-200 bg-rose-50/60" : "border-slate-100"}`}>
                   <div className="min-w-0">
@@ -175,6 +188,7 @@ export function DailyOperations() {
                       <Badge variant="outline" className="capitalize">{String(project.status || "new").replace(/_/g, " ")}</Badge>
                       {!project.assigned_to && <Badge className="border-none bg-amber-100 text-amber-700">Unassigned</Badge>}
                       {overdue && <Badge className="border-none bg-rose-100 text-rose-700">Overdue</Badge>}
+                      {deliverySla === "at_risk" && <Badge className="border-none bg-amber-100 text-amber-700">At risk</Badge>}
                     </div>
                     <p className="mt-1 text-xs text-slate-500">
                       {project.businesses?.name || "Customer"} · Owner: {project.assignee?.full_name || project.assignee?.email || "Not assigned"}

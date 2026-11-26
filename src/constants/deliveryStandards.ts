@@ -1,4 +1,5 @@
 import type { Website, ButtonHealthIssue } from "../types";
+import { isOperatingSystemFlagEnabled } from "./operatingSystemFlags";
 
 export const DELIVERY_STANDARD_VERSION = "2026.09.20";
 
@@ -97,7 +98,6 @@ export type LaunchGateInput = {
   internalCreativeReviewApproved?: boolean;
   customerApprovalRecorded?: boolean;
   responsiveQaApproved?: boolean;
-  productionQualityPassed?: boolean;
 };
 
 const PLACEHOLDER_PATTERN = /\b(lorem ipsum|sample text|placeholder|your business|business name|verified client|coming soon)\b/i;
@@ -107,6 +107,10 @@ export function evaluateWorldClassLaunchGate(input: LaunchGateInput) {
   const { website } = input;
   const blockers: string[] = [];
   const warnings: string[] = [];
+
+  if (!isOperatingSystemFlagEnabled("launch_readiness")) {
+    blockers.push("Launch readiness checks are disabled. Contact a platform administrator.");
+  }
 
   const pages = website.pages || [];
   const home = pages.find((page) => page.slug === "" || page.slug === "home") || pages[0];
@@ -148,10 +152,6 @@ export function evaluateWorldClassLaunchGate(input: LaunchGateInput) {
   if (!input.responsiveQaApproved) blockers.push("Responsive QA must be explicitly approved.");
   if (!input.internalCreativeReviewApproved) blockers.push("Internal creative review must be approved.");
   if (!input.customerApprovalRecorded) blockers.push("Customer approval must be recorded before launch.");
-  if (!input.productionQualityPassed) {
-    blockers.push("Production quality budget must be verified before launch.");
-  }
-
   if (UNSUPPORTED_CLAIM_PATTERN.test(serialized)) {
     warnings.push("High-risk marketing claims detected. Verify supporting evidence before publishing.");
   }

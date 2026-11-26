@@ -153,6 +153,7 @@ export function Sidebar({
             { to: "/admin/prospect_explorer", icon: Users, label: "Prospects", moduleId: "prospects" },
             { to: "/admin/website_reviews", icon: Globe, label: "Website Reviews", moduleId: "website_reviews" },
             { to: "/admin/outreach_lab", icon: MessageSquare, label: "Outreach", moduleId: "outreach" },
+            { to: "/admin/sales_automation", icon: Zap, label: "Sales Automation", moduleId: "outreach" },
             { to: "/admin/proposals_deals", icon: FileText, label: "Sales Pipeline", moduleId: "sales_pipeline" },
           ]
         },
@@ -265,6 +266,7 @@ export function Sidebar({
         ]},
         { label: "Growth", items: [
           { to: "/dashboard/funnels", icon: Waypoints, label: "Sales Funnels", featureId: "sales_funnels" },
+          { to: "/dashboard/funnels/plans", icon: PlusCircle, label: "Funnel Plans", featureId: "sales_funnels" },
           ...(import.meta.env.VITE_UNIFIED_FUNNEL_TIERS_ENABLED === "true"
             ? [{ to: "/dashboard/funnels/plans", icon: CreditCard, label: "Funnel Plans" }]
             : []),
