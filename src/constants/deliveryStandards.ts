@@ -1,5 +1,5 @@
 import type { Website, ButtonHealthIssue } from "../types";
-import { isOperatingSystemFlagEnabled } from "./operatingSystemFlags";
+import { isOperatingSystemFlagEnabled } from "./operatingSystemFlags.js";
 
 export const DELIVERY_STANDARD_VERSION = "2026.09.20";
 
