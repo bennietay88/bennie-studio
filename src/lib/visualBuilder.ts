@@ -1,6 +1,7 @@
 import type { WebsiteSection } from "../types";
 export type BuilderAction =
   | { kind: "insert"; section: WebsiteSection; index: number }
+  | { kind: "insert_many"; sections: WebsiteSection[]; index: number }
   | { kind: "move"; id: string; index: number }
   | { kind: "duplicate"; id: string; newId: string }
   | { kind: "visibility"; id: string }
@@ -9,6 +10,7 @@ export type BuilderAction =
 export function applyBuilderAction(sections: readonly WebsiteSection[], action: BuilderAction): WebsiteSection[] {
   const next = [...sections];
   const bound = (index:number) => Math.max(0, Math.min(next.length, index));
+  if(action.kind==="insert_many"){const ids=new Set(next.map(section=>section.id));for(const section of action.sections){if(ids.has(section.id))return next;ids.add(section.id);}next.splice(bound(action.index),0,...action.sections);return next;}
   if (action.kind === "insert") {
     if (next.some(section => section.id === action.section.id)) return next;
     next.splice(bound(action.index), 0, action.section);

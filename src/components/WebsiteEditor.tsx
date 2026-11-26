@@ -93,6 +93,9 @@ import { APPROVED_VARIANTS, DESIGN_PROFILE_OPTIONS, resolveDesignProfile, type D
 import { SITE_MOTION_PROFILES, resolveSiteMotionProfile } from "../lib/siteMotionProfiles";
 import { applyBuilderAction, matchesBuilderSnapshot, type BuilderAction, type BuilderChange } from "../lib/visualBuilder";
 import { VisualBuilderLibrary, VisualBuilderInspector, type BuilderDrag, type VisualCanvasOptions } from "./VisualBuilderControls";
+import { BuilderDesignLibrary } from "./BuilderDesignLibrary";
+import { convertSectionToLayout } from "../lib/designLibrary";
+import { normalizeBlockMotion } from "../lib/visualBlocks";
 import { BennieDesignStudio } from "./BennieDesignStudio";
 import {
   createPlanLimitUpgradeMessage,
@@ -799,6 +802,7 @@ export function WebsiteEditor({
   const [builderUndo, setBuilderUndo] = useState<BuilderChange[]>([]);
   const [builderRedo, setBuilderRedo] = useState<BuilderChange[]>([]);
   const [rememberBuilderHistory,setRememberBuilderHistory]=useState(false);
+  const [cloudHistoryBusy,setCloudHistoryBusy]=useState(false);
   const builderHistoryKey = user?.id && website?.id ? `bt-builder-history-v1:${user.id}:${website.id}` : null;
   useEffect(()=>{
     if(!builderHistoryKey || !visualBuilderMode || !rememberBuilderHistory)return;
@@ -2908,6 +2912,33 @@ export function WebsiteEditor({
     setRememberBuilderHistory(enabled);
     if(!enabled&&builderHistoryKey){try{localStorage.removeItem(builderHistoryKey);}catch{}}
   };
+  const syncCloudHistory=async(mode:"save"|"load"|"delete")=>{
+    if(!user?.id||!website?.id||isTemplateMode||cloudHistoryBusy)return;
+    if(mode==="save"&&!window.confirm("Store undo/redo snapshots in your private cloud history? This does not save or publish your website."))return;
+    if(mode==="delete"&&!window.confirm("Delete your cloud undo history?"))return;
+    setCloudHistoryBusy(true);
+    try{
+      if(mode==="save"){
+        const payload={undo:builderUndo.slice(-50),redo:builderRedo.slice(-50)};
+        if(JSON.stringify(payload).length>900000)throw Error("History is too large. Use saved website revisions instead.");
+        const {error}=await supabase.from("builder_cloud_history").upsert({owner_id:user.id,website_id:website.id,payload,updated_at:new Date().toISOString()},{onConflict:"owner_id,website_id"});if(error)throw error;toast.success("Cloud undo history saved.");
+      }else if(mode==="delete"){
+        const {error}=await supabase.from("builder_cloud_history").delete().eq("owner_id",user.id).eq("website_id",website.id);if(error)throw error;toast.success("Cloud history deleted.");
+      }else{
+        const {data,error}=await supabase.from("builder_cloud_history").select("payload").eq("owner_id",user.id).eq("website_id",website.id).maybeSingle();if(error)throw error;
+        if(!data){toast.info("No cloud undo history found.");return;}
+        const payload=data.payload;
+        const valid=(list:unknown):list is BuilderChange[]=>Array.isArray(list)&&list.length<=50&&list.every(item=>item&&typeof item.pageId==="string"&&Array.isArray(item.before)&&Array.isArray(item.after));
+        if(!valid(payload?.undo)||!valid(payload?.redo))throw Error("Cloud history format is invalid.");
+        const top=payload.undo[payload.undo.length-1]||payload.redo[payload.redo.length-1];
+        const current=website.pages.find(page=>page.id===top?.pageId);
+        const expected=payload.undo.length?top?.after:top?.before;
+        if(top&&(!current||!expected||!matchesBuilderSnapshot(current.sections,expected)))throw Error("Cloud history does not match this draft. No changes were applied.");
+        if((builderUndo.length||builderRedo.length)&&!window.confirm("Replace local undo history with cloud history?"))return;
+        setBuilderUndo(payload.undo);setBuilderRedo(payload.redo);toast.success("Cloud history loaded.");
+      }
+    }catch(error){toast.error(error instanceof Error?error.message:"Cloud history unavailable. Check database setup and permissions.");}finally{setCloudHistoryBusy(false);}
+  };
   const builderAllowed = (key:string) => {
     const template=Object.prototype.hasOwnProperty.call(SECTION_TEMPLATES,key) ? SECTION_TEMPLATES[key] : undefined;
     return Boolean(template && key!=="google_reviews" && (!template.featureId || isFeatureEnabled(template.featureId)));
@@ -2921,6 +2952,7 @@ export function WebsiteEditor({
     setBuilderUndo(previous=>[...previous.slice(-49),{pageId:builderPage.id,before,after}]);
     setBuilderRedo([]);
     if (action.kind==="insert") setBuilderSelected(action.section.id);
+    if(action.kind==="insert_many")setBuilderSelected(action.sections[0]?.id||null);
     if (action.kind==="duplicate") setBuilderSelected(action.newId);
     if (action.kind==="remove" && builderSelected===action.id) setBuilderSelected(null);
   };
@@ -2957,6 +2989,7 @@ export function WebsiteEditor({
     selectedId:builderSelected,onSelect:setBuilderSelected,onDrop:builderDrop,onInsert:index=>builderInsert(builderTemplate,index),
     onMove:(id,index)=>builderApply({kind:"move",id,index}),onDuplicate:id=>builderApply({kind:"duplicate",id,newId:generateId()}),
     onVisibility:id=>builderApply({kind:"visibility",id}),onRemove:id=>builderApply({kind:"remove",id}),onEdit:builderEdit,onPatch:(id,patch)=>builderApply({kind:"content",id,patch}),
+    onConvert:id=>{const section=builderPage?.sections.find(item=>item.id===id);if(!section||!builderPage)return;const converted=convertSectionToLayout(section,generateId);if(!converted){toast.info("No supported content to convert.");return;}builderApply({kind:"insert",section:converted,index:builderPage.sections.findIndex(item=>item.id===id)+1});toast.success("Editable copy inserted. Original section preserved.");},
   };
 
   const renderSidebar = () => {
@@ -5043,7 +5076,7 @@ export function WebsiteEditor({
               </div>
             </DialogHeader>
             <div className={visualBuilderMode ? "bt-builder-layout" : "flex min-h-0 flex-1 overflow-auto bg-slate-100"}>
-              {visualBuilderMode && <VisualBuilderLibrary allowed={builderAllowed} selected={builderTemplate} onChoose={setBuilderTemplate} onTouchInsert={builderInsert}/>}
+              {visualBuilderMode && <VisualBuilderLibrary allowed={builderAllowed} selected={builderTemplate} onChoose={setBuilderTemplate} onTouchInsert={builderInsert}>{user?.id&&builderPage&&<BuilderDesignLibrary userId={user.id} sections={builderPage.sections} selected={builderPage.sections.find(section=>section.id===builderSelected)} onInsert={items=>{const allowed=items.filter(item=>Object.values(SECTION_TEMPLATES).some(template=>template.type===item.type&&(!template.featureId||isFeatureEnabled(template.featureId))));if(!allowed.length){toast.error("No sections are permitted by this plan.");return;}if(allowed.length!==items.length)toast.info("Restricted sections were skipped.");builderApply({kind:"insert_many",sections:allowed,index:builderPage.sections.length});}} onMotion={motion=>{if(builderSelected)builderApply({kind:"content",id:builderSelected,patch:{builderMotion:normalizeBlockMotion(motion)}});}}/>}</VisualBuilderLibrary>}
               <div className="bt-builder-canvas flex min-w-0 flex-1 overflow-auto p-3 sm:p-6">
               {(isTemplateMode ? template : website) && (
                 <div
@@ -5084,7 +5117,7 @@ export function WebsiteEditor({
                 </div>
               )}
               </div>
-              {visualBuilderMode && builderPage && <VisualBuilderInspector page={builderPage} selectedId={builderSelected} onSelect={setBuilderSelected} onPatch={(id,patch)=>builderApply({kind:"content",id,patch})} onEdit={builderEdit} onUndo={()=>builderHistory(false)} onRedo={()=>builderHistory(true)} canUndo={builderUndo.length>0} canRedo={builderRedo.length>0} rememberHistory={rememberBuilderHistory} onRememberHistory={changeBuilderHistoryPreference} historyAvailable={Boolean(builderHistoryKey)}/>}
+              {visualBuilderMode && builderPage && <VisualBuilderInspector page={builderPage} selectedId={builderSelected} onSelect={setBuilderSelected} onPatch={(id,patch)=>builderApply({kind:"content",id,patch})} onEdit={builderEdit} onUndo={()=>builderHistory(false)} onRedo={()=>builderHistory(true)} canUndo={builderUndo.length>0} canRedo={builderRedo.length>0} rememberHistory={rememberBuilderHistory} onRememberHistory={changeBuilderHistoryPreference} historyAvailable={Boolean(builderHistoryKey)} cloudHistoryAvailable={!isTemplateMode&&Boolean(user?.id&&website?.id)} cloudHistoryBusy={cloudHistoryBusy} onCloudHistory={syncCloudHistory}/>}
             </div>
           </DialogContent>
         </Dialog>
