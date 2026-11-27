@@ -25,7 +25,7 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   webServer: {
-    command: `env VITE_SUPABASE_URL=https://e2e.supabase.co VITE_SUPABASE_ANON_KEY=e2e-anon-key npm run build && env -u VERCEL E2E_TEST=true VITE_SUPABASE_URL=https://e2e.supabase.co VITE_SUPABASE_ANON_KEY=e2e-anon-key SUPABASE_SERVICE_ROLE_KEY=e2e-service-role-key STRIPE_SECRET_KEY=sk_test_e2e STRIPE_WEBHOOK_SECRET=whsec_e2e NODE_ENV=test HOST=127.0.0.1 PORT=${port} npm start`,
+    command: `${process.env.E2E_PREBUILT === "1" ? "" : "env VITE_SUPABASE_URL=https://e2e.supabase.co VITE_SUPABASE_ANON_KEY=e2e-anon-key npm run build && "}env -u VERCEL E2E_TEST=true VITE_SUPABASE_URL=https://e2e.supabase.co VITE_SUPABASE_ANON_KEY=e2e-anon-key SUPABASE_SERVICE_ROLE_KEY=e2e-service-role-key STRIPE_SECRET_KEY=sk_test_e2e STRIPE_WEBHOOK_SECRET=whsec_e2e NODE_ENV=test HOST=127.0.0.1 PORT=${port} npm start`,
     url: `http://127.0.0.1:${port}`,
     // Never reuse a server from a prior run: its environment variables may
     // omit E2E_TEST and silently turn public fixture routes into DB calls.

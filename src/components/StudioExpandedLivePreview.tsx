@@ -45,7 +45,7 @@ function ConceptArtwork({ spec }: { spec: InteractiveDemoSpec }) {
       <div className="absolute bottom-[20%] right-[20%] h-9 w-9 rounded-full bg-white/60"/>
     </div><div className="absolute bottom-8 left-8 text-xs font-bold uppercase tracking-[.2em]">{spec.highlight}</div>
   </div>;
-  if(spec.style==="nature"||spec.style==="clinical"||spec.style==="fitness") return <div aria-hidden="true" className="relative flex min-h-[340px] items-center justify-center overflow-hidden p-6 sm:min-h-[440px]" style={{background:spec.muted,color:mutedInk}}>
+  if(spec.style==="nature"||spec.style==="clinical"||spec.style==="fitness") return <div aria-hidden="true" className="relative flex min-h-[340px] items-center justify-center overflow-hidden p-6 sm:min-h-[440px]" style={{background:spec.muted,color:readableInk(spec.muted,spec.foreground)}}>
     <div className="absolute inset-10 rounded-full border border-white/80"/>
     <div className="absolute inset-20 rounded-full border border-white/70"/>
     <div className="relative flex h-56 w-56 items-center justify-center rounded-full shadow-[20px_25px_60px_rgba(0,0,0,.13)] sm:h-72 sm:w-72" style={{background:"linear-gradient(135deg,"+a+","+ink+")"}}>
