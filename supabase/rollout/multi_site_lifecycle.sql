@@ -15,6 +15,32 @@ alter table public.websites add column if not exists customer_approved_by uuid;
 alter table public.websites add column if not exists internal_approved_at timestamptz;
 alter table public.websites add column if not exists customer_approved_at timestamptz;
 alter table public.websites add column if not exists released_at timestamptz;
+-- Separate recurring add-on subscriptions never replace the parent subscription.
+create table if not exists public.website_addon_price(
+ singleton boolean primary key default true check(singleton), stripe_price_id text not null,
+ updated_at timestamptz not null default now(), updated_by uuid not null
+);
+create table if not exists public.website_addon_orders(
+ id uuid primary key default gen_random_uuid(),business_id uuid not null references public.businesses(id) on delete restrict,
+ created_by uuid not null, stripe_customer_id text not null,stripe_price_id text not null,
+ stripe_checkout_session_id text unique,stripe_subscription_id text unique,
+ status text not null default 'pending' check(status in ('pending','active','inactive','cancelled','expired')),
+ paid_through timestamptz,cancel_at_period_end boolean not null default false,
+ last_event_created bigint not null default 0,created_at timestamptz not null default now()
+);
+create unique index if not exists website_addon_one_pending on public.website_addon_orders(business_id) where status='pending';
+create index if not exists website_addon_entitlements on public.website_addon_orders(business_id,status,paid_through);
+alter table public.website_addon_price enable row level security;
+alter table public.website_addon_orders enable row level security;
+revoke all on public.website_addon_price,public.website_addon_orders from public,anon,authenticated;
+grant select,insert,update on public.website_addon_price,public.website_addon_orders to service_role;
+create or replace function public.effective_website_limit(p_business uuid)
+returns integer language sql stable security invoker set search_path='' as $limit$
+ select least(1000,coalesce((select p.website_limit from public.businesses b left join public.plans p on p.slug=b.plan where b.id=p_business),1)
+ + (select count(*)::integer from public.website_addon_orders where business_id=p_business and status='active' and paid_through>now()));
+$limit$;
+revoke all on function public.effective_website_limit(uuid) from public,anon,authenticated;
+grant execute on function public.effective_website_limit(uuid) to service_role;
 
 -- Preserve the existing single-site business mapping. Ambiguous legacy tenants
 -- must be reviewed manually rather than choosing whichever site was edited last.
@@ -46,8 +72,7 @@ begin
   if needs_slot then
     -- Serialize allocations for this subscribed business, including direct inserts.
     perform 1 from public.businesses where id=new.business_id for update;
-    select coalesce(p.website_limit,1) into slot_limit from public.businesses b
-      left join public.plans p on p.slug=b.plan where b.id=new.business_id;
+    slot_limit:=public.effective_website_limit(new.business_id);
     select count(*) into used_slots from public.websites
       where business_id=new.business_id and archived_at is null
       and (tg_op='INSERT' or id<>new.id);
@@ -336,4 +361,30 @@ revoke all on function private.audit_secondary_website() from public,anon,authen
 drop trigger if exists audit_secondary_website on public.websites;
 create trigger audit_secondary_website after insert or update on public.websites for each row execute function private.audit_secondary_website();
 
+-- Entitlement changes are non-destructive: lower allowances block new allocation;
+-- existing content and paid orders remain intact for customer remediation.
+create or replace function private.audit_website_commercial()
+returns trigger language plpgsql security definer set search_path='' as $commercial$
+begin
+ if tg_table_name='website_addon_orders' then
+  insert into public.website_lifecycle_audit(business_id,actor_id,action,details)
+  values(new.business_id,new.created_by,'website_addon_'||new.status,jsonb_build_object('order_id',new.id,'paid_through',new.paid_through,'cancel_at_period_end',new.cancel_at_period_end));
+ elsif tg_table_name='website_addon_price' then
+  insert into public.website_lifecycle_audit(actor_id,action,details)
+  values(new.updated_by,'website_addon_price_configured',jsonb_build_object('stripe_price_id',new.stripe_price_id));
+ elsif tg_table_name='plans' then
+  if new.website_limit is distinct from old.website_limit then
+   insert into public.website_lifecycle_audit(actor_id,action,details) values(auth.uid(),'plan_website_limit_changed',jsonb_build_object('plan',new.slug,'before',old.website_limit,'after',new.website_limit));
+  end if;
+ end if;
+ return new;
+end;
+$commercial$;
+revoke all on function private.audit_website_commercial() from public,anon,authenticated;
+drop trigger if exists audit_website_addon_order on public.website_addon_orders;
+create trigger audit_website_addon_order after insert or update of status,paid_through,cancel_at_period_end on public.website_addon_orders for each row execute function private.audit_website_commercial();
+drop trigger if exists audit_website_addon_price on public.website_addon_price;
+create trigger audit_website_addon_price after insert or update on public.website_addon_price for each row execute function private.audit_website_commercial();
+drop trigger if exists audit_plan_website_limit on public.plans;
+create trigger audit_plan_website_limit after update of website_limit on public.plans for each row execute function private.audit_website_commercial();
 commit;

@@ -61,7 +61,13 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
       const {count,error:ce}=await countQuery;
       if(ce||count===null)throw ce||new Error("Website count unavailable");
       const used=count;
-      const capacity=websiteCapacity({websiteLimit:plans.data?.website_limit,websitesUsed:used,projectLimit:plans.data?.project_limit??null,pagesPerWebsite:pagePlan.maxPages,locationPagesPerWebsite:pagePlan.maxLocationPages});
+      let effectiveLimit=plans.data?.website_limit;
+      if(schemaReady&&enabled()){
+        const {data:limit,error:limitError}=await db.rpc("effective_website_limit",{p_business:businessId});
+        if(limitError)throw limitError;
+        effectiveLimit=limit;
+      }
+      const capacity=websiteCapacity({websiteLimit:effectiveLimit,websitesUsed:used,projectLimit:plans.data?.project_limit??null,pagesPerWebsite:pagePlan.maxPages,locationPagesPerWebsite:pagePlan.maxLocationPages});
       return res.json({businessId,sites,capacity,lifecycleEnabled:schemaReady&&enabled()&&business.status==="active"&&business.subscription_status==="active"});
     }catch(error){return report(res,error);}
   });

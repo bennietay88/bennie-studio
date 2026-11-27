@@ -1,5 +1,6 @@
 import { SECONDARY_SITE_ROUTE_FIELDS, secondaryDomainFailure, type SecondaryRouteRow } from "../src/lib/secondarySiteRouting.js";
 import { choosePrimaryWebsite } from "../src/lib/primaryWebsite.js";
+import { registerWebsiteAddonRoutes, handleWebsiteAddonWebhook, cancelWebsiteAddonsWithParent } from "../server/websiteAddonRoutes.js";
 import { registerWebsitePortfolioRoutes } from "../server/websitePortfolioRoutes.js";
 import { fetchPublishedPreviewContent, isPreviewPublicRead } from "../server/previewPublicContent.js";
 import { buildInboundNewsletterMessages, INBOUND_NEWSLETTER_CONSENT, isSupportedNewsletterMarket } from "../server/inboundNewsletter.js";
@@ -1399,6 +1400,7 @@ async function startServer() {
   );
 
   registerWebsitePortfolioRoutes(app, supabaseAdmin, authenticate, getProfileForUser);
+  registerWebsiteAddonRoutes(app, supabaseAdmin, authenticate, getProfileForUser, getStripe);
 
   // Customer self-service website handover. This export is scoped to the
   // authenticated user's business and contains no billing records or secrets.
@@ -2674,7 +2676,7 @@ async function startServer() {
       }
       if (!claim.claimed) return res.json({ received: true, duplicate: true, reason: claim.reason });
       try {
-      if (!(UNIFIED_FUNNEL_TIERS_ENABLED && await handleUnifiedFunnelTierWebhook(supabaseAdmin, event)) && !(await handleSimpleFunnelAddonWebhook(supabaseAdmin, getStripe, event))) switch (event.type) {
+      if (!(await handleWebsiteAddonWebhook(supabaseAdmin, getStripe, event)) && !(UNIFIED_FUNNEL_TIERS_ENABLED && await handleUnifiedFunnelTierWebhook(supabaseAdmin, event)) && !(await handleSimpleFunnelAddonWebhook(supabaseAdmin, getStripe, event))) switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
           const businessId = session.metadata?.businessId;
@@ -3480,6 +3482,7 @@ async function startServer() {
 
             if (cancelledBusiness) {
               await cancelSimpleFunnelWithParent(supabaseAdmin, getStripe, cancelledBusiness.id);
+              await cancelWebsiteAddonsWithParent(supabaseAdmin, getStripe, cancelledBusiness.id);
               if (UNIFIED_FUNNEL_TIERS_ENABLED) await cancelUnifiedFunnelWithParent(supabaseAdmin, getStripe, cancelledBusiness.id);
               await insertBillingLifecycleEvent({
                 business_id: cancelledBusiness.id,

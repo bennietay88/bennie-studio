@@ -1,3 +1,4 @@
+import WebsiteAddonPanel from "./WebsiteAddonPanel";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Globe, Grid2X2, List, Search, Star, RefreshCw, Plus, ArrowUpRight } from "lucide-react";
@@ -90,6 +91,7 @@ export default function WebsitePortfolio() {
         <Button disabled={!canAdd||busy} onClick={()=>void act("create")}><Plus className="mr-2 h-4 w-4"/>Create site</Button>
       </div>
       {capacity&&<div className="mb-5 grid gap-3 rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-800 sm:grid-cols-3"><div><strong>{capacity.websitesUsed} / {capacity.websiteLimit}</strong><p>Website slots</p></div><div><strong>{capacity.projectLimit??"Not configured"}</strong><p>Project limit</p></div><div><strong>{capacity.pagesPerWebsite}</strong><p>Pages per website</p></div></div>}
+      {enabled&&<WebsiteAddonPanel key={businessId} businessId={businessId} onChanged={()=>setRefresh(v=>v+1)}/>}
       {notice&&<p role="status" className="mb-3 text-sm">{notice}</p>}
       {!businessId ? <p role="status" className="text-sm text-slate-500">No business is linked to this account.</p> : !current ? <p role="status" className="text-sm text-slate-500">Loading websites…</p> : current.error ? <p role="alert" className="text-sm text-red-600">{current.error}</p> : sites.length===0 ? <div className="rounded-xl border border-dashed p-8 text-center"><Globe className="mx-auto mb-3 h-8 w-8 text-slate-400"/><p>No websites yet.</p><Link className="mt-3 inline-block text-sm font-semibold text-indigo-600" to="/dashboard/website">Open existing website setup</Link></div> : visible.length===0 ? <p className="p-6 text-center text-sm text-slate-500">No websites match your filters.</p> :
       <div className={view==="grid"?"grid gap-4 sm:grid-cols-2 xl:grid-cols-3":"space-y-3"}>
