@@ -331,6 +331,11 @@ export const SECTION_TEMPLATES: Record<string, SectionTemplate> = {
     },
     isVisible: false,
   },
+  visual_layout: {
+    type: "features",
+    content: { interaction: "visual_layout", title: "", items: [], blocks: [] },
+    isVisible: true,
+  },
   before_after_comparison: {
     type: "features",
     content: { interaction: "before_after", title: "Before and after", description: "", beforeImageUrl: "", afterImageUrl: "", beforeLabel: "Before", afterLabel: "After", items: [] },

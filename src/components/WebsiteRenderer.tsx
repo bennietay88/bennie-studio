@@ -51,6 +51,8 @@ import {
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence, useReducedMotion, MotionConfig } from "motion/react";
 import { ClientSiteMotion } from "./AgencyMotionDirector";
+import { BuilderCanvasSection, BuilderDropZone, type VisualCanvasOptions } from "./VisualBuilderControls";
+import { VisualBlocks, BlockMotionFrame } from "./VisualBlockLayout";
 import { BeforeAfterComparison, InteractiveProcessTimeline } from "./InteractiveSiteSections";
 import { resolveSiteMotionProfile } from "../lib/siteMotionProfiles";
 import { generateChatResponse } from "../lib/gemini";
@@ -358,6 +360,7 @@ export function WebsiteRenderer({
   isTemplatePreview = false,
   enableRealtime = true,
   isEditingPreview = false,
+  visualCanvas,
 }: {
   initialData?: Website;
   activePageSlug?: string;
@@ -365,6 +368,7 @@ export function WebsiteRenderer({
   isTemplatePreview?: boolean;
   enableRealtime?: boolean;
   isEditingPreview?: boolean;
+  visualCanvas?: VisualCanvasOptions;
 }) {
   const { businessId: businessIdFromParams, templateId } = useParams<{
     businessId: string;
@@ -382,7 +386,7 @@ export function WebsiteRenderer({
   const [error, setError] = useState<string | null>(null);
   const rendererRootRef = useRef<HTMLDivElement | null>(null);
   const systemReducedMotion = useReducedMotion();
-  const prefersReducedMotion = systemReducedMotion || website?.theme?.motionProfile === "none" || isThumbnail;
+  const prefersReducedMotion = systemReducedMotion || website?.theme?.motionProfile === "none" || isThumbnail || Boolean(isEditingPreview && visualCanvas);
 
   useEffect(() => {
     if (initialData) {
@@ -520,7 +524,7 @@ export function WebsiteRenderer({
     label: string,
     metadata: Record<string, any> = {},
   ) => {
-    if (!website || website.id === "preview" || website.theme?.previewPurpose) return;
+    if (isEditingPreview || !website || website.id === "preview" || website.theme?.previewPurpose) return;
 
     try {
       const { visitorId, sessionId } = getTrackingIds();
@@ -1515,6 +1519,9 @@ export function WebsiteRenderer({
     pages?.find((p) => p.title.toLowerCase() === "home") ||
     pages?.[0];
 
+  const canvas = isEditingPreview ? visualCanvas : undefined;
+  const wrapCanvasSection = (section: WebsiteSection, index: number, rendered: React.ReactNode) => canvas ? <BuilderCanvasSection key={section.id} section={section} index={index} total={activePage?.sections.length || 0} canvas={canvas}>{rendered}</BuilderCanvasSection> : section.content?.builderMotion ? <BlockMotionFrame key={section.id} motion={section.content.builderMotion} enabled={!prefersReducedMotion && website?.theme?.motionProfile !== "none"} allowPin={!isEditingPreview && section.content?.interaction==="visual_layout"}>{rendered}</BlockMotionFrame> : rendered;
+
   const homePage =
     pages?.find((p) => p.slug === "home" || p.slug === "") || pages?.[0];
 
@@ -1729,9 +1736,11 @@ export function WebsiteRenderer({
 
   return (
     <HelmetProvider>
-      <MotionConfig reducedMotion={selectedMotionProfile === "none" || isThumbnail ? "always" : "user"}>
+      <MotionConfig reducedMotion={selectedMotionProfile === "none" || isThumbnail || canvas ? "always" : "user"}>
       <div
         ref={rendererRootRef}
+        onClickCapture={canvas ? event => { const target = event.target as Element; if (!target.closest("[data-builder-control]")) { event.preventDefault(); event.stopPropagation(); } } : undefined}
+        onSubmitCapture={canvas ? event => { event.preventDefault(); event.stopPropagation(); } : undefined}
         style={{ fontFamily: theme.fontFamily || "Inter, sans-serif", containerType: "inline-size", containerName: "customer-site" }}
         data-design-profile={designProfile.id}
         data-generation-mode={generationMode}
@@ -1739,7 +1748,7 @@ export function WebsiteRenderer({
         data-motion-profile={selectedMotionProfile}
         data-image-profile={theme.imageProfile || designProfile.imageTreatment}
         className={cn(
-          "bt-website-renderer min-h-screen w-full max-w-full overflow-x-hidden flex flex-col transition-colors duration-300",
+          "bt-website-renderer min-h-screen w-full max-w-full overflow-x-clip flex flex-col transition-colors duration-300",
           theme.style === "glassmorphic" || theme.style === "immersive"
             ? "bg-slate-950 text-white"
             : "bg-white text-slate-900",
@@ -1752,7 +1761,7 @@ export function WebsiteRenderer({
           `style-${theme.style}`,
         )}
       >
-        <ClientSiteMotion rootRef={rendererRootRef} profile={isThumbnail ? "none" : selectedMotionProfile} pageKey={activePageSlug || "home"} embedded={Boolean(isEditingPreview || draftPreview || website.theme?.previewPurpose || isTemplatePreview)} />
+        <ClientSiteMotion rootRef={rendererRootRef} profile={isThumbnail || canvas ? "none" : selectedMotionProfile} pageKey={activePageSlug || "home"} embedded={Boolean(isEditingPreview || draftPreview || website.theme?.previewPurpose || isTemplatePreview)} />
         <Helmet>
           <title>{displayTitle}</title>
           <meta name="description" content={displayDescription} />
@@ -2680,8 +2689,9 @@ export function WebsiteRenderer({
               transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             >
           {activePage?.sections
-            ?.filter((s: WebsiteSection) => s.isVisible !== false)
+            ?.filter((s: WebsiteSection) => canvas || s.isVisible !== false)
             .map((section: WebsiteSection, idx: number) => {
+              if (canvas && section.isVisible === false) return wrapCanvasSection(section, idx, null);
               const sectionId = section.type;
               const renderedSection = (() => {
                 switch (section.type) {
@@ -3879,6 +3889,9 @@ export function WebsiteRenderer({
                     </motion.section>
                   );
                 case "features":
+                  if (section.content?.interaction === "visual_layout") {
+                    return <section id={section.id} key={section.id} className="mx-auto w-full max-w-6xl px-6 py-12 sm:py-20"><VisualBlocks value={section.content.blocks} animate={!prefersReducedMotion && selectedMotionProfile !== "none"}/></section>;
+                  }
                   if (section.content?.interaction === "before_after") {
                     const {beforeImageUrl, afterImageUrl, beforeLabel, afterLabel, title, description} = section.content;
                     if (!beforeImageUrl || !afterImageUrl) return isEditingPreview ? <section key={section.id} className="mx-auto max-w-6xl p-8 text-center"><h2>{title || "Before and after"}</h2><p>Add both client-approved comparison images in the editor.</p></section> : null;
@@ -5527,13 +5540,13 @@ export function WebsiteRenderer({
                 }
               })();
 
-              if (!renderedSection) return null;
+              if (!renderedSection) return wrapCanvasSection(section, idx, null);
 
               const fullSectionBackground =
                 Boolean(section.settings?.backgroundFullBleed) &&
                 Boolean(section.settings?.backgroundImage);
 
-              if (!fullSectionBackground) return renderedSection;
+              if (!fullSectionBackground) return wrapCanvasSection(section, idx, renderedSection);
 
               const overlayStrength = Math.max(
                 0,
@@ -5554,7 +5567,7 @@ export function WebsiteRenderer({
                   })
                 : renderedSection;
 
-              return (
+              return wrapCanvasSection(section, idx, (
                 <div
                   key={`section-background-${section.id || `${section.type}-${idx}`}`}
                   className="relative isolate overflow-hidden"
@@ -5582,8 +5595,9 @@ export function WebsiteRenderer({
                   ) : null}
                   {renderedWithTransparentSurface}
                 </div>
-              );
+              ));
             })}
+          {canvas && <BuilderDropZone index={activePage?.sections.length || 0} canvas={canvas}/>}
 
           {activePageSlug === "blog" && (
             <div className="py-12 sm:py-16 px-4 sm:px-6 max-w-7xl mx-auto">
