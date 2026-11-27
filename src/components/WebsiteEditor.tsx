@@ -1441,25 +1441,31 @@ export function WebsiteEditor({
   }, [forceShowGenerator, location.pathname, websiteIdOverride]);
 
   const handleSmartBuild = async () => {
-    if (!website || !business) return;
+    if (!website || !business || isTemplateMode) return;
+    if (websiteIdOverride && (website.id !== websiteIdOverride || website.businessId !== businessId)) { toast.error("Website selection changed."); return; }
+    if (website.status !== "draft") { toast.error("AI generation is available only for draft websites."); return; }
+    if (!window.confirm("Regenerate the selected website draft? Save any changes you want to keep first.")) return;
+    let interval: ReturnType<typeof setInterval> | undefined;
 
     setIsGenerating(true);
     setGenerationProgress(0);
 
     try {
-      const interval = setInterval(() => {
+      const {data: before,error: beforeError}=await supabase.from("websites").select("id,updated_at,status").eq("id",website.id).eq("business_id",website.businessId).eq("status","draft").single();
+      if(beforeError||!before)throw beforeError||new Error("Draft unavailable");
+      interval = setInterval(() => {
         setGenerationProgress((prev) => Math.min(prev + 5, 90));
       }, 500);
 
       // We use current page structure as a hint
-      const sectionTypes = website.pages[0]?.sections.map((s) => s.type) || [
+      const sectionTypes = website.pages[0]?.sections.length ? website.pages[0].sections.map((s) => s.type) : [
         "Hero",
         "Services",
         "CTA",
       ];
 
       const result = await generateWebsiteContent(
-        business.name,
+        websiteIdOverride ? website.seo?.title || business.name : business.name,
         business.industry || "General",
         business.address || "Global",
         website.seo?.brandVoice || "Professional",
@@ -1485,7 +1491,7 @@ export function WebsiteEditor({
           }
 
           finalPages = generatedPages.map((p: any, pageIndex: number) => {
-            const existingPage = website.pages[pageIndex] || website.pages[0];
+            const existingPage = website.pages[pageIndex];
             const mergedSections = mergeGeneratedSections(
               existingPage?.sections || [],
               Array.isArray(p.sections) ? p.sections : [],
@@ -1494,7 +1500,7 @@ export function WebsiteEditor({
             return {
               ...(existingPage || {}),
               ...p,
-              id: existingPage?.id || p.id || generateId(),
+              id: existingPage?.id || generateId(),
               title: p.title || existingPage?.title || (pageIndex === 0 ? "Home" : `Page ${pageIndex + 1}`),
               slug: pageIndex === 0 ? (existingPage?.slug || "") : (p.slug || existingPage?.slug || `page-${pageIndex + 1}`),
               sections: mergedSections.length > 0 ? mergedSections : existingPage?.sections || [],
@@ -1517,19 +1523,24 @@ export function WebsiteEditor({
         }
 
         finalPages = sanitizePages(finalPages);
+        if (finalPages.length > maxPages) throw new Error("Generated content exceeds this website’s page allowance. No content was saved.");
         if (!finalPages[0]?.sections?.length) {
           throw new Error("Smart refinement produced no usable sections, so the existing site was kept.");
         }
 
-        const { error: updateErr } = await supabase
+        await snapshotSavedWebsiteVersion(website.id);
+        const generatedSeo = result.seo || {};
+        const { data: saved, error: updateErr } = await supabase
           .from("websites")
           .update({
             pages: finalPages,
-            seo: result.seo || website.seo || {},
+            seo: { ...website.seo, title: generatedSeo.title || website.seo?.title, description: generatedSeo.description || website.seo?.description, keywords: Array.isArray(generatedSeo.keywords) ? generatedSeo.keywords : website.seo?.keywords, workflowStatus: "draft", deliveryQuality: {}, launchGate: null },
+            updated_at: new Date().toISOString(),
           })
-          .eq("id", website.id);
+          .eq("id", website.id).eq("business_id",website.businessId).eq("status","draft").eq("updated_at",before.updated_at)
+          .select("id").maybeSingle();
 
-        if (updateErr) throw updateErr;
+        if (updateErr || !saved) throw updateErr || new Error("Draft changed during generation. Reload and retry.");
 
         toast.success("Website revitalized with smart generation!");
         await fetchData(website.businessId);
@@ -1545,6 +1556,7 @@ export function WebsiteEditor({
         toast.error("Generation failed: " + (msg || "Unknown error"));
       }
     } finally {
+      if(interval) clearInterval(interval);
       setIsGenerating(false);
       setGenerationProgress(0);
     }
