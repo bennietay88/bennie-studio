@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { Business } from "../types";
-import { PLANS, normalizePlans } from "../constants/plans";
+import { hasInternalOwnerAccess } from "../lib/internalOwnerAccess";
+import { PLANS, normalizePlans, findPlan } from "../constants/plans";
 import { ensurePersonalProfilePlan } from "../lib/planEntitlements";
 import {
   getMarketingCapability,
@@ -81,7 +82,8 @@ const planTableRowsToSettings = (rows: any[]) =>
   );
 
 export function useFeatures() {
-  const { profile } = useAuth();
+  const { profile, business: authBusiness } = useAuth();
+  const internalOwner=hasInternalOwnerAccess(profile,authBusiness);
   const [business, setBusiness] = useState<Business | null>(null);
   const [planSettings, setPlanSettings] = useState<any[]>(normalizePlans(PLANS));
   const [loading, setLoading] = useState(true);
@@ -174,7 +176,7 @@ export function useFeatures() {
   }, [profile?.businessId]);
 
   const isFeatureEnabled = (featureId: FeatureId): boolean => {
-    if (profile?.role === "super_admin") return true;
+    if (profile?.role === "super_admin"||internalOwner) return true;
 
     if (!business) return false;
 
@@ -188,7 +190,7 @@ export function useFeatures() {
 
     if (!planSettings.length) return false;
 
-    const currentPlan = planSettings.find((plan) => plan.id === business.plan);
+    const currentPlan = business.plan==="internal_owner" ? findPlan(planSettings,business.plan) : planSettings.find((plan) => plan.id === business.plan);
     if (!currentPlan) return false;
 
     return (currentPlan.enabled_features || []).includes(featureId);
@@ -205,7 +207,7 @@ export function useFeatures() {
     isMarketingCapabilityEnabled(capabilityId) ? "enabled" : "disabled";
 
   const isFeatureVisible = (featureId: FeatureId): boolean => {
-    if (profile?.role === "super_admin") return true;
+    if (profile?.role === "super_admin"||internalOwner) return true;
     if (!business) return true;
 
     const hidden = business.dashboardHiddenFeatures || [];

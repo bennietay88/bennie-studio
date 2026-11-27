@@ -1,3 +1,4 @@
+import InternalRoleTester from "./InternalRoleTester";
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -496,6 +497,7 @@ export function Sidebar({
             </motion.div>
           )}
         </div>
+        {!isCollapsed&&<InternalRoleTester/>}
         {!isCollapsed && (mainWebsiteLink || portfolioLink) && (
           <div className="mb-3 grid grid-cols-2 gap-2">
             {mainWebsiteLink && (
