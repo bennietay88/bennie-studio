@@ -4,6 +4,7 @@ import { ArrowUpRight, Check, Globe2, MonitorSmartphone, ShieldCheck, Sparkles }
 import { trackPublicEvent } from "../lib/publicTracking";
 import { STUDIO_SHOWCASES } from "./StudioCaseStudyDetail";
 import { StudioProcessTimeline } from "./StudioFieldNotes";
+import { StudioComparisonDemo } from "./InteractiveSiteSections";
 import { StudioSignatureStage, StudioSelectedWork } from "./StudioCreativeShowcase";
 import { useStudioShowcaseCatalog } from "../lib/studioShowcaseCms";
 import { usePublishedPlatformCms } from "../lib/platformSiteCms";
@@ -57,6 +58,7 @@ export function ConversionHomepage({ onCta }: { onCta: (path: string, label: str
       </section>
 
       <StudioSelectedWork studies={showcases}/>
+      <StudioComparisonDemo />
 
       <section className="c27-studio-proof" aria-labelledby="c27-proof-title">
         <div className="brand-shell c27-studio-proof-layout">

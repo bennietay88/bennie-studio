@@ -331,6 +331,16 @@ export const SECTION_TEMPLATES: Record<string, SectionTemplate> = {
     },
     isVisible: false,
   },
+  before_after_comparison: {
+    type: "features",
+    content: { interaction: "before_after", title: "Before and after", description: "", beforeImageUrl: "", afterImageUrl: "", beforeLabel: "Before", afterLabel: "After", items: [] },
+    isVisible: true,
+  },
+  interactive_process: {
+    type: "features",
+    content: { interaction: "process_timeline", title: "Our process", items: ["Share your requirements", "Review the plan", "Approve the next step"] },
+    isVisible: true,
+  },
   comparison: {
     type: "benefits",
     content: {

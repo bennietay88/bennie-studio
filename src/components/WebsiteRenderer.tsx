@@ -49,7 +49,10 @@ import {
   ExternalLink,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion, MotionConfig } from "motion/react";
+import { ClientSiteMotion } from "./AgencyMotionDirector";
+import { BeforeAfterComparison, InteractiveProcessTimeline } from "./InteractiveSiteSections";
+import { resolveSiteMotionProfile } from "../lib/siteMotionProfiles";
 import { generateChatResponse } from "../lib/gemini";
 import { cn, formatDate, generateId, formatStatValue } from "../lib/utils";
 import { Helmet, HelmetProvider } from "react-helmet-async";
@@ -378,7 +381,8 @@ export function WebsiteRenderer({
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const rendererRootRef = useRef<HTMLDivElement | null>(null);
-  const prefersReducedMotion = useReducedMotion();
+  const systemReducedMotion = useReducedMotion();
+  const prefersReducedMotion = systemReducedMotion || website?.theme?.motionProfile === "none" || isThumbnail;
 
   useEffect(() => {
     if (initialData) {
@@ -1411,7 +1415,8 @@ export function WebsiteRenderer({
   const isPreviewPresentation = Boolean(website.theme?.previewPurpose);
   const isSourceDrivenPresentation = Boolean(website.theme?.sourceDriven);
   const spacingTokens = DESIGN_TOKENS.spacing[theme.spacingProfile || designProfile.spacing];
-  const motionTokens = DESIGN_TOKENS.motion[theme.motionProfile || designProfile.motion];
+  const selectedMotionProfile = resolveSiteMotionProfile(theme.motionProfile || designProfile.motion);
+  const motionTokens = DESIGN_TOKENS.motion[selectedMotionProfile];
   const pages = website?.pages || [];
   const displayBusinessName = String(
     businessInfo?.name ||
@@ -1724,13 +1729,14 @@ export function WebsiteRenderer({
 
   return (
     <HelmetProvider>
+      <MotionConfig reducedMotion={selectedMotionProfile === "none" || isThumbnail ? "always" : "user"}>
       <div
         ref={rendererRootRef}
         style={{ fontFamily: theme.fontFamily || "Inter, sans-serif", containerType: "inline-size", containerName: "customer-site" }}
         data-design-profile={designProfile.id}
         data-generation-mode={generationMode}
         data-source-driven={theme.sourceDriven ? "true" : "false"}
-        data-motion-profile={theme.motionProfile || designProfile.motion}
+        data-motion-profile={selectedMotionProfile}
         data-image-profile={theme.imageProfile || designProfile.imageTreatment}
         className={cn(
           "bt-website-renderer min-h-screen w-full max-w-full overflow-x-hidden flex flex-col transition-colors duration-300",
@@ -1746,6 +1752,7 @@ export function WebsiteRenderer({
           `style-${theme.style}`,
         )}
       >
+        <ClientSiteMotion rootRef={rendererRootRef} profile={isThumbnail ? "none" : selectedMotionProfile} pageKey={activePageSlug || "home"} embedded={Boolean(isEditingPreview || draftPreview || website.theme?.previewPurpose || isTemplatePreview)} />
         <Helmet>
           <title>{displayTitle}</title>
           <meta name="description" content={displayDescription} />
@@ -3872,6 +3879,22 @@ export function WebsiteRenderer({
                     </motion.section>
                   );
                 case "features":
+                  if (section.content?.interaction === "before_after") {
+                    const {beforeImageUrl, afterImageUrl, beforeLabel, afterLabel, title, description} = section.content;
+                    if (!beforeImageUrl || !afterImageUrl) return isEditingPreview ? <section key={section.id} className="mx-auto max-w-6xl p-8 text-center"><h2>{title || "Before and after"}</h2><p>Add both client-approved comparison images in the editor.</p></section> : null;
+                    return <section id={section.id} key={section.id} className="mx-auto w-full max-w-6xl px-6 py-16 sm:py-24">
+                      <h2 className="mb-4 text-3xl font-semibold sm:text-5xl">{title || "Before and after"}</h2>{description && <p className="mb-6">{description}</p>}
+                      <BeforeAfterComparison before={<img src={beforeImageUrl} alt={beforeLabel || "Before"} loading="lazy" decoding="async" referrerPolicy="no-referrer"/>} after={<img src={afterImageUrl} alt={afterLabel || "After"} loading="lazy" decoding="async" referrerPolicy="no-referrer"/>} beforeLabel={beforeLabel || "Before"} afterLabel={afterLabel || "After"}/>
+                    </section>;
+                  }
+                  if (section.content?.interaction === "process_timeline") {
+                    const steps = (Array.isArray(section.content.items) ? section.content.items : []).map((item: any,index: number) => ({number: String(index+1).padStart(2,"0"), title: typeof item === "string" ? item : String(item?.title || ""), description: typeof item === "object" ? item?.description : undefined})).filter((step: {title:string}) => step.title.trim());
+                    if (!steps.length) return null;
+                    return <section id={section.id} key={section.id} className="mx-auto w-full max-w-6xl px-6 py-16 sm:py-24">
+                      <h2 className="mb-4 text-3xl font-semibold sm:text-5xl">{section.content.title || "Our process"}</h2>{section.content.description && <p className="mb-6">{section.content.description}</p>}
+                      <InteractiveProcessTimeline steps={steps} animate={!prefersReducedMotion && selectedMotionProfile !== "none"}/>
+                    </section>;
+                  }
                   if (section.settings?.variant === "capability_matrix") {
                     return (
                       <motion.section
@@ -6516,6 +6539,7 @@ export function WebsiteRenderer({
           {/* Structured analytics IDs are supported; arbitrary footer HTML is intentionally disabled. */}
         </AnimatePresence>
       </div>
+      </MotionConfig>
     </HelmetProvider>
   );
 }

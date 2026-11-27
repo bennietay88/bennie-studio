@@ -1,4 +1,5 @@
 import React from "react";
+import { InteractiveProcessTimeline } from "./InteractiveSiteSections";
 import { Monitor, Smartphone } from "lucide-react";
 
 const examples = [
@@ -42,16 +43,5 @@ export type StudioProcessStep = { number: string; title: string; description: st
 
 /** The complete process is visible without tabs, clicking or carousel controls. */
 export function StudioProcessTimeline({ steps }: { steps: readonly StudioProcessStep[] }) {
-  return (
-    <ol className="sfn-timeline-all" aria-label="Our four-step website process">
-      {steps.map((step) => (
-        <li className="sfn-timeline-item" key={step.number}>
-          <span className="sfn-timeline-number" aria-hidden="true">{step.number}</span>
-          <h3>{step.title}</h3>
-          <p>{step.description}</p>
-          <p className="sfn-timeline-note">{step.detail}</p>
-        </li>
-      ))}
-    </ol>
-  );
+  return <InteractiveProcessTimeline steps={steps} studio />;
 }

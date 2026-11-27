@@ -54,7 +54,7 @@ export function PortfolioShowcaseVisual({ item, compact = false, priority = fals
     : undefined;
   const [failedImage, setFailedImage] = React.useState(false);
   React.useEffect(() => setFailedImage(false), [image]);
-  return <div className="relative min-w-0 overflow-hidden border-b border-slate-200 bg-[#eef2f7]">
+  return <div className="portfolio-motion-image relative min-w-0 overflow-hidden border-b border-slate-200 bg-[#eef2f7]">
     {image && !failedImage ? <img
       src={image}
       srcSet={bundledSrcSet}

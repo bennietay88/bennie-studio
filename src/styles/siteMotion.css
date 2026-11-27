@@ -1,0 +1,25 @@
+/* Only mounted public and customer motion scopes receive these enhancements. */
+[data-bt-motion] { --bt-interaction-duration: 220ms; }
+.bt-motion-reading-progress { position: fixed; z-index: 100; top: 0; left: 0; width: 100%; height: 2px; pointer-events: none; transform: scaleX(0); transform-origin: left; background: #1741ed; }
+[data-bt-motion] main :is(a,button) > :is(svg.lucide-arrow-up-right,svg.lucide-arrow-right) { transition: translate var(--bt-interaction-duration) cubic-bezier(.16,1,.3,1); }
+[data-bt-motion] main :is(a,button):focus-visible > :is(svg.lucide-arrow-up-right,svg.lucide-arrow-right) { translate: 3px 0; }
+@media (hover:hover) and (pointer:fine) {
+  [data-bt-motion] main :is(a,button):hover > :is(svg.lucide-arrow-up-right,svg.lucide-arrow-right) { translate: 3px 0; }
+  [data-bt-motion] main :is(.c26-value-item,.sfn-timeline-item,.sfn-work-card,.c27-plan-card,[data-testid="portfolio-card"]) { transition: box-shadow 240ms ease, border-color 240ms ease, translate 240ms cubic-bezier(.16,1,.3,1); }
+  [data-bt-motion] main :is(.c26-value-item,.sfn-timeline-item,.sfn-work-card,.c27-plan-card,[data-testid="portfolio-card"]):hover { translate: 0 -3px; box-shadow: 0 14px 36px -25px #17234055; }
+  [data-bt-motion] main :is(.sfn-work-art,.portfolio-motion-image) img { transition: scale 500ms cubic-bezier(.16,1,.3,1); }
+  [data-bt-motion] main :is(.sfn-work-art,.portfolio-motion-image):hover img { scale: 1.035; }
+  .bt-website-renderer[data-bt-motion]:not([data-bt-motion="subtle"]) main article { transition: box-shadow 240ms ease; }
+  .bt-website-renderer[data-bt-motion]:not([data-bt-motion="subtle"]) main article:hover { box-shadow: 0 15px 35px -26px color-mix(in srgb, var(--primary, #1741ed) 55%, transparent); }
+  [data-bt-motion] [data-bt-motion-spot] { outline: 1px solid color-mix(in srgb, var(--primary, #1741ed) 25%, transparent); outline-offset: -1px; }
+  [data-bt-motion] :is(.sfn-signature-canvas,.sfn-work-art)[data-bt-motion-spot] { box-shadow: inset 0 0 36px #ffffff12; }
+  [data-bt-motion] .sfn-signature-canvas[data-bt-motion-spot]::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(280px circle at var(--bt-spot-x,50%) var(--bt-spot-y,50%), #ffffff25, transparent 75%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bt-motion-reading-progress { display: none; }
+  [data-bt-motion] main *, [data-bt-motion] main *::before, [data-bt-motion] main *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+@media (hover:hover) and (pointer:fine) {
+  [data-bt-motion] main :is(a,button)[data-bt-magnetic] > :is(svg.lucide-arrow-up-right,svg.lucide-arrow-right) { translate: var(--bt-magnet-x,0px) var(--bt-magnet-y,0px); }
+}
