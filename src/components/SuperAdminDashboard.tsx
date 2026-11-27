@@ -1288,6 +1288,8 @@ export default function SuperAdminDashboard() {
         throw new Error(`${label} update could not be completed.`);
       };
 
+      // Internal configuration is protected by the database and must not silently fall back.
+      if(isSuperAdmin && editingBusiness.internal_access_mode && (editingBusiness.stripe_customer_id || editingBusiness.stripe_subscription_id))throw Error("Cancel and reconcile live billing before granting internal access.");
       // 1. Always save core fields first. These must match the base businesses schema.
       await updateBusinessStep(
         "Core business",
@@ -1296,6 +1298,7 @@ export default function SuperAdminDashboard() {
           industry: editingBusiness.industry,
           plan: editingBusiness.plan,
           status: dbStatus,
+          ...(isSuperAdmin && Object.prototype.hasOwnProperty.call(editingBusiness,"internal_access_mode") ? {internal_access_mode:editingBusiness.internal_access_mode} : {}),
         },
         { required: true },
       );
@@ -2418,7 +2421,15 @@ export default function SuperAdminDashboard() {
                 </Select>
               </div>
             </div>
-            {isSuperAdmin && (() => {
+            {isSuperAdmin && editingBusiness && <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 space-y-3">
+              <Label className="font-semibold">Internal workspace access</Label>
+              <p className="text-xs text-slate-600">Internal tenants keep the normal customer role. Billing is exempt; existing plan and custom capability settings determine access. Use Growth and enable the funnel capability for owner development. Plan test mode uses the selected plan and add-ons.</p>
+              <Select value={editingBusiness.internal_access_mode || "none"} onValueChange={value=>setEditingBusiness({...editingBusiness,internal_access_mode:value==="none"?null:value,...(value==="owner"?{plan:"growth",status:"active",custom_enabled_features:Array.from(new Set([...getCustomFeatureArray(),"sales_funnels"])),sales_funnels_access_mode:"self_managed"}:value==="plan_test"?{status:"active",custom_enabled_features:getCustomFeatureArray().filter((item:string)=>item!=="sales_funnels"),sales_funnels_access_mode:"managed"}:{})})}>
+                <SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="none">Standard billing</SelectItem><SelectItem value="owner">Internal owner development</SelectItem><SelectItem value="plan_test">Package testing</SelectItem></SelectContent>
+              </Select>
+              <p className="text-xs">Only use on a workspace without a Stripe subscription or customer. Save changes to apply. Disabling the exemption requires separate paid onboarding.</p>
+            </div>}
+            {isSuperAdmin && !editingBusiness?.internal_access_mode && (() => {
               const trialGrant = editingBusiness?.onboarding_steps?.subscriptionTrialGrant;
               const alreadyGranted = Boolean(trialGrant?.grantedAt) || editingBusiness?.subscription_status === "trialing";
               const pendingCheckout = !editingBusiness?.stripe_subscription_id && ["incomplete", "pending"].includes(String(editingBusiness?.subscription_status || ""));
