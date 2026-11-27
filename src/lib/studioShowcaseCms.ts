@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { createPublicContentResource } from "./publicContentResource";
 import { DEFAULT_PORTFOLIO_ITEMS, resolvePortfolioCatalog, type PortfolioItem } from "./portfolioCatalog";
 
 export type StudioShowcaseCmsEntry = {
@@ -26,25 +27,21 @@ export function mergeCmsValue<T>(base: T, override: unknown): T {
   return result as T;
 }
 
-export async function fetchStudioShowcaseCms(): Promise<StudioShowcaseCms> {
-  try {
-    const response = await fetch("/api/public/studio-showcases", { headers: { Accept: "application/json" } });
-    if (!response.ok) return {};
-    const payload = await response.json();
-    return payload?.showcases && typeof payload.showcases === "object" ? payload.showcases : {};
-  } catch {
-    return {};
-  }
+type ShowcaseSnapshot={showcases:StudioShowcaseCms;items:PortfolioItem[]};
+const showcaseResource=createPublicContentResource<ShowcaseSnapshot>({showcases:{},items:DEFAULT_PORTFOLIO_ITEMS},async signal=>{
+ const response=await fetch("/api/public/studio-showcases",{headers:{Accept:"application/json"},signal});
+ if(!response.ok)throw new Error("Published showcases unavailable");
+ const payload=await response.json();
+ return {showcases:payload?.showcases&&typeof payload.showcases==="object"?payload.showcases:{},items:Array.isArray(payload?.portfolio)?resolvePortfolioCatalog(payload.portfolio):DEFAULT_PORTFOLIO_ITEMS};
+});
+export const preloadStudioShowcaseCms=()=>showcaseResource.ensure();
+export async function fetchStudioShowcaseCms():Promise<StudioShowcaseCms>{return (await preloadStudioShowcaseCms()).showcases;}
+function useShowcaseSnapshot(){
+ const snapshot=useSyncExternalStore(showcaseResource.subscribe,showcaseResource.getSnapshot,showcaseResource.getSnapshot);
+ useEffect(()=>{void preloadStudioShowcaseCms();},[]);
+ return snapshot;
 }
-export function useStudioShowcaseCms() {
-  const [cms, setCms] = useState<StudioShowcaseCms>({});
-  useEffect(() => {
-    let active = true;
-    fetchStudioShowcaseCms().then((value) => { if (active) setCms(value); });
-    return () => { active = false; };
-  }, []);
-  return cms;
-}
+export function useStudioShowcaseCms(){return useShowcaseSnapshot().showcases;}
 
 export function useStudioShowcaseCatalog<T extends { slug: string; colour?: string }>(base: readonly T[]) {
   const cms = useStudioShowcaseCms();
@@ -56,18 +53,4 @@ export function useStudioShowcaseCatalog<T extends { slug: string; colour?: stri
 }
 
 /** Portfolio catalog shares the existing read-only studio showcase endpoint. */
-export function useStudioPortfolioCatalog(): PortfolioItem[] {
-  const [items, setItems] = useState<PortfolioItem[]>(DEFAULT_PORTFOLIO_ITEMS);
-  useEffect(() => {
-    let active = true;
-    fetch("/api/public/studio-showcases", { headers: { Accept: "application/json" } })
-      .then((response) => response.ok ? response.json() : null)
-      .then((payload) => {
-        if (active && payload && Array.isArray(payload.portfolio)) {
-          setItems(resolvePortfolioCatalog(payload.portfolio));
-        }
-      }).catch(() => { /* Built-in showcase content remains available offline. */ });
-    return () => { active = false; };
-  }, []);
-  return items;
-}
+export function useStudioPortfolioCatalog(): PortfolioItem[] {return useShowcaseSnapshot().items;}

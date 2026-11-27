@@ -8,7 +8,7 @@ import { Helmet } from "react-helmet-async";
 import { ArrowRight, CalendarDays, Check, Clock3, MapPin, ShieldCheck } from "lucide-react";
 import { STUDIO_SHOWCASES } from "./StudioCaseStudyDetail";
 import { PublicSiteFooter, PublicSiteHeader } from "./PublicSiteChrome";
-import { fetchStudioShowcaseCms, mergeCmsValue } from "../lib/studioShowcaseCms";
+import { useStudioShowcaseCms, mergeCmsValue } from "../lib/studioShowcaseCms";
 
 export type DemoContent = {
   brand: string;
@@ -534,12 +534,7 @@ function LegacyDemoArtwork({ slug, content, theme }: { slug: string; content: De
 
 export default function StudioShowcaseLivePreview() {
   const { slug, page } = useParams();
-  const [cms, setCms] = React.useState<Record<string, any>>({});
-  React.useEffect(() => {
-    let active = true;
-    fetchStudioShowcaseCms().then((value) => { if (active) setCms(value); });
-    return () => { active = false; };
-  }, []);
+  const cms = useStudioShowcaseCms();
   const baseStudy = STUDIO_SHOWCASES.find((item) => item.slug === slug);
   const config = slug ? cms[slug] : undefined;
   const study = baseStudy ? mergeCmsValue(baseStudy, config?.study) : undefined;
