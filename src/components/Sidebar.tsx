@@ -256,7 +256,8 @@ export function Sidebar({
       return [
         { label: "Website", items: [
           { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
-          { to: "/dashboard/my-website", icon: Globe, label: "My Website" },
+          { to: "/dashboard/websites", icon: Globe, label: "My Websites" },
+          { to: "/dashboard/my-website", icon: Globe, label: "Managed Website" },
           { to: "/dashboard/approvals", icon: ShieldCheck, label: "Review & Approvals" },
           { to: "/dashboard/analytics", icon: BarChart3, label: "Performance", featureId: "analytics" },
         ]},
