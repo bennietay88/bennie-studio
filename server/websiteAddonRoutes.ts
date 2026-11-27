@@ -127,7 +127,15 @@ export function registerWebsiteAddonRoutes(app:any,db:any,authenticate:any,getPr
  });
  app.post("/api/account/website-addons/:orderId/cancel",authenticate,async(req:any,res:any)=>{
   if(!id.safeParse(req.params.orderId).success||req.body?.confirmation!==true)return res.status(400).json({error:"Invalid cancellation"});
-  try{const b=await owner(req,res);if(!b)return;
+  try{
+   const p=await getProfile(req.user.id);
+   let b:any;
+   if(p?.role==="super_admin"&&p.status==="active"){
+    const target=id.safeParse(req.body?.businessId);
+    if(!target.success)return res.status(400).json({error:"Explicit business ID required"});
+    b=checked(await db.from("businesses").select("id").eq("id",target.data).single());
+   }else{b=await owner(req,res);}
+   if(!b)return;
    const order=checked(await db.from("website_addon_orders").select(fields).eq("id",req.params.orderId).eq("business_id",b.id).maybeSingle());
    if(!order)return res.status(404).json({error:"Add-on not found"});
    const stripe=await getStripe();

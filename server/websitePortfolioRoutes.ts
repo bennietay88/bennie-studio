@@ -1,3 +1,4 @@
+import {resolveSiteBusiness} from "./websiteAdminScope.js";
 import { validateWebsiteRedirects } from "../src/lib/websiteRedirects.js";
 import { registerWebsiteBackupRoutes } from "./websiteBackupRoutes.js";
 import { registerWebsiteOperationsRoutes } from "./websiteOperationsRoutes.js";
@@ -26,6 +27,12 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
       res.status(403).json({error:"Business administrator access required"}); return null;
     }
     return profile;
+  }
+  async function siteActor(req:any,res:any){
+    const profile=await getProfile(req.user.id);
+    const businessId=await resolveSiteBusiness(db,profile,req.params.siteId);
+    if(!businessId){res.status(403).json({error:"Website administrator access required"});return null;}
+    return {...profile,business_id:businessId};
   }
   const report = (res:any, error:any) => {
     console.error("Website portfolio operation failed", {code:error?.code});
@@ -75,7 +82,7 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
   app.get("/api/account/websites/:siteId/preview",authenticate,async(req:any,res:any)=>{
     res.setHeader("Cache-Control","private, no-store");
     const id=z.string().uuid().safeParse(req.params.siteId);if(!id.success)return res.status(400).json({error:"Invalid website ID"});
-    try{const profile=await actor(req,res);if(!profile)return;
+    try{const profile=await siteActor(req,res);if(!profile)return;
       const {data,error}=await db.from("websites").select("id,business_id,theme,pages,seo,status,updated_at,is_primary,is_internal_pilot").eq("id",id.data).eq("business_id",profile.business_id).eq("is_internal_pilot",false).maybeSingle();
       if(error)throw error;if(!data)return res.status(404).json({error:"Website not found"});
       return res.json({siteId:data.id,businessId:data.business_id,website:data});
@@ -85,7 +92,7 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
     res.setHeader("Cache-Control","private, no-store");
     if(!enabled())return res.json({enabled:false});
     const id=z.string().uuid().safeParse(req.params.siteId);if(!id.success)return res.status(400).json({error:"Invalid website ID"});
-    try{const profile=await actor(req,res);if(!profile)return;
+    try{const profile=await siteActor(req,res);if(!profile)return;
       const {data,error}=await db.from("websites").select("id,business_id,status,seo,updated_at").eq("id",id.data).eq("business_id",profile.business_id).eq("is_primary",false).eq("is_internal_pilot",false).is("archived_at",null).maybeSingle();
       if(error)throw error;if(!data)return res.status(404).json({error:"Secondary website not found"});
       return res.json({enabled:true,siteId:data.id,businessId:data.business_id,editable:data.status==="draft",updatedAt:data.updated_at,rules:validateWebsiteRedirects(data.seo?.siteRedirects)?data.seo.siteRedirects:[]});
@@ -96,7 +103,7 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
     if(!enabled())return res.status(503).json({error:"Redirects disabled"});
     const id=z.string().uuid().safeParse(req.params.siteId);const input=z.object({rules:z.unknown(),updatedAt:z.string().datetime({offset:true})}).strict().safeParse(req.body);
     if(!id.success||!input.success||!validateWebsiteRedirects(input.data.rules))return res.status(400).json({error:"Use unique internal paths and avoid redirect chains or loops."});
-    try{const profile=await actor(req,res);if(!profile)return;
+    try{const profile=await siteActor(req,res);if(!profile)return;
       const {data:site,error}=await db.from("websites").select("id,business_id,seo,updated_at").eq("id",id.data).eq("business_id",profile.business_id).eq("is_primary",false).eq("is_internal_pilot",false).eq("status","draft").is("archived_at",null).maybeSingle();
       if(error)throw error;if(!site)return res.status(404).json({error:"Secondary draft not found"});
       if(site.updated_at!==input.data.updatedAt)return res.status(409).json({error:"Website changed. Refresh first."});
@@ -112,7 +119,7 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
     const body=z.object({mimeType:z.enum(["image/jpeg","image/png","image/webp"]),size:z.number().int().min(1).max(5*1024*1024)}).strict().safeParse(req.body);
     if(!siteId.success||!body.success)return res.status(400).json({error:"Upload JPG, PNG or WebP up to 5 MB."});
     try{
-      const profile=await actor(req,res);if(!profile)return;
+      const profile=await siteActor(req,res);if(!profile)return;
       const {data:site,error}=await db.from("websites").select("id").eq("id",siteId.data).eq("business_id",profile.business_id).eq("status","draft").eq("is_internal_pilot",false).is("archived_at",null).maybeSingle();
       if(error)throw error;if(!site)return res.status(404).json({error:"Draft website not found."});
       const {data:owner,error:oe}=await db.from("businesses").select("status,subscription_status").eq("id",profile.business_id).single();
@@ -131,7 +138,7 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
     const days=z.coerce.number().int().refine(v=>[7,30,90].includes(v)).safeParse(req.query.days??30);
     if(!days.success)return res.status(400).json({error:"Choose a 7, 30 or 90 day period"});
     try{
-      const profile=await actor(req,res);if(!profile)return;
+      const profile=await siteActor(req,res);if(!profile)return;
       const businessId=profile.business_id, siteId=parsed.data;
       const {data:site,error:siteError}=await db.from("websites").select("id,business_id,name,status").eq("business_id",businessId).eq("id",siteId).eq("is_internal_pilot",false).maybeSingle();
       if(siteError)throw siteError;

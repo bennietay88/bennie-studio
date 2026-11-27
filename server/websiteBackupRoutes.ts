@@ -1,3 +1,4 @@
+import {resolveSiteBusiness} from "./websiteAdminScope.js";
 import {z} from "zod";
 import {mediaEnabled,snapshotSiteMedia,restoreSiteMedia} from "./websiteMediaBackups.js";
 const id=z.string().uuid();
@@ -8,8 +9,9 @@ export function registerWebsiteBackupRoutes(app:any,db:any,authenticate:any,getP
   if(!enabled()){res.status(503).json({error:"Website backups are not enabled."});return null;}
   if(!id.safeParse(req.params.siteId).success){res.status(400).json({error:"Invalid website ID"});return null;}
   const p=await getProfile(req.user.id);
-  if(p?.status!=="active"||p.role!=="business_admin"||!p.business_id){res.status(403).json({error:"Business administrator access required"});return null;}
-  const {data,error}=await db.from("websites").select("id,business_id,status,is_primary,updated_at,pages,theme,seo").eq("id",req.params.siteId).eq("business_id",p.business_id).eq("is_internal_pilot",false).is("archived_at",null).maybeSingle();
+  const businessId=await resolveSiteBusiness(db,p,req.params.siteId);
+  if(!businessId){res.status(403).json({error:"Business administrator access required"});return null;}
+  const {data,error}=await db.from("websites").select("id,business_id,status,is_primary,updated_at,pages,theme,seo").eq("id",req.params.siteId).eq("business_id",businessId).eq("is_internal_pilot",false).is("archived_at",null).maybeSingle();
   if(error)throw error;if(!data){res.status(404).json({error:"Website not found"});return null;}return data;
  }
  const fail=(res:any,e:any)=>{console.error("Website backup failed",{code:e?.code});return res.status(e?.code==="40001"?409:503).json({error:e?.code==="40001"?"Website changed. Refresh and retry.":"Website backup operation unavailable."});};

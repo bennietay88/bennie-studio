@@ -1,3 +1,4 @@
+import {resolveSiteBusiness} from "./websiteAdminScope.js";
 import {randomBytes,randomUUID} from "node:crypto";
 import {Resolver} from "node:dns/promises";
 import {connect} from "node:tls";
@@ -33,8 +34,9 @@ export function registerWebsiteDomainRoutes(app:any,db:any,authenticate:any,getP
     const parsed=z.string().uuid().safeParse(req.params.siteId);
     if(!parsed.success){res.status(400).json({error:"Invalid website ID"});return null;}
     const profile=await getProfile(req.user.id);
-    if(profile?.role!=="business_admin"||profile.status!=="active"||!profile.business_id){res.status(403).json({error:"Business administrator access required"});return null;}
-    const {data:business,error:be}=await db.from("businesses").select("id,status,subscription_status").eq("id",profile.business_id).single();
+    const businessId=await resolveSiteBusiness(db,profile,parsed.data);
+    if(!businessId){res.status(403).json({error:"Business administrator access required"});return null;}
+    const {data:business,error:be}=await db.from("businesses").select("id,status,subscription_status").eq("id",businessId).single();
     if(be)throw be;
     if(business?.status!=="active"||business.subscription_status!=="active"){res.status(403).json({error:"Active subscription required"});return null;}
     const {data:site,error}=await db.from("websites").select(select).eq("id",parsed.data).eq("business_id",business.id).eq("is_internal_pilot",false).is("archived_at",null).maybeSingle();

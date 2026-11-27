@@ -6638,7 +6638,7 @@ async function startServer() {
       if(website_id){
         if(!project_id||process.env.MULTI_SITE_DRAFT_LIFECYCLE!=="true")return res.status(403).json({error:"Website-specific AI is not enabled."});
         const profile=await getProfileForUser(userId);
-        if(profile?.status!=="active"||profile.role!=="business_admin"||profile.business_id!==project_id)return res.status(403).json({error:"Website administrator access required."});
+        if(profile?.status!=="active"||(profile.role!=="super_admin"&&(profile.role!=="business_admin"||profile.business_id!==project_id)))return res.status(403).json({error:"Website administrator access required."});
         const {data:site,error:siteError}=await supabaseAdmin.from("websites").select("id").eq("id",website_id).eq("business_id",project_id).eq("status","draft").eq("is_internal_pilot",false).is("archived_at",null).maybeSingle();
         if(siteError)return res.status(503).json({error:"Website access verification unavailable."});
         if(!site)return res.status(404).json({error:"Draft website not found."});
