@@ -5,6 +5,7 @@ begin;
 alter table public.plans add column if not exists website_limit integer not null default 1;
 alter table public.plans add constraint plans_website_limit_check check (website_limit between 0 and 1000);
 alter table public.websites add column if not exists archived_at timestamptz;
+alter table public.websites add column if not exists domain_challenge text;
 
 -- Preserve the existing single-site business mapping. Ambiguous legacy tenants
 -- must be reviewed manually rather than choosing whichever site was edited last.
@@ -72,6 +73,8 @@ begin
       or new.custom_domain_verified_at is distinct from old.custom_domain_verified_at
       or new.custom_domain_permission_confirmed is distinct from old.custom_domain_permission_confirmed
       or new.custom_domain_suspended is distinct from old.custom_domain_suspended
+      or new.domain_challenge is distinct from old.domain_challenge
+      or new.domain_dns_records is distinct from old.domain_dns_records
       or new.ssl_status is distinct from old.ssl_status
       or new.service_id is distinct from old.service_id) then
       raise exception 'SITE_DOMAIN_FIELDS_SERVER_MANAGED' using errcode='42501';
@@ -144,4 +147,41 @@ end;
 $$;
 revoke all on function public.manage_website_draft(uuid,uuid,text,uuid,text) from public, anon, authenticated;
 grant execute on function public.manage_website_draft(uuid,uuid,text,uuid,text) to service_role;
+-- Serialize canonical domain reservations across both legacy and site-level
+-- assignments. www/apex aliases are deliberately exclusive.
+create or replace function private.guard_site_domain_assignment()
+returns trigger language plpgsql security definer set search_path='' as $
+declare canonical text;
+begin
+  if new.custom_domain is null or btrim(new.custom_domain)='' then return new; end if;
+  if tg_op='UPDATE' and new.custom_domain is not distinct from old.custom_domain then return new; end if;
+  canonical := regexp_replace(lower(rtrim(btrim(new.custom_domain),'.')), '^www\.', '');
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('website-domain:'||canonical,0));
+  if tg_table_name='websites' then
+    if exists(select 1 from public.websites w where w.id<>new.id and
+      regexp_replace(lower(rtrim(btrim(w.custom_domain),'.')), '^www\.', '')=canonical)
+      or exists(select 1 from public.businesses b where
+      regexp_replace(lower(rtrim(btrim(b.custom_domain),'.')), '^www\.', '')=canonical
+      and (not new.is_primary or b.id<>new.business_id)) then
+      raise exception 'DOMAIN_ALREADY_ASSIGNED' using errcode='23505';
+    end if;
+  else
+    if exists(select 1 from public.businesses b where b.id<>new.id and
+      regexp_replace(lower(rtrim(btrim(b.custom_domain),'.')), '^www\.', '')=canonical)
+      or exists(select 1 from public.websites w where
+      regexp_replace(lower(rtrim(btrim(w.custom_domain),'.')), '^www\.', '')=canonical
+      and (not w.is_primary or w.business_id<>new.id)) then
+      raise exception 'DOMAIN_ALREADY_ASSIGNED' using errcode='23505';
+    end if;
+  end if;
+  return new;
+end;
+$;
+revoke all on function private.guard_site_domain_assignment() from public,anon,authenticated;
+drop trigger if exists guard_site_domain_assignment on public.websites;
+create trigger guard_site_domain_assignment before insert or update of custom_domain on public.websites
+for each row execute function private.guard_site_domain_assignment();
+drop trigger if exists guard_site_domain_assignment on public.businesses;
+create trigger guard_site_domain_assignment before insert or update of custom_domain on public.businesses
+for each row execute function private.guard_site_domain_assignment();
 commit;
