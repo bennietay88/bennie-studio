@@ -483,6 +483,7 @@ function isCustomerDomainHost() {
 
 function CustomDomainWebsiteRoute() {
   const [businessId, setBusinessId] = React.useState<string | null>(null);
+  const [websiteId, setWebsiteId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
 
@@ -496,7 +497,8 @@ function CustomDomainWebsiteRoute() {
         );
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || "Domain is not connected.");
-        if (!cancelled) setBusinessId(payload.businessId);
+        if (!payload.businessId || !payload.websiteId) throw new Error("Domain has no assigned website.");
+        if (!cancelled) { setBusinessId(payload.businessId); setWebsiteId(payload.websiteId); }
       } catch (err: any) {
         if (!cancelled) setError(err.message || "Domain is not connected.");
       } finally {
@@ -512,7 +514,7 @@ function CustomDomainWebsiteRoute() {
 
   if (loading) return <LoadingFallback message="Loading website..." />;
 
-  if (error || !businessId) {
+  if (error || !businessId || !websiteId) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
         <div className="max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 text-center shadow-2xl">
@@ -528,7 +530,7 @@ function CustomDomainWebsiteRoute() {
     );
   }
 
-  return <WebsiteRenderer businessIdOverride={businessId} />;
+  return <WebsiteRenderer key={websiteId} businessIdOverride={businessId} websiteIdOverride={websiteId} />;
 }
 
 export default function App() {
