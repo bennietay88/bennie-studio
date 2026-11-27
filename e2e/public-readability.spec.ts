@@ -121,3 +121,16 @@ test("public navigation keeps a stable untransformed route shell", async ({ page
   expect(await shell.evaluate(el => getComputedStyle(el).transform)).toBe("none");
   expect(await shell.evaluate(el => getComputedStyle(el).opacity)).toBe("1");
 });
+
+for (const route of ["/managed-website-vs-diy", "/managed-website-vs-agency"]) {
+  test(route + " remains readable and responsive", async ({ page }) => {
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({width,height:900});
+      await page.goto(route,{waitUntil:"domcontentloaded"});
+      await expect(page.locator("main h1")).toBeVisible();
+      const comparison = page.locator(width < 768 ? "main article" : "main table").first();
+      await expect(comparison).toBeVisible();
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width+3);
+    }
+  });
+}

@@ -54,7 +54,7 @@ export default function WebsitePortfolio() {
     return () => { active = false; };
   },[businessId,refresh]);
   const current = result?.tenant === businessId ? result : null;
-  const sites = current?.sites || [];
+  const sites = (current?.sites || []).filter(site=>site.business_id===businessId);
   const capacity=current?.response?.capacity;
   const enabled=Boolean(current?.response?.lifecycleEnabled);
   const canAdd=enabled && (capacity?.websitesRemaining || 0)>0;
@@ -90,7 +90,7 @@ export default function WebsitePortfolio() {
     <section className="rounded-2xl border bg-white p-5 dark:bg-slate-900">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div><h2 className="font-semibold">Website portfolio</h2><p className="text-sm text-slate-500">{current && !current.error ? visible.length + " of " + sites.length + " websites" : "Website records"}</p></div>
-        <Button disabled={!canAdd||busy} isLoading={busy} onClick={()=>void act("create")}><Plus className="mr-2 h-4 w-4"/>Create site</Button>
+        <Button disabled={!canAdd||busy} onClick={()=>void act("create")}><Plus className="mr-2 h-4 w-4"/>Create site</Button>
       </div>
       {capacity&&<div className="mb-5 grid gap-3 rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-800 sm:grid-cols-3"><div><strong>{capacity.websitesUsed} / {capacity.websiteLimit}</strong><p>Website slots</p></div><div><strong>{capacity.projectLimit??"Not configured"}</strong><p>Project limit</p></div><div><strong>{capacity.pagesPerWebsite}</strong><p>Pages per website</p></div></div>}
       {current && !current.error && !canAdd && <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">{enabled ? "No website slots available. Archive an eligible draft or review your allowance." : "Website creation is not enabled for this workspace."}</p>}

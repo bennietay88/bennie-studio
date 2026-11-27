@@ -423,7 +423,7 @@ export function DashboardLayout({
             </div>
           </header>
 
-          <main id="workspace-main" className={cn("bt-workspace-main flex-1 overflow-x-hidden overflow-y-auto p-3 pb-24 transition-colors duration-300 sm:p-6 lg:p-8 sm:pb-10", isAdminRole && "bg-slate-50/70 dark:bg-slate-950/40")}>
+          <main id="workspace-main" tabIndex={-1} className={cn("bt-workspace-main flex-1 overflow-x-hidden overflow-y-auto p-3 pb-24 transition-colors duration-300 sm:p-6 lg:p-8 sm:pb-10", isAdminRole && "bg-slate-50/70 dark:bg-slate-950/40")}>
             <div className={cn("mx-auto w-full min-w-0 max-w-[1600px]", isAdminRole ? "lg:w-[96%]" : "lg:w-[90%]")}>
               <Breadcrumbs />
               <motion.div
@@ -450,7 +450,7 @@ export function DashboardLayout({
                   </button>
                 );
               })}
-              <button type="button" onClick={() => setIsSidebarOpen(true)} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
+              <button type="button" aria-controls="workspace-sidebar" aria-expanded={isSidebarOpen} onClick={() => setIsSidebarOpen(true)} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
                 <MoreHorizontal className="h-4 w-4" />
                 <span>More</span>
               </button>

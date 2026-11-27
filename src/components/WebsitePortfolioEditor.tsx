@@ -26,11 +26,12 @@ export default function WebsitePortfolioEditor() {
       setResult({scope,site:null});
       return;
     }
+    setResult(null);
     void (async()=>{
       try {
         const portfolio=await getWebsitePortfolio();
         const site=portfolio.businessId===businessId?selectPortfolioSite(portfolio.sites,businessId,siteId):null;
-        if(active) setResult({scope,site:site&&!site.archived_at?site:null,sites:portfolio.businessId===businessId?portfolio.sites.filter(item=>!item.archived_at):[]});
+        if(active) setResult({scope,site:site&&!site.archived_at?site:null,sites:portfolio.businessId===businessId?portfolio.sites.filter(item=>item.business_id===businessId&&!item.archived_at):[]});
       } catch { if(active) setResult({scope,site:null,error:true}); }
     })();
     return ()=>{active=false;};
