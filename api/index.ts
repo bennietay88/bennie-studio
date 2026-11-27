@@ -1,3 +1,4 @@
+import { choosePrimaryWebsite } from "../src/lib/primaryWebsite.js";
 import { registerWebsitePortfolioRoutes } from "../server/websitePortfolioRoutes.js";
 import { fetchPublishedPreviewContent, isPreviewPublicRead } from "../server/previewPublicContent.js";
 import { buildInboundNewsletterMessages, INBOUND_NEWSLETTER_CONSENT, isSupportedNewsletterMarket } from "../server/inboundNewsletter.js";
@@ -15236,17 +15237,15 @@ async function startServer() {
         }
       }
 
-      const { data: website, error: websiteError } = await supabaseAdmin
+      const { data: websiteRows, error: websiteError } = await supabaseAdmin
         .from("websites")
-        .select("id, business_id, status")
+        .select("id, business_id, status, is_primary")
         .eq("business_id", business.id)
-        .eq("status", "published")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
+        .order("is_primary", { ascending: false })
+        .limit(2);
       if (websiteError) throw websiteError;
-      if (!website) {
+      const website = choosePrimaryWebsite(websiteRows || []);
+      if (!website || website.status !== "published") {
         return publicDomainFailure(404, "WEBSITE_NOT_PUBLISHED", "This domain is not connected to a published website yet.");
       }
       if (website.business_id !== business.id) {
