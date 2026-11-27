@@ -1,6 +1,6 @@
 import { IndustryExperience } from "./IndustryExperience";
 import { DemoIndustryPhoto } from "./DemoIndustryPhoto";
-import { demoDesign, readableInk } from "../lib/demoDesignProfiles";
+import { demoDesign, demoNavigation, readableInk } from "../lib/demoDesignProfiles";
 import "../styles/demoDesigns.css";
 import React from "react";
 import { Link, useParams } from "react-router-dom";
@@ -577,7 +577,7 @@ export default function StudioShowcaseLivePreview() {
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-8 lg:px-12">
         <Link to={previewPath} className="max-w-[13rem]"><span className="block text-lg font-bold tracking-tight" style={{color:theme}}>{content.brand}</span><span className="mt-0.5 block text-[11px] text-slate-500">{content.tagline}</span></Link>
         <nav aria-label="Website navigation" className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-600 sm:gap-5">
-          {pages.map((item) => <Link key={item} aria-current={currentPage === item ? "page" : undefined} className={"rounded-full px-3 py-2 capitalize transition hover:bg-slate-100 " + (currentPage === item ? "font-semibold text-slate-950" : "")} to={pageHref(item)}>{item}</Link>)}
+          {pages.map((item) => <Link key={item} aria-current={currentPage === item ? "page" : undefined} className={"rounded-full px-3 py-2 capitalize transition hover:bg-slate-100 " + (currentPage === item ? "font-semibold text-slate-950" : "")} to={pageHref(item)}>{demoNavigation(study.slug,item)}</Link>)}
         </nav>
         <Link to={pageHref("contact")} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold text-white sm:px-5" style={{backgroundColor:theme,color:accentInk}}>{content.cta}<ArrowRight size={15}/></Link>
       </div>
