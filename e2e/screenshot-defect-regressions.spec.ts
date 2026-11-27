@@ -63,3 +63,14 @@ test("unverified prices do not masquerade as monthly quote amounts", async ({pag
     await expect(first.getByRole("button",{name:/Ask about this plan/i})).toBeEnabled();
   }
 });
+
+test("interactive designs load locally hosted industry photography",async({page})=>{
+ await page.route("**/api/public/studio-showcases",route=>route.fulfill({json:{showcases:{}}}));
+ for(const slug of ["dental-clinic","accounting-firm","physiotherapy-clinic","event-planning"]){
+  await page.goto("/case-studies/showcase/"+slug+"/preview",{waitUntil:"domcontentloaded"});
+  const photo=page.getByTestId("demo-industry-photo").first();
+  await expect(photo).toBeVisible();
+  await expect(photo).toHaveAttribute("src","/images/case-studies/photography/"+slug+".jpg");
+  await expect.poll(()=>photo.evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>=500)).toBe(true);
+ }
+});
