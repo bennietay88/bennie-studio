@@ -1,6 +1,7 @@
 import React from "react";
 import { demoDesign, readableInk } from "../lib/demoDesignProfiles";
 import "../styles/demoDesigns.css";
+import { IndustryExperience } from "./IndustryExperience";
 import { DemoIndustryPhoto } from "./DemoIndustryPhoto";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
@@ -85,8 +86,8 @@ export default function StudioExpandedLivePreview() {
   const accentInk=readableInk(spec.accent,spec.background);
   const mainInk=readableInk(spec.background,spec.foreground);
   const mutedInk=readableInk(spec.muted,spec.foreground);
-  const sectionTone=dark?spec.foreground:spec.background;
-  const sectionText=readableInk(sectionTone,dark?spec.background:spec.foreground);
+  const sectionTone=spec.slug==="auto-detailing"?spec.muted:dark?spec.foreground:spec.background;
+  const sectionText=readableInk(sectionTone,spec.slug==="auto-detailing"?spec.foreground:dark?spec.background:spec.foreground);
   const rounded=(spec.style==="utility"||spec.style==="playful"||spec.style==="fitness")?"rounded-3xl":spec.style==="industrial"||spec.style==="corporate"?"rounded-sm":"rounded-xl";
   const action=(label:string)=> <Link to={path("contact")} className="inline-flex min-h-12 items-center justify-center gap-2 px-6 py-3 text-sm font-semibold transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2" style={{background:spec.accent,color:accentInk,borderRadius:spec.style==="utility"||spec.style==="playful"?"99px":"6px"}}>{label}<ArrowUpRight size={17}/></Link>;
   return <div className="bt-demo-design min-h-screen" data-demo-layout={design.layout} data-demo-type={design.type} data-demo-services={design.services} style={{background:spec.background,color:mainInk,"--demo-bg":spec.background,"--demo-ink":mainInk,"--demo-accent":spec.accent,"--demo-accent-ink":accentInk,"--demo-muted":spec.muted,"--demo-muted-ink":mutedInk,"--demo-label":readableInk(spec.background,spec.accent)} as React.CSSProperties}>
@@ -120,6 +121,7 @@ export default function StudioExpandedLivePreview() {
         </div>
         <div className={"bt-demo-media "+(spec.style==="automotive"||spec.style==="fitness"?"lg:order-1":"")}><Artwork spec={spec}/></div>
       </section>
+      <IndustryExperience key={spec.slug} slug={spec.slug} services={spec.services} contact={path("contact")} servicePath={path("services")}/>
       <section className="bt-demo-service-section border-y" style={{background:sectionTone,color:sectionText,borderColor:spec.muted}}>
         <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 lg:px-12 lg:py-20">
           <div className="flex flex-wrap items-end justify-between gap-5"><div><p className="text-xs font-bold uppercase tracking-[.2em]" style={{color:readableInk(sectionTone,spec.accent)}}>What we do</p><h2 className="mt-4 max-w-xl font-serif text-4xl leading-tight sm:text-5xl">{spec.highlight}</h2></div><Link to={path("services")} className="inline-flex items-center gap-2 text-sm font-semibold underline underline-offset-4">All services <ArrowRight size={15}/></Link></div>
@@ -161,7 +163,7 @@ export default function StudioExpandedLivePreview() {
           <p className="mt-4 text-xs leading-6 opacity-70">Demo only. No message is sent, no appointment is booked, and the information is not stored by this form.</p>
           {briefOpen&&<div role="status" className="mt-7 border-l-4 p-5" style={{borderColor:spec.accent,background:spec.muted,color:mutedInk}}><h2 className="font-bold">Your sample enquiry</h2><p className="mt-3 text-sm"><strong>Service:</strong> {spec.services[selected].title}</p><p className="mt-2 whitespace-pre-wrap text-sm"><strong>Brief:</strong> {projectNote.trim()||"No additional details provided"}</p><p className="mt-4 text-xs opacity-75">Preview only — nothing has been submitted.</p></div>}
         </div>
-        <aside className={"h-fit p-7 sm:p-9 "+rounded} style={{background:spec.muted,color:mutedInk}}><span className="text-xs font-bold uppercase tracking-[.2em]">What happens next?</span><ol className="mt-8 space-y-7">{spec.process.map((s,i)=><li key={s.title} className="flex gap-4"><span className="font-serif text-3xl" style={{color:readableInk(spec.background,spec.accent)}}>0{i+1}</span><div><h3 className="font-semibold">{s.title}</h3><p className="mt-2 text-sm leading-7 opacity-75">{s.detail}</p></div></li>)}</ol><div className="mt-10 border-t pt-7" style={{borderColor:spec.accent}}><p className="text-sm leading-7">Want a working enquiry journey for your own service business?</p><Link to={previewLink} className="mt-4 inline-flex items-center gap-2 font-bold underline underline-offset-4">Explore Bennie Studio <ArrowUpRight size={17}/></Link></div></aside>
+        <aside className={"h-fit p-7 sm:p-9 "+rounded} style={{background:spec.muted,color:mutedInk}}><span className="text-xs font-bold uppercase tracking-[.2em]">What happens next?</span><ol className="mt-8 space-y-7">{spec.process.map((s,i)=><li key={s.title} className="flex gap-4"><span className="font-serif text-3xl" style={{color:readableInk(spec.muted,spec.accent)}}>0{i+1}</span><div><h3 className="font-semibold">{s.title}</h3><p className="mt-2 text-sm leading-7 opacity-75">{s.detail}</p></div></li>)}</ol><div className="mt-10 border-t pt-7" style={{borderColor:spec.accent}}><p className="text-sm leading-7">Want a working enquiry journey for your own service business?</p><Link to={previewLink} className="mt-4 inline-flex items-center gap-2 font-bold underline underline-offset-4">Explore Bennie Studio <ArrowUpRight size={17}/></Link></div></aside>
       </section>
     </main>}
     <footer className="border-t" style={{borderColor:spec.muted}}><div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-10 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-12"><div><p className="font-bold">{spec.brand}</p><p className="mt-2 max-w-xl text-xs leading-6 opacity-70">Illustrative website design by Bennie Studio. Fictional business identity. No transactions or bookings.</p></div><div className="flex flex-wrap gap-x-6 gap-y-3 text-sm font-medium"><Link to={path("home")} className="hover:underline">Home</Link><Link to={path("services")} className="hover:underline">Services</Link><Link to={"/case-studies/showcase/"+spec.slug} className="inline-flex items-center gap-1 hover:underline">Case study <MoveUpRight size={15}/></Link><Link to="/case-studies" className="inline-flex items-center gap-1 hover:underline"><ArrowLeft size={15}/> All concepts</Link></div></div></footer>
