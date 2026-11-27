@@ -71,6 +71,25 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
       return res.json({businessId,sites,capacity,lifecycleEnabled:schemaReady&&enabled()&&business.status==="active"&&business.subscription_status==="active"});
     }catch(error){return report(res,error);}
   });
+  app.post("/api/account/websites/:siteId/asset-upload",authenticate,async(req:any,res:any)=>{
+    res.setHeader("Cache-Control","private, no-store");
+    if(!enabled())return res.status(503).json({error:"Website-specific uploads are disabled."});
+    const siteId=z.string().uuid().safeParse(req.params.siteId);
+    const body=z.object({mimeType:z.enum(["image/jpeg","image/png","image/webp"]),size:z.number().int().min(1).max(5*1024*1024)}).strict().safeParse(req.body);
+    if(!siteId.success||!body.success)return res.status(400).json({error:"Upload JPG, PNG or WebP up to 5 MB."});
+    try{
+      const profile=await actor(req,res);if(!profile)return;
+      const {data:site,error}=await db.from("websites").select("id").eq("id",siteId.data).eq("business_id",profile.business_id).eq("status","draft").eq("is_internal_pilot",false).is("archived_at",null).maybeSingle();
+      if(error)throw error;if(!site)return res.status(404).json({error:"Draft website not found."});
+      const {data:owner,error:oe}=await db.from("businesses").select("status,subscription_status").eq("id",profile.business_id).single();
+      if(oe)throw oe;if(owner.status!=="active"||owner.subscription_status!=="active")return res.status(403).json({error:"Active subscription required"});
+      const bucket="website-assets";const extension={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"}[body.data.mimeType];
+      const path="sites/"+profile.business_id+"/"+siteId.data+"/"+crypto.randomUUID()+"."+extension;
+      const {data:upload,error:ue}=await db.storage.from(bucket).createSignedUploadUrl(path);
+      if(ue||!upload?.token)throw ue||Error("Upload token missing");
+      return res.json({bucket,path,token:upload.token,publicUrl:db.storage.from(bucket).getPublicUrl(path).data.publicUrl});
+    }catch(error){return report(res,error);}
+  });
   app.get("/api/account/websites/:siteId/overview",authenticate,async(req:any,res:any)=>{
     res.setHeader("Cache-Control","private, no-store");
     const parsed=z.string().uuid().safeParse(req.params.siteId);
@@ -92,7 +111,12 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
         db.from("leads").select("id,name,status,created_at,source").eq("business_id",businessId).eq("website_id",siteId).gte("created_at",since).order("created_at",{ascending:false}).limit(10)
       ]);
       for(const result of [views,events,leads,recent])if(result.error)throw result.error;
-      return res.json({siteId,businessId,days:days.data,since,pageViews:views.count??0,interactions:events.count??0,leads:leads.count??0,recentLeads:recent.data||[]});
+      let usage=null;
+      if(enabled()){
+        const {data,error}=await db.rpc("website_resource_usage",{p_business:businessId,p_website:siteId,p_since:since});
+        if(error)throw error;usage=data;
+      }
+      return res.json({siteId,businessId,days:days.data,since,usage,pageViews:views.count??0,interactions:events.count??0,leads:leads.count??0,recentLeads:recent.data||[]});
     }catch(error){return report(res,error);}
   });
   app.post("/api/account/websites", authenticate, async(req:any,res:any)=>{

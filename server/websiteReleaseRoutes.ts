@@ -64,6 +64,10 @@ export function registerWebsiteReleaseRoutes(app:any,db:any,authenticate:any,get
    if(staffAction!==staff)return res.status(403).json({error:"This action requires the appropriate reviewer role."});
    if(site.release_revision!==revision)return res.status(409).json({error:"Website revision changed. Refresh and review again."});
    if(action!=="unpublish"&&(owner.status!=="active"||owner.subscription_status!=="active"))return res.status(403).json({error:"Active subscription required"});
+   if(action==="publish"){
+     const {data:allowed,error:qe}=await db.rpc("website_slot_available",{p_business:site.business_id,p_website:site.id});
+     if(qe)throw qe;if(!allowed)return res.status(409).json({error:"Website allowance exceeded. Restore available capacity before publication."});
+   }
    if(action==="unpublish"?site.status!=="published":site.status!=="draft")return res.status(409).json({error:"Website is not in the required publication state."});
    const now=new Date().toISOString();let patch:Record<string,unknown>={updated_at:now};
    if(action==="submit")patch={...patch,submitted_revision:revision,internal_approved_revision:null,customer_approved_revision:null,internal_approved_by:null,customer_approved_by:null,internal_approved_at:null,customer_approved_at:null};

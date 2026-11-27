@@ -88,6 +88,9 @@ async function resolveTenantHost(host: string): Promise<TenantResolveResult> {
       const owners=await fetchSupabase(`businesses?select=${TENANT_SELECT}&id=eq.${encodeURIComponent(site.business_id)}&limit=1`);
       const owner=owners?.[0];
       if(!owner||owner.id!==site.business_id||owner.status!=="active"||owner.subscription_status!=="active")return {ok:false,status:403,code:"BUSINESS_INACTIVE",message:"This website is not available."};
+      const allowedResponse=await fetch(new URL("rpc/website_slot_available",`${process.env.VITE_SUPABASE_URL}/rest/v1/`),{method:"POST",headers:{...supabaseHeaders(),"Content-Type":"application/json"},body:JSON.stringify({p_business:site.business_id,p_website:site.id}),cache:"no-store"});
+      if(!allowedResponse.ok)throw Error("Website allowance verification failed");
+      if(await allowedResponse.json()!==true)return {ok:false,status:402,code:"WEBSITE_ALLOWANCE_EXCEEDED",message:"This website is not available."};
       return {ok:true,businessId:site.business_id,websiteId:site.id,kind:tenant.kind};
     }
   }

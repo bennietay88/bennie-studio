@@ -387,4 +387,32 @@ drop trigger if exists audit_website_addon_price on public.website_addon_price;
 create trigger audit_website_addon_price after insert or update on public.website_addon_price for each row execute function private.audit_website_commercial();
 drop trigger if exists audit_plan_website_limit on public.plans;
 create trigger audit_plan_website_limit after update of website_limit on public.plans for each row execute function private.audit_website_commercial();
+-- Resource reporting attributes only verified website-specific activity.
+alter table public.ai_generation_logs add column if not exists website_id uuid references public.websites(id) on delete set null;
+create index if not exists ai_generation_logs_site_usage on public.ai_generation_logs(website_id,created_at) where website_id is not null;
+create or replace function public.website_resource_usage(p_business uuid,p_website uuid,p_since timestamptz)
+returns jsonb language sql stable security invoker set search_path='' as $usage$
+ select jsonb_build_object(
+  'aiCredits',coalesce((select sum(coalesce(credits_charged,0)) from public.ai_generation_logs where project_id=p_business and website_id=p_website and created_at>=p_since),0),
+  'aiRequests',(select count(*) from public.ai_generation_logs where project_id=p_business and website_id=p_website and created_at>=p_since),
+  'storageBytes',coalesce((select sum(case when metadata->>'size' ~ '^[0-9]{1,15}
+ then (metadata->>'size')::bigint else 0 end) from storage.objects where bucket_id='website-assets' and name like 'sites/'||p_business::text||'/'||p_website::text||'/%'),0),
+  'storageObjects',(select count(*) from storage.objects where bucket_id='website-assets' and name like 'sites/'||p_business::text||'/'||p_website::text||'/%'))
+ where exists(select 1 from public.websites where id=p_website and business_id=p_business);
+$usage$;
+revoke all on function public.website_resource_usage(uuid,uuid,timestamptz) from public,anon,authenticated;
+grant execute on function public.website_resource_usage(uuid,uuid,timestamptz) to service_role;
+
+-- Primary sites retain legacy access. Secondary sites compete only for the
+-- remaining slots, with a stable UUID tie-breaker. Published sites take
+-- precedence over drafts; no downgrade ever deletes content.
+create or replace function public.website_slot_available(p_business uuid,p_website uuid)
+returns boolean language sql stable security invoker set search_path='' as $slots$
+ select coalesce((select w.is_primary or (w.archived_at is null and
+  (select count(*) from public.websites x where x.business_id=p_business and x.archived_at is null
+   and (x.is_primary or (not x.is_primary and (case when x.status='published' then 0 else 1 end,x.id)<(case when w.status='published' then 0 else 1 end,w.id))))<public.effective_website_limit(p_business))
+  from public.websites w where w.id=p_website and w.business_id=p_business),false);
+$slots$;
+revoke all on function public.website_slot_available(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.website_slot_available(uuid,uuid) to service_role;
 commit;

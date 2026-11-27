@@ -80,6 +80,7 @@ export async function askAI(
   prompt: string,
   options: {
     businessId?: string;
+    websiteId?: string;
     systemMessage?: string;
     responseSchema?: any;
     isJson?: boolean;
@@ -102,6 +103,7 @@ export async function askAI(
         "/api/ai/generate",
         {
           project_id: options.businessId,
+          website_id: options.websiteId,
           feature_key: featureKey,
           input: {
             prompt,
@@ -175,6 +177,7 @@ export async function generateWebsiteContent(
   businessId?: string,
   selectedSections: string[] = [],
   strategy: any = {},
+  websiteId?: string,
 ) {
   const systemMessage = `You are an elite web architect and copywriter.
     Generate a high-conversion website structure and copy in JSON format.
@@ -256,6 +259,7 @@ export async function generateWebsiteContent(
 
   return await askAI("synthesis", prompt, {
     businessId,
+    websiteId,
     featureKey: "website_draft",
     systemMessage,
     isJson: true,
@@ -278,10 +282,12 @@ export async function generatePageContent(
   tone: string,
   businessNature: string = "",
   businessId?: string,
+  websiteId?: string,
 ) {
   const prompt = `Generate page content for "${pageTitle}" for ${businessName}. Industry: ${industry}, Tone: ${tone}`;
   return await askAI("synthesis", prompt, {
     businessId,
+    websiteId,
     featureKey: "website_draft",
     isJson: true
   });
@@ -296,10 +302,12 @@ export async function generateSectionContent(
   businessNature: string = "",
   businessId?: string,
   customPrompt?: string,
+  websiteId?: string,
 ) {
   const prompt = `Generate a ${type} section for ${businessName}. ${customPrompt || ""}`;
   return await askAI("rewrite_section", prompt, {
     businessId,
+    websiteId,
     isJson: true
   });
 }

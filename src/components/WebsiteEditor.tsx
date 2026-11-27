@@ -1107,6 +1107,7 @@ export function WebsiteEditor({
         website.seo.description || "",
         business.id,
         prompt,
+        websiteIdOverride ? website.id : undefined,
       );
       
       if (aiResponse && aiResponse.sections) {
@@ -1473,6 +1474,8 @@ export function WebsiteEditor({
         website.seo?.description || business.description || "",
         website.businessId,
         sectionTypes,
+        {},
+        websiteIdOverride ? website.id : undefined,
       );
 
       clearInterval(interval);
@@ -2108,6 +2111,7 @@ export function WebsiteEditor({
         business?.description || website.seo?.description,
         business?.id,
         guidedPrompt,
+        websiteIdOverride ? website.id : undefined,
       );
 
       if (result && result.content) {
@@ -2552,6 +2556,7 @@ export function WebsiteEditor({
         tone,
         businessNature,
         businessId,
+        websiteIdOverride ? website.id : undefined,
       );
 
       const newPage: WebsitePage = {
@@ -2728,6 +2733,8 @@ export function WebsiteEditor({
         tone,
         businessNature,
         businessId,
+        undefined,
+        websiteIdOverride ? website.id : undefined,
       );
 
       const newSection: WebsiteSection = {
@@ -2833,6 +2840,8 @@ export function WebsiteEditor({
         tone,
         businessNature,
         businessId,
+        undefined,
+        websiteIdOverride ? website.id : undefined,
       );
 
       const newSection: WebsiteSection = {
@@ -3830,7 +3839,7 @@ export function WebsiteEditor({
                                 }
                                 placeholder="Write your story using markdown..."
                               />
-                              <ImageUpload
+                              <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                                 label="Story / Founder Image"
                                 description="Use a real founder, team, office, project or service image supplied by the customer."
                                 bucket="website-assets"
@@ -4052,7 +4061,7 @@ export function WebsiteEditor({
                             ) : null}
                           </div>
 
-                          <ImageUpload
+                          <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                             label=""
                             description="Upload a full-section background artwork (JPG, PNG or WebP, max 5MB). It will cover the complete section."
                             value={section.settings?.backgroundImage || ""}
@@ -7206,7 +7215,7 @@ export function WebsiteEditor({
                                                 }
                                               />
                                             </div>
-                                            <ImageUpload
+                                            <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                                               label="Hero Image"
                                               bucket="website-assets"
                                               value={
@@ -7306,7 +7315,7 @@ export function WebsiteEditor({
                                               About text is required
                                             </p>
                                           )}
-                                          <ImageUpload
+                                          <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                                             label="Story / Founder Image"
                                             description="Use customer-supplied founder, team, office, project or service photography."
                                             bucket="website-assets"
@@ -7337,9 +7346,9 @@ export function WebsiteEditor({
                                         <Textarea value={section.content.description || ""} onChange={e => updateSectionContent(page.id, section.id, {description:e.target.value})}/>
                                         <div className="grid gap-4 sm:grid-cols-2">
                                           <div className="space-y-2"><Label>Before label</Label><Input value={section.content.beforeLabel || ""} onChange={e => updateSectionContent(page.id, section.id, {beforeLabel:e.target.value})}/>
-                                          <ImageUpload label="Before image" bucket="website-assets" value={section.content.beforeImageUrl || ""} onUpload={url => updateSectionContent(page.id, section.id, {beforeImageUrl:url})}/></div>
+                                          <ImageUpload websiteId={websiteIdOverride ? website.id : undefined} label="Before image" bucket="website-assets" value={section.content.beforeImageUrl || ""} onUpload={url => updateSectionContent(page.id, section.id, {beforeImageUrl:url})}/></div>
                                           <div className="space-y-2"><Label>After label</Label><Input value={section.content.afterLabel || ""} onChange={e => updateSectionContent(page.id, section.id, {afterLabel:e.target.value})}/>
-                                          <ImageUpload label="After image" bucket="website-assets" value={section.content.afterImageUrl || ""} onUpload={url => updateSectionContent(page.id, section.id, {afterImageUrl:url})}/></div>
+                                          <ImageUpload websiteId={websiteIdOverride ? website.id : undefined} label="After image" bucket="website-assets" value={section.content.afterImageUrl || ""} onUpload={url => updateSectionContent(page.id, section.id, {afterImageUrl:url})}/></div>
                                         </div>
                                         <p className="text-xs text-slate-500">Use matching, approved images. This section stays hidden on the published website until both images are available.</p>
                                       </div>
@@ -7725,7 +7734,7 @@ export function WebsiteEditor({
                                                     );
                                                   }}
                                                 />
-                                                <ImageUpload
+                                                <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                                                   label="Member Image"
                                                   description="Square aspect ratio works best."
                                                   value={member.imageUrl || ""}
@@ -7826,7 +7835,7 @@ export function WebsiteEditor({
                                                   }}
                                                 />
                                               </div>
-                                              <ImageUpload
+                                              <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                                                 label="Service Image (optional)"
                                                 description="Use a customer-supplied service, project or product image."
                                                 bucket="website-assets"
@@ -8619,7 +8628,7 @@ export function WebsiteEditor({
                                               },
                                             )}
                                             <div className="sm:col-span-2">
-                                              <ImageUpload
+                                              <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                                                 label="Add Logo"
                                                 description="Upload only client, partner, association, certification, platform or technology logos the business is entitled to display."
                                                 bucket="website-assets"
@@ -9997,7 +10006,7 @@ export function WebsiteEditor({
                   <div className="space-y-3 pt-4 border-t border-slate-100">
                     <Label className="text-base">Logo Settings</Label>
                     <div className="space-y-4">
-                      <ImageUpload
+                      <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                         label="Logo Upload"
                         description="PNG or SVG recommended."
                         value={website.theme.logoUrl || ""}

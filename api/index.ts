@@ -6610,6 +6610,7 @@ async function startServer() {
     const aiGenerateBody = validateBody(
       z.object({
         project_id: UUID_SCHEMA.optional().nullable(),
+        website_id: UUID_SCHEMA.optional().nullable(),
         feature_key: z.string().trim().min(1).max(80),
         input: z.any(),
       }),
@@ -6618,7 +6619,7 @@ async function startServer() {
     );
     if (!aiGenerateBody) return;
 
-    const { project_id, feature_key, input } = aiGenerateBody;
+    const { project_id, website_id, feature_key, input } = aiGenerateBody;
     const userId = req.user.id;
 
     // Helper to determine if we should fallback (Permanent Fix for missing keys or limits)
@@ -6634,6 +6635,14 @@ async function startServer() {
     }
 
     try {
+      if(website_id){
+        if(!project_id||process.env.MULTI_SITE_DRAFT_LIFECYCLE!=="true")return res.status(403).json({error:"Website-specific AI is not enabled."});
+        const profile=await getProfileForUser(userId);
+        if(profile?.status!=="active"||profile.role!=="business_admin"||profile.business_id!==project_id)return res.status(403).json({error:"Website administrator access required."});
+        const {data:site,error:siteError}=await supabaseAdmin.from("websites").select("id").eq("id",website_id).eq("business_id",project_id).eq("status","draft").eq("is_internal_pilot",false).is("archived_at",null).maybeSingle();
+        if(siteError)return res.status(503).json({error:"Website access verification unavailable."});
+        if(!site)return res.status(404).json({error:"Draft website not found."});
+      }
       // 1. Get Feature Config
       const { data: feature, error: featureError } = await supabaseAdmin
         .from("ai_feature_costs")
@@ -6840,6 +6849,7 @@ async function startServer() {
         await supabaseAdmin.from("ai_generation_logs").insert({
           user_id: userId,
           project_id,
+          ...(website_id?{website_id}:{}),
           feature_key,
           provider: selectedProvider,
           model: selectedModel,
@@ -6888,6 +6898,7 @@ async function startServer() {
       await supabaseAdmin.from("ai_generation_logs").insert({
         user_id: userId,
         project_id,
+        ...(website_id?{website_id}:{}),
         feature_key,
         provider: selectedProvider,
         model: selectedModel,
@@ -15203,6 +15214,9 @@ async function startServer() {
           const {data:owner,error:ownerError}=await supabaseAdmin.from("businesses").select("id,name,status,subscription_status").eq("id",site.business_id).maybeSingle();
           if(ownerError)throw ownerError;
           if(!owner||owner.status!=="active"||owner.subscription_status!=="active")return res.status(403).json({error:"This website is not available.",code:"BUSINESS_INACTIVE"});
+          const {data:allowed,error:quotaError}=await supabaseAdmin.rpc("website_slot_available",{p_business:site.business_id,p_website:site.id});
+          if(quotaError)throw quotaError;
+          if(!allowed)return res.status(402).json({error:"This website is not available.",code:"WEBSITE_ALLOWANCE_EXCEEDED"});
           return res.json({businessId:owner.id,businessName:owner.name,websiteId:site.id,tenantKind:tenant.kind,status:"connected"});
         }
       }
