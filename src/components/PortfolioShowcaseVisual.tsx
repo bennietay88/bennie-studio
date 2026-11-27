@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
-import type { PortfolioItem } from "../lib/portfolioCatalog";
+import { DEFAULT_PORTFOLIO_ITEMS, type PortfolioItem } from "../lib/portfolioCatalog";
 import { portfolioDemoSlug } from "../lib/studioInteractiveDemos";
 
 /** Real design-study assets already shipped with Bennie Studio. Keep stored CMS
@@ -48,24 +48,23 @@ export function PortfolioShowcaseVisual({ item, compact = false, priority = fals
   priority?: boolean;
 }) {
   const bundledImage = bundledDesignScreenshots[item.slug];
-  const image = item.coverImage || item.desktopImage || bundledImage?.full || "";
-  const bundledSrcSet = !item.coverImage && !item.desktopImage && bundledImage
-    ? `${bundledImage.thumbnail} 768w, ${bundledImage.full} 1448w`
-    : undefined;
-  const [failedImage, setFailedImage] = React.useState(false);
-  React.useEffect(() => setFailedImage(false), [image]);
+  const captured = DEFAULT_PORTFOLIO_ITEMS.find(entry => entry.slug === item.slug);
+  const sources = [...new Set([item.coverImage, item.desktopImage, captured?.coverImage, captured?.desktopImage, bundledImage?.full].filter((value): value is string => Boolean(value)))];
+  const signature = sources.join("|");
+  const [failure, setFailure] = React.useState({ signature: "", index: 0 });
+  const index = failure.signature === signature ? failure.index : 0;
+  const image = sources[index];
   return <div className="portfolio-motion-image relative min-w-0 overflow-hidden border-b border-slate-200 bg-[#eef2f7]">
-    {image && !failedImage ? <img
+    {image ? <img data-testid="portfolio-screenshot"
       src={image}
-      srcSet={bundledSrcSet}
       sizes={compact ? "(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 560px" : "(max-width: 768px) 100vw, 50vw"}
-      width={1448}
-      height={1086}
+      width={960}
+      height={600}
       alt={item.imageAlt || `${item.title} illustrative website design study`}
       loading={priority ? "eager" : "lazy"}
       decoding="async"
       fetchPriority={priority ? "high" : undefined}
-      onError={() => setFailedImage(true)}
+      onError={() => setFailure({ signature, index: index + 1 })}
       className={`block w-full object-cover object-top ${compact ? "aspect-[8/5]" : "aspect-[8/5]"}`}
     /> : <PortfolioConceptFallback item={item}/>}
     {item.featured && <span className="absolute left-3 top-3 rounded bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-slate-900 shadow-sm">Featured concept</span>}

@@ -18,15 +18,34 @@ test("marketing footer is legible and uses a compact desktop grid", async ({page
   expect(diagnostics.groups).toBeGreaterThanOrEqual(5);
 });
 
-test("portfolio has no empty screenshot placeholders", async ({page}) => {
+test("all 18 portfolio cards load unique captured website images", async ({page}) => {
+  await page.route("**/api/public/studio-showcases", route => route.fulfill({json:{showcases:{}}}));
   await page.goto("/case-studies", {waitUntil:"domcontentloaded"});
-  await expect(page.getByText("Screenshot to be added")).toHaveCount(0);
-  await expect(page.locator('[data-testid="portfolio-card"]')).toHaveCount(18);
-  await expect(page.locator(".portfolio-concept-preview")).not.toHaveCount(0);
-  const cards=page.locator('[data-testid="portfolio-card"]');
-  for (const i of [6,7,8]) {
-    await expect(cards.nth(i).locator(".portfolio-concept-preview")).toBeVisible();
-    await expect(cards.nth(i).locator(".portfolio-concept-message > strong")).not.toBeEmpty();
+  const cards=page.getByTestId("portfolio-card");
+  await expect(cards).toHaveCount(18);
+  const images=cards.getByTestId("portfolio-screenshot");
+  await expect(images).toHaveCount(18);
+  for (const image of await images.all()) {
+    await image.scrollIntoViewIfNeeded();
+    await expect.poll(()=>image.evaluate((node:HTMLImageElement)=>node.complete&&node.naturalWidth>=900)).toBe(true);
+  }
+  const sources=await images.evaluateAll(nodes=>nodes.map(node=>(node as HTMLImageElement).currentSrc));
+  expect(new Set(sources).size).toBe(18);
+  expect(sources.every(src=>src.endsWith("-cover.webp"))).toBe(true);
+  await expect(page.locator(".portfolio-concept-preview")).toHaveCount(0);
+});
+
+test("case study walkthrough loads desktop and mobile captures", async ({page}) => {
+  await page.route("**/api/public/studio-showcases", route => route.fulfill({json:{showcases:{}}}));
+  for (const slug of ["dental-clinic","accounting-firm","event-planning"]) {
+    await page.goto("/case-studies/showcase/"+slug,{waitUntil:"domcontentloaded"});
+    for (const kind of ["desktop","mobile"]) {
+      const section=page.getByTestId("study-"+kind+"-screenshot");
+      const image=section.locator("img");
+      await image.scrollIntoViewIfNeeded();
+      await expect.poll(()=>image.evaluate((node:HTMLImageElement)=>node.complete&&node.naturalWidth>0)).toBe(true);
+      await expect(section.getByRole("link",{name:"View full image"})).toHaveAttribute("href",new RegExp(slug+"-"+kind+"\\.jpg$"));
+    }
   }
 });
 
@@ -43,4 +62,15 @@ test("unverified prices do not masquerade as monthly quote amounts", async ({pag
     await expect(first.locator(".s28-price-period")).toHaveCount(0);
     await expect(first.getByRole("button",{name:/Ask about this plan/i})).toBeEnabled();
   }
+});
+
+test("interactive designs load locally hosted industry photography",async({page})=>{
+ await page.route("**/api/public/studio-showcases",route=>route.fulfill({json:{showcases:{}}}));
+ for(const slug of ["dental-clinic","accounting-firm","physiotherapy-clinic","event-planning"]){
+  await page.goto("/case-studies/showcase/"+slug+"/preview",{waitUntil:"domcontentloaded"});
+  const photo=page.getByTestId("demo-industry-photo").first();
+  await expect(photo).toBeVisible();
+  await expect(photo).toHaveAttribute("src","/images/case-studies/photography/"+slug+".jpg");
+  await expect.poll(()=>photo.evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>=500)).toBe(true);
+ }
 });

@@ -1,0 +1,75 @@
+name: Portfolio screenshot capture
+on:
+  push:
+    branches: [portfolio/image-refresh]
+    paths:
+      - 'scripts/capture-portfolio.mjs'
+      - '.github/workflows/portfolio-captures.yml'
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Prepare locally hosted demo photography
+        run: node --import tsx scripts/prepare-demo-photography.mjs
+      - name: Build isolated demo site
+        run: env VITE_SUPABASE_URL=https://e2e.supabase.co VITE_SUPABASE_ANON_KEY=e2e-anon-key npm run build
+      - name: Capture all portfolio demos
+        shell: bash
+        run: |
+          set -euo pipefail
+          env -u VERCEL E2E_TEST=true VITE_SUPABASE_URL=https://e2e.supabase.co VITE_SUPABASE_ANON_KEY=e2e-anon-key SUPABASE_SERVICE_ROLE_KEY=e2e-service-role-key STRIPE_SECRET_KEY=sk_test_e2e STRIPE_WEBHOOK_SECRET=whsec_e2e NODE_ENV=test HOST=127.0.0.1 PORT=4173 npm start >/tmp/portfolio-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:4173/ >/dev/null
+          node --import tsx scripts/capture-portfolio.mjs
+          test "$(find public/images/case-studies/captures -maxdepth 1 -type f | wc -l)" -eq 54
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-captures
+          path: |
+            public/images/case-studies/captures/
+            public/images/case-studies/photography/
+          if-no-files-found: error
+          retention-days: 7
+  publish-branch:
+    if: github.ref == 'refs/heads/portfolio/image-refresh'
+    needs: capture
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: portfolio/image-refresh
+      - uses: actions/download-artifact@v4
+        with:
+          name: portfolio-captures
+          path: public/images/case-studies/
+      - name: Commit screenshots to portfolio branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find public/images/case-studies/captures -maxdepth 1 -type f | wc -l)" -eq 54
+          test "$(find public/images/case-studies/photography -maxdepth 1 -type f -name '*.jpg' | wc -l)" -eq 18
+          git add -- public/images/case-studies/captures/ public/images/case-studies/photography/
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Capture all 18 interactive case study designs"
+          git push origin HEAD:refs/heads/portfolio/image-refresh
