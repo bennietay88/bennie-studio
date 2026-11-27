@@ -46,7 +46,7 @@ async function loadCustomer(db: Store, req: any, authorize: HandlerOptions["asse
       ["suspended", "terminated"].includes(profile.status)) return null;
   await authorize(req.user.id, profile.business_id);
   const { data: business } = await check(db.from("businesses")
-    .select("id,name,plan,status,subscription_status,stripe_customer_id,stripe_subscription_id,custom_enabled_features")
+    .select("id,name,plan,status,subscription_status,stripe_customer_id,stripe_subscription_id,custom_enabled_features,internal_access_mode")
     .eq("id", profile.business_id).maybeSingle());
   return business || null;
 }
@@ -249,6 +249,7 @@ export function registerSimpleFunnelAddonRoutes(options: HandlerOptions) {
       if (!parsed.success) return res.status(400).json({ error: "Complete the offer, audience and contact details." });
       const business = req.addonBusiness;
       try {
+        if (business.internal_access_mode) return res.status(409).json({error:"Internal workspaces do not require paid add-on checkout.",code:"INTERNAL_BILLING_EXEMPT"});
         const config = await loadSimpleFunnelAddonConfig(db);
         if (!config.enabled) return res.status(409).json({ error: "The add-on is not available for new orders yet." });
         if (!["active", "trialing"].includes(String(business.subscription_status || ""))) {

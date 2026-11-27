@@ -32,7 +32,7 @@ export async function getFunnelTierConfig(db: any): Promise<FunnelTierConfig> {
 }
 async function readBusiness(db: any, businessId: string) {
   return checked(db.from("businesses")
-    .select("id,name,status,subscription_status,stripe_customer_id,custom_enabled_features")
+    .select("id,name,status,subscription_status,stripe_customer_id,custom_enabled_features,internal_access_mode")
     .eq("id", businessId).maybeSingle());
 }
 // Preserve pre-migration production: never interrupt existing funnels or
@@ -309,6 +309,7 @@ export function registerUnifiedFunnelTierRoutes({app,db,authenticate,superAdminO
     rateLimit({windowMs:60*60*1000,max:5,keyPrefix:"unified-funnel-tier-checkout"}),async(req:any,res:any)=>{
     const business=req.funnelBusiness;
     try {
+      if (business.internal_access_mode) return res.status(409).json({error:"Internal workspaces do not require paid funnel checkout. Use Super Admin.",code:"INTERNAL_BILLING_EXEMPT"});
       const config=await getFunnelTierConfig(db);
       if (!config.enabled) return res.status(409).json({error:"Paid funnel plans are not available yet."});
       if (!isActiveBusiness(business)) return res.status(409).json({error:"An active website subscription is required."});

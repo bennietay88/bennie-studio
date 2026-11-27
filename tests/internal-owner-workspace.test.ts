@@ -11,3 +11,10 @@ test("internal billing exemptions are checked by server and separate from ordina
  assert.match(admin,/Internal owner development/);
  assert.match(feature,/currentPlan.enabled_features/);
 });
+
+test("internal add-on checkout protection and migration guard",()=>{
+ const api=readFileSync("api/index.ts","utf8");const unified=readFileSync("server/unifiedFunnelTiers.ts","utf8");const simple=readFileSync("server/simpleFunnelAddon.ts","utf8");
+ const preview=api.slice(api.indexOf('"/api/public/preview-checkout"'),api.indexOf('"/api/public/preview-checkout/status"'));assert.match(preview,/isInternalWorkspace\(lead.business_id\)/);
+ assert.match(unified,/business.internal_access_mode.*INTERNAL_BILLING_EXEMPT/);assert.match(simple,/business.internal_access_mode.*INTERNAL_BILLING_EXEMPT/);
+ const migration=readFileSync("supabase/migrations/20261127005929_internal_owner_workspace.sql","utf8");assert.match(migration,/Only a super administrator may configure internal access/);assert.match(migration,/Internal workspace cannot be linked to platform Stripe billing/);
+});

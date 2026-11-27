@@ -4578,8 +4578,6 @@ async function startServer() {
         if (!lead || lead.preview_id !== body.previewId) {
           return res.status(403).json({ error: "This preview could not be verified." });
         }
-        if (await isInternalWorkspace(lead.business_id)) return internalCheckoutDenied(res);
-
         const raw = lead.raw_fields && typeof lead.raw_fields === "object" ? lead.raw_fields : {};
         const profile = raw.previewProfile && typeof raw.previewProfile === "object" ? raw.previewProfile : {};
         const businessName = String(profile.businessName || raw.businessName || lead.name || "Website preview").trim().slice(0, 160);
@@ -12090,6 +12088,7 @@ async function startServer() {
           return res.status(403).json({ error: "This preview could not be verified." });
         }
 
+        if (await isInternalWorkspace(lead.business_id)) return internalCheckoutDenied(res);
         const previewProfile = lead.raw_fields?.previewProfile || {};
         const businessName = String(
           previewProfile.businessName
