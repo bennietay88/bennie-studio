@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { createPublicContentResource } from "./publicContentResource";
 
 export type PlatformCmsItem = { title: string; body: string; imageUrl?: string };
 export type PlatformCmsSection = {
@@ -103,28 +104,18 @@ export const DEFAULT_PLATFORM_CMS: PlatformSiteCms = {
   pages: {},
 };
 
-let publicCmsRequest: Promise<PlatformSiteCms | null> | null = null;
-export function fetchPublishedPlatformCms(force = false) {
-  if (!publicCmsRequest || force) {
-    publicCmsRequest = fetch("/api/public/platform-site-cms", { headers: { Accept: "application/json" } })
-      .then(async (response) => {
-        if (!response.ok) return null;
-        const content = (await response.json())?.content;
-        return content && typeof content === "object" ? normalizePlatformCms(content) : null;
-      })
-      .catch(() => null);
-  }
-  return publicCmsRequest;
-}
+const publishedCms = createPublicContentResource<PlatformSiteCms | null>(null, async (signal) => {
+  const response = await fetch("/api/public/platform-site-cms", { headers: { Accept: "application/json" }, signal });
+  if (!response.ok) throw new Error("Published CMS unavailable");
+  const content = (await response.json())?.content;
+  return content && typeof content === "object" ? normalizePlatformCms(content) : null;
+});
+export function fetchPublishedPlatformCms(force = false) { return publishedCms.ensure(force); }
 
 export function usePublishedPlatformCms() {
-  const [content, setContent] = useState<PlatformSiteCms>(DEFAULT_PLATFORM_CMS);
-  useEffect(() => {
-    let active = true;
-    void fetchPublishedPlatformCms().then((value) => { if (active && value) setContent(value); });
-    return () => { active = false; };
-  }, []);
-  return content;
+  const content = useSyncExternalStore(publishedCms.subscribe, publishedCms.getSnapshot, publishedCms.getSnapshot);
+  useEffect(() => { void fetchPublishedPlatformCms(); }, []);
+  return content || DEFAULT_PLATFORM_CMS;
 }
 
 export function normalizePlatformCms(input: unknown): PlatformSiteCms {

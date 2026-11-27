@@ -24,6 +24,8 @@ import { LoadingFallback } from "./components/LoadingFallback";
 import { classifyTenantHost } from "./lib/tenantDomains";
 import { shouldRetryLazyChunkLoad } from "./lib/lazyChunkRecovery";
 import { getPublicSiteConfig } from "./lib/publicSiteConfigCache";
+import { fetchPublishedPlatformCms } from "./lib/platformSiteCms";
+import { publicRouteKind, needsPortfolioContent } from "./lib/publicRouteLoading";
 
 const CHUNK_RETRY_KEY = "bt_chunk_retry_once";
 let documentNavigationStarted = false;
@@ -80,20 +82,38 @@ const AgencyMotionDirector = lazy(() => import("./components/AgencyMotionDirecto
 const AgencyVisualDirector = lazy(() => import("./components/AgencyVisualDirector").then((m) => ({ default: m.AgencyVisualDirector })));
 const AgencyCopyDirector = lazy(() => import("./components/AgencyCopyDirector").then((m) => ({ default: m.AgencyCopyDirector })));
 
+/** Public CMS loading is bounded by its resource timeout. No private data is prefetched. */
+function primePublicContent(kind:ReturnType<typeof publicRouteKind>) {
+  if(!kind)return Promise.resolve();
+  const requests:Promise<unknown>[]=[fetchPublishedPlatformCms()];
+  if(needsPortfolioContent(kind))requests.push(import("./lib/studioShowcaseCms").then(m=>m.preloadStudioShowcaseCms()));
+  return Promise.all(requests);
+}
 // --- Lazy Loaded Components ---
-const LandingPage = lazy(() => import("./components/BrandLedLandingPage"));
-const PersonalProfilePage = lazy(() => import("./components/PersonalProfilePage"));
+const loadLandingPage = () => Promise.all([import("./components/BrandLedLandingPage"), primePublicContent("home")]).then(([module]) => module);
+const LandingPage = lazy(loadLandingPage);
+const loadPersonalProfilePage = () => Promise.all([import("./components/PersonalProfilePage"), primePublicContent("profile")]).then(([module]) => module);
+const PersonalProfilePage = lazy(loadPersonalProfilePage);
 const LoginPage = lazy(() => import("./components/LoginPage"));
-const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
-const ComparisonGuidePage = lazy(() => import("./components/ComparisonGuidePage"));
-const loadPublicMarketingPages = () => import("./components/PublicMarketingPages");
+const loadOwnSalesSeoPage = () => Promise.all([import("./components/OwnSalesSeoPage"), primePublicContent("sales")]).then(([module]) => module);
+const OwnSalesSeoPage = lazy(loadOwnSalesSeoPage);
+const loadComparisonGuidePage = () => Promise.all([import("./components/ComparisonGuidePage"), primePublicContent("comparison")]).then(([module]) => module);
+const ComparisonGuidePage = lazy(loadComparisonGuidePage);
+const loadPublicMarketingPages = () => Promise.all([import("./components/PublicMarketingPages"), fetchPublishedPlatformCms()]).then(([module]) => module);
 const PublicMarketingPages = lazy(loadPublicMarketingPages);
-const StudioCaseStudyDetail = lazy(() => import("./components/StudioCaseStudyDetail"));
-const StudioShowcaseLivePreview = lazy(() => import("./components/StudioShowcasePreviewRouter"));
-const PublicBlogPostPage = lazy(() => import("./components/PublicBlogPostPage"));
-const PublicResourceArticlePage = lazy(() => import("./components/PublicResourceArticlePage"));
-const WaasSamplePage = lazy(() => import("./components/WaasSamplePage"));
-const BookDemo = lazy(() => import("./components/BookDemo"));
+const PublicPortfolioPage = lazy(() => Promise.all([loadPublicMarketingPages(),primePublicContent("portfolio")]).then(([module])=>module));
+const loadStudioCaseStudyDetail = () => Promise.all([import("./components/StudioCaseStudyDetail"), primePublicContent("showcase-detail")]).then(([module]) => module);
+const StudioCaseStudyDetail = lazy(loadStudioCaseStudyDetail);
+const loadStudioShowcaseLivePreview = () => Promise.all([import("./components/StudioShowcasePreviewRouter"), primePublicContent("showcase-preview")]).then(([module]) => module);
+const StudioShowcaseLivePreview = lazy(loadStudioShowcaseLivePreview);
+const loadPublicBlogPostPage = () => Promise.all([import("./components/PublicBlogPostPage"), primePublicContent("blog")]).then(([module]) => module);
+const PublicBlogPostPage = lazy(loadPublicBlogPostPage);
+const loadPublicResourceArticlePage = () => Promise.all([import("./components/PublicResourceArticlePage"), primePublicContent("resource")]).then(([module]) => module);
+const PublicResourceArticlePage = lazy(loadPublicResourceArticlePage);
+const loadWaasSamplePage = () => Promise.all([import("./components/WaasSamplePage"), primePublicContent("sample")]).then(([module]) => module);
+const WaasSamplePage = lazy(loadWaasSamplePage);
+const loadBookDemo = () => Promise.all([import("./components/BookDemo"), primePublicContent("book")]).then(([module]) => module);
+const BookDemo = lazy(loadBookDemo);
 const ManageCallBooking = lazy(() => import("./components/ManageCallBooking"));
 const PublicProposalPage = lazy(() => import("./components/PublicProposalPage"));
 const ProspectPreviewPage = lazy(() => import("./components/ProspectPreviewPage"));
@@ -440,41 +460,59 @@ function PublicAnalytics({ settings }: { settings: any }) {
   );
 }
 
-function PublicRouteTransition({ children }: { children: React.ReactNode }) {
-  const { pathname } = useLocation();
-  const isPublicRoute = !PRIVATE_ROUTE_PREFIXES.some(
-    (prefix) =>
-      pathname === prefix ||
-      pathname.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`),
-  );
-
-  React.useEffect(() => {
-    if (!isPublicRoute) return;
-    const prefetchMarketingPage = (event: Event) => {
-      if (!(event.target instanceof Element)) return;
-      const link = event.target.closest("a[href]");
-      if (!(link instanceof HTMLAnchorElement) || link.origin !== window.location.origin || link.target === "_blank" || link.hasAttribute("download")) return;
-      if (/^\/(services|pricing|about|resources|contact|templates|how-it-works|case-studies|generate-preview|website-audit)\/?$/.test(link.pathname)) {
-        void loadPublicMarketingPages().catch(() => { /* Navigation retains normal lazy-load recovery. */ });
-      }
+const publicLoaders:Record<NonNullable<ReturnType<typeof publicRouteKind>>,()=>Promise<unknown>> = {
+  "home":loadLandingPage,
+  "profile":loadPersonalProfilePage,
+  "sales":loadOwnSalesSeoPage,
+  "comparison":loadComparisonGuidePage,
+  "showcase-detail":loadStudioCaseStudyDetail,
+  "showcase-preview":loadStudioShowcaseLivePreview,
+  "blog":loadPublicBlogPostPage,
+  "resource":loadPublicResourceArticlePage,
+  "sample":loadWaasSamplePage,
+  "book":loadBookDemo,
+  marketing:loadPublicMarketingPages,
+  portfolio:()=>Promise.all([loadPublicMarketingPages(),primePublicContent("portfolio")]),
+};
+function PublicNavigationPrefetch(){
+  const {pathname}=useLocation();
+  React.useEffect(()=>{
+    const kind=publicRouteKind(pathname);
+    if(!kind)return;
+    const prepare=(event:Event)=>{
+      if(!(event.target instanceof Element))return;
+      const link=event.target.closest("a[href]");
+      if(!(link instanceof HTMLAnchorElement)||link.origin!==window.location.origin||link.target==="_blank"||link.hasAttribute("download"))return;
+      const target=publicRouteKind(link.pathname);
+      if(target)void publicLoaders[target]().catch(()=>{});
     };
-    document.addEventListener("pointerover", prefetchMarketingPage);
-    document.addEventListener("focusin", prefetchMarketingPage);
-    return () => {
-      document.removeEventListener("pointerover", prefetchMarketingPage);
-      document.removeEventListener("focusin", prefetchMarketingPage);
+    const connection=(navigator as Navigator & {connection?:{saveData?:boolean;effectiveType?:string}}).connection;
+    const allowSpeculation=!connection?.saveData&&!/^(slow-2g|2g)$/.test(connection?.effectiveType||"");
+    if(allowSpeculation){
+      document.addEventListener("pointerover",prepare);
+      document.addEventListener("focusin",prepare);
+      document.addEventListener("touchstart",prepare,{passive:true});
+    }
+    return ()=>{
+      document.removeEventListener("pointerover",prepare);
+      document.removeEventListener("focusin",prepare);
+      document.removeEventListener("touchstart",prepare);
     };
-  }, [isPublicRoute]);
-
-  if (!isPublicRoute) return <>{children}</>;
-
-  return (
-    <div className="bt-public-route-transition">
-      {children}
-    </div>
-  );
+  },[pathname]);
+  return null;
 }
-
+function PublicRouteTransition({children}:{children:React.ReactNode}){
+  const {pathname}=useLocation();
+  const isPublicRoute=Boolean(publicRouteKind(pathname));
+  // React Router 7 schedules navigation in a transition. Keep the boundary
+  // mounted at a stable position so already revealed public content stays
+  // visible while a new lazy route suspends.
+  return <div className={isPublicRoute?"bt-public-route-transition":undefined}>{children}</div>;
+}
+function PublicRouteFallback(){
+  const {pathname}=useLocation();
+  return <LoadingFallback delayMs={publicRouteKind(pathname)?300:0}/>;
+}
 function RouteRobotsMeta() {
   const { pathname } = useLocation();
   const privateRoute =
@@ -683,7 +721,8 @@ export default function App() {
             </script>
           </Helmet>
           <Toaster position="top-right" />
-          <Suspense fallback={<LoadingFallback />}>
+          <PublicNavigationPrefetch />
+          <Suspense fallback={<PublicRouteFallback />}>
             <PublicRouteTransition>
               <Routes>
               <Route path="/" element={<LandingPage />} />
@@ -704,7 +743,7 @@ export default function App() {
               <Route path="/templates" element={<PublicMarketingPages />} />
               <Route path="/pricing" element={<PublicMarketingPages />} />
               <Route path="/how-it-works" element={<PublicMarketingPages />} />
-              <Route path="/case-studies" element={<PublicMarketingPages />} />
+              <Route path="/case-studies" element={<PublicPortfolioPage />} />
               <Route path="/case-studies/showcase/:slug" element={<StudioCaseStudyDetail />} />
               <Route path="/case-studies/showcase/:slug/preview" element={<StudioShowcaseLivePreview />} />
               <Route path="/case-studies/showcase/:slug/preview/:page" element={<StudioShowcaseLivePreview />} />
