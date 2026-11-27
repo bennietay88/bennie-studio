@@ -1,3 +1,4 @@
+import { choosePrimaryWebsite } from "./src/lib/primaryWebsite.js";
 import { next, rewrite } from "@vercel/functions";
 import { classifyTenantHost, getPlatformHosts, normalizeDomainInput } from "./src/lib/tenantDomains.js";
 import { isHandoverGraceActive } from "./src/lib/billingLifecycle.js";
@@ -89,10 +90,10 @@ async function resolveTenantHost(host: string): Promise<TenantResolveResult> {
   if (businessFailure) return businessFailure;
 
   const websites = await fetchSupabase(
-    `websites?select=id,business_id,status&business_id=eq.${encodeURIComponent(business.id)}&status=eq.published&order=updated_at.desc&limit=1`,
+    `websites?select=id,business_id,status,is_primary&business_id=eq.${encodeURIComponent(business.id)}&order=is_primary.desc&limit=2`,
   );
-  const website = websites?.[0];
-  if (!website) return { ok: false, status: 404, code: "WEBSITE_NOT_PUBLISHED", message: "This domain is not connected to a published website yet." };
+  const website = choosePrimaryWebsite<{id:string;business_id:string;status:string;is_primary:boolean}>(websites || []);
+  if (!website || website.status !== "published") return { ok: false, status: 404, code: "WEBSITE_NOT_PUBLISHED", message: "This domain is not connected to a published website yet." };
   if (website.business_id !== business.id) return { ok: false, status: 409, code: "WEBSITE_BUSINESS_MISMATCH", message: "This domain is not available." };
 
   return { ok: true, businessId: business.id, websiteId: website.id, kind: tenant.kind };
