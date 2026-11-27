@@ -1,3 +1,4 @@
+import { registerWebsitePortfolioRoutes } from "../server/websitePortfolioRoutes.js";
 import { fetchPublishedPreviewContent, isPreviewPublicRead } from "../server/previewPublicContent.js";
 import { buildInboundNewsletterMessages, INBOUND_NEWSLETTER_CONSENT, isSupportedNewsletterMarket } from "../server/inboundNewsletter.js";
 import express from "express";
@@ -1394,6 +1395,8 @@ async function startServer() {
       return res.json({ unpaidTotal: Number(data || 0) });
     },
   );
+
+  registerWebsitePortfolioRoutes(app, supabaseAdmin, authenticate, getProfileForUser);
 
   // Customer self-service website handover. This export is scoped to the
   // authenticated user's business and contains no billing records or secrets.
