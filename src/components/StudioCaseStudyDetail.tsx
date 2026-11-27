@@ -62,9 +62,9 @@ export default function StudioCaseStudyDetail() {
           <p className="text-xs font-bold uppercase tracking-[.18em] text-[#1741ed]">Visual walkthrough</p>
           <h2 className="c27-section-title mt-4">See the design across devices.</h2>
           <div className="mt-9 grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,.35fr)]">
-            {study.desktopImage && <div className="min-w-0"><div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-bold">Desktop</h3><a href={study.desktopImage} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-indigo-700 underline">View full image</a></div>
+            {study.desktopImage && <div data-testid="study-desktop-screenshot" className="min-w-0"><div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-bold">Desktop</h3><a href={study.desktopImage} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-indigo-700 underline">View full image</a></div>
               <div className="max-h-[720px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50"><img src={study.desktopImage} alt={study.imageAlt || study.title + " desktop website screenshot"} loading="lazy" decoding="async" className="block h-auto w-full"/></div></div>}
-            {study.mobileImage && <div className="min-w-0"><div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-bold">Mobile</h3><a href={study.mobileImage} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-indigo-700 underline">View full image</a></div>
+            {study.mobileImage && <div data-testid="study-mobile-screenshot" className="min-w-0"><div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-bold">Mobile</h3><a href={study.mobileImage} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-indigo-700 underline">View full image</a></div>
               <div className="mx-auto max-h-[720px] max-w-[390px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50"><img src={study.mobileImage} alt={study.title + " mobile website screenshot"} loading="lazy" decoding="async" className="block h-auto w-full"/></div></div>}
           </div>
         </div>
