@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { createPublicContentResource } from "./publicContentResource";
 
 export type PlatformCmsItem = { title: string; body: string; imageUrl?: string };

@@ -8,11 +8,21 @@ import { Loader2 } from "lucide-react";
 
 interface LoadingFallbackProps {
   message?: string;
+  delayMs?: number;
 }
 
 export const LoadingFallback: React.FC<LoadingFallbackProps> = ({
   message = "Loading…",
+  delayMs = 0,
 }) => {
+  const [visible,setVisible]=React.useState(delayMs===0);
+  React.useEffect(()=>{
+    if(delayMs<=0){setVisible(true);return;}
+    setVisible(false);
+    const timer=setTimeout(()=>setVisible(true),delayMs);
+    return ()=>clearTimeout(timer);
+  },[delayMs]);
+  if(!visible)return null;
   const websiteBoot = message.toLowerCase().includes("loading website");
 
   return (
