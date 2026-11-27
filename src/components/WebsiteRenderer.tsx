@@ -1,3 +1,4 @@
+import { choosePrimaryWebsite } from "../lib/primaryWebsite";
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -770,16 +771,11 @@ export function WebsiteRenderer({
           .select("*")
           .eq("business_id", businessId);
 
-        if (requestedWebsiteId) {
-          query = query.eq("id", requestedWebsiteId);
-        } else if (!draftPreview) {
-          query = query.eq("status", "published");
-        }
-
-        const { data, error } = await query
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        if (requestedWebsiteId) query = query.eq("id", requestedWebsiteId);
+        const { data: rows, error } = await query.order("is_primary", { ascending: false }).limit(2);
+        if (error) throw error;
+        const selected = requestedWebsiteId ? rows?.[0] : choosePrimaryWebsite(rows || []);
+        const data = selected && (draftPreview || selected.status === "published") ? selected : null;
 
         if (data) {
           const theme = { ...data.theme };
