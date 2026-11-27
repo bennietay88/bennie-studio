@@ -150,7 +150,7 @@ grant execute on function public.manage_website_draft(uuid,uuid,text,uuid,text) 
 -- Serialize canonical domain reservations across both legacy and site-level
 -- assignments. www/apex aliases are deliberately exclusive.
 create or replace function private.guard_site_domain_assignment()
-returns trigger language plpgsql security definer set search_path='' as $
+returns trigger language plpgsql security definer set search_path='' as $domain_guard$
 declare canonical text;
 begin
   if new.custom_domain is null or btrim(new.custom_domain)='' then return new; end if;
@@ -176,7 +176,7 @@ begin
   end if;
   return new;
 end;
-$;
+$domain_guard$;
 revoke all on function private.guard_site_domain_assignment() from public,anon,authenticated;
 drop trigger if exists guard_site_domain_assignment on public.websites;
 create trigger guard_site_domain_assignment before insert or update of custom_domain on public.websites
