@@ -30,3 +30,97 @@ export function readableInk(surface:string,preferred:string){
  if(!/^#[0-9a-f]{6}$/i.test(surface))return "#ffffff";
  return contrastRatio(surface,"#ffffff")>=contrastRatio(surface,"#111111")?"#ffffff":"#111111";
 }
+
+const NAVIGATION_LABELS: Record<string,readonly [string,string,string]> = {
+  "dental-clinic": [
+    "Treatments",
+    "Patient care",
+    "Appointments"
+  ],
+  "renovation-contractor": [
+    "Projects & services",
+    "Our approach",
+    "Project brief"
+  ],
+  "professional-advisory": [
+    "Expertise",
+    "Our approach",
+    "Consultation"
+  ],
+  "tuition-centre": [
+    "Programmes",
+    "Learning approach",
+    "Trial enquiry"
+  ],
+  "beauty-wellness": [
+    "Treatment menu",
+    "Our philosophy",
+    "Booking enquiry"
+  ],
+  "accounting-firm": [
+    "Accounting services",
+    "Our approach",
+    "Consultation"
+  ],
+  "physiotherapy-clinic": [
+    "Recovery services",
+    "Our approach",
+    "Assessment enquiry"
+  ],
+  "real-estate-agency": [
+    "Property discovery",
+    "Our approach",
+    "Viewing enquiry"
+  ],
+  "cleaning-service": [
+    "Cleaning options",
+    "How we work",
+    "Get a quote"
+  ],
+  "hvac-specialist": [
+    "Technical services",
+    "Our approach",
+    "Service request"
+  ],
+  "landscape-design": [
+    "Garden services",
+    "Design approach",
+    "Garden brief"
+  ],
+  "business-consulting": [
+    "Consulting services",
+    "Our framework",
+    "Discuss a challenge"
+  ],
+  "interior-design": [
+    "Design services",
+    "Studio approach",
+    "Project brief"
+  ],
+  "auto-detailing": [
+    "Detailing services",
+    "Our process",
+    "Detailing enquiry"
+  ],
+  "fitness-coaching": [
+    "Training programmes",
+    "Training approach",
+    "Trial enquiry"
+  ],
+  "photography-studio": [
+    "Sessions",
+    "Studio approach",
+    "Session enquiry"
+  ],
+  "pet-wellness": [
+    "Care services",
+    "Our approach",
+    "Care enquiry"
+  ],
+  "event-planning": [
+    "Event services",
+    "Our philosophy",
+    "Event brief"
+  ]
+};
+export function demoNavigation(slug:string,page:"home"|"services"|"about"|"contact"){const labels=NAVIGATION_LABELS[slug];return page==="home"?"Home":labels?.[page==="services"?0:page==="about"?1:2]||page;}
