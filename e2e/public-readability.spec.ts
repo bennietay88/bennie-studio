@@ -82,3 +82,42 @@ test("process copy does not promise zero commitment for every plan", async ({ pa
   await expect(page.getByText(/there is no minimum term|with no minimum term/i)).toHaveCount(0);
   await expect(page.getByText(/minimum commitment/i).first()).toBeVisible();
 });
+
+
+test("pricing comparison text remains readable on desktop and mobile", async ({ page }) => {
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/pricing", { waitUntil: "domcontentloaded" });
+    const selector = width < 768 ? ".s28-compare section[aria-label] :is(dt,dd)" : ".s28-compare table :is(th,td)";
+    const cells = page.locator(selector);
+    await expect(cells.first()).toBeVisible();
+    const colors = await cells.evaluateAll(elements => elements.map(element => {
+      let surface: Element | null = element;
+      while (surface && getComputedStyle(surface).backgroundColor === "rgba(0, 0, 0, 0)") surface = surface.parentElement;
+      const style = getComputedStyle(element);
+      return { text: element.textContent, color: style.color, background: surface ? getComputedStyle(surface).backgroundColor : "rgb(255, 255, 255)", size: parseFloat(style.fontSize) };
+    }));
+    for (const cell of colors) {
+      expect(contrast(cell.color, cell.background), cell.text || "comparison cell").toBeGreaterThanOrEqual(4.5);
+      expect(cell.size, cell.text || "comparison cell").toBeGreaterThanOrEqual(14);
+    }
+  }
+});
+
+test("public navigation keeps a stable untransformed route shell", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/services", { waitUntil: "domcontentloaded" });
+  const shell = page.locator(".bt-public-route-transition");
+  await expect(shell).toBeVisible();
+  const handle = await shell.elementHandle();
+  if (!handle) throw new Error("Missing public route shell");
+  const pricing = page.locator('header a[href="/pricing"]').first();
+  await expect(pricing).toBeVisible();
+  await pricing.hover();
+  await pricing.click();
+  await expect(page).toHaveURL(/\/pricing(?:[?#].*)?$/);
+  await expect(page.locator(".s28-compare")).toBeVisible();
+  expect(await handle.evaluate(el => el.isConnected)).toBe(true);
+  expect(await shell.evaluate(el => getComputedStyle(el).transform)).toBe("none");
+  expect(await shell.evaluate(el => getComputedStyle(el).opacity)).toBe("1");
+});
