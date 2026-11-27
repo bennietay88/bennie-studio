@@ -1,6 +1,7 @@
 import { SECONDARY_SITE_ROUTE_FIELDS, secondaryDomainFailure, type SecondaryRouteRow } from "../src/lib/secondarySiteRouting.js";
 import { choosePrimaryWebsite } from "../src/lib/primaryWebsite.js";
 import { registerWebsiteAddonRoutes, handleWebsiteAddonWebhook, cancelWebsiteAddonsWithParent } from "../server/websiteAddonRoutes.js";
+import { registerInternalRoleTestRoutes } from "../server/internalRoleTestRoutes.js";
 import { registerWebsitePortfolioRoutes } from "../server/websitePortfolioRoutes.js";
 import { fetchPublishedPreviewContent, isPreviewPublicRead } from "../server/previewPublicContent.js";
 import { buildInboundNewsletterMessages, INBOUND_NEWSLETTER_CONSENT, isSupportedNewsletterMarket } from "../server/inboundNewsletter.js";
@@ -1376,7 +1377,12 @@ async function startServer() {
         req.aiInternal = true;
         return next();
       }
-      if (!flags.customer_ai_controls) return res.status(403).json({ error: "CUSTOMER_AI_DISABLED", code: "CUSTOMER_AI_DISABLED" });
+      let isInternalOwner=false;
+      if(profile.business_id&&profile.role==="business_admin"){
+        const {data:owner}=await supabaseAdmin.from("businesses").select("internal_access_mode,owner_id").eq("id",profile.business_id).maybeSingle();
+        isInternalOwner=owner?.internal_access_mode==="owner"&&owner.owner_id===req.user.id;
+      }
+      if (!flags.customer_ai_controls&&!isInternalOwner) return res.status(403).json({ error: "CUSTOMER_AI_DISABLED", code: "CUSTOMER_AI_DISABLED" });
       const { data: subscription } = await supabaseAdmin.from("user_subscriptions").select("plans(monthly_credit_limit,chatgpt_enabled)").eq("user_id", req.user.id).in("status", ["active", "trialing"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
       const plan = (subscription as any)?.plans;
       if (!plan || Number(plan.monthly_credit_limit || 0) <= 0) return res.status(403).json({ error: "CUSTOMER_AI_DISABLED", code: "CUSTOMER_AI_DISABLED" });
@@ -1400,6 +1406,7 @@ async function startServer() {
   );
 
   registerWebsitePortfolioRoutes(app, supabaseAdmin, authenticate, getProfileForUser);
+  registerInternalRoleTestRoutes(app,supabaseAdmin,authenticate,getProfileForUser);
   registerWebsiteAddonRoutes(app, supabaseAdmin, authenticate, getProfileForUser, getStripe);
 
   // Customer self-service website handover. This export is scoped to the

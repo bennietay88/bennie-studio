@@ -81,7 +81,8 @@ const planTableRowsToSettings = (rows: any[]) =>
   );
 
 export function useFeatures() {
-  const { profile } = useAuth();
+  const { profile, business: authBusiness } = useAuth();
+  const internalOwner=authBusiness?.id===profile?.businessId&&authBusiness?.internal_access_mode==="owner"&&profile?.status==="active";
   const [business, setBusiness] = useState<Business | null>(null);
   const [planSettings, setPlanSettings] = useState<any[]>(normalizePlans(PLANS));
   const [loading, setLoading] = useState(true);
@@ -174,7 +175,7 @@ export function useFeatures() {
   }, [profile?.businessId]);
 
   const isFeatureEnabled = (featureId: FeatureId): boolean => {
-    if (profile?.role === "super_admin") return true;
+    if (profile?.role === "super_admin"||internalOwner) return true;
 
     if (!business) return false;
 
@@ -205,7 +206,7 @@ export function useFeatures() {
     isMarketingCapabilityEnabled(capabilityId) ? "enabled" : "disabled";
 
   const isFeatureVisible = (featureId: FeatureId): boolean => {
-    if (profile?.role === "super_admin") return true;
+    if (profile?.role === "super_admin"||internalOwner) return true;
     if (!business) return true;
 
     const hidden = business.dashboardHiddenFeatures || [];
