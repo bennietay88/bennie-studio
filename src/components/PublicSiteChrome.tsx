@@ -152,7 +152,7 @@ export function PublicSiteHeader() {
       </nav>
 
       {mobileOpen && typeof document !== "undefined" ? createPortal(
-        <div className="fixed inset-0 z-[100] bg-[#07101f]/60 backdrop-blur-sm xl:hidden" onClick={() => setMobileOpen(false)}>
+        <div className="fixed inset-0 z-[150] bg-[#07101f]/60 backdrop-blur-sm xl:hidden" onClick={() => setMobileOpen(false)}>
           <div ref={mobileDialogRef} tabIndex={-1} id="public-mobile-navigation" role="dialog" aria-modal="true" aria-label="Navigation menu" className="absolute right-0 top-0 flex h-dvh w-[min(92vw,390px)] flex-col overflow-y-auto overscroll-contain bg-white p-6 shadow-2xl focus:outline-none" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-[#e5e7ef] pb-5">
               <span className="text-lg font-semibold tracking-[-0.03em] text-[#0d1426]">Bennie Studio</span>
