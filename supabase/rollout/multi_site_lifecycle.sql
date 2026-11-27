@@ -6,6 +6,15 @@ alter table public.plans add column if not exists website_limit integer not null
 alter table public.plans add constraint plans_website_limit_check check (website_limit between 0 and 1000);
 alter table public.websites add column if not exists archived_at timestamptz;
 alter table public.websites add column if not exists domain_challenge text;
+alter table public.websites add column if not exists release_revision uuid not null default gen_random_uuid();
+alter table public.websites add column if not exists submitted_revision uuid;
+alter table public.websites add column if not exists internal_approved_revision uuid;
+alter table public.websites add column if not exists customer_approved_revision uuid;
+alter table public.websites add column if not exists internal_approved_by uuid;
+alter table public.websites add column if not exists customer_approved_by uuid;
+alter table public.websites add column if not exists internal_approved_at timestamptz;
+alter table public.websites add column if not exists customer_approved_at timestamptz;
+alter table public.websites add column if not exists released_at timestamptz;
 
 -- Preserve the existing single-site business mapping. Ambiguous legacy tenants
 -- must be reviewed manually rather than choosing whichever site was edited last.
@@ -56,11 +65,7 @@ begin
   if new.archived_at is not null and new.status<>'draft' then
     raise exception 'ONLY_DRAFTS_CAN_BE_ARCHIVED' using errcode='23514';
   end if;
-  -- Secondary publishing remains fail-closed until site-level approvals,
-  -- verified domains and public read paths are integrated.
-  if not new.is_primary and new.status='published' then
-    raise exception 'SECONDARY_SITE_PUBLICATION_NOT_ENABLED' using errcode='23514';
-  end if;
+  -- Secondary releases are enforced by the release guard below.
   if tg_op='UPDATE' and coalesce(auth.role(),'') in ('anon','authenticated') then
     if old.archived_at is not null then
       raise exception 'WEBSITE_ARCHIVED' using errcode='42501';
@@ -184,4 +189,85 @@ for each row execute function private.guard_site_domain_assignment();
 drop trigger if exists guard_site_domain_assignment on public.businesses;
 create trigger guard_site_domain_assignment before insert or update of custom_domain on public.businesses
 for each row execute function private.guard_site_domain_assignment();
+
+-- Authoritative revision invalidation and release enforcement. Runs after the
+-- allocation trigger so the primary/secondary identity is already assigned.
+create or replace function private.guard_secondary_site_release()
+returns trigger language plpgsql security invoker set search_path='' as $release_guard$
+declare
+  is_server boolean := coalesce(auth.role(),'')='service_role';
+  content_changed boolean := false;
+begin
+  if new.business_id is null or new.is_primary then return new; end if;
+  if tg_op='INSERT' then
+    new.release_revision := gen_random_uuid();
+    new.submitted_revision := null;
+    new.internal_approved_revision := null;
+    new.customer_approved_revision := null;
+    new.internal_approved_by := null;
+    new.customer_approved_by := null;
+    new.internal_approved_at := null;
+    new.customer_approved_at := null;
+    new.released_at := null;
+    if new.status is distinct from 'draft' then raise exception 'SECONDARY_SITE_MUST_START_AS_DRAFT' using errcode='23514'; end if;
+  else
+    if new.release_revision is distinct from old.release_revision then
+      raise exception 'RELEASE_REVISION_SERVER_MANAGED' using errcode='42501';
+    end if;
+    if not is_server and (new.status is distinct from old.status
+      or new.submitted_revision is distinct from old.submitted_revision
+      or new.internal_approved_revision is distinct from old.internal_approved_revision
+      or new.customer_approved_revision is distinct from old.customer_approved_revision
+      or new.internal_approved_by is distinct from old.internal_approved_by
+      or new.customer_approved_by is distinct from old.customer_approved_by
+      or new.internal_approved_at is distinct from old.internal_approved_at
+      or new.customer_approved_at is distinct from old.customer_approved_at
+      or new.released_at is distinct from old.released_at) then
+      raise exception 'USE_SITE_RELEASE_API' using errcode='42501';
+    end if;
+    content_changed := new.pages is distinct from old.pages or new.theme is distinct from old.theme
+      or new.seo is distinct from old.seo or new.custom_domain is distinct from old.custom_domain;
+    if old.status='published' and content_changed then
+      raise exception 'UNPUBLISH_BEFORE_EDITING' using errcode='23514';
+    end if;
+    if content_changed or new.archived_at is distinct from old.archived_at
+      or (old.status='published' and new.status='draft') then
+      new.release_revision := gen_random_uuid();
+      new.submitted_revision := null;
+      new.internal_approved_revision := null;
+      new.customer_approved_revision := null;
+      new.internal_approved_by := null;
+      new.customer_approved_by := null;
+      new.internal_approved_at := null;
+      new.customer_approved_at := null;
+      new.released_at := null;
+    end if;
+  end if;
+  if new.status='published' then
+    if new.archived_at is not null or new.is_internal_pilot is distinct from false
+      or new.submitted_revision is distinct from new.release_revision
+      or new.internal_approved_revision is distinct from new.release_revision
+      or new.customer_approved_revision is distinct from new.release_revision
+      or new.internal_approved_by is null or new.customer_approved_by is null
+      or new.internal_approved_by=new.customer_approved_by
+      or new.internal_approved_at is null or new.customer_approved_at is null
+      or new.customer_approved_at<new.internal_approved_at
+      or new.released_at is null
+      or coalesce(new.custom_domain,'')=''
+      or new.custom_domain_status is distinct from 'connected'
+      or new.custom_domain_verified_at is null
+      or new.custom_domain_permission_confirmed is distinct from true
+      or new.custom_domain_suspended is distinct from false
+      or new.ssl_status is distinct from 'issued' then
+      raise exception 'SITE_RELEASE_REQUIREMENTS_NOT_MET' using errcode='23514';
+    end if;
+  end if;
+  return new;
+end;
+$release_guard$;
+revoke all on function private.guard_secondary_site_release() from public,anon,authenticated;
+drop trigger if exists z_guard_secondary_site_release on public.websites;
+create trigger z_guard_secondary_site_release before insert or update on public.websites
+for each row execute function private.guard_secondary_site_release();
+
 commit;
